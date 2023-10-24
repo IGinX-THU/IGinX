@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical;
 
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -29,7 +30,12 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 
 public interface PhysicalEngine {
 
-  RowStream execute(RequestContext ctx, Operator root) throws PhysicalException;
+  default RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+    return execute(ctx, root, null);
+  }
+
+  RowStream execute(RequestContext ctx, Operator root, ExecutorWarningHook executorWarningHook)
+      throws PhysicalException;
 
   PhysicalOptimizer getOptimizer();
 

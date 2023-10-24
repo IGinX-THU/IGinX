@@ -37,6 +37,7 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
@@ -113,8 +114,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  private static final String WARNINGS = "WARNING: %s";
-
   private NaiveOperatorMemoryExecutor() {}
 
   public static NaiveOperatorMemoryExecutor getInstance() {
@@ -161,9 +160,23 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   @Override
   public RowStream executeBinaryOperator(
       BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
+    return executeBinaryOperator(operator, streamA, streamB, null);
+  }
+
+  @Override
+  public RowStream executeBinaryOperator(
+      BinaryOperator operator,
+      RowStream streamA,
+      RowStream streamB,
+      ExecutorWarningHook executorWarningHook)
+      throws PhysicalException {
     switch (operator.getType()) {
       case Join:
-        return executeJoin((Join) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeJoin(
+            (Join) operator,
+            transformToTable(streamA),
+            transformToTable(streamB),
+            executorWarningHook);
       case CrossJoin:
         return executeCrossJoin(
             (CrossJoin) operator, transformToTable(streamA), transformToTable(streamB));
@@ -642,7 +655,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(targetHeader, targetRows);
   }
 
-  private RowStream executeJoin(Join join, Table tableA, Table tableB) throws PhysicalException {
+  private RowStream executeJoin(
+      Join join, Table tableA, Table tableB, ExecutorWarningHook executorWarningHook)
+      throws PhysicalException {
     boolean hasIntersect = false;
     Header headerA = tableA.getHeader();
     Header headerB = tableB.getHeader();
@@ -663,7 +678,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
     }
     if (hasIntersect) {
-      return executeIntersectJoin(join, tableA, tableB);
+      return executeIntersectJoin(join, tableA, tableB, executorWarningHook);
     }
     // 目前只支持使用时间戳和顺序
     if (join.getJoinBy().equals(Constants.KEY)) {
@@ -2056,7 +2071,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private RowStream executeIntersectJoin(Join join, Table tableA, Table tableB)
+  private RowStream executeIntersectJoin(
+      Join join, Table tableA, Table tableB, ExecutorWarningHook executorWarningHook)
       throws PhysicalException {
     Header headerA = tableA.getHeader();
     Header headerB = tableB.getHeader();
@@ -2127,14 +2143,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         writeToNewRow(values, rowB, fieldIndices);
         newRows.add(new Row(newHeader, rowB.getKey(), values));
       }
-      return new Table(
-          newHeader,
-          newRows,
-          isConflictInKey
-              ? String.format(
-                  WARNINGS,
-                  "The query results contain overlapping key values, displaying only partial data")
-              : "");
+      if (isConflictInKey && executorWarningHook != null) {
+        executorWarningHook.onChange();
+      }
+      return new Table(newHeader, newRows);
     } else if (join.getJoinBy().equals(Constants.ORDINAL)) {
       if (headerA.hasKey() || headerB.hasKey()) {
         throw new InvalidOperatorParameterException(

@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.optimizer;
 
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.rule.Rule;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
@@ -26,7 +27,7 @@ import java.util.Collection;
 
 public interface PhysicalOptimizer {
 
-  PhysicalTask optimize(Operator root);
+  PhysicalTask optimize(Operator root, ExecutorWarningHook executorWarningHook);
 
   ConstraintManager getConstraintManager();
 

@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.WarningException;
@@ -40,11 +41,22 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final PhysicalTask parentTaskB;
 
+  private ExecutorWarningHook executorWarningHook;
+
   public BinaryMemoryPhysicalTask(
       List<Operator> operators, PhysicalTask parentTaskA, PhysicalTask parentTaskB) {
+    this(operators, parentTaskA, parentTaskB, null);
+  }
+
+  public BinaryMemoryPhysicalTask(
+      List<Operator> operators,
+      PhysicalTask parentTaskA,
+      PhysicalTask parentTaskB,
+      ExecutorWarningHook executorWarningHook) {
     super(TaskType.BinaryMemory, operators);
     this.parentTaskA = parentTaskA;
     this.parentTaskB = parentTaskB;
+    this.executorWarningHook = executorWarningHook;
   }
 
   public PhysicalTask getParentTaskA() {
@@ -85,10 +97,9 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
       if (!OperatorType.isBinaryOperator(op.getType())) {
         throw new UnexpectedOperatorException("unexpected operator " + op + " in binary task");
       }
-      stream = executor.executeBinaryOperator((BinaryOperator) op, streamA, streamB);
-      if (!stream.getWarningMsg().isEmpty()) {
-        warningMsg = stream.getWarningMsg();
-      }
+      stream =
+          executor.executeBinaryOperator(
+              (BinaryOperator) op, streamA, streamB, executorWarningHook);
       for (int i = 1; i < operators.size(); i++) {
         op = operators.get(i);
         if (OperatorType.isBinaryOperator(op.getType())) {

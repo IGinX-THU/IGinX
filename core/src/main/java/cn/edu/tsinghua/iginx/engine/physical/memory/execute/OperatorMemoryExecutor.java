@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
@@ -29,4 +30,15 @@ public interface OperatorMemoryExecutor {
 
   RowStream executeBinaryOperator(BinaryOperator operator, RowStream streamA, RowStream streamB)
       throws PhysicalException;
+
+  default RowStream executeBinaryOperator(
+      BinaryOperator operator,
+      RowStream streamA,
+      RowStream streamB,
+      ExecutorWarningHook executorWarningHook)
+      throws PhysicalException {
+    return executeBinaryOperator(operator, streamA, streamB);
+  }
+
+  default void registerWarningHook(ExecutorWarningHook executorWarningHook) {}
 }

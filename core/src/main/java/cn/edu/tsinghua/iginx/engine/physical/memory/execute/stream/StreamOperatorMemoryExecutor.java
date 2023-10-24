@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
@@ -60,10 +61,17 @@ import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 
 public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
+  private ExecutorWarningHook executorWarningHook;
+
   private StreamOperatorMemoryExecutor() {}
 
   public static StreamOperatorMemoryExecutor getInstance() {
     return StreamOperatorMemoryExecutor.StreamOperatorMemoryExecutorHolder.INSTANCE;
+  }
+
+  @Override
+  public void registerWarningHook(ExecutorWarningHook executorWarningHook) {
+    this.executorWarningHook = executorWarningHook;
   }
 
   @Override
@@ -106,6 +114,16 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   @Override
   public RowStream executeBinaryOperator(
       BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
+    return executeBinaryOperator(operator, streamA, streamB, null);
+  }
+
+  @Override
+  public RowStream executeBinaryOperator(
+      BinaryOperator operator,
+      RowStream streamA,
+      RowStream streamB,
+      ExecutorWarningHook executorWarningHook)
+      throws PhysicalException {
     switch (operator.getType()) {
       case Join:
         return executeJoin((Join) operator, streamA, streamB);
@@ -120,7 +138,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case MarkJoin:
         return executeMarkJoin((MarkJoin) operator, streamA, streamB);
       case PathUnion:
-        return executePathUnion((PathUnion) operator, streamA, streamB);
+        return executePathUnion((PathUnion) operator, streamA, streamB, executorWarningHook);
       case Union:
         return executeUnion((Union) operator, streamA, streamB);
       case Except:
@@ -328,8 +346,14 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new HashMarkJoinLazyStream(markJoin, streamA, streamB);
   }
 
-  private RowStream executePathUnion(PathUnion union, RowStream streamA, RowStream streamB) {
-    return new PathUnionLazyStream(union, streamA, streamB);
+  private RowStream executePathUnion(
+      PathUnion union,
+      RowStream streamA,
+      RowStream streamB,
+      ExecutorWarningHook executorWarningHook) {
+    PathUnionLazyStream pathUnion = new PathUnionLazyStream(union, streamA, streamB);
+    pathUnion.registerHook(executorWarningHook);
+    return pathUnion;
   }
 
   private RowStream executeUnion(Union union, RowStream streamA, RowStream streamB) {

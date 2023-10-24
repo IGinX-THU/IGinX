@@ -34,20 +34,10 @@ public class Table implements RowStream {
 
   private int index;
 
-  private String warningMsg;
-
   public Table(Header header, List<Row> rows) {
     this.header = header;
     this.rows = rows;
     this.index = 0;
-    this.warningMsg = "";
-  }
-
-  public Table(Header header, List<Row> rows, String warningMsg) {
-    this.header = header;
-    this.rows = rows;
-    this.index = 0;
-    this.warningMsg = warningMsg;
   }
 
   @Override
@@ -88,10 +78,5 @@ public class Table implements RowStream {
 
   public void reset() {
     this.index = 0;
-  }
-
-  @Override
-  public String getWarningMsg() {
-    return warningMsg;
   }
 }

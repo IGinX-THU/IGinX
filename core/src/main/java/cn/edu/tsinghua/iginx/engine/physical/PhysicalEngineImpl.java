@@ -21,8 +21,8 @@ package cn.edu.tsinghua.iginx.engine.physical;
 import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getStorageTasks;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.WarningException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizerManager;
@@ -68,7 +68,9 @@ public class PhysicalEngineImpl implements PhysicalEngine {
   }
 
   @Override
-  public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+  public RowStream execute(
+      RequestContext ctx, Operator root, ExecutorWarningHook executorWarningHook)
+      throws PhysicalException {
     if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
@@ -83,19 +85,14 @@ public class PhysicalEngineImpl implements PhysicalEngine {
         return result.getRowStream();
       }
     }
-    PhysicalTask task = optimizer.optimize(root);
+    PhysicalTask task = optimizer.optimize(root, executorWarningHook);
     ctx.setPhysicalTree(task);
     List<StoragePhysicalTask> storageTasks = new ArrayList<>();
     getStorageTasks(storageTasks, task);
     storageTaskExecutor.commit(storageTasks);
     TaskExecuteResult result = task.getResult();
     if (result.getException() != null) {
-      if (result.getException() instanceof WarningException) {
-        WarningException e = (WarningException) result.getException();
-        ctx.setWarningMsg(e.getMessage());
-      } else {
-        throw result.getException();
-      }
+      throw result.getException();
     }
     return result.getRowStream();
   }

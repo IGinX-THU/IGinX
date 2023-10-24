@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.engine;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintCheckerManager;
 import cn.edu.tsinghua.iginx.engine.logical.generator.DeleteGenerator;
@@ -132,6 +133,8 @@ public class StatementExecutor {
   private final List<PostPhysicalProcessor> postPhysicalProcessors = new ArrayList<>();
   private final List<PreExecuteProcessor> preExecuteProcessors = new ArrayList<>();
   private final List<PostExecuteProcessor> postExecuteProcessors = new ArrayList<>();
+  private final String SAME_KEY_WARNING =
+      "The query results contain overlapping key values, displaying only partial data";
 
   private static class StatementExecutorHolder {
 
@@ -340,6 +343,11 @@ public class StatementExecutor {
   }
 
   private void process(RequestContext ctx) throws ExecutionException, PhysicalException {
+    final boolean[] hasWarning = {false};
+    ExecutorWarningHook executorWarningHook =
+        () -> {
+          hasWarning[0] = true;
+        };
     StatementType type = ctx.getStatement().getType();
     List<LogicalGenerator> generatorList = generatorMap.get(type);
     for (LogicalGenerator generator : generatorList) {
@@ -361,7 +369,7 @@ public class StatementExecutor {
         }
 
         before(ctx, prePhysicalProcessors);
-        RowStream stream = engine.execute(ctx, root);
+        RowStream stream = engine.execute(ctx, root, executorWarningHook);
         after(ctx, postPhysicalProcessors);
 
         if (type == StatementType.SELECT) {
@@ -372,7 +380,7 @@ public class StatementExecutor {
           }
         }
 
-        setResult(ctx, stream);
+        setResult(ctx, stream, hasWarning[0]);
         return;
       }
     }
@@ -771,6 +779,11 @@ public class StatementExecutor {
 
   private void setResult(RequestContext ctx, RowStream stream)
       throws PhysicalException, ExecutionException {
+    setResult(ctx, stream, false);
+  }
+
+  private void setResult(RequestContext ctx, RowStream stream, boolean hasWarningMsg)
+      throws PhysicalException, ExecutionException {
     Statement statement = ctx.getStatement();
     switch (statement.getType()) {
       case INSERT:
@@ -785,7 +798,7 @@ public class StatementExecutor {
         }
         break;
       case SELECT:
-        setResultFromRowStream(ctx, stream);
+        setResultFromRowStream(ctx, stream, hasWarningMsg);
         break;
       case SHOW_COLUMNS:
         setShowTSRowStreamResult(ctx, stream);
@@ -798,10 +811,15 @@ public class StatementExecutor {
 
   private void setResultFromRowStream(RequestContext ctx, RowStream stream)
       throws PhysicalException {
+    setResultFromRowStream(ctx, stream, false);
+  }
+
+  private void setResultFromRowStream(RequestContext ctx, RowStream stream, boolean hasWarningMsg)
+      throws PhysicalException {
     Result result = null;
     if (ctx.isUseStream()) {
       Status status = RpcUtils.SUCCESS;
-      status.setMessage(ctx.getWarningMsg());
+      status.setMessage(SAME_KEY_WARNING);
       result = new Result(status);
       result.setResultStream(stream);
       ctx.setResult(result);
@@ -854,7 +872,7 @@ public class StatementExecutor {
     }
 
     Status status = RpcUtils.SUCCESS;
-    status.setMessage(ctx.getWarningMsg());
+    status.setMessage(SAME_KEY_WARNING);
     result = new Result(status);
     if (timestampList.size() != 0) {
       Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);

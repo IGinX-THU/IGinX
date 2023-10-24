@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
@@ -43,9 +44,16 @@ public class PathUnionLazyStream extends BinaryLazyStream {
 
   private Row nextB;
 
+  private ExecutorWarningHook executorWarningHooks;
+
   public PathUnionLazyStream(PathUnion union, RowStream streamA, RowStream streamB) {
     super(streamA, streamB);
     this.union = union;
+    executorWarningHooks = null;
+  }
+
+  public void registerHook(ExecutorWarningHook hook) {
+    executorWarningHooks = hook;
   }
 
   private void initialize() throws PhysicalException {
@@ -114,14 +122,21 @@ public class PathUnionLazyStream extends BinaryLazyStream {
       nextA = null;
       return RowUtils.transform(row, header);
     }
+    if (nextA.getKey() == nextB.getKey()) {
+      if (executorWarningHooks != null) {
+        executorWarningHooks.onChange();
+      }
+    }
+    Row resultRow = null;
     if (nextA.getKey() <= nextB.getKey()) {
       Row row = nextA;
       nextA = null;
-      return RowUtils.transform(row, header);
+      resultRow = RowUtils.transform(row, header);
     } else {
       Row row = nextB;
       nextB = null;
-      return RowUtils.transform(row, header);
+      resultRow = RowUtils.transform(row, header);
     }
+    return resultRow;
   }
 }

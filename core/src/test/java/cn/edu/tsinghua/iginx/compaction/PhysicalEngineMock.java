@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.compaction;
 
+import cn.edu.tsinghua.iginx.engine.hook.ExecutorWarningHook;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
@@ -13,7 +14,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 public class PhysicalEngineMock implements PhysicalEngine {
 
   @Override
-  public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+  public RowStream execute(
+      RequestContext ctx, Operator root, ExecutorWarningHook executorWarningHook)
+      throws PhysicalException {
     return null;
   }
 
