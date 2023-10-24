@@ -1633,7 +1633,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           String dirType = kv.substring(0, kv.indexOf(":")).trim();
           String dirPath = kv.substring(kv.indexOf(":") + 1).trim();
           map.put(dirType, dirPath);
-          System.out.println(String.format("receive dir: %s %s", dirType, dirPath));
         }
         continue;
       }
