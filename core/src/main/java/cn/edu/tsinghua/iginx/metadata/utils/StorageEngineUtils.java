@@ -103,6 +103,9 @@ public class StorageEngineUtils {
     if (dir == null || dir.isEmpty()) { // 为空
       return invalidPair;
     }
+    if (dir.equals("/") || dir.matches("[A-Za-z]:(/|\\\\)")) { // 根目录
+      return invalidPair;
+    }
     File file = new File(dir);
     if (file.exists() && !file.isDirectory()) { // 存在但不是目录
       return invalidPair;
