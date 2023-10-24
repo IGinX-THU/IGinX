@@ -1630,8 +1630,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           map.put("url", kv.substring(kv.indexOf(":") + 1));
         } else if (kv.contains("dir")) {
           // for windows absolute path
-          map.put(
-              kv.substring(0, kv.indexOf(":")).trim(), kv.substring(kv.indexOf(":") + 1).trim());
+          String dirType = kv.substring(0, kv.indexOf(":")).trim();
+          String dirPath = kv.substring(kv.indexOf(":") + 1).trim();
+          map.put(dirType, dirPath);
+          System.out.println(String.format("receive dir: %s %s", dirType, dirPath));
         }
         continue;
       }

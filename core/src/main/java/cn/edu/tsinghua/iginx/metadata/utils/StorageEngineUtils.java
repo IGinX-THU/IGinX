@@ -103,6 +103,7 @@ public class StorageEngineUtils {
     if (dir == null || dir.isEmpty()) { // 为空
       return invalidPair;
     }
+    System.out.println(String.format("checking dir: %s", dir));
     if (dir.equals("/") || dir.matches("[A-Za-z]:(/|\\\\)")) { // 根目录
       return invalidPair;
     }
