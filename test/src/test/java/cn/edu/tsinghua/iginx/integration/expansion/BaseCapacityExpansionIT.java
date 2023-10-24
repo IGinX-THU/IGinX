@@ -292,16 +292,17 @@ public abstract class BaseCapacityExpansionIT {
     // hasData=true readOnly=false
     // [<dataDir, dummyDir>...]
     List<Pair<String, String>> pathPairList =
-        new ArrayList<>(Arrays.asList(
-            new Pair<>("/", validDummyPath),
-            new Pair<>("C:\\", validDummyPath),
-            new Pair<>("e:\\", validDummyPath),
-            new Pair<>(nonDirPath, validDummyPath),
-            new Pair<>(validDataPath, "/"),
-            new Pair<>(validDataPath, "C:\\"),
-            new Pair<>(validDataPath, "e:\\"),
-            new Pair<>(validDataPath, nonExistentDummyDirPath),
-            new Pair<>(validDataPath, nonDirPath)));
+        new ArrayList<>(
+            Arrays.asList(
+                new Pair<>("/", validDummyPath),
+                new Pair<>("C:\\", validDummyPath),
+                new Pair<>("e:\\", validDummyPath),
+                new Pair<>(nonDirPath, validDummyPath),
+                new Pair<>(validDataPath, "/"),
+                new Pair<>(validDataPath, "C:\\"),
+                new Pair<>(validDataPath, "e:\\"),
+                new Pair<>(validDataPath, nonExistentDummyDirPath),
+                new Pair<>(validDataPath, nonDirPath)));
     if (!System.getProperty("os.name").contains("Windows")) {
       // windows is fine with this case
       pathPairList.add(new Pair<>("/path/to/my/data", validDummyPath));
