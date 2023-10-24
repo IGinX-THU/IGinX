@@ -309,7 +309,7 @@ public abstract class BaseCapacityExpansionIT {
       pathPairList.add(new Pair<>("/path/to/my/data", validDummyPath));
     }
     for (Pair<String, String> p : pathPairList) {
-      logger.info(String.format("dir pair: %s, %s", p.k, p.v));
+      logger.info(String.format("testing dir pair: %s, %s", p.k, p.v));
       String res = addStorageEngine(testPort, true, false, null, null, p.k, p.v);
       if (res != null && !res.contains("Missing or providing invalid params")) {
         logger.error(res);
