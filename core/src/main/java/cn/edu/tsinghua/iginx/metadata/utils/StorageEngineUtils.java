@@ -29,7 +29,7 @@ public class StorageEngineUtils {
     }
 
     // 检查路径是否为根路径
-    if (dir.equals("/") || dir.matches("[A-Za-z]:[/\\\\]")) {
+    if (dir.equals("/") || dir.matches("[A-Za-z]:(/|\\\\)")) {
       return false;
     }
 
