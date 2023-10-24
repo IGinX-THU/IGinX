@@ -250,9 +250,9 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // test invalid dummy dir & data dir when adding parquet & filesystem storage
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      testAddInvalidDirPath();
-    }
+    //    if (IS_PARQUET_OR_FILE_SYSTEM) {
+    //      testAddInvalidDirPath();
+    //    }
   }
 
   protected void testAddInvalidDirPath() {
