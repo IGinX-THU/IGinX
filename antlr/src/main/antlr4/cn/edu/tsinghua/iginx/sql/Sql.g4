@@ -82,7 +82,8 @@ andExpression
    ;
 
 predicate
-   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   : constant comparisonOperator constant
+   | (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
    | path OPERATOR_LIKE regex = stringLiteral
@@ -190,9 +191,7 @@ join
    ;
 
 specialClause
-   : aggregateWithLevelClause
-   | groupByClause havingClause?
-   | downsampleWithLevelClause
+   : groupByClause havingClause?
    | downsampleClause
    ;
 
@@ -208,20 +207,12 @@ orderByClause
    : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
    ;
 
-downsampleWithLevelClause
-   : downsampleClause aggregateWithLevelClause
-   ;
-
 downsampleClause
    : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
    ;
 
 aggLen
    : (TIME_WITH_UNIT | INT)
-   ;
-
-aggregateWithLevelClause
-   : AGG LEVEL OPERATOR_EQ INT (COMMA INT)*
    ;
 
 asClause
@@ -335,17 +326,8 @@ jobStatus
 nodeName
    : ID
    | STAR
-   | valueNode
+   | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    | keyWords
-   ;
-
-valueNode
-   : stringLiteral
-   | TIME_WITH_UNIT
-   | dateExpression
-   | dateFormat
-   | MINUS? (EXPONENT | INT)
-   | booleanClause
    ;
 
 keyWords
@@ -366,7 +348,6 @@ keyWords
    | ORDER
    | HAVING
    | AGG
-   | LEVEL
    | ADD
    | VALUE
    | VALUES
@@ -378,7 +359,6 @@ keyWords
    | STORAGEENGINE
    | POINTS
    | DATA
-   | NULL
    | REPLICA
    | IOTDB
    | INFLUXDB
@@ -544,10 +524,6 @@ HAVING
 
 AGG
    : A G G
-   ;
-
-LEVEL
-   : L E V E L
    ;
 
 BY
@@ -1034,6 +1010,10 @@ NaN
    : 'NaN'
    ;
 
+BACK_QUOTE
+   : '`'
+   ;
+
 INF
    : I N F
    ;
@@ -1086,6 +1066,10 @@ fragment NAME_CHAR
 
 fragment CN_CHAR
    : '\u2E86' .. '\u9FFF'
+   ;
+
+BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
+   : BACK_QUOTE ('\\' . | ~ '"')+? BACK_QUOTE
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL

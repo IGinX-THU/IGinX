@@ -13,7 +13,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class ReorderLazyStream extends UnaryLazyStream {
 
@@ -37,12 +36,13 @@ public class ReorderLazyStream extends UnaryLazyStream {
       List<Field> targetFields = new ArrayList<>();
       this.reorderMap = new HashMap<>();
 
-      for (String pattern : reorder.getPatterns()) {
+      for (int index = 0; index < reorder.getPatterns().size(); index++) {
+        String pattern = reorder.getPatterns().get(index);
         List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
         if (StringUtils.isPattern(pattern)) {
           for (int i = 0; i < header.getFields().size(); i++) {
             Field field = header.getField(i);
-            if (Pattern.matches(StringUtils.reformatColumnName(pattern), field.getName())) {
+            if (StringUtils.match(field.getName(), pattern)) {
               matchedFields.add(new Pair<>(field, i));
             }
           }
@@ -55,7 +55,10 @@ public class ReorderLazyStream extends UnaryLazyStream {
           }
         }
         if (!matchedFields.isEmpty()) {
-          matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
+          // 不对同一个UDF里返回的多列进行重新排序
+          if (!reorder.getIsPyUDF().get(index)) {
+            matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
+          }
           matchedFields.forEach(
               pair -> {
                 reorderMap.put(targetFields.size(), pair.getV());

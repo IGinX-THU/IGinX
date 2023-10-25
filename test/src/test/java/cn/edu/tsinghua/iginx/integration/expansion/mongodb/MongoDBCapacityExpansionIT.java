@@ -31,7 +31,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select area, bbox from d0.c0.annotations.0";
+    statement = "select area, bbox from d0.c0.annotations.`0`";
     expect =
         "ResultSets:\n"
             + "+---+------------------------+---------------------------------------------------------------------------+\n"
@@ -65,7 +65,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select 0 from d0.c0.annotations.bbox";
+    statement = "select `0` from d0.c0.annotations.bbox";
     expect =
         "ResultSets:\n"
             + "+---+--------------------------------------------------------+\n"
@@ -76,7 +76,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select 0 from d0.c0.annotations.segmentation.*";
+    statement = "select `0` from d0.c0.annotations.segmentation.*";
     expect =
         "ResultSets:\n"
             + "+---+------------------------------------------------------+\n"
@@ -87,7 +87,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select 0 from d0.c0.annotations.segmentation.*";
+    statement = "select `0` from d0.c0.annotations.segmentation.*";
     expect =
         "ResultSets:\n"
             + "+---+------------------------------------------------------+\n"

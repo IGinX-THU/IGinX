@@ -25,6 +25,12 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
+          name: save config for FileSystem and Parquet
+          shell: bash
+          run: |
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
+
         - name: Set if-CapExp
           shell: bash
           run: |

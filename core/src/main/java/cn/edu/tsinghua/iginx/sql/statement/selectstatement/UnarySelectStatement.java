@@ -6,7 +6,6 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
-import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -23,6 +22,7 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -60,7 +60,6 @@ public class UnarySelectStatement extends SelectStatement {
   private long startKey;
   private long endKey;
   private long slideDistance;
-  private List<Integer> layers;
 
   public UnarySelectStatement() {
     this(false);
@@ -80,7 +79,6 @@ public class UnarySelectStatement extends SelectStatement {
     this.whereSubQueryParts = new ArrayList<>();
     this.groupByPaths = new ArrayList<>();
     this.havingSubQueryParts = new ArrayList<>();
-    this.layers = new ArrayList<>();
   }
 
   // simple query
@@ -210,7 +208,6 @@ public class UnarySelectStatement extends SelectStatement {
             new ArrayList<>(
                 Arrays.asList(new KeyFilter(Op.GE, startKey), new KeyFilter(Op.L, endKey))));
     this.hasValueFilter = true;
-    this.layers = new ArrayList<>();
   }
 
   public static FuncType str2FuncType(String str) {
@@ -482,14 +479,6 @@ public class UnarySelectStatement extends SelectStatement {
     this.queryType = queryType;
   }
 
-  public List<Integer> getLayers() {
-    return layers;
-  }
-
-  public void setLayer(Integer layer) {
-    this.layers.add(layer);
-  }
-
   @Override
   public List<Expression> getExpressions() {
     return expressions;
@@ -645,10 +634,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (int i = 0; i < endIndexOfFromPart; i++) {
       for (String pattern : fromParts.get(i).getPatterns()) {
-        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
-          pattern = pattern.substring(0, pattern.length() - 1);
-        }
-        if (path.startsWith(pattern)) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
@@ -662,10 +648,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
       for (String pattern : whereSubQueryPart.getPatterns()) {
-        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
-          pattern = pattern.substring(0, pattern.length() - 1);
-        }
-        if (path.startsWith(pattern)) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
@@ -679,10 +662,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
     for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
       for (String pattern : havingSubQueryPart.getPatterns()) {
-        if (pattern.endsWith(Constants.ALL_PATH_SUFFIX)) {
-          pattern = pattern.substring(0, pattern.length() - 1);
-        }
-        if (path.startsWith(pattern)) {
+        if (StringUtils.match(path, pattern)) {
           return true;
         }
       }
