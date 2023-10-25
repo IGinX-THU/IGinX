@@ -53,7 +53,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // array index
-    statement = "select `3` from d0.c0.annotations.segmentation.0";
+    statement = "select `3` from d0.c0.annotations.segmentation.`0`";
     expect =
         "ResultSets:\n"
             + "+----------+----------------------------------+\n"
