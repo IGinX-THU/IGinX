@@ -127,7 +127,7 @@ public class Controller {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (conf.getStorageType() == null) {
+    if (!conf.isScaling()) {
       logger.info("Not the DBCE test, skip the write history data step.");
       medium = pathList.size();
     } else {
@@ -185,7 +185,7 @@ public class Controller {
     String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (conf.getStorageType() == null) {
+    if (!conf.isScaling()) {
       logger.info("Not the DBCE test, skip the write history data step.");
       medium = pathList.size();
     } else {
@@ -202,7 +202,7 @@ public class Controller {
     List<List<Object>> upperValuesList = valuesList;
     List<List<Object>> lowerValuesList = null;
     // 划分数据区间
-    if (medium != keyList.size()) {
+    if (medium != keyList.size() && medium != 0) {
       upperkeyList = keyList.subList(0, medium); // 上半部分，包括索引为 0 到 midIndex-1 的元素
       lowerKeyList =
           keyList.subList(medium, keyList.size()); // 下半部分，包括索引为 midIndex 到 keyList.size()-1 的元素

@@ -45,7 +45,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             .findFirst()
             .orElseThrow(IllegalAccessError::new);
 
-    boolean hasKeys = keyList.isEmpty();
+    boolean hasKeys = !keyList.isEmpty();
     int timeCnt = 0;
     for (int index = 0; index < valuesList.size(); index++) {
       List<Object> valueList = valuesList.get(index);

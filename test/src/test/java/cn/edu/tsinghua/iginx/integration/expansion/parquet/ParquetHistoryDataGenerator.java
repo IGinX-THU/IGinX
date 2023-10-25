@@ -116,7 +116,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       // insert value
       insertStr = new StringBuilder();
-      boolean hasKeys = keyList.isEmpty();
+      boolean hasKeys = !keyList.isEmpty();
       int keyCnt = 0;
       for (int index = 0; index < valuesList.size(); index++) {
         List<Object> values = valuesList.get(index);
