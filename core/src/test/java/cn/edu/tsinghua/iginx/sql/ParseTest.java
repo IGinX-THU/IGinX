@@ -70,7 +70,7 @@ public class ParseTest {
   @Test
   public void testParseSelect() {
     String selectStr =
-        "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER (RANGE 10 IN [200, 300)) AGG LEVEL = 2, 3;";
+        "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER (RANGE 10 IN [200, 300));";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
 
     assertTrue(statement.hasFunc());
@@ -105,8 +105,6 @@ public class ParseTest {
     assertEquals(200, statement.getStartKey());
     assertEquals(300, statement.getEndKey());
     assertEquals(10, statement.getPrecision());
-
-    assertEquals(Arrays.asList(2, 3), statement.getLayers());
   }
 
   @Test
@@ -129,13 +127,6 @@ public class ParseTest {
     assertEquals(100, statement.getStartKey());
     assertEquals(1000, statement.getEndKey());
     assertEquals(10L, statement.getPrecision());
-
-    selectStr = "SELECT SUM(c) FROM a.b AGG LEVEL = 1, 2;";
-    statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
-    assertEquals(
-        Collections.singletonList("a.b.c"),
-        statement.getFuncExpressionMap().get("sum").get(0).getParams());
-    assertEquals(Arrays.asList(1, 2), statement.getLayers());
   }
 
   @Test

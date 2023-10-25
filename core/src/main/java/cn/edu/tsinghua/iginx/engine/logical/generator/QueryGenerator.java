@@ -7,7 +7,6 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
-import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType.isNaturalJoin;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -343,16 +342,11 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        List<Integer> levels =
-                            selectStatement.getLayers().isEmpty()
-                                ? null
-                                : selectStatement.getLayers();
-
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), levels, expression.isDistinct())
-                                : new FunctionParams(expression.getParams(), levels);
+                                    expression.getParams(), expression.isDistinct())
+                                : new FunctionParams(expression.getParams());
 
                         Operator copySelect = finalRoot.copy();
                         queryList.add(
@@ -373,16 +367,11 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        List<Integer> levels =
-                            selectStatement.getLayers().isEmpty()
-                                ? null
-                                : selectStatement.getLayers();
-
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), levels, expression.isDistinct())
-                                : new FunctionParams(expression.getParams(), levels);
+                                    expression.getParams(), expression.isDistinct())
+                                : new FunctionParams(expression.getParams());
 
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + expression.getColumnName());
@@ -543,44 +532,29 @@ public class QueryGenerator extends AbstractGenerator {
               (int) selectStatement.getOffset());
     }
 
-    if (selectStatement.getLayers().isEmpty()) {
-      if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
-        root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
-      } else {
-        List<String> order = new ArrayList<>();
-        List<Boolean> isPyUDF = new ArrayList<>();
-        selectStatement
-            .getExpressions()
-            .forEach(
-                expression -> {
-                  if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
-                    return;
-                  }
-                  if (expression.getType().equals(Expression.ExpressionType.Function)) {
-                    isPyUDF.add(((FuncExpression) expression).isPyUDF());
-                  } else {
-                    isPyUDF.add(false);
-                  }
-                  String colName = expression.getColumnName();
-                  order.add(colName);
-                });
-        root =
-            new Reorder(
-                new OperatorSource(root), order, isPyUDF, selectStatement.hasValueToSelectedPath());
-      }
+    if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
+      root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
     } else {
       List<String> order = new ArrayList<>();
+      List<Boolean> isPyUDF = new ArrayList<>();
       selectStatement
           .getExpressions()
           .forEach(
               expression -> {
+                if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
+                  return;
+                }
+                if (expression.getType().equals(Expression.ExpressionType.Function)) {
+                  isPyUDF.add(((FuncExpression) expression).isPyUDF());
+                } else {
+                  isPyUDF.add(false);
+                }
                 String colName = expression.getColumnName();
-                colName =
-                    colName.replaceFirst(
-                        selectStatement.getFromParts().get(0).getPrefix() + DOT, "");
                 order.add(colName);
               });
-      root = new Reorder(new OperatorSource(root), order);
+      root =
+          new Reorder(
+              new OperatorSource(root), order, isPyUDF, selectStatement.hasValueToSelectedPath());
     }
 
     Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
