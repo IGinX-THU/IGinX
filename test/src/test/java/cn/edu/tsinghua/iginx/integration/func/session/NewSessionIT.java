@@ -182,6 +182,7 @@ public class NewSessionIT {
             data.getValues(),
             data.getTagsList(),
             type);
+        break;
       case Column:
       case NonAlignedColumn:
         List<List<Object>> values = IntStream.range(0, data.getPaths().size())

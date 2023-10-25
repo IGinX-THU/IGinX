@@ -156,20 +156,21 @@ public class Controller {
           logger.error("write data fail, caused by: {}", e.getMessage());
           fail();
         }
-      }
-      List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
-      try {
-        BaseHistoryDataGenerator generator =
-            (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
-        generator.writeHistoryData(
-            expPort,
-            Collections.singletonList(pathList.get(i)),
-            Collections.singletonList(dataTypeList.get(i)),
-            keyList.get(i),
-            rowValues);
-      } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-        logger.error("write data fail, caused by: {}", e.getMessage());
-        fail();
+      } else {
+        List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
+        try {
+          BaseHistoryDataGenerator generator =
+              (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
+          generator.writeHistoryData(
+              expPort,
+              Collections.singletonList(pathList.get(i)),
+              Collections.singletonList(dataTypeList.get(i)),
+              keyList.get(i),
+              rowValues);
+        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+          logger.error("write data fail, caused by: {}", e.getMessage());
+          fail();
+        }
       }
     }
   }
