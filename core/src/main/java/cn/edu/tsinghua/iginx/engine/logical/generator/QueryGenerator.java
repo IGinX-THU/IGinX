@@ -528,44 +528,29 @@ public class QueryGenerator extends AbstractGenerator {
               (int) selectStatement.getOffset());
     }
 
-    if (selectStatement.getLayers().isEmpty()) {
-      if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
-        root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
-      } else {
-        List<String> order = new ArrayList<>();
-        List<Boolean> isPyUDF = new ArrayList<>();
-        selectStatement
-            .getExpressions()
-            .forEach(
-                expression -> {
-                  if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
-                    return;
-                  }
-                  if (expression.getType().equals(Expression.ExpressionType.Function)) {
-                    isPyUDF.add(((FuncExpression) expression).isPyUDF());
-                  } else {
-                    isPyUDF.add(false);
-                  }
-                  String colName = expression.getColumnName();
-                  order.add(colName);
-                });
-        root =
-            new Reorder(
-                new OperatorSource(root), order, isPyUDF, selectStatement.hasValueToSelectedPath());
-      }
+    if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
+      root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
     } else {
       List<String> order = new ArrayList<>();
+      List<Boolean> isPyUDF = new ArrayList<>();
       selectStatement
           .getExpressions()
           .forEach(
               expression -> {
+                if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
+                  return;
+                }
+                if (expression.getType().equals(Expression.ExpressionType.Function)) {
+                  isPyUDF.add(((FuncExpression) expression).isPyUDF());
+                } else {
+                  isPyUDF.add(false);
+                }
                 String colName = expression.getColumnName();
-                colName =
-                    colName.replaceFirst(
-                        selectStatement.getFromParts().get(0).getPrefix() + DOT, "");
                 order.add(colName);
               });
-      root = new Reorder(new OperatorSource(root), order);
+      root =
+          new Reorder(
+              new OperatorSource(root), order, isPyUDF, selectStatement.hasValueToSelectedPath());
     }
 
     Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
