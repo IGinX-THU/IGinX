@@ -26,14 +26,11 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.GroupByUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.regex.Pattern;
 
 public class Sum implements SetMappingFunction {
@@ -69,7 +66,6 @@ public class Sum implements SetMappingFunction {
     if (pathParams == null || pathParams.size() != 1) {
       throw new IllegalArgumentException("unexpected param type for avg.");
     }
-    List<Integer> groupByLevels = params.getLevels();
 
     String target = pathParams.get(0);
     List<Field> fields = rows.getHeader().getFields();
@@ -77,43 +73,21 @@ public class Sum implements SetMappingFunction {
     Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
     List<Field> targetFields = new ArrayList<>();
     List<Integer> indices = new ArrayList<>();
-    Map<String, Integer> groupNameIndexMap = new HashMap<>(); // 只有在存在 group by 的时候才奏效
-    Map<Integer, Integer> groupOrderIndexMap = new HashMap<>();
     for (int i = 0; i < fields.size(); i++) {
       Field field = fields.get(i);
       if (pattern.matcher(field.getFullName()).matches()) {
-        if (groupByLevels == null) {
-          String name = getIdentifier() + "(";
-          String fullName = getIdentifier() + "(";
-          if (params.isDistinct()) {
-            name += "distinct ";
-            fullName += "distinct ";
-          }
-          name += field.getName() + ")";
-          fullName += field.getFullName() + ")";
-          if (DataTypeUtils.isWholeNumber(field.getType())) {
-            targetFields.add(new Field(name, fullName, DataType.LONG));
-          } else {
-            targetFields.add(new Field(name, fullName, DataType.DOUBLE));
-          }
+        String name = getIdentifier() + "(";
+        String fullName = getIdentifier() + "(";
+        if (params.isDistinct()) {
+          name += "distinct ";
+          fullName += "distinct ";
+        }
+        name += field.getName() + ")";
+        fullName += field.getFullName() + ")";
+        if (DataTypeUtils.isWholeNumber(field.getType())) {
+          targetFields.add(new Field(name, fullName, DataType.LONG));
         } else {
-          String targetFieldName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
-                  + ")";
-          int index = groupNameIndexMap.getOrDefault(targetFieldName, -1);
-          if (index != -1) {
-            groupOrderIndexMap.put(i, index);
-          } else {
-            groupNameIndexMap.put(targetFieldName, targetFields.size());
-            groupOrderIndexMap.put(i, targetFields.size());
-            if (DataTypeUtils.isWholeNumber(field.getType())) {
-              targetFields.add(new Field(targetFieldName, DataType.LONG));
-            } else {
-              targetFields.add(new Field(targetFieldName, DataType.DOUBLE));
-            }
-          }
+          targetFields.add(new Field(name, fullName, DataType.DOUBLE));
         }
         indices.add(i);
       }
@@ -142,22 +116,18 @@ public class Sum implements SetMappingFunction {
         if (value == null) {
           continue;
         }
-        int targetIndex = i;
-        if (groupByLevels != null) {
-          targetIndex = groupOrderIndexMap.get(index);
-        }
         switch (fields.get(index).getType()) {
           case INTEGER:
-            targetValues[targetIndex] = ((long) targetValues[targetIndex]) + (int) value;
+            targetValues[i] = ((long) targetValues[i]) + (int) value;
             break;
           case LONG:
-            targetValues[targetIndex] = ((long) targetValues[targetIndex]) + (long) value;
+            targetValues[i] = ((long) targetValues[i]) + (long) value;
             break;
           case FLOAT:
-            targetValues[targetIndex] = ((double) targetValues[targetIndex]) + (float) value;
+            targetValues[i] = ((double) targetValues[i]) + (float) value;
             break;
           case DOUBLE:
-            targetValues[targetIndex] = ((double) targetValues[targetIndex]) + (double) value;
+            targetValues[i] = ((double) targetValues[i]) + (double) value;
             break;
           default:
             throw new IllegalStateException(
