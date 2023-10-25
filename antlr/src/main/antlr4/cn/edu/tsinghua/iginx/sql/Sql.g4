@@ -82,7 +82,8 @@ andExpression
    ;
 
 predicate
-   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   : constant comparisonOperator constant
+   | (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
    | path OPERATOR_LIKE regex = stringLiteral
@@ -325,17 +326,8 @@ jobStatus
 nodeName
    : ID
    | STAR
-   | valueNode
+   | BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
    | keyWords
-   ;
-
-valueNode
-   : stringLiteral
-   | TIME_WITH_UNIT
-   | dateExpression
-   | dateFormat
-   | MINUS? (EXPONENT | INT)
-   | booleanClause
    ;
 
 keyWords
@@ -367,7 +359,6 @@ keyWords
    | STORAGEENGINE
    | POINTS
    | DATA
-   | NULL
    | REPLICA
    | IOTDB
    | INFLUXDB
@@ -1019,6 +1010,10 @@ NaN
    : 'NaN'
    ;
 
+BACK_QUOTE
+   : '`'
+   ;
+
 INF
    : I N F
    ;
@@ -1071,6 +1066,10 @@ fragment NAME_CHAR
 
 fragment CN_CHAR
    : '\u2E86' .. '\u9FFF'
+   ;
+
+BACK_QUOTE_STRING_LITERAL_NOT_EMPTY
+   : BACK_QUOTE ('\\' . | ~ '"')+? BACK_QUOTE
    ;
 
 DOUBLE_QUOTE_STRING_LITERAL

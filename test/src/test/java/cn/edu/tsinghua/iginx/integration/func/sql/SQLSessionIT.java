@@ -2498,6 +2498,60 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testSelectFromComplexArithmeticExpr() {
+    String insert =
+        "INSERT INTO us.d3 (key, s1, s2, s3) VALUES "
+            + "(1, 1, 6, 1.5), (2, 2, 5, 2.5), (3, 3, 4, 3.5), (4, 4, 3, 4.5), (5, 5, 2, 5.5), (6, 6, 1, 6.5);";
+    executor.execute(insert);
+
+    String statement = "SELECT s1, s2, s3 FROM us.d3;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|us.d3.s1|us.d3.s2|us.d3.s3|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  1|       1|       6|     1.5|\n"
+            + "|  2|       2|       5|     2.5|\n"
+            + "|  3|       3|       4|     3.5|\n"
+            + "|  4|       4|       3|     4.5|\n"
+            + "|  5|       5|       2|     5.5|\n"
+            + "|  6|       6|       1|     6.5|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT `(us.d3.s1 + us.d3.s2) × us.d3.s3` FROM (SELECT (s1+s2)*s3 FROM us.d3);";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------------------------------+\n"
+            + "|key|(us.d3.s1 + us.d3.s2) × us.d3.s3|\n"
+            + "+---+--------------------------------+\n"
+            + "|  1|                            10.5|\n"
+            + "|  2|                            17.5|\n"
+            + "|  3|                            24.5|\n"
+            + "|  4|                            31.5|\n"
+            + "|  5|                            38.5|\n"
+            + "|  6|                            45.5|\n"
+            + "+---+--------------------------------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT `(us.d3.s1 + us.d3.s2) × us.d3.s3` FROM (SELECT (s1+s2)*s3 FROM us.d3) WHERE `(us.d3.s1 + us.d3.s2) × us.d3.s3` < 30;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------------------------------+\n"
+            + "|key|(us.d3.s1 + us.d3.s2) × us.d3.s3|\n"
+            + "+---+--------------------------------+\n"
+            + "|  1|                            10.5|\n"
+            + "|  2|                            17.5|\n"
+            + "|  3|                            24.5|\n"
+            + "+---+--------------------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testAlias() {
     // time series alias
     String statement = "SELECT s1 AS rename_series, s2 FROM us.d1 WHERE s1 >= 1000 AND s1 < 1010;";
@@ -2771,6 +2825,134 @@ public class SQLSessionIT {
                 + "|1480|         1539|\n"
                 + "|1540|         1599|\n"
                 + "+----+-------------+\n"
+                + "Total line number = 10\n");
+    for (int i = 0; i < funcTypeList.size(); i++) {
+      String type = funcTypeList.get(i);
+      String expected = expectedList.get(i);
+      executor.executeAndCompare(String.format(statement, type, type, type), expected);
+    }
+  }
+
+  @Test
+  public void testSelectFromAggregate() {
+    String statement =
+        "SELECT `%s(us.d1.s1)` FROM (SELECT %s(s1) FROM us.d1 OVER(RANGE 60 IN [1000, 1600)));";
+    List<String> funcTypeList =
+        Arrays.asList("max", "min", "sum", "avg", "count", "first_value", "last_value");
+
+    List<String> expectedList =
+        Arrays.asList(
+            "ResultSets:\n"
+                + "+----+-------------+\n"
+                + "| key|max(us.d1.s1)|\n"
+                + "+----+-------------+\n"
+                + "|1000|         1059|\n"
+                + "|1060|         1119|\n"
+                + "|1120|         1179|\n"
+                + "|1180|         1239|\n"
+                + "|1240|         1299|\n"
+                + "|1300|         1359|\n"
+                + "|1360|         1419|\n"
+                + "|1420|         1479|\n"
+                + "|1480|         1539|\n"
+                + "|1540|         1599|\n"
+                + "+----+-------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+----+-------------+\n"
+                + "| key|min(us.d1.s1)|\n"
+                + "+----+-------------+\n"
+                + "|1000|         1000|\n"
+                + "|1060|         1060|\n"
+                + "|1120|         1120|\n"
+                + "|1180|         1180|\n"
+                + "|1240|         1240|\n"
+                + "|1300|         1300|\n"
+                + "|1360|         1360|\n"
+                + "|1420|         1420|\n"
+                + "|1480|         1480|\n"
+                + "|1540|         1540|\n"
+                + "+----+-------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+----+-------------+\n"
+                + "| key|sum(us.d1.s1)|\n"
+                + "+----+-------------+\n"
+                + "|1000|        61770|\n"
+                + "|1060|        65370|\n"
+                + "|1120|        68970|\n"
+                + "|1180|        72570|\n"
+                + "|1240|        76170|\n"
+                + "|1300|        79770|\n"
+                + "|1360|        83370|\n"
+                + "|1420|        86970|\n"
+                + "|1480|        90570|\n"
+                + "|1540|        94170|\n"
+                + "+----+-------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+----+-------------+\n"
+                + "| key|avg(us.d1.s1)|\n"
+                + "+----+-------------+\n"
+                + "|1000|       1029.5|\n"
+                + "|1060|       1089.5|\n"
+                + "|1120|       1149.5|\n"
+                + "|1180|       1209.5|\n"
+                + "|1240|       1269.5|\n"
+                + "|1300|       1329.5|\n"
+                + "|1360|       1389.5|\n"
+                + "|1420|       1449.5|\n"
+                + "|1480|       1509.5|\n"
+                + "|1540|       1569.5|\n"
+                + "+----+-------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+----+---------------+\n"
+                + "| key|count(us.d1.s1)|\n"
+                + "+----+---------------+\n"
+                + "|1000|             60|\n"
+                + "|1060|             60|\n"
+                + "|1120|             60|\n"
+                + "|1180|             60|\n"
+                + "|1240|             60|\n"
+                + "|1300|             60|\n"
+                + "|1360|             60|\n"
+                + "|1420|             60|\n"
+                + "|1480|             60|\n"
+                + "|1540|             60|\n"
+                + "+----+---------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+----+---------------------+\n"
+                + "| key|first_value(us.d1.s1)|\n"
+                + "+----+---------------------+\n"
+                + "|1000|                 1000|\n"
+                + "|1060|                 1060|\n"
+                + "|1120|                 1120|\n"
+                + "|1180|                 1180|\n"
+                + "|1240|                 1240|\n"
+                + "|1300|                 1300|\n"
+                + "|1360|                 1360|\n"
+                + "|1420|                 1420|\n"
+                + "|1480|                 1480|\n"
+                + "|1540|                 1540|\n"
+                + "+----+---------------------+\n"
+                + "Total line number = 10\n",
+            "ResultSets:\n"
+                + "+----+--------------------+\n"
+                + "| key|last_value(us.d1.s1)|\n"
+                + "+----+--------------------+\n"
+                + "|1000|                1059|\n"
+                + "|1060|                1119|\n"
+                + "|1120|                1179|\n"
+                + "|1180|                1239|\n"
+                + "|1240|                1299|\n"
+                + "|1300|                1359|\n"
+                + "|1360|                1419|\n"
+                + "|1420|                1479|\n"
+                + "|1480|                1539|\n"
+                + "|1540|                1599|\n"
+                + "+----+--------------------+\n"
                 + "Total line number = 10\n");
     for (int i = 0; i < funcTypeList.size(); i++) {
       String type = funcTypeList.get(i);
@@ -4487,10 +4669,10 @@ public class SQLSessionIT {
 
     // numerical path
     String insert =
-        "INSERT INTO 114514(key, 1919810) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+        "INSERT INTO `114514`(key, `1919810`) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
     executor.execute(insert);
 
-    String query = "SELECT 1919810 FROM 114514;";
+    String query = "SELECT `1919810` FROM `114514`;";
     String expected =
         "ResultSets:\n"
             + "+---+--------------+\n"
@@ -4503,6 +4685,60 @@ public class SQLSessionIT {
             + "|  5|             5|\n"
             + "+---+--------------+\n"
             + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT `1919810` * 2 FROM `114514`;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------------------+\n"
+            + "|key|114514.1919810 × 2|\n"
+            + "+---+------------------+\n"
+            + "|  1|                 2|\n"
+            + "|  2|                 4|\n"
+            + "|  3|                 6|\n"
+            + "|  4|                 8|\n"
+            + "|  5|                10|\n"
+            + "+---+------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT 2 * `1919810` FROM `114514`;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------------------+\n"
+            + "|key|2 × 114514.1919810|\n"
+            + "+---+------------------+\n"
+            + "|  1|                 2|\n"
+            + "|  2|                 4|\n"
+            + "|  3|                 6|\n"
+            + "|  4|                 8|\n"
+            + "|  5|                10|\n"
+            + "+---+------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT `1919810` FROM `114514` WHERE `1919810` < 3;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------------+\n"
+            + "|key|114514.1919810|\n"
+            + "+---+--------------+\n"
+            + "|  1|             1|\n"
+            + "|  2|             2|\n"
+            + "+---+--------------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT `1919810` FROM `114514` WHERE 3 < `1919810`;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------------+\n"
+            + "|key|114514.1919810|\n"
+            + "+---+--------------+\n"
+            + "|  4|             4|\n"
+            + "|  5|             5|\n"
+            + "+---+--------------+\n"
+            + "Total line number = 2\n";
     executor.executeAndCompare(query, expected);
   }
 
@@ -4567,10 +4803,10 @@ public class SQLSessionIT {
 
     // mix path
     String insert =
-        "INSERT INTO 测试.前缀.114514(key, 1919810._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+        "INSERT INTO 测试.前缀.`114514`(key, `1919810`._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
     executor.execute(insert);
 
-    String query = "SELECT 1919810._:@#$.后缀 FROM 测试.前缀.114514;";
+    String query = "SELECT `1919810`._:@#$.后缀 FROM 测试.前缀.`114514`;";
     String expected =
         "ResultSets:\n"
             + "+---+-----------------------------+\n"
@@ -4617,6 +4853,14 @@ public class SQLSessionIT {
 
     errClause = "select * from test.a join test.b where a > 0;";
     executor.executeAndCompareErrMsg(errClause, "Unexpected paths' name: [a].");
+
+    errClause = "SELECT 1 * 2 FROM test;";
+    executor.executeAndCompareErrMsg(
+        errClause, "SELECT constant arithmetic expression isn't supported yet.");
+
+    errClause = "SELECT * FROM test WHERE 1 < 2;";
+    executor.executeAndCompareErrMsg(
+        errClause, "Constant comparison isn't supported in WHERE clause yet.");
   }
 
   @Test
