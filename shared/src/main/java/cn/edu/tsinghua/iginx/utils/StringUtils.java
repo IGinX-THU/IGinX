@@ -123,6 +123,7 @@ public class StringUtils {
     name = name.replaceAll("[)]", "[)]");
     name = name.replaceAll("[{]", "[{]");
     name = name.replaceAll("[}]", "[}]");
+    name = name.replaceAll("[+]", "[\\\\+]");
     name = name.replaceAll("\\$", "[\\$]");
     name = name.replaceAll("\\^", "[\\\\^]");
     name = name.replaceAll("\\\\", "\\\\\\\\");
