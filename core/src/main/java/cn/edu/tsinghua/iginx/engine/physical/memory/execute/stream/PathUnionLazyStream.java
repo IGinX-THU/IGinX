@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.context.ContextMsgType.SameKey;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
@@ -113,6 +115,10 @@ public class PathUnionLazyStream extends BinaryLazyStream {
       Row row = nextA;
       nextA = null;
       return RowUtils.transform(row, header);
+    }
+    if (nextA.getKey() == nextB.getKey()) {
+      getContext().setWarningMsg("path union detect same key");
+      getContext().setWarningType(SameKey);
     }
     if (nextA.getKey() <= nextB.getKey()) {
       Row row = nextA;

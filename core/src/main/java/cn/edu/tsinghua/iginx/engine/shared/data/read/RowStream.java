@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 
 public interface RowStream {
 
@@ -32,5 +33,11 @@ public interface RowStream {
 
   default String getWarningMsg() {
     return "";
+  }
+
+  default void setContext(OperatorContext context) {}
+
+  default OperatorContext getContext() {
+    return null;
   }
 }

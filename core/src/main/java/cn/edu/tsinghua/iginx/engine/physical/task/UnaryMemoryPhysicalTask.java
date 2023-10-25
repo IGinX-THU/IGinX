@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecut
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
 import org.slf4j.Logger;
@@ -18,9 +19,17 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final PhysicalTask parentTask;
 
+  private final OperatorContext context;
+
   public UnaryMemoryPhysicalTask(List<Operator> operators, PhysicalTask parentTask) {
+    this(operators, parentTask, null);
+  }
+
+  public UnaryMemoryPhysicalTask(
+      List<Operator> operators, PhysicalTask parentTask, OperatorContext context) {
     super(TaskType.UnaryMemory, operators);
     this.parentTask = parentTask;
+    this.context = context;
   }
 
   public PhysicalTask getParentTask() {
@@ -46,7 +55,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
         if (!OperatorType.isUnaryOperator(op.getType())) {
           throw new UnexpectedOperatorException("unexpected operator " + op + " in unary task");
         }
-        stream = executor.executeUnaryOperator((UnaryOperator) op, stream);
+        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, context);
       }
     } catch (PhysicalException e) {
       logger.error("encounter error when execute operator in memory: ", e);

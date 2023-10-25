@@ -36,6 +36,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostExecuteProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
@@ -340,6 +341,7 @@ public class StatementExecutor {
   }
 
   private void process(RequestContext ctx) throws ExecutionException, PhysicalException {
+    OperatorContext context = new OperatorContext();
     StatementType type = ctx.getStatement().getType();
     List<LogicalGenerator> generatorList = generatorMap.get(type);
     for (LogicalGenerator generator : generatorList) {
@@ -361,7 +363,7 @@ public class StatementExecutor {
         }
 
         before(ctx, prePhysicalProcessors);
-        RowStream stream = engine.execute(ctx, root);
+        RowStream stream = engine.execute(ctx, root, context);
         after(ctx, postPhysicalProcessors);
 
         if (type == StatementType.SELECT) {
@@ -372,6 +374,9 @@ public class StatementExecutor {
           }
         }
 
+        if (context.getWarningMsg() != null && !context.getWarningMsg().isEmpty()) {
+          ctx.setWarningMsg(context.getWarningMsg());
+        }
         setResult(ctx, stream);
         return;
       }

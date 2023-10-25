@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
 import org.slf4j.Logger;
@@ -40,11 +41,17 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final PhysicalTask parentTaskB;
 
+  private final OperatorContext context;
+
   public BinaryMemoryPhysicalTask(
-      List<Operator> operators, PhysicalTask parentTaskA, PhysicalTask parentTaskB) {
+      List<Operator> operators,
+      PhysicalTask parentTaskA,
+      PhysicalTask parentTaskB,
+      OperatorContext context) {
     super(TaskType.BinaryMemory, operators);
     this.parentTaskA = parentTaskA;
     this.parentTaskB = parentTaskB;
+    this.context = context;
   }
 
   public PhysicalTask getParentTaskA() {
@@ -85,7 +92,7 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
       if (!OperatorType.isBinaryOperator(op.getType())) {
         throw new UnexpectedOperatorException("unexpected operator " + op + " in binary task");
       }
-      stream = executor.executeBinaryOperator((BinaryOperator) op, streamA, streamB);
+      stream = executor.executeBinaryOperator((BinaryOperator) op, streamA, streamB, context);
       if (!stream.getWarningMsg().isEmpty()) {
         warningMsg = stream.getWarningMsg();
       }

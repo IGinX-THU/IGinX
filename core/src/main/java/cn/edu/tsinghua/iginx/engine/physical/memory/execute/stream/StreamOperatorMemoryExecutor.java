@@ -55,6 +55,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
+import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 
@@ -69,67 +70,110 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   @Override
   public RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream)
       throws PhysicalException {
+    return executeUnaryOperator(operator, stream, null);
+  }
+
+  @Override
+  public RowStream executeUnaryOperator(
+      UnaryOperator operator, RowStream stream, OperatorContext context) throws PhysicalException {
+    RowStream result = null;
     switch (operator.getType()) {
       case Project:
-        return executeProject((Project) operator, stream);
+        result = executeProject((Project) operator, stream);
+        break;
       case Select:
-        return executeSelect((Select) operator, stream);
+        result = executeSelect((Select) operator, stream);
+        break;
       case Sort:
-        return executeSort((Sort) operator, stream);
+        result = executeSort((Sort) operator, stream);
+        break;
       case Limit:
-        return executeLimit((Limit) operator, stream);
+        result = executeLimit((Limit) operator, stream);
+        break;
       case Downsample:
-        return executeDownsample((Downsample) operator, stream);
+        result = executeDownsample((Downsample) operator, stream);
+        break;
       case RowTransform:
-        return executeRowTransform((RowTransform) operator, stream);
+        result = executeRowTransform((RowTransform) operator, stream);
+        break;
       case SetTransform:
-        return executeSetTransform((SetTransform) operator, stream);
+        result = executeSetTransform((SetTransform) operator, stream);
+        break;
       case MappingTransform:
-        return executeMappingTransform((MappingTransform) operator, stream);
+        result = executeMappingTransform((MappingTransform) operator, stream);
+        break;
       case Rename:
-        return executeRename((Rename) operator, stream);
+        result = executeRename((Rename) operator, stream);
+        break;
       case Reorder:
-        return executeReorder((Reorder) operator, stream);
+        result = executeReorder((Reorder) operator, stream);
+        break;
       case AddSchemaPrefix:
-        return executeAddSchemaPrefix((AddSchemaPrefix) operator, stream);
+        result = executeAddSchemaPrefix((AddSchemaPrefix) operator, stream);
+        break;
       case GroupBy:
-        return executeGroupBy((GroupBy) operator, stream);
+        result = executeGroupBy((GroupBy) operator, stream);
+        break;
       case Distinct:
-        return executeDistinct(stream);
+        result = executeDistinct(stream);
+        break;
       case ValueToSelectedPath:
-        return executeValueToSelectedPath((ValueToSelectedPath) operator, stream);
+        result = executeValueToSelectedPath((ValueToSelectedPath) operator, stream);
+        break;
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
+    result.setContext(context);
+    return result;
   }
 
   @Override
   public RowStream executeBinaryOperator(
       BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
+    return executeBinaryOperator(operator, streamA, streamB, null);
+  }
+
+  @Override
+  public RowStream executeBinaryOperator(
+      BinaryOperator operator, RowStream streamA, RowStream streamB, OperatorContext context)
+      throws PhysicalException {
+    RowStream result = null;
     switch (operator.getType()) {
       case Join:
-        return executeJoin((Join) operator, streamA, streamB);
+        result = executeJoin((Join) operator, streamA, streamB);
+        break;
       case CrossJoin:
-        return executeCrossJoin((CrossJoin) operator, streamA, streamB);
+        result = executeCrossJoin((CrossJoin) operator, streamA, streamB);
+        break;
       case InnerJoin:
-        return executeInnerJoin((InnerJoin) operator, streamA, streamB);
+        result = executeInnerJoin((InnerJoin) operator, streamA, streamB);
+        break;
       case OuterJoin:
-        return executeOuterJoin((OuterJoin) operator, streamA, streamB);
+        result = executeOuterJoin((OuterJoin) operator, streamA, streamB);
+        break;
       case SingleJoin:
-        return executeSingleJoin((SingleJoin) operator, streamA, streamB);
+        result = executeSingleJoin((SingleJoin) operator, streamA, streamB);
+        break;
       case MarkJoin:
-        return executeMarkJoin((MarkJoin) operator, streamA, streamB);
+        result = executeMarkJoin((MarkJoin) operator, streamA, streamB);
+        break;
       case PathUnion:
-        return executePathUnion((PathUnion) operator, streamA, streamB);
+        result = executePathUnion((PathUnion) operator, streamA, streamB);
+        break;
       case Union:
-        return executeUnion((Union) operator, streamA, streamB);
+        result = executeUnion((Union) operator, streamA, streamB);
+        break;
       case Except:
-        return executeExcept((Except) operator, streamA, streamB);
+        result = executeExcept((Except) operator, streamA, streamB);
+        break;
       case Intersect:
-        return executeIntersect((Intersect) operator, streamA, streamB);
+        result = executeIntersect((Intersect) operator, streamA, streamB);
+        break;
       default:
         throw new UnexpectedOperatorException("unknown binary operator: " + operator.getType());
     }
+    result.setContext(context);
+    return result;
   }
 
   private RowStream executeProject(Project project, RowStream stream) {

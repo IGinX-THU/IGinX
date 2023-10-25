@@ -22,11 +22,23 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 
 public interface OperatorMemoryExecutor {
 
   RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream) throws PhysicalException;
 
+  default RowStream executeUnaryOperator(
+      UnaryOperator operator, RowStream stream, OperatorContext context) throws PhysicalException {
+    return executeUnaryOperator(operator, stream);
+  }
+
   RowStream executeBinaryOperator(BinaryOperator operator, RowStream streamA, RowStream streamB)
       throws PhysicalException;
+
+  default RowStream executeBinaryOperator(
+      BinaryOperator operator, RowStream streamA, RowStream streamB, OperatorContext context)
+      throws PhysicalException {
+    return executeBinaryOperator(operator, streamA, streamB);
+  }
 }
