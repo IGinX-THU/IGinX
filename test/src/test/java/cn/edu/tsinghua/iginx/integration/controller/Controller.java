@@ -187,11 +187,11 @@ public class Controller {
     int medium = 0;
     if (!conf.isScaling()) {
       logger.info("Not the DBCE test, skip the write history data step.");
-      medium = pathList.size();
+      medium = keyList.size();
     } else {
       boolean supportKey = SUPPORT_KEY.get(conf.getStorageType());
       if (supportKey) {
-        medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 2 : pathList.size();
+        medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 2 : keyList.size();
       }
       instance = NAME_TO_INSTANCE.get(conf.getStorageType());
     }
