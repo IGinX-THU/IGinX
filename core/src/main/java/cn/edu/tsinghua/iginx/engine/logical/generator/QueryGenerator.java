@@ -501,7 +501,11 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     if (selectStatement.isDistinct()) {
-      root = new Distinct(new OperatorSource(root));
+      List<String> patterns = new ArrayList<>();
+      for (Expression expression : selectStatement.getExpressions()) {
+        patterns.add(expression.getColumnName());
+      }
+      root = new Distinct(new OperatorSource(root), patterns);
     }
 
     if (!selectStatement.isSubQuery()) {

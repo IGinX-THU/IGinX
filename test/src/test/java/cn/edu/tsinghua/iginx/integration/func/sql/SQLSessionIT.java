@@ -502,6 +502,10 @@ public class SQLSessionIT {
         "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
     executor.execute(insert);
 
+    insert =
+        "INSERT INTO t(key, a, b) values (1, 1, 1), (2, 1, 1), (3, 1, 2), (4, 2, 1), (5, 2, 2), (6, 3, 1);";
+    executor.execute(insert);
+
     String statement = "SELECT * FROM test;";
     String expected =
         "ResultSets:\n"
@@ -552,6 +556,39 @@ public class SQLSessionIT {
             + "|     4|     3|\n"
             + "+------+------+\n"
             + "Total line number = 8\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT test.a, t.a FROM test JOIN t ON test.a = t.a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+---+\n"
+            + "|test.a|t.a|\n"
+            + "+------+---+\n"
+            + "|     1|  1|\n"
+            + "|     1|  1|\n"
+            + "|     1|  1|\n"
+            + "|     2|  2|\n"
+            + "|     2|  2|\n"
+            + "|     2|  2|\n"
+            + "|     2|  2|\n"
+            + "|     3|  3|\n"
+            + "|     3|  3|\n"
+            + "|     3|  3|\n"
+            + "+------+---+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT test.a, t.a FROM test JOIN t ON test.a = t.a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+---+\n"
+            + "|test.a|t.a|\n"
+            + "+------+---+\n"
+            + "|     1|  1|\n"
+            + "|     2|  2|\n"
+            + "|     3|  3|\n"
+            + "+------+---+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test;";
