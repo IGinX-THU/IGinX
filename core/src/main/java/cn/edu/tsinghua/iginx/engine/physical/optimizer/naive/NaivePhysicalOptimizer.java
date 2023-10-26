@@ -111,6 +111,8 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       sourceTaskA.setFollowerTask(task);
       sourceTaskB.setFollowerTask(task);
       return task;
+    } else if (operator.getType().equals(OperatorType.ShowColumns)) {
+      return new GlobalPhysicalTask(operator);
     } else {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();

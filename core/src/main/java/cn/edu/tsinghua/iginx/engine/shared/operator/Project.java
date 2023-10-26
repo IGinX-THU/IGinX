@@ -15,14 +15,25 @@ public class Project extends AbstractUnaryOperator {
 
   private final TagFilter tagFilter;
 
+  private final boolean remainKey; // 是否保留以key结尾的field
+
   private boolean needSelectedPath;
 
   public Project(Source source, List<String> patterns, TagFilter tagFilter) {
-    this(source, patterns, tagFilter, false);
+    this(source, patterns, tagFilter, false, false);
   }
 
   public Project(
       Source source, List<String> patterns, TagFilter tagFilter, boolean needSelectedPath) {
+    this(source, patterns, tagFilter, needSelectedPath, false);
+  }
+
+  public Project(
+      Source source,
+      List<String> patterns,
+      TagFilter tagFilter,
+      boolean needSelectedPath,
+      boolean remainKey) {
     super(OperatorType.Project, source);
     if (patterns == null) {
       throw new IllegalArgumentException("patterns shouldn't be null");
@@ -30,6 +41,7 @@ public class Project extends AbstractUnaryOperator {
     this.patterns = patterns;
     this.tagFilter = tagFilter;
     this.needSelectedPath = needSelectedPath;
+    this.remainKey = remainKey;
   }
 
   public List<String> getPatterns() {
@@ -38,6 +50,10 @@ public class Project extends AbstractUnaryOperator {
 
   public TagFilter getTagFilter() {
     return tagFilter;
+  }
+
+  public boolean isRemainKey() {
+    return remainKey;
   }
 
   public boolean isNeedSelectedPath() {
@@ -51,7 +67,11 @@ public class Project extends AbstractUnaryOperator {
   @Override
   public Operator copy() {
     return new Project(
-        getSource().copy(), new ArrayList<>(patterns), tagFilter == null ? null : tagFilter.copy());
+        getSource().copy(),
+        new ArrayList<>(patterns),
+        tagFilter == null ? null : tagFilter.copy(),
+        needSelectedPath,
+        remainKey);
   }
 
   @Override

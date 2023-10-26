@@ -504,7 +504,7 @@ public class RestSession {
     return new SessionQueryDataSet(resp);
   }
 
-  public SessionQueryDataSet showTimeSeries() {
+  public SessionQueryDataSet showColumns() {
     ShowColumnsReq req = new ShowColumnsReq(sessionId);
 
     ShowColumnsResp resp;

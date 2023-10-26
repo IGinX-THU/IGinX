@@ -10,7 +10,7 @@ import cn.edu.tsinghua.iginx.engine.logical.generator.DeleteGenerator;
 import cn.edu.tsinghua.iginx.engine.logical.generator.InsertGenerator;
 import cn.edu.tsinghua.iginx.engine.logical.generator.LogicalGenerator;
 import cn.edu.tsinghua.iginx.engine.logical.generator.QueryGenerator;
-import cn.edu.tsinghua.iginx.engine.logical.generator.ShowTimeSeriesGenerator;
+import cn.edu.tsinghua.iginx.engine.logical.generator.ShowColumnsGenerator;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -152,7 +152,7 @@ public class StatementExecutor {
     registerGenerator(QueryGenerator.getInstance());
     registerGenerator(DeleteGenerator.getInstance());
     registerGenerator(InsertGenerator.getInstance());
-    registerGenerator(ShowTimeSeriesGenerator.getInstance());
+    registerGenerator(ShowColumnsGenerator.getInstance());
 
     try {
       String statisticsCollectorClassName =
@@ -200,7 +200,7 @@ public class StatementExecutor {
         case Insert:
           insertGeneratorList.add(generator);
           break;
-        case ShowTimeSeries:
+        case ShowColumns:
           showTSGeneratorList.add(generator);
           break;
         default:
@@ -311,7 +311,7 @@ public class StatementExecutor {
             processCountPoints(ctx);
             return;
           case DELETE_COLUMNS:
-            processDeleteTimeSeries(ctx);
+            processDeleteColumns(ctx);
             return;
           case CLEAR_DATA:
             processClearData(ctx);
@@ -436,7 +436,7 @@ public class StatementExecutor {
       if (sourceB.getType() == SourceType.Operator) {
         dfsLogicalTree(cache, ((OperatorSource) sourceB).getOperator(), depth + 1, maxLen);
       }
-    } else {
+    } else if (OperatorType.isMultipleOperator(type)) {
       MultipleOperator multipleOp = (MultipleOperator) op;
       for (Source source : multipleOp.getSources()) {
         if (source.getType() == SourceType.Operator) {
@@ -756,7 +756,7 @@ public class StatementExecutor {
     ctx.getResult().setPointsNum(pointsNum);
   }
 
-  private void processDeleteTimeSeries(RequestContext ctx)
+  private void processDeleteColumns(RequestContext ctx)
       throws ExecutionException, PhysicalException {
     DeleteColumnsStatement deleteColumnsStatement = (DeleteColumnsStatement) ctx.getStatement();
     DeleteStatement deleteStatement =

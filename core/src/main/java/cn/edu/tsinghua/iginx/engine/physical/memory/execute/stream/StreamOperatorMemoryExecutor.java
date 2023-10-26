@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -115,7 +116,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         result = executeGroupBy((GroupBy) operator, stream);
         break;
       case Distinct:
-        result = executeDistinct(stream);
+        result = executeDistinct((Distinct) operator, stream);
         break;
       case ValueToSelectedPath:
         result = executeValueToSelectedPath((ValueToSelectedPath) operator, stream);
@@ -215,7 +216,8 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
       // min和max无需去重
       if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
-        stream = executeDistinct(stream);
+        Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
+        stream = executeDistinct(distinct, stream);
       }
     }
 
@@ -242,7 +244,9 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new GroupByLazyStream(groupBy, stream);
   }
 
-  private RowStream executeDistinct(RowStream stream) {
+  private RowStream executeDistinct(Distinct distinct, RowStream stream) {
+    Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
+    stream = executeProject(project, stream);
     return new DistinctLazyStream(stream);
   }
 

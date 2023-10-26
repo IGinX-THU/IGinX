@@ -175,7 +175,7 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testShowTimeSeries() {
+  public void testShowColumns() {
     if (!isAbleToShowColumns || isScaling) {
       return;
     }
@@ -502,6 +502,10 @@ public class SQLSessionIT {
         "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
     executor.execute(insert);
 
+    insert =
+        "INSERT INTO t(key, a, b) values (1, 1, 1), (2, 1, 1), (3, 1, 2), (4, 2, 1), (5, 2, 2), (6, 3, 1);";
+    executor.execute(insert);
+
     String statement = "SELECT * FROM test;";
     String expected =
         "ResultSets:\n"
@@ -552,6 +556,39 @@ public class SQLSessionIT {
             + "|     4|     3|\n"
             + "+------+------+\n"
             + "Total line number = 8\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT test.a, t.a FROM test JOIN t ON test.a = t.a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+---+\n"
+            + "|test.a|t.a|\n"
+            + "+------+---+\n"
+            + "|     1|  1|\n"
+            + "|     1|  1|\n"
+            + "|     1|  1|\n"
+            + "|     2|  2|\n"
+            + "|     2|  2|\n"
+            + "|     2|  2|\n"
+            + "|     2|  2|\n"
+            + "|     3|  3|\n"
+            + "|     3|  3|\n"
+            + "|     3|  3|\n"
+            + "+------+---+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT test.a, t.a FROM test JOIN t ON test.a = t.a;";
+    expected =
+        "ResultSets:\n"
+            + "+------+---+\n"
+            + "|test.a|t.a|\n"
+            + "+------+---+\n"
+            + "|     1|  1|\n"
+            + "|     2|  2|\n"
+            + "|     3|  3|\n"
+            + "+------+---+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test;";
@@ -4367,6 +4404,214 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testSelectFromShowColumns() {
+    String insert =
+        "INSERT INTO test(key, a, b, c, d) VALUES (0, 1, 1.5, true, \"aaa\"), (1, 2, 2.5, false, \"bbb\"), "
+            + "(2, 3, 3.5, true, \"ccc\"), (3, 4, 4.5, false, \"ddd\"), (4, 5, 5.5, true, \"eee\");";
+    executor.execute(insert);
+
+    String query = "SELECT * FROM (SHOW COLUMNS test.*, us.*);";
+    String expected =
+        "ResultSets:\n"
+            + "+--------+-------+\n"
+            + "|    path|   type|\n"
+            + "+--------+-------+\n"
+            + "|  test.a|   LONG|\n"
+            + "|  test.b| DOUBLE|\n"
+            + "|  test.c|BOOLEAN|\n"
+            + "|  test.d| BINARY|\n"
+            + "|us.d1.s1|   LONG|\n"
+            + "|us.d1.s2|   LONG|\n"
+            + "|us.d1.s3| BINARY|\n"
+            + "|us.d1.s4| DOUBLE|\n"
+            + "+--------+-------+\n"
+            + "Total line number = 8\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT path FROM (SHOW COLUMNS us.*);";
+    expected =
+        "ResultSets:\n"
+            + "+--------+\n"
+            + "|    path|\n"
+            + "+--------+\n"
+            + "|us.d1.s1|\n"
+            + "|us.d1.s2|\n"
+            + "|us.d1.s3|\n"
+            + "|us.d1.s4|\n"
+            + "+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT path FROM (SHOW COLUMNS test.*, us.* LIMIT 3);";
+    expected =
+        "ResultSets:\n"
+            + "+------+\n"
+            + "|  path|\n"
+            + "+------+\n"
+            + "|test.a|\n"
+            + "|test.b|\n"
+            + "|test.c|\n"
+            + "+------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT path FROM (SHOW COLUMNS test.*, us.*) LIMIT 3;";
+    expected =
+        "ResultSets:\n"
+            + "+------+\n"
+            + "|  path|\n"
+            + "+------+\n"
+            + "|test.a|\n"
+            + "|test.b|\n"
+            + "|test.c|\n"
+            + "+------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "SELECT path FROM (SHOW COLUMNS us.*) WHERE path LIKE \".*.s3\" OR path LIKE \".*.s4\";";
+    expected =
+        "ResultSets:\n"
+            + "+--------+\n"
+            + "|    path|\n"
+            + "+--------+\n"
+            + "|us.d1.s3|\n"
+            + "|us.d1.s4|\n"
+            + "+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT path AS p FROM (SHOW COLUMNS us.*) WHERE type = \"LONG\";";
+    expected =
+        "ResultSets:\n"
+            + "+--------+\n"
+            + "|       p|\n"
+            + "+--------+\n"
+            + "|us.d1.s1|\n"
+            + "|us.d1.s2|\n"
+            + "+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT type AS t FROM (SHOW COLUMNS test.*) GROUP BY type ORDER BY type;";
+    expected =
+        "ResultSets:\n"
+            + "+-------+\n"
+            + "|      t|\n"
+            + "+-------+\n"
+            + "| BINARY|\n"
+            + "|BOOLEAN|\n"
+            + "| DOUBLE|\n"
+            + "|   LONG|\n"
+            + "+-------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "SELECT * FROM (SHOW COLUMNS test.*) AS test JOIN (SHOW COLUMNS us.*) AS us ON test.type = us.type;";
+    expected =
+        "ResultSets:\n"
+            + "+---------+---------+--------+-------+\n"
+            + "|test.path|test.type| us.path|us.type|\n"
+            + "+---------+---------+--------+-------+\n"
+            + "|   test.a|     LONG|us.d1.s1|   LONG|\n"
+            + "|   test.a|     LONG|us.d1.s2|   LONG|\n"
+            + "|   test.b|   DOUBLE|us.d1.s4| DOUBLE|\n"
+            + "|   test.d|   BINARY|us.d1.s3| BINARY|\n"
+            + "+---------+---------+--------+-------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "SELECT * FROM (SHOW COLUMNS test.*) AS test LEFT JOIN (SHOW COLUMNS us.*) AS us ON test.type = us.type;";
+    expected =
+        "ResultSets:\n"
+            + "+---------+---------+--------+-------+\n"
+            + "|test.path|test.type| us.path|us.type|\n"
+            + "+---------+---------+--------+-------+\n"
+            + "|   test.a|     LONG|us.d1.s1|   LONG|\n"
+            + "|   test.a|     LONG|us.d1.s2|   LONG|\n"
+            + "|   test.b|   DOUBLE|us.d1.s4| DOUBLE|\n"
+            + "|   test.d|   BINARY|us.d1.s3| BINARY|\n"
+            + "|   test.c|  BOOLEAN|    null|   null|\n"
+            + "+---------+---------+--------+-------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT * FROM test WHERE EXISTS (SELECT * FROM (SHOW COLUMNS us.*));";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "|  0|     1|   1.5|  true|   aaa|\n"
+            + "|  1|     2|   2.5| false|   bbb|\n"
+            + "|  2|     3|   3.5|  true|   ccc|\n"
+            + "|  3|     4|   4.5| false|   ddd|\n"
+            + "|  4|     5|   5.5|  true|   eee|\n"
+            + "+---+------+------+------+------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "SELECT * FROM test WHERE EXISTS (SELECT * FROM (SHOW COLUMNS us.*) WHERE type = \"BOOLEAN\");";
+    expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
+  public void testMixedValueToMetaAndShowColumns() {
+    String insert =
+        "INSERT INTO test(key, a, b, c, d) VALUES (0, 1, 1.5, true, \"aaa\"), (1, 2, 2.5, false, \"bbb\"), "
+            + "(2, 3, 3.5, true, \"ccc\"), (3, 4, 4.5, false, \"ddd\"), (4, 5, 5.5, true, \"eee\");";
+    executor.execute(insert);
+
+    String query =
+        "SELECT path FROM (SHOW COLUMNS test.*) WHERE type = \"LONG\" OR type = \"DOUBLE\" ORDER BY path";
+    String expected =
+        "ResultSets:\n"
+            + "+------+\n"
+            + "|  path|\n"
+            + "+------+\n"
+            + "|test.a|\n"
+            + "|test.b|\n"
+            + "+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT test.a, test.b FROM (SELECT * FROM test)";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  0|     1|   1.5|\n"
+            + "|  1|     2|   2.5|\n"
+            + "|  2|     3|   3.5|\n"
+            + "|  3|     4|   4.5|\n"
+            + "|  4|     5|   5.5|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "SELECT VALUE2META(SELECT path FROM (SHOW COLUMNS test.*) WHERE type = \"LONG\" OR type = \"DOUBLE\" ORDER BY path) FROM (SELECT * FROM test)";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  0|     1|   1.5|\n"
+            + "|  1|     2|   2.5|\n"
+            + "|  2|     3|   3.5|\n"
+            + "|  3|     4|   4.5|\n"
+            + "|  4|     5|   5.5|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
   public void testDateFormat() {
     if (!isAbleToDelete) {
       return;
@@ -4861,6 +5106,10 @@ public class SQLSessionIT {
     errClause = "SELECT * FROM test WHERE 1 < 2;";
     executor.executeAndCompareErrMsg(
         errClause, "Constant comparison isn't supported in WHERE clause yet.");
+
+    errClause = "select * from (show columns a.*), (show columns b.*);";
+    executor.executeAndCompareErrMsg(
+        errClause, "As clause is expected when multiple ShowColumns are joined together.");
   }
 
   @Test
@@ -4904,11 +5153,11 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testDeleteTimeSeries() {
+  public void testDeleteColumns() {
     if (!isAbleToDelete || isScaling) {
       return;
     }
-    String showTimeSeries = "SHOW COLUMNS us.*;";
+    String showColumns = "SHOW COLUMNS us.*;";
     String expected =
         "Columns:\n"
             + "+--------+--------+\n"
@@ -4920,12 +5169,12 @@ public class SQLSessionIT {
             + "|us.d1.s4|  DOUBLE|\n"
             + "+--------+--------+\n"
             + "Total line number = 4\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
 
     String deleteTimeSeries = "DELETE COLUMNS us.d1.s4";
     executor.execute(deleteTimeSeries);
 
-    showTimeSeries = "SHOW COLUMNS us.*;";
+    showColumns = "SHOW COLUMNS us.*;";
     expected =
         "Columns:\n"
             + "+--------+--------+\n"
@@ -4936,16 +5185,16 @@ public class SQLSessionIT {
             + "|us.d1.s3|  BINARY|\n"
             + "+--------+--------+\n"
             + "Total line number = 3\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
 
-    String showTimeSeriesData = "SELECT s4 FROM us.d1;";
+    String showColumnsData = "SELECT s4 FROM us.d1;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeriesData, expected);
+    executor.executeAndCompare(showColumnsData, expected);
 
     deleteTimeSeries = "DELETE COLUMNS us.*";
     executor.execute(deleteTimeSeries);
 
-    showTimeSeries = "SHOW COLUMNS us.*;";
+    showColumns = "SHOW COLUMNS us.*;";
     expected =
         "Columns:\n"
             + "+----+--------+\n"
@@ -4953,11 +5202,11 @@ public class SQLSessionIT {
             + "+----+--------+\n"
             + "+----+--------+\n"
             + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
 
-    showTimeSeriesData = "SELECT * FROM *;";
+    showColumnsData = "SELECT * FROM *;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeriesData, expected);
+    executor.executeAndCompare(showColumnsData, expected);
 
     String countPoints = "COUNT POINTS";
     expected = "Points num: 0\n";
@@ -4973,9 +5222,9 @@ public class SQLSessionIT {
     String expected = "Points num: 0\n";
     executor.executeAndCompare(countPoints, expected);
 
-    String showTimeSeries = "SELECT * FROM *;";
+    String showColumns = "SELECT * FROM *;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    executor.executeAndCompare(showTimeSeries, expected);
+    executor.executeAndCompare(showColumns, expected);
   }
 
   @Test

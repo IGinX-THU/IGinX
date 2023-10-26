@@ -60,6 +60,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -149,7 +150,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case GroupBy:
         return executeGroupBy((GroupBy) operator, transformToTable(stream));
       case Distinct:
-        return executeDistinct(transformToTable(stream));
+        return executeDistinct((Distinct) operator, transformToTable(stream));
       case ValueToSelectedPath:
         return executeValueToSelectedPath((ValueToSelectedPath) operator, transformToTable(stream));
       default:
@@ -213,7 +214,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Field> targetFields = new ArrayList<>();
 
     for (Field field : header.getFields()) {
-      if (field.getName().endsWith(KEY)) {
+      if (project.isRemainKey() && field.getName().endsWith(KEY)) {
         targetFields.add(field);
         continue;
       }
@@ -409,7 +410,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
       // min和max无需去重
       if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
-        table = transformToTable(executeDistinct(table));
+        Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
+        table = transformToTable(executeDistinct(distinct, table));
       }
     }
 
@@ -608,7 +610,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeDistinct(Table table) throws PhysicalException {
+  private RowStream executeDistinct(Distinct distinct, Table table) throws PhysicalException {
+    Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
+    table = transformToTable(executeProject(project, table));
+
     if (table.getHeader().getFields().isEmpty()) {
       return table;
     }
@@ -621,6 +626,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, Table table) {
     String prefix = operator.getPrefix();
+    boolean prefixIsEmpty = prefix.isEmpty();
 
     int fieldSize = table.getHeader().getFieldSize();
     Header targetHeader =
@@ -631,10 +637,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         .forEach(
             row -> {
               for (int i = 0; i < fieldSize; i++) {
+                String path =
+                    prefixIsEmpty
+                        ? row.getAsValue(i).getAsString()
+                        : prefix + DOT + row.getAsValue(i).getAsString();
                 Object[] value = new Object[1];
-                value[0] =
-                    (prefix + DOT + row.getAsValue(i).getAsString())
-                        .getBytes(StandardCharsets.UTF_8);
+                value[0] = path.getBytes(StandardCharsets.UTF_8);
                 targetRows.add(new Row(targetHeader, value));
               }
             });
