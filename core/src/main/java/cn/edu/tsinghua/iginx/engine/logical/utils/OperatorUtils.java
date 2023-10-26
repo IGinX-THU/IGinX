@@ -101,7 +101,7 @@ public class OperatorUtils {
           projectOperatorList, ((OperatorSource) binaryOperator.getSourceA()).getOperator());
       findProjectOperators(
           projectOperatorList, ((OperatorSource) binaryOperator.getSourceB()).getOperator());
-    } else {
+    } else if (OperatorType.isMultipleOperator(operator.getType())) {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();
       for (Source source : sources) {
@@ -128,7 +128,7 @@ public class OperatorUtils {
           selectOperatorList, ((OperatorSource) binaryOperator.getSourceA()).getOperator());
       findSelectOperators(
           selectOperatorList, ((OperatorSource) binaryOperator.getSourceB()).getOperator());
-    } else {
+    } else if (OperatorType.isMultipleOperator(operator.getType())) {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();
       for (Source source : sources) {

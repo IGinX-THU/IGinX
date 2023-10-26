@@ -27,7 +27,7 @@ import cn.edu.tsinghua.iginx.rest.bean.QueryResult;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregator;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryAggregatorNone;
-import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryShowTimeSeries;
+import cn.edu.tsinghua.iginx.rest.query.aggregator.QueryShowColumns;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import java.util.*;
 import org.slf4j.Logger;
@@ -47,7 +47,7 @@ public class QueryExecutor {
     QueryResult ret = new QueryResult();
     try {
       session.openSession();
-      ret.addResultSet(new QueryShowTimeSeries().doAggregate(session));
+      ret.addResultSet(new QueryShowColumns().doAggregate(session));
       session.closeSession();
     } catch (Exception e) {
       logger.error("Error occurred during executing", e);

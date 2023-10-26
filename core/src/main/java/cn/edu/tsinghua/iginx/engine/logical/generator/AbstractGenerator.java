@@ -21,7 +21,7 @@ public abstract class AbstractGenerator implements LogicalGenerator {
     typeMap.put(GeneratorType.Query, StatementType.SELECT);
     typeMap.put(GeneratorType.Insert, StatementType.INSERT);
     typeMap.put(GeneratorType.Delete, StatementType.DELETE);
-    typeMap.put(GeneratorType.ShowTimeSeries, StatementType.SHOW_COLUMNS);
+    typeMap.put(GeneratorType.ShowColumns, StatementType.SHOW_COLUMNS);
   }
 
   public void registerOptimizer(Optimizer optimizer) {
