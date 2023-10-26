@@ -79,6 +79,25 @@ public class Controller {
         }
       };
 
+  public static void clearAllData(Session session) {
+    clearAllData(new MultiConnection(session));
+  }
+
+  public static void clearAllData(MultiConnection session) {
+    clearData(session);
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    if (!conf.isScaling()) {
+      logger.info("Not the DBCE test, skip the clear history data step.");
+    } else {
+      BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
+      if (generator == null) {
+        logger.error("clear data fail, caused by generator is null");
+        return;
+      }
+      generator.clearHistoryData();
+    }
+  }
+
   public static void clearData(Session session) {
     clearData(new MultiConnection(session));
   }
@@ -102,18 +121,15 @@ public class Controller {
     }
   }
 
-  private Object[][] transpose(Object[][] array) {
-    int maxLength = 0;
-    for (Object[] objects : array) {
-      maxLength = Math.max(maxLength, objects.length);
+  private static BaseHistoryDataGenerator getCurrentGenerator(ConfLoader conf) {
+    String instance = NAME_TO_INSTANCE.get(conf.getStorageType());
+    try {
+      return (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
+    } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
+      logger.error("write data fail, caused by: {}", e.getMessage());
+      fail();
     }
-    Object[][] transposed = new Object[maxLength][array.length];
-    for (int i = 0; i < array.length; i++) {
-      for (int j = 0; j < array[i].length; j++) {
-        transposed[j][i] = array[i][j];
-      }
-    }
-    return transposed;
+    return null;
   }
 
   public static <T> void writeColumnsData(
@@ -124,7 +140,6 @@ public class Controller {
       List<List<Object>> valuesList,
       List<Map<String, String>> tagsList,
       InsertAPIType type) {
-    String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
     if (!conf.isScaling()) {
@@ -135,7 +150,6 @@ public class Controller {
       if (supportKey) {
         medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 2 : pathList.size();
       }
-      instance = NAME_TO_INSTANCE.get(conf.getStorageType());
     }
 
     for (int i = 0; i < pathList.size(); i++) {
@@ -158,19 +172,17 @@ public class Controller {
         }
       } else {
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
-        try {
-          BaseHistoryDataGenerator generator =
-              (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
-          generator.writeHistoryData(
-              expPort,
-              Collections.singletonList(pathList.get(i)),
-              Collections.singletonList(dataTypeList.get(i)),
-              keyList.get(i),
-              rowValues);
-        } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-          logger.error("write data fail, caused by: {}", e.getMessage());
-          fail();
+        BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
+        if (generator == null) {
+          logger.error("write data fail, caused by generator is null");
+          return;
         }
+        generator.writeHistoryData(
+            expPort,
+            Collections.singletonList(pathList.get(i)),
+            Collections.singletonList(dataTypeList.get(i)),
+            keyList.get(i),
+            rowValues);
       }
     }
   }
@@ -183,7 +195,6 @@ public class Controller {
       List<List<Object>> valuesList,
       List<Map<String, String>> tagsList,
       InsertAPIType type) {
-    String instance = null;
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
     if (!conf.isScaling()) {
@@ -194,7 +205,6 @@ public class Controller {
       if (supportKey) {
         medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 2 : keyList.size();
       }
-      instance = NAME_TO_INSTANCE.get(conf.getStorageType());
     }
 
     // divide the data
@@ -237,14 +247,12 @@ public class Controller {
     }
 
     if (lowerKeyList != null && !lowerKeyList.isEmpty()) {
-      try {
-        BaseHistoryDataGenerator generator =
-            (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
-        generator.writeHistoryData(expPort, pathList, dataTypeList, lowerKeyList, lowerValuesList);
-      } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-        logger.error("write data fail, caused by: {}", e.getMessage());
-        fail();
+      BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
+      if (generator == null) {
+        logger.error("write data fail, caused by generator is null");
+        return;
       }
+      generator.writeHistoryData(expPort, pathList, dataTypeList, lowerKeyList, lowerValuesList);
     }
   }
 
@@ -257,62 +265,24 @@ public class Controller {
       List<Map<String, String>> tagsList,
       InsertAPIType type)
       throws SessionException, ExecutionException {
+    MultiConnection multiConnection = null;
+    if (session instanceof MultiConnection) {
+      multiConnection = ((MultiConnection) session);
+    } else if (session instanceof Session) {
+      multiConnection = new MultiConnection(((Session) session));
+    }
     switch (type) {
       case Row:
-        if (session instanceof MultiConnection) {
-          ((MultiConnection) session)
-              .insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof Session) {
-          ((Session) session)
-              .insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof SessionPool) {
-          ((SessionPool) session)
-              .insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else {
-          throw new SessionException("Unknown session type");
-        }
+        multiConnection.insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
       case NonAlignedRow:
-        if (session instanceof MultiConnection) {
-          ((MultiConnection) session)
-              .insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof Session) {
-          ((Session) session)
-              .insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof SessionPool) {
-          ((SessionPool) session)
-              .insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else {
-          throw new SessionException("Unknown session type");
-        }
+        multiConnection.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
       case Column:
-        if (session instanceof MultiConnection) {
-          ((MultiConnection) session)
-              .insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof Session) {
-          ((Session) session)
-              .insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof SessionPool) {
-          ((SessionPool) session)
-              .insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else {
-          throw new SessionException("Unknown session type");
-        }
+        multiConnection.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
       case NonAlignedColumn:
-        if (session instanceof MultiConnection) {
-          ((MultiConnection) session)
-              .insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof Session) {
-          ((Session) session)
-              .insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else if (session instanceof SessionPool) {
-          ((SessionPool) session)
-              .insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
-        } else {
-          throw new SessionException("Unknown session type");
-        }
+        multiConnection.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
     }
   }

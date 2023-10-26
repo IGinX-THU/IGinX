@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.rest;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
@@ -40,6 +41,7 @@ public class RestIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     session.closeSession();
   }
 

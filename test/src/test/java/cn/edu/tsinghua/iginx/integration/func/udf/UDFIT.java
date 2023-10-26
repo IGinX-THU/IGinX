@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -60,6 +61,7 @@ public class UDFIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     session.closeSession();
   }
 

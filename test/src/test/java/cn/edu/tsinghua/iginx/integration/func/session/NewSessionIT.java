@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.controller.InsertAPIType.*;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
@@ -149,6 +150,7 @@ public class NewSessionIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(conn);
     conn.closeSession();
   }
 

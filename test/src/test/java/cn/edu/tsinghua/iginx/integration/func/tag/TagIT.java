@@ -50,6 +50,7 @@ public class TagIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     session.closeSession();
   }
 

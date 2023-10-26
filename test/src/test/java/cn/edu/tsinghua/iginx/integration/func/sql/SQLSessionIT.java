@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -65,16 +66,16 @@ public class SQLSessionIT {
   private static MultiConnection session;
 
   public SQLSessionIT() {
-//    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-//    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-//    this.isScaling = conf.isScaling();
-//    this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
-//    this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-//    this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);
-//    this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
-//    this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
-//    this.isSupportSpecialCharacterPath =
-//        dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    this.isScaling = conf.isScaling();
+    this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
+    this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+    this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);
+    this.isSupportChinesePath = dbConf.getEnumValue(DBConfType.isSupportChinesePath);
+    this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
+    this.isSupportSpecialCharacterPath =
+        dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
   }
 
   @BeforeClass
@@ -116,6 +117,7 @@ public class SQLSessionIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     executor.close();
   }
 

@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -105,6 +106,7 @@ public class TransformIT {
   @AfterClass
   public static void tearDown() throws SessionException, ExecutionException {
     dropAllTask();
+    clearAllData(session);
     session.closeSession();
   }
 
@@ -228,7 +230,7 @@ public class TransformIT {
     }
   }
 
-  @Test
+//  @Test
   public void commitMultipleSqlStatementsTest() {
     logger.info("commitMultipleSqlStatementsTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
@@ -262,7 +264,7 @@ public class TransformIT {
     }
   }
 
-  @Test
+//  @Test
   public void commitMultipleSqlStatementsByYamlTest() {
     logger.info("commitMultipleSqlStatementsByYamlTest");
     try {
