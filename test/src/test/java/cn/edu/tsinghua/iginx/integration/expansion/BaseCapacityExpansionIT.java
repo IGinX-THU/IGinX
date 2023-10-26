@@ -569,7 +569,7 @@ public abstract class BaseCapacityExpansionIT {
 
       QueryDataSet res = session.executeQuery(statement);
       if ((res.getWarningMsg() == null || res.getWarningMsg().isEmpty())
-          && SUPPORT_KEY.get(type.name())) {
+          && SUPPORT_KEY.get(type.name().toLowerCase())) {
         logger.error("Query result has same key , and should throw warning");
         fail();
       }

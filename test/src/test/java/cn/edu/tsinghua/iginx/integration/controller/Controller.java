@@ -41,13 +41,13 @@ public class Controller {
   public static final Map<String, Boolean> SUPPORT_KEY =
       new HashMap<String, Boolean>() {
         {
-          put("FileSystem", false);
-          put("IoTDB12", true);
-          put("InfluxDB", true);
-          put("PostgreSQL", false);
-          put("Redis", false);
-          put("MongoDB", false);
-          put("Parquet", true);
+          put("filesystem", false);
+          put("iotdb12", true);
+          put("influxdb", true);
+          put("postgresql", false);
+          put("redis", false);
+          put("mongodb", false);
+          put("parquet", true);
         }
       };
 
