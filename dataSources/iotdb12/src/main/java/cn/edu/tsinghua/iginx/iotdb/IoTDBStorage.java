@@ -942,7 +942,6 @@ public class IoTDBStorage implements IStorage {
       case Key:
         return filter;
       case Value:
-        // TODO: 后面增加|> 和 &< 的支持应该修改这里
         ValueFilter valueFilter = (ValueFilter) filter;
         DataType valueType = valueFilter.getValue().getDataType();
         String path = valueFilter.getPath();
@@ -958,7 +957,11 @@ public class IoTDBStorage implements IStorage {
           for (String p : matchedPath) {
             newFilters.add(new ValueFilter(p, valueFilter.getOp(), valueFilter.getValue()));
           }
-          return new OrFilter(newFilters);
+          if (Op.isOrOp(valueFilter.getOp())) {
+            return new OrFilter(newFilters);
+          } else {
+            return new AndFilter(newFilters);
+          }
         } else {
           return filter;
         }

@@ -72,7 +72,7 @@ public class FilterTransformer {
   }
 
   private static String toString(KeyFilter filter) {
-    return "time " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
+    return "time " + op2StrWithoutAndOr(filter.getOp()) + " " + filter.getValue();
   }
 
   private static String toString(ValueFilter filter) {
@@ -88,7 +88,7 @@ public class FilterTransformer {
       return filter.getPath() + " regexp " + value;
     }
 
-    return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + value;
+    return filter.getPath() + " " + op2StrWithoutAndOr(filter.getOp()) + " " + value;
   }
 
   private static String toString(OrFilter filter) {
@@ -105,5 +105,13 @@ public class FilterTransformer {
     }
 
     return "(" + sb.substring(0, sb.length() - 4) + ")";
+  }
+
+  private static String op2StrWithoutAndOr(Op op) {
+    String opStr = Op.op2Str(op);
+    if (opStr.startsWith("&") || opStr.startsWith("|")) {
+      return opStr.substring(1);
+    }
+    return opStr;
   }
 }
