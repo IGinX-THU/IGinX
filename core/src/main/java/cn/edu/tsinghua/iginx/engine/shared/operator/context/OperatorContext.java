@@ -1,7 +1,9 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator.context;
 
+import cn.edu.tsinghua.iginx.engine.shared.ContextWarningMsgType;
+
 public class OperatorContext {
-  ContextMsgType msgType;
+  ContextWarningMsgType msgType;
   private String warningMsg;
 
   public OperatorContext() {}
@@ -18,7 +20,7 @@ public class OperatorContext {
     this.warningMsg = warningMsg;
   }
 
-  public void setWarningType(ContextMsgType warningType) {
+  public void setWarningType(ContextWarningMsgType warningType) {
     this.msgType = warningType;
   }
 }

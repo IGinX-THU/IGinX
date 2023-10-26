@@ -26,16 +26,10 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 
 public interface PhysicalEngine {
 
   RowStream execute(RequestContext ctx, Operator root) throws PhysicalException;
-
-  default RowStream execute(RequestContext ctx, Operator root, OperatorContext context)
-      throws PhysicalException {
-    return execute(ctx, root);
-  }
 
   PhysicalOptimizer getOptimizer();
 

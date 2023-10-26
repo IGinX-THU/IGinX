@@ -23,9 +23,9 @@ import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.rule.Rule;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -41,12 +41,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
   }
 
   @Override
-  public PhysicalTask optimize(Operator root) {
-    return optimize(root, null);
-  }
-
-  @Override
-  public PhysicalTask optimize(Operator root, OperatorContext context) {
+  public PhysicalTask optimize(Operator root, RequestContext context) {
     if (root == null) {
       return null;
     }
@@ -66,7 +61,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
   @Override
   public void setRules(Collection<Rule> rules) {}
 
-  private PhysicalTask constructTask(Operator operator, OperatorContext context) {
+  private PhysicalTask constructTask(Operator operator, RequestContext context) {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOperator = (UnaryOperator) operator;
       Source source = unaryOperator.getSource();

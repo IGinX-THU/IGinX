@@ -19,7 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 
 public interface RowStream {
 
@@ -31,13 +31,9 @@ public interface RowStream {
 
   Row next() throws PhysicalException;
 
-  default String getWarningMsg() {
-    return "";
-  }
+  default void setContext(RequestContext context) {}
 
-  default void setContext(OperatorContext context) {}
-
-  default OperatorContext getContext() {
+  default RequestContext getContext() {
     return null;
   }
 }

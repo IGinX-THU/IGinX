@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
@@ -56,7 +57,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 
@@ -76,7 +76,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   @Override
   public RowStream executeUnaryOperator(
-      UnaryOperator operator, RowStream stream, OperatorContext context) throws PhysicalException {
+      UnaryOperator operator, RowStream stream, RequestContext context) throws PhysicalException {
     RowStream result = null;
     switch (operator.getType()) {
       case Project:
@@ -136,7 +136,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   @Override
   public RowStream executeBinaryOperator(
-      BinaryOperator operator, RowStream streamA, RowStream streamB, OperatorContext context)
+      BinaryOperator operator, RowStream streamA, RowStream streamB, RequestContext context)
       throws PhysicalException {
     RowStream result = null;
     switch (operator.getType()) {

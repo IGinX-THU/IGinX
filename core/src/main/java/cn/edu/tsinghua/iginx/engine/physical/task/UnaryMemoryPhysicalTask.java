@@ -4,10 +4,10 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
 import org.slf4j.Logger;
@@ -19,14 +19,14 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final PhysicalTask parentTask;
 
-  private final OperatorContext context;
+  private final RequestContext context;
 
   public UnaryMemoryPhysicalTask(List<Operator> operators, PhysicalTask parentTask) {
     this(operators, parentTask, null);
   }
 
   public UnaryMemoryPhysicalTask(
-      List<Operator> operators, PhysicalTask parentTask, OperatorContext context) {
+      List<Operator> operators, PhysicalTask parentTask, RequestContext context) {
     super(TaskType.UnaryMemory, operators);
     this.parentTask = parentTask;
     this.context = context;

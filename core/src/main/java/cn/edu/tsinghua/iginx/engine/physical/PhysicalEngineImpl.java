@@ -22,7 +22,6 @@ import static cn.edu.tsinghua.iginx.engine.physical.task.utils.TaskUtils.getBott
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.WarningException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizerManager;
@@ -34,7 +33,6 @@ import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import java.util.ArrayList;
@@ -70,12 +68,6 @@ public class PhysicalEngineImpl implements PhysicalEngine {
 
   @Override
   public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
-    return execute(ctx, root, null);
-  }
-
-  @Override
-  public RowStream execute(RequestContext ctx, Operator root, OperatorContext context)
-      throws PhysicalException {
     if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
@@ -90,19 +82,14 @@ public class PhysicalEngineImpl implements PhysicalEngine {
         return result.getRowStream();
       }
     }
-    PhysicalTask task = optimizer.optimize(root, context);
+    PhysicalTask task = optimizer.optimize(root, ctx);
     ctx.setPhysicalTree(task);
     List<PhysicalTask> bottomTasks = new ArrayList<>();
     getBottomTasks(bottomTasks, task);
     commitBottomTasks(bottomTasks);
     TaskExecuteResult result = task.getResult();
     if (result.getException() != null) {
-      if (result.getException() instanceof WarningException) {
-        WarningException e = (WarningException) result.getException();
-        ctx.setWarningMsg(e.getMessage());
-      } else {
-        throw result.getException();
-      }
+      throw result.getException();
     }
     return result.getRowStream();
   }

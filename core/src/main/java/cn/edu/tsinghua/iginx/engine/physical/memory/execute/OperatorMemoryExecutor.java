@@ -19,17 +19,17 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 
 public interface OperatorMemoryExecutor {
 
   RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream) throws PhysicalException;
 
   default RowStream executeUnaryOperator(
-      UnaryOperator operator, RowStream stream, OperatorContext context) throws PhysicalException {
+      UnaryOperator operator, RowStream stream, RequestContext context) throws PhysicalException {
     return executeUnaryOperator(operator, stream);
   }
 
@@ -37,7 +37,7 @@ public interface OperatorMemoryExecutor {
       throws PhysicalException;
 
   default RowStream executeBinaryOperator(
-      BinaryOperator operator, RowStream streamA, RowStream streamB, OperatorContext context)
+      BinaryOperator operator, RowStream streamA, RowStream streamB, RequestContext context)
       throws PhysicalException {
     return executeBinaryOperator(operator, streamA, streamB);
   }

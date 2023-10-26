@@ -20,14 +20,13 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.WarningException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
 import org.slf4j.Logger;
@@ -41,13 +40,13 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final PhysicalTask parentTaskB;
 
-  private final OperatorContext context;
+  private final RequestContext context;
 
   public BinaryMemoryPhysicalTask(
       List<Operator> operators,
       PhysicalTask parentTaskA,
       PhysicalTask parentTaskB,
-      OperatorContext context) {
+      RequestContext context) {
     super(TaskType.BinaryMemory, operators);
     this.parentTaskA = parentTaskA;
     this.parentTaskB = parentTaskB;
@@ -84,7 +83,6 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
     RowStream streamA = parentResultA.getRowStream();
     RowStream streamB = parentResultB.getRowStream();
     RowStream stream;
-    String warningMsg = null;
     OperatorMemoryExecutor executor =
         OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
     try {
@@ -93,9 +91,6 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
         throw new UnexpectedOperatorException("unexpected operator " + op + " in binary task");
       }
       stream = executor.executeBinaryOperator((BinaryOperator) op, streamA, streamB, context);
-      if (!stream.getWarningMsg().isEmpty()) {
-        warningMsg = stream.getWarningMsg();
-      }
       for (int i = 1; i < operators.size(); i++) {
         op = operators.get(i);
         if (OperatorType.isBinaryOperator(op.getType())) {
@@ -109,11 +104,7 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
       return new TaskExecuteResult(e);
     }
 
-    TaskExecuteResult result = new TaskExecuteResult(stream);
-    if (warningMsg != null) {
-      result.setException(new WarningException(warningMsg));
-    }
-    return result;
+    return new TaskExecuteResult(stream);
   }
 
   @Override

@@ -46,6 +46,8 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.engine.shared.ContextWarningMsgType;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -158,38 +160,40 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  @Override
   public RowStream executeBinaryOperator(
       BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
+    return executeBinaryOperator(operator, streamA, streamB, null);
+  }
+
+  @Override
+  public RowStream executeBinaryOperator(
+      BinaryOperator operator, RowStream streamA, RowStream streamB, RequestContext context)
+      throws PhysicalException {
+    Table tableA = transformToTable(streamA);
+    Table tableB = transformToTable(streamB);
+    tableA.setContext(context);
+    tableB.setContext(context);
     switch (operator.getType()) {
       case Join:
-        return executeJoin((Join) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeJoin((Join) operator, tableA, tableB);
       case CrossJoin:
-        return executeCrossJoin(
-            (CrossJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeCrossJoin((CrossJoin) operator, tableA, tableB);
       case InnerJoin:
-        return executeInnerJoin(
-            (InnerJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeInnerJoin((InnerJoin) operator, tableA, tableB);
       case OuterJoin:
-        return executeOuterJoin(
-            (OuterJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeOuterJoin((OuterJoin) operator, tableA, tableB);
       case SingleJoin:
-        return executeSingleJoin(
-            (SingleJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeSingleJoin((SingleJoin) operator, tableA, tableB);
       case MarkJoin:
-        return executeMarkJoin(
-            (MarkJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeMarkJoin((MarkJoin) operator, tableA, tableB);
       case PathUnion:
-        return executePathUnion(
-            (PathUnion) operator, transformToTable(streamA), transformToTable(streamB));
+        return executePathUnion((PathUnion) operator, tableA, tableB);
       case Union:
-        return executeUnion((Union) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeUnion((Union) operator, tableA, tableB);
       case Except:
-        return executeExcept(
-            (Except) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeExcept((Except) operator, tableA, tableB);
       case Intersect:
-        return executeIntersect(
-            (Intersect) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeIntersect((Intersect) operator, tableA, tableB);
       default:
         throw new UnexpectedOperatorException("unknown binary operator: " + operator.getType());
     }
@@ -2135,14 +2139,26 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         writeToNewRow(values, rowB, fieldIndices);
         newRows.add(new Row(newHeader, rowB.getKey(), values));
       }
-      return new Table(
-          newHeader,
-          newRows,
-          isConflictInKey
-              ? String.format(
-                  WARNINGS,
-                  "The query results contain overlapping key values, displaying only partial data")
-              : "");
+      Table table = new Table(newHeader, newRows);
+      if (tableA.getContext() != null) {
+        table.setContext(tableB.getContext());
+      } else if (tableB.getContext() != null) {
+        table.setContext(tableA.getContext());
+      }
+      RequestContext context = null;
+      if (tableA.getContext() != null) {
+        context = tableB.getContext();
+      } else if (tableB.getContext() != null) {
+        context = tableA.getContext();
+      }
+      if (context != null) {
+        context.setWarningType(ContextWarningMsgType.SameKeyWarning);
+        context.setWarningMsg(
+            "The query results contain overlapping key values, displaying only partial data");
+      }
+      table.setContext(context);
+
+      return table;
     } else if (join.getJoinBy().equals(Constants.ORDINAL)) {
       if (headerA.hasKey() || headerB.hasKey()) {
         throw new InvalidOperatorParameterException(

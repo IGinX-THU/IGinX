@@ -39,9 +39,11 @@ public class RequestContext {
 
   private PhysicalTask physicalTree;
 
+  private ByteBuffer loadCSVFileByteBuffer;
+
   private String warningMsg;
 
-  private ByteBuffer loadCSVFileByteBuffer;
+  private ContextWarningMsgType contextMsgType;
 
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();
@@ -109,5 +111,9 @@ public class RequestContext {
 
   public String getWarningMsg() {
     return warningMsg;
+  }
+
+  public void setWarningType(ContextWarningMsgType contextMsgType) {
+    this.contextMsgType = contextMsgType;
   }
 }

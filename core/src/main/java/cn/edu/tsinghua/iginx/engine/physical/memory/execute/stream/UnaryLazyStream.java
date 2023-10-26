@@ -19,14 +19,14 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.context.OperatorContext;
 
 public abstract class UnaryLazyStream implements RowStream {
 
   protected final RowStream stream;
 
-  protected OperatorContext context;
+  protected RequestContext context;
 
   public UnaryLazyStream(RowStream stream) {
     this.stream = stream;
@@ -38,12 +38,12 @@ public abstract class UnaryLazyStream implements RowStream {
   }
 
   @Override
-  public void setContext(OperatorContext context) {
+  public void setContext(RequestContext context) {
     this.context = context;
   }
 
   @Override
-  public OperatorContext getContext() {
+  public RequestContext getContext() {
     return context;
   }
 }
