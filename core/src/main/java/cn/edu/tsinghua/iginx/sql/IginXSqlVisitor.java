@@ -1100,7 +1100,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
           if (!unarySelectStatement.hasJoinParts()
               && unarySelectStatement.getFromParts().get(0).getType()
-                  == FromPartType.PathFromPart) {
+              == FromPartType.PathFromPart) {
             orderByPath = prefix + SQLConstant.DOT + suffix;
           }
         }
