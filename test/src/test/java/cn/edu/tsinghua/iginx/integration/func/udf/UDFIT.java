@@ -416,6 +416,64 @@ public class UDFIT {
   }
 
   @Test
+  public void testUDFWithArgs() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT pow(s1, 2) FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+---------------+\n"
+            + "|key|pow(test.s1, 2)|\n"
+            + "+---+---------------+\n"
+            + "|  1|            4.0|\n"
+            + "|  2|            9.0|\n"
+            + "|  3|           16.0|\n"
+            + "|  4|           81.0|\n"
+            + "|  5|            9.0|\n"
+            + "|  6|           36.0|\n"
+            + "+---+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT pow(s1, s2, 2) FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 2)|pow(test.s2, 2)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            4.0|            9.0|\n"
+            + "|  2|            9.0|            1.0|\n"
+            + "|  3|           16.0|            9.0|\n"
+            + "|  4|           81.0|           49.0|\n"
+            + "|  5|            9.0|           36.0|\n"
+            + "|  6|           36.0|           16.0|\n"
+            + "+---+---------------+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT pow(*, 3) FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 3)|pow(test.s2, 3)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            8.0|           27.0|\n"
+            + "|  2|           27.0|            1.0|\n"
+            + "|  3|           64.0|           27.0|\n"
+            + "|  4|          729.0|          343.0|\n"
+            + "|  5|           27.0|          216.0|\n"
+            + "|  6|          216.0|           64.0|\n"
+            + "+---+---------------+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
   public void testUDFWithKvargs() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
@@ -468,6 +526,30 @@ public class UDFIT {
             + "|  4|          729.0|          343.0|\n"
             + "|  5|           27.0|          216.0|\n"
             + "|  6|          216.0|           64.0|\n"
+            + "+---+---------------+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUDFWithArgsAndKvArgs() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT pow(s1, 2), pow(s2, n=2) FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 2)|pow(test.s2, 2)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            4.0|            9.0|\n"
+            + "|  2|            9.0|            1.0|\n"
+            + "|  3|           16.0|            9.0|\n"
+            + "|  4|           81.0|           49.0|\n"
+            + "|  5|            9.0|           36.0|\n"
+            + "|  6|           36.0|           16.0|\n"
             + "+---+---------------+---------------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));

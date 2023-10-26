@@ -949,7 +949,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private Expression parseBaseExpression(
       ExpressionContext ctx, UnarySelectStatement selectStatement) {
-    String selectedPath = parsePath(ctx.path(0));
+    String selectedPath = parsePath(ctx.path());
     return parseBaseExpression(selectedPath, selectStatement);
   }
 

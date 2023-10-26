@@ -22,29 +22,16 @@ public class FunctionParams {
     this(paths, null, null, null, false);
   }
 
+  public FunctionParams(Expression expr) {
+    this(null, null, null, expr, false);
+  }
+
   public FunctionParams(List<String> paths, List<Object> args, Map<String, Object> kwargs) {
     this(paths, args, kwargs, null, false);
   }
 
   public FunctionParams(
       List<String> paths, List<Object> args, Map<String, Object> kwargs, boolean isDistinct) {
-    this(paths, args, kwargs, null, isDistinct);
-  }
-
-  public FunctionParams(Expression expr) {
-    this(null, null, null, expr, false);
-  }
-
-  public FunctionParams(
-      List<String> paths, List<Object> args, Map<String, Object> kwargs) {
-    this(paths, args, kwargs, null, false);
-  }
-
-  public FunctionParams(
-      List<String> paths,
-      List<Object> args,
-      Map<String, Object> kwargs,
-      boolean isDistinct) {
     this(paths, args, kwargs, null, isDistinct);
   }
 

@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.sql.expression;
 
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import java.util.List;
 import java.util.Map;
 

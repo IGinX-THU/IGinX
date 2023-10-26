@@ -550,8 +550,22 @@ public class QueryGenerator extends AbstractGenerator {
               (int) selectStatement.getOffset());
     }
 
+    boolean hasFuncWithArgs =
+        selectStatement.getExpressions().stream()
+            .anyMatch(
+                expression -> {
+                  if (!(expression instanceof FuncExpression)) {
+                    return false;
+                  }
+                  FuncExpression funcExpression = ((FuncExpression) expression);
+                  return !funcExpression.getArgs().isEmpty()
+                      || !funcExpression.getKvargs().isEmpty();
+                });
+
     if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+    } else if (hasFuncWithArgs) {
+      root = new Reorder(new OperatorSource(root), Collections.singletonList("*"));
     } else {
       List<String> order = new ArrayList<>();
       List<Boolean> isPyUDF = new ArrayList<>();
