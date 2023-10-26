@@ -7,15 +7,19 @@ public interface FromPart {
 
   FromPartType getType();
 
+  String getAlias();
+
+  boolean hasAlias();
+
   boolean hasSinglePrefix();
 
   List<String> getPatterns();
 
   String getPrefix();
 
-  boolean isJoinPart();
-
   JoinCondition getJoinCondition();
+
+  void setJoinCondition(JoinCondition joinCondition);
 
   List<String> getFreeVariables();
 }

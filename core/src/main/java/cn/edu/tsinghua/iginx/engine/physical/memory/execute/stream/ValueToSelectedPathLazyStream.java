@@ -22,6 +22,8 @@ public class ValueToSelectedPathLazyStream extends UnaryLazyStream {
 
   private String prefix;
 
+  private boolean prefixIsEmpty;
+
   private int fieldSize;
 
   private Header header;
@@ -36,6 +38,7 @@ public class ValueToSelectedPathLazyStream extends UnaryLazyStream {
 
   private void initialize() throws PhysicalException {
     this.prefix = valueToSelectedPath.getPrefix();
+    this.prefixIsEmpty = prefix.isEmpty();
     this.fieldSize = stream.getHeader().getFieldSize();
     this.header = new Header(Collections.singletonList(new Field("SelectedPath", DataType.BINARY)));
     this.hasInitialized = true;
@@ -57,9 +60,12 @@ public class ValueToSelectedPathLazyStream extends UnaryLazyStream {
     while (cache.isEmpty() && (stream.hasNext())) {
       Row row = stream.next();
       for (int i = 0; i < fieldSize; i++) {
+        String path =
+            prefixIsEmpty
+                ? row.getAsValue(i).getAsString()
+                : prefix + DOT + row.getAsValue(i).getAsString();
         Object[] value = new Object[1];
-        value[0] =
-            (prefix + DOT + row.getAsValue(i).getAsString()).getBytes(StandardCharsets.UTF_8);
+        value[0] = path.getBytes(StandardCharsets.UTF_8);
         cache.addLast(new Row(header, value));
       }
     }
