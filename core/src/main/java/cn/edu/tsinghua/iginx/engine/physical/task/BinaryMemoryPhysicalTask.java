@@ -103,7 +103,6 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
       logger.error("encounter error when execute operator in memory: ", e);
       return new TaskExecuteResult(e);
     }
-
     return new TaskExecuteResult(stream);
   }
 

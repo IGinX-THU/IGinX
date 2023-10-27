@@ -41,8 +41,6 @@ public class MemoryPhysicalTaskDispatcher {
 
   private final ExecutorService taskExecuteThreadPool;
 
-  private Exception warningException;
-
   private MemoryPhysicalTaskDispatcher() {
     taskQueue = new MemoryPhysicalTaskQueueImpl();
     taskExecuteThreadPool =
@@ -77,9 +75,6 @@ public class MemoryPhysicalTaskDispatcher {
                         logger.error("execute memory task failure: ", e);
                         result = new TaskExecuteResult(new PhysicalException(e));
                       }
-                      if (result.getException() != null) {
-                        warningException = result.getException();
-                      }
                       long span = System.currentTimeMillis() - startTime;
                       currentTask.setSpan(span);
                       currentTask.setResult(result);
@@ -93,7 +88,6 @@ public class MemoryPhysicalTaskDispatcher {
                         }
                       } else {
                         currentTask = null;
-                        warningException = null;
                       }
                     }
                   });

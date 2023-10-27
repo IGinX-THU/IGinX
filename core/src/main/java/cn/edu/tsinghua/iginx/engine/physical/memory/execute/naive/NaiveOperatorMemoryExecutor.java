@@ -115,8 +115,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  private static final String WARNINGS = "WARNING: %s";
-
   private NaiveOperatorMemoryExecutor() {}
 
   public static NaiveOperatorMemoryExecutor getInstance() {

@@ -810,7 +810,7 @@ public class StatementExecutor {
     if (ctx.isUseStream()) {
       Status status = RpcUtils.SUCCESS;
       if (ctx.getWarningMsg() != null
-          && ctx.getWarningMsg().isEmpty()
+          && !ctx.getWarningMsg().isEmpty()
           && ctx.getContextMsgType() == ContextWarningMsgType.SameKeyWarning) {
         status.setMessage(ctx.getWarningMsg());
       }
