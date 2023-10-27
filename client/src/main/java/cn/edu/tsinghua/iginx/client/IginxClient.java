@@ -65,6 +65,7 @@ import org.jline.terminal.TerminalBuilder;
 public class IginxClient {
 
   private static final String IGINX_CLI_PREFIX = "IGinX> ";
+  private static final String IGINX_CLI_PREFIX_WAITING_INPUT = "     > ";
 
   private static final String HOST_ARGS = "h";
   private static final String HOST_NAME = "host";
@@ -90,8 +91,8 @@ public class IginxClient {
 
   private static final String SCRIPT_HINT = "./start-cli.sh(start-cli.bat if Windows)";
 
-  private static final String QUIT_COMMAND = "quit";
-  private static final String EXIT_COMMAND = "exit";
+  private static final String QUIT_COMMAND = "quit;";
+  private static final String EXIT_COMMAND = "exit;";
 
   static String host = "127.0.0.1";
   static String port = "6888";
@@ -108,6 +109,8 @@ public class IginxClient {
 
   private static CommandLine commandLine;
   private static Session session;
+
+  private static final StringBuilder cache = new StringBuilder();
 
   private static Options createOptions() {
     Options options = new Options();
@@ -203,7 +206,11 @@ public class IginxClient {
 
         String command;
         while (true) {
-          command = reader.readLine(IGINX_CLI_PREFIX);
+          if (cache.toString().trim().isEmpty()) {
+            command = reader.readLine(IGINX_CLI_PREFIX);
+          } else {
+            command = reader.readLine(IGINX_CLI_PREFIX_WAITING_INPUT);
+          }
           boolean continues = processCommand(command);
           if (!continues) {
             break;
@@ -225,23 +232,29 @@ public class IginxClient {
 
   private static boolean processCommand(String command)
       throws SessionException, ExecutionException, IOException {
-    if (command == null || command.trim().equals("")) {
+    if (command == null || command.trim().isEmpty()) {
       return true;
     }
-    String[] cmds = command.trim().split(";");
-    for (String cmd : cmds) {
-      if (cmd != null && !cmd.trim().equals("")) {
-        OperationResult res = handleInputStatement(cmd);
-        switch (res) {
-          case STOP:
-            return false;
-          case CONTINUE:
-            continue;
-          default:
-            break;
-        }
+    String[] cmds = command.split(";", -1);
+    int lastIndex = cmds.length - 1;
+    for (int i = 0; i < lastIndex; i++) {
+      cache.append(cmds[i]);
+      if (cache.toString().trim().isEmpty()) {
+        continue;
+      }
+      cache.append(";");
+      OperationResult res = handleInputStatement(cache.toString());
+      cache.setLength(0);
+      switch (res) {
+        case STOP:
+          return false;
+        case CONTINUE:
+          continue;
+        default:
+          break;
       }
     }
+    cache.append(cmds[lastIndex]).append(System.lineSeparator());
     return true;
   }
 
