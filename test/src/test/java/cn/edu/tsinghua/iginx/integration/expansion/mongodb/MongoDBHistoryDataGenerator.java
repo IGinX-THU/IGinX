@@ -83,6 +83,14 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       MongoCollection<Document> collection = database.getCollection("c0");
       collection.insertOne(Document.parse(JSON_EXAMPLE_0));
       collection.insertOne(Document.parse(JSON_EXAMPLE_1));
+      collection.insertOne(Document.parse(JSON_EXAMPLE_2));
+    }
+    try (MongoClient client = connect(readOnlyPort)) {
+      MongoDatabase database = client.getDatabase("d1");
+      MongoCollection<Document> collection = database.getCollection("c1");
+      for (String json : JSON_FILTER_EXAMPLE) {
+        collection.insertOne(Document.parse(json));
+      }
     }
   }
 
@@ -98,6 +106,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String JSON_EXAMPLE_0 =
       "{\n"
+          + "  \"_id\": {\"$oid\": \"652f4577a162014f74419b7f\"},"
           + "  \"images\": [\n"
           + "    {\n"
           + "      \"width\": 1037,\n"
@@ -269,8 +278,9 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           + "    }\n"
           + "  ],\n"
           + "  \"information\": {\n"
-          + "    \"year\": 2022,\n"
+          + "    \"year\": 2021,\n"
           + "    \"version\": \"1.0\",\n"
+          + "    \"score\": 1,\n"
           + "    \"description\": \"\",\n"
           + "    \"contributor\": \"Label Studio\",\n"
           + "    \"url\": \"\",\n"
@@ -323,21 +333,92 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
           + "}";
   private static final String JSON_EXAMPLE_1 =
       "{\n"
+          + "  \"_id\": {\"$oid\": \"652f4577a162014f74419b80\"},"
           + "  \"images\": [\n"
           + "    {\n"
           + "      \"width\": 1037,\n"
           + "      \"height\": 501,\n"
           + "      \"id\": 0,\n"
           + "      \"file_name\": \"images/3/ad37161b-P92902000484212110001_-2_crop.jpg\"\n"
+          + "    },\n"
+          + "    {\n"
+          + "      \"width\": 1038,\n"
+          + "      \"height\": 502,\n"
+          + "      \"id\": 1,\n"
+          + "      \"file_name\": \"images/3/ad37161b-P92902000484212110001_-3_crop.jpg\"\n"
           + "    }\n"
           + "  ],\n"
           + "  \"information\": {\n"
           + "    \"year\": 2022,\n"
           + "    \"version\": \"1.0\",\n"
+          + "    \"score\": 2,\n"
           + "    \"description\": \"\",\n"
           + "    \"contributor\": \"Label Studio\",\n"
           + "    \"url\": \"\",\n"
           + "    \"date_created\": \"2022-12-12 08:37:26.832616\"\n"
           + "  }\n"
           + "}";
+
+  private static final String JSON_EXAMPLE_2 =
+      "{\n"
+          + "  \"_id\": {\"$oid\": \"652f4577a162014f74419b81\"},"
+          + "  \"information\": {\n"
+          + "    \"year\": \"2023\",\n"
+          + "    \"version\": 3.0,\n"
+          + "    \"score\": 3.1,\n"
+          + "    \"description\": \"\",\n"
+          + "    \"contributor\": \"Label Studio\",\n"
+          + "    \"url\": null,\n"
+          + "    \"date_created\": \"2022-12-12 08:37:26.832616\"\n"
+          + "  }\n"
+          + "}";
+
+  private static final String[] JSON_FILTER_EXAMPLE =
+      new String[] {
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000000\"\n"
+            + "\t},\n"
+            + "\t\"i\": 0,\n"
+            + "\t\"b\": true,\n"
+            + "\t\"f\": 0.1,\n"
+            + "\t\"s\": \"1st\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000001\"\n"
+            + "\t},\n"
+            + "\t\"i\": 1,\n"
+            + "\t\"b\": false,\n"
+            + "\t\"f\": 1.1,\n"
+            + "\t\"s\": \"2nd\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000002\"\n"
+            + "\t},\n"
+            + "\t\"i\": 2,\n"
+            + "\t\"b\": true,\n"
+            + "\t\"f\": 2.1,\n"
+            + "\t\"s\": \"3th\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000003\"\n"
+            + "\t},\n"
+            + "\t\"i\": 3,\n"
+            + "\t\"b\": false,\n"
+            + "\t\"f\": 3.1,\n"
+            + "\t\"s\": \"4th\"\n"
+            + "}",
+        "{\n"
+            + "\t\"_id\": {\n"
+            + "\t\t\"$oid\": \"000000000000000000000004\"\n"
+            + "\t},\n"
+            + "\t\"i\": 4,\n"
+            + "\t\"b\": true,\n"
+            + "\t\"f\": 4.1,\n"
+            + "\t\"s\": \"5th\"\n"
+            + "}",
+      };
 }
