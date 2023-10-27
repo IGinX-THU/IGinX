@@ -279,7 +279,7 @@ public class FilterUtils {
     return matchedNames;
   }
 
-  private static Bson fieldValueOp(Op op, String fieldName, BsonValue value) {
+  public static Bson fieldValueOp(Op op, String fieldName, BsonValue value) {
     if (fieldName.contains("*")) {
       throw new IllegalArgumentException("wildcard is not support");
     }
