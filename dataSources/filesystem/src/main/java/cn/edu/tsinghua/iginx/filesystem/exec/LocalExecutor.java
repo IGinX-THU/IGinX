@@ -55,6 +55,7 @@ public class LocalExecutor implements Executor {
   public LocalExecutor(boolean isReadOnly, boolean hasData, Map<String, String> extraParams) {
     String dir = extraParams.get(Constant.INIT_INFO_DIR);
     String dummyDir = extraParams.get(Constant.INIT_INFO_DUMMY_DIR);
+    String prefix = extraParams.get(Constant.INIT_ROOT_PREFIX);
     try {
       if (hasData) {
         if (dummyDir == null || dummyDir.isEmpty()) {
@@ -64,7 +65,7 @@ public class LocalExecutor implements Executor {
         if (dummyFile.isFile()) {
           throw new IllegalArgumentException(String.format("invalid dummy_dir %s", dummyDir));
         }
-        this.prefix = dummyFile.getName();
+        this.prefix = prefix;
         this.realDummyRoot = dummyFile.getCanonicalPath() + SEPARATOR;
         this.dummyRoot = dummyFile.getParentFile().getCanonicalPath() + SEPARATOR;
         if (!isReadOnly) {
