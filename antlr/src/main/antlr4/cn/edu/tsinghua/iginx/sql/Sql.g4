@@ -1,7 +1,7 @@
 grammar Sql;
 
 sqlStatement
-   : statement (';')? EOF
+   : statement ';' EOF
    ;
 
 statement
