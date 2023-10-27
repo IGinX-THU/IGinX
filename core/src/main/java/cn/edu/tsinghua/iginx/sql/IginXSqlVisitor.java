@@ -511,7 +511,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     ShowColumnsStatement showColumnsStatement = new ShowColumnsStatement();
     if (ctx != null) {
       for (PathContext pathRegex : ctx.path()) {
-        showColumnsStatement.setPathRegex(pathRegex.getText());
+        showColumnsStatement.setPathRegex(parsePath(pathRegex));
       }
       if (ctx.withClause() != null) {
         TagFilter tagFilter = parseWithClause(ctx.withClause());
@@ -894,7 +894,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     List<String> columns = new ArrayList<>();
     for (PathContext pathContext : funcCtx.path()) {
-      columns.add(pathContext.getText());
+      columns.add(parsePath(pathContext));
     }
 
     List<Object> args = new ArrayList<>();
