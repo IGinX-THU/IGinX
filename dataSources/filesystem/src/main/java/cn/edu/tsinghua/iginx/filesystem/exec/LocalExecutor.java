@@ -354,7 +354,7 @@ public class LocalExecutor implements Executor {
     } else {
       Pair<String, String> filePair = fileSystemManager.getBoundaryOfFiles(directory);
       if (filePair == null) {
-        columnsInterval = new ColumnsInterval(null, null, prefix);
+        columnsInterval = new ColumnsInterval(prefix);
       } else {
         columnsInterval =
             new ColumnsInterval(
