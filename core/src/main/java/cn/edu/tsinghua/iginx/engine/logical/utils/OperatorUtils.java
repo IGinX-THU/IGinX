@@ -101,7 +101,7 @@ public class OperatorUtils {
           projectOperatorList, ((OperatorSource) binaryOperator.getSourceA()).getOperator());
       findProjectOperators(
           projectOperatorList, ((OperatorSource) binaryOperator.getSourceB()).getOperator());
-    } else {
+    } else if (OperatorType.isMultipleOperator(operator.getType())) {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();
       for (Source source : sources) {
@@ -128,7 +128,7 @@ public class OperatorUtils {
           selectOperatorList, ((OperatorSource) binaryOperator.getSourceA()).getOperator());
       findSelectOperators(
           selectOperatorList, ((OperatorSource) binaryOperator.getSourceB()).getOperator());
-    } else {
+    } else if (OperatorType.isMultipleOperator(operator.getType())) {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();
       for (Source source : sources) {
@@ -150,7 +150,8 @@ public class OperatorUtils {
     }
     AbstractJoinOperator applyCopy = (AbstractJoinOperator) apply.copy();
 
-    Operator operatorA = new Project(applyCopy.getSourceA(), correlatedVariables, null);
+    Operator operatorA =
+        new Project(applyCopy.getSourceA(), correlatedVariables, null, false, true);
     applyCopy.setSourceA(new OperatorSource(operatorA));
     applyCopy.setPrefixA(null);
     if (applyCopy.getType() == OperatorType.MarkJoin) {
@@ -222,7 +223,9 @@ public class OperatorUtils {
             new Project(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
                 patternsAll,
-                project.getTagFilter());
+                project.getTagFilter(),
+                false,
+                true);
         break;
       case Reorder:
         Reorder reorder = (Reorder) operatorB;
@@ -256,7 +259,7 @@ public class OperatorUtils {
         break;
       case SetTransform:
         SetTransform setTransform = (SetTransform) operatorB;
-        Operator newOperatorA = new Distinct(apply.getSourceA());
+        Operator newOperatorA = new Distinct(apply.getSourceA(), Collections.singletonList("*"));
         apply.setSourceA(new OperatorSource(newOperatorA));
 
         apply.setSourceB(setTransform.getSource());

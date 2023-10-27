@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.GroupByUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -69,7 +68,6 @@ public class Avg implements SetMappingFunction {
     if (pathParams == null || pathParams.size() != 1) {
       throw new IllegalArgumentException("unexpected param type for avg.");
     }
-    List<Integer> groupByLevels = params.getLevels();
 
     String target = pathParams.get(0);
     List<Field> fields = rows.getHeader().getFields();
@@ -82,36 +80,15 @@ public class Avg implements SetMappingFunction {
     for (int i = 0; i < fields.size(); i++) {
       Field field = fields.get(i);
       if (pattern.matcher(field.getFullName()).matches()) {
-        if (groupByLevels == null) {
-          String name = getIdentifier() + "(";
-          String fullName = getIdentifier() + "(";
-          if (params.isDistinct()) {
-            name += "distinct ";
-            fullName += "distinct ";
-          }
-          name += field.getName() + ")";
-          fullName += field.getFullName() + ")";
-          targetFields.add(new Field(name, fullName, DataType.DOUBLE));
-        } else {
-          String targetFieldName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getName(), groupByLevels)
-                  + ")";
-          String targetFieldFullName =
-              getIdentifier()
-                  + "("
-                  + GroupByUtils.transformPath(field.getFullName(), groupByLevels)
-                  + ")";
-          int index = groupNameIndexMap.getOrDefault(targetFieldFullName, -1);
-          if (index != -1) {
-            groupOrderIndexMap.put(i, index);
-          } else {
-            groupNameIndexMap.put(targetFieldFullName, targetFields.size());
-            groupOrderIndexMap.put(i, targetFields.size());
-            targetFields.add(new Field(targetFieldName, targetFieldFullName, DataType.DOUBLE));
-          }
+        String name = getIdentifier() + "(";
+        String fullName = getIdentifier() + "(";
+        if (params.isDistinct()) {
+          name += "distinct ";
+          fullName += "distinct ";
         }
+        name += field.getName() + ")";
+        fullName += field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, DataType.DOUBLE));
         indices.add(i);
       }
     }
@@ -132,28 +109,24 @@ public class Avg implements SetMappingFunction {
         if (value == null) {
           continue;
         }
-        int targetIndex = i;
-        if (groupByLevels != null) {
-          targetIndex = groupOrderIndexMap.get(index);
-        }
         switch (fields.get(index).getType()) {
           case INTEGER:
-            targetSums[targetIndex] += (int) value;
+            targetSums[i] += (int) value;
             break;
           case LONG:
-            targetSums[targetIndex] += (long) value;
+            targetSums[i] += (long) value;
             break;
           case FLOAT:
-            targetSums[targetIndex] += (float) value;
+            targetSums[i] += (float) value;
             break;
           case DOUBLE:
-            targetSums[targetIndex] += (double) value;
+            targetSums[i] += (double) value;
             break;
           default:
             throw new IllegalStateException(
                 "Unexpected field type: " + fields.get(index).getType().toString());
         }
-        counts[targetIndex]++;
+        counts[i]++;
       }
     }
     Object[] targetValues = new Object[targetFields.size()];

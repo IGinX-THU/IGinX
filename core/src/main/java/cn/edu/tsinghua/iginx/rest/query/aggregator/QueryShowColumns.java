@@ -22,16 +22,16 @@ import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 
-public class QueryShowTimeSeries extends QueryAggregator {
-  public QueryShowTimeSeries() {
+public class QueryShowColumns extends QueryAggregator {
+  public QueryShowColumns() {
     super(QueryAggregatorType.SHOW_COLUMNS);
   }
 
   public QueryResultDataset doAggregate(RestSession session) {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
     try {
-      SessionQueryDataSet sessionQueryDataSet = session.showTimeSeries();
-      queryResultDataset.setPaths(getPathsFromShowTimeSeries(sessionQueryDataSet));
+      SessionQueryDataSet sessionQueryDataSet = session.showColumns();
+      queryResultDataset.setPaths(getPathsFromShowColumns(sessionQueryDataSet));
     } catch (Exception e) {
       e.printStackTrace();
     }

@@ -79,7 +79,7 @@ public class IoTDBSessionPoolExample {
     // 行式插入非对齐数据
     insertNonAlignedRowRecords();
     // 查询序列
-    showTimeSeries();
+    showColumns();
     // 查询数据
     queryData();
     // 聚合查询
@@ -255,7 +255,7 @@ public class IoTDBSessionPoolExample {
     sessionPool.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void showTimeSeries() throws ExecutionException, SessionException {
+  private static void showColumns() throws ExecutionException, SessionException {
     List<Column> columnList = sessionPool.showColumns();
     columnList.forEach(column -> System.out.println(column.toString()));
   }

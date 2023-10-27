@@ -3,24 +3,33 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
+import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
 import java.util.HashSet;
 import java.util.Set;
 
-public class ShowTimeSeries extends AbstractUnaryOperator {
+public class ShowColumns extends AbstractUnaryOperator {
 
   private final Set<String> pathRegexSet;
   private final TagFilter tagFilter;
-
   private final int limit;
   private final int offset;
 
-  public ShowTimeSeries(
+  public ShowColumns(
       GlobalSource source, Set<String> pathRegexSet, TagFilter tagFilter, int limit, int offset) {
-    super(OperatorType.ShowTimeSeries, source);
+    super(OperatorType.ShowColumns, source);
     this.pathRegexSet = pathRegexSet;
     this.tagFilter = tagFilter;
     this.limit = limit;
     this.offset = offset;
+  }
+
+  public ShowColumns(GlobalSource source, ShowColumnsStatement statement) {
+    this(
+        source,
+        statement.getPathRegexSet(),
+        statement.getTagFilter(),
+        statement.getLimit(),
+        statement.getOffset());
   }
 
   public Set<String> getPathRegexSet() {
@@ -41,7 +50,7 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new ShowTimeSeries(
+    return new ShowColumns(
         (GlobalSource) getSource().copy(),
         new HashSet<>(pathRegexSet),
         tagFilter.copy(),
@@ -60,7 +69,10 @@ public class ShowTimeSeries extends AbstractUnaryOperator {
       builder.deleteCharAt(builder.length() - 1);
     }
     if (tagFilter != null) {
-      builder.append(", TagFilter: ").append(tagFilter.toString());
+      builder.append(", TagFilter: ").append(tagFilter);
+    }
+    if (limit != Integer.MAX_VALUE || offset != 0) {
+      builder.append(", Limit: ").append(limit).append(", Offset: ").append(offset);
     }
     return builder.toString();
   }

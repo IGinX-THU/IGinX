@@ -88,8 +88,8 @@ class SqlType(object):
     AddStorageEngines = 5
     CountPoints = 6
     ClearData = 7
-    DeleteTimeSeries = 8
-    ShowTimeSeries = 9
+    DeleteColumns = 8
+    ShowColumns = 9
     ShowClusterInfo = 10
     ShowRegisterTask = 11
     RegisterTask = 12
@@ -108,8 +108,8 @@ class SqlType(object):
         5: "AddStorageEngines",
         6: "CountPoints",
         7: "ClearData",
-        8: "DeleteTimeSeries",
-        9: "ShowTimeSeries",
+        8: "DeleteColumns",
+        9: "ShowColumns",
         10: "ShowClusterInfo",
         11: "ShowRegisterTask",
         12: "RegisterTask",
@@ -129,8 +129,8 @@ class SqlType(object):
         "AddStorageEngines": 5,
         "CountPoints": 6,
         "ClearData": 7,
-        "DeleteTimeSeries": 8,
-        "ShowTimeSeries": 9,
+        "DeleteColumns": 8,
+        "ShowColumns": 9,
         "ShowClusterInfo": 10,
         "ShowRegisterTask": 11,
         "RegisterTask": 12,

@@ -4,5 +4,5 @@ public enum GeneratorType {
   Insert,
   Delete,
   Query,
-  ShowTimeSeries
+  ShowColumns
 }

@@ -46,8 +46,10 @@ public class Rename extends AbstractUnaryOperator {
     aliasMap.forEach(
         (k, v) -> builder.append("(").append(k).append(", ").append(v).append(")").append(","));
     builder.deleteCharAt(builder.length() - 1);
-    builder.append(", IgnorePatterns: ");
-    builder.append(ignorePatterns);
+    if (!ignorePatterns.isEmpty()) {
+      builder.append(", IgnorePatterns: ");
+      builder.append(ignorePatterns);
+    }
     return builder.toString();
   }
 }
