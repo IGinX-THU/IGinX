@@ -91,9 +91,8 @@ public class IginxWorker implements IService.Iface {
       Map<String, String> extraParams = metaFromConf.getExtraParams();
       if (!checkEmbeddedStorageExtraParams(metaFromConf.getStorageEngine(), extraParams)) {
         logger.error(
-            String.format(
-                "Missing or providing invalid params for %s in config file.",
-                metaFromConf.getStorageEngine()));
+            "Missing or providing invalid params for {} in config file.",
+            metaFromConf.getStorageEngine());
         return;
       }
       metaFromConf.setExtraParams(extraParams);
