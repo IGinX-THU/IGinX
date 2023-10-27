@@ -4262,6 +4262,83 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testCTE() {
+    String insert =
+        "INSERT INTO bonus_jan(key, employee_id, name, outlet, position, region, bonus) VALUES "
+            + "(0, 1, \"Max Black\", 123, \"manager\", \"South\", 2304), (1, 2, \"Jane Wolf\", 123, \"cashier\", \"South\", 1215), "
+            + "(2, 3, \"Kate White\", 123, \"customer\", \"South\", 1545), (3, 4, \"Andrew Smart\", 123, \"customer\", \"South\", 1800), "
+            + "(4, 5, \"John Ruder\", 105, \"manager\", \"South\", 2550), (5, 6, \"Sebastian Cornell\", 105, \"cashier\", \"South\", 1503), "
+            + "(6, 7, \"Diana Johnson\", 105, \"customer\", \"North\", 2007), (7, 8, \"Sofia Blanc\", 224, \"manager\", \"North\", 2469), "
+            + "(8, 9, \"Jack Spider\", 224, \"customer\", \"North\", 2100), (9, 10, \"Maria Le\", 224, \"cashier\", \"North\", 1335), "
+            + "(10, 11, \"Anna Winfrey\", 211, \"manager\", \"North\", 2370), (11, 12, \"Marion Spencer\", 211, \"cashier\", \"North\", 1425);";
+    executor.execute(insert);
+
+    // test single CTE
+    String statement =
+        "WITH avg_position(position, average_bonus_for_position) AS (SELECT position, AVG(bonus) FROM bonus_jan GROUP BY position)\n"
+            + "SELECT b.name, b.position, b.bonus, ap.average_bonus_for_position "
+            + "FROM bonus_jan AS b "
+            + "JOIN avg_position AS ap ON b.position = ap.position AND b.bonus > ap.average_bonus_for_position;";
+    String expected =
+        "ResultSets:\n"
+            + "+-----------------+----------+-------+-----------------------------+\n"
+            + "|           b.name|b.position|b.bonus|ap.average_bonus_for_position|\n"
+            + "+-----------------+----------+-------+-----------------------------+\n"
+            + "|       John Ruder|   manager|   2550|                      2423.25|\n"
+            + "|Sebastian Cornell|   cashier|   1503|                       1369.5|\n"
+            + "|    Diana Johnson|  customer|   2007|                       1863.0|\n"
+            + "|      Sofia Blanc|   manager|   2469|                      2423.25|\n"
+            + "|      Jack Spider|  customer|   2100|                       1863.0|\n"
+            + "|   Marion Spencer|   cashier|   1425|                       1369.5|\n"
+            + "+-----------------+----------+-------+-----------------------------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    // test multiple CTEs
+    statement =
+        "WITH avg_position(position, average_bonus_for_position) AS (SELECT position, AVG(bonus) FROM bonus_jan GROUP BY position),\n"
+            + "avg_region(region, average_bonus_for_region) AS (SELECT region, AVG(bonus) FROM bonus_jan GROUP BY region)\n"
+            + "SELECT b.name, b.position, b.region, b.bonus, ap.average_bonus_for_position, ar.average_bonus_for_region "
+            + "FROM bonus_jan AS b "
+            + "JOIN avg_position AS ap ON b.position = ap.position AND b.bonus > ap.average_bonus_for_position "
+            + "JOIN avg_region AS ar ON b.region = ar.region AND b.bonus > ar.average_bonus_for_region;";
+    expected =
+        "ResultSets:\n"
+            + "+-------------+----------+--------+-------+-----------------------------+---------------------------+\n"
+            + "|       b.name|b.position|b.region|b.bonus|ap.average_bonus_for_position|ar.average_bonus_for_region|\n"
+            + "+-------------+----------+--------+-------+-----------------------------+---------------------------+\n"
+            + "|   John Ruder|   manager|   South|   2550|                      2423.25|                     1819.5|\n"
+            + "|Diana Johnson|  customer|   North|   2007|                       1863.0|                     1951.0|\n"
+            + "|  Sofia Blanc|   manager|   North|   2469|                      2423.25|                     1951.0|\n"
+            + "|  Jack Spider|  customer|   North|   2100|                       1863.0|                     1951.0|\n"
+            + "+-------------+----------+--------+-------+-----------------------------+---------------------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    // test nested CTEs
+    statement =
+        "WITH avg_per_outlet(outlet, average_bonus_for_outlet) AS (SELECT outlet, AVG(bonus) FROM bonus_jan GROUP BY outlet),\n"
+            + "min_bonus_outlet(min_avg_bonus_for_outlet) AS (SELECT MIN(average_bonus_for_outlet) FROM avg_per_outlet),\n"
+            + "max_bonus_outlet(max_avg_bonus_for_outlet) AS (SELECT MAX(average_bonus_for_outlet) FROM avg_per_outlet)\n"
+            + "SELECT ao.outlet, ao.average_bonus_for_outlet, min.min_avg_bonus_for_outlet, max.max_avg_bonus_for_outlet "
+            + "FROM avg_per_outlet AS ao "
+            + "CROSS JOIN min_bonus_outlet AS min "
+            + "CROSS JOIN max_bonus_outlet AS max;";
+    expected =
+        "ResultSets:\n"
+            + "+---------+---------------------------+----------------------------+----------------------------+\n"
+            + "|ao.outlet|ao.average_bonus_for_outlet|min.min_avg_bonus_for_outlet|max.max_avg_bonus_for_outlet|\n"
+            + "+---------+---------------------------+----------------------------+----------------------------+\n"
+            + "|      211|                     1897.5|                      1716.0|                      2020.0|\n"
+            + "|      105|                     2020.0|                      1716.0|                      2020.0|\n"
+            + "|      123|                     1716.0|                      1716.0|                      2020.0|\n"
+            + "|      224|                     1968.0|                      1716.0|                      2020.0|\n"
+            + "+---------+---------------------------+----------------------------+----------------------------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testValueToMeta() {
     String insert =
         "INSERT INTO test(key, a.a, a.b, b.a, c.b) VALUES "

@@ -8,7 +8,7 @@ statement
    : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
    | LOAD DATA importFileClause INTO insertFullPathSpec # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
-   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
+   | EXPLAIN? (LOGICAL | PHYSICAL)? cteClause? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
    | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
@@ -35,6 +35,19 @@ insertFullPathSpec
 
 showColumnsOptions
    : (path (COMMA path)*)? withClause? limitClause?
+   ;
+
+cteClause
+   : WITH commonTableExpr (COMMA commonTableExpr)*
+   ;
+
+commonTableExpr
+   : path (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause RR_BRACKET
+   | path (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause orderByClause limitClause RR_BRACKET
+   ;
+
+columnsList
+   : path (COMMA path)*
    ;
 
 queryClause
@@ -222,7 +235,7 @@ aggLen
    ;
 
 asClause
-   : AS ID
+   : AS? ID
    ;
 
 timeInterval
@@ -285,7 +298,7 @@ insertPath
 
 insertValuesSpec
    : (COMMA? insertMultiValue)*
-   | LR_BRACKET queryClause RR_BRACKET (TIME_OFFSET OPERATOR_EQ INT)?
+   | LR_BRACKET cteClause? queryClause RR_BRACKET (TIME_OFFSET OPERATOR_EQ INT)?
    ;
 
 insertMultiValue

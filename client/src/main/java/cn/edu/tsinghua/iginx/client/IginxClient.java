@@ -266,7 +266,7 @@ public class IginxClient {
   }
 
   private static boolean isQuery(String sql) {
-    return sql.startsWith("select");
+    return sql.startsWith("select") || sql.startsWith("with");
   }
 
   private static boolean isLoadDataFromCsv(String sql) {
