@@ -371,7 +371,7 @@ public class FilterUtils {
     }
   }
 
-  private static Bson fieldOp(Op op, String fieldA, String fieldB) {
+  public static Bson fieldOp(Op op, String fieldA, String fieldB) {
     List<String> fields = Arrays.asList("$" + fieldA, "$" + fieldB);
     if (fieldA.contains("*") || fieldB.contains("*")) {
       throw new IllegalArgumentException("wildcard is not support");
