@@ -43,8 +43,6 @@ public class RequestContext {
 
   private String warningMsg;
 
-  private ContextWarningMsgType contextMsgType;
-
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();
     this.startTime = System.currentTimeMillis();
@@ -111,9 +109,5 @@ public class RequestContext {
 
   public String getWarningMsg() {
     return warningMsg;
-  }
-
-  public void setWarningType(ContextWarningMsgType contextMsgType) {
-    this.contextMsgType = contextMsgType;
   }
 }

@@ -46,7 +46,6 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.ContextWarningMsgType;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
@@ -2138,19 +2137,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         newRows.add(new Row(newHeader, rowB.getKey(), values));
       }
       Table table = new Table(newHeader, newRows);
-      if (tableA.getContext() != null) {
-        table.setContext(tableB.getContext());
-      } else if (tableB.getContext() != null) {
-        table.setContext(tableA.getContext());
-      }
       RequestContext context = null;
       if (tableA.getContext() != null) {
         context = tableB.getContext();
       } else if (tableB.getContext() != null) {
         context = tableA.getContext();
       }
-      if (context != null) {
-        context.setWarningType(ContextWarningMsgType.SameKeyWarning);
+      if (context != null && isConflictInKey) {
         context.setWarningMsg(
             "The query results contain overlapping key values, displaying only partial data");
       }

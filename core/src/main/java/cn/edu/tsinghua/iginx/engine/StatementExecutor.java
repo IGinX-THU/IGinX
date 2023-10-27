@@ -21,7 +21,6 @@ import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
 import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.shared.ContextWarningMsgType;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
@@ -809,9 +808,7 @@ public class StatementExecutor {
     Result result = null;
     if (ctx.isUseStream()) {
       Status status = RpcUtils.SUCCESS;
-      if (ctx.getWarningMsg() != null
-          && !ctx.getWarningMsg().isEmpty()
-          && ctx.getContextMsgType() == ContextWarningMsgType.SameKeyWarning) {
+      if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
         status.setMessage(ctx.getWarningMsg());
       }
       result = new Result(status);
