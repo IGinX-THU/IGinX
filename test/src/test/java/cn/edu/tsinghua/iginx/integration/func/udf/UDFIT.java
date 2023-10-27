@@ -256,6 +256,23 @@ public class UDFIT {
             + "+---+-----------------------------------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT multiply(s1, s2, s3), s1, s2 + s3 FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-----------------------------------+-------+-----------------+\n"
+            + "|key|multiply(test.s1, test.s2, test.s3)|test.s1|test.s2 + test.s3|\n"
+            + "+---+-----------------------------------+-------+-----------------+\n"
+            + "|  1|                               12.0|      2|                5|\n"
+            + "|  2|                                9.0|      3|                4|\n"
+            + "|  3|                               12.0|      4|                4|\n"
+            + "|  4|                              315.0|      9|               12|\n"
+            + "|  5|                               36.0|      3|                8|\n"
+            + "|  6|                               48.0|      6|                6|\n"
+            + "+---+-----------------------------------+-------+-----------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
   }
 
   @Test
