@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.mongodb;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -22,13 +23,14 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.mongodb.dummy.DummyQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.ColumnQuery;
-import cn.edu.tsinghua.iginx.mongodb.entity.DummyQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.JoinQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.MongoBulkWriteException;
@@ -40,11 +42,9 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.bson.BsonDocument;
 import org.bson.BsonInt64;
 import org.bson.BsonValue;
@@ -59,6 +59,7 @@ public class MongoDBStorage implements IStorage {
   private static final long MAX_WAIT_TIME = 5;
   private static final int SESSION_POOL_MAX_SIZE = 200;
   public static final String VALUE_FIELD = "v";
+  public static final String[] SYSTEM_DBS = new String[] {"admin", "config", "local"};
 
   private final MongoClient client;
 
@@ -202,10 +203,28 @@ public class MongoDBStorage implements IStorage {
     DataView data = insert.getData();
 
     try {
+      MongoDatabase db = this.getDatabase(unit);
+      Map<String, DataType> existedColumnTypes = new HashMap<>();
+      for (Field field : getFields(db)) {
+        existedColumnTypes.put(field.getName(), field.getType());
+      }
+
       for (SourceTable.Column column : new SourceTable(data)) {
         Field field = column.getField();
-        Map<Long, Object> columnData = column.getData();
 
+        if (existedColumnTypes.containsKey(field.getName())) {
+          DataType existedType = existedColumnTypes.get(field.getName());
+          if (!existedType.equals(field.getType())) {
+            throw new PhysicalException(
+                "data type ("
+                    + field.getType()
+                    + ") not match existed column type ("
+                    + existedType
+                    + ")");
+          }
+        }
+
+        Map<Long, Object> columnData = column.getData();
         List<BsonDocument> documents = new ArrayList<>();
         for (Map.Entry<Long, Object> point : columnData.entrySet()) {
           BsonValue key = new BsonInt64(point.getKey());
@@ -214,7 +233,6 @@ public class MongoDBStorage implements IStorage {
           documents.add(document);
         }
 
-        MongoDatabase db = this.getDatabase(unit);
         String collName = NameUtils.getCollectionName(field);
         MongoCollection<BsonDocument> collection = db.getCollection(collName, BsonDocument.class);
 
@@ -253,48 +271,74 @@ public class MongoDBStorage implements IStorage {
   @Override
   public List<Column> getColumns() {
     List<Column> columns = new ArrayList<>();
-    for (String unit : this.client.listDatabaseNames()) {
-      if (unit.startsWith("unit")) {
-        for (Field field : getFields(this.getDatabase(unit))) {
-          columns.add(new Column(field.getName(), field.getType(), field.getTags()));
+    for (String dbName : getDatabaseNames(this.client)) {
+      for (String collectionName : this.client.getDatabase(dbName).listCollectionNames()) {
+        try {
+          if (dbName.startsWith("unit")) {
+            Field field = NameUtils.parseCollectionName(collectionName);
+            columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
+            continue;
+          }
+        } catch (Exception ignored) {
         }
+        String namespace = dbName + "." + collectionName;
+        columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
       }
     }
     return columns;
   }
 
-  private MongoDatabase getDatabase(String unit) {
-    return this.client.getDatabase(unit);
+  public static List<String> getDatabaseNames(MongoClient client) {
+    List<String> names = new ArrayList<>();
+    for (String dbName : client.listDatabaseNames()) {
+      if (Arrays.stream(SYSTEM_DBS).noneMatch(name -> name.equals(dbName))) {
+        names.add(dbName);
+      }
+    }
+    return names;
+  }
+
+  private MongoDatabase getDatabase(String dbName) {
+    return this.client.getDatabase(dbName);
   }
 
   private static List<Field> getFields(MongoDatabase db) {
     List<Field> fields = new ArrayList<>();
     for (String collectionName : db.listCollectionNames()) {
-      try {
-        fields.add(NameUtils.parseCollectionName(collectionName));
-      } catch (Exception e) {
-        logger.error("failed to parse collection name: " + collectionName, e);
-      }
+      fields.add(NameUtils.parseCollectionName(collectionName));
     }
     return fields;
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) {
-    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
-    List<String> prefixes = new ArrayList<>();
-    for (String db : this.client.listDatabaseNames()) {
-      for (String collection : this.client.getDatabase(db).listCollectionNames()) {
-        prefixes.add(db + "." + collection);
-      }
-    }
-    ColumnsInterval columnsInterval = new ColumnsInterval("");
-    if (!prefixes.isEmpty()) {
-      ColumnsInterval first = new ColumnsInterval(Collections.min(prefixes));
-      ColumnsInterval last = new ColumnsInterval(Collections.max(prefixes));
-      columnsInterval = new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
+      throws PhysicalException {
+    if (prefix == null) {
+      prefix = "";
     }
 
+    String namespacePrefix =
+        Arrays.stream(prefix.split("\\.")).limit(2).collect(Collectors.joining("."));
+
+    List<String> namespaces = new ArrayList<>();
+    for (String db : getDatabaseNames(this.client)) {
+      for (String collection : this.client.getDatabase(db).listCollectionNames()) {
+        String namespace = db + "." + collection;
+        if (namespace.startsWith(namespacePrefix)) {
+          namespaces.add(namespace);
+        }
+      }
+    }
+
+    if (namespaces.isEmpty()) {
+      throw new PhysicalTaskExecuteFailureException("no data!");
+    }
+    ColumnsInterval first = new ColumnsInterval(Collections.min(namespaces));
+    ColumnsInterval last = new ColumnsInterval(Collections.max(namespaces));
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
+
+    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
     return new Pair<>(columnsInterval, keyInterval);
   }
 
