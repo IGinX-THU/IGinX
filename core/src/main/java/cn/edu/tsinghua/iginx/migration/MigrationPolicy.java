@@ -11,7 +11,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowTimeSeries;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
@@ -266,9 +266,9 @@ public abstract class MigrationPolicy {
 
       Set<String> pathRegexSet = new HashSet<>();
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
-      ShowTimeSeries showTimeSeries =
-          new ShowTimeSeries(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showTimeSeries);
+      ShowColumns showColumns =
+          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();
@@ -472,9 +472,9 @@ public abstract class MigrationPolicy {
 
       Set<String> pathRegexSet = new HashSet<>();
       pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
-      ShowTimeSeries showTimeSeries =
-          new ShowTimeSeries(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showTimeSeries);
+      ShowColumns showColumns =
+          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
       SortedSet<String> pathSet = new TreeSet<>();
       rowStream
           .getHeader()
@@ -518,9 +518,9 @@ public abstract class MigrationPolicy {
           DefaultMetaManager.getInstance().getFragmentsByStorageUnit(sourceStorageUnitId);
 
       Set<String> pathRegexSet = new HashSet<>();
-      ShowTimeSeries showTimeSeries =
-          new ShowTimeSeries(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-      RowStream rowStream = physicalEngine.execute(new RequestContext(), showTimeSeries);
+      ShowColumns showColumns =
+          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
       SortedSet<String> pathSet = new TreeSet<>();
       while (rowStream.hasNext()) {
         Row row = rowStream.next();

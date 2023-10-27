@@ -20,6 +20,7 @@ import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -668,6 +669,24 @@ public class UnarySelectStatement extends SelectStatement {
       }
     }
     return false;
+  }
+
+  public boolean isFromSinglePath() {
+    return !hasJoinParts
+        && !fromParts.isEmpty()
+        && fromParts.get(0).getType().equals(FromPartType.Path);
+  }
+
+  public boolean isFromSingleSubQuery() {
+    return !hasJoinParts
+        && !fromParts.isEmpty()
+        && fromParts.get(0).getType().equals(FromPartType.SubQuery);
+  }
+
+  public boolean isFromSingleShowColumns() {
+    return !hasJoinParts
+        && !fromParts.isEmpty()
+        && fromParts.get(0).getType().equals(FromPartType.ShowColumns);
   }
 
   public void checkQueryType() {

@@ -22,7 +22,6 @@ public abstract class SelectStatement extends DataStatement {
   protected boolean ascending;
   protected int limit;
   protected int offset;
-  protected String globalAlias;
 
   public SelectStatement(boolean isSubQuery) {
     this.statementType = StatementType.SELECT;
@@ -99,14 +98,6 @@ public abstract class SelectStatement extends DataStatement {
 
   public void setOffset(int offset) {
     this.offset = offset;
-  }
-
-  public String getGlobalAlias() {
-    return globalAlias;
-  }
-
-  public void setGlobalAlias(String alias) {
-    this.globalAlias = alias;
   }
 
   public List<String> getFreeVariables() {

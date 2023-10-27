@@ -12,7 +12,7 @@ statement
    | COUNT POINTS # countPointsStatement
    | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
-   | SHOW COLUMNS (path (COMMA path)*)? withClause? limitClause? # showColumnsStatement
+   | SHOW COLUMNS showColumnsOptions # showColumnsStatement
    | SHOW REPLICA NUMBER # showReplicationStatement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
@@ -31,6 +31,10 @@ statement
 
 insertFullPathSpec
    : path tagList? insertColumnsSpec
+   ;
+
+showColumnsOptions
+   : (path (COMMA path)*)? withClause? limitClause?
    ;
 
 queryClause
@@ -173,7 +177,9 @@ joinPart
    ;
 
 tableReference
-   : (path | subquery) asClause?
+   : path asClause?
+   | subquery asClause?
+   | LR_BRACKET SHOW COLUMNS showColumnsOptions RR_BRACKET asClause?
    ;
 
 subquery
@@ -416,6 +422,7 @@ keyWords
    | SKIPPING
    | HEADER
    | LOAD
+   | VALUE2META
    ;
 
 dateFormat

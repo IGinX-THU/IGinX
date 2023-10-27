@@ -28,7 +28,7 @@ public enum OperatorType {
   Folded,
 
   // isGlobalOperator[20,29]
-  ShowTimeSeries(20),
+  ShowColumns(20),
   Migration,
 
   // BinaryOperator[30,49]
@@ -104,7 +104,7 @@ public enum OperatorType {
   }
 
   public static boolean isGlobalOperator(OperatorType op) {
-    return op == ShowTimeSeries || op == Migration;
+    return op == ShowColumns || op == Migration;
   }
 
   public static boolean isNeedBroadcasting(OperatorType op) {

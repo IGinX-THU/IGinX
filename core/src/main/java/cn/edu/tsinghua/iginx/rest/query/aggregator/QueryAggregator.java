@@ -191,7 +191,7 @@ public abstract class QueryAggregator {
     return ret;
   }
 
-  public List<String> getPathsFromShowTimeSeries(SessionQueryDataSet sessionQueryDataSet) {
+  public List<String> getPathsFromShowColumns(SessionQueryDataSet sessionQueryDataSet) {
     List<String> ret = new ArrayList<>();
     List<Boolean> notNull = new ArrayList<>();
     int m = sessionQueryDataSet.getPaths().size();
