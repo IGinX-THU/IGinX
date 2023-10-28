@@ -60,12 +60,21 @@ selectSublist
 expression
    : LR_BRACKET inBracketExpr = expression RR_BRACKET
    | constant
-   | functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* RR_BRACKET
+   | function
    | path
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
    | leftExpr = expression (PLUS | MINUS) rightExpr = expression
    | subquery
+   ;
+
+function
+   : functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* (COMMA param)* RR_BRACKET
+   ;
+
+param
+   : key = ID OPERATOR_EQ value = constant
+   | value = constant
    ;
 
 functionName
