@@ -18,7 +18,7 @@ public class Constant {
 
   // path
   public static final List<String> INIT_PATH_LIST =
-      Arrays.asList("A.A.A", "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+      Arrays.asList("B.B.B", "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
 
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
