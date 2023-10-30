@@ -573,6 +573,15 @@ public abstract class BaseCapacityExpansionIT {
         logger.error("Query result has same key , and should throw warning");
         fail();
       }
+
+      clearData();
+
+      res = session.executeQuery(statement);
+      if ((res.getWarningMsg() != null || !res.getWarningMsg().isEmpty())
+          && SUPPORT_KEY.get(type.name().toLowerCase())) {
+        logger.error("Query result did not has same key , and should not throw warning");
+        fail();
+      }
     } catch (ExecutionException | SessionException e) {
       logger.error("query data error: {}", e.getMessage());
     }
