@@ -86,11 +86,11 @@ public class FilterTransformer {
       op = op.substring(1);
     }
 
-    String regex_symbol = isLikeOp(filter.getOp()) ? "$" : "";
+    String regexSymbol = isLikeOp(filter.getOp()) ? "$" : "";
 
     Object value =
         filter.getValue().getDataType() == DataType.BINARY
-            ? "'" + filter.getValue().getBinaryVAsString() + regex_symbol + "'"
+            ? "'" + filter.getValue().getBinaryVAsString() + regexSymbol + "'"
             : filter.getValue().getValue();
 
     return path + " " + op + " " + value;
