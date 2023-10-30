@@ -115,7 +115,7 @@ public class PathUnionLazyStream extends BinaryLazyStream {
       return RowUtils.transform(row, header);
     }
     if (nextA.getKey() == nextB.getKey()) {
-      getContext().setWarningMsg("path union detect same key");
+      getContext().setWarningMsg("The query results contain overlapped primary keys.");
     }
     if (nextA.getKey() <= nextB.getKey()) {
       Row row = nextA;

@@ -2139,13 +2139,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       Table table = new Table(newHeader, newRows);
       RequestContext context = null;
       if (tableA.getContext() != null) {
-        context = tableB.getContext();
-      } else if (tableB.getContext() != null) {
         context = tableA.getContext();
+      } else if (tableB.getContext() != null) {
+        context = tableB.getContext();
       }
       if (context != null && isConflictInKey) {
         context.setWarningMsg(
-            "The query results contain overlapping key values, displaying only partial data");
+            "The query results contain overlapped primary keys.");
       }
       table.setContext(context);
 
