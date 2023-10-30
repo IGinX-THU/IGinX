@@ -42,12 +42,20 @@ cteClause
    ;
 
 commonTableExpr
-   : path (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause RR_BRACKET
-   | path (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause orderByClause limitClause RR_BRACKET
+   : cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause RR_BRACKET
+   | cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause orderByClause limitClause RR_BRACKET
+   ;
+
+cteName
+   : ID
    ;
 
 columnsList
-   : path (COMMA path)*
+   : cteColumn (COMMA cteColumn)*
+   ;
+
+cteColumn
+   : ID
    ;
 
 queryClause

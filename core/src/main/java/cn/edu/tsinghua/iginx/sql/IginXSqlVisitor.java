@@ -46,6 +46,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.ConstantContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CountPointsStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CsvFileContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CteClauseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CteColumnContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DateExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DateFormatContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.DeleteColumnsStatementContext;
@@ -339,7 +340,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private void parseCteClause(CteClauseContext ctx, List<CommonTableExpression> cteList) {
     for (CommonTableExprContext cteCtx : ctx.commonTableExpr()) {
-      String name = parsePath(cteCtx.path());
+      String name = cteCtx.cteName().getText();
       SelectStatement statement = parseQueryClause(cteCtx.queryClause(), cteList, false);
       if (cteCtx.orderByClause() != null) {
         parseOrderByClause(cteCtx.orderByClause(), statement);
@@ -349,8 +350,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       if (cteCtx.columnsList() != null) {
         List<String> columns = new ArrayList<>();
-        for (PathContext pathCtx : cteCtx.columnsList().path()) {
-          columns.add(parsePath(pathCtx));
+        for (CteColumnContext columnCtx : cteCtx.columnsList().cteColumn()) {
+          columns.add(columnCtx.getText());
         }
         if (columns.size() != statement.getExpressions().size()) {
           throw new SQLParserException(
