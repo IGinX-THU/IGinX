@@ -67,7 +67,11 @@ public class FilterTransformer {
   }
 
   private static String toString(KeyFilter filter) {
-    return "r[\"_time\"] " + Op.op2Str(filter.getOp()) + " time(v: " + filter.getValue() + ")";
+    return "r[\"_time\"] "
+        + Op.op2StrWithoutAndOr(filter.getOp())
+        + " time(v: "
+        + filter.getValue()
+        + ")";
   }
 
   private static String toString(ValueFilter filter) {
@@ -88,7 +92,7 @@ public class FilterTransformer {
           + "$/"; // SQL的正则匹配需要全部匹配，但InfluxDB可以部分匹配，所以需要在最后加上$以保证匹配全部字符串。
     }
 
-    return "r[\"" + path + "\"] " + op2StrWithoutAnd(filter.getOp()) + " " + value;
+    return "r[\"" + path + "\"] " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
   }
 
   private static String toString(OrFilter filter) {
@@ -104,14 +108,12 @@ public class FilterTransformer {
     String pathA = schemaA.getField();
     String pathB = schemaB.getField();
 
-    return "r[\"" + pathA + "\"] " + op2StrWithoutAnd(filter.getOp()) + " r[\"" + pathB + "\"]";
-  }
-
-  private static String op2StrWithoutAnd(Op op) {
-    String opStr = Op.op2Str(op);
-    if (opStr.startsWith("&")) {
-      return opStr.substring(1);
-    }
-    return opStr;
+    return "r[\""
+        + pathA
+        + "\"] "
+        + Op.op2StrWithoutAndOr(filter.getOp())
+        + " r[\""
+        + pathB
+        + "\"]";
   }
 }

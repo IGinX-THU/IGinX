@@ -227,6 +227,20 @@ public enum Op {
     }
   }
 
+  /**
+   * 返回不带&的Op字符串(不需要去掉|，因为目前Op字符串中|<直接转换为<)
+   *
+   * @param op Op
+   * @return 不带&的Op字符串
+   */
+  public static String op2StrWithoutAndOr(Op op) {
+    String opStr = Op.op2Str(op);
+    if (opStr.startsWith("&")) {
+      return opStr.substring(1);
+    }
+    return opStr;
+  }
+
   public static boolean isEqualOp(Op op) {
     return op.equals(E) || op.equals(E_AND);
   }

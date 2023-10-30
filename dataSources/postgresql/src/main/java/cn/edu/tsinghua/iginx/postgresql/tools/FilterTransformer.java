@@ -67,7 +67,7 @@ public class FilterTransformer {
 
   private static String toString(KeyFilter filter) {
     String op =
-        Op.op2Str(filter.getOp())
+        Op.op2StrWithoutAndOr(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
     return (getQuotName(KEY_NAME) + " " + op + " " + filter.getValue());
   }
@@ -79,12 +79,8 @@ public class FilterTransformer {
     String op =
         isLikeOp(filter.getOp())
             ? "~"
-            : Op.op2Str(filter.getOp())
+            : Op.op2StrWithoutAndOr(filter.getOp())
                 .replace("==", "="); // postgresql does not support "==" but uses "=" instead
-
-    if (op.startsWith("&")) {
-      op = op.substring(1);
-    }
 
     String regexSymbol = isLikeOp(filter.getOp()) ? "$" : "";
 
@@ -109,11 +105,8 @@ public class FilterTransformer {
     String pathB = schemaB.getQuotFullName();
 
     String op =
-        Op.op2Str(filter.getOp())
+        Op.op2StrWithoutAndOr(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
-    if (op.startsWith("&")) {
-      op = op.substring(1);
-    }
 
     return pathA + " " + op + " " + pathB;
   }
