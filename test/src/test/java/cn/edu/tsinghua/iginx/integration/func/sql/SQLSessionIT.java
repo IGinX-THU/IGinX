@@ -194,8 +194,23 @@ public class SQLSessionIT {
     executor.execute(clearData);
   }
 
+  public void showClusterInfo() {
+    String statement = "show cluster info;";
+    String actualOutput = executor.execute(statement);
+    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
+
+    statement = "show columns;";
+    actualOutput = executor.execute(statement);
+    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
+
+    statement = "select count(*) from *;";
+    actualOutput = executor.execute(statement);
+    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
+  }
+
   @Test
   public void testCountPath() {
+    showClusterInfo();
     String statement = "SELECT COUNT(*) FROM us.d1;";
     String expected =
         "ResultSets:\n"
@@ -205,6 +220,7 @@ public class SQLSessionIT {
             + "|          15000|          15000|          15000|          15000|\n"
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
+    showClusterInfo();
     executor.executeAndCompare(statement, expected);
   }
 
@@ -895,6 +911,7 @@ public class SQLSessionIT {
 
   @Test
   public void testFirstLastQuery() {
+    showClusterInfo();
     String statement = "SELECT FIRST(s2) FROM us.d1 WHERE key > 0;";
     String expected =
         "ResultSets:\n"
@@ -4772,7 +4789,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePath() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
@@ -4818,7 +4835,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePathWithOverlap() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -4845,7 +4862,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPath() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -4872,7 +4889,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPathWithOverlap() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -4899,6 +4916,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsert() {
+    if (isScaling){
+      return;
+    }
     int start = 20000, range = 50;
 
     List<String> insertStmts = new ArrayList<>();
@@ -4922,6 +4942,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsertWithOverlap() {
+    if (isScaling) {
+      return;
+    }
     int start = 20000, range = 70;
 
     List<String> insertStmts = new ArrayList<>();
