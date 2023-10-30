@@ -346,8 +346,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         functionCallList.add(
                             new FunctionCall(functionManager.getFunction(k), params));
@@ -369,8 +375,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         Operator copySelect = finalRoot.copy();
                         queryList.add(
@@ -394,8 +406,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + expression.getColumnName());
@@ -435,7 +453,11 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        FunctionParams params = new FunctionParams(expression.getParams());
+                        FunctionParams params =
+                            new FunctionParams(
+                                expression.getColumns(),
+                                expression.getArgs(),
+                                expression.getKvargs());
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + k + ", wrapped path: " + v);
                         queryList.add(
@@ -556,8 +578,22 @@ public class QueryGenerator extends AbstractGenerator {
               (int) selectStatement.getOffset());
     }
 
+    boolean hasFuncWithArgs =
+        selectStatement.getExpressions().stream()
+            .anyMatch(
+                expression -> {
+                  if (!(expression instanceof FuncExpression)) {
+                    return false;
+                  }
+                  FuncExpression funcExpression = ((FuncExpression) expression);
+                  return !funcExpression.getArgs().isEmpty()
+                      || !funcExpression.getKvargs().isEmpty();
+                });
+
     if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+    } else if (hasFuncWithArgs) {
+      root = new Reorder(new OperatorSource(root), Collections.singletonList("*"));
     } else {
       List<String> order = new ArrayList<>();
       List<Boolean> isPyUDF = new ArrayList<>();
