@@ -26,19 +26,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 
 public interface OperatorMemoryExecutor {
 
-  RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream) throws PhysicalException;
-
-  default RowStream executeUnaryOperator(
-      UnaryOperator operator, RowStream stream, RequestContext context) throws PhysicalException {
-    return executeUnaryOperator(operator, stream);
-  }
-
-  RowStream executeBinaryOperator(BinaryOperator operator, RowStream streamA, RowStream streamB)
+  RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream, RequestContext context)
       throws PhysicalException;
 
-  default RowStream executeBinaryOperator(
+  RowStream executeBinaryOperator(
       BinaryOperator operator, RowStream streamA, RowStream streamB, RequestContext context)
-      throws PhysicalException {
-    return executeBinaryOperator(operator, streamA, streamB);
-  }
+      throws PhysicalException;
 }

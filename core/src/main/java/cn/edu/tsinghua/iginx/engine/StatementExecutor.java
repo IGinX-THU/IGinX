@@ -809,6 +809,7 @@ public class StatementExecutor {
     if (ctx.isUseStream()) {
       Status status = RpcUtils.SUCCESS;
       if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
+        status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
         status.setMessage(ctx.getWarningMsg());
       }
       result = new Result(status);
@@ -863,7 +864,10 @@ public class StatementExecutor {
     }
 
     Status status = RpcUtils.SUCCESS;
-    status.setMessage(ctx.getWarningMsg());
+    if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
+      status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
+      status.setMessage(ctx.getWarningMsg());
+    }
     result = new Result(status);
     if (timestampList.size() != 0) {
       Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);

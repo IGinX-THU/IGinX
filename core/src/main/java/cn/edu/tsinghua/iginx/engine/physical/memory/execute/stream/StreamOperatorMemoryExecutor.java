@@ -69,12 +69,6 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   @Override
-  public RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream)
-      throws PhysicalException {
-    return executeUnaryOperator(operator, stream, null);
-  }
-
-  @Override
   public RowStream executeUnaryOperator(
       UnaryOperator operator, RowStream stream, RequestContext context) throws PhysicalException {
     RowStream result = null;
@@ -126,12 +120,6 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
     result.setContext(context);
     return result;
-  }
-
-  @Override
-  public RowStream executeBinaryOperator(
-      BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
-    return executeBinaryOperator(operator, streamA, streamB, null);
   }
 
   @Override

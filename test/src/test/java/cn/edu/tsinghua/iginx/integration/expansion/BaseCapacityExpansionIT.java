@@ -569,8 +569,10 @@ public abstract class BaseCapacityExpansionIT {
 
       QueryDataSet res = session.executeQuery(statement);
       if ((res.getWarningMsg() == null || res.getWarningMsg().isEmpty())
+          && !res.getWarningMsg()
+              .contains("[WARN] The query results contain overlapped primary keys.")
           && SUPPORT_KEY.get(type.name().toLowerCase())) {
-        logger.error("Query result has same key , and should throw warning");
+        logger.error("未抛出重叠key的警告");
         fail();
       }
 
@@ -578,7 +580,7 @@ public abstract class BaseCapacityExpansionIT {
 
       res = session.executeQuery(statement);
       if (res.getWarningMsg() != null && SUPPORT_KEY.get(type.name().toLowerCase())) {
-        logger.error("Query result did not has same key , and should not throw warning");
+        logger.error("不应抛出重叠key的警告");
         fail();
       }
     } catch (ExecutionException | SessionException e) {

@@ -59,7 +59,8 @@ public class RpcUtils {
   }
 
   public static void verifySuccess(Status status) throws ExecutionException {
-    if (status.code != StatusCode.SUCCESS_STATUS.getStatusCode()) {
+    if (status.code != StatusCode.SUCCESS_STATUS.getStatusCode()
+        && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       throw new ExecutionException(status);
     }
   }

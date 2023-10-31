@@ -97,7 +97,7 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
           throw new UnexpectedOperatorException(
               "unexpected binary operator " + op + " in unary task");
         }
-        stream = executor.executeUnaryOperator((UnaryOperator) op, stream);
+        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, context);
       }
     } catch (PhysicalException e) {
       logger.error("encounter error when execute operator in memory: ", e);

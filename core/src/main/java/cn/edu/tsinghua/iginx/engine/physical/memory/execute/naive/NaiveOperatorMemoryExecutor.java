@@ -121,45 +121,42 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   @Override
-  public RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream)
-      throws PhysicalException {
+  public RowStream executeUnaryOperator(
+      UnaryOperator operator, RowStream stream, RequestContext context) throws PhysicalException {
+    Table table = transformToTable(stream);
+    table.setContext(context);
     switch (operator.getType()) {
       case Project:
-        return executeProject((Project) operator, transformToTable(stream));
+        return executeProject((Project) operator, table);
       case Select:
-        return executeSelect((Select) operator, transformToTable(stream));
+        return executeSelect((Select) operator, table);
       case Sort:
-        return executeSort((Sort) operator, transformToTable(stream));
+        return executeSort((Sort) operator, table);
       case Limit:
-        return executeLimit((Limit) operator, transformToTable(stream));
+        return executeLimit((Limit) operator, table);
       case Downsample:
-        return executeDownsample((Downsample) operator, transformToTable(stream));
+        return executeDownsample((Downsample) operator, table);
       case RowTransform:
-        return executeRowTransform((RowTransform) operator, transformToTable(stream));
+        return executeRowTransform((RowTransform) operator, table);
       case SetTransform:
-        return executeSetTransform((SetTransform) operator, transformToTable(stream));
+        return executeSetTransform((SetTransform) operator, table);
       case MappingTransform:
-        return executeMappingTransform((MappingTransform) operator, transformToTable(stream));
+        return executeMappingTransform((MappingTransform) operator, table);
       case Rename:
-        return executeRename((Rename) operator, transformToTable(stream));
+        return executeRename((Rename) operator, table);
       case Reorder:
-        return executeReorder((Reorder) operator, transformToTable(stream));
+        return executeReorder((Reorder) operator, table);
       case AddSchemaPrefix:
-        return executeAddSchemaPrefix((AddSchemaPrefix) operator, transformToTable(stream));
+        return executeAddSchemaPrefix((AddSchemaPrefix) operator, table);
       case GroupBy:
-        return executeGroupBy((GroupBy) operator, transformToTable(stream));
+        return executeGroupBy((GroupBy) operator, table);
       case Distinct:
-        return executeDistinct((Distinct) operator, transformToTable(stream));
+        return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
-        return executeValueToSelectedPath((ValueToSelectedPath) operator, transformToTable(stream));
+        return executeValueToSelectedPath((ValueToSelectedPath) operator, table);
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
-  }
-
-  public RowStream executeBinaryOperator(
-      BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
-    return executeBinaryOperator(operator, streamA, streamB, null);
   }
 
   @Override
@@ -2144,8 +2141,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         context = tableB.getContext();
       }
       if (context != null && isConflictInKey) {
-        context.setWarningMsg(
-            "The query results contain overlapped primary keys.");
+        context.setWarningMsg("[WARN] The query results contain overlapped primary keys.");
       }
       table.setContext(context);
 
