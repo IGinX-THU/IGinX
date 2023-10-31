@@ -34,7 +34,7 @@ public class UDFPathIT {
 
   @Test
   public void testUDFFuncList() {
-    String statement = "show register python task";
+    String statement = "show register python task;";
     String expectedRes =
         "Register task infos:\n"
             + "+-------------+---------------+---------------------+-------+--------+\n"

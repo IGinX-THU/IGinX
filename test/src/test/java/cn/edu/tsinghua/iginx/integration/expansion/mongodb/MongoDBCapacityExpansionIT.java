@@ -26,7 +26,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private static void testProject() {
     // wildcard query
-    String statement = "select * from d0.c0.objects";
+    String statement = "select * from d0.c0.objects;";
     String expect =
         "ResultSets:\n"
             + "+----------+-----------------------------+-----------------------------+---------------------+------------------------+------------------------+-------------------------+--------------------------+----------------+--------------------------+---------------------------------+---------------------------------+---------------------------------+---------------------------------+------------------------+\n"
@@ -39,7 +39,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // key assignment
-    statement = "select id from d0.c0.images";
+    statement = "select id from d0.c0.images;";
     expect =
         "ResultSets:\n"
             + "+----------+---------------+\n"
@@ -53,7 +53,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // array index
-    statement = "select `3` from d0.c0.annotations.segmentation.`0`";
+    statement = "select `3` from d0.c0.annotations.segmentation.`0`;";
     expect =
         "ResultSets:\n"
             + "+----------+----------------------------------+\n"
@@ -67,7 +67,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // field name
-    statement = "select area, category_id from d0.c0.annotations";
+    statement = "select area, category_id from d0.c0.annotations;";
     expect =
         "ResultSets:\n"
             + "+----------+----------------------+-----------------------------+\n"
@@ -81,7 +81,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // type convert: string -> number
-    statement = "select year from d0.c0.information";
+    statement = "select year from d0.c0.information;";
     expect =
         "ResultSets:\n"
             + "+-----------+----------------------+\n"
@@ -95,7 +95,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // type convert: number -> string
-    statement = "select version from d0.c0.information";
+    statement = "select version from d0.c0.information;";
     expect =
         "ResultSets:\n"
             + "+-----------+-------------------------+\n"
@@ -109,7 +109,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // type convert: Double over Long
-    statement = "select score from d0.c0.information";
+    statement = "select score from d0.c0.information;";
     expect =
         "ResultSets:\n"
             + "+-----------+-----------------------+\n"
@@ -123,7 +123,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // type convert: bson -> json
-    statement = "select _id from d0.c0";
+    statement = "select _id from d0.c0;";
     expect =
         "ResultSets:\n"
             + "+-----------+-------------------------------------------+\n"
@@ -138,7 +138,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void testFilter() {
-    String statement = "select i from d1.c1 where i < 3";
+    String statement = "select i from d1.c1 where i < 3;";
     String expect =
         "ResultSets:\n"
             + "+-----------+-------+\n"
@@ -151,7 +151,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select b from d1.c1 where b = true";
+    statement = "select b from d1.c1 where b = true;";
     expect =
         "ResultSets:\n"
             + "+-----------+-------+\n"
@@ -164,7 +164,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select f from d1.c1 where f > 2";
+    statement = "select f from d1.c1 where f > 2;";
     expect =
         "ResultSets:\n"
             + "+-----------+-------+\n"
@@ -177,7 +177,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select f from d1.c1 where f > 2";
+    statement = "select f from d1.c1 where f > 2;";
     expect =
         "ResultSets:\n"
             + "+-----------+-------+\n"
@@ -190,7 +190,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select f from d1.c1 where f > 1.0 and f < 2.9";
+    statement = "select f from d1.c1 where f > 1.0 and f < 2.9;";
     expect =
         "ResultSets:\n"
             + "+-----------+-------+\n"
@@ -202,7 +202,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select s from d1.c1 where s = '1st'";
+    statement = "select s from d1.c1 where s = '1st';";
     expect =
         "ResultSets:\n"
             + "+----------+-------+\n"
@@ -213,7 +213,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select s from d1.c1 where s LIKE '.*th'";
+    statement = "select s from d1.c1 where s LIKE '.*th';";
     expect =
         "ResultSets:\n"
             + "+-----------+-------+\n"
@@ -227,7 +227,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     statement =
-        "select * from d1.c1 where _id = '{\"$\": {\"$oid\": \"000000000000000000000003\"}}'";
+        "select * from d1.c1 where _id = '{\"$\": {\"$oid\": \"000000000000000000000003\"}}';";
     expect =
         "ResultSets:\n"
             + "+-----------+-------------------------------------------+-------+-------+-------+-------+\n"

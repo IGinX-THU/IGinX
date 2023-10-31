@@ -80,12 +80,12 @@ public class TransformIT {
 
   private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
 
-  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK \"%s\"";
+  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK \"%s\";";
 
   private static final String REGISTER_SQL_FORMATTER =
-      "REGISTER TRANSFORM PYTHON TASK \"%s\" IN \"%s\" AS \"%s\"";
+      "REGISTER TRANSFORM PYTHON TASK \"%s\" IN \"%s\" AS \"%s\";";
 
-  private static final String COMMIT_SQL_FORMATTER = "COMMIT TRANSFORM JOB \"%s\"";
+  private static final String COMMIT_SQL_FORMATTER = "COMMIT TRANSFORM JOB \"%s\";";
 
   private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
 

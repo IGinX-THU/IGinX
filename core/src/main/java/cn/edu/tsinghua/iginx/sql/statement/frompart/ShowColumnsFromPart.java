@@ -29,6 +29,7 @@ public class ShowColumnsFromPart implements FromPart {
     return showColumnsStatement;
   }
 
+  @Override
   public Map<String, String> getAliasMap() {
     Map<String, String> aliasMap = new HashMap<>();
     aliasMap.put("path", alias + ".path");
@@ -39,11 +40,6 @@ public class ShowColumnsFromPart implements FromPart {
   @Override
   public FromPartType getType() {
     return FromPartType.ShowColumns;
-  }
-
-  @Override
-  public String getAlias() {
-    return alias;
   }
 
   @Override
@@ -61,6 +57,11 @@ public class ShowColumnsFromPart implements FromPart {
     return hasAlias()
         ? Collections.singletonList(alias + Constants.ALL_PATH_SUFFIX)
         : new ArrayList<>(Arrays.asList("path", "type"));
+  }
+
+  @Override
+  public String getOriginPrefix() {
+    return "";
   }
 
   @Override
