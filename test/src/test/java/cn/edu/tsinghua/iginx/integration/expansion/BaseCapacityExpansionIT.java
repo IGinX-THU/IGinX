@@ -569,8 +569,7 @@ public abstract class BaseCapacityExpansionIT {
 
       QueryDataSet res = session.executeQuery(statement);
       if ((res.getWarningMsg() == null || res.getWarningMsg().isEmpty())
-          && !res.getWarningMsg()
-              .contains("[WARN] The query results contain overlapped primary keys.")
+          && !res.getWarningMsg().contains("The query results contain overlapped keys.")
           && SUPPORT_KEY.get(type.name().toLowerCase())) {
         logger.error("未抛出重叠key的警告");
         fail();

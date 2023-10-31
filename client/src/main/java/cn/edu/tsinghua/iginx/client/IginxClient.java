@@ -361,7 +361,7 @@ public class IginxClient {
       }
 
       if (res.getWarningMsg() != null && !res.getWarningMsg().isEmpty()) {
-        System.out.println(res.getWarningMsg());
+        System.out.println("[WARN] " + res.getWarningMsg());
       }
 
       System.out.println("ResultSets:");

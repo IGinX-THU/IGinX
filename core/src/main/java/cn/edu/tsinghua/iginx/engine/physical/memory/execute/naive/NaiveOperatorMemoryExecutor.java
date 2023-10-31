@@ -2068,7 +2068,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header headerB = tableB.getHeader();
     List<Field> newFields = new ArrayList<>();
     Map<Field, Integer> fieldIndices = new HashMap<>();
-    boolean isConflictInKey = false;
+    boolean containOverlappedKeys = false;
     for (Field field : headerA.getFields()) {
       if (fieldIndices.containsKey(field)) {
         continue;
@@ -2100,8 +2100,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Object[] values = new Object[newHeader.getFieldSize()];
         long timestamp;
         if (rowA.getKey() == rowB.getKey()) {
-          if (!isConflictInKey) {
-            isConflictInKey = true;
+          if (!containOverlappedKeys) {
+            containOverlappedKeys = true;
           }
           timestamp = rowA.getKey();
           writeToNewRow(values, rowA, fieldIndices);
@@ -2140,8 +2140,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       } else if (tableB.getContext() != null) {
         context = tableB.getContext();
       }
-      if (context != null && isConflictInKey) {
-        context.setWarningMsg("[WARN] The query results contain overlapped primary keys.");
+      if (context != null && containOverlappedKeys) {
+        context.setWarningMsg("The query results contain overlapped keys.");
       }
       table.setContext(context);
 
