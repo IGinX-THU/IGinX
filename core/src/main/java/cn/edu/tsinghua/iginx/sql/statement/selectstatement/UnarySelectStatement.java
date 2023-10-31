@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
 
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
@@ -380,6 +379,10 @@ public class UnarySelectStatement extends SelectStatement {
     return fromParts;
   }
 
+  public FromPart getFromPart(int index) {
+    return fromParts.get(index);
+  }
+
   public void setFromParts(List<FromPart> fromParts) {
     this.fromParts = fromParts;
   }
@@ -497,12 +500,6 @@ public class UnarySelectStatement extends SelectStatement {
             aliasMap.put(expression.getColumnName(), expression.getAlias());
           }
         });
-    return aliasMap;
-  }
-
-  public Map<String, String> getFromPathAliasMap(String originPrefix, String alias) {
-    Map<String, String> aliasMap = new HashMap<>();
-    aliasMap.put(originPrefix + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX);
     return aliasMap;
   }
 
@@ -674,19 +671,8 @@ public class UnarySelectStatement extends SelectStatement {
   public boolean isFromSinglePath() {
     return !hasJoinParts
         && !fromParts.isEmpty()
-        && fromParts.get(0).getType().equals(FromPartType.Path);
-  }
-
-  public boolean isFromSingleSubQuery() {
-    return !hasJoinParts
-        && !fromParts.isEmpty()
-        && fromParts.get(0).getType().equals(FromPartType.SubQuery);
-  }
-
-  public boolean isFromSingleShowColumns() {
-    return !hasJoinParts
-        && !fromParts.isEmpty()
-        && fromParts.get(0).getType().equals(FromPartType.ShowColumns);
+        && (fromParts.get(0).getType().equals(FromPartType.Path)
+            || fromParts.get(0).getType().equals(FromPartType.Cte));
   }
 
   public void checkQueryType() {

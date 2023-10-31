@@ -51,24 +51,30 @@ public class FilterUtils {
     long value = filter.getValue();
     switch (filter.getOp()) {
       case GE:
+      case GE_AND:
         return Collections.singletonList(new Pair<>(value, Long.MAX_VALUE));
       case G:
+      case G_AND:
         if (value == Long.MAX_VALUE) {
           return EMPTY_RANGES;
         } else {
           return Collections.singletonList(new Pair<>(value + 1, Long.MAX_VALUE));
         }
       case LE:
+      case LE_AND:
         return Collections.singletonList(new Pair<>(Long.MIN_VALUE, value));
       case L:
+      case L_AND:
         if (value == Long.MIN_VALUE) {
           return EMPTY_RANGES;
         } else {
           return Collections.singletonList(new Pair<>(Long.MIN_VALUE, value - 1));
         }
       case E:
+      case E_AND:
         return Collections.singletonList(new Pair<>(value, value));
       case NE:
+      case NE_AND:
         if (value == Long.MIN_VALUE) {
           return Collections.singletonList(new Pair<>(value + 1, Long.MAX_VALUE));
         } else if (value == Long.MAX_VALUE) {

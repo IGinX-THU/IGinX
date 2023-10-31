@@ -240,40 +240,40 @@ public abstract class BaseCapacityExpansionIT {
   protected void testQuerySpecialHistoryData() {}
 
   private void testQueryHistoryDataOriHasData() {
-    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
+    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
     List<String> pathList = ORI_PATH_LIST;
     List<List<Object>> valuesList = ORI_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   private void testQueryHistoryDataExpHasData() {
-    String statement = "select wt01.status2 from nt.wf03";
+    String statement = "select wt01.status2 from nt.wf03;";
     List<String> pathList = EXP_PATH_LIST1;
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
-    statement = "select wt01.temperature from nt.wf04";
+    statement = "select wt01.temperature from nt.wf04;";
     pathList = EXP_PATH_LIST2;
     valuesList = EXP_VALUES_LIST2;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   private void testQueryHistoryDataOriNoData() {
-    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn";
+    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testQueryHistoryDataExpNoData() {
-    String statement = "select wf03.wt01.status, wf04.wt01.temperature from nt";
+    String statement = "select wf03.wt01.status, wf04.wt01.temperature from nt;";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
   private void testQueryHistoryDataReadOnly() {
-    String statement = "select wt01.status, wt01.temperature from tm.wf05";
+    String statement = "select wt01.status, wt01.temperature from tm.wf05;";
     List<String> pathList = READ_ONLY_PATH_LIST;
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
@@ -291,7 +291,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void queryNewData() {
-    String statement = "select * from ln";
+    String statement = "select * from ln;";
     String expect =
         "ResultSets:\n"
             + "+---+--------------+---------------+\n"
@@ -304,7 +304,7 @@ public abstract class BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select count(*) from ln.wf02";
+    statement = "select count(*) from ln.wf02;";
     expect =
         "ResultSets:\n"
             + "+---------------------+----------------------+\n"
@@ -326,7 +326,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void queryAllNewData() {
-    String statement = "select * from ln";
+    String statement = "select * from ln;";
     String expect =
         "ResultSets:\n"
             + "+----+--------------+---------------+\n"
@@ -340,7 +340,7 @@ public abstract class BaseCapacityExpansionIT {
             + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement = "select count(*) from ln.wf02";
+    statement = "select count(*) from ln.wf02;";
     expect =
         "ResultSets:\n"
             + "+---------------------+----------------------+\n"
@@ -379,7 +379,7 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
-    String statement = "select status2 from *";
+    String statement = "select status2 from *;";
     List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
@@ -398,22 +398,22 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
-    statement = "select wt01.status2 from p1.nt.wf03";
+    statement = "select wt01.status2 from p1.nt.wf03;";
     pathList = Collections.singletonList("p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 后查询
-    statement = "select wt01.status2 from p2.nt.wf03";
+    statement = "select wt01.status2 from p2.nt.wf03;";
     pathList = Collections.singletonList("p2.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
-    statement = "select wt01.status2 from nt.wf03";
+    statement = "select wt01.status2 from nt.wf03;";
     pathList = Collections.singletonList("nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
-    statement = "select wt01.status2 from p3.nt.wf03";
+    statement = "select wt01.status2 from p3.nt.wf03;";
     pathList = Collections.singletonList("p3.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
@@ -429,19 +429,19 @@ public abstract class BaseCapacityExpansionIT {
       logger.error("remove history data source through session api error: {}", e.getMessage());
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
-    statement = "select * from p2.nt.wf03";
+    statement = "select * from p2.nt.wf03;";
     String expect =
         "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p3 + schemaPrefixSuffix
     // 后再查询，测试重点是移除相同 schemaPrefix，不同 dataPrefix
-    statement = "select wt01.temperature from p3.nt.wf04";
+    statement = "select wt01.temperature from p3.nt.wf04;";
     List<String> pathListAns = new ArrayList<>();
     pathListAns.add("p3.nt.wf04.wt01.temperature");
     SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
 
     // 通过 sql 语句测试移除节点
-    String removeStatement = "remove historydatasource (\"127.0.0.1\", %d, \"%s\", \"%s\")";
+    String removeStatement = "remove historydatasource (\"127.0.0.1\", %d, \"%s\", \"%s\");";
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
@@ -452,7 +452,7 @@ public abstract class BaseCapacityExpansionIT {
       logger.error("remove history data source through sql error: {}", e.getMessage());
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 + schemaPrefixSuffix 后再查询
-    statement = "select * from p1.nt.wf03";
+    statement = "select * from p1.nt.wf03;";
     expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
@@ -471,8 +471,8 @@ public abstract class BaseCapacityExpansionIT {
   private void testQueryForFileSystem() {
     try {
       session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\")");
-      String statement = "select 1\\txt from a.*";
+          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filesystem\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\");");
+      String statement = "select 1\\txt from a.*;";
       String expect =
           "ResultSets:\n"
               + "+---+---------------------------------------------------------------------------+\n"
@@ -483,7 +483,7 @@ public abstract class BaseCapacityExpansionIT {
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
 
-      statement = "select 2\\txt from a.*";
+      statement = "select 2\\txt from a.*;";
       expect =
           "ResultSets:\n"
               + "+---+----------------------------------------------------+\n"
@@ -494,7 +494,7 @@ public abstract class BaseCapacityExpansionIT {
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
 
-      statement = "select 3\\txt from a.*";
+      statement = "select 3\\txt from a.*;";
       expect =
           "ResultSets:\n"
               + "+---+------------------------------------------+\n"
