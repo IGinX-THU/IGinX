@@ -148,7 +148,7 @@ public class Controller {
     } else {
       boolean supportKey = SUPPORT_KEY.get(conf.getStorageType());
       if (supportKey) {
-        medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 2 : pathList.size();
+        medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 3 : pathList.size();
       }
     }
 
@@ -203,7 +203,7 @@ public class Controller {
     } else {
       boolean supportKey = SUPPORT_KEY.get(conf.getStorageType());
       if (supportKey) {
-        medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 2 : keyList.size();
+        medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 3 : keyList.size();
       }
     }
 
