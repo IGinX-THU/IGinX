@@ -4,10 +4,8 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -371,16 +369,22 @@ public class ExprUtils {
   private static KeyRange getKeyRangesFromKeyFilter(KeyFilter filter) {
     switch (filter.getOp()) {
       case L:
+      case L_AND:
         return new KeyRange(0, filter.getValue());
       case LE:
+      case LE_AND:
         return new KeyRange(0, filter.getValue() + 1);
       case G:
+      case G_AND:
         return new KeyRange(filter.getValue() + 1, Long.MAX_VALUE);
       case GE:
+      case GE_AND:
         return new KeyRange(filter.getValue(), Long.MAX_VALUE);
       case E:
+      case E_AND:
         return new KeyRange(filter.getValue(), filter.getValue() + 1);
       case NE:
+      case NE_AND:
         throw new SQLParserException("Not support [!=] in delete clause.");
       default:
         throw new SQLParserException(
@@ -444,6 +448,92 @@ public class ExprUtils {
     Filter filterWithoutNot = removeNot(filter);
     Filter filterWithTrue = setTrue(filterWithoutNot, columnsInterval);
     return mergeTrue(filterWithTrue);
+  }
+
+  public static Filter removeWildCardOrFilterByFragment(
+      Filter filter, Set<FragmentMeta> fragmentMetaSet) {
+    Filter filterWithTrue = setWildCardOrFilterTrueByFragment(filter, fragmentMetaSet);
+    return mergeTrue(filterWithTrue);
+  }
+
+  /**
+   * filter中的带*通配符的path的orFilter,如果该path匹配上多个column range不同的分片，不下推。
+   *
+   * @param filter 要处理的filter
+   * @param fragmentMetaSet 所有的分片信息
+   * @return 处理后的filter
+   */
+  public static Filter setWildCardOrFilterTrueByFragment(
+      Filter filter, Set<FragmentMeta> fragmentMetaSet) {
+    switch (filter.getType()) {
+      case Or:
+        List<Filter> orChildren = ((OrFilter) filter).getChildren();
+        for (int i = 0; i < orChildren.size(); i++) {
+          Filter childFilter =
+              setWildCardOrFilterTrueByFragment(orChildren.get(i), fragmentMetaSet);
+          orChildren.set(i, childFilter);
+        }
+        return new OrFilter(orChildren);
+      case And:
+        List<Filter> andChildren = ((AndFilter) filter).getChildren();
+        for (int i = 0; i < andChildren.size(); i++) {
+          Filter childFilter =
+              setWildCardOrFilterTrueByFragment(andChildren.get(i), fragmentMetaSet);
+          andChildren.set(i, childFilter);
+        }
+        return new AndFilter(andChildren);
+      case Value:
+        String path = ((ValueFilter) filter).getPath();
+        Op valueOp = ((ValueFilter) filter).getOp();
+
+        if (path.contains("*")
+            && Op.isOrOp(valueOp)
+            && wildcardPathMatchMultiFragments(path, fragmentMetaSet)) {
+          return new BoolFilter(true);
+        }
+
+        return filter;
+      case Path:
+        String pathA = ((PathFilter) filter).getPathA();
+        String pathB = ((PathFilter) filter).getPathB();
+        Op pathOp = ((PathFilter) filter).getOp();
+
+        if (pathA.contains("*")
+            && Op.isOrOp(pathOp)
+            && wildcardPathMatchMultiFragments(pathA, fragmentMetaSet)) {
+          return new BoolFilter(true);
+        } else if (pathB.contains("*")
+            && Op.isOrOp(pathOp)
+            && wildcardPathMatchMultiFragments(pathB, fragmentMetaSet)) {
+          return new BoolFilter(true);
+        }
+
+        return filter;
+      default:
+        return filter;
+    }
+  }
+
+  /**
+   * 判断filter中的带*通配符的path的orFilter,该path是否能匹配上多个column range不同的分片。
+   *
+   * @param path 带*通配符的path
+   * @param fragmentMetaSet 所有的分片信息
+   * @return true: 匹配上多个column range不同的分片，false: 匹配不上或者只匹配上一个column range的分片
+   */
+  private static boolean wildcardPathMatchMultiFragments(
+      String path, Set<FragmentMeta> fragmentMetaSet) {
+    ColumnsInterval columnsInterval = null;
+    for (FragmentMeta fragmentMeta : fragmentMetaSet) {
+      if (columnRangeContainPath(fragmentMeta.getColumnsInterval(), path)) {
+        if (columnsInterval != null && !columnsInterval.equals(fragmentMeta.getColumnsInterval())) {
+          return true;
+        } else if (columnsInterval == null) {
+          columnsInterval = fragmentMeta.getColumnsInterval();
+        }
+      }
+    }
+    return false;
   }
 
   /** 判断filter的path是否是聚合函数或UDF函数 */

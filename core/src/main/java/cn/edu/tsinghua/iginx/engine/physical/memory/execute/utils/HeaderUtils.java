@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.isNumericType;
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isEqualOp;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
 
@@ -12,7 +13,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -259,7 +259,7 @@ public class HeaderUtils {
         return calculateHashJoinPath(notFilter.getChild());
       case Path:
         PathFilter pathFilter = (PathFilter) filter;
-        if (pathFilter.getOp().equals(Op.E)) {
+        if (isEqualOp(pathFilter.getOp())) {
           return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
         }
         break;

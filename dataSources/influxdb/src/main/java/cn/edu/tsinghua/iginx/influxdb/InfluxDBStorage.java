@@ -762,7 +762,12 @@ public class InfluxDBStorage implements IStorage {
           if (newValueChildren.size() == 1) {
             return newValueChildren.get(0);
           }
-          return new AndFilter(newValueChildren);
+
+          if (Op.isAndOp(valueFilter.getOp())) {
+            return new AndFilter(newValueChildren);
+          }
+
+          return new OrFilter(newValueChildren);
         }
         break;
       case Path:
@@ -783,7 +788,12 @@ public class InfluxDBStorage implements IStorage {
           if (newValueChildren.size() == 1) {
             return newValueChildren.get(0);
           }
-          return new AndFilter(newValueChildren);
+
+          if (Op.isAndOp(pathFilter.getOp())) {
+            return new AndFilter(newValueChildren);
+          }
+
+          return new OrFilter(newValueChildren);
         }
 
         if (pathB.equals(wildcardsPath)) {
@@ -791,7 +801,7 @@ public class InfluxDBStorage implements IStorage {
             return new BoolFilter(true);
           }
 
-          // 如果filter已经不是PathFilter了，说明在PathA时已经被修改成了AndFilter,需要继续调用函数递归
+          // 如果filter已经不是PathFilter了，说明在PathA时已经被修改成了AndFilter或OrFilter,需要继续调用函数递归
           if (filter.getType() != FilterType.Path) {
             generateFilterByWildCardEntry(pathFilter, entry);
           } else {
@@ -804,7 +814,11 @@ public class InfluxDBStorage implements IStorage {
             if (newValueChildren.size() == 1) {
               return newValueChildren.get(0);
             }
-            return new AndFilter(newValueChildren);
+
+            if (Op.isAndOp(pathFilter.getOp())) {
+              return new AndFilter(newValueChildren);
+            }
+            return new OrFilter(newValueChildren);
           }
         }
         break;
@@ -873,7 +887,7 @@ public class InfluxDBStorage implements IStorage {
         matchFilter = setTrueByMeasurement(matchFilter, measurementName);
       }
 
-      ExprUtils.mergeTrue(matchFilter);
+      matchFilter = ExprUtils.mergeTrue(matchFilter);
 
       if (matchFilter.getType() == FilterType.Bool) {
         return "";
