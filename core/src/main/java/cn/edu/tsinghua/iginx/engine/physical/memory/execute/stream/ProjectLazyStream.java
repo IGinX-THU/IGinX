@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -50,6 +52,10 @@ public class ProjectLazyStream extends UnaryLazyStream {
       List<Field> targetFields = new ArrayList<>();
 
       for (Field field : header.getFields()) {
+        if (project.isRemainKey() && field.getName().endsWith(KEY)) {
+          targetFields.add(field);
+          continue;
+        }
         for (String pattern : patterns) {
           if (!StringUtils.isPattern(pattern)) {
             if (pattern.equals(field.getFullName())) {

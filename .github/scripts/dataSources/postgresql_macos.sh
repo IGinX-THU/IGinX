@@ -10,21 +10,23 @@ sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-os
 
 sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
 
-sh -c "sudo dscl . -create /Users/postgres"
+sh -c "sudo dscl . -create /Users/postgres UniqueID 666"
+
+sh -c "sudo dscl . -create /Groups/postgres PrimaryGroupID 777"
+
+sh -c "sudo dscl . -create /Users/postgres PrimaryGroupID 777"
 
 sh -c "sudo dscl . -create /Users/postgres UserShell /bin/bash"
 
 sh -c "sudo dscl . -create /Users/postgres RealName \"PostgreSQL\""
 
-sh -c "sudo dscl . -create /Users/postgres UniqueID 666"
+sh -c "sudo dscl . create /Groups/postgres passwd '*'"
 
-sh -c "sudo dscl . -create /Users/postgres PrimaryGroupID 20"
+sh -c "sudo mkdir /Users/postgres"
+
+sh -c "sudo chown -R postgres:postgres /Users/postgres"
 
 sh -c "sudo dscl . -create /Users/postgres NFSHomeDirectory /Users/postgres"
-
-sh -c "sudo dscl . -passwd /Users/postgres postgres"
-
-sh -c "sudo dscl . -append /Groups/admin GroupMembership postgres"
 
 sh -c "sudo mkdir -p /var/lib/postgresql/15/main"
 
@@ -34,7 +36,12 @@ sh -c "sudo chmod -R 777 /var/lib/postgresql/15/main"
 
 for port in "$@"
 do
-  sh -c "sudo cp -R pgsql pgsql-$port"
+
+  sh -c "sudo mkdir -p /Users/postgres/pgsql-$port"
+
+  sh -c "sudo chmod -R 777 /Users/postgres/pgsql-$port"
+
+  sh -c "sudo cp -R pgsql /Users/postgres/pgsql-$port"
 
   sh -c "sudo mkdir -p /var/lib/postgresql-$port/15/main"
 
@@ -42,9 +49,9 @@ do
 
   sh -c "sudo chmod -R 777 /var/lib/postgresql-$port/15/main"
 
-  sh -c "cd pgsql-$port/bin; sudo -u postgres ./initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions"
+  sh -c "sudo su - postgres -c '/Users/postgres/pgsql-$port/pgsql/bin/initdb -D /var/lib/postgresql-$port/15/main --auth trust --no-instructions'"
 
-  sh -c "cd pgsql-$port/bin; sudo -u postgres ./pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start"
+  sh -c "sudo su - postgres -c '/Users/postgres/pgsql-$port/pgsql/bin/pg_ctl -D /var/lib/postgresql-$port/15/main -o \"-F -p $port\" start'"
 
-  sh -c "cd pgsql-$port/bin; sudo -u postgres ./psql -c \"ALTER USER postgres WITH PASSWORD 'postgres';\""
+  sh -c "sudo su - postgres -c '/Users/postgres/pgsql-$port/pgsql/bin/psql -c \"ALTER USER postgres WITH PASSWORD '\''postgres'\'';\"'"
 done

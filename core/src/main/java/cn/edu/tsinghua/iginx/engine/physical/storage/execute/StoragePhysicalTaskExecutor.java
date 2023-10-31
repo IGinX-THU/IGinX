@@ -40,7 +40,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowTimeSeries;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -241,7 +241,7 @@ public class StoragePhysicalTaskExecutor {
                     }
                   } catch (Exception e) {
                     logger.error(
-                        "unexpected exception during dispatcher memory task, please contact developer to check: ",
+                        "unexpected exception during dispatcher storage task, please contact developer to check: ",
                         e);
                   }
                 });
@@ -279,82 +279,96 @@ public class StoragePhysicalTaskExecutor {
   }
 
   public TaskExecuteResult executeGlobalTask(GlobalPhysicalTask task) {
-    List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
     switch (task.getOperator().getType()) {
-      case ShowTimeSeries:
-        Set<Column> columnSet = new HashSet<>();
-        for (StorageEngineMeta storage : storageList) {
-          long id = storage.getId();
-          Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
-          if (pair == null) {
-            continue;
-          }
-          try {
-            List<Column> columnList = pair.k.getColumns();
-            // fix the schemaPrefix
-            String schemaPrefix = storage.getSchemaPrefix();
-            if (schemaPrefix != null) {
-              for (Column column : columnList) {
-                if (column.isDummy()) {
-                  column.setPath(schemaPrefix + "." + column.getPath());
-                }
-              }
-            }
-            columnSet.addAll(columnList);
-          } catch (PhysicalException e) {
-            return new TaskExecuteResult(e);
+      case ShowColumns:
+        long startTime = System.currentTimeMillis();
+        TaskExecuteResult result = executeShowColumns((ShowColumns) task.getOperator());
+        long span = System.currentTimeMillis() - startTime;
+        task.setSpan(span);
+        task.setResult(result);
+        if (task.getFollowerTask() != null) {
+          MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();
+          boolean isFollowerTaskReady = followerTask.notifyParentReady();
+          if (isFollowerTaskReady) {
+            memoryTaskExecutor.addMemoryTask(followerTask);
           }
         }
-
-        ShowTimeSeries operator = (ShowTimeSeries) task.getOperator();
-        Set<String> pathRegexSet = operator.getPathRegexSet();
-        TagFilter tagFilter = operator.getTagFilter();
-
-        TreeSet<Column> tsSetAfterFilter =
-            new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
-        for (Column column : columnSet) {
-          boolean isTarget = true;
-          if (!pathRegexSet.isEmpty()) {
-            isTarget = false;
-            for (String pathRegex : pathRegexSet) {
-              if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
-                isTarget = true;
-                break;
-              }
-            }
-          }
-          if (tagFilter != null) {
-            if (!TagKVUtils.match(column.getTags(), tagFilter)) {
-              isTarget = false;
-            }
-          }
-          if (isTarget) {
-            tsSetAfterFilter.add(column);
-          }
-        }
-
-        int limit = operator.getLimit();
-        int offset = operator.getOffset();
-        if (limit == Integer.MAX_VALUE && offset == 0) {
-          return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
-        } else {
-          // only need part of data.
-          List<Column> tsList = new ArrayList<>();
-          int cur = 0, size = tsSetAfterFilter.size();
-          for (Iterator<Column> iter = tsSetAfterFilter.iterator(); iter.hasNext(); cur++) {
-            if (cur >= size || cur - offset >= limit) {
-              break;
-            }
-            Column ts = iter.next();
-            if (cur >= offset) {
-              tsList.add(ts);
-            }
-          }
-          return new TaskExecuteResult(Column.toRowStream(tsList));
-        }
+        return result;
       default:
         return new TaskExecuteResult(
             new UnexpectedOperatorException("unknown op: " + task.getOperator().getType()));
+    }
+  }
+
+  public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
+    List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
+    Set<Column> columnSet = new HashSet<>();
+    for (StorageEngineMeta storage : storageList) {
+      long id = storage.getId();
+      Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
+      if (pair == null) {
+        continue;
+      }
+      try {
+        List<Column> columnList = pair.k.getColumns();
+        // fix the schemaPrefix
+        String schemaPrefix = storage.getSchemaPrefix();
+        if (schemaPrefix != null) {
+          for (Column column : columnList) {
+            if (column.isDummy()) {
+              column.setPath(schemaPrefix + "." + column.getPath());
+            }
+          }
+        }
+        columnSet.addAll(columnList);
+      } catch (PhysicalException e) {
+        return new TaskExecuteResult(e);
+      }
+    }
+
+    Set<String> pathRegexSet = showColumns.getPathRegexSet();
+    TagFilter tagFilter = showColumns.getTagFilter();
+
+    TreeSet<Column> tsSetAfterFilter = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
+    for (Column column : columnSet) {
+      boolean isTarget = true;
+      if (!pathRegexSet.isEmpty()) {
+        isTarget = false;
+        for (String pathRegex : pathRegexSet) {
+          if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
+            isTarget = true;
+            break;
+          }
+        }
+      }
+      if (tagFilter != null) {
+        if (!TagKVUtils.match(column.getTags(), tagFilter)) {
+          isTarget = false;
+        }
+      }
+      if (isTarget) {
+        tsSetAfterFilter.add(column);
+      }
+    }
+
+    int limit = showColumns.getLimit();
+    int offset = showColumns.getOffset();
+    if (limit == Integer.MAX_VALUE && offset == 0) {
+      return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
+    } else {
+      // only need part of data.
+      List<Column> tsList = new ArrayList<>();
+      int cur = 0, size = tsSetAfterFilter.size();
+      for (Iterator<Column> iter = tsSetAfterFilter.iterator(); iter.hasNext(); cur++) {
+        if (cur >= size || cur - offset >= limit) {
+          break;
+        }
+        Column ts = iter.next();
+        if (cur >= offset) {
+          tsList.add(ts);
+        }
+      }
+      return new TaskExecuteResult(Column.toRowStream(tsList));
     }
   }
 

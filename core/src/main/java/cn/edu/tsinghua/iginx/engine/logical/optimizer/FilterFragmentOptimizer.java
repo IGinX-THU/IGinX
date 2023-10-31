@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,6 +33,17 @@ public class FilterFragmentOptimizer implements Optimizer {
   private static final Logger logger = LoggerFactory.getLogger(FilterFragmentOptimizer.class);
 
   private static FilterFragmentOptimizer instance;
+
+  private static final List<Predicate<Operator>> onlyHasProjectAndJoinByKeyAndUnionConditions =
+      new ArrayList<>();
+
+  static {
+    onlyHasProjectAndJoinByKeyAndUnionConditions.add(op -> op.getType() == OperatorType.Project);
+    onlyHasProjectAndJoinByKeyAndUnionConditions.add(
+        op -> op.getType() == OperatorType.Join && ((Join) op).getJoinBy().equals(Constants.KEY));
+    onlyHasProjectAndJoinByKeyAndUnionConditions.add(op -> op.getType() == OperatorType.Union);
+    onlyHasProjectAndJoinByKeyAndUnionConditions.add(op -> op.getType() == OperatorType.PathUnion);
+  }
 
   private FilterFragmentOptimizer() {}
 
@@ -50,7 +62,7 @@ public class FilterFragmentOptimizer implements Optimizer {
   public Operator optimize(Operator root) {
     // only optimize query
     if (root.getType() == OperatorType.CombineNonQuery
-        || root.getType() == OperatorType.ShowTimeSeries) {
+        || root.getType() == OperatorType.ShowColumns) {
       return root;
     }
 
@@ -92,7 +104,7 @@ public class FilterFragmentOptimizer implements Optimizer {
       return;
     }
 
-    // 如果Select Operator的子树中包含非Project和Join(ByKey)节点，那么无法进行优化，直接返回
+    // 如果Select Operator的子树中包含非Project、Join(ByKey)、Union、PathUnion节点，那么无法进行优化，直接返回
     // 无法优化的情况有(1)Select Operator下含有子查询，(2)含有OUTER JOIN、INNER JOIN等会消除Key列的JOIN操作，在此排除。
     if (!onlyHasProjectAndJoinByKeyAndUnion(
         ((OperatorSource) (selectOperator.getSource())).getOperator())) {
@@ -151,13 +163,11 @@ public class FilterFragmentOptimizer implements Optimizer {
     return false;
   }
 
-  /** 判断子树中是否含有非Project和Join(ByKey)节点 */
+  /** 判断子树中是否含有非Project、Join(ByKey)、Union、PathUnion节点 */
   private static boolean onlyHasProjectAndJoinByKeyAndUnion(Operator operator) {
     boolean res =
-        operator.getType() == OperatorType.Project
-            || (operator.getType() == OperatorType.Join
-                    && ((Join) operator).getJoinBy().equals(Constants.KEY)
-                || operator.getType() == OperatorType.Union);
+        onlyHasProjectAndJoinByKeyAndUnionConditions.stream()
+            .anyMatch(condition -> condition.test(operator));
 
     if (!res) {
       return false;

@@ -29,7 +29,6 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.removeDuplicateRows;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
@@ -61,6 +60,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
@@ -148,7 +148,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case GroupBy:
         return executeGroupBy((GroupBy) operator, transformToTable(stream));
       case Distinct:
-        return executeDistinct(transformToTable(stream));
+        return executeDistinct((Distinct) operator, transformToTable(stream));
       case ValueToSelectedPath:
         return executeValueToSelectedPath((ValueToSelectedPath) operator, transformToTable(stream));
       default:
@@ -212,7 +212,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Field> targetFields = new ArrayList<>();
 
     for (Field field : header.getFields()) {
-      if (field.getName().endsWith(KEY)) {
+      if (project.isRemainKey() && field.getName().endsWith(KEY)) {
         targetFields.add(field);
         continue;
       }
@@ -408,7 +408,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
       // min和max无需去重
       if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
-        table = transformToTable(executeDistinct(table));
+        Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
+        table = transformToTable(executeDistinct(distinct, table));
       }
     }
 
@@ -449,44 +450,41 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             field -> {
               // 如果列名在ignorePatterns中，对该列不执行rename
               for (String ignorePattern : ignorePatterns) {
-                if (ignorePattern.endsWith(ALL_PATH_SUFFIX)) {
-                  if (field
-                      .getName()
-                      .startsWith(ignorePattern.substring(0, ignorePattern.length() - 1))) {
-                    fields.add(field);
-                    return;
-                  }
-                } else {
-                  if (field.getName().equals(ignorePattern)) {
-                    fields.add(field);
-                    return;
-                  }
+                if (StringUtils.match(field.getName(), ignorePattern)) {
+                  fields.add(field);
+                  return;
                 }
               }
               String alias = "";
-              for (String oldName : aliasMap.keySet()) {
-                if (Objects.equals(oldName, "*") && aliasMap.get(oldName).endsWith(".*")) {
-                  String newPrefix = aliasMap.get(oldName).replace("*", "");
+              for (String oldPattern : aliasMap.keySet()) {
+                String newPattern = aliasMap.get(oldPattern);
+                if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
+                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
                   alias = newPrefix + field.getName();
-                } else if (oldName.endsWith(".*") && aliasMap.get(oldName).endsWith(".*")) {
-                  String oldPrefix = oldName.replace(".*", "");
-                  String newPrefix = aliasMap.get(oldName).replace(".*", "");
+                } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
+                  String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
+                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
                   if (field.getName().startsWith(oldPrefix)) {
                     alias = field.getName().replaceFirst(oldPrefix, newPrefix);
                   }
                   break;
-                } else if (oldName.equals(field.getFullName())) {
-                  alias = aliasMap.get(oldName);
+                } else if (oldPattern.equals(field.getFullName())) {
+                  alias = newPattern;
                   break;
                 } else {
-                  Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
-                  if (pattern.matcher(field.getFullName()).matches()) {
-                    alias = aliasMap.get(oldName);
+                  if (StringUtils.match(field.getName(), oldPattern)) {
+                    if (newPattern.endsWith("." + oldPattern)) {
+                      String prefix =
+                          newPattern.substring(0, newPattern.length() - oldPattern.length());
+                      alias = prefix + field.getName();
+                    } else {
+                      alias = newPattern;
+                    }
                     break;
                   }
                 }
               }
-              if (alias.equals("")) {
+              if (alias.isEmpty()) {
                 fields.add(field);
               } else {
                 fields.add(new Field(alias, field.getType(), field.getTags()));
@@ -555,17 +553,18 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(header, rows);
   }
 
-  private RowStream executeReorder(Reorder reorder, Table table) throws PhysicalException {
+  private RowStream executeReorder(Reorder reorder, Table table) {
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
 
-    for (String pattern : reorder.getPatterns()) {
+    for (int index = 0; index < reorder.getPatterns().size(); index++) {
+      String pattern = reorder.getPatterns().get(index);
       List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
       if (StringUtils.isPattern(pattern)) {
         for (int i = 0; i < header.getFields().size(); i++) {
           Field field = header.getField(i);
-          if (Pattern.matches(StringUtils.reformatColumnName(pattern), field.getName())) {
+          if (StringUtils.match(field.getName(), pattern)) {
             matchedFields.add(new Pair<>(field, i));
           }
         }
@@ -578,7 +577,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         }
       }
       if (!matchedFields.isEmpty()) {
-        matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
+        // 不对同一个UDF里返回的多列进行重新排序
+        if (!reorder.getIsPyUDF().get(index)) {
+          matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
+        }
         matchedFields.forEach(
             pair -> {
               reorderMap.put(targetFields.size(), pair.getV());
@@ -606,7 +608,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeDistinct(Table table) throws PhysicalException {
+  private RowStream executeDistinct(Distinct distinct, Table table) throws PhysicalException {
+    Project project = new Project(EmptySource.EMPTY_SOURCE, distinct.getPatterns(), null);
+    table = transformToTable(executeProject(project, table));
+
     if (table.getHeader().getFields().isEmpty()) {
       return table;
     }
@@ -619,6 +624,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeValueToSelectedPath(ValueToSelectedPath operator, Table table) {
     String prefix = operator.getPrefix();
+    boolean prefixIsEmpty = prefix.isEmpty();
 
     int fieldSize = table.getHeader().getFieldSize();
     Header targetHeader =
@@ -629,10 +635,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         .forEach(
             row -> {
               for (int i = 0; i < fieldSize; i++) {
+                String path =
+                    prefixIsEmpty
+                        ? row.getAsValue(i).getAsString()
+                        : prefix + DOT + row.getAsValue(i).getAsString();
                 Object[] value = new Object[1];
-                value[0] =
-                    (prefix + DOT + row.getAsValue(i).getAsString())
-                        .getBytes(StandardCharsets.UTF_8);
+                value[0] = path.getBytes(StandardCharsets.UTF_8);
                 targetRows.add(new Row(targetHeader, value));
               }
             });

@@ -78,9 +78,11 @@ public class RemoteExecutor implements Executor {
         for (int i = 0; i < parquetHeader.getNamesSize(); i++) {
           DataType dataType = DataTypeUtils.getDataTypeFromString(parquetHeader.getTypes().get(i));
           dataTypes.add(dataType);
-          fields.add(
-              new Field(
-                  parquetHeader.getNames().get(i), dataType, parquetHeader.getTagsList().get(i)));
+          Map<String, String> tags =
+              parquetHeader.getTagsList().get(i).isEmpty()
+                  ? null
+                  : parquetHeader.getTagsList().get(i);
+          fields.add(new Field(parquetHeader.getNames().get(i), dataType, tags));
         }
         Header header = parquetHeader.hasKey ? new Header(Field.KEY, fields) : new Header(fields);
 

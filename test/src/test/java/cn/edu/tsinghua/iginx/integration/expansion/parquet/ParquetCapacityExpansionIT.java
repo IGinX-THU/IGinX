@@ -11,6 +11,6 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
   public ParquetCapacityExpansionIT() {
-    super(parquet, "iginx_port:6888");
+    super(parquet, null);
   }
 }
