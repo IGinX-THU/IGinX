@@ -273,7 +273,7 @@ public class FilterUtils {
     return matchedNames;
   }
 
-  private static Bson fieldValueOp(Op op, String fieldName, BsonValue value) {
+  public static Bson fieldValueOp(Op op, String fieldName, BsonValue value) {
     switch (op) {
       case GE:
         return gte(fieldName, value);
@@ -332,7 +332,7 @@ public class FilterUtils {
     }
   }
 
-  private static Bson fieldOp(Op op, String fieldA, String fieldB) {
+  public static Bson fieldOp(Op op, String fieldA, String fieldB) {
     List<String> fields = Arrays.asList("$" + fieldA, "$" + fieldB);
     switch (op) {
       case GE:

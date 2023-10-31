@@ -21,12 +21,20 @@ public class FunctionUtils {
   private static final Set<String> sysCanUseSetQuantifierFunctionSet =
       new HashSet<>(Arrays.asList("min", "max", "sum", "avg", "count"));
 
-  private static final FunctionManager functionManager = FunctionManager.getInstance();
+  private static FunctionManager functionManager;
+
+  private static void initFunctionManager() {
+    if (functionManager != null) {
+      return;
+    }
+    functionManager = FunctionManager.getInstance();
+  }
 
   public static boolean isRowToRowFunction(String identifier) {
     if (sysRowToRowFunctionSet.contains(identifier)) {
       return true;
     }
+    initFunctionManager();
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udtf");
   }
@@ -35,6 +43,7 @@ public class FunctionUtils {
     if (sysSetToRowFunctionSet.contains(identifier)) {
       return true;
     }
+    initFunctionManager();
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udaf");
   }
@@ -43,11 +52,25 @@ public class FunctionUtils {
     if (sysSetToSetFunctionSet.contains(identifier)) {
       return true;
     }
+    initFunctionManager();
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udsf");
   }
 
   public static boolean isCanUseSetQuantifierFunction(String identifier) {
     return sysCanUseSetQuantifierFunctionSet.contains(identifier.toLowerCase());
+  }
+
+  public static boolean isPyUDF(String identifier) {
+    if (sysRowToRowFunctionSet.contains(identifier)
+        || sysSetToRowFunctionSet.contains(identifier)
+        || sysSetToSetFunctionSet.contains(identifier)) {
+      return false;
+    }
+    initFunctionManager();
+    Function function = functionManager.getFunction(identifier);
+    return function.getIdentifier().equals("py_udtf")
+        || function.getIdentifier().equals("py_udaf")
+        || function.getIdentifier().equals("py_udsf");
   }
 }

@@ -7,9 +7,7 @@ import java.util.List;
 
 public class PathFromPart implements FromPart {
 
-  private final FromPartType type = FromPartType.PathFromPart;
   private final String path;
-  private final boolean isJoinPart;
   private JoinCondition joinCondition;
   private final String alias;
 
@@ -19,18 +17,6 @@ public class PathFromPart implements FromPart {
 
   public PathFromPart(String path, String alias) {
     this.path = path;
-    this.isJoinPart = false;
-    this.alias = alias;
-  }
-
-  public PathFromPart(String path, JoinCondition joinCondition) {
-    this(path, joinCondition, "");
-  }
-
-  public PathFromPart(String path, JoinCondition joinCondition, String alias) {
-    this.path = path;
-    this.joinCondition = joinCondition;
-    this.isJoinPart = true;
     this.alias = alias;
   }
 
@@ -38,17 +24,19 @@ public class PathFromPart implements FromPart {
     return path;
   }
 
+  @Override
+  public FromPartType getType() {
+    return FromPartType.Path;
+  }
+
+  @Override
   public String getAlias() {
     return alias;
   }
 
-  public boolean hasAlias() {
-    return alias != null && !alias.equals("");
-  }
-
   @Override
-  public FromPartType getType() {
-    return type;
+  public boolean hasAlias() {
+    return alias != null && !alias.isEmpty();
   }
 
   @Override
@@ -67,13 +55,13 @@ public class PathFromPart implements FromPart {
   }
 
   @Override
-  public boolean isJoinPart() {
-    return isJoinPart;
+  public JoinCondition getJoinCondition() {
+    return joinCondition;
   }
 
   @Override
-  public JoinCondition getJoinCondition() {
-    return joinCondition;
+  public void setJoinCondition(JoinCondition joinCondition) {
+    this.joinCondition = joinCondition;
   }
 
   @Override

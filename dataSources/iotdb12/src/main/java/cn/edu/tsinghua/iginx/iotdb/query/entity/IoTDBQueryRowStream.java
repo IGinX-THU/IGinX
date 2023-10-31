@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.query.entity;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
 import static org.apache.iotdb.tsfile.file.metadata.enums.TSDataType.TEXT;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -27,10 +28,12 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.iotdb.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +41,8 @@ import org.apache.iotdb.rpc.IoTDBConnectionException;
 import org.apache.iotdb.rpc.StatementExecutionException;
 import org.apache.iotdb.session.pool.SessionDataSetWrapper;
 import org.apache.iotdb.tsfile.read.common.RowRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IoTDBQueryRowStream implements RowStream {
 
@@ -46,6 +51,8 @@ public class IoTDBQueryRowStream implements RowStream {
     NO_NEXT,
     UNKNOWN,
   }
+
+  private static final Logger logger = LoggerFactory.getLogger(IoTDBQueryRowStream.class);
 
   private static final String PREFIX = "root.";
 
@@ -61,13 +68,18 @@ public class IoTDBQueryRowStream implements RowStream {
 
   private final Header header;
 
+  private final Filter filter;
+
+  private Row cachedRow;
+
   private State state;
 
   public IoTDBQueryRowStream(
-      SessionDataSetWrapper dataset, boolean trimStorageUnit, Project project) {
+      SessionDataSetWrapper dataset, boolean trimStorageUnit, Project project, Filter filter) {
     this.dataset = dataset;
     this.trimStorageUnit = trimStorageUnit;
     this.filterByTags = project.getTagFilter() != null;
+    this.filter = filter;
 
     List<String> names = dataset.getColumnNames();
     List<String> types = dataset.getColumnTypes();
@@ -147,15 +159,12 @@ public class IoTDBQueryRowStream implements RowStream {
   @Override
   public boolean hasNext() throws PhysicalException {
     try {
-      if (state == State.UNKNOWN) {
-        if (dataset.hasNext()) {
-          state = State.HAS_NEXT;
-        } else {
-          state = State.NO_NEXT;
-        }
+      if (state != State.HAS_NEXT) {
+        cacheOneRow();
       }
       return state == State.HAS_NEXT;
-    } catch (StatementExecutionException | IoTDBConnectionException e) {
+    } catch (SQLException e) {
+      logger.error(e.getMessage());
       throw new RowFetchException(e);
     }
   }
@@ -163,24 +172,49 @@ public class IoTDBQueryRowStream implements RowStream {
   @Override
   public Row next() throws PhysicalException {
     try {
-      RowRecord record = dataset.next();
-      long timestamp = record.getTimestamp();
-      Object[] fields = new Object[header.getFieldSize()];
-      int index = 0;
-      for (int i = 0; i < record.getFields().size(); i++) {
-        if (needFilter() && filterMap[i]) {
-          continue;
-        }
-        org.apache.iotdb.tsfile.read.common.Field field = record.getFields().get(i);
-        if (field.getDataType() == TEXT) {
-          fields[index++] = field.getBinaryV().getValues();
-        } else {
-          fields[index++] = field.getObjectValue(field.getDataType());
-        }
+      Row row;
+      if (state == State.UNKNOWN) {
+        cacheOneRow();
       }
+      row = cachedRow;
       state = State.UNKNOWN;
-      return new Row(header, timestamp, fields);
+      cachedRow = null;
+      return row;
+    } catch (SQLException | PhysicalException e) {
+      logger.error(e.getMessage());
+      throw new RowFetchException(e);
+    }
+  }
+
+  private void cacheOneRow() throws SQLException, PhysicalException {
+    try {
+      if (dataset.hasNext()) {
+        RowRecord record = dataset.next();
+        long timestamp = record.getTimestamp();
+        Object[] fields = new Object[header.getFieldSize()];
+        int index = 0;
+        for (int i = 0; i < record.getFields().size(); i++) {
+          if (needFilter() && filterMap[i]) {
+            continue;
+          }
+          org.apache.iotdb.tsfile.read.common.Field field = record.getFields().get(i);
+          if (field.getDataType() == TEXT) {
+            fields[index++] = field.getBinaryV().getValues();
+          } else {
+            fields[index++] = field.getObjectValue(field.getDataType());
+          }
+        }
+        state = State.HAS_NEXT;
+        cachedRow = new Row(header, timestamp, fields);
+        if (!validate(filter, cachedRow)) {
+          cacheOneRow();
+        }
+      } else {
+        state = State.NO_NEXT;
+        cachedRow = null;
+      }
     } catch (StatementExecutionException | IoTDBConnectionException e) {
+      logger.error(e.getMessage());
       throw new RowFetchException(e);
     }
   }

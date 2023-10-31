@@ -518,7 +518,7 @@ public class PostgreSQLStorage implements IStorage {
 
   private List<String> getMatchedPath(String path, List<List<String>> columnNamesList) {
     List<String> matchedPath = new ArrayList<>();
-    path = path.replaceAll("[.^${}]", "\\\\$0");
+    path = path.replaceAll("[.^${}+?]", "\\\\$0");
     path = path.replace("*", ".*");
     Pattern pattern = Pattern.compile("^" + path + "$");
     for (int i = 0; i < columnNamesList.size(); i++) {
@@ -1011,6 +1011,38 @@ public class PostgreSQLStorage implements IStorage {
     return new Pair<>(columnsInterval, new KeyInterval(minKey, maxKey + 1));
   }
 
+  private List<Pattern> getRegexPatternByName(
+      String tableName, String columnNames, boolean isDummy) {
+    // 我们输入例如test%，是希望匹配到test或test.abc这样的表，但是不希望匹配到test1这样的表，但语法不支持，因此在这里做一下过滤
+    String tableNameRegex = tableName;
+    tableNameRegex = tableNameRegex.replaceAll("[.^${}+?]", "\\\\$0");
+    tableNameRegex = tableNameRegex.replace("%", ".*");
+    if (tableNameRegex.endsWith(".*")
+        && !tableNameRegex.endsWith(SEPARATOR + ".*")
+        && !tableNameRegex.equals(".*")) {
+      tableNameRegex = tableNameRegex.substring(0, tableNameRegex.length() - 2);
+      tableNameRegex += "(\\" + SEPARATOR + ".*)?";
+    }
+    Pattern tableNamePattern = Pattern.compile("^" + tableNameRegex + "$");
+
+    String columnNameRegex = columnNames;
+    if (isDummy) {
+      columnNameRegex = columnNameRegex.replaceAll("[.^${}+?]", "\\\\$0");
+      columnNameRegex = columnNameRegex.replace("%", ".*");
+    } else {
+      if (columnNames.equals("%")) {
+        columnNameRegex = ".*";
+      } else {
+        // columnNames中只会有一个 %
+        columnNameRegex = columnNameRegex.replaceAll("[.^${}+?]", "\\\\$0");
+        columnNameRegex = columnNameRegex.replace("%", "(" + TAGKV_SEPARATOR + ".*)?");
+      }
+    }
+    Pattern columnNamePattern = Pattern.compile("^" + columnNameRegex + "$");
+
+    return Arrays.asList(tableNamePattern, columnNamePattern);
+  }
+
   private Map<String, String> splitAndMergeQueryPatterns(
       String databaseName, Connection conn, List<String> patterns) throws SQLException {
     // table name -> column names
@@ -1049,27 +1081,38 @@ public class PostgreSQLStorage implements IStorage {
         columnNames += "%"; // 匹配 tagKV
       }
       ResultSet rs = conn.getMetaData().getColumns(databaseName, "public", tableName, columnNames);
+
+      List<Pattern> patternList = getRegexPatternByName(tableName, columnNames, false);
+      Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
+
       while (rs.next()) {
-        tableName = rs.getString("TABLE_NAME");
-        columnNames = rs.getString("COLUMN_NAME");
-        if (columnNames.equals(KEY_NAME)) {
+        String curTableName = rs.getString("TABLE_NAME");
+        String curColumnNames = rs.getString("COLUMN_NAME");
+        if (curColumnNames.equals(KEY_NAME)) {
           continue;
         }
-        if (tableNameToColumnNames.containsKey(tableName)) {
-          columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
+
+        if (!tableNamePattern.matcher(curTableName).find()
+            || !columnNamePattern.matcher(curColumnNames).find()) {
+          continue;
+        }
+
+        if (tableNameToColumnNames.containsKey(curTableName)) {
+          curColumnNames = tableNameToColumnNames.get(curTableName) + ", " + curColumnNames;
           // 此处需要去重
           List<String> columnNamesList =
-              new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(tableName).split(", ")));
-          List<String> newColumnNamesList = new ArrayList<>(Arrays.asList(columnNames.split(", ")));
+              new ArrayList<>(Arrays.asList(tableNameToColumnNames.get(curTableName).split(", ")));
+          List<String> newColumnNamesList =
+              new ArrayList<>(Arrays.asList(curColumnNames.split(", ")));
           for (String newColumnName : newColumnNamesList) {
             if (!columnNamesList.contains(newColumnName)) {
               columnNamesList.add(newColumnName);
             }
           }
 
-          columnNames = String.join(", ", columnNamesList);
+          curColumnNames = String.join(", ", columnNamesList);
         }
-        tableNameToColumnNames.put(tableName, columnNames);
+        tableNameToColumnNames.put(curTableName, curColumnNames);
       }
       rs.close();
     }
@@ -1111,6 +1154,9 @@ public class PostgreSQLStorage implements IStorage {
         }
       }
 
+      List<Pattern> patternList = getRegexPatternByName(tableName, columnNames, true);
+      Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
+
       if (databaseName.equals("%")) {
         Statement stmt = connection.createStatement();
         ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
@@ -1129,10 +1175,16 @@ public class PostgreSQLStorage implements IStorage {
                   tempDatabaseName, "public", tableName, new String[] {"TABLE"});
           while (tableSet.next()) {
             String tempTableName = tableSet.getString("TABLE_NAME");
+            if (!tableNamePattern.matcher(tempTableName).find()) {
+              continue;
+            }
             ResultSet columnSet =
                 databaseMetaData.getColumns(tempDatabaseName, "public", tempTableName, columnNames);
             while (columnSet.next()) {
               String tempColumnNames = columnSet.getString("COLUMN_NAME");
+              if (!columnNamePattern.matcher(tempColumnNames).find()) {
+                continue;
+              }
               Map<String, String> tableNameToColumnNames = new HashMap<>();
               if (splitResults.containsKey(tempDatabaseName)) {
                 tableNameToColumnNames = splitResults.get(tempDatabaseName);
@@ -1155,6 +1207,10 @@ public class PostgreSQLStorage implements IStorage {
         while (rs.next()) {
           tableName = rs.getString("TABLE_NAME");
           columnNames = rs.getString("COLUMN_NAME");
+          if (!tableNamePattern.matcher(tableName).find()
+              || !columnNamePattern.matcher(columnNames).find()) {
+            continue;
+          }
           if (tableNameToColumnNames.containsKey(tableName)) {
             columnNames = tableNameToColumnNames.get(tableName) + ", " + columnNames;
           }

@@ -16,7 +16,7 @@ public class RowUtils {
     List<Field> targetFields = new ArrayList<>();
     for (int i = 0; i < res.get(0).size(); i++) {
       String resColumnName = (String) res.get(0).get(i);
-      if (resColumnName.matches(".*(.*)")) {
+      if (resColumnName.matches(".*[(].*[)]")) {
         String resFuncName = resColumnName.substring(0, resColumnName.indexOf("("));
         resColumnName = resColumnName.replaceFirst(resFuncName, funcName);
       }

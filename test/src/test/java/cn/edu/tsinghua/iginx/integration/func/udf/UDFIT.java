@@ -227,7 +227,7 @@ public class UDFIT {
   }
 
   @Test
-  public void testMultiParams() {
+  public void testMultiColumns() {
     String insert =
         "INSERT INTO test(key, s1, s2, s3) VALUES (1, 2, 3, 2), (2, 3, 1, 3), (3, 4, 3, 1), (4, 9, 7, 5), (5, 3, 6, 2), (6, 6, 4, 2);";
     execute(insert);
@@ -263,6 +263,320 @@ public class UDFIT {
             + "|  5|                               36.0|\n"
             + "|  6|                               48.0|\n"
             + "+---+-----------------------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT multiply(s1, s2, s3), s1, s2 + s3 FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-----------------------------------+-------+-----------------+\n"
+            + "|key|multiply(test.s1, test.s2, test.s3)|test.s1|test.s2 + test.s3|\n"
+            + "+---+-----------------------------------+-------+-----------------+\n"
+            + "|  1|                               12.0|      2|                5|\n"
+            + "|  2|                                9.0|      3|                4|\n"
+            + "|  3|                               12.0|      4|                4|\n"
+            + "|  4|                              315.0|      9|               12|\n"
+            + "|  5|                               36.0|      3|                8|\n"
+            + "|  6|                               48.0|      6|                6|\n"
+            + "+---+-----------------------------------+-------+-----------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testSelectFromUDF() {
+    String insert =
+        "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    List<Double> cosTestAExpectedValues =
+        Arrays.asList(
+            -0.4161468365471424,
+            -0.9899924966004454,
+            -0.6536436208636119,
+            -0.9111302618846769,
+            -0.9899924966004454,
+            0.960170286650366);
+    List<Double> cosTestBExpectedValues =
+        Arrays.asList(
+            -0.9899924966004454,
+            0.5403023058681398,
+            -0.9899924966004454,
+            0.7539022543433046,
+            0.9601702866503661,
+            -0.6536436208636119);
+
+    String query = "SELECT `cos(test.a)` FROM(SELECT COS(*) FROM test);";
+    SessionExecuteSqlResult ret = execute(query);
+
+    assertEquals(1, ret.getPaths().size());
+    assertEquals("cos(test.a)", ret.getPaths().get(0));
+
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      assertEquals(1, ret.getValues().get(i).size());
+      double expected = cosTestAExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      assertEquals(expected, actual, delta);
+    }
+
+    query = "SELECT `cos(test.b)` AS cos_b FROM(SELECT COS(*) FROM test);";
+    ret = execute(query);
+
+    assertEquals(1, ret.getPaths().size());
+    assertEquals("cos_b", ret.getPaths().get(0));
+
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      assertEquals(1, ret.getValues().get(i).size());
+      double expected = cosTestBExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      assertEquals(expected, actual, delta);
+    }
+  }
+
+  @Test
+  public void testTransposeRows() {
+    String insert =
+        "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT * FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     2|     3|\n"
+            + "|  2|     3|     1|\n"
+            + "|  3|     4|     3|\n"
+            + "|  4|     9|     7|\n"
+            + "|  5|     3|     6|\n"
+            + "|  6|     6|     4|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT transpose(*) FROM (SELECT * FROM test);";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+------------+------------+------------+------------+------------+------------+\n"
+            + "|transpose(0)|transpose(1)|transpose(2)|transpose(3)|transpose(4)|transpose(5)|\n"
+            + "+------------+------------+------------+------------+------------+------------+\n"
+            + "|           2|           3|           4|           9|           3|           6|\n"
+            + "|           3|           1|           3|           7|           6|           4|\n"
+            + "+------------+------------+------------+------------+------------+------------+\n"
+            + "Total line number = 2\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query =
+        "SELECT `transpose(0)`, `transpose(1)`, `transpose(2)` FROM (SELECT transpose(*) FROM (SELECT * FROM test));";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+------------+------------+------------+\n"
+            + "|transpose(0)|transpose(1)|transpose(2)|\n"
+            + "+------------+------------+------------+\n"
+            + "|           2|           3|           4|\n"
+            + "|           3|           1|           3|\n"
+            + "+------------+------------+------------+\n"
+            + "Total line number = 2\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testColumnExpand() {
+    String insert =
+        "INSERT INTO test(key, a) VALUES (1, 2), (2, 3), (3, 4), (4, 9), (5, 3), (6, 6);";
+    execute(insert);
+
+    String query = "SELECT a FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+\n"
+            + "|key|test.a|\n"
+            + "+---+------+\n"
+            + "|  1|     2|\n"
+            + "|  2|     3|\n"
+            + "|  3|     4|\n"
+            + "|  4|     9|\n"
+            + "|  5|     3|\n"
+            + "|  6|     6|\n"
+            + "+---+------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT column_expand(*) FROM (SELECT a FROM test);";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------------+-------------------------+-----------------------+\n"
+            + "|key|column_expand(test.a)|column_expand(test.a+1.5)|column_expand(test.a*2)|\n"
+            + "+---+---------------------+-------------------------+-----------------------+\n"
+            + "|  1|                    2|                      3.5|                      4|\n"
+            + "|  2|                    3|                      4.5|                      6|\n"
+            + "|  3|                    4|                      5.5|                      8|\n"
+            + "|  4|                    9|                     10.5|                     18|\n"
+            + "|  5|                    3|                      4.5|                      6|\n"
+            + "|  6|                    6|                      7.5|                     12|\n"
+            + "+---+---------------------+-------------------------+-----------------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query =
+        "SELECT `column_expand(test.a+1.5)` FROM (SELECT column_expand(*) FROM (SELECT a FROM test)) WHERE `column_expand(test.a+1.5)` < 5;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------------+\n"
+            + "|key|column_expand(test.a+1.5)|\n"
+            + "+---+-------------------------+\n"
+            + "|  1|                      3.5|\n"
+            + "|  2|                      4.5|\n"
+            + "|  5|                      4.5|\n"
+            + "+---+-------------------------+\n"
+            + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUDFWithArgs() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT pow(s1, 2) FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+---------------+\n"
+            + "|key|pow(test.s1, 2)|\n"
+            + "+---+---------------+\n"
+            + "|  1|            4.0|\n"
+            + "|  2|            9.0|\n"
+            + "|  3|           16.0|\n"
+            + "|  4|           81.0|\n"
+            + "|  5|            9.0|\n"
+            + "|  6|           36.0|\n"
+            + "+---+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT pow(s1, s2, 2) FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 2)|pow(test.s2, 2)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            4.0|            9.0|\n"
+            + "|  2|            9.0|            1.0|\n"
+            + "|  3|           16.0|            9.0|\n"
+            + "|  4|           81.0|           49.0|\n"
+            + "|  5|            9.0|           36.0|\n"
+            + "|  6|           36.0|           16.0|\n"
+            + "+---+---------------+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT pow(*, 3) FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 3)|pow(test.s2, 3)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            8.0|           27.0|\n"
+            + "|  2|           27.0|            1.0|\n"
+            + "|  3|           64.0|           27.0|\n"
+            + "|  4|          729.0|          343.0|\n"
+            + "|  5|           27.0|          216.0|\n"
+            + "|  6|          216.0|           64.0|\n"
+            + "+---+---------------+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUDFWithKvargs() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT pow(s1, n=2) FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+---------------+\n"
+            + "|key|pow(test.s1, 2)|\n"
+            + "+---+---------------+\n"
+            + "|  1|            4.0|\n"
+            + "|  2|            9.0|\n"
+            + "|  3|           16.0|\n"
+            + "|  4|           81.0|\n"
+            + "|  5|            9.0|\n"
+            + "|  6|           36.0|\n"
+            + "+---+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT pow(s1, s2, n=2) FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 2)|pow(test.s2, 2)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            4.0|            9.0|\n"
+            + "|  2|            9.0|            1.0|\n"
+            + "|  3|           16.0|            9.0|\n"
+            + "|  4|           81.0|           49.0|\n"
+            + "|  5|            9.0|           36.0|\n"
+            + "|  6|           36.0|           16.0|\n"
+            + "+---+---------------+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    query = "SELECT pow(*, n=3) FROM test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 3)|pow(test.s2, 3)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            8.0|           27.0|\n"
+            + "|  2|           27.0|            1.0|\n"
+            + "|  3|           64.0|           27.0|\n"
+            + "|  4|          729.0|          343.0|\n"
+            + "|  5|           27.0|          216.0|\n"
+            + "|  6|          216.0|           64.0|\n"
+            + "+---+---------------+---------------+\n"
+            + "Total line number = 6\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUDFWithArgsAndKvArgs() {
+    String insert =
+        "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
+    execute(insert);
+
+    String query = "SELECT pow(s1, 2), pow(s2, n=2) FROM test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+---------------+---------------+\n"
+            + "|key|pow(test.s1, 2)|pow(test.s2, 2)|\n"
+            + "+---+---------------+---------------+\n"
+            + "|  1|            4.0|            9.0|\n"
+            + "|  2|            9.0|            1.0|\n"
+            + "|  3|           16.0|            9.0|\n"
+            + "|  4|           81.0|           49.0|\n"
+            + "|  5|            9.0|           36.0|\n"
+            + "|  6|           36.0|           16.0|\n"
+            + "+---+---------------+---------------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }

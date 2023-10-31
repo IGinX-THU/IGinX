@@ -10,7 +10,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Pattern;
 
 public class RenameLazyStream extends UnaryLazyStream {
 
@@ -34,15 +33,43 @@ public class RenameLazyStream extends UnaryLazyStream {
           .getFields()
           .forEach(
               field -> {
-                String alias = "";
-                for (String oldName : aliasMap.keySet()) {
-                  Pattern pattern = Pattern.compile(StringUtils.reformatColumnName(oldName) + ".*");
-                  if (pattern.matcher(field.getFullName()).matches()) {
-                    alias = aliasMap.get(oldName);
-                    break;
+                // 如果列名在ignorePatterns中，对该列不执行rename
+                for (String ignorePattern : rename.getIgnorePatterns()) {
+                  if (StringUtils.match(field.getName(), ignorePattern)) {
+                    fields.add(field);
+                    return;
                   }
                 }
-                if (alias.equals("")) {
+                String alias = "";
+                for (String oldPattern : aliasMap.keySet()) {
+                  String newPattern = aliasMap.get(oldPattern);
+                  if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
+                    String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+                    alias = newPrefix + field.getName();
+                  } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
+                    String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
+                    String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+                    if (field.getName().startsWith(oldPrefix)) {
+                      alias = field.getName().replaceFirst(oldPrefix, newPrefix);
+                    }
+                    break;
+                  } else if (oldPattern.equals(field.getFullName())) {
+                    alias = newPattern;
+                    break;
+                  } else {
+                    if (StringUtils.match(field.getName(), oldPattern)) {
+                      if (newPattern.endsWith("." + oldPattern)) {
+                        String prefix =
+                            newPattern.substring(0, newPattern.length() - oldPattern.length());
+                        alias = prefix + field.getName();
+                      } else {
+                        alias = newPattern;
+                      }
+                      break;
+                    }
+                  }
+                }
+                if (alias.isEmpty()) {
                   fields.add(field);
                 } else {
                   fields.add(new Field(alias, field.getType(), field.getTags()));

@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
@@ -8,7 +10,7 @@ import cn.edu.tsinghua.iginx.engine.logical.generator.DeleteGenerator;
 import cn.edu.tsinghua.iginx.engine.logical.generator.InsertGenerator;
 import cn.edu.tsinghua.iginx.engine.logical.generator.LogicalGenerator;
 import cn.edu.tsinghua.iginx.engine.logical.generator.QueryGenerator;
-import cn.edu.tsinghua.iginx.engine.logical.generator.ShowTimeSeriesGenerator;
+import cn.edu.tsinghua.iginx.engine.logical.generator.ShowColumnsGenerator;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -149,7 +151,7 @@ public class StatementExecutor {
     registerGenerator(QueryGenerator.getInstance());
     registerGenerator(DeleteGenerator.getInstance());
     registerGenerator(InsertGenerator.getInstance());
-    registerGenerator(ShowTimeSeriesGenerator.getInstance());
+    registerGenerator(ShowColumnsGenerator.getInstance());
 
     try {
       String statisticsCollectorClassName =
@@ -197,7 +199,7 @@ public class StatementExecutor {
         case Insert:
           insertGeneratorList.add(generator);
           break;
-        case ShowTimeSeries:
+        case ShowColumns:
           showTSGeneratorList.add(generator);
           break;
         default:
@@ -308,7 +310,7 @@ public class StatementExecutor {
             processCountPoints(ctx);
             return;
           case DELETE_COLUMNS:
-            processDeleteTimeSeries(ctx);
+            processDeleteColumns(ctx);
             return;
           case CLEAR_DATA:
             processClearData(ctx);
@@ -429,7 +431,7 @@ public class StatementExecutor {
       if (sourceB.getType() == SourceType.Operator) {
         dfsLogicalTree(cache, ((OperatorSource) sourceB).getOperator(), depth + 1, maxLen);
       }
-    } else {
+    } else if (OperatorType.isMultipleOperator(type)) {
       MultipleOperator multipleOp = (MultipleOperator) op;
       for (Source source : multipleOp.getSources()) {
         if (source.getType() == SourceType.Operator) {
@@ -643,29 +645,34 @@ public class StatementExecutor {
           keys[i] = Long.parseLong(record.get(0));
           Bitmap bitmap = new Bitmap(pathSize);
 
+          int index = 0;
           for (int j = 0; j < pathSize; j++) {
-            if (record.get(j + 1).equalsIgnoreCase("null")) {
-              values[i][j] = null;
-            } else {
+            if (!record.get(j + 1).equalsIgnoreCase("null")) {
               bitmap.mark(j);
               switch (types.get(j)) {
                 case BOOLEAN:
-                  values[i][j] = Boolean.parseBoolean(record.get(j + 1));
+                  values[i][index] = Boolean.parseBoolean(record.get(j + 1));
+                  index++;
                   break;
                 case INTEGER:
-                  values[i][j] = Integer.parseInt(record.get(j + 1));
+                  values[i][index] = Integer.parseInt(record.get(j + 1));
+                  index++;
                   break;
                 case LONG:
-                  values[i][j] = Long.parseLong(record.get(j + 1));
+                  values[i][index] = Long.parseLong(record.get(j + 1));
+                  index++;
                   break;
                 case FLOAT:
-                  values[i][j] = Float.parseFloat(record.get(j + 1));
+                  values[i][index] = Float.parseFloat(record.get(j + 1));
+                  index++;
                   break;
                 case DOUBLE:
-                  values[i][j] = Double.parseDouble(record.get(j + 1));
+                  values[i][index] = Double.parseDouble(record.get(j + 1));
+                  index++;
                   break;
                 case BINARY:
-                  values[i][j] = record.get(j + 1).getBytes();
+                  values[i][index] = record.get(j + 1).getBytes();
+                  index++;
                   break;
                 default:
               }
@@ -744,7 +751,7 @@ public class StatementExecutor {
     ctx.getResult().setPointsNum(pointsNum);
   }
 
-  private void processDeleteTimeSeries(RequestContext ctx)
+  private void processDeleteColumns(RequestContext ctx)
       throws ExecutionException, PhysicalException {
     DeleteColumnsStatement deleteColumnsStatement = (DeleteColumnsStatement) ctx.getStatement();
     DeleteStatement deleteStatement =
@@ -939,7 +946,7 @@ public class StatementExecutor {
 
     for (long i = 0; rowStream.hasNext(); i++) {
       Row row = rowStream.next();
-      rows.add(row.getValues());
+      rows.add(moveForwardNotNull(row.getValues()));
 
       int rowLen = row.getValues().length;
       Bitmap bitmap = new Bitmap(rowLen);
