@@ -136,7 +136,7 @@ public class Result {
 
   public ExecuteSqlResp getExecuteSqlResp() {
     ExecuteSqlResp resp = new ExecuteSqlResp(status, sqlType);
-    if (status != RpcUtils.SUCCESS) {
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       resp.setParseErrorMsg(status.getMessage());
       return resp;
     }
@@ -261,7 +261,7 @@ public class Result {
 
   public LoadCSVResp getLoadCSVResp() {
     LoadCSVResp resp = new LoadCSVResp(status);
-    if (status != RpcUtils.SUCCESS) {
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       resp.setParseErrorMsg(status.getMessage());
       return resp;
     }
@@ -273,7 +273,7 @@ public class Result {
   public FetchResultsResp fetch(int fetchSize) {
     FetchResultsResp resp = new FetchResultsResp(status, false);
 
-    if (status != RpcUtils.SUCCESS) {
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
       return resp;
     }
     try {
