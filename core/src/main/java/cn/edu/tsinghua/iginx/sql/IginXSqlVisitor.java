@@ -1281,8 +1281,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
 
     Op op;
-    if (ctx.OPERATOR_LIKE() != null) {
-      op = Op.LIKE;
+    if (ctx.stringLikeOperator() != null) {
+      op = Op.str2Op(ctx.stringLikeOperator().getText().trim().toLowerCase());
     } else {
       op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
       // deal with sub clause like 100 < path
@@ -1456,14 +1456,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     Filter filter;
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
-    if (ctx.quantifier().all() != null) {
-      op = Op.getOpposite(op);
-    }
 
     Expression expression = subStatement.getExpressions().get(0);
     if (ctx.constant() != null) {
       Value value = new Value(parseValue(ctx.constant()));
       String path = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
+
+      if (ctx.quantifier().all() != null) {
+        op = path.contains("*") ? Op.getDeMorganOpposite(op) : Op.getOpposite(op);
+      }
+
       filter = new ValueFilter(path, op, value);
     } else {
       String pathA = parsePath(ctx.path());
@@ -1476,6 +1478,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
 
       String pathB = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
+
+      if (ctx.quantifier().all() != null) {
+        op = Op.getOpposite(op);
+      }
+
       filter = new PathFilter(pathA, op, pathB);
       subStatement.addFreeVariable(pathA);
     }
