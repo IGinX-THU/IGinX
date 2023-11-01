@@ -39,7 +39,7 @@ public abstract class BaseHistoryDataGenerator {
   public void writeSpecialHistoryData() {}
 
   public void writeInitDataToExp() {
-    writeHistoryData(expPort, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_VALUES_LIST);
+    writeHistoryData(expPort, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_KEYS_LIST, INIT_VALUES_LIST);
   }
 
   public void writeHistoryDataToOri() {

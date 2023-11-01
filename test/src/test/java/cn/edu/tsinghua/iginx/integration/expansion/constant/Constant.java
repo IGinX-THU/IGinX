@@ -53,7 +53,7 @@ public class Constant {
 
   // values
   public static List<List<Object>> INIT_VALUES_LIST =
-      Arrays.asList(Arrays.asList(11111111L, 11111111L));
+      Arrays.asList(Arrays.asList(11111111L, 11111111L), Arrays.asList(22222222L, 22222222L));
 
   public static List<List<Object>> ORI_VALUES_LIST =
       Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
@@ -72,6 +72,10 @@ public class Constant {
 
   public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =
       Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));
+
+  // key list
+  public static List<Long> INIT_KEYS_LIST =
+      Arrays.asList(1L, 9223372006854775807L);
 
   // for file system
   public static final Map<Integer, String> PORT_TO_ROOT =
