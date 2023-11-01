@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
+import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -149,6 +150,15 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     Bucket bucket = client.getBucketsApi().findBucketByName("mn");
+    if (bucket != null) {
+      client.getBucketsApi().deleteBucket(bucket);
+    }
+
+    bucket = client.getBucketsApi().findBucketByName("nt");
+    if (bucket != null) {
+      client.getBucketsApi().deleteBucket(bucket);
+    }
+    bucket = client.getBucketsApi().findBucketByName("us");
     if (bucket != null) {
       client.getBucketsApi().deleteBucket(bucket);
     }
