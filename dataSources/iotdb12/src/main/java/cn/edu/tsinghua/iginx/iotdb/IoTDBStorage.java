@@ -212,6 +212,8 @@ public class IoTDBStorage implements IStorage {
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
 
+    logger.info("get boundry: {}, {}", columnsInterval.toString(), keyInterval.toString());
+
     return new Pair<>(columnsInterval, keyInterval);
   }
 
