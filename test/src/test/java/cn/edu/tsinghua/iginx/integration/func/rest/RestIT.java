@@ -26,6 +26,7 @@ public class RestIT {
 
   private boolean isAbleToDelete = true;
 
+  private boolean dummyNoData = true;
   public RestIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -92,7 +93,8 @@ public class RestIT {
               }
             });
     Controller.writeColumnsData(
-        session, pathList, keyList, dataTypeList, valuesList, tagsList, InsertAPIType.Column);
+        session, pathList, keyList, dataTypeList, valuesList, tagsList, InsertAPIType.Column, dummyNoData);
+    dummyNoData = false;
   }
 
   @After

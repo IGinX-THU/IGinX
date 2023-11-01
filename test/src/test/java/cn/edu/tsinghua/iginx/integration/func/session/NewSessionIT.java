@@ -61,6 +61,8 @@ public class NewSessionIT {
 
   private static boolean isAbleToDelete = true;
 
+  private static boolean dummyNoData = true;
+
   public NewSessionIT() {}
 
   private static TestDataSection buildBaseDataSection() {
@@ -165,6 +167,7 @@ public class NewSessionIT {
       TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(start, end);
       insertData(subBaseData, insertAPITypes.get(i));
     }
+    dummyNoData = false;
   }
 
   @After
@@ -183,7 +186,8 @@ public class NewSessionIT {
             data.getTypes(),
             data.getValues(),
             data.getTagsList(),
-            type);
+            type,
+            dummyNoData);
         break;
       case Column:
       case NonAlignedColumn:
@@ -201,8 +205,10 @@ public class NewSessionIT {
             data.getTypes(),
             values,
             data.getTagsList(),
-            type);
+            type,
+            dummyNoData);
     }
+
   }
 
   private Object[][] transpose(Object[][] array) {

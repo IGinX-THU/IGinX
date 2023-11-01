@@ -65,6 +65,8 @@ public class SQLSessionIT {
 
   private static MultiConnection session;
 
+  private static boolean dummyNoData = true;
+
   public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -161,7 +163,8 @@ public class SQLSessionIT {
     }
 
     Controller.writeRowsData(
-        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row);
+        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row, dummyNoData);
+    dummyNoData = false;
   }
 
   private String generateDefaultInsertStatementByTimeRange(long start, long end) {

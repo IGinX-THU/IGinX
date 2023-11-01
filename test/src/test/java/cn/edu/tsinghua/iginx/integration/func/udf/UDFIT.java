@@ -53,6 +53,8 @@ public class UDFIT {
 
   private static Session session;
 
+  private static boolean dummyNoData = true;
+
   @BeforeClass
   public static void setUp() throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
@@ -100,7 +102,8 @@ public class UDFIT {
               (i + 0.1d)));
     }
     Controller.writeRowsData(
-        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row);
+        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row, dummyNoData);
+    dummyNoData = false;
   }
 
   @After

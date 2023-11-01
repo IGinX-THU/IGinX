@@ -88,6 +88,8 @@ public class TransformIT {
 
   private static final Map<String, String> TASK_MAP = new HashMap<>();
 
+  private static boolean dummyNoData = true;
+
   static {
     TASK_MAP.put(
         "RowSumTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_row_sum.py");
@@ -143,11 +145,12 @@ public class TransformIT {
               (i + 0.1d)));
     }
     Controller.writeRowsData(
-        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row);
+        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row, dummyNoData);
     //    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
     //      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
     //      fail();
     //    }
+    dummyNoData = false;
   }
 
   @After

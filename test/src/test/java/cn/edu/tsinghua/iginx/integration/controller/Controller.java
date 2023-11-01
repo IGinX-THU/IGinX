@@ -139,7 +139,8 @@ public class Controller {
       List<DataType> dataTypeList,
       List<List<Object>> valuesList,
       List<Map<String, String>> tagsList,
-      InsertAPIType type) {
+      InsertAPIType type,
+      boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
     if (!conf.isScaling()) {
@@ -194,7 +195,8 @@ public class Controller {
       List<DataType> dataTypeList,
       List<List<Object>> valuesList,
       List<Map<String, String>> tagsList,
-      InsertAPIType type) {
+      InsertAPIType type,
+      boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
     if (!conf.isScaling()) {
