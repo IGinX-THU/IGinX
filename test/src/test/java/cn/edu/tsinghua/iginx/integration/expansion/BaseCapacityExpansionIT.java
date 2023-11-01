@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static org.junit.Assert.fail;
@@ -12,6 +13,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpa
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -154,6 +156,8 @@ public abstract class BaseCapacityExpansionIT {
     queryNewData();
     // 再次写入并查询所有新数据
     testWriteAndQueryNewDataAfterCE();
+    // 测试插入相同数据后warning
+    testSameKeyWarning();
   }
 
   @Test
@@ -555,6 +559,32 @@ public abstract class BaseCapacityExpansionIT {
             + "+-------------+--------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  private void testSameKeyWarning() {
+    try {
+      session.executeSql(
+          "insert into mn.wf01.wt01 (key, status) values (0, 123),(1, 123),(2, 123),(3, 123);");
+      String statement = "select * from mn.wf01.wt01";
+
+      QueryDataSet res = session.executeQuery(statement);
+      if ((res.getWarningMsg() == null || res.getWarningMsg().isEmpty())
+          && !res.getWarningMsg().contains("The query results contain overlapped keys.")
+          && SUPPORT_KEY.get(type.name().toLowerCase())) {
+        logger.error("未抛出重叠key的警告");
+        fail();
+      }
+
+      clearData();
+
+      res = session.executeQuery(statement);
+      if (res.getWarningMsg() != null && SUPPORT_KEY.get(type.name().toLowerCase())) {
+        logger.error("不应抛出重叠key的警告");
+        fail();
+      }
+    } catch (ExecutionException | SessionException e) {
+      logger.error("query data error: {}", e.getMessage());
+    }
   }
 
   protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)

@@ -360,6 +360,10 @@ public class IginxClient {
         return;
       }
 
+      if (res.getWarningMsg() != null && !res.getWarningMsg().isEmpty()) {
+        System.out.println("[WARN] " + res.getWarningMsg());
+      }
+
       System.out.println("ResultSets:");
 
       List<List<String>> cache = cacheResult(res);

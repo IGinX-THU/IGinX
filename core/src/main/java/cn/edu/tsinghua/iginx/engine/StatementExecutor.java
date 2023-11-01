@@ -805,8 +805,14 @@ public class StatementExecutor {
 
   private void setResultFromRowStream(RequestContext ctx, RowStream stream)
       throws PhysicalException {
+    Result result = null;
     if (ctx.isUseStream()) {
-      Result result = new Result(RpcUtils.SUCCESS);
+      Status status = RpcUtils.SUCCESS;
+      if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
+        status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
+        status.setMessage(ctx.getWarningMsg());
+      }
+      result = new Result(status);
       result.setResultStream(stream);
       ctx.setResult(result);
       return;
@@ -857,7 +863,12 @@ public class StatementExecutor {
       return;
     }
 
-    Result result = new Result(RpcUtils.SUCCESS);
+    Status status = RpcUtils.SUCCESS;
+    if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
+      status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
+      status.setMessage(ctx.getWarningMsg());
+    }
+    result = new Result(status);
     if (timestampList.size() != 0) {
       Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
       result.setKeys(timestamps);

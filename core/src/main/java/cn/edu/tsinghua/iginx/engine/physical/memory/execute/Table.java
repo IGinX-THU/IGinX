@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -34,10 +35,22 @@ public class Table implements RowStream {
 
   private int index;
 
+  private RequestContext context;
+
   public Table(Header header, List<Row> rows) {
     this.header = header;
     this.rows = rows;
     this.index = 0;
+  }
+
+  @Override
+  public RequestContext getContext() {
+    return context;
+  }
+
+  @Override
+  public void setContext(RequestContext context) {
+    this.context = context;
   }
 
   @Override
