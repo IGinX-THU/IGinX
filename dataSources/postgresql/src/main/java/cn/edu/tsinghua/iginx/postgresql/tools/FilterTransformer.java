@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -66,7 +67,7 @@ public class FilterTransformer {
 
   private static String toString(KeyFilter filter) {
     String op =
-        Op.op2Str(filter.getOp())
+        Op.op2StrWithoutAndOr(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
     return (getQuotName(KEY_NAME) + " " + op + " " + filter.getValue());
   }
@@ -76,16 +77,16 @@ public class FilterTransformer {
     String path = schema.getQuotFullName();
 
     String op =
-        filter.getOp() == Op.LIKE
+        isLikeOp(filter.getOp())
             ? "~"
-            : Op.op2Str(filter.getOp())
+            : Op.op2StrWithoutAndOr(filter.getOp())
                 .replace("==", "="); // postgresql does not support "==" but uses "=" instead
 
-    String regex_symbol = filter.getOp() == Op.LIKE ? "$" : "";
+    String regexSymbol = isLikeOp(filter.getOp()) ? "$" : "";
 
     Object value =
         filter.getValue().getDataType() == DataType.BINARY
-            ? "'" + filter.getValue().getBinaryVAsString() + regex_symbol + "'"
+            ? "'" + filter.getValue().getBinaryVAsString() + regexSymbol + "'"
             : filter.getValue().getValue();
 
     return path + " " + op + " " + value;
@@ -104,8 +105,9 @@ public class FilterTransformer {
     String pathB = schemaB.getQuotFullName();
 
     String op =
-        Op.op2Str(filter.getOp())
+        Op.op2StrWithoutAndOr(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
+
     return pathA + " " + op + " " + pathB;
   }
 

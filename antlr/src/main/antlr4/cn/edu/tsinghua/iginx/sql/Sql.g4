@@ -1,14 +1,14 @@
 grammar Sql;
 
 sqlStatement
-   : statement (';')? EOF
+   : statement ';' EOF
    ;
 
 statement
    : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
    | LOAD DATA importFileClause INTO insertFullPathSpec # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
-   | EXPLAIN? (LOGICAL | PHYSICAL)? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
+   | EXPLAIN? (LOGICAL | PHYSICAL)? cteClause? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
    | DELETE COLUMNS path (COMMA path)* withClause? # deleteColumnsStatement
    | CLEAR DATA # clearDataStatement
@@ -35,6 +35,27 @@ insertFullPathSpec
 
 showColumnsOptions
    : (path (COMMA path)*)? withClause? limitClause?
+   ;
+
+cteClause
+   : WITH commonTableExpr (COMMA commonTableExpr)*
+   ;
+
+commonTableExpr
+   : cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause RR_BRACKET
+   | cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause orderByClause limitClause RR_BRACKET
+   ;
+
+cteName
+   : ID
+   ;
+
+columnsList
+   : cteColumn (COMMA cteColumn)*
+   ;
+
+cteColumn
+   : ID
    ;
 
 queryClause
@@ -99,7 +120,7 @@ predicate
    | (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
-   | path OPERATOR_LIKE regex = stringLiteral
+   | path stringLikeOperator regex = stringLiteral
    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
    ;
@@ -231,7 +252,7 @@ aggLen
    ;
 
 asClause
-   : AS ID
+   : AS? ID
    ;
 
 timeInterval
@@ -282,6 +303,24 @@ comparisonOperator
    | type = OPERATOR_LTE
    | type = OPERATOR_EQ
    | type = OPERATOR_NEQ
+   | type = OPERATOR_GT_AND
+   | type = OPERATOR_GTE_AND
+   | type = OPERATOR_LT_AND
+   | type = OPERATOR_LTE_AND
+   | type = OPERATOR_EQ_AND
+   | type = OPERATOR_NEQ_AND
+   | type = OPERATOR_GT_OR
+   | type = OPERATOR_GTE_OR
+   | type = OPERATOR_LT_OR
+   | type = OPERATOR_LTE_OR
+   | type = OPERATOR_EQ_OR
+   | type = OPERATOR_NEQ_OR
+   ;
+
+stringLikeOperator
+   : type = OPERATOR_LIKE
+   | type = OPERATOR_LIKE_AND
+   | type = OPERATOR_LIKE_OR
    ;
 
 insertColumnsSpec
@@ -294,7 +333,7 @@ insertPath
 
 insertValuesSpec
    : (COMMA? insertMultiValue)*
-   | LR_BRACKET queryClause RR_BRACKET (TIME_OFFSET OPERATOR_EQ INT)?
+   | LR_BRACKET cteClause? queryClause RR_BRACKET (TIME_OFFSET OPERATOR_EQ INT)?
    ;
 
 insertMultiValue
@@ -945,12 +984,68 @@ OPERATOR_NEQ
    | '<>'
    ;
 
+OPERATOR_EQ_AND
+   : '&' OPERATOR_EQ
+   ;
+
+OPERATOR_GT_AND
+   : '&' OPERATOR_GT
+   ;
+
+OPERATOR_GTE_AND
+   : '&' OPERATOR_GTE
+   ;
+
+OPERATOR_LT_AND
+   : '&' OPERATOR_LT
+   ;
+
+OPERATOR_LTE_AND
+   : '&' OPERATOR_LTE
+   ;
+
+OPERATOR_NEQ_AND
+   : '&' OPERATOR_NEQ
+   ;
+
+OPERATOR_EQ_OR
+   : '|' OPERATOR_EQ
+   ;
+
+OPERATOR_GT_OR
+   : '|' OPERATOR_GT
+   ;
+
+OPERATOR_GTE_OR
+   : '|' OPERATOR_GTE
+   ;
+
+OPERATOR_LT_OR
+   : '|' OPERATOR_LT
+   ;
+
+OPERATOR_LTE_OR
+   : '|' OPERATOR_LTE
+   ;
+
+OPERATOR_NEQ_OR
+   : '|' OPERATOR_NEQ
+   ;
+
 OPERATOR_IN
    : I N
    ;
 
 OPERATOR_LIKE
    : L I K E
+   ;
+
+OPERATOR_LIKE_AND
+   : '&' L I K E
+   ;
+
+OPERATOR_LIKE_OR
+   : '|' L I K E
    ;
 
 OPERATOR_AND

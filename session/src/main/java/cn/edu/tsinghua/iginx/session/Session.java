@@ -1045,6 +1045,7 @@ public class Session {
     List<String> columns = ref.resp.getColumns();
     List<DataType> dataTypes = ref.resp.getDataTypeList();
     QueryDataSetV2 dataSetV2 = ref.resp.getQueryDataSet();
+    String warningMessage = ref.resp.getWarningMsg();
     String dir = ref.resp.getExportStreamDir();
     ExportCSV exportCSV = ref.resp.getExportCSV();
 
@@ -1056,6 +1057,7 @@ public class Session {
         fetchSize,
         dataSetV2.valuesList,
         dataSetV2.bitmapList,
+        warningMessage,
         dir,
         exportCSV);
   }

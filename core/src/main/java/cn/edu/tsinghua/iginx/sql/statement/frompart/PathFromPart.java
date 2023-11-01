@@ -1,9 +1,13 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
+
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PathFromPart implements FromPart {
 
@@ -20,6 +24,7 @@ public class PathFromPart implements FromPart {
     this.alias = alias;
   }
 
+  @Override
   public String getOriginPrefix() {
     return path;
   }
@@ -30,8 +35,10 @@ public class PathFromPart implements FromPart {
   }
 
   @Override
-  public String getAlias() {
-    return alias;
+  public Map<String, String> getAliasMap() {
+    Map<String, String> aliasMap = new HashMap<>();
+    aliasMap.put(path + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX);
+    return aliasMap;
   }
 
   @Override
