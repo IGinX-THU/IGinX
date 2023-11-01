@@ -70,7 +70,7 @@ public class Controller {
         }
       };
 
-  private static final Map<String, Boolean> SUPPORT_KEY =
+  public static final Map<String, Boolean> SUPPORT_KEY =
       new HashMap<String, Boolean>() {
         {
           put("FileSystem", false);
