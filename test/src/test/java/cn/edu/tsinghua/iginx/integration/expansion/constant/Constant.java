@@ -75,7 +75,7 @@ public class Constant {
 
   // key list
   public static List<Long> INIT_KEYS_LIST =
-      Arrays.asList(1L, 9223372006854775807L);
+      Arrays.asList(1L, (long) Integer.MAX_VALUE);
 
   // for file system
   public static final Map<Integer, String> PORT_TO_ROOT =

@@ -163,7 +163,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngineInProgress(expPort, false, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -197,7 +197,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngineInProgress(expPort, false, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
