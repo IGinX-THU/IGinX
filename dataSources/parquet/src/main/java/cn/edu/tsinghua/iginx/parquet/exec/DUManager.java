@@ -294,10 +294,7 @@ public class DUManager {
     StringBuilder builder = new StringBuilder();
     paths.forEach(
         path -> builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)).append(", "));
-    ResultSet rs =
-        stmt.executeQuery(
-            String.format(
-                SELECT_STMT, builder.toString(), dataPath, FilterTransformer.toString(filter)));
+    ResultSet rs = stmt.executeQuery(String.format(SELECT_STMT, builder.toString(), dataPath));
     stmt.close();
     conn.close();
 

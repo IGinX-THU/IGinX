@@ -51,7 +51,7 @@ public class Constant {
 
   public static final String DROP_TABLE_STMT = "DROP TABLE %s";
 
-  public static final String SELECT_STMT = "SELECT time, %s FROM '%s' WHERE %s ORDER BY time";
+  public static final String SELECT_STMT = "SELECT time, %s FROM '%s' ORDER BY time";
 
   public static final String SELECT_MEM_STMT = "SELECT time, %s FROM %s WHERE %s ORDER BY time";
 
