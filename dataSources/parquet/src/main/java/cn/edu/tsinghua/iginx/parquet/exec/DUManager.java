@@ -34,14 +34,12 @@ import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetD
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.Column;
 import cn.edu.tsinghua.iginx.parquet.entity.FileMeta;
-import cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer;
-import cn.edu.tsinghua.iginx.parquet.tools.DataViewWrapper;
-import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
-import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
+import cn.edu.tsinghua.iginx.parquet.tools.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -199,7 +197,7 @@ public class DUManager {
     }
   }
 
-  public List<Column> project(List<String> paths, TagFilter tagFilter, String filter)
+  public List<Column> project(List<String> paths, TagFilter tagFilter, Filter filter)
       throws SQLException {
     if (isDummyStorageUnit) {
       return projectDummy(paths, tagFilter, filter);
@@ -229,7 +227,7 @@ public class DUManager {
     return new ArrayList<>(dataMap.values());
   }
 
-  private List<Column> projectDummy(List<String> paths, TagFilter tagFilter, String filter)
+  private List<Column> projectDummy(List<String> paths, TagFilter tagFilter, Filter filter)
       throws SQLException {
     Map<String, Column> dataMap = new HashMap<>();
     File file = new File(dataDir);
@@ -255,7 +253,7 @@ public class DUManager {
     return new ArrayList<>(dataMap.values());
   }
 
-  private List<Column> projectInMemTable(List<String> paths, String filter) throws SQLException {
+  private List<Column> projectInMemTable(List<String> paths, Filter filter) throws SQLException {
     try {
       memTableLock.readLock().lock();
 
@@ -267,7 +265,11 @@ public class DUManager {
           path -> builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)).append(", "));
       ResultSet rs =
           stmt.executeQuery(
-              String.format(SELECT_MEM_STMT, builder.toString(), curMemTable, filter));
+              String.format(
+                  SELECT_MEM_STMT,
+                  builder.toString(),
+                  curMemTable,
+                  FilterTransformer.toString(filter)));
       stmt.close();
       conn.close();
 
@@ -281,7 +283,7 @@ public class DUManager {
 
   private List<Column> projectInParquet(
       List<String> paths,
-      String filter,
+      Filter filter,
       String dataPath,
       Map<String, List<KeyRange>> deleteRanges,
       long endTime)
@@ -293,7 +295,9 @@ public class DUManager {
     paths.forEach(
         path -> builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)).append(", "));
     ResultSet rs =
-        stmt.executeQuery(String.format(SELECT_STMT, builder.toString(), dataPath, filter));
+        stmt.executeQuery(
+            String.format(
+                SELECT_STMT, builder.toString(), dataPath, FilterTransformer.toString(filter)));
     stmt.close();
     conn.close();
 
