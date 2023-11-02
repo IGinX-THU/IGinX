@@ -163,7 +163,7 @@ public class SessionExecuteSqlResult {
       case Query:
         return buildQueryResult(needFormatTime, timePrecision);
       case ShowColumns:
-        return buildShowTimeSeriesResult();
+        return buildShowColumnsResult();
       case ShowClusterInfo:
         return buildShowClusterInfoResult();
       case ShowRegisterTask:
@@ -251,7 +251,7 @@ public class SessionExecuteSqlResult {
     return cache;
   }
 
-  private String buildShowTimeSeriesResult() {
+  private String buildShowColumnsResult() {
     StringBuilder builder = new StringBuilder();
     builder.append("Columns:").append("\n");
     int num = 0;

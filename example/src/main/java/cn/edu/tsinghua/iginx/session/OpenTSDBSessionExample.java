@@ -31,7 +31,7 @@ public class OpenTSDBSessionExample {
 
     insertRowRecords();
 
-    showTimeSeries();
+    showColumns();
 
     //        queryData();
 
@@ -65,7 +65,7 @@ public class OpenTSDBSessionExample {
     session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void showTimeSeries() throws SessionException, ExecutionException {
+  private static void showColumns() throws SessionException, ExecutionException {
     List<Column> columns = session.showColumns();
     for (Column column : columns) {
       System.out.println(

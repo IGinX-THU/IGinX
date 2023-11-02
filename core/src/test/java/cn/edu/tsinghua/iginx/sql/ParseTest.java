@@ -70,7 +70,7 @@ public class ParseTest {
   @Test
   public void testParseSelect() {
     String selectStr =
-        "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER (RANGE 10 IN [200, 300)) AGG LEVEL = 2, 3;";
+        "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER (RANGE 10 IN [200, 300));";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
 
     assertTrue(statement.hasFunc());
@@ -105,8 +105,6 @@ public class ParseTest {
     assertEquals(200, statement.getStartKey());
     assertEquals(300, statement.getEndKey());
     assertEquals(10, statement.getPrecision());
-
-    assertEquals(Arrays.asList(2, 3), statement.getLayers());
   }
 
   @Test
@@ -129,13 +127,6 @@ public class ParseTest {
     assertEquals(100, statement.getStartKey());
     assertEquals(1000, statement.getEndKey());
     assertEquals(10L, statement.getPrecision());
-
-    selectStr = "SELECT SUM(c) FROM a.b AGG LEVEL = 1, 2;";
-    statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
-    assertEquals(
-        Collections.singletonList("a.b.c"),
-        statement.getFuncExpressionMap().get("sum").get(0).getParams());
-    assertEquals(Arrays.asList(1, 2), statement.getLayers());
   }
 
   @Test
@@ -184,7 +175,7 @@ public class ParseTest {
   }
 
   @Test
-  public void testParseDeleteTimeSeries() {
+  public void testParseDeleteColumns() {
     String deleteColumnsStr = "DELETE COLUMNS a.b.c, a.b.d;";
     DeleteColumnsStatement statement =
         (DeleteColumnsStatement) TestUtils.buildStatement(deleteColumnsStr);
@@ -224,7 +215,7 @@ public class ParseTest {
         (UnarySelectStatement) TestUtils.buildStatement(selectWithSubQuery);
     assertEquals(new HashSet<>(Collections.singletonList("res.max_a")), statement.getPathSet());
 
-    assertEquals(FromPartType.SubQueryFromPart, statement.getFromParts().get(0).getType());
+    assertEquals(FromPartType.SubQuery, statement.getFromParts().get(0).getType());
     SubQueryFromPart subQueryFromPart = (SubQueryFromPart) statement.getFromParts().get(0);
     UnarySelectStatement subStatement = (UnarySelectStatement) subQueryFromPart.getSubQuery();
 
@@ -306,7 +297,6 @@ public class ParseTest {
 
     JoinCondition joinCondition =
         new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
-    assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1, cpu2, cpu3";
@@ -318,11 +308,9 @@ public class ParseTest {
     assertEquals("cpu3", selectStatement.getFromParts().get(2).getPrefix());
 
     joinCondition = new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
-    assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinCondition = new JoinCondition(JoinType.CrossJoin, null, Collections.emptyList());
-    assertTrue(selectStatement.getFromParts().get(2).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(2).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 LEFT JOIN cpu2 ON cpu1.usage = cpu2.usage";
@@ -337,7 +325,6 @@ public class ParseTest {
             JoinType.LeftOuterJoin,
             new PathFilter("cpu1.usage", Op.E, "cpu2.usage"),
             Collections.emptyList());
-    assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 RIGHT OUTER JOIN cpu2 USING usage";
@@ -349,7 +336,6 @@ public class ParseTest {
 
     joinCondition =
         new JoinCondition(JoinType.RightOuterJoin, null, Collections.singletonList("usage"));
-    assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 FULL OUTER JOIN cpu2 ON cpu1.usage = cpu2.usage";
@@ -364,7 +350,6 @@ public class ParseTest {
             JoinType.FullOuterJoin,
             new PathFilter("cpu1.usage", Op.E, "cpu2.usage"),
             Collections.emptyList());
-    assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 JOIN cpu2 ON cpu1.usage = cpu2.usage";
@@ -379,7 +364,6 @@ public class ParseTest {
             JoinType.InnerJoin,
             new PathFilter("cpu1.usage", Op.E, "cpu2.usage"),
             Collections.emptyList());
-    assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
 
     joinStr = "SELECT * FROM cpu1 INNER JOIN cpu2 USING usage";
@@ -390,7 +374,6 @@ public class ParseTest {
     assertEquals("cpu2", selectStatement.getFromParts().get(1).getPrefix());
 
     joinCondition = new JoinCondition(JoinType.InnerJoin, null, Collections.singletonList("usage"));
-    assertTrue(selectStatement.getFromParts().get(1).isJoinPart());
     assertEquals(joinCondition, selectStatement.getFromParts().get(1).getJoinCondition());
   }
 }
