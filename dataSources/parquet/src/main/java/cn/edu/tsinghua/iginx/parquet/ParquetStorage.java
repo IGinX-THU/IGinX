@@ -23,9 +23,6 @@ import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -36,10 +33,6 @@ import org.slf4j.LoggerFactory;
 public class ParquetStorage implements IStorage {
   @SuppressWarnings("unused")
   private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
-
-  private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
-
-  private static final String CONN_URL = "jdbc:duckdb:";
 
   private Executor executor;
 
@@ -59,25 +52,12 @@ public class ParquetStorage implements IStorage {
   }
 
   private void initLocalStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    if (!testLocalConnection()) {
-      throw new StorageInitializationException("cannot connect to " + meta.toString());
-    }
-
     Map<String, String> extraParams = meta.getExtraParams();
     String dataDir = extraParams.get("dir");
     String dummyDir = extraParams.get("dummy_dir");
     String dirPrefix = extraParams.get("embedded_prefix");
 
-    Connection connection;
-    try {
-      connection = DriverManager.getConnection(CONN_URL);
-    } catch (SQLException e) {
-      throw new StorageInitializationException("cannot connect to " + meta.toString());
-    }
-
-    this.executor =
-        new NewExecutor(
-            connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
+    this.executor = new NewExecutor(meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
     this.server = new ParquetServer(meta.getPort(), executor);
     this.thread = new Thread(server);
     thread.start();
@@ -89,17 +69,6 @@ public class ParquetStorage implements IStorage {
     } catch (TTransportException e) {
       throw new StorageInitializationException(
           "encounter error when init RemoteStorage " + e.getMessage());
-    }
-  }
-
-  private boolean testLocalConnection() {
-    try {
-      Class.forName(DRIVER_NAME);
-      Connection conn = DriverManager.getConnection(CONN_URL);
-      conn.close();
-      return true;
-    } catch (ClassNotFoundException | SQLException e) {
-      return false;
     }
   }
 

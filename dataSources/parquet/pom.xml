@@ -24,11 +24,6 @@
             <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
-        <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>0.5.1</version>
-        </dependency>
     </dependencies>
 
     <build>

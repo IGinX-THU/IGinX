@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,8 +35,6 @@ public class NewExecutor implements Executor {
 
   private static final Logger logger = LoggerFactory.getLogger(NewExecutor.class);
 
-  private final Connection connection;
-
   public String dataDir;
 
   public String dummyDir;
@@ -48,21 +45,14 @@ public class NewExecutor implements Executor {
 
   private boolean isClosed = false;
 
-  public NewExecutor(
-      Connection connection, boolean hasData, boolean readOnly, String dataDir, String dummyDir)
+  public NewExecutor(boolean hasData, boolean readOnly, String dataDir, String dummyDir)
       throws StorageInitializationException {
-    this(connection, hasData, readOnly, dataDir, dummyDir, null);
+    this(hasData, readOnly, dataDir, dummyDir, null);
   }
 
   // dirPrefix: the last layer dir name of parquet data path will be added as prefix in every data
   // column
-  public NewExecutor(
-      Connection connection,
-      boolean hasData,
-      boolean readOnly,
-      String dataDir,
-      String dummyDir,
-      String dirPrefix)
+  public NewExecutor(boolean hasData, boolean readOnly, String dataDir, String dummyDir, String dirPrefix)
       throws StorageInitializationException {
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
@@ -71,8 +61,6 @@ public class NewExecutor implements Executor {
     } else {
       embeddedPrefix = dirPrefix;
     }
-
-    this.connection = connection;
 
     if (hasData) {
       try {
@@ -171,15 +159,14 @@ public class NewExecutor implements Executor {
     if (duDirs != null) {
       for (File duDir : duDirs) {
         if (duDir.isFile()) continue;
-        DUManager duManager =
-            new DUManager(duDir.getName(), dataDir, connection, false, embeddedPrefix);
+        DUManager duManager = new DUManager(duDir.getName(), dataDir, false, embeddedPrefix);
         duManagerMap.put(duDir.getName(), duManager);
       }
     }
   }
 
   private void recoverFromParquet() throws IOException {
-    DUManager duManager = new DUManager(dummyDir, dummyDir, connection, true, embeddedPrefix);
+    DUManager duManager = new DUManager(dummyDir, dummyDir, true, embeddedPrefix);
     duManagerMap.put(dummyDir, duManager);
   }
 
@@ -191,7 +178,6 @@ public class NewExecutor implements Executor {
           new DUManager(
               storageUnit,
               isDummyStorageUnit ? dummyDir : dataDir,
-              connection,
               isDummyStorageUnit,
               embeddedPrefix);
       duManagerMap.putIfAbsent(storageUnit, duManager);
@@ -235,7 +221,7 @@ public class NewExecutor implements Executor {
 
     try {
       duManager.insert(dataView);
-    } catch (SQLException e) {
+    } catch (IOException e) {
       return new TaskExecuteResult(null, new PhysicalException("Fail to insert data ", e));
     }
 
@@ -341,11 +327,6 @@ public class NewExecutor implements Executor {
       }
     }
 
-    try {
-      connection.close();
-    } catch (SQLException e) {
-      throw new PhysicalException("DuckDB connection close error", e);
-    }
     isClosed = true;
   }
 }
