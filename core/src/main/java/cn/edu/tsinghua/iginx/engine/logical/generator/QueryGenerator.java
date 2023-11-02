@@ -62,7 +62,8 @@ import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import cn.edu.tsinghua.iginx.sql.expression.FromValueExpression;
 import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
-import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
+import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.PathFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.ShowColumnsFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
@@ -111,6 +112,19 @@ public class QueryGenerator extends AbstractGenerator {
   @Override
   protected Operator generateRoot(Statement statement) {
     SelectStatement selectStatement = (SelectStatement) statement;
+    // 计算cte的操作符树
+    selectStatement
+        .getCteList()
+        .forEach(
+            cte -> {
+              Operator root = generateRoot(cte.getStatement());
+              root = new Rename(new OperatorSource(root), cte.getAliasMap());
+              cte.setRoot(root);
+            });
+    return generateRoot(selectStatement);
+  }
+
+  private Operator generateRoot(SelectStatement selectStatement) {
     if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.UNARY) {
       return generateRoot((UnarySelectStatement) selectStatement);
     } else if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.BINARY) {
@@ -206,28 +220,34 @@ public class QueryGenerator extends AbstractGenerator {
       root = new ProjectWaitingForPath(selectStatement);
     } else if (selectStatement.hasJoinParts()) {
       root = filterAndMergeFragmentsWithJoin(selectStatement);
-    } else if (selectStatement.isFromSingleSubQuery()) {
-      SubQueryFromPart fromPart = (SubQueryFromPart) selectStatement.getFromParts().get(0);
-      root = generateRoot(fromPart.getSubQuery());
-      if (fromPart.hasAlias()) {
-        Map<String, String> map = fromPart.getSubQuery().getSubQueryAliasMap(fromPart.getAlias());
-        root = new Rename(new OperatorSource(root), map);
+    } else if (!selectStatement.getFromParts().isEmpty()) {
+      FromPart fromPart = selectStatement.getFromPart(0);
+      switch (fromPart.getType()) {
+        case Path:
+          policy.notify(selectStatement);
+          root = filterAndMergeFragments(selectStatement);
+          break;
+        case SubQuery:
+          SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
+          root = generateRoot(subQueryFromPart.getSubQuery());
+          break;
+        case Cte:
+          CteFromPart cteFromPart = (CteFromPart) fromPart;
+          root = cteFromPart.getRoot().copy();
+          break;
+        case ShowColumns:
+          ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
+          root = new ShowColumns(new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
+          break;
+        default:
+          throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
       }
-    } else if (selectStatement.isFromSingleShowColumns()) {
-      ShowColumnsFromPart fromPart = (ShowColumnsFromPart) selectStatement.getFromParts().get(0);
-      root = new ShowColumns(new GlobalSource(), fromPart.getShowColumnsStatement());
+      if (fromPart.hasAlias()) {
+        root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+      }
     } else {
       policy.notify(selectStatement);
       root = filterAndMergeFragments(selectStatement);
-      if (selectStatement.isFromSinglePath()) {
-        PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
-        if (pathFromPart.hasAlias()) {
-          Map<String, String> map =
-              selectStatement.getFromPathAliasMap(
-                  pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
-          root = new Rename(new OperatorSource(root), map);
-        }
-      }
     }
 
     if (root == null && !metaManager.hasWritableStorageEngines()) {
@@ -326,8 +346,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         functionCallList.add(
                             new FunctionCall(functionManager.getFunction(k), params));
@@ -349,8 +375,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         Operator copySelect = finalRoot.copy();
                         queryList.add(
@@ -374,8 +406,14 @@ public class QueryGenerator extends AbstractGenerator {
                         FunctionParams params =
                             FunctionUtils.isCanUseSetQuantifierFunction(k)
                                 ? new FunctionParams(
-                                    expression.getParams(), expression.isDistinct())
-                                : new FunctionParams(expression.getParams());
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs(),
+                                    expression.isDistinct())
+                                : new FunctionParams(
+                                    expression.getColumns(),
+                                    expression.getArgs(),
+                                    expression.getKvargs());
 
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + expression.getColumnName());
@@ -415,7 +453,11 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        FunctionParams params = new FunctionParams(expression.getParams());
+                        FunctionParams params =
+                            new FunctionParams(
+                                expression.getColumns(),
+                                expression.getArgs(),
+                                expression.getKvargs());
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + k + ", wrapped path: " + v);
                         queryList.add(
@@ -536,8 +578,22 @@ public class QueryGenerator extends AbstractGenerator {
               (int) selectStatement.getOffset());
     }
 
+    boolean hasFuncWithArgs =
+        selectStatement.getExpressions().stream()
+            .anyMatch(
+                expression -> {
+                  if (!(expression instanceof FuncExpression)) {
+                    return false;
+                  }
+                  FuncExpression funcExpression = ((FuncExpression) expression);
+                  return !funcExpression.getArgs().isEmpty()
+                      || !funcExpression.getKvargs().isEmpty();
+                });
+
     if (selectStatement.getQueryType().equals(QueryType.LastFirstQuery)) {
       root = new Reorder(new OperatorSource(root), Arrays.asList("path", "value"));
+    } else if (hasFuncWithArgs) {
+      root = new Reorder(new OperatorSource(root), Collections.singletonList("*"));
     } else {
       List<String> order = new ArrayList<>();
       List<Boolean> isPyUDF = new ArrayList<>();
@@ -578,8 +634,7 @@ public class QueryGenerator extends AbstractGenerator {
 
                   String prefix = "";
                   if (selectStatement.isFromSinglePath()) {
-                    prefix =
-                        ((PathFromPart) selectStatement.getFromParts().get(0)).getOriginPrefix();
+                    prefix = selectStatement.getFromPart(0).getOriginPrefix();
                   }
 
                   valueToMetaList.add(
@@ -619,56 +674,49 @@ public class QueryGenerator extends AbstractGenerator {
         .forEach(
             fromPart -> {
               Operator root;
-              if (fromPart.getType().equals(FromPartType.SubQuery)) {
-                SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
-                root = generateRoot(subQueryFromPart.getSubQuery());
-                // 子查询重命名
-                if (subQueryFromPart.hasAlias()) {
-                  Map<String, String> map =
-                      subQueryFromPart
-                          .getSubQuery()
-                          .getSubQueryAliasMap(subQueryFromPart.getAlias());
-                  root = new Rename(new OperatorSource(root), map);
-                }
-              } else if (fromPart.getType().equals(FromPartType.Path)) {
-                PathFromPart pathFromPart = (PathFromPart) fromPart;
-                String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
-                Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                    getFragmentsByColumnsInterval(
-                        selectStatement, new ColumnsInterval(prefix, prefix));
-                Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
-                List<FragmentMeta> dummyFragments = pair.v;
-                root =
-                    mergeRawData(
-                        fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
-                // from的序列的前缀重命名
-                if (pathFromPart.hasAlias()) {
-                  Map<String, String> map =
-                      selectStatement.getFromPathAliasMap(
-                          pathFromPart.getOriginPrefix(), pathFromPart.getAlias());
-                  root = new Rename(new OperatorSource(root), map);
-                }
-              } else {
-                ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
-                root =
-                    new ShowColumns(
-                        new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
-                // ShowColumns重命名
-                if (showColumnsFromPart.hasAlias()) {
-                  Map<String, String> map = showColumnsFromPart.getAliasMap();
-                  root = new Rename(new OperatorSource(root), map);
-                }
+              switch (fromPart.getType()) {
+                case Path:
+                  PathFromPart pathFromPart = (PathFromPart) fromPart;
+                  String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
+                  Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
+                      getFragmentsByColumnsInterval(
+                          selectStatement, new ColumnsInterval(prefix, prefix));
+                  Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
+                  List<FragmentMeta> dummyFragments = pair.v;
+                  root =
+                      mergeRawData(
+                          fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
+                  break;
+                case SubQuery:
+                  SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
+                  root = generateRoot(subQueryFromPart.getSubQuery());
+                  break;
+                case Cte:
+                  CteFromPart cteFromPart = (CteFromPart) fromPart;
+                  root = cteFromPart.getRoot().copy();
+                  break;
+                case ShowColumns:
+                  ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
+                  root =
+                      new ShowColumns(
+                          new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
+                  break;
+                default:
+                  throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
+              }
+              if (fromPart.hasAlias()) {
+                root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
               }
               joinList.add(root);
             });
     // 2. merge by declare
     Operator left = joinList.get(0);
-    String prefixA = selectStatement.getFromParts().get(0).getPrefix();
+    String prefixA = selectStatement.getFromPart(0).getPrefix();
     for (int i = 1; i < joinList.size(); i++) {
-      JoinCondition joinCondition = selectStatement.getFromParts().get(i).getJoinCondition();
+      JoinCondition joinCondition = selectStatement.getFromPart(i).getJoinCondition();
       Operator right = joinList.get(i);
 
-      String prefixB = selectStatement.getFromParts().get(i).getPrefix();
+      String prefixB = selectStatement.getFromPart(i).getPrefix();
 
       Filter filter = joinCondition.getFilter();
       List<String> joinColumns = joinCondition.getJoinColumns();
@@ -746,7 +794,7 @@ public class QueryGenerator extends AbstractGenerator {
           break;
       }
 
-      List<String> freeVariables = selectStatement.getFromParts().get(i).getFreeVariables();
+      List<String> freeVariables = selectStatement.getFromPart(i).getFreeVariables();
       List<String> correlatedVariables = new ArrayList<>();
       // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
       for (String freeVariable : freeVariables) {

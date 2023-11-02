@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.sql.statement.selectstatement.BinarySelectStatement
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import java.util.List;
+import java.util.Map;
 
 public class SubQueryFromPart implements FromPart {
 
@@ -41,8 +42,8 @@ public class SubQueryFromPart implements FromPart {
   }
 
   @Override
-  public String getAlias() {
-    return alias;
+  public Map<String, String> getAliasMap() {
+    return subQuery.getSubQueryAliasMap(alias);
   }
 
   @Override
@@ -64,12 +65,17 @@ public class SubQueryFromPart implements FromPart {
     if (((UnarySelectStatement) s).getFromParts().size() > 1) {
       return false;
     }
-    return ((UnarySelectStatement) s).getFromParts().get(0).hasSinglePrefix();
+    return ((UnarySelectStatement) s).getFromPart(0).hasSinglePrefix();
   }
 
   @Override
   public List<String> getPatterns() {
     return patterns;
+  }
+
+  @Override
+  public String getOriginPrefix() {
+    return "";
   }
 
   @Override

@@ -2,7 +2,7 @@ class UDFTranspose:
   def __init__(self):
     pass
 
-  def transform(self, data):
+  def transform(self, data, args, kvargs):
     res = self.buildHeader(data)
     res.extend(list(map(list, zip(*data[2:]))))
     return res

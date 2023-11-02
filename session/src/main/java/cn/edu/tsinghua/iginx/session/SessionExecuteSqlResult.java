@@ -156,6 +156,9 @@ public class SessionExecuteSqlResult {
 
   public void print(boolean needFormatTime, String timePrecision) {
     System.out.print(getResultInString(needFormatTime, timePrecision));
+    if (parseErrorMsg != null) {
+      System.out.println(parseErrorMsg);
+    }
   }
 
   public String getResultInString(boolean needFormatTime, String timePrecision) {

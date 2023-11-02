@@ -34,7 +34,7 @@ public class UDFPathIT {
 
   @Test
   public void testUDFFuncList() {
-    String statement = "show register python task";
+    String statement = "show register python task;";
     String expectedRes =
         "Register task infos:\n"
             + "+-------------+---------------+---------------------+-------+--------+\n"
@@ -43,6 +43,7 @@ public class UDFPathIT {
             + "|      udf_sum|         UDFSum|           udf_sum.py|0.0.0.0|    UDAF|\n"
             + "|          cos|         UDFCos|          udtf_cos.py|0.0.0.0|    UDTF|\n"
             + "|column_expand|UDFColumnExpand|udtf_column_expand.py|0.0.0.0|    UDTF|\n"
+            + "|          pow|         UDFPow|          udtf_pow.py|0.0.0.0|    UDTF|\n"
             + "| reverse_rows| UDFReverseRows| udsf_reverse_rows.py|0.0.0.0|    UDSF|\n"
             + "|      udf_max|         UDFMax|           udf_max.py|0.0.0.0|    UDAF|\n"
             + "|    transpose|   UDFTranspose|    udsf_transpose.py|0.0.0.0|    UDSF|\n"

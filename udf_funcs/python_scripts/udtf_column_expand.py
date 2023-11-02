@@ -2,7 +2,7 @@ class UDFColumnExpand:
     def __init__(self):
         pass
 
-    def transform(self, data):
+    def transform(self, data, args, kvargs):
         res = self.buildHeader(data)
         newRow = []
         for num in data[2]:

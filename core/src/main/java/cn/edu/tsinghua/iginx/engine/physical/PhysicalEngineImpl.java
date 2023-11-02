@@ -82,7 +82,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
         return result.getRowStream();
       }
     }
-    PhysicalTask task = optimizer.optimize(root);
+    PhysicalTask task = optimizer.optimize(root, ctx);
     ctx.setPhysicalTree(task);
     List<PhysicalTask> bottomTasks = new ArrayList<>();
     getBottomTasks(bottomTasks, task);
