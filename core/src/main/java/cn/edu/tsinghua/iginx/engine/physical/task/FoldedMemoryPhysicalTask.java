@@ -98,7 +98,7 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
           "Execute Error: can not reconstruct this folded operator to a legal logical tree.");
     }
 
-    PhysicalTask task = optimizer.optimize(finalRoot);
+    PhysicalTask task = optimizer.optimize(finalRoot, null);
 
     PhysicalTask originFollowTask = getFollowerTask();
     task.setFollowerTask(originFollowTask);

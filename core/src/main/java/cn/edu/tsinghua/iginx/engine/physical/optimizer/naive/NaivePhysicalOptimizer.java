@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.rule.Rule;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -40,11 +41,11 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
   }
 
   @Override
-  public PhysicalTask optimize(Operator root) {
+  public PhysicalTask optimize(Operator root, RequestContext context) {
     if (root == null) {
       return null;
     }
-    return constructTask(root);
+    return constructTask(root, context);
   }
 
   @Override
@@ -60,7 +61,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
   @Override
   public void setRules(Collection<Rule> rules) {}
 
-  private PhysicalTask constructTask(Operator operator) {
+  private PhysicalTask constructTask(Operator operator, RequestContext context) {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOperator = (UnaryOperator) operator;
       Source source = unaryOperator.getSource();
@@ -75,7 +76,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       } else { // 构建内存中的计划
         OperatorSource operatorSource = (OperatorSource) source;
         Operator sourceOperator = operatorSource.getOperator();
-        PhysicalTask sourceTask = constructTask(operatorSource.getOperator());
+        PhysicalTask sourceTask = constructTask(operatorSource.getOperator(), context);
         if (ConfigDescriptor.getInstance().getConfig().isEnablePushDown()
             && sourceTask instanceof StoragePhysicalTask
             && sourceOperator.getType() == OperatorType.Project
@@ -88,7 +89,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         }
         List<Operator> operators = new ArrayList<>();
         operators.add(operator);
-        PhysicalTask task = new UnaryMemoryPhysicalTask(operators, sourceTask);
+        PhysicalTask task = new UnaryMemoryPhysicalTask(operators, sourceTask, context);
         sourceTask.setFollowerTask(task);
         return task;
       }
@@ -96,11 +97,12 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       BinaryOperator binaryOperator = (BinaryOperator) operator;
       OperatorSource sourceA = (OperatorSource) binaryOperator.getSourceA();
       OperatorSource sourceB = (OperatorSource) binaryOperator.getSourceB();
-      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator());
-      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator());
+      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
+      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
       List<Operator> operators = new ArrayList<>();
       operators.add(operator);
-      PhysicalTask task = new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB);
+      PhysicalTask task =
+          new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB, context);
       sourceTaskA.setFollowerTask(task);
       sourceTaskB.setFollowerTask(task);
       return task;
@@ -112,7 +114,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       List<PhysicalTask> parentTasks = new ArrayList<>();
       for (Source source : sources) {
         OperatorSource operatorSource = (OperatorSource) source;
-        PhysicalTask parentTask = constructTask(operatorSource.getOperator());
+        PhysicalTask parentTask = constructTask(operatorSource.getOperator(), context);
         parentTasks.add(parentTask);
       }
       List<Operator> operators = new ArrayList<>();

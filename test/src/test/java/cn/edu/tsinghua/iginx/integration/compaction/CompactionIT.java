@@ -30,8 +30,8 @@ public class CompactionIT {
             new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
     try {
       session.openSession();
-      session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\"");
-      session.executeSql("SHOW CONFIG \"enableInstantCompaction\"").print(false, "");
+      session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\";");
+      session.executeSql("SHOW CONFIG \"enableInstantCompaction\";").print(false, "");
     } catch (SessionException | ExecutionException e) {
       logger.error(e.getMessage());
       fail();
@@ -41,7 +41,7 @@ public class CompactionIT {
   @After
   public void tearDown() {
     try {
-      session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\"");
+      session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\";");
       session.closeSession();
     } catch (SessionException | ExecutionException e) {
       logger.error(e.getMessage());
@@ -116,7 +116,7 @@ public class CompactionIT {
             + "Total line number = 10\n";
     assertEquals(sql2Output, selectSql2Output);
 
-    session.executeSql("COMPACT");
+    session.executeSql("COMPACT;");
     selectSql1Output = session.executeSql(selectSql1).getResultInString(false, "");
     assertEquals(sql1Output, selectSql1Output);
     selectSql2Output = session.executeSql(selectSql2).getResultInString(false, "");

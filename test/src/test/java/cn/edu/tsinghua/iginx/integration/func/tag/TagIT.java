@@ -638,7 +638,7 @@ public class TagIT {
             + "Total line number = 13\n";
     executeAndCompare(showColumns, expected);
 
-    String deleteTimeSeries = "DELETE COLUMNS ah.*.s WITH t1=v1";
+    String deleteTimeSeries = "DELETE COLUMNS ah.*.s WITH t1=v1;";
     execute(deleteTimeSeries);
 
     showColumns = "SHOW COLUMNS ah.*;";
@@ -665,7 +665,7 @@ public class TagIT {
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
     executeAndCompare(showColumnsData, expected);
 
-    deleteTimeSeries = "DELETE COLUMNS ah.*.v WITH_PRECISE t1=v1";
+    deleteTimeSeries = "DELETE COLUMNS ah.*.v WITH_PRECISE t1=v1;";
     execute(deleteTimeSeries);
 
     showColumns = "SHOW COLUMNS ah.*;";

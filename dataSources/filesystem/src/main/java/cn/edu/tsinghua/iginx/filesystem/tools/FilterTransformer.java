@@ -103,6 +103,20 @@ public class FilterTransformer {
         return FSOp.GE;
       case G:
         return FSOp.G;
+      case L_AND:
+        return FSOp.L_AND;
+      case LE_AND:
+        return FSOp.LE_AND;
+      case LIKE_AND:
+        return FSOp.LIKE_AND;
+      case NE_AND:
+        return FSOp.NE_AND;
+      case E_AND:
+        return FSOp.E_AND;
+      case GE_AND:
+        return FSOp.GE_AND;
+      case G_AND:
+        return FSOp.G_AND;
       default:
         return FSOp.UNKNOWN;
     }
@@ -210,6 +224,20 @@ public class FilterTransformer {
         return GE;
       case G:
         return G;
+      case L_AND:
+        return L_AND;
+      case LE_AND:
+        return LE_AND;
+      case LIKE_AND:
+        return LIKE_AND;
+      case NE_AND:
+        return NE_AND;
+      case E_AND:
+        return E_AND;
+      case GE_AND:
+        return GE_AND;
+      case G_AND:
+        return G_AND;
       default:
         return null;
     }

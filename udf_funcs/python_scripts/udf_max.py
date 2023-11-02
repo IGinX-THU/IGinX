@@ -2,7 +2,7 @@ class UDFMax:
     def __init__(self):
         pass
 
-    def transform(self, data):
+    def transform(self, data, args, kvargs):
         res = self.buildHeader(data)
 
         maxRow = []

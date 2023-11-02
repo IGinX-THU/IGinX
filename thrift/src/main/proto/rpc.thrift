@@ -461,8 +461,9 @@ struct ExecuteStatementResp {
     5: optional list<map<string, string>> tagsList
     6: optional list<DataType> dataTypeList
     7: optional QueryDataSetV2 queryDataSet
-    8: optional string exportStreamDir
-    9: optional ExportCSV exportCSV
+    8: optional string warningMsg;
+    9: optional string exportStreamDir
+    10: optional ExportCSV exportCSV
 }
 
 struct ExportCSV {

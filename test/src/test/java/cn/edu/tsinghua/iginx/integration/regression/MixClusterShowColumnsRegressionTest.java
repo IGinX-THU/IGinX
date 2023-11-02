@@ -36,18 +36,18 @@ public class MixClusterShowColumnsRegressionTest {
   public void testShowColumnsInMixCluster() {
     String[] insertStatements =
         new String[] {
-          "insert into m (key, d, o) values (2000000, 2, 3)",
-          "insert into m (key, a, z) values (3000000, 1, 2)",
-          "insert into m (key, h, n) values (4000000, 2, 3)",
-          "insert into m (key, d, o) values (1000000, 1, 2)",
-          "insert into m (key, d, n) values (8000000, 9, 9)",
-          "insert into m (key, p) values (8000000, 9)",
-          "insert into n (key, d, n) values (10000000, 11.0, 11.0)"
+          "insert into m (key, d, o) values (2000000, 2, 3);",
+          "insert into m (key, a, z) values (3000000, 1, 2);",
+          "insert into m (key, h, n) values (4000000, 2, 3);",
+          "insert into m (key, d, o) values (1000000, 1, 2);",
+          "insert into m (key, d, n) values (8000000, 9, 9);",
+          "insert into m (key, p) values (8000000, 9);",
+          "insert into n (key, d, n) values (10000000, 11.0, 11.0);"
         };
     for (String insertStatement : insertStatements) {
       execute(insertStatement);
     }
-    String statement = "SHOW COLUMNS";
+    String statement = "SHOW COLUMNS;";
     String expected =
         "Columns:\n"
             + "+----+--------+\n"
@@ -66,7 +66,7 @@ public class MixClusterShowColumnsRegressionTest {
             + "Total line number = 9\n";
     executeAndCompare(statement, expected);
 
-    statement = "SHOW COLUMNS m.*";
+    statement = "SHOW COLUMNS m.*;";
     expected =
         "Columns:\n"
             + "+----+--------+\n"
