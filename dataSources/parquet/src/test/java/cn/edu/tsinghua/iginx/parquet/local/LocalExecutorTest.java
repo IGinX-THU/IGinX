@@ -9,19 +9,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalExecutorTest extends AbstractExecutorTest {
 
   private static final Logger logger = LoggerFactory.getLogger(LocalExecutorTest.class);
-
-  private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
-
-  private static final String CONN_URL = "jdbc:duckdb:";
 
   protected static String dataDir = "./src/test/resources/dataDir";
 
@@ -33,7 +26,6 @@ public class LocalExecutorTest extends AbstractExecutorTest {
     try {
       executor =
           new NewExecutor(
-              getConnection(),
               false,
               false,
               Paths.get(dataDir).toAbsolutePath().toString(),
@@ -66,22 +58,6 @@ public class LocalExecutorTest extends AbstractExecutorTest {
       logger.error("Can't create dir: " + path);
       return false;
     }
-  }
-
-  private Connection getConnection() {
-    try {
-      Class.forName(DRIVER_NAME);
-    } catch (ClassNotFoundException e) {
-      logger.error(String.format("Class %s not found", DRIVER_NAME));
-    }
-
-    Connection connection = null;
-    try {
-      connection = DriverManager.getConnection(CONN_URL);
-    } catch (SQLException e) {
-      logger.error("cannot get local duckdb connection");
-    }
-    return connection;
   }
 
   @Override
