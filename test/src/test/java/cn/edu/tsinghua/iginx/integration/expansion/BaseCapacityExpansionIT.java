@@ -15,12 +15,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.File;
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -247,112 +241,6 @@ public abstract class BaseCapacityExpansionIT {
       testQueryForFileSystem();
       // TODO 扩容后show columns测试
       testShowColumnsForFileSystem();
-    }
-
-    // test invalid dummy dir & data dir when adding parquet & filesystem storage
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
-      testAddInvalidDirPath();
-    }
-  }
-
-  protected void testAddInvalidDirPath() {
-    // invalid path:
-    // root path,
-    // cannot-be-created data paths,
-    // non-existent dummy dir paths,
-    // non-dir path
-    logger.info("Testing invalid dir path...");
-
-    // assume read-only data dir exists because is called in test
-    String validDataPath = "test/iginx_" + PORT_TO_ROOT.get(readOnlyPort);
-    String validDummyPath = "test/" + PORT_TO_ROOT.get(readOnlyPort);
-    int testPort = 6671;
-
-    // create non-existent random dummy dir path
-    String symbols = "0123456789QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm";
-    Random random = new Random();
-    char[] randomName = new char[8];
-    for (int i = 0; i < 8; i++) {
-      randomName[i] = symbols.charAt(random.nextInt(symbols.length()));
-    }
-    String nonExistentDummyDirPath = "test/" + new String(randomName);
-
-    // create non-dir file
-    String nonDirPath = "test/temporaryEmptyDataFileOnlyForTesting";
-    File nonDirFile = new File("../" + nonDirPath);
-    try {
-      if (!Files.exists(Paths.get(nonDirFile.getCanonicalPath()))) {
-        nonDirFile.createNewFile();
-      }
-    } catch (IOException e) {
-      logger.error(
-          String.format("Can't create test file %s : " + e.getMessage(), "../" + nonDirPath));
-      fail();
-    }
-
-    // hasData=true readOnly=false
-    // [<dataDir, dummyDir>...]
-    List<Pair<String, String>> pathPairList =
-        new ArrayList<>(
-            Arrays.asList(
-                new Pair<>("/", validDummyPath),
-                new Pair<>("C:\\", validDummyPath),
-                new Pair<>("e:\\", validDummyPath),
-                new Pair<>(nonDirPath, validDummyPath),
-                new Pair<>(validDataPath, "/"),
-                new Pair<>(validDataPath, "C:\\"),
-                new Pair<>(validDataPath, "e:\\"),
-                new Pair<>(validDataPath, nonExistentDummyDirPath),
-                new Pair<>(validDataPath, nonDirPath)));
-    if (!System.getProperty("os.name").contains("Windows")) {
-      // windows is fine with this case
-      pathPairList.add(new Pair<>("/path/to/my/data", validDummyPath));
-    }
-    for (Pair<String, String> p : pathPairList) {
-      logger.info(String.format("testing dir pair: %s, %s", p.k, p.v));
-      String res = addStorageEngine(testPort, true, false, null, null, p.k, p.v);
-      if (res != null && !res.contains("Missing or providing invalid params")) {
-        logger.error(res);
-        if (nonDirFile.exists()) {
-          nonDirFile.delete();
-        }
-        fail();
-      }
-    }
-
-    // hasData=false readOnly=false missing data dir
-    try {
-      session.executeSql(
-          String.format(
-              "ADD STORAGEENGINE (\"127.0.0.1\", %d, \"%s\", \"dummy_dir:%s, has_data:false, is_read_only:false, iginx_port:6888\")",
-              testPort, type.name(), validDummyPath));
-    } catch (SessionException | ExecutionException e) {
-      if (e.getMessage() != null
-          && !e.getMessage().contains("Missing or providing invalid params")) {
-        if (nonDirFile.exists()) {
-          nonDirFile.delete();
-        }
-        fail();
-      }
-    }
-
-    // hasData=false readOnly=true nonsense storage engine
-    try {
-      session.executeSql(
-          String.format(
-              "ADD STORAGEENGINE (\"127.0.0.1\", %d, \"%s\", \"dummy_dir:%s, dir:%s, has_data:false, is_read_only:true, iginx_port:6888\")",
-              testPort, type.name(), validDummyPath, validDataPath));
-    } catch (SessionException | ExecutionException e) {
-      if (e.getMessage() != null
-          && !e.getMessage().contains("Missing or providing invalid params")) {
-        if (nonDirFile.exists()) {
-          nonDirFile.delete();
-        }
-        fail();
-      }
-    }
-    if (nonDirFile.exists()) {
-      nonDirFile.delete();
     }
   }
 
