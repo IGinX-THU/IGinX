@@ -66,7 +66,7 @@ public class NewExecutor implements Executor {
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
     if (dummyDir != null && !dummyDir.isEmpty() && (dirPrefix == null || dirPrefix.isEmpty())) {
-      embeddedPrefix = FileUtils.getLatestDirName(dummyDir);
+      embeddedPrefix = FileUtils.getLastDirName(dummyDir);
     } else {
       embeddedPrefix = dirPrefix;
     }

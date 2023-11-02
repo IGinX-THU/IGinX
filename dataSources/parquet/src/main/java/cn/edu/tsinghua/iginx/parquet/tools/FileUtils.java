@@ -19,7 +19,7 @@ public class FileUtils {
     return file.delete();
   }
 
-  public static String getLatestDirName(String path) {
+  public static String getLastDirName(String path) {
     String separator = System.getProperty("file.separator");
     if (!path.contains(separator)) {
       return path;

@@ -60,7 +60,8 @@ public class ExtraParamTest {
   public void invalidParamTest() {
     invalidGlobalDirPathTest();
 
-    missDirTest();
+    missingDirTest();
+    missingDummyDirTest();
     nonsenseParamTest();
   }
 
@@ -93,7 +94,7 @@ public class ExtraParamTest {
     invalidPathPairsTest(pathPairList);
   }
 
-  // invalid path only in linux/macOS, tested separately because
+  // invalid path only in linux/macOS, test separately because
   // will cause tests after in invalidParamTest() being ignored.
   @Test
   public void invalidLinuxDirPathTest() {
@@ -138,12 +139,18 @@ public class ExtraParamTest {
   }
 
   // hasData = false/true, readOnly = false, missing data dir
-  private void missDirTest() {
+  private void missingDirTest() {
     runParamTest(false, true, false, null, validDummyDir);
-    runParamTest(false, false, false, null, validDummyDir);
+    runParamTest(false, false, false, null, null);
   }
 
-  // hasData = false, readOnly = true nonsense
+  // hasData = true, readOnly = false/true, missing dummy dir
+  private void missingDummyDirTest() {
+    runParamTest(false, true, true, null, null);
+    runParamTest(false, true, false, validDataDir, null);
+  }
+
+  // hasData = false, readOnly = true, nonsense
   private void nonsenseParamTest() {
     runParamTest(false, false, true, validDataDir, validDummyDir);
   }

@@ -52,17 +52,6 @@ public abstract class BaseCapacityExpansionIT {
 
   protected String addStorageEngine(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
-    return addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, null, null);
-  }
-
-  protected String addStorageEngine(
-      int port,
-      boolean hasData,
-      boolean isReadOnly,
-      String dataPrefix,
-      String schemaPrefix,
-      String dataDir,
-      String dummyDir) {
     try {
       StringBuilder statement = new StringBuilder();
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
@@ -80,10 +69,10 @@ public abstract class BaseCapacityExpansionIT {
         statement.append("/");
       }
       if (IS_PARQUET_OR_FILE_SYSTEM) {
-        statement.append(", dummy_dir:");
-        statement.append(dummyDir != null ? dummyDir : "test/" + PORT_TO_ROOT.get(port));
-        statement.append(", dir:");
-        statement.append(dataDir != null ? dataDir : "test/iginx_" + PORT_TO_ROOT.get(port));
+        statement.append(", dummy_dir:test/");
+        statement.append(PORT_TO_ROOT.get(port));
+        statement.append(", dir:test/iginx_");
+        statement.append(PORT_TO_ROOT.get(port));
         statement.append(", iginx_port:" + oriPortIginx);
       }
       if (extraParams != null) {
