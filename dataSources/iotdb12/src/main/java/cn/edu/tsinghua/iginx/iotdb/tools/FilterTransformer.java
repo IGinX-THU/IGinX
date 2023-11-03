@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.tools;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
@@ -70,7 +72,7 @@ public class FilterTransformer {
   }
 
   private static String toString(KeyFilter filter) {
-    return "time " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
+    return "time " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + filter.getValue();
   }
 
   private static String toString(ValueFilter filter) {
@@ -79,14 +81,14 @@ public class FilterTransformer {
             ? "'" + filter.getValue().getBinaryVAsString() + "'"
             : filter.getValue().getValue().toString();
 
-    if (filter.getOp().equals(Op.LIKE)) {
+    if (isLikeOp(filter.getOp())) {
       if (!value.endsWith("$'")) {
         value = value.substring(0, value.length() - 1) + "$'";
       }
       return filter.getPath() + " regexp " + value;
     }
 
-    return filter.getPath() + " " + Op.op2Str(filter.getOp()) + " " + value;
+    return filter.getPath() + " " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
   }
 
   private static String toString(OrFilter filter) {

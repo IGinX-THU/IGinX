@@ -21,7 +21,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void testQuerySpecialHistoryData() {
-    String statement = "select redis.* from tm";
+    String statement = "select redis.* from tm;";
     String expect =
         "ResultSets:\n"
             + "+---+-----------------+-------------------+------------+------------+-------------+\n"

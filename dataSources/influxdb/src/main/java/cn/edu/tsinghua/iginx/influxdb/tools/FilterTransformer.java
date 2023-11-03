@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.influxdb.tools;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
+
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
@@ -65,7 +67,11 @@ public class FilterTransformer {
   }
 
   private static String toString(KeyFilter filter) {
-    return "r[\"_time\"] " + Op.op2Str(filter.getOp()) + " time(v: " + filter.getValue() + ")";
+    return "r[\"_time\"] "
+        + Op.op2StrWithoutAndOr(filter.getOp())
+        + " time(v: "
+        + filter.getValue()
+        + ")";
   }
 
   private static String toString(ValueFilter filter) {
@@ -77,7 +83,7 @@ public class FilterTransformer {
             ? "\"" + filter.getValue().getBinaryVAsString() + "\""
             : filter.getValue().getValue().toString();
 
-    if (filter.getOp().equals(Op.LIKE)) {
+    if (isLikeOp(filter.getOp())) {
       return "r[\""
           + path
           + "\"] "
@@ -86,7 +92,7 @@ public class FilterTransformer {
           + "$/"; // SQL的正则匹配需要全部匹配，但InfluxDB可以部分匹配，所以需要在最后加上$以保证匹配全部字符串。
     }
 
-    return "r[\"" + path + "\"] " + Op.op2Str(filter.getOp()) + " " + value;
+    return "r[\"" + path + "\"] " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
   }
 
   private static String toString(OrFilter filter) {
@@ -102,6 +108,12 @@ public class FilterTransformer {
     String pathA = schemaA.getField();
     String pathB = schemaB.getField();
 
-    return "r[\"" + pathA + "\"] " + Op.op2Str(filter.getOp()) + " r[\"" + pathB + "\"]";
+    return "r[\""
+        + pathA
+        + "\"] "
+        + Op.op2StrWithoutAndOr(filter.getOp())
+        + " r[\""
+        + pathB
+        + "\"]";
   }
 }

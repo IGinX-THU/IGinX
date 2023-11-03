@@ -46,6 +46,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.HeaderUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -119,37 +120,39 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   @Override
-  public RowStream executeUnaryOperator(UnaryOperator operator, RowStream stream)
-      throws PhysicalException {
+  public RowStream executeUnaryOperator(
+      UnaryOperator operator, RowStream stream, RequestContext context) throws PhysicalException {
+    Table table = transformToTable(stream);
+    table.setContext(context);
     switch (operator.getType()) {
       case Project:
-        return executeProject((Project) operator, transformToTable(stream));
+        return executeProject((Project) operator, table);
       case Select:
-        return executeSelect((Select) operator, transformToTable(stream));
+        return executeSelect((Select) operator, table);
       case Sort:
-        return executeSort((Sort) operator, transformToTable(stream));
+        return executeSort((Sort) operator, table);
       case Limit:
-        return executeLimit((Limit) operator, transformToTable(stream));
+        return executeLimit((Limit) operator, table);
       case Downsample:
-        return executeDownsample((Downsample) operator, transformToTable(stream));
+        return executeDownsample((Downsample) operator, table);
       case RowTransform:
-        return executeRowTransform((RowTransform) operator, transformToTable(stream));
+        return executeRowTransform((RowTransform) operator, table);
       case SetTransform:
-        return executeSetTransform((SetTransform) operator, transformToTable(stream));
+        return executeSetTransform((SetTransform) operator, table);
       case MappingTransform:
-        return executeMappingTransform((MappingTransform) operator, transformToTable(stream));
+        return executeMappingTransform((MappingTransform) operator, table);
       case Rename:
-        return executeRename((Rename) operator, transformToTable(stream));
+        return executeRename((Rename) operator, table);
       case Reorder:
-        return executeReorder((Reorder) operator, transformToTable(stream));
+        return executeReorder((Reorder) operator, table);
       case AddSchemaPrefix:
-        return executeAddSchemaPrefix((AddSchemaPrefix) operator, transformToTable(stream));
+        return executeAddSchemaPrefix((AddSchemaPrefix) operator, table);
       case GroupBy:
-        return executeGroupBy((GroupBy) operator, transformToTable(stream));
+        return executeGroupBy((GroupBy) operator, table);
       case Distinct:
-        return executeDistinct((Distinct) operator, transformToTable(stream));
+        return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
-        return executeValueToSelectedPath((ValueToSelectedPath) operator, transformToTable(stream));
+        return executeValueToSelectedPath((ValueToSelectedPath) operator, table);
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
@@ -157,36 +160,33 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   @Override
   public RowStream executeBinaryOperator(
-      BinaryOperator operator, RowStream streamA, RowStream streamB) throws PhysicalException {
+      BinaryOperator operator, RowStream streamA, RowStream streamB, RequestContext context)
+      throws PhysicalException {
+    Table tableA = transformToTable(streamA);
+    Table tableB = transformToTable(streamB);
+    tableA.setContext(context);
+    tableB.setContext(context);
     switch (operator.getType()) {
       case Join:
-        return executeJoin((Join) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeJoin((Join) operator, tableA, tableB);
       case CrossJoin:
-        return executeCrossJoin(
-            (CrossJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeCrossJoin((CrossJoin) operator, tableA, tableB);
       case InnerJoin:
-        return executeInnerJoin(
-            (InnerJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeInnerJoin((InnerJoin) operator, tableA, tableB);
       case OuterJoin:
-        return executeOuterJoin(
-            (OuterJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeOuterJoin((OuterJoin) operator, tableA, tableB);
       case SingleJoin:
-        return executeSingleJoin(
-            (SingleJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeSingleJoin((SingleJoin) operator, tableA, tableB);
       case MarkJoin:
-        return executeMarkJoin(
-            (MarkJoin) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeMarkJoin((MarkJoin) operator, tableA, tableB);
       case PathUnion:
-        return executePathUnion(
-            (PathUnion) operator, transformToTable(streamA), transformToTable(streamB));
+        return executePathUnion((PathUnion) operator, tableA, tableB);
       case Union:
-        return executeUnion((Union) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeUnion((Union) operator, tableA, tableB);
       case Except:
-        return executeExcept(
-            (Except) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeExcept((Except) operator, tableA, tableB);
       case Intersect:
-        return executeIntersect(
-            (Intersect) operator, transformToTable(streamA), transformToTable(streamB));
+        return executeIntersect((Intersect) operator, tableA, tableB);
       default:
         throw new UnexpectedOperatorException("unknown binary operator: " + operator.getType());
     }
@@ -2067,6 +2067,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header headerB = tableB.getHeader();
     List<Field> newFields = new ArrayList<>();
     Map<Field, Integer> fieldIndices = new HashMap<>();
+    boolean containOverlappedKeys = false;
     for (Field field : headerA.getFields()) {
       if (fieldIndices.containsKey(field)) {
         continue;
@@ -2098,6 +2099,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         Object[] values = new Object[newHeader.getFieldSize()];
         long timestamp;
         if (rowA.getKey() == rowB.getKey()) {
+          if (!containOverlappedKeys) {
+            containOverlappedKeys = true;
+          }
           timestamp = rowA.getKey();
           writeToNewRow(values, rowA, fieldIndices);
           writeToNewRow(values, rowB, fieldIndices);
@@ -2128,7 +2132,19 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         writeToNewRow(values, rowB, fieldIndices);
         newRows.add(new Row(newHeader, rowB.getKey(), values));
       }
-      return new Table(newHeader, newRows);
+      Table table = new Table(newHeader, newRows);
+      RequestContext context = null;
+      if (tableA.getContext() != null) {
+        context = tableA.getContext();
+      } else if (tableB.getContext() != null) {
+        context = tableB.getContext();
+      }
+      if (context != null && containOverlappedKeys) {
+        context.setWarningMsg("The query results contain overlapped keys.");
+      }
+      table.setContext(context);
+
+      return table;
     } else if (join.getJoinBy().equals(Constants.ORDINAL)) {
       if (headerA.hasKey() || headerB.hasKey()) {
         throw new InvalidOperatorParameterException(

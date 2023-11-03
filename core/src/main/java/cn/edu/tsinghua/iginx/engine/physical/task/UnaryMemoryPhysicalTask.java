@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
@@ -18,9 +19,17 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final PhysicalTask parentTask;
 
+  private final RequestContext context;
+
   public UnaryMemoryPhysicalTask(List<Operator> operators, PhysicalTask parentTask) {
+    this(operators, parentTask, null);
+  }
+
+  public UnaryMemoryPhysicalTask(
+      List<Operator> operators, PhysicalTask parentTask, RequestContext context) {
     super(TaskType.UnaryMemory, operators);
     this.parentTask = parentTask;
+    this.context = context;
   }
 
   public PhysicalTask getParentTask() {
@@ -46,7 +55,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
         if (!OperatorType.isUnaryOperator(op.getType())) {
           throw new UnexpectedOperatorException("unexpected operator " + op + " in unary task");
         }
-        stream = executor.executeUnaryOperator((UnaryOperator) op, stream);
+        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, context);
       }
     } catch (PhysicalException e) {
       logger.error("encounter error when execute operator in memory: ", e);
