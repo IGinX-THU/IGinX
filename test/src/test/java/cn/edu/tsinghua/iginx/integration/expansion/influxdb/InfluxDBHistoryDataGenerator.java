@@ -149,17 +149,13 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
   public void clearHistoryDataForGivenPort(int port) {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
-    Bucket bucket = client.getBucketsApi().findBucketByName("mn");
-    if (bucket != null) {
-      client.getBucketsApi().deleteBucket(bucket);
-    }
-
-    bucket = client.getBucketsApi().findBucketByName("nt");
-    if (bucket != null) {
-      client.getBucketsApi().deleteBucket(bucket);
-    }
-    bucket = client.getBucketsApi().findBucketByName("us");
-    if (bucket != null) {
+    Organization organization =
+        client.getOrganizationsApi().findOrganizations().stream()
+            .filter(o -> o.getName().equals(ORGANIZATION))
+            .findFirst()
+            .orElseThrow(IllegalStateException::new);
+    List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
+    for (Bucket bucket : buckets) {
       client.getBucketsApi().deleteBucket(bucket);
     }
     client.close();
