@@ -62,8 +62,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -72,21 +71,6 @@ import java.util.List;
 import org.junit.Test;
 
 public abstract class AbstractOperatorMemoryExecutorTest {
-
-  private static class EmptySource implements Source {
-
-    public static final EmptySource EMPTY_SOURCE = new EmptySource();
-
-    @Override
-    public SourceType getType() {
-      return null;
-    }
-
-    @Override
-    public Source copy() {
-      return null;
-    }
-  }
 
   protected abstract OperatorMemoryExecutor getExecutor();
 
