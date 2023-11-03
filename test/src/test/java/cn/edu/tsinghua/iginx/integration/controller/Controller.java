@@ -176,6 +176,9 @@ public class Controller {
           fail();
         }
       } else {
+        if (!needWriteHistoryData) {
+          break;
+        }
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
         BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
         if (generator == null) {
@@ -252,7 +255,7 @@ public class Controller {
       fail();
     }
 
-    if (lowerKeyList != null && !lowerKeyList.isEmpty()) {
+    if (lowerKeyList != null && !lowerKeyList.isEmpty() && needWriteHistoryData) {
       BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
       if (generator == null) {
         logger.error("write data fail, caused by generator is null");
