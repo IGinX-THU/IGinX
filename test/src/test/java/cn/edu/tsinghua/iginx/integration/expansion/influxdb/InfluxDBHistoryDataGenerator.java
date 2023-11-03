@@ -156,7 +156,11 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             .orElseThrow(IllegalStateException::new);
     List<Bucket> buckets = client.getBucketsApi().findBucketsByOrg(organization);
     for (Bucket bucket : buckets) {
-      client.getBucketsApi().deleteBucket(bucket);
+      try {
+        client.getBucketsApi().deleteBucket(bucket);
+      } catch (Exception exception) {
+        logger.warn("delete bucket {} failed for {}", bucket.getName(), exception.getMessage());
+      }
     }
     client.close();
     logger.info("clear data on 127.0.0.1:{} success!", port);
