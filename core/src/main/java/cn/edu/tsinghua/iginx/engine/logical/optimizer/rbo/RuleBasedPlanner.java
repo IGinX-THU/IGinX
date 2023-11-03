@@ -97,6 +97,9 @@ public class RuleBasedPlanner implements Planner {
   }
 
   private boolean matchOperand(Operand expected, Operator actual) {
+    if (expected == Operand.ANY_OPERAND) {
+      return true;
+    }
     if (!expected.matches(actual)) {
       return false;
     }

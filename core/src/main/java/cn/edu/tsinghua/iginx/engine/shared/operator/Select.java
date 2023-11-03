@@ -43,6 +43,11 @@ public class Select extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Select(source, filter.copy(), tagFilter == null ? null : tagFilter.copy());
+  }
+
+  @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("Filter: ").append(filter.toString());

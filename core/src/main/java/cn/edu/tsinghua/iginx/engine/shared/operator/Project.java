@@ -75,6 +75,16 @@ public class Project extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Project(
+        source,
+        new ArrayList<>(patterns),
+        tagFilter == null ? null : tagFilter.copy(),
+        needSelectedPath,
+        remainKey);
+  }
+
+  @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("Patterns: ");

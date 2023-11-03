@@ -16,7 +16,7 @@ public class DeepFirstIterator implements TreeIterator {
 
   @Override
   public boolean hasNext() {
-    return queue.isEmpty();
+    return !queue.isEmpty();
   }
 
   @Override

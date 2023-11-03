@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 
 public class ProjectWaitingForPath extends AbstractUnaryOperator {
@@ -24,6 +25,11 @@ public class ProjectWaitingForPath extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
+    return new ProjectWaitingForPath(incompleteStatement);
+  }
+
+  @Override
+  public UnaryOperator copyWithSource(Source source) {
     return new ProjectWaitingForPath(incompleteStatement);
   }
 

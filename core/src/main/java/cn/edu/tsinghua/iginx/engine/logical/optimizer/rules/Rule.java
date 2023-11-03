@@ -33,11 +33,11 @@ public abstract class Rule {
   /** This method is used to modify the local topology after rule matching. */
   public abstract void onMatch(RuleCall call);
 
-  public Operand any() {
+  public static Operand any() {
     return Operand.ANY_OPERAND;
   }
 
-  public Operand operand(Class<? extends Operator> clazz, Operand... children) {
+  public static Operand operand(Class<? extends Operator> clazz, Operand... children) {
     return new Operand(clazz, Arrays.asList(children));
   }
 }

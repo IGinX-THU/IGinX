@@ -21,6 +21,11 @@ public class RuleCollection {
     return InstanceHolder.INSTANCE;
   }
 
+  private RuleCollection() {
+    // add rules here
+    addRule(FilterJoinTransposeRule.getInstance());
+  }
+
   public void addRule(Rule rule) {
     this.rules.add(rule);
   }
@@ -34,23 +39,33 @@ public class RuleCollection {
   }
 
   public Iterator<Rule> iterator() {
-    return new RuleIterator();
+    return new RuleIterator(rules, bannedRules);
   }
 
-  class RuleIterator implements Iterator<Rule> {
+  static class RuleIterator implements Iterator<Rule> {
+
+    private final List<Rule> rules;
+
+    private final Set<Rule> bannedRules;
 
     int index = 0;
     Rule curRule = null;
 
+    public RuleIterator(List<Rule> rules, Set<Rule> bannedRules) {
+      this.rules = rules;
+      this.bannedRules = bannedRules;
+    }
+
     @Override
     public boolean hasNext() {
-      if (index >= rules.size()) {
-        return false;
+      if (curRule != null) {
+        return true;
       }
-      for (int i = index; i < rules.size(); i++) {
-        Rule rule = rules.get(i);
+      for (; index < rules.size(); index++) {
+        Rule rule = rules.get(index);
         if (!bannedRules.contains(rule)) {
           curRule = rule;
+          index++;
           break;
         }
       }
@@ -59,7 +74,7 @@ public class RuleCollection {
 
     @Override
     public Rule next() {
-      if (hasNext()) {
+      if (!hasNext()) {
         throw new NoSuchElementException("rule iterator has reached the end");
       }
       Rule ret = curRule;

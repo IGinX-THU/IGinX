@@ -35,6 +35,10 @@ public abstract class RuleCall {
     return matchedRoot;
   }
 
+  public Map<Operator, List<Operator>> getChildrenIndex() {
+    return childrenIndex;
+  }
+
   public Map<Operator, Operator> getParentIndexMap() {
     return parentIndexMap;
   }

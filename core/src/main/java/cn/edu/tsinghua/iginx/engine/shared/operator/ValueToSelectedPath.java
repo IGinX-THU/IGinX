@@ -22,6 +22,11 @@ public class ValueToSelectedPath extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new ValueToSelectedPath(source, prefix);
+  }
+
+  @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
     if (prefix != null && !prefix.isEmpty()) {
