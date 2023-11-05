@@ -762,13 +762,13 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status registerTask(RegisterTaskReq req) {
-    String name = req.getName().trim().toLowerCase();
+    String name = req.getName().trim();
     String filePath = req.getFilePath();
     String className = req.getClassName();
 
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-      logger.error(String.format("Register task %s already exist", transformTaskMeta.toString()));
+      logger.error(String.format("Register task %s already exist", transformTaskMeta));
       return RpcUtils.FAILURE;
     }
 
@@ -820,7 +820,7 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status dropTask(DropTaskReq req) {
-    String name = req.getName().trim().toLowerCase();
+    String name = req.getName().trim();
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     if (transformTaskMeta == null) {
       logger.error("Register task not exist");
