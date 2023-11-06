@@ -5,9 +5,9 @@ import cn.edu.tsinghua.iginx.engine.shared.visitor.TreeInfoVisitor;
 
 public class TreePrinter {
 
-    public static String getTreeInfo(Operator root) {
-        TreeInfoVisitor visitor = new TreeInfoVisitor();
-        root.accept(visitor);
-        return visitor.getTreeInfo();
-    }
+  public static String getTreeInfo(Operator root) {
+    TreeInfoVisitor visitor = new TreeInfoVisitor();
+    root.accept(visitor);
+    return visitor.getTreeInfo();
+  }
 }
