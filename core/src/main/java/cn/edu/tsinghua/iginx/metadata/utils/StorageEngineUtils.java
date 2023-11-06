@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.metadata.utils;
 
-import static cn.edu.tsinghua.iginx.conf.Constants.HAS_DATA;
-import static cn.edu.tsinghua.iginx.conf.Constants.SCHEMA_PREFIX;
+import static cn.edu.tsinghua.iginx.conf.Constants.*;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -23,7 +22,22 @@ public class StorageEngineUtils {
     return type.equals(StorageEngineType.redis);
   }
 
-  public static boolean setSchemaPrefixInExtraParams(
+  private static boolean isDirValid(String dir) {
+    // 检查路径是否为空
+    if (dir == null || dir.isEmpty()) {
+      return false;
+    }
+
+    // 检查路径是否为根路径
+    if (dir.equals("/") || dir.matches("[A-Za-z]:[/\\\\]")) {
+      return false;
+    }
+
+    File file = new File(dir);
+    return file.exists() && file.isDirectory();
+  }
+
+  public static boolean checkEmbeddedStorageExtraParams(
       StorageEngineType type, Map<String, String> extraParams) {
 
     if (isEmbeddedStorageEngine(type)) {
@@ -38,14 +52,14 @@ public class StorageEngineUtils {
       if (hasData) {
         // 如果hasData为true，则参数中必须配置dummy_dir
         Pair<Boolean, String> dummyDirPair = getCanonicalPath(extraParams.get("dummy_dir"));
-        if (!dummyDirPair.k) {
+        if (!dummyDirPair.k || !isDirValid(dummyDirPair.v)) {
           return false;
         }
         String dummyDirPath = dummyDirPair.v;
         if (!readOnly) {
           // 如果hasData为true，且readOnly为false，则参数中必须配置dir，且不能与dummy_dir相同
-          Pair<Boolean, String> dirPair = getCanonicalPath(extraParams.get("dir"));
-          if (!dirPair.k) {
+          Pair<Boolean, String> dirPair = getCanonicalPathWithCreate(extraParams.get("dir"));
+          if (!dirPair.k || !isDirValid(dirPair.v)) {
             return false;
           }
           String dirPath = dirPair.v;
@@ -55,16 +69,16 @@ public class StorageEngineUtils {
         }
         String separator = System.getProperty("file.separator");
         // dummyDirPath是规范路径，一定不会以separator结尾
-        String schemaPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
-        if (extraParams.containsKey(SCHEMA_PREFIX)) {
-          extraParams.put(SCHEMA_PREFIX, extraParams.get(SCHEMA_PREFIX) + "." + schemaPrefix);
-        } else {
-          extraParams.put(SCHEMA_PREFIX, schemaPrefix);
-        }
+        String dirPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
+        extraParams.put(EMBEDDED_PREFIX, dirPrefix);
       } else {
+        // hasData=false readOnly=true 无意义的引擎
+        if (readOnly) {
+          return false;
+        }
         // 如果hasData为false，则参数中必须配置dir
-        Pair<Boolean, String> dirPair = getCanonicalPath(extraParams.get("dir"));
-        return dirPair.k;
+        Pair<Boolean, String> dirPair = getCanonicalPathWithCreate(extraParams.get("dir"));
+        return dirPair.k && isDirValid(dirPair.v);
       }
     } else if (isFlatStorageEngine(type)) {
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
@@ -83,19 +97,18 @@ public class StorageEngineUtils {
     return isLocalHost(meta.getIp()) && storageIginxPort == port;
   }
 
+  // for dummy dir: dummy dir should exist, don't create
   private static Pair<Boolean, String> getCanonicalPath(String dir) {
     Pair<Boolean, String> invalidPair = new Pair<>(false, "");
     if (dir == null || dir.isEmpty()) { // 为空
       return invalidPair;
     }
+    if (dir.equals("/") || dir.matches("[A-Za-z]:[/\\\\]")) { // 根目录
+      return invalidPair;
+    }
     File file = new File(dir);
     if (file.exists() && !file.isDirectory()) { // 存在但不是目录
       return invalidPair;
-    }
-    if (!file.exists()) { // 不存在则尝试创建
-      if (!file.mkdirs()) {
-        return invalidPair;
-      }
     }
     try {
       String canonicalPath = file.getCanonicalPath(); // 获取规范路径
@@ -103,5 +116,19 @@ public class StorageEngineUtils {
     } catch (IOException e) {
       return invalidPair;
     }
+  }
+
+  private static Pair<Boolean, String> getCanonicalPathWithCreate(String dir) {
+    Pair<Boolean, String> invalidPair = new Pair<>(false, "");
+    Pair<Boolean, String> res = getCanonicalPath(dir);
+    if (res.k) { // valid path
+      File file = new File(res.v);
+      if (!file.exists()) { // 不存在则尝试创建
+        if (!file.mkdirs()) {
+          return invalidPair;
+        }
+      }
+    }
+    return res;
   }
 }

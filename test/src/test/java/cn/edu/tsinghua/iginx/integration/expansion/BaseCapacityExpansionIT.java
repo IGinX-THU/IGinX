@@ -357,17 +357,15 @@ public abstract class BaseCapacityExpansionIT {
     String dataPrefix2 = "nt.wf04";
     String schemaPrefixSuffix = "";
     String schemaPrefix = "";
-    if (IS_PARQUET_OR_FILE_SYSTEM || IS_FLAT_STORAGE_ENGINE) {
-      dataPrefix1 = "wf03";
-      dataPrefix2 = "wf04";
-      schemaPrefixSuffix = ".nt";
-      schemaPrefix = "nt";
-    }
 
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
     if (IS_FLAT_STORAGE_ENGINE) {
+      dataPrefix1 = "wf03";
+      dataPrefix2 = "wf04";
+      schemaPrefixSuffix = ".nt";
+      schemaPrefix = "nt";
       schemaPrefix1 = "p1.nt";
       schemaPrefix2 = "p2.nt";
       schemaPrefix3 = "p3.nt";
