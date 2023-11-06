@@ -27,11 +27,6 @@ public class IndexVisitor implements OperatorVisitor {
   }
 
   @Override
-  public boolean needStop() {
-    return false;
-  }
-
-  @Override
   public void visit(UnaryOperator unaryOperator) {
     Source source = unaryOperator.getSource();
     if (source.getType() == SourceType.Operator) {

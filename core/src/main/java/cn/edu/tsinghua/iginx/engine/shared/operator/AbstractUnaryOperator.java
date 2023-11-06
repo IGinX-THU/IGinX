@@ -42,6 +42,7 @@ public abstract class AbstractUnaryOperator extends AbstractOperator implements 
 
   @Override
   public void accept(OperatorVisitor visitor) {
+    visitor.enter();
     visitor.visit(this);
 
     if (visitor.needStop()) {
@@ -52,6 +53,7 @@ public abstract class AbstractUnaryOperator extends AbstractOperator implements 
     if (source.getType() == SourceType.Operator) {
       ((OperatorSource) source).getOperator().accept(visitor);
     }
+    visitor.leave();
   }
 
   @Override

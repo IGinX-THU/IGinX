@@ -45,6 +45,7 @@ public abstract class AbstractBinaryOperator extends AbstractOperator implements
 
   @Override
   public void accept(OperatorVisitor visitor) {
+    visitor.enter();
     visitor.visit(this);
 
     if (visitor.needStop()) {
@@ -59,6 +60,7 @@ public abstract class AbstractBinaryOperator extends AbstractOperator implements
     if (sourceB.getType() == SourceType.Operator) {
       ((OperatorSource) sourceB).getOperator().accept(visitor);
     }
+    visitor.leave();
   }
 
   @Override

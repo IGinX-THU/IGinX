@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import java.util.Collections;
+import org.junit.Assert;
 import org.junit.Test;
 
 public class RBOTest {
@@ -28,9 +29,24 @@ public class RBOTest {
         Select select = new Select(new OperatorSource(innerJoin), new KeyFilter(Op.G, 10), null);
 
         Reorder reorder = new Reorder(new OperatorSource(select), Collections.singletonList("*"));
-        System.out.println(reorder.getInfo());
+        String expected =
+            "[Reorder] Order: *\n"
+                + "  [Select] Filter: key > 10\n"
+                + "    [InnerJoin] PrefixA: null, PrefixB: null, IsNatural: false, Filter: test.a == test.b\n"
+                + "      [Project] Patterns:\n"
+                + "      [Project] Patterns:\n";
+        String actual = TreePrinter.getTreeInfo(reorder);
+        Assert.assertEquals(expected, actual);
 
         Operator root = rbo.optimize(reorder);
-        System.out.println(root.getInfo());
+        expected =
+            "[Reorder] Order: *\n"
+                + "  [InnerJoin] PrefixA: null, PrefixB: null, IsNatural: false, Filter: test.a == test.b\n"
+                + "    [Select] Filter: key > 10\n"
+                + "      [Project] Patterns:\n"
+                + "    [Select] Filter: key > 10\n"
+                + "      [Project] Patterns:\n";
+        actual = TreePrinter.getTreeInfo(root);
+        Assert.assertEquals(expected, actual);
     }
 }

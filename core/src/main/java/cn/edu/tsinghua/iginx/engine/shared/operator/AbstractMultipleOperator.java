@@ -32,6 +32,7 @@ public abstract class AbstractMultipleOperator extends AbstractOperator
 
   @Override
   public void accept(OperatorVisitor visitor) {
+    visitor.enter();
     visitor.visit(this);
 
     if (visitor.needStop()) {
@@ -43,6 +44,7 @@ public abstract class AbstractMultipleOperator extends AbstractOperator
         ((OperatorSource) source).getOperator().accept(visitor);
       }
     }
+    visitor.leave();
   }
 
   @Override

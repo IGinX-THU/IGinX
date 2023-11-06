@@ -16,11 +16,6 @@ public class DeepFirstQueueVisitor implements OperatorVisitor {
   }
 
   @Override
-  public boolean needStop() {
-    return false;
-  }
-
-  @Override
   public void visit(UnaryOperator unaryOperator) {
     queue.offer(unaryOperator);
   }
