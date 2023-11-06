@@ -67,6 +67,7 @@ public class ParquetStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     String dataDir = extraParams.get("dir");
     String dummyDir = extraParams.get("dummy_dir");
+    String dirPrefix = extraParams.get("embedded_prefix");
 
     Connection connection;
     try {
@@ -76,7 +77,8 @@ public class ParquetStorage implements IStorage {
     }
 
     this.executor =
-        new NewExecutor(connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir);
+        new NewExecutor(
+            connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
     this.server = new ParquetServer(meta.getPort(), executor);
     this.thread = new Thread(server);
     thread.start();
