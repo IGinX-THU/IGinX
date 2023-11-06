@@ -19,9 +19,9 @@
 package cn.edu.tsinghua.iginx;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.checkEmbeddedStorageExtraParams;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.setSchemaPrefixInExtraParams;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
@@ -89,8 +89,10 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       Map<String, String> extraParams = metaFromConf.getExtraParams();
-      if (!setSchemaPrefixInExtraParams(metaFromConf.getStorageEngine(), extraParams)) {
-        logger.error("set schema prefix in extra params failed when initializing IginxWorker!");
+      if (!checkEmbeddedStorageExtraParams(metaFromConf.getStorageEngine(), extraParams)) {
+        logger.error(
+            "Missing or providing invalid params for {} in config file.",
+            metaFromConf.getStorageEngine());
         return;
       }
       metaFromConf.setExtraParams(extraParams);
@@ -340,8 +342,9 @@ public class IginxWorker implements IService.Iface {
         statusList.add(status);
         continue;
       }
-      if (!setSchemaPrefixInExtraParams(type, extraParams)) {
-        return RpcUtils.FAILURE;
+      if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
+        return RpcUtils.FAILURE.setMessage(
+            String.format("Missing or providing invalid params for %s in query.", type));
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
 
