@@ -72,7 +72,7 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
-                  work-name: client-before
+                  shell: client-before
 
             - name: Test Client Export File
               if: always()
