@@ -15,6 +15,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionI
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
@@ -386,7 +387,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
-    if (res != null && !res.contains("unexpected repeated add")) {
+    if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3);
@@ -457,10 +458,11 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
+      SessionExecuteSqlResult result = session.executeSql("show cluster info;");
+      result.print(false, "");
     } catch (ExecutionException | SessionException e) {
-      if (!e.getMessage().contains("dummy storage engine does not exist.")) {
-        logger.error(
-            "'remove history data source should throw error when removing the node that does not exist");
+      if (!e.getMessage().contains("dummy storage engine") || !e.getMessage().contains("does not exist.")) {
+        logger.error("remove history data source should throw error when removing the node that does not exist");
         fail();
       }
     }
