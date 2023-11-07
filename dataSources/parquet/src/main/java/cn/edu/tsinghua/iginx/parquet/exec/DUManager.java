@@ -81,6 +81,8 @@ public class DUManager {
 
   private final String dataDir;
 
+  private final String embeddedPrefix;
+
   private final Connection connection;
 
   private final boolean isDummyStorageUnit;
@@ -103,12 +105,18 @@ public class DUManager {
 
   private final ExecutorService flushPool = Executors.newSingleThreadExecutor();
 
-  public DUManager(String id, String dataDir, Connection connection, boolean isDummyStorageUnit)
+  public DUManager(
+      String id,
+      String dataDir,
+      Connection connection,
+      boolean isDummyStorageUnit,
+      String embeddedPrefix)
       throws IOException {
     this.id = id;
     this.dataDir = dataDir;
     this.connection = connection;
     this.isDummyStorageUnit = isDummyStorageUnit;
+    this.embeddedPrefix = embeddedPrefix;
 
     if (!isDummyStorageUnit) {
       if (Files.exists(Paths.get(dataDir, id))) {
@@ -234,6 +242,9 @@ public class DUManager {
 
         Set<String> pathsInFile = getPathsFromFile(dataFile.getPath()).keySet();
         List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
+        // dir prefix in dummy column & filter be removed
+        filePaths.replaceAll(s -> s.substring(s.indexOf(".") + 1));
+        filter.replaceAll("(?<=^|[^A-Za-z]" + embeddedPrefix + ".)", "");
         if (!filePaths.isEmpty()) {
           List<Column> columns =
               projectInParquet(filePaths, filter, dataFile.getPath(), null, Long.MAX_VALUE);
@@ -323,6 +334,11 @@ public class DUManager {
         continue;
       }
       DataType type = fromParquetDataType(rsMetaData.getColumnTypeName(i));
+      // dummy path should add dir prefix
+      // won't affect deleteRange because deleteRange will be null in dummy
+      if (isDummyStorageUnit) {
+        pathName = embeddedPrefix + "." + pathName;
+      }
       columns.add(new Column(pathName, physicalPath, type));
     }
 
@@ -723,7 +739,7 @@ public class DUManager {
             ((String) rs.getObject(NAME)).replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
         DataType type = fromDuckDBDataType((String) rs.getObject(COLUMN_TYPE));
         if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_KEY)) {
-          ret.put(pathName, type);
+          ret.put(embeddedPrefix + "." + pathName, type);
         }
       }
       stmt.close();
