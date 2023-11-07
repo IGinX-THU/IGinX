@@ -13,10 +13,13 @@ import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpa
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngine;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -458,8 +461,11 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
-      SessionExecuteSqlResult result = session.executeSql("show cluster info;");
-      logger.error(result.getResultInString(false, ""));
+      ClusterInfo clusterInfo = session.getClusterInfo();
+      logger.error("show");
+      for (StorageEngineInfo info : clusterInfo.getStorageEngineInfos()) {
+        logger.error(info.toString());
+      }
     } catch (ExecutionException | SessionException e) {
       if (!e.getMessage().contains("remove history data source failed")) {
         logger.error("remove history data source should throw error when removing the node that does not exist");
