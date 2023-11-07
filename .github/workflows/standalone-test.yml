@@ -72,7 +72,13 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
+                  work-name: stop-iginx-zk
                   shell: client-before
+
+            - name: set client test context
+              uses: ./.github/actions/context
+              with:
+                  work-name: start-iginx-zk
 
             - name: Test Client Export File
               if: always()
@@ -83,7 +89,7 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
-                  work-name: client-after
+                  shell: client-after
 
             - name: Test Client Import File
               if: always()

@@ -48,7 +48,7 @@ runs:
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
               fi
 
-        - if: inputs.work-name=='client-after'
+        - if: inputs.shell=='client-after'
           name: Pre Test Client Import File
           shell: bash
           run: |
