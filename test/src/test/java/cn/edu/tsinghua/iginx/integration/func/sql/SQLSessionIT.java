@@ -205,23 +205,23 @@ public class SQLSessionIT {
   }
 
   public void showClusterInfo(String stmt) {
-    String statement = "show cluster info;";
-    String actualOutput = executor.execute(statement);
-    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
-
-    statement = "show columns;";
-    actualOutput = executor.execute(statement);
-    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
-
-    statement = "select count(*) from *;";
-    actualOutput = executor.execute(statement);
-    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
-
-    if (stmt != null) {
-      statement = "explain "+stmt;
-      actualOutput = executor.execute(statement);
-      logger.info("===============LHZ===================show cluster info: {}", actualOutput);
-    }
+//    String statement = "show cluster info;";
+//    String actualOutput = executor.execute(statement);
+//    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
+//
+//    statement = "show columns;";
+//    actualOutput = executor.execute(statement);
+//    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
+//
+//    statement = "select count(*) from *;";
+//    actualOutput = executor.execute(statement);
+//    logger.info("===============LHZ===================show cluster info: {}", actualOutput);
+//
+//    if (stmt != null) {
+//      statement = "explain "+stmt;
+//      actualOutput = executor.execute(statement);
+//      logger.info("===============LHZ===================show cluster info: {}", actualOutput);
+//    }
   }
 
   @Test
@@ -1037,7 +1037,6 @@ public class SQLSessionIT {
 
   @Test
   public void testFirstLastQuery() {
-    showClusterInfo(null);
     String statement = "SELECT FIRST(s2) FROM us.d1 WHERE key > 0;";
     String expected =
         "ResultSets:\n"
@@ -1231,7 +1230,6 @@ public class SQLSessionIT {
       String type = funcTypeList.get(i);
       String expected = expectedList.get(i);
 
-      showClusterInfo(String.format(statement, type, type));
       executor.executeAndCompare(String.format(statement, type, type), expected);
     }
   }
