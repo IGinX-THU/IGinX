@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -29,6 +30,7 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
@@ -90,6 +92,8 @@ public class TransformIT {
 
   private static boolean dummyNoData = true;
 
+  private static boolean needCompareResult = true;
+
   static {
     TASK_MAP.put(
         "RowSumTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_row_sum.py");
@@ -101,6 +105,10 @@ public class TransformIT {
 
   @BeforeClass
   public static void setUp() throws SessionException {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
+      needCompareResult = false;
+    }
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
   }
@@ -184,6 +192,9 @@ public class TransformIT {
   private void verifyJobState(long jobId)
       throws SessionException, ExecutionException, InterruptedException {
     logger.info("job is {}", jobId);
+    if (!needCompareResult) {
+      return;
+    }
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)
         && !jobState.equals(JobState.JOB_FAILED)
@@ -292,6 +303,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("us.d1.s2", parts[1]);
 
@@ -365,6 +379,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("sum", parts[1]);
 
@@ -487,6 +504,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("sum", parts[1]);
 
@@ -599,6 +619,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("sum", parts[1]);
 

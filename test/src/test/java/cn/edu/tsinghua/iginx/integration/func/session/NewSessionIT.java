@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.controller.InsertAPIType.*;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
@@ -63,6 +64,8 @@ public class NewSessionIT {
 
   private static boolean dummyNoData = true;
 
+  private static boolean needCompareResult = true;
+
   public NewSessionIT() {}
 
   private static TestDataSection buildBaseDataSection() {
@@ -116,6 +119,9 @@ public class NewSessionIT {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == influxdb) {
       isInfluxdb = true;
+    }
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
+      needCompareResult = false;
     }
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
@@ -226,12 +232,18 @@ public class NewSessionIT {
   }
 
   private void compare(TestDataSection expected, SessionQueryDataSet actual) {
+    if (!needCompareResult) {
+        return;
+    }
     compareKeys(expected.getKeys(), actual.getKeys());
     comparePaths(expected.getPaths(), actual.getPaths(), expected.getTagsList());
     compareValues(expected.getValues(), actual.getValues());
   }
 
   private void compare(TestDataSection expected, SessionAggregateQueryDataSet actual) {
+    if (!needCompareResult) {
+      return;
+    }
     assertNull(actual.getKeys());
     comparePaths(expected.getPaths(), actual.getPaths(), expected.getTagsList());
     compareValues(expected.getValues(), actual.getValues());

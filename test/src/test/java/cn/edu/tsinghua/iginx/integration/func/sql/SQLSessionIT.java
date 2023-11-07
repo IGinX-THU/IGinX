@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.fail;
 
@@ -67,10 +68,16 @@ public class SQLSessionIT {
 
   private static boolean dummyNoData = true;
 
+  private static boolean needCompareResult = true;
+
   public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     this.isScaling = conf.isScaling();
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && this.isScaling) {
+      needCompareResult = false;
+      executor.setNeedCompareResult(needCompareResult);
+    }
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);

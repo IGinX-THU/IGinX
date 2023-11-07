@@ -151,10 +151,7 @@ public class Controller {
       logger.info("Not the DBCE test, skip the write history data step.");
       medium = pathList.size();
     } else {
-      boolean supportKey = SUPPORT_KEY.get(conf.getStorageType());
-      if (supportKey) {
-        medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 3 : pathList.size();
-      }
+      medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 3 : pathList.size();
     }
 
     for (int i = 0; i < pathList.size(); i++) {
@@ -210,10 +207,7 @@ public class Controller {
       logger.info("Not the DBCE test, skip the write history data step.");
       medium = keyList.size();
     } else {
-      boolean supportKey = SUPPORT_KEY.get(conf.getStorageType());
-      if (supportKey) {
-        medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 3 : keyList.size();
-      }
+      medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 3 : keyList.size();
     }
 
     // divide the data

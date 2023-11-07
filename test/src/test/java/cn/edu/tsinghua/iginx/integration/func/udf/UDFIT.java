@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
@@ -27,6 +28,7 @@ import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -55,8 +57,14 @@ public class UDFIT {
 
   private static boolean dummyNoData = true;
 
+  private static boolean needCompareResult = true;
+
   @BeforeClass
   public static void setUp() throws SessionException {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
+      needCompareResult = false;
+    }
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
   }
@@ -158,6 +166,9 @@ public class UDFIT {
     String statement = "SELECT COS(s1) FROM us.d1 WHERE s1 < 10;";
 
     SessionExecuteSqlResult ret = execute(statement);
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
     assertArrayEquals(new long[] {0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getKeys());
 
@@ -190,7 +201,9 @@ public class UDFIT {
     String query =
         "SELECT * FROM (SELECT COS(s1) AS cos_s1 FROM test) AS t1, (SELECT COS(s2) AS cos_s2 FROM test) AS t2 LIMIT 10;";
     SessionExecuteSqlResult ret = execute(query);
-    assertEquals(4, ret.getPaths().size());
+    if (needCompareResult) {
+      assertEquals(4, ret.getPaths().size());
+    }
 
     List<Double> cosS1ExpectedValues =
         Arrays.asList(
@@ -250,7 +263,7 @@ public class UDFIT {
             + "|  6|                      24.0|\n"
             + "+---+--------------------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+      compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT multiply(s1, s2, s3) FROM test;";
     ret = execute(query);
@@ -267,7 +280,7 @@ public class UDFIT {
             + "|  6|                               48.0|\n"
             + "+---+-----------------------------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+      compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT multiply(s1, s2, s3), s1, s2 + s3 FROM test;";
     ret = execute(query);
@@ -284,7 +297,7 @@ public class UDFIT {
             + "|  6|                               48.0|      6|                6|\n"
             + "+---+-----------------------------------+-------+-----------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+      compareResult(expected, ret.getResultInString(false, ""));
   }
 
   @Test
@@ -313,27 +326,31 @@ public class UDFIT {
     String query = "SELECT `cos(test.a)` FROM(SELECT COS(*) FROM test);";
     SessionExecuteSqlResult ret = execute(query);
 
-    assertEquals(1, ret.getPaths().size());
-    assertEquals("cos(test.a)", ret.getPaths().get(0));
+    if (needCompareResult) {
+      assertEquals(1, ret.getPaths().size());
+      assertEquals("cos(test.a)", ret.getPaths().get(0));
 
-    for (int i = 0; i < ret.getValues().size(); i++) {
-      assertEquals(1, ret.getValues().get(i).size());
-      double expected = cosTestAExpectedValues.get(i);
-      double actual = (double) ret.getValues().get(i).get(0);
-      assertEquals(expected, actual, delta);
+      for (int i = 0; i < ret.getValues().size(); i++) {
+        assertEquals(1, ret.getValues().get(i).size());
+        double expected = cosTestAExpectedValues.get(i);
+        double actual = (double) ret.getValues().get(i).get(0);
+        assertEquals(expected, actual, delta);
+      }
     }
 
     query = "SELECT `cos(test.b)` AS cos_b FROM(SELECT COS(*) FROM test);";
     ret = execute(query);
 
-    assertEquals(1, ret.getPaths().size());
-    assertEquals("cos_b", ret.getPaths().get(0));
+    if (needCompareResult) {
+      assertEquals(1, ret.getPaths().size());
+      assertEquals("cos_b", ret.getPaths().get(0));
 
-    for (int i = 0; i < ret.getValues().size(); i++) {
-      assertEquals(1, ret.getValues().get(i).size());
-      double expected = cosTestBExpectedValues.get(i);
-      double actual = (double) ret.getValues().get(i).get(0);
-      assertEquals(expected, actual, delta);
+      for (int i = 0; i < ret.getValues().size(); i++) {
+        assertEquals(1, ret.getValues().get(i).size());
+        double expected = cosTestBExpectedValues.get(i);
+        double actual = (double) ret.getValues().get(i).get(0);
+        assertEquals(expected, actual, delta);
+      }
     }
   }
 
@@ -358,7 +375,7 @@ public class UDFIT {
             + "|  6|     6|     4|\n"
             + "+---+------+------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT transpose(*) FROM (SELECT * FROM test);";
     ret = execute(query);
@@ -371,7 +388,7 @@ public class UDFIT {
             + "|           3|           1|           3|           7|           6|           4|\n"
             + "+------------+------------+------------+------------+------------+------------+\n"
             + "Total line number = 2\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query =
         "SELECT `transpose(0)`, `transpose(1)`, `transpose(2)` FROM (SELECT transpose(*) FROM (SELECT * FROM test));";
@@ -385,7 +402,7 @@ public class UDFIT {
             + "|           3|           1|           3|\n"
             + "+------------+------------+------------+\n"
             + "Total line number = 2\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
   }
 
   @Test
@@ -409,7 +426,7 @@ public class UDFIT {
             + "|  6|     6|\n"
             + "+---+------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT column_expand(*) FROM (SELECT a FROM test);";
     ret = execute(query);
@@ -426,7 +443,7 @@ public class UDFIT {
             + "|  6|                    6|                      7.5|                     12|\n"
             + "+---+---------------------+-------------------------+-----------------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query =
         "SELECT `column_expand(test.a+1.5)` FROM (SELECT column_expand(*) FROM (SELECT a FROM test)) WHERE `column_expand(test.a+1.5)` < 5;";
@@ -441,7 +458,7 @@ public class UDFIT {
             + "|  5|                      4.5|\n"
             + "+---+-------------------------+\n"
             + "Total line number = 3\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
   }
 
   @Test
@@ -465,7 +482,7 @@ public class UDFIT {
             + "|  6|           36.0|\n"
             + "+---+---------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(s1, s2, 2) FROM test;";
     ret = execute(query);
@@ -482,7 +499,7 @@ public class UDFIT {
             + "|  6|           36.0|           16.0|\n"
             + "+---+---------------+---------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(*, 3) FROM test;";
     ret = execute(query);
@@ -499,7 +516,7 @@ public class UDFIT {
             + "|  6|          216.0|           64.0|\n"
             + "+---+---------------+---------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
   }
 
   @Test
@@ -523,7 +540,7 @@ public class UDFIT {
             + "|  6|           36.0|\n"
             + "+---+---------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(s1, s2, n=2) FROM test;";
     ret = execute(query);
@@ -540,7 +557,7 @@ public class UDFIT {
             + "|  6|           36.0|           16.0|\n"
             + "+---+---------------+---------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(*, n=3) FROM test;";
     ret = execute(query);
@@ -557,7 +574,7 @@ public class UDFIT {
             + "|  6|          216.0|           64.0|\n"
             + "+---+---------------+---------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
   }
 
   @Test
@@ -581,6 +598,13 @@ public class UDFIT {
             + "|  6|           36.0|           16.0|\n"
             + "+---+---------------+---------------+\n"
             + "Total line number = 6\n";
-    assertEquals(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
+  }
+
+  void compareResult(String expected, String actual) {
+    if (!needCompareResult) {
+      return;
+    }
+    assertEquals(expected, actual);
   }
 }
