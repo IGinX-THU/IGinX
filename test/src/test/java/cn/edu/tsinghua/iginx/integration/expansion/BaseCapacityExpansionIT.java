@@ -385,21 +385,21 @@ public abstract class BaseCapacityExpansionIT {
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2);
     addStorageEngine(expPort, true, true, dataPrefix1, null);
-    testShowClusterInfo(4);
+    testShowClusterInfo(5);
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
-    testShowClusterInfo(4);
+    testShowClusterInfo(5);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3);
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3);
-    testShowClusterInfo(6);
+    testShowClusterInfo(7);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     statement = "select wt01.status2 from p1.nt.wf03;";
