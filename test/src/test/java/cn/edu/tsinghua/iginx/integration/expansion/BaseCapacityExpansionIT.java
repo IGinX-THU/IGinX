@@ -461,16 +461,21 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
-      ClusterInfo clusterInfo = session.getClusterInfo();
-      logger.error("show");
-      for (StorageEngineInfo info : clusterInfo.getStorageEngineInfos()) {
-        logger.error(info.toString());
-      }
     } catch (ExecutionException | SessionException e) {
       if (!e.getMessage().contains("remove history data source failed")) {
         logger.error("remove history data source should throw error when removing the node that does not exist");
         fail();
       }
+    }
+
+    try {
+      ClusterInfo clusterInfo = session.getClusterInfo();
+      logger.error("show cluster info");
+      for (StorageEngineInfo info : clusterInfo.getStorageEngineInfos()) {
+        logger.error(info.toString());
+      }
+    } catch (ExecutionException | SessionException e) {
+      logger.error(e.getMessage());
     }
   }
 
