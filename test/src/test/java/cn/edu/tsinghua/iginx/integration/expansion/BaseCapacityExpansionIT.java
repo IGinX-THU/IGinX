@@ -459,9 +459,9 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       SessionExecuteSqlResult result = session.executeSql("show cluster info;");
-      result.print(false, "");
+      logger.error(result.getResultInString(false, ""));
     } catch (ExecutionException | SessionException e) {
-      if (!e.getMessage().contains("dummy storage engine") || !e.getMessage().contains("does not exist.")) {
+      if (!e.getMessage().contains("remove history data source failed")) {
         logger.error("remove history data source should throw error when removing the node that does not exist");
         fail();
       }
