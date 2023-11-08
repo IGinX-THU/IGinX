@@ -143,7 +143,7 @@ public class UDFIT {
 
   @Test
   public void testCOS() {
-    String statement = "SELECT COS(s1) FROM us.d1 WHERE s1 < 10;";
+    String statement = "SELECT cos(s1) FROM us.d1 WHERE s1 < 10;";
 
     SessionExecuteSqlResult ret = execute(statement);
     assertEquals(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
@@ -176,7 +176,7 @@ public class UDFIT {
     execute(insert);
 
     String query =
-        "SELECT * FROM (SELECT COS(s1) AS cos_s1 FROM test) AS t1, (SELECT COS(s2) AS cos_s2 FROM test) AS t2 LIMIT 10;";
+        "SELECT * FROM (SELECT cos(s1) AS cos_s1 FROM test) AS t1, (SELECT cos(s2) AS cos_s2 FROM test) AS t2 LIMIT 10;";
     SessionExecuteSqlResult ret = execute(query);
     assertEquals(4, ret.getPaths().size());
 
@@ -298,7 +298,7 @@ public class UDFIT {
             0.9601702866503661,
             -0.6536436208636119);
 
-    String query = "SELECT `cos(test.a)` FROM(SELECT COS(*) FROM test);";
+    String query = "SELECT `cos(test.a)` FROM(SELECT cos(*) FROM test);";
     SessionExecuteSqlResult ret = execute(query);
 
     assertEquals(1, ret.getPaths().size());
@@ -311,7 +311,7 @@ public class UDFIT {
       assertEquals(expected, actual, delta);
     }
 
-    query = "SELECT `cos(test.b)` AS cos_b FROM(SELECT COS(*) FROM test);";
+    query = "SELECT `cos(test.b)` AS cos_b FROM(SELECT cos(*) FROM test);";
     ret = execute(query);
 
     assertEquals(1, ret.getPaths().size());
@@ -399,35 +399,35 @@ public class UDFIT {
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
-    query = "SELECT column_expand(*) FROM (SELECT a FROM test);";
+    query = "SELECT columnExpand(*) FROM (SELECT a FROM test);";
     ret = execute(query);
     expected =
         "ResultSets:\n"
-            + "+---+---------------------+-------------------------+-----------------------+\n"
-            + "|key|column_expand(test.a)|column_expand(test.a+1.5)|column_expand(test.a*2)|\n"
-            + "+---+---------------------+-------------------------+-----------------------+\n"
-            + "|  1|                    2|                      3.5|                      4|\n"
-            + "|  2|                    3|                      4.5|                      6|\n"
-            + "|  3|                    4|                      5.5|                      8|\n"
-            + "|  4|                    9|                     10.5|                     18|\n"
-            + "|  5|                    3|                      4.5|                      6|\n"
-            + "|  6|                    6|                      7.5|                     12|\n"
-            + "+---+---------------------+-------------------------+-----------------------+\n"
+            + "+---+--------------------+------------------------+----------------------+\n"
+            + "|key|columnExpand(test.a)|columnExpand(test.a+1.5)|columnExpand(test.a*2)|\n"
+            + "+---+--------------------+------------------------+----------------------+\n"
+            + "|  1|                   2|                     3.5|                     4|\n"
+            + "|  2|                   3|                     4.5|                     6|\n"
+            + "|  3|                   4|                     5.5|                     8|\n"
+            + "|  4|                   9|                    10.5|                    18|\n"
+            + "|  5|                   3|                     4.5|                     6|\n"
+            + "|  6|                   6|                     7.5|                    12|\n"
+            + "+---+--------------------+------------------------+----------------------+\n"
             + "Total line number = 6\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query =
-        "SELECT `column_expand(test.a+1.5)` FROM (SELECT column_expand(*) FROM (SELECT a FROM test)) WHERE `column_expand(test.a+1.5)` < 5;";
+        "SELECT `columnExpand(test.a+1.5)` FROM (SELECT columnExpand(*) FROM (SELECT a FROM test)) WHERE `columnExpand(test.a+1.5)` < 5;";
     ret = execute(query);
     expected =
         "ResultSets:\n"
-            + "+---+-------------------------+\n"
-            + "|key|column_expand(test.a+1.5)|\n"
-            + "+---+-------------------------+\n"
-            + "|  1|                      3.5|\n"
-            + "|  2|                      4.5|\n"
-            + "|  5|                      4.5|\n"
-            + "+---+-------------------------+\n"
+            + "+---+------------------------+\n"
+            + "|key|columnExpand(test.a+1.5)|\n"
+            + "+---+------------------------+\n"
+            + "|  1|                     3.5|\n"
+            + "|  2|                     4.5|\n"
+            + "|  5|                     4.5|\n"
+            + "+---+------------------------+\n"
             + "Total line number = 3\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }

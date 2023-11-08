@@ -12,7 +12,7 @@ public class PythonTask extends Task {
   public PythonTask(TaskInfo info) {
     super(info);
     if (info.isSetPyTaskName()) {
-      pyTaskName = info.getPyTaskName().trim().toLowerCase();
+      pyTaskName = info.getPyTaskName().trim();
     } else {
       throw new IllegalArgumentException("Python task must have class name.");
     }
@@ -21,7 +21,7 @@ public class PythonTask extends Task {
   public PythonTask(TaskFromYAML info) {
     super(info);
     if (info.getPyTaskName() != null) {
-      pyTaskName = info.getPyTaskName().trim().toLowerCase();
+      pyTaskName = info.getPyTaskName().trim();
     } else {
       throw new IllegalArgumentException("Python task must have class name.");
     }
@@ -31,7 +31,7 @@ public class PythonTask extends Task {
   public PythonTask(
       TaskType taskType, DataFlowType dataFlowType, long timeLimit, String pyTaskName) {
     super(taskType, dataFlowType, timeLimit);
-    this.pyTaskName = pyTaskName.trim().toLowerCase();
+    this.pyTaskName = pyTaskName.trim();
   }
 
   public String getPyTaskName() {

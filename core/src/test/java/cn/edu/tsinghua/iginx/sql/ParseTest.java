@@ -79,24 +79,24 @@ public class ParseTest {
     assertEquals(UnarySelectStatement.QueryType.DownSampleQuery, statement.getQueryType());
 
     assertEquals(2, statement.getFuncExpressionMap().size());
-    assertTrue(statement.getFuncExpressionMap().containsKey("sum"));
-    assertTrue(statement.getFuncExpressionMap().containsKey("count"));
+    assertTrue(statement.getFuncExpressionMap().containsKey("SUM"));
+    assertTrue(statement.getFuncExpressionMap().containsKey("COUNT"));
 
     assertEquals(
         Collections.singletonList("a.b.c"),
-        statement.getFuncExpressionMap().get("sum").get(0).getColumns());
+        statement.getFuncExpressionMap().get("SUM").get(0).getColumns());
     assertEquals(
         Collections.singletonList("a.b.d"),
-        statement.getFuncExpressionMap().get("sum").get(1).getColumns());
+        statement.getFuncExpressionMap().get("SUM").get(1).getColumns());
     assertEquals(
         Collections.singletonList("a.b.e"),
-        statement.getFuncExpressionMap().get("sum").get(2).getColumns());
+        statement.getFuncExpressionMap().get("SUM").get(2).getColumns());
     assertEquals(
         Collections.singletonList("a.b.f"),
-        statement.getFuncExpressionMap().get("count").get(0).getColumns());
+        statement.getFuncExpressionMap().get("COUNT").get(0).getColumns());
     assertEquals(
         Collections.singletonList("a.b.g"),
-        statement.getFuncExpressionMap().get("count").get(1).getColumns());
+        statement.getFuncExpressionMap().get("COUNT").get(1).getColumns());
 
     assertEquals(
         "(((key > 100 && key < 1000) || a.b.d == \"abc\" || a.b.c >= \"666\" || (a.b.e < 10 && !(a.b.f < 10))) && key >= 200 && key < 300)",

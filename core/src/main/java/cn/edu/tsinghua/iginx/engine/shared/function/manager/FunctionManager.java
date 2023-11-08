@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
@@ -160,6 +161,9 @@ public class FunctionManager {
   }
 
   public Function getFunction(String identifier) {
+    if (FunctionUtils.isSysFunc(identifier)) {
+      identifier = identifier.toLowerCase();
+    }
     if (functions.containsKey(identifier)) {
       return functions.get(identifier);
     }
