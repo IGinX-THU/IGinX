@@ -359,8 +359,6 @@ public abstract class BaseCapacityExpansionIT {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
     String schemaPrefixSuffix = "";
-    String schemaPrefix = "";
-
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
@@ -368,7 +366,6 @@ public abstract class BaseCapacityExpansionIT {
       dataPrefix1 = "wf03";
       dataPrefix2 = "wf04";
       schemaPrefixSuffix = ".nt";
-      schemaPrefix = "nt";
       schemaPrefix1 = "p1.nt";
       schemaPrefix2 = "p2.nt";
       schemaPrefix3 = "p3.nt";
@@ -457,7 +454,7 @@ public abstract class BaseCapacityExpansionIT {
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
           String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, dataPrefix1));
+      session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
       testShowClusterInfo(2);
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through sql error: {}", e.getMessage());
