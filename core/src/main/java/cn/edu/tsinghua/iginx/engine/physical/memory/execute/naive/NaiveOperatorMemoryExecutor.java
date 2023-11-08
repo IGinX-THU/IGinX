@@ -635,10 +635,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         .forEach(
             row -> {
               for (int i = 0; i < fieldSize; i++) {
-                String path =
-                    prefixIsEmpty
-                        ? row.getAsValue(i).getAsString()
-                        : prefix + DOT + row.getAsValue(i).getAsString();
+                String valueStr = row.getAsValue(i).getAsString();
+                if (valueStr.isEmpty()) {
+                  continue;
+                }
+                String path = prefixIsEmpty ? valueStr : prefix + DOT + valueStr;
                 Object[] value = new Object[1];
                 value[0] = path.getBytes(StandardCharsets.UTF_8);
                 targetRows.add(new Row(targetHeader, value));

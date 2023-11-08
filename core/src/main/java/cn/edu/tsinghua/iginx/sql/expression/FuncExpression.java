@@ -32,15 +32,6 @@ public class FuncExpression implements Expression {
   public FuncExpression(
       String funcName,
       List<String> columns,
-      Map<String, Object> kvargs,
-      List<Object> args,
-      String alias) {
-    this(funcName, columns, args, kvargs, alias, false);
-  }
-
-  public FuncExpression(
-      String funcName,
-      List<String> columns,
       List<Object> args,
       Map<String, Object> kvargs,
       String alias,
@@ -51,7 +42,7 @@ public class FuncExpression implements Expression {
     this.kvargs = kvargs;
     this.alias = alias;
     this.isDistinct = isDistinct;
-    this.isPyUDF = FunctionUtils.isPyUDF(funcName.toLowerCase());
+    this.isPyUDF = FunctionUtils.isPyUDF(funcName);
   }
 
   public String getFuncName() {
@@ -80,7 +71,8 @@ public class FuncExpression implements Expression {
 
   @Override
   public String getColumnName() {
-    String columnName = funcName.toLowerCase() + "(";
+    String columnName = isPyUDF ? funcName : funcName.toLowerCase();
+    columnName += "(";
     if (isDistinct) {
       columnName += "distinct ";
     }
@@ -93,7 +85,7 @@ public class FuncExpression implements Expression {
   }
 
   public boolean hasAlias() {
-    return alias != null && !alias.equals("");
+    return alias != null && !alias.isEmpty();
   }
 
   @Override
