@@ -160,7 +160,7 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling() || !NEED_DIVIDE_DATA.get(conf.getStorageType())) {
+    if (!conf.isScaling()) {
       logger.info("skip the write history data step.");
       medium = pathList.size();
     } else {
@@ -217,7 +217,7 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling() || !NEED_DIVIDE_DATA.get(conf.getStorageType())) {
+    if (!conf.isScaling()) {
       logger.info("skip the write history data step.");
       medium = keyList.size();
     } else {
