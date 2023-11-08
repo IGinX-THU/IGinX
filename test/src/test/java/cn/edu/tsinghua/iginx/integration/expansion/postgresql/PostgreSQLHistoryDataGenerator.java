@@ -19,11 +19,11 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
 
-  private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
+  private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE \"%s\" (%s);";
 
-  private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
+  private static final String INSERT_STATEMENT = "INSERT INTO \"%s\" VALUES %s;";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE %s;";
+  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\";";
 
   private static final String USERNAME = "postgres";
 

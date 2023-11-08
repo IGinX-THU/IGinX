@@ -83,6 +83,19 @@ public class Controller {
         }
       };
 
+  public static final Map<String, Boolean> NEED_DIVIDE_DATA =
+      new HashMap<String, Boolean>() {
+        {
+          put("FileSystem", true);
+          put("IoTDB12", true);
+          put("InfluxDB", true);
+          put("PostgreSQL", true);
+          put("Redis", true);
+          put("MongoDB", true);
+          put("Parquet", false);
+        }
+      };
+
   public static void clearAllData(Session session) {
     clearAllData(new MultiConnection(session));
   }
@@ -147,10 +160,11 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling()) {
-      logger.info("Not the DBCE test, skip the write history data step.");
+    if (!conf.isScaling() || !NEED_DIVIDE_DATA.get(conf.getStorageType())) {
+      logger.info("skip the write history data step.");
       medium = pathList.size();
     } else {
+      logger.info("DBCE test, write history data.");
       medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 3 : pathList.size();
     }
 
@@ -203,11 +217,12 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling()) {
-      logger.info("Not the DBCE test, skip the write history data step.");
+    if (!conf.isScaling() || !NEED_DIVIDE_DATA.get(conf.getStorageType())) {
+      logger.info("skip the write history data step.");
       medium = keyList.size();
     } else {
-      medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 3 : keyList.size();
+      logger.info("DBCE test, write history data.");
+      medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 3 : pathList.size();
     }
 
     // divide the data
