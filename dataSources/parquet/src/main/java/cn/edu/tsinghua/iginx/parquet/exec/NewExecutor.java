@@ -16,6 +16,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
@@ -23,7 +24,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -52,7 +52,8 @@ public class NewExecutor implements Executor {
 
   // dirPrefix: the last layer dir name of parquet data path will be added as prefix in every data
   // column
-  public NewExecutor(boolean hasData, boolean readOnly, String dataDir, String dummyDir, String dirPrefix)
+  public NewExecutor(
+      boolean hasData, boolean readOnly, String dataDir, String dummyDir, String dirPrefix)
       throws StorageInitializationException {
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
@@ -205,7 +206,7 @@ public class NewExecutor implements Executor {
           duManager.project(paths, tagFilter, filter);
       RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
       return new TaskExecuteResult(rowStream, null);
-    } catch (SQLException e) {
+    } catch (IOException e) {
       return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
     }
   }
@@ -250,32 +251,29 @@ public class NewExecutor implements Executor {
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     List<Column> ret = new ArrayList<>();
-    if (storageUnit.equals("*")) {
-      duManagerMap.forEach(
-          (id, duManager) -> {
-            duManager
-                .getPaths()
-                .forEach(
-                    (path, type) -> {
-                      Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                      ret.add(new Column(pair.k, type, pair.v));
-                    });
-          });
-    } else {
-      DUManager duManager;
-      try {
-        duManager = getDUManager(storageUnit, false);
-      } catch (IOException e) {
-        throw new PhysicalException("Fail to get du manager ", e);
+    try {
+      if (storageUnit.equals("*")) {
+        for (Map.Entry<String, DUManager> entry : duManagerMap.entrySet()) {
+          DUManager duManager = entry.getValue();
+          Map<String, DataType> paths = duManager.getPaths();
+          for (Map.Entry<String, DataType> e : paths.entrySet()) {
+            String path = e.getKey();
+            DataType type = e.getValue();
+            Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
+            ret.add(new Column(pair.k, type, pair.v));
+          }
+        }
+      } else {
+        DUManager duManager = getDUManager(storageUnit, false);
+        for (Map.Entry<String, DataType> entry : duManager.getPaths().entrySet()) {
+          String path = entry.getKey();
+          DataType type = entry.getValue();
+          Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
+          ret.add(new Column(pair.k, type, pair.v));
+        }
       }
-
-      duManager
-          .getPaths()
-          .forEach(
-              (path, type) -> {
-                Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                ret.add(new Column(pair.k, type, pair.v));
-              });
+    } catch (IOException e) {
+      throw new PhysicalException("fail to get columns ", e);
     }
     return ret;
   }
@@ -285,13 +283,17 @@ public class NewExecutor implements Executor {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (DUManager duManager : duManagerMap.values()) {
-      duManager
-          .getPaths()
-          .forEach(
-              (path, type) -> {
-                Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                paths.add(pair.k);
-              });
+      try {
+        duManager
+            .getPaths()
+            .forEach(
+                (path, type) -> {
+                  Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
+                  paths.add(pair.k);
+                });
+      } catch (IOException e) {
+        throw new PhysicalException("Fail to get paths", e);
+      }
       KeyInterval interval = duManager.getTimeInterval();
       if (interval.getStartKey() < start) {
         start = interval.getStartKey();

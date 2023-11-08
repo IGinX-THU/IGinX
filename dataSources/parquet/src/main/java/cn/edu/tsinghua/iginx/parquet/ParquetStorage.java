@@ -57,7 +57,8 @@ public class ParquetStorage implements IStorage {
     String dummyDir = extraParams.get("dummy_dir");
     String dirPrefix = extraParams.get("embedded_prefix");
 
-    this.executor = new NewExecutor(meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
+    this.executor =
+        new NewExecutor(meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
     this.server = new ParquetServer(meta.getPort(), executor);
     this.thread = new Thread(server);
     thread.start();

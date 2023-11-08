@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.parquet.exec;
 
 import static cn.edu.tsinghua.iginx.parquet.tools.Constant.*;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromParquetDataType;
-import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetDataType;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -12,6 +11,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.Column;
 import cn.edu.tsinghua.iginx.parquet.entity.FileMeta;
+import cn.edu.tsinghua.iginx.parquet.entity.InMemoryTable;
+import cn.edu.tsinghua.iginx.parquet.io.IginxParquetReader;
+import cn.edu.tsinghua.iginx.parquet.io.IginxParquetWriter;
+import cn.edu.tsinghua.iginx.parquet.io.IginxRecord;
+import cn.edu.tsinghua.iginx.parquet.io.SchemaUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -23,17 +27,15 @@ import java.nio.file.Paths;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
+import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,11 +71,7 @@ public class DUManager {
 
   private final ExecutorService flushPool = Executors.newSingleThreadExecutor();
 
-  public DUManager(
-      String id,
-      String dataDir,
-      boolean isDummyStorageUnit,
-      String embeddedPrefix)
+  public DUManager(String id, String dataDir, boolean isDummyStorageUnit, String embeddedPrefix)
       throws IOException {
     this.id = id;
     this.dataDir = dataDir;
@@ -162,7 +160,7 @@ public class DUManager {
   }
 
   public List<Column> project(List<String> paths, TagFilter tagFilter, Filter filter)
-      throws SQLException {
+      throws IOException {
     if (isDummyStorageUnit) {
       return projectDummy(paths, tagFilter, filter);
     }
@@ -192,7 +190,7 @@ public class DUManager {
   }
 
   private List<Column> projectDummy(List<String> paths, TagFilter tagFilter, Filter filter)
-      throws SQLException {
+      throws IOException {
     Map<String, Column> dataMap = new HashMap<>();
     File file = new File(dataDir);
     File[] dataFiles = file.listFiles();
@@ -216,7 +214,7 @@ public class DUManager {
     return new ArrayList<>(dataMap.values());
   }
 
-  private List<Column> projectInMemTable(List<String> paths, Filter filter) throws SQLException {
+  private List<Column> projectInMemTable(List<String> paths, Filter filter) {
     try {
       memTableLock.readLock().lock();
       List<Column> data = new ArrayList<>();
@@ -245,26 +243,68 @@ public class DUManager {
       String dataPath,
       Map<String, List<KeyRange>> deleteRanges,
       long endTime)
-      throws SQLException {
-    // TODO: enable load
-    //        Connection conn = ((DuckDBConnection) connection).duplicate();
-    //        Statement stmt = conn.createStatement();
+      throws IOException {
 
-    //        StringBuilder builder = new StringBuilder();
-    //        paths.forEach(
-    //                path -> builder.append(path.replaceAll(IGINX_SEPARATOR,
-    // PARQUET_SEPARATOR)).append(", "));
-    //        ResultSet rs =
-    //                stmt.executeQuery(
-    //                        String.format(
-    //                                SELECT_STMT, builder.toString(), dataPath,
-    // FilterTransformer.toString(filter)));
-    //        stmt.close();
-    //        conn.close();
-
-    //        List<Column> data = initColumns(rs);
     List<Column> data = new ArrayList<>();
-    //        rs.close();
+
+    IginxParquetReader.Builder builder = IginxParquetReader.builder(Paths.get(dataPath));
+    try (IginxParquetReader reader = builder.build()) {
+      MessageType schema = reader.getSchema();
+
+      Integer keyIndex = SchemaUtils.getFieldIndex(schema, SchemaUtils.KEY_FIELD_NAME);
+
+      Column[] projected = new Column[schema.getFieldCount()];
+      for (String physicalPath : paths) {
+        Integer fieldIndex = SchemaUtils.getFieldIndex(schema, physicalPath);
+        if (fieldIndex != null) {
+          String pathName = physicalPath.replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+          PrimitiveType parquetType = schema.getType(fieldIndex).asPrimitiveType();
+          DataType iginxType = SchemaUtils.getIginxType(parquetType.getPrimitiveTypeName());
+          projected[fieldIndex] = new Column(pathName, physicalPath, iginxType);
+        }
+      }
+
+      IginxRecord record;
+      long cnt = 0;
+      while ((record = reader.read()) != null) {
+        Long key = null;
+        if (keyIndex != null) {
+          for (Map.Entry<Integer, Object> entry : record) {
+            Integer index = entry.getKey();
+            Object value = entry.getValue();
+            if (index.equals(keyIndex)) {
+              key = (Long) value;
+              break;
+            }
+          }
+          assert key != null;
+        } else {
+          key = cnt++;
+        }
+
+        for (Map.Entry<Integer, Object> entry : record) {
+          Integer index = entry.getKey();
+          Object value = entry.getValue();
+          if (projected[index] == null) {
+            continue;
+          }
+          if (projected[index].getData().containsKey(key)) {
+            throw new IOException("duplicate key");
+          }
+          projected[index].putData(key, value);
+        }
+      }
+
+      for (Column column : projected) {
+        if (column != null) {
+          data.add(column);
+        }
+      }
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException("unexpected reader error!", e);
+    }
 
     // deal with deleted data
     if (deleteRanges != null && !deleteRanges.isEmpty()) {
@@ -375,10 +415,10 @@ public class DUManager {
       if (data.getMinKey() < curStartTime) {
         curStartTime = data.getMinKey();
       }
-      // TODO: enable flush
-      //            if (curMemSize > MAX_MEM_SIZE) {
-      //                flush();
-      //            }
+
+      if (curMemSize > MAX_MEM_SIZE) {
+        flush();
+      }
 
     } finally {
       memTableLock.writeLock().unlock();
@@ -414,8 +454,8 @@ public class DUManager {
       for (int j = 0; j < data.getPathNum(); j++) {
         if (bitmapView.get(j)) {
           Object value = data.getValue(i, index);
-          columns.get(j).put(key, value);
           DataType type = dataTypes.get(j);
+          columns.get(j).put(key, value);
           if (type == DataType.BINARY) {
             curMemSize += ((byte[]) value).length;
           } else {
@@ -475,11 +515,10 @@ public class DUManager {
   }
 
   public void flushBeforeExist() throws IOException {
-    // TODO: enable flush
-    //    if (!curMemTable.equals("")) {
-    //      FileMeta meta = new FileMeta(curStartTime, curEndTime, curMemTablePathMap);
-    //      flushToDisk(curMemTable, curMemTablePathMap, curStartTime, curEndTime, meta);
-    //    }
+    if (!curMemTable.equals("")) {
+      FileMeta meta = new FileMeta(curStartTime, curEndTime, curMemTablePathMap);
+      flushToDisk(curMemTable, curMemTablePathMap, curStartTime, curEndTime, meta);
+    }
   }
 
   private void flushToDisk(
@@ -487,14 +526,36 @@ public class DUManager {
       throws IOException {
     isFlushing = true;
 
-    // TODO: enable flush
-    //        Connection conn = ((DuckDBConnection) connection).duplicate();
-    //        Statement stmt = conn.createStatement();
+    InMemoryTable memTable = InMemoryTable.wrap(curMemTablePathMap, memData);
 
-    // flush data
     Path dataPath = Paths.get(dataDir, id, String.format("%s.parquet", table));
-    //    stmt.execute(String.format(SAVE_TO_PARQUET_STMT, table, dataPath.toString()));
-    //    stmt.execute(String.format(DROP_TABLE_STMT, table));
+    MessageType schema = SchemaUtils.getMessageTypeStartWithKey(table, memTable.getHeader());
+    IginxParquetWriter.Builder writerBuilder = IginxParquetWriter.builder(dataPath, schema);
+
+    try (IginxParquetWriter writer = writerBuilder.build()) {
+      long lastKey = Long.MIN_VALUE;
+      IginxRecord record = null;
+      for (InMemoryTable.Point point : memTable.scanRows()) {
+        if (record != null && point.key != lastKey) {
+          writer.write(record);
+          record = null;
+        }
+        if (record == null) {
+          record = new IginxRecord();
+          record.add(0, point.key);
+          lastKey = point.key;
+        }
+        record.add(point.field + 1, point.value);
+      }
+      if (record != null) {
+        writer.write(record);
+      }
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException("unexpected writer error!", e);
+    }
+
     fileMeta.setDataPath(dataPath.toString());
 
     // flush meta
@@ -516,13 +577,11 @@ public class DUManager {
     fileMeta.setExtraPath(extraPath.toString());
     fileMetaMap.put(table, fileMeta);
 
-    //    stmt.close();
-    //    conn.close();
     isFlushing = false;
   }
 
   public void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
-      throws SQLException, IOException {
+      throws IOException {
     if (paths.size() == 1
         && paths.get(0).equals("*")
         && tagFilter == null
@@ -581,27 +640,18 @@ public class DUManager {
     meta.deleteData(paths, keyRanges);
   }
 
-  private void clearData() throws SQLException {
+  private void clearData() throws IOException {
     // drop mem table
+    memTableLock.writeLock().lock();
+
     try {
-      memTableLock.writeLock().lock();
-
-      memData.clear();
-
       if (!curMemTable.equals("")) {
-        //                Connection conn = ((DuckDBConnection) connection).duplicate();
-        //                Statement stmt = conn.createStatement();
-        //
-        //                stmt.execute(String.format(DROP_TABLE_STMT, curMemTable));
-
+        memData.clear();
         curMemTablePathMap = new HashMap<>();
         curMemTable = "";
         curMemSize = 0;
         curStartTime = Long.MAX_VALUE;
         curEndTime = Long.MIN_VALUE;
-
-        //                stmt.close();
-        //                conn.close();
       }
     } finally {
       memTableLock.writeLock().unlock();
@@ -637,35 +687,29 @@ public class DUManager {
     return ret;
   }
 
-  private Map<String, DataType> getPathsFromFile(String filepath) {
-    if (!filepath.contains(".parquet")) {
+  private Map<String, DataType> getPathsFromFile(String filepath) throws IOException {
+    if (!filepath.endsWith(".parquet")) {
       return new HashMap<>();
     }
     Map<String, DataType> ret = new HashMap<>();
-    // TODO : enable load
-    //        try {
-    //            Connection conn = ((DuckDBConnection) connection).duplicate();
-    //            Statement stmt = conn.createStatement();
-    //            ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_SCHEMA, filepath));
-    //            while (rs.next()) {
-    //                String pathName =
-    //                        ((String) rs.getObject(NAME)).replaceAll(PARQUET_SEPARATOR,
-    // IGINX_SEPARATOR);
-    //                DataType type = fromDuckDBDataType((String) rs.getObject(COLUMN_TYPE));
-    //                if (!pathName.equals(DUCKDB_SCHEMA) && !pathName.equals(COLUMN_KEY)) {
-    //                    ret.put(embeddedPrefix + "." + pathName, type);
-    //                }
-    //            }
-    //            stmt.close();
-    //            conn.close();
-    //        } catch (SQLException e) {
-    //            logger.error("get paths failure", e);
-    //            return ret;
-    //        }
+    IginxParquetReader.Builder builder = IginxParquetReader.builder(Paths.get(filepath));
+    try (IginxParquetReader reader = builder.build()) {
+      MessageType schema = reader.getSchema();
+      for (int i = 0; i < schema.getFieldCount(); i++) {
+        PrimitiveType fieldType = schema.getType(i).asPrimitiveType();
+        String pathName = schema.getFieldName(i);
+        DataType type = SchemaUtils.getIginxType(fieldType.getPrimitiveTypeName());
+        ret.put(embeddedPrefix + "." + pathName, type);
+      }
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException("unexpected reader error!", e);
+    }
     return ret;
   }
 
-  public Map<String, DataType> getPaths() {
+  public Map<String, DataType> getPaths() throws IOException {
     Map<String, DataType> ret;
     if (!isDummyStorageUnit) {
       ret = new HashMap<>(curMemTablePathMap);
@@ -686,41 +730,10 @@ public class DUManager {
     return ret;
   }
 
-  public KeyInterval getTimeIntervalFromFile(String filepath) {
-    if (!filepath.contains(".parquet")) return null;
-    // TODO: enable load
-    //        Long startTime = 0L;
-    //        Long endTime = Long.MAX_VALUE - 1;
-    //        try {
-    //            Connection conn = ((DuckDBConnection) connection).duplicate();
-    //            Statement stmt = conn.createStatement();
-    //            ResultSet rs = stmt.executeQuery(String.format(SELECT_PARQUET_METADATA,
-    // filepath));
-    //            while (rs.next()) {
-    //                String pathName =
-    //                        ((String) rs.getObject(COLUMN_NAME_META))
-    //                                .replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
-    //                if (pathName.equals(COLUMN_KEY)) {
-    //                    startTime = Long.parseLong((String) rs.getObject(COLUMN_MIN_VALUE_META));
-    //                    endTime = Long.parseLong((String) rs.getObject(COLUMN_MAX_VALUE_META));
-    //                }
-    //            }
-    //            stmt.close();
-    //            conn.close();
-    //        } catch (SQLException e) {
-    //            logger.error("get key range from parquet file failure", e);
-    //            return new KeyInterval(startTime, endTime);
-    //        }
-    //        return new KeyInterval(startTime, endTime);
-    return new KeyInterval(Long.MAX_VALUE, Long.MIN_VALUE);
-  }
-
   public KeyInterval getTimeInterval() {
-    long start = Long.MAX_VALUE;
-    long end = Long.MIN_VALUE;
     if (!isDummyStorageUnit) {
-      start = curStartTime;
-      end = curEndTime;
+      long start = curStartTime;
+      long end = curEndTime;
       for (FileMeta fileMeta : fileMetaMap.values()) {
         if (fileMeta.getStartKey() < start) {
           start = fileMeta.getStartKey();
@@ -731,21 +744,7 @@ public class DUManager {
       }
       return new KeyInterval(start, end + 1);
     } else {
-      File file = new File(dataDir);
-      File[] dataFiles = file.listFiles();
-      if (dataFiles != null) {
-        for (File dataFile : dataFiles) {
-          if (!dataFile.getName().endsWith(SUFFIX_PARQUET_FILE)) {
-            continue;
-          }
-          KeyInterval in = getTimeIntervalFromFile(dataFile.getPath());
-          long min = in.getStartKey();
-          long max = in.getEndKey();
-          start = Math.min(start, min);
-          end = Math.max(end, max);
-        }
-      }
-      return new KeyInterval(start, end + 1);
+      return new KeyInterval(0, Long.MAX_VALUE);
     }
   }
 
