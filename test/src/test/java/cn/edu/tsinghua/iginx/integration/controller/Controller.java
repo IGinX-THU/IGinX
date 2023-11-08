@@ -160,7 +160,7 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling()) {
+    if (!conf.isScaling() || !NEED_DIVIDE_DATA.get(conf.getStorageType())) {
       logger.info("skip the write history data step.");
       medium = pathList.size();
     } else {
@@ -217,12 +217,12 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling()) {
+    if (!conf.isScaling() || !NEED_DIVIDE_DATA.get(conf.getStorageType())) {
       logger.info("skip the write history data step.");
       medium = keyList.size();
     } else {
       logger.info("DBCE test, write history data.");
-      medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 3 : pathList.size();
+      medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 3 : keyList.size();
     }
 
     // divide the data
