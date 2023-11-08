@@ -1,151 +1,151 @@
-#name: "Union Database Test"
-#on:
-#    pull_request:
-#        types: [opened, reopened]
-#        branches:
-#            - main
-#env:
-#    VERSION: 0.6.0-SNAPSHOT
-#concurrency:
-#    group: ${{ github.workflow }}-${{ github.ref }}
-#    cancel-in-progress: true
-#
-#jobs:
-#    Union-DB-Test:
-#        timeout-minutes: 30
-#        strategy:
-#            fail-fast: false
-#            matrix:
-#                java: [8]
-#                python-version: ["3.7.16"]
-#                os: [ubuntu-latest, macos-latest]
-#                DB-name:
-#                    [
-#                        "IoTDB12",
-#                        "InfluxDB",
-#                        "Parquet",
-#                        "PostgreSQL",
-#                        "FileSystem",
-#                        "Redis",
-#                        "MongoDB",
-#                    ]
-#        runs-on: ${{ matrix.os }}
-#        steps:
-#            - uses: actions/checkout@v2
-#            - name: Environment dependence
-#              uses: ./.github/actions/dependence
-#              with:
-#                  python-version: ${{ matrix.python-version }}
-#                  java: ${{ matrix.java }}
-#
-#            - name: Run ZooKeeper
-#              uses: ./.github/actions/zookeeperRunner
-#
-#            - name: Run DB
-#              uses: ./.github/actions/dbRunner
-#              with:
-#                  DB-name: ${{ matrix.DB-name }}
-#
-#            - name: Install IGinX with Maven
-#              shell: bash
-#              run: |
-#                  mvn clean package -DskipTests -P-format -q
-#
-#            - name: Change IGinX config
-#              uses: ./.github/actions/confWriter
-#              with:
-#                  DB-name: ${{ matrix.DB-name }}
-#
-#            # start udf path test first to avoid being effected
-#            - name: Start IGinX
-#              uses: ./.github/actions/iginxRunner
-#              with:
-#                  version: ${VERSION}
-#                  if-test-udf: "true"
-#
-#            - name: Run UDF path test
-#              if: always()
-#              shell: bash
-#              run: |
-#                  mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
-#
-#            - name: Show UDF Path Test IGinX log
-#              if: always()
-#              shell: bash
-#              run: |
-#                  cat iginx.log
-#
-#            # start db test
-#            - name: Stop IGinX
-#              uses: ./.github/actions/iginxRunner
-#              with:
-#                  version: ${VERSION}
-#                  if-stop: true
-#
-#            - name: Stop and clear ZooKeeper
-#              uses: ./.github/actions/zookeeperRunner
-#              with:
-#                  if-stop: true
-#
-#            - name: Run ZooKeeper
-#              uses: ./.github/actions/zookeeperRunner
-#              with:
-#                  if-rerun: true
-#
-#            - name: Start IGinX
-#              uses: ./.github/actions/iginxRunner
-#
-#            - name: Pre Test Client Export File
-#              if: always()
-#              shell: bash
-#              run: |
-#                  if [ "$RUNNER_OS" == "Linux" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
-#                  elif [ "$RUNNER_OS" == "macOS" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
-#                  fi
-#
-#            - name: Test Client Export File
-#              if: always()
-#              shell: bash
-#              run: |
-#                  mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
-#
-#            - name: Pre Test Client Import File
-#              if: always()
-#              shell: bash
-#              run: |
-#                  if [ "$RUNNER_OS" == "Linux" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
-#                  elif [ "$RUNNER_OS" == "macOS" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
-#                  fi
-#
-#            - name: Test Client Import File
-#              if: always()
-#              shell: bash
-#              run: |
-#                  mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
-#
-#            - name: TestController IT
-#              if: always()
-#              shell: bash
-#              run: |
-#                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-#                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
-#
-#            - name: Show test result
-#              if: always()
-#              shell: bash
-#              run: |
-#                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
-#
-#            - name: Show IGinX log
-#              if: always()
-#              shell: bash
-#              run: |
-#                  cat iginx.log
+name: "Union Database Test"
+on:
+    pull_request:
+        types: [opened, reopened]
+        branches:
+            - main
+env:
+    VERSION: 0.6.0-SNAPSHOT
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    Union-DB-Test:
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                java: [8]
+                python-version: ["3.7.16"]
+                os: [ubuntu-latest, macos-latest]
+                DB-name:
+                    [
+                        "IoTDB12",
+                        "InfluxDB",
+                        "Parquet",
+                        "PostgreSQL",
+                        "FileSystem",
+                        "Redis",
+                        "MongoDB",
+                    ]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v2
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            # start udf path test first to avoid being effected
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-test-udf: "true"
+
+            - name: Run UDF path test
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
+
+            - name: Show UDF Path Test IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log
+
+            # start db test
+            - name: Stop IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-stop: true
+
+            - name: Stop and clear ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  if-stop: true
+
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  if-rerun: true
+
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+
+            - name: Pre Test Client Export File
+              if: always()
+              shell: bash
+              run: |
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+                  fi
+
+            - name: Test Client Export File
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
+
+            - name: Pre Test Client Import File
+              if: always()
+              shell: bash
+              run: |
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
+                  fi
+
+            - name: Test Client Import File
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
+
+            - name: TestController IT
+              if: always()
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+
+            - name: Show test result
+              if: always()
+              shell: bash
+              run: |
+                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx.log
