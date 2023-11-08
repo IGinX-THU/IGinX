@@ -6,7 +6,7 @@ import java.util.Map;
 
 public class Column {
 
-  private final String pathName;
+  private String pathName;
 
   private final String physicalPath;
 
@@ -46,5 +46,9 @@ public class Column {
 
   public Map<Long, Object> getData() {
     return data;
+  }
+
+  public void setPathName(String pathName) {
+    this.pathName = pathName;
   }
 }
