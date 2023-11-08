@@ -126,7 +126,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
         insertStr.append("(").append(keyCnt).append(", ");
         for (int i = 0; i < columnCount; i++) {
           if (dataTypeList.get(i) == DataType.BINARY) {
-            insertStr.append(new String((byte[])values.get(i)));
+            insertStr.append("'").append(new String((byte[]) values.get(i))).append("'").append(", ");
           } else {
             insertStr.append(values.get(i)).append(", ");
           }

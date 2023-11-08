@@ -17,7 +17,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
+  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
 
   private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
 
@@ -83,6 +83,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
         try {
+          logger.info("create database with stmt: {}", String.format(CREATE_DATABASE_STATEMENT, databaseName));
           stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
         } catch (SQLException e) {
           logger.info("database {} exists!", databaseName);
