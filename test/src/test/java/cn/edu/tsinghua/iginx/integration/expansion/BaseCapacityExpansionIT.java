@@ -12,7 +12,6 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
@@ -42,11 +41,9 @@ public abstract class BaseCapacityExpansionIT {
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
       this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
-  private final boolean IS_FLAT_STORAGE_ENGINE = this instanceof RedisCapacityExpansionIT;
+  private final String EXP_SCHEMA_PREFIX = null;
 
-  private final String EXP_SCHEMA_PREFIX = IS_FLAT_STORAGE_ENGINE ? "nt" : null;
-
-  private final String READ_ONLY_SCHEMA_PREFIX = IS_FLAT_STORAGE_ENGINE ? "tm" : null;
+  private final String READ_ONLY_SCHEMA_PREFIX = null;
 
   public BaseCapacityExpansionIT(StorageEngineType type, String extraParams) {
     this.type = type;
@@ -362,14 +359,6 @@ public abstract class BaseCapacityExpansionIT {
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
-    if (IS_FLAT_STORAGE_ENGINE) {
-      dataPrefix1 = "wf03";
-      dataPrefix2 = "wf04";
-      schemaPrefixSuffix = ".nt";
-      schemaPrefix1 = "p1.nt";
-      schemaPrefix2 = "p2.nt";
-      schemaPrefix3 = "p3.nt";
-    }
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
