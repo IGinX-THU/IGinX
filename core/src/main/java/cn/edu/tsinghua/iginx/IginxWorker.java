@@ -250,14 +250,11 @@ public class IginxWorker implements IService.Iface {
           infoSchemaPrefix = info.getSchemaPrefix(),
           infoDataPrefix = info.getDataPrefix();
       int infoPort = info.getPort();
-      logger.error("222 infoIp = {} infoSchemaPrefix = {} infoDataPrefix = {} infoPort = {}", infoIp, infoSchemaPrefix, infoDataPrefix, infoPort);
       for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
         String metaIp = meta.getIp(),
             metaSchemaPrefix = meta.getSchemaPrefix(),
             metaDataPrefix = meta.getDataPrefix();
         int metaPort = meta.getPort();
-        logger.error("333 metaIp = {} metaSchemaPrefix = {} metaDataPrefix = {} metaPort = {}", metaIp, metaSchemaPrefix, metaDataPrefix, metaPort);
-
         if (!infoIp.equals(metaIp)) {
           continue;
         }
@@ -272,10 +269,6 @@ public class IginxWorker implements IService.Iface {
         }
         storageEngineMeta = meta;
         break;
-      }
-
-      if (storageEngineMeta != null) {
-        logger.error("444 storageEngineMeta = {}", storageEngineMeta);
       }
       if (storageEngineMeta == null
           || storageEngineMeta.getDummyFragment() == null

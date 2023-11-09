@@ -435,10 +435,6 @@ public abstract class BaseCapacityExpansionIT {
     // 通过 sql 语句测试移除节点
     String removeStatement = "remove historydatasource (\"127.0.0.1\", %d, \"%s\", \"%s\");";
     try {
-      ClusterInfo clusterInfo = session.getClusterInfo();
-      for (StorageEngineInfo info : clusterInfo.getStorageEngineInfos()) {
-        logger.error("111 {}", info);
-      }
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
