@@ -13,6 +13,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.parquet.entity.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
@@ -205,6 +206,7 @@ public class NewExecutor implements Executor {
       List<cn.edu.tsinghua.iginx.parquet.entity.Column> columns =
           duManager.project(paths, tagFilter, filter);
       RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
+      rowStream = new FilterRowStreamWrapper(rowStream,filter);
       return new TaskExecuteResult(rowStream, null);
     } catch (IOException e) {
       return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
