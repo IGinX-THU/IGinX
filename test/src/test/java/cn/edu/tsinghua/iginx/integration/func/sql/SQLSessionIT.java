@@ -4478,6 +4478,12 @@ public class SQLSessionIT {
         "INSERT INTO prefix_test(key, suffix, type) VALUES (0, \"a.a\", \"string\"), (1, \"a.b\", \"long\"), (2, \"b.a\", \"double\"), (3, \"c.b\", \"boolean\");";
     executor.execute(insert);
 
+    insert = "INSERT INTO prefix(key, suffix1) VALUES (0, \"b.a\"), (1, \"a.b\");";
+    executor.execute(insert);
+
+    insert = "INSERT INTO prefix(key, suffix2) VALUES (0, \"c.b\"), (2, \"a.a\");";
+    executor.execute(insert);
+
     String statement = "SELECT * FROM prefix_test;";
     String expected =
         "ResultSets:\n"
@@ -4604,6 +4610,33 @@ public class SQLSessionIT {
             + "|    true|\n"
             + "+--------+\n"
             + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    // test value2meta with multiple columns
+    statement = "SELECT * FROM prefix;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------------+--------------+\n"
+            + "|key|prefix.suffix1|prefix.suffix2|\n"
+            + "+---+--------------+--------------+\n"
+            + "|  0|           b.a|           c.b|\n"
+            + "|  1|           a.b|          null|\n"
+            + "|  2|          null|           a.a|\n"
+            + "+---+--------------+--------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT VALUE2META(SELECT * FROM prefix) FROM test WHERE key < 4;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|key|test.b.a|test.c.b|test.a.b|test.a.a|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "|  1|   232.1|    true|     871|   apple|\n"
+            + "|  2|   132.5|   false|     123|   peach|\n"
+            + "|  3|   317.8|    true|     356|  banana|\n"
+            + "+---+--------+--------+--------+--------+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(statement, expected);
   }
 

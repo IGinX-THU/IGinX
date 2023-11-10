@@ -210,9 +210,8 @@ public class UnarySelectStatement extends SelectStatement {
     this.hasValueFilter = true;
   }
 
-  public static FuncType str2FuncType(String str) {
-    String identifier = str.toLowerCase();
-    switch (identifier) {
+  public static FuncType str2FuncType(String identifier) {
+    switch (identifier.toLowerCase()) {
       case "first_value":
         return FuncType.FirstValue;
       case "last_value":
@@ -333,7 +332,7 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void setSelectedFuncsAndExpression(
       String func, FuncExpression expression, boolean addToPathSet) {
-    func = func.trim().toLowerCase();
+    func = func.trim();
 
     List<FuncExpression> expressions = this.funcExpressionMap.get(func);
     if (expressions == null) {
