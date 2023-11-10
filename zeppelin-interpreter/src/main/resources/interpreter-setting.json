@@ -38,6 +38,34 @@
         "defaultValue": "ms",
         "description": "the time precision to display. Default = 'ms'",
         "type": "string"
+      },
+      "iginx.outfile.dir": {
+        "envName": null,
+        "propertyName": "iginx.outfile.dir",
+        "defaultValue": "/home/xyh/code/zeppelin_outfile_dir/",
+        "description": "physical path to storage download files, Default = '/home/xyh/code/zeppelin_outfile_dir/'",
+        "type": "string"
+      },
+      "iginx.fetch.size": {
+        "envName": null,
+        "propertyName": "iginx.fetch.size",
+        "defaultValue": "1000",
+        "description": "Number of files downloaded at one batch, Default = '1000'",
+        "type": "string"
+      },
+      "iginx.outfile.max.num": {
+        "envName": null,
+        "propertyName": "iginx.outfile.max.num",
+        "defaultValue": "100",
+        "description": "The max number of dir in outfile path, Default = '100'",
+        "type": "string"
+      },
+      "iginx.outfile.max.size": {
+        "envName": null,
+        "propertyName": "iginx.outfile.max.size",
+        "defaultValue": "10240",
+        "description": "The max size(MB) of dir in outfile path, Default = '10240'",
+        "type": "number"
       }
     },
     "editor": {

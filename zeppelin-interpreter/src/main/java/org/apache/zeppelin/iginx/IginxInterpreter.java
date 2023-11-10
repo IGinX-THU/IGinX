@@ -1,13 +1,23 @@
 package org.apache.zeppelin.iginx;
 
+import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
+
+import cn.edu.tsinghua.iginx.constant.GlobalConstant;
+import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
+import java.io.*;
+import java.nio.file.*;
+import java.security.InvalidParameterException;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 import org.apache.zeppelin.interpreter.AbstractInterpreter;
 import org.apache.zeppelin.interpreter.InterpreterContext;
 import org.apache.zeppelin.interpreter.InterpreterException;
@@ -21,12 +31,20 @@ public class IginxInterpreter extends AbstractInterpreter {
   private static final String IGINX_USERNAME = "iginx.username";
   private static final String IGINX_PASSWORD = "iginx.password";
   private static final String IGINX_TIME_PRECISION = "iginx.time.precision";
+  private static final String IGINX_OUTFILE_DIR = "iginx.outfile.dir";
+  private static final String IGINX_FETCH_SIZE = "iginx.fetch.size";
+  private static final String IGINX_OUTFILE_MAX_NUM = "iginx.outfile.max.num";
+  private static final String IGINX_OUTFILE_MAX_SIZE = "iginx.outfile.max.size";
 
   private static final String DEFAULT_HOST = "127.0.0.1";
   private static final String DEFAULT_PORT = "6888";
   private static final String DEFAULT_USERNAME = "root";
   private static final String DEFAULT_PASSWORD = "root";
   private static final String DEFAULT_TIME_PRECISION = "ns";
+  private static final String DEFAULT_OUTFILE_DIR = "/home/xyh/code/zeppelin_outfile_dir/";
+  private static final String DEFAULT_FETCH_SIZE = "1000";
+  private static final String DEFAULT_OUTFILE_MAX_NUM = "100";
+  private static final String DEFAULT_OUTFILE_MAX_SIZE = "10240";
 
   private static final String TAB = "\t";
   private static final String NEWLINE = "\n";
@@ -41,6 +59,15 @@ public class IginxInterpreter extends AbstractInterpreter {
   private String username = "";
   private String password = "";
   private String timePrecision = "";
+  private String outfileDir = "";
+  private String fetchSize = "";
+  private int outfileMaxNum = 0;
+  private int outfileMaxSize = 0;
+
+  private Queue<String> downloadFileQueue = new LinkedList<>();
+  private Queue<Double> downloadFileSizeQueue = new LinkedList<>();
+  private double downloadFileTotalSize = 0L;
+
   private Session session;
 
   private Exception exception;
@@ -70,6 +97,14 @@ public class IginxInterpreter extends AbstractInterpreter {
     username = properties.getProperty(IGINX_USERNAME, DEFAULT_USERNAME).trim();
     password = properties.getProperty(IGINX_PASSWORD, DEFAULT_PASSWORD).trim();
     timePrecision = properties.getProperty(IGINX_TIME_PRECISION, DEFAULT_TIME_PRECISION).trim();
+    outfileDir = properties.getProperty(IGINX_OUTFILE_DIR, DEFAULT_OUTFILE_DIR).trim();
+    fetchSize = properties.getProperty(IGINX_FETCH_SIZE, DEFAULT_FETCH_SIZE).trim();
+    outfileMaxNum =
+        Integer.parseInt(
+            properties.getProperty(IGINX_OUTFILE_MAX_NUM, DEFAULT_OUTFILE_MAX_NUM).trim());
+    outfileMaxSize =
+        Integer.parseInt(
+            properties.getProperty(IGINX_OUTFILE_MAX_SIZE, DEFAULT_OUTFILE_MAX_SIZE).trim());
 
     session = new Session(host, port, username, password);
     try {
@@ -77,6 +112,12 @@ public class IginxInterpreter extends AbstractInterpreter {
     } catch (SessionException e) {
       exception = e;
       System.out.println("Can not open session successfully.");
+    }
+
+    try {
+      loadNGINXStaticFilesInfo();
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
@@ -111,6 +152,14 @@ public class IginxInterpreter extends AbstractInterpreter {
 
   private InterpreterResult processSql(String sql) {
     try {
+      // 如果sql中有outfile关键字，则进行特殊处理，将结果下载到zeppelin所在的服务器上，并在表单中返回下载链接
+      String outfileRegex = " into outfile \"(.*)\" as stream;?";
+      Pattern pattern = Pattern.compile(outfileRegex);
+      Matcher matcher = pattern.matcher(sql);
+      if (matcher.find()) {
+        return processOutfileSql(sql, matcher.group(1));
+      }
+
       SessionExecuteSqlResult sqlResult = session.executeSql(sql);
 
       String parseErrorMsg = sqlResult.getParseErrorMsg();
@@ -118,8 +167,8 @@ public class IginxInterpreter extends AbstractInterpreter {
         return new InterpreterResult(InterpreterResult.Code.ERROR, sqlResult.getParseErrorMsg());
       }
 
-      InterpreterResult interpreterResult = null;
-      String msg = "";
+      InterpreterResult interpreterResult;
+      String msg;
 
       if (singleFormSqlType.contains(sqlResult.getSqlType()) && !sql.startsWith("explain")) {
         msg =
@@ -154,6 +203,166 @@ public class IginxInterpreter extends AbstractInterpreter {
     }
   }
 
+  /**
+   * 处理带有outfile关键字的sql语句，将结果下载到zeppelin所在的服务器上，并在表单中返回下载链接
+   *
+   * @param sql 带有outfile关键字的sql语句
+   * @param originOutfilePath 原始的outfile路径
+   * @return InterpreterResult
+   * @throws SessionException
+   * @throws ExecutionException
+   * @throws IOException
+   */
+  private InterpreterResult processOutfileSql(String sql, String originOutfilePath)
+      throws SessionException, ExecutionException, IOException {
+
+    // 根据当前年月日时分秒毫秒生成outfile的文件夹名，将文件下载到此处
+    String dateDir = new Date().toString().replace(" ", "-").replace(":", "-");
+    String outfileDirPath = Paths.get(outfileDir, dateDir).toString();
+
+    // 替换sql中最后一个outfile关键词，替换文件路径为Zeppelin在服务端指定的路径
+    String outfileStr = " into outfile \"%s\" as stream";
+    sql =
+        sql.replace(
+            String.format(outfileStr, originOutfilePath),
+            String.format(outfileStr, outfileDirPath));
+    QueryDataSet res = session.executeQuery(sql);
+
+    processExportByteStream(res);
+
+    // 获取outfileDirPath文件夹下的所有文件名，只有一级，不需要递归
+    File outfileFolder = new File(outfileDirPath);
+    String[] fileNames = outfileFolder.list();
+
+    // 压缩outfileDirPath文件夹
+    String zipName = "all_file.zip";
+    FileOutputStream outputStream =
+        new FileOutputStream(Paths.get(outfileDirPath, zipName).toString());
+    ArrayList<File> fileList = new ArrayList<>();
+    if (fileNames != null) {
+      for (String fileName : fileNames) {
+        fileList.add(new File(outfileDirPath + "/" + fileName));
+      }
+    }
+    toZip(fileList, outputStream);
+    outputStream.close();
+
+    // 清理NGINX_STATIC文件夹
+    downloadFileQueue.add(outfileDirPath);
+    double fileSize = getFileSize(outfileDirPath);
+    downloadFileSizeQueue.add(fileSize);
+    downloadFileTotalSize += fileSize;
+    clearNGINXStaticFiles();
+
+    // 构建表格
+    String downloadLink = "%%html<a href=\"%s\" download=\"%s\">点击下载</a>";
+    StringBuilder builder = new StringBuilder();
+    builder.append("文件名").append(TAB).append("下载链接").append(NEWLINE);
+    builder
+        .append("所有文件压缩包")
+        .append(TAB)
+        .append(String.format(downloadLink, Paths.get("static", dateDir, zipName), zipName))
+        .append(NEWLINE);
+    if (fileNames != null) {
+      for (String fileName : fileNames) {
+        builder
+            .append(fileName)
+            .append(TAB)
+            .append(String.format(downloadLink, Paths.get("static", dateDir, fileName), fileName))
+            .append(NEWLINE);
+      }
+    }
+    String msg = builder.toString();
+    InterpreterResult interpreterResult = new InterpreterResult(InterpreterResult.Code.SUCCESS);
+    interpreterResult.add(InterpreterResult.Type.TABLE, msg);
+
+    return interpreterResult;
+  }
+
+  /**
+   * 将QueryDataSet中的结果导出到文件中。 拷贝自Client模块的Outfile相关代码，因为Client模块不能被引用
+   *
+   * @param res QueryDataSet
+   * @throws SessionException
+   * @throws ExecutionException
+   * @throws IOException
+   */
+  private void processExportByteStream(QueryDataSet res)
+      throws SessionException, ExecutionException, IOException {
+    String dir = res.getExportStreamDir();
+
+    File dirFile = new File(dir);
+    if (!dirFile.exists()) {
+      Files.createDirectory(Paths.get(dir));
+    }
+    if (!dirFile.isDirectory()) {
+      throw new InvalidParameterException(dir + " is not a directory!");
+    }
+
+    int columnsSize = res.getColumnList().size();
+    int finalCnt = columnsSize;
+    String[] columns = new String[columnsSize];
+    Map<String, Integer> countMap = new HashMap<>();
+    for (int i = 0; i < columnsSize; i++) {
+      String originColumn = res.getColumnList().get(i);
+      if (originColumn.equals(GlobalConstant.KEY_NAME)) {
+        columns[i] = "";
+        finalCnt--;
+        continue;
+      }
+      // 将文件名中的反斜杠\替换为.，因为web路径不能识别\
+      originColumn = originColumn.replace("\\", ".");
+
+      Integer count = countMap.getOrDefault(originColumn, 0);
+      count += 1;
+      countMap.put(originColumn, count);
+      // 重复的列名在列名后面加上(1),(2)...
+      if (count >= 2) {
+        columns[i] = Paths.get(dir, originColumn + "(" + (count - 1) + ")").toString();
+      } else {
+        columns[i] = Paths.get(dir, originColumn).toString();
+      }
+      // 若将要写入的文件存在，删除之
+      Files.deleteIfExists(Paths.get(columns[i]));
+    }
+
+    while (res.hasMore()) {
+      List<List<byte[]>> cache = cacheResultByteArray(res);
+      exportByteStream(cache, columns);
+    }
+    res.close();
+
+    System.out.println(
+        "Successfully write "
+            + finalCnt
+            + " file(s) to directory: \""
+            + dirFile.getAbsolutePath()
+            + "\".");
+  }
+
+  /**
+   * 将QueryDataSet中的结果缓存到List<List<byte[]>>中，每一行为一个List<byte[]>，每一列为一个byte[]
+   * 拷贝自Client模块的Outfile相关代码，因为Client模块不能被引用
+   *
+   * @param queryDataSet QueryDataSet
+   * @return 缓存结果
+   * @throws SessionException
+   * @throws ExecutionException
+   */
+  private List<List<byte[]>> cacheResultByteArray(QueryDataSet queryDataSet)
+      throws SessionException, ExecutionException {
+    List<List<byte[]>> cache = new ArrayList<>();
+    int rowIndex = 0;
+    while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
+      List<byte[]> nextRow = queryDataSet.nextRowAsBytes();
+      if (nextRow != null) {
+        cache.add(nextRow);
+        rowIndex++;
+      }
+    }
+    return cache;
+  }
+
   private String buildSingleFormResult(List<List<String>> queryList) {
     StringBuilder builder = new StringBuilder();
     for (int i = 0; i < queryList.size(); i++) {
@@ -168,6 +377,121 @@ public class IginxInterpreter extends AbstractInterpreter {
       builder.append(NEWLINE);
     }
     return builder.toString();
+  }
+
+  /**
+   * 将给定的文件列表压缩成zip文件，输出到给定的输出流中
+   *
+   * @param srcFiles 文件列表
+   * @param out 输出流
+   * @throws RuntimeException
+   */
+  public static void toZip(List<File> srcFiles, OutputStream out) throws RuntimeException {
+    int BUFFER_SIZE = 2 * 1024;
+    ZipOutputStream zos = null;
+    try {
+      zos = new ZipOutputStream(out);
+      for (File srcFile : srcFiles) {
+        byte[] buf = new byte[BUFFER_SIZE];
+        zos.putNextEntry(new ZipEntry(srcFile.getName()));
+        int len;
+        FileInputStream in = new FileInputStream(srcFile);
+        while ((len = in.read(buf)) != -1) {
+          zos.write(buf, 0, len);
+        }
+        zos.closeEntry();
+        in.close();
+      }
+    } catch (Exception e) {
+      throw new RuntimeException("zip error", e);
+    } finally {
+      if (zos != null) {
+        try {
+          zos.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }
+    }
+  }
+
+  /** 加载NGINX_STATIC文件夹下的文件信息，将文件夹名和文件夹大小加入到downloadFileQueue和downloadFileSizeQueue中 */
+  private void loadNGINXStaticFilesInfo() throws IOException {
+    File nginxStaticFolder = new File(outfileDir);
+    if (!nginxStaticFolder.exists() || !nginxStaticFolder.isDirectory()) {
+      return;
+    }
+    File[] nginxStaticFiles = nginxStaticFolder.listFiles();
+    if (nginxStaticFiles == null) {
+      return;
+    }
+    for (File nginxStaticFile : nginxStaticFiles) {
+      if (nginxStaticFile.isDirectory()) {
+        downloadFileQueue.add(nginxStaticFile.getAbsolutePath());
+        downloadFileSizeQueue.add(getFileSize(nginxStaticFile.getAbsolutePath()));
+        downloadFileTotalSize += getFileSize(nginxStaticFile.getAbsolutePath());
+      }
+    }
+  }
+
+  /**
+   * 清理NGINX_STATIC文件夹，如果NGINX_STATIC文件夹中的文件夹数量或大小超过一定数量，清理掉最早的文件夹，直到文件夹数量和大小小于一定数量
+   * 不清除当前下载的文件夹（即最新的文件夹）
+   */
+  private void clearNGINXStaticFiles() throws IOException {
+    File nginxStaticFolder = new File(outfileDir);
+    if (!nginxStaticFolder.exists() || !nginxStaticFolder.isDirectory()) {
+      return;
+    }
+    // 检查NGINX_STATIC文件夹下的文件夹数量和大小
+    while ((downloadFileQueue.size() > outfileMaxNum || downloadFileTotalSize > outfileMaxSize)
+        && downloadFileQueue.size() > 1) {
+      String oldestFolder = downloadFileQueue.poll();
+      double oldestFileSize = downloadFileSizeQueue.poll();
+      downloadFileTotalSize -= oldestFileSize;
+      if (oldestFolder != null) {
+        Files.walkFileTree(
+            Paths.get(oldestFolder),
+            new SimpleFileVisitor<Path>() {
+              @Override
+              public FileVisitResult visitFile(
+                  Path file, java.nio.file.attribute.BasicFileAttributes attrs) throws IOException {
+                Files.delete(file);
+                return FileVisitResult.CONTINUE;
+              }
+
+              @Override
+              public FileVisitResult postVisitDirectory(Path dir, IOException exc)
+                  throws IOException {
+                Files.delete(dir);
+                return FileVisitResult.CONTINUE;
+              }
+            });
+      }
+    }
+  }
+
+  /**
+   * 获取文件夹下所有文件的大小(MB)
+   *
+   * @param path 文件夹路径
+   * @return 文件夹下所有文件的大小(MB)
+   * @throws IOException
+   */
+  private double getFileSize(String path) throws IOException {
+    final double[] fileSize = {0L};
+    Files.walkFileTree(
+        Paths.get(path),
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult visitFile(
+              Path file, java.nio.file.attribute.BasicFileAttributes attrs) throws IOException {
+            fileSize[0] += Files.size(file) / 1024.0 / 1024.0;
+            return FileVisitResult.CONTINUE;
+          }
+        });
+
+    return fileSize[0];
   }
 
   private String buildExplainResult(List<List<String>> queryList) {
@@ -229,7 +553,7 @@ public class IginxInterpreter extends AbstractInterpreter {
             .replace(NEWLINE, WHITESPACE)
             .replaceAll(MULTISPACE, WHITESPACE)
             .trim()
-            .split(SEMICOLON);
+            .split("(?<=;)");
     return Arrays.stream(tmp).map(String::trim).toArray(String[]::new);
   }
 
