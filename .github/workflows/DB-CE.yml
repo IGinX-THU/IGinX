@@ -6,7 +6,7 @@ on:
             - main
 env:
     VERSION: 0.6.0-SNAPSHOT
-    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,UDFIT,RestAnnotationIT,SQLSessionIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
+    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,TransformIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true

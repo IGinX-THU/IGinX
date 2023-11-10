@@ -154,10 +154,6 @@ public class TransformIT {
     }
     Controller.writeRowsData(
         session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row, dummyNoData);
-    //    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-    //      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-    //      fail();
-    //    }
     dummyNoData = false;
   }
 
@@ -244,7 +240,7 @@ public class TransformIT {
     }
   }
 
-//  @Test
+  @Test
   public void commitMultipleSqlStatementsTest() {
     logger.info("commitMultipleSqlStatementsTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
@@ -278,7 +274,7 @@ public class TransformIT {
     }
   }
 
-//  @Test
+  @Test
   public void commitMultipleSqlStatementsByYamlTest() {
     logger.info("commitMultipleSqlStatementsByYamlTest");
     try {

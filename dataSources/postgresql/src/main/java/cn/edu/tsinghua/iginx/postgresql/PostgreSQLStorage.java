@@ -620,6 +620,7 @@ public class PostgreSQLStorage implements IStorage {
         }
         allColumnNameForTable.put(tableName, columnNames);
       }
+      conn.close();
     }
     return allColumnNameForTable;
   }
@@ -955,6 +956,11 @@ public class PostgreSQLStorage implements IStorage {
     if (e != null) {
       return new TaskExecuteResult(
           null, new PhysicalException("execute insert task in postgresql failure", e));
+    }
+    try {
+      conn.close();
+    } catch (SQLException ex) {
+      logger.error("encounter error when closing connection: {}", ex.getMessage());
     }
     return new TaskExecuteResult(null, null);
   }
