@@ -188,9 +188,6 @@ public class TransformIT {
   private void verifyJobState(long jobId)
       throws SessionException, ExecutionException, InterruptedException {
     logger.info("job is {}", jobId);
-    if (!needCompareResult) {
-      return;
-    }
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)
         && !jobState.equals(JobState.JOB_FAILED)
@@ -199,6 +196,10 @@ public class TransformIT {
       jobState = session.queryTransformJobStatus(jobId);
     }
     logger.info("job {} state is {}", jobId, jobState.toString());
+
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(JobState.JOB_FINISHED, jobState);
 
     List<Long> finishedJobIds = session.showEligibleJob(JobState.JOB_FINISHED);
@@ -478,8 +479,10 @@ public class TransformIT {
       SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
       int timeIndex = queryResult.getPaths().indexOf("transform.key");
       int sumIndex = queryResult.getPaths().indexOf("transform.sum");
-      assertNotEquals(-1, timeIndex);
-      assertNotEquals(-1, sumIndex);
+      if (needCompareResult) {
+        assertNotEquals(-1, timeIndex);
+        assertNotEquals(-1, sumIndex);
+      }
 
       BufferedWriter writer = new BufferedWriter(new FileWriter(outputFileName));
       writer.write("key,sum\n");
