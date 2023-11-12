@@ -14,10 +14,10 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 import pemja.core.PythonInterpreter;
@@ -98,6 +98,7 @@ public class PyUDSF implements UDSF {
     while (rows.hasNext()) {
       Row row = rows.next();
       List<Object> rowData = new ArrayList<>();
+      rowData.add(row.getKey());
       for (Integer idx : indices) {
         rowData.add(row.getValues()[idx]);
       }
@@ -115,8 +116,10 @@ public class PyUDSF implements UDSF {
     }
     interpreters.add(interpreter);
 
-    Header header = RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(res, false, funcName);
-    return RowUtils.constructNewTable(header, res, 2);
+    boolean hasKey = res.get(2).size() > res.get(0).size();
+
+    Header header = RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(res, hasKey, funcName);
+    return hasKey ? RowUtils.constructNewTableWithKey(header, res, 2): RowUtils.constructNewTable(header, res, 2);
   }
 
   @Override

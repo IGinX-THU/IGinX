@@ -52,4 +52,14 @@ public class RowUtils {
             .collect(Collectors.toList());
     return new Table(header, rowList);
   }
+
+  public static Table constructNewTableWithKey(Header header, List<List<Object>> values, int startIndex) {
+    List<Row> rowList = new ArrayList<>();
+    Long key;
+    for (int i = startIndex; i < values.size(); i++) {
+      key = (Long) values.get(i).remove(0);
+      rowList.add(constructNewRowWithKey(header, key, values.get(i)));
+    }
+    return new Table(header, rowList);
+  }
 }
