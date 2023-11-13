@@ -31,7 +31,7 @@ public class FunctionUtils {
   }
 
   public static boolean isRowToRowFunction(String identifier) {
-    if (sysRowToRowFunctionSet.contains(identifier)) {
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())) {
       return true;
     }
     initFunctionManager();
@@ -40,7 +40,7 @@ public class FunctionUtils {
   }
 
   public static boolean isSetToRowFunction(String identifier) {
-    if (sysSetToRowFunctionSet.contains(identifier)) {
+    if (sysSetToRowFunctionSet.contains(identifier.toLowerCase())) {
       return true;
     }
     initFunctionManager();
@@ -49,7 +49,7 @@ public class FunctionUtils {
   }
 
   public static boolean isSetToSetFunction(String identifier) {
-    if (sysSetToSetFunctionSet.contains(identifier)) {
+    if (sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
       return true;
     }
     initFunctionManager();
@@ -61,10 +61,17 @@ public class FunctionUtils {
     return sysCanUseSetQuantifierFunctionSet.contains(identifier.toLowerCase());
   }
 
-  public static boolean isPyUDF(String identifier) {
-    if (sysRowToRowFunctionSet.contains(identifier)
+  public static boolean isSysFunc(String identifier) {
+    identifier = identifier.toLowerCase();
+    return sysRowToRowFunctionSet.contains(identifier)
         || sysSetToRowFunctionSet.contains(identifier)
-        || sysSetToSetFunctionSet.contains(identifier)) {
+        || sysSetToSetFunctionSet.contains(identifier);
+  }
+
+  public static boolean isPyUDF(String identifier) {
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
       return false;
     }
     initFunctionManager();
