@@ -53,7 +53,8 @@ public class RowUtils {
     return new Table(header, rowList);
   }
 
-  public static Table constructNewTableWithKey(Header header, List<List<Object>> values, int startIndex) {
+  public static Table constructNewTableWithKey(
+      Header header, List<List<Object>> values, int startIndex) {
     List<Row> rowList = new ArrayList<>();
     Long key;
     for (int i = startIndex; i < values.size(); i++) {

@@ -16,7 +16,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
@@ -116,7 +115,7 @@ public class PyUDSF implements UDSF {
     }
     interpreters.add(interpreter);
 
-    //[["key", col1, col2 ....],
+    // [["key", col1, col2 ....],
     // ["LONG", type1, type2 ...],
     // [key1, val11, val21 ...],
     // [key2, val21, val22 ...]
@@ -129,7 +128,9 @@ public class PyUDSF implements UDSF {
 
     // if returns key, build header with key, and construct rows with key values
     Header header = RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(res, hasKey, funcName);
-    return hasKey ? RowUtils.constructNewTableWithKey(header, res, 2): RowUtils.constructNewTable(header, res, 2);
+    return hasKey
+        ? RowUtils.constructNewTableWithKey(header, res, 2)
+        : RowUtils.constructNewTable(header, res, 2);
   }
 
   @Override
