@@ -577,17 +577,17 @@ public class UDFIT {
     String insert = "INSERT INTO test(key, a) VALUES (1699950998000, 2), (1699951690000, 3);";
     execute(insert);
 
-    String query = "select addOneDay(a) from test;";
+    String query = "select reverse_rows(a) from test;";
     SessionExecuteSqlResult ret = execute(query);
     String expected =
-        "ResultSets:\n"
-            + "+-------------+-------------------+\n"
-            + "|          key|  addOneDay(test.a)|\n"
-            + "+-------------+-------------------+\n"
-            + "|1699950998000|2023-11-15 16:36:38|\n"
-            + "|1699951690000|2023-11-15 16:48:10|\n"
-            + "+-------------+-------------------+\n"
-            + "Total line number = 2\n";
+        "ResultSets:\n" +
+                "+-------------+--------------------+\n" +
+                "|          key|reverse_rows(test.a)|\n" +
+                "+-------------+--------------------+\n" +
+                "|1699951690000|                   3|\n" +
+                "|1699950998000|                   2|\n" +
+                "+-------------+--------------------+\n" +
+                "Total line number = 2\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 }
