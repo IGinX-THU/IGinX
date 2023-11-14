@@ -580,14 +580,14 @@ public class UDFIT {
     String query = "select reverse_rows(a) from test;";
     SessionExecuteSqlResult ret = execute(query);
     String expected =
-        "ResultSets:\n" +
-                "+-------------+--------------------+\n" +
-                "|          key|reverse_rows(test.a)|\n" +
-                "+-------------+--------------------+\n" +
-                "|1699951690000|                   3|\n" +
-                "|1699950998000|                   2|\n" +
-                "+-------------+--------------------+\n" +
-                "Total line number = 2\n";
+        "ResultSets:\n"
+            + "+-------------+--------------------+\n"
+            + "|          key|reverse_rows(test.a)|\n"
+            + "+-------------+--------------------+\n"
+            + "|1699951690000|                   3|\n"
+            + "|1699950998000|                   2|\n"
+            + "+-------------+--------------------+\n"
+            + "Total line number = 2\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 }
