@@ -13,3 +13,5 @@ UDTF,pow,UDFPow,udtf_pow.py
 
 UDSF,reverse_rows,UDFReverseRows,udsf_reverse_rows.py
 UDSF,transpose,UDFTranspose,udsf_transpose.py
+UDSF,countdown,UDFCountdown,udsf_countdown.py
+UDSF,addOneDay,UDFAddOneDay,udsf_addOneDay.py
