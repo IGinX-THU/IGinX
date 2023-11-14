@@ -126,11 +126,14 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
         insertStr.append("(").append(keyCnt).append(", ");
         for (int i = 0; i < columnCount; i++) {
           if (dataTypeList.get(i) == DataType.BINARY) {
-            insertStr.append("'").append(new String((byte[]) values.get(i))).append("'").append(", ");
+            insertStr
+                .append("'")
+                .append(new String((byte[]) values.get(i)))
+                .append("'")
+                .append(", ");
           } else {
             insertStr.append(values.get(i)).append(", ");
           }
-
         }
         insertStr = new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
         insertStr.append("), ");

@@ -7,7 +7,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf.DBConfType;
@@ -171,7 +171,14 @@ public class SQLSessionIT {
     }
 
     Controller.writeRowsData(
-        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row, dummyNoData);
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        new ArrayList<>(),
+        InsertAPIType.Row,
+        dummyNoData);
     dummyNoData = false;
   }
 
@@ -5593,7 +5600,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsert() {
-    if (isScaling){
+    if (isScaling) {
       return;
     }
     int start = 20000, range = 50;

@@ -24,7 +24,9 @@ public class Constant {
 
   // path
   public static final List<String> INIT_PATH_LIST =
-      Arrays.asList("b.b.b", "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+      Arrays.asList(
+          "b.b.b",
+          "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
 
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
@@ -74,8 +76,7 @@ public class Constant {
       Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));
 
   // key list
-  public static List<Long> INIT_KEYS_LIST =
-      Arrays.asList(1L, (long) Integer.MAX_VALUE);
+  public static List<Long> INIT_KEYS_LIST = Arrays.asList(1L, (long) Integer.MAX_VALUE);
 
   // for file system
   public static final Map<Integer, String> PORT_TO_ROOT =

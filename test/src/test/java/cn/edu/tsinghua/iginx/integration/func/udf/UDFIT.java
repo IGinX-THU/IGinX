@@ -27,7 +27,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -110,7 +110,14 @@ public class UDFIT {
               (i + 0.1d)));
     }
     Controller.writeRowsData(
-        session, pathList, keyList, dataTypeList, valuesList, new ArrayList<>(), InsertAPIType.Row, dummyNoData);
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        new ArrayList<>(),
+        InsertAPIType.Row,
+        dummyNoData);
     dummyNoData = false;
   }
 
@@ -263,7 +270,7 @@ public class UDFIT {
             + "|  6|                      24.0|\n"
             + "+---+--------------------------+\n"
             + "Total line number = 6\n";
-      compareResult(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT multiply(s1, s2, s3) FROM test;";
     ret = execute(query);
@@ -280,7 +287,7 @@ public class UDFIT {
             + "|  6|                               48.0|\n"
             + "+---+-----------------------------------+\n"
             + "Total line number = 6\n";
-      compareResult(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT multiply(s1, s2, s3), s1, s2 + s3 FROM test;";
     ret = execute(query);
@@ -297,7 +304,7 @@ public class UDFIT {
             + "|  6|                               48.0|      6|                6|\n"
             + "+---+-----------------------------------+-------+-----------------+\n"
             + "Total line number = 6\n";
-      compareResult(expected, ret.getResultInString(false, ""));
+    compareResult(expected, ret.getResultInString(false, ""));
   }
 
   @Test

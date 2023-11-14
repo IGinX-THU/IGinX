@@ -47,7 +47,7 @@ public class ConfLoader {
   public boolean isScaling() {
     String isScaling = FileReader.convertToString(IS_SCALING);
     logInfo("isScaling: {}", isScaling);
-    return Boolean.parseBoolean(isScaling==null?"false":isScaling);
+    return Boolean.parseBoolean(isScaling == null ? "false" : isScaling);
   }
 
   public ConfLoader(String confPath) {

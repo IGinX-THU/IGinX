@@ -55,7 +55,6 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
             throw e;
           }
         }
-
       }
 
       boolean hasKeys = !keyList.isEmpty();

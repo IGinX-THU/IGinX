@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static cn.edu.tsinghua.iginx.integration.controller.InsertAPIType.*;
+import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -11,7 +11,6 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
@@ -197,11 +196,14 @@ public class NewSessionIT {
         break;
       case Column:
       case NonAlignedColumn:
-        List<List<Object>> values = IntStream.range(0, data.getPaths().size())
-            .mapToObj(col -> IntStream.range(0, data.getValues().size())
-                .mapToObj(row -> data.getValues().get(row).get(col))
-                .collect(Collectors.toList()))
-            .collect(Collectors.toList());
+        List<List<Object>> values =
+            IntStream.range(0, data.getPaths().size())
+                .mapToObj(
+                    col ->
+                        IntStream.range(0, data.getValues().size())
+                            .mapToObj(row -> data.getValues().get(row).get(col))
+                            .collect(Collectors.toList()))
+                .collect(Collectors.toList());
         Controller.writeColumnsData(
             conn,
             data.getPaths(),
@@ -214,7 +216,6 @@ public class NewSessionIT {
             type,
             dummyNoData);
     }
-
   }
 
   private Object[][] transpose(Object[][] array) {
@@ -233,7 +234,7 @@ public class NewSessionIT {
 
   private void compare(TestDataSection expected, SessionQueryDataSet actual) {
     if (!needCompareResult) {
-        return;
+      return;
     }
     compareKeys(expected.getKeys(), actual.getKeys());
     comparePaths(expected.getPaths(), actual.getPaths(), expected.getTagsList());

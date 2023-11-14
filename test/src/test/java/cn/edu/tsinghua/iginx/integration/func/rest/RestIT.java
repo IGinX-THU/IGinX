@@ -5,7 +5,7 @@ import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.controller.InsertAPIType;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -27,6 +27,7 @@ public class RestIT {
   private boolean isAbleToDelete = true;
 
   private boolean dummyNoData = true;
+
   public RestIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
@@ -93,7 +94,14 @@ public class RestIT {
               }
             });
     Controller.writeColumnsData(
-        session, pathList, keyList, dataTypeList, valuesList, tagsList, InsertAPIType.Column, dummyNoData);
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        tagsList,
+        InsertAPIType.Column,
+        dummyNoData);
     dummyNoData = false;
   }
 

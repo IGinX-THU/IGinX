@@ -5,7 +5,6 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.read
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;

@@ -1,12 +1,11 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
-import java.io.IOException;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import java.io.IOException;
 import org.junit.*;
-
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 
 public class SQLSessionPoolIT extends SQLSessionIT {
   public SQLSessionPoolIT() throws IOException {

@@ -6,10 +6,9 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
-import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -294,13 +293,15 @@ public class Controller {
         multiConnection.insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
       case NonAlignedRow:
-        multiConnection.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
+        multiConnection.insertNonAlignedRowRecords(
+            paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
       case Column:
         multiConnection.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
       case NonAlignedColumn:
-        multiConnection.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
+        multiConnection.insertNonAlignedColumnRecords(
+            paths, timestamps, valuesList, dataTypeList, tagsList);
         break;
     }
   }
