@@ -4,6 +4,8 @@ class UDFTranspose:
 
   def transform(self, data, args, kvargs):
     res = self.buildHeader(data)
+    for row in data[2:]:
+      del(row[0])
     res.extend(list(map(list, zip(*data[2:]))))
     return res
 
@@ -14,5 +16,5 @@ class UDFTranspose:
     for i in range(2, len(data)):
       colNames.append("transpose(" + str(count) + ")")
       count += 1
-      types.append(data[1][0])
+      types.append(data[1][1])
     return [colNames, types]
