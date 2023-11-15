@@ -2,6 +2,8 @@ package cn.edu.tsinghua.iginx.optimizer;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.DeepFirstIterator;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.LeveledIterator;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.ReverseDeepFirstIterator;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.ReverseLeveledIterator;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.TreeIterator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -45,6 +47,34 @@ public class IteratorTest {
   }
 
   @Test
+  public void testReverseDeepFirstIterator() {
+    Operator root = TreeBuilder.buildSelectTree();
+    TreeIterator it = new ReverseDeepFirstIterator(root);
+    List<Class<? extends Operator>> expectedOrder = Arrays.asList(Project.class, Select.class);
+    Assert.assertTrue(matchExpectedOrder(expectedOrder, it));
+
+    root = TreeBuilder.buildJoinTree0();
+    it = new ReverseDeepFirstIterator(root);
+    expectedOrder =
+        Arrays.asList(Project.class, Project.class, InnerJoin.class, Select.class, Reorder.class);
+    Assert.assertTrue(matchExpectedOrder(expectedOrder, it));
+
+    root = TreeBuilder.buildJoinTree1();
+    it = new ReverseDeepFirstIterator(root);
+    expectedOrder =
+        Arrays.asList(
+            Project.class,
+            Project.class,
+            Select.class,
+            Project.class,
+            InnerJoin.class,
+            OuterJoin.class,
+            Select.class,
+            Reorder.class);
+    Assert.assertTrue(matchExpectedOrder(expectedOrder, it));
+  }
+
+  @Test
   public void testLeveledIterator() {
     Operator root = TreeBuilder.buildSelectTree();
     TreeIterator it = new LeveledIterator(root);
@@ -69,6 +99,34 @@ public class IteratorTest {
             Project.class,
             Select.class,
             Project.class);
+    Assert.assertTrue(matchExpectedOrder(expectedOrder, it));
+  }
+
+  @Test
+  public void testReverseLeveledIterator() {
+    Operator root = TreeBuilder.buildSelectTree();
+    TreeIterator it = new ReverseLeveledIterator(root);
+    List<Class<? extends Operator>> expectedOrder = Arrays.asList(Project.class, Select.class);
+    Assert.assertTrue(matchExpectedOrder(expectedOrder, it));
+
+    root = TreeBuilder.buildJoinTree0();
+    it = new ReverseLeveledIterator(root);
+    expectedOrder =
+        Arrays.asList(Project.class, Project.class, InnerJoin.class, Select.class, Reorder.class);
+    Assert.assertTrue(matchExpectedOrder(expectedOrder, it));
+
+    root = TreeBuilder.buildJoinTree1();
+    it = new ReverseLeveledIterator(root);
+    expectedOrder =
+        Arrays.asList(
+            Project.class,
+            Select.class,
+            Project.class,
+            Project.class,
+            InnerJoin.class,
+            OuterJoin.class,
+            Select.class,
+            Reorder.class);
     Assert.assertTrue(matchExpectedOrder(expectedOrder, it));
   }
 

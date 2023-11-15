@@ -6,6 +6,8 @@ import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.DeepFirstIterator;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.LeveledIterator;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.MatchOrder;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.ReverseDeepFirstIterator;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.ReverseLeveledIterator;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.TreeIterator;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.Rule;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
@@ -138,6 +140,10 @@ public class RuleBasedPlanner implements Planner {
     switch (matchOrder) {
       case DeepFirst:
         return new DeepFirstIterator(root);
+      case ReverseDeepFirst:
+        return new ReverseDeepFirstIterator(root);
+      case ReverseLeveled:
+        return new ReverseLeveledIterator(root);
       case Leveled:
       default:
         return new LeveledIterator(root);
