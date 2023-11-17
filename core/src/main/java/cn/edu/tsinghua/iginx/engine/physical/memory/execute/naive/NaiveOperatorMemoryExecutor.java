@@ -87,8 +87,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -2517,20 +2516,5 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     private static final NaiveOperatorMemoryExecutor INSTANCE = new NaiveOperatorMemoryExecutor();
 
     private NaiveOperatorMemoryExecutorHolder() {}
-  }
-
-  private static class EmptySource implements Source {
-
-    public static final EmptySource EMPTY_SOURCE = new EmptySource();
-
-    @Override
-    public SourceType getType() {
-      return null;
-    }
-
-    @Override
-    public Source copy() {
-      return null;
-    }
   }
 }

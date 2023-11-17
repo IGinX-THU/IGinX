@@ -5,7 +5,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.List;
 
-public abstract class AbstractJoinOperator extends AbstractBinaryOperator {
+public abstract class AbstractJoin extends AbstractBinaryOperator {
 
   private String prefixA;
 
@@ -15,7 +15,7 @@ public abstract class AbstractJoinOperator extends AbstractBinaryOperator {
 
   private List<String> extraJoinPrefix; // 连接时需要额外进行比较的列名
 
-  public AbstractJoinOperator(
+  public AbstractJoin(
       OperatorType type,
       Source sourceA,
       Source sourceB,

@@ -24,6 +24,11 @@ public class FoldedOperator extends AbstractMultipleOperator {
   }
 
   @Override
+  public MultipleOperator copyWithSource(List<Source> sources) {
+    return new FoldedOperator(sources, incompleteRoot.copy());
+  }
+
+  @Override
   public String getInfo() {
     return "";
   }

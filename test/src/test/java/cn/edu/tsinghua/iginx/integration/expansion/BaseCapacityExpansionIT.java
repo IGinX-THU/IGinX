@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -11,8 +12,8 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
@@ -39,11 +40,9 @@ public abstract class BaseCapacityExpansionIT {
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
       this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
-  private final boolean IS_FLAT_STORAGE_ENGINE = this instanceof RedisCapacityExpansionIT;
+  private final String EXP_SCHEMA_PREFIX = null;
 
-  private final String EXP_SCHEMA_PREFIX = IS_FLAT_STORAGE_ENGINE ? "nt" : null;
-
-  private final String READ_ONLY_SCHEMA_PREFIX = IS_FLAT_STORAGE_ENGINE ? "tm" : null;
+  private final String READ_ONLY_SCHEMA_PREFIX = null;
 
   public BaseCapacityExpansionIT(StorageEngineType type, String extraParams) {
     this.type = type;
@@ -356,20 +355,9 @@ public abstract class BaseCapacityExpansionIT {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
     String schemaPrefixSuffix = "";
-    String schemaPrefix = "";
-
     String schemaPrefix1 = "p1";
     String schemaPrefix2 = "p2";
     String schemaPrefix3 = "p3";
-    if (IS_FLAT_STORAGE_ENGINE) {
-      dataPrefix1 = "wf03";
-      dataPrefix2 = "wf04";
-      schemaPrefixSuffix = ".nt";
-      schemaPrefix = "nt";
-      schemaPrefix1 = "p1.nt";
-      schemaPrefix2 = "p2.nt";
-      schemaPrefix3 = "p3.nt";
-    }
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
@@ -383,17 +371,21 @@ public abstract class BaseCapacityExpansionIT {
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2);
     addStorageEngine(expPort, true, true, dataPrefix1, null);
+    testShowClusterInfo(5);
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
-    if (res != null && !res.contains("unexpected repeated add")) {
+    if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
+    testShowClusterInfo(5);
+
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3);
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3);
+    testShowClusterInfo(7);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     statement = "select wt01.status2 from p1.nt.wf03;";
@@ -423,6 +415,7 @@ public abstract class BaseCapacityExpansionIT {
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
+      testShowClusterInfo(5);
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through session api error: {}", e.getMessage());
     }
@@ -445,7 +438,8 @@ public abstract class BaseCapacityExpansionIT {
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
       session.executeSql(
           String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
-      session.executeSql(String.format(removeStatement, expPort, schemaPrefix, dataPrefix1));
+      session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
+      testShowClusterInfo(2);
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through sql error: {}", e.getMessage());
     }
@@ -458,11 +452,21 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
     } catch (ExecutionException | SessionException e) {
-      if (!e.getMessage().contains("dummy storage engine does not exist.")) {
+      if (!e.getMessage().contains("remove history data source failed")) {
         logger.error(
-            "'remove history data source should throw error when removing the node that does not exist");
+            "remove history data source should throw error when removing the node that does not exist");
         fail();
       }
+    }
+    testShowClusterInfo(2);
+  }
+
+  private void testShowClusterInfo(int expected) {
+    try {
+      ClusterInfo clusterInfo = session.getClusterInfo();
+      assertEquals(expected, clusterInfo.getStorageEngineInfos().size());
+    } catch (ExecutionException | SessionException e) {
+      logger.error("encounter error when showing cluster info: {}", e.getMessage());
     }
   }
 

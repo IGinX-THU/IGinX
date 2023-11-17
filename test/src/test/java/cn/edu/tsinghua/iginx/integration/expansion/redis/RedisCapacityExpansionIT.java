@@ -21,15 +21,15 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void testQuerySpecialHistoryData() {
-    String statement = "select redis.* from tm;";
+    String statement = "select * from redis;";
     String expect =
         "ResultSets:\n"
-            + "+---+-----------------+-------------------+------------+------------+-------------+\n"
-            + "|key|tm.redis.hash.key|tm.redis.hash.value|tm.redis.key|tm.redis.set|tm.redis.zset|\n"
-            + "+---+-----------------+-------------------+------------+------------+-------------+\n"
-            + "|  0|           field1|             value1| redis value|      value1|       value0|\n"
-            + "|  1|           field0|             value0|        null|      value0|       value1|\n"
-            + "+---+-----------------+-------------------+------------+------------+-------------+\n"
+            + "+---+--------------+----------------+-----------+---------+----------+\n"
+            + "|key|redis.hash.key|redis.hash.value|  redis.key|redis.set|redis.zset|\n"
+            + "+---+--------------+----------------+-----------+---------+----------+\n"
+            + "|  0|        field1|          value1|redis value|   value1|    value0|\n"
+            + "|  1|        field0|          value0|       null|   value0|    value1|\n"
+            + "+---+--------------+----------------+-----------+---------+----------+\n"
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }

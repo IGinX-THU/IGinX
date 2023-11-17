@@ -85,6 +85,11 @@ public class Downsample extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Downsample(source, precision, slideDistance, functionCall.copy(), keyRange.copy());
+  }
+
+  @Override
   public String getInfo() {
     return "Precision: "
         + precision
