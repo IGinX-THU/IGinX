@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import java.util.List;
@@ -39,6 +40,11 @@ public class Migration extends AbstractUnaryOperator {
   public Operator copy() {
     return new Migration(
         (GlobalSource) getSource().copy(), fragmentMeta, paths, targetStorageUnitMeta);
+  }
+
+  @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Migration((GlobalSource) source, fragmentMeta, paths, targetStorageUnitMeta);
   }
 
   @Override

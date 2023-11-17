@@ -920,27 +920,23 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public boolean invalidateStorageEngine(StorageEngineMeta storageEngine)
-      throws MetaStorageException {
+  public void removeDummyStorageEngine(long storageEngineId) throws MetaStorageException {
     try {
       lockStorage();
       this.client
           .getKVClient()
-          .put(
+          .delete(
               ByteSequence.from(
-                  generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngine.getId())
-                      .getBytes()),
-              ByteSequence.from(JsonUtils.toJson(storageEngine)))
-          .get();
-    } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when invalidating storage engine: ", e);
+                  generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
+                      .getBytes()));
+    } catch (Exception e) {
+      logger.error("got error when removing dummy storage engine: {}", e.getMessage());
       throw new MetaStorageException(e);
     } finally {
       if (storageLease != -1) {
         releaseStorage();
       }
     }
-    return true;
   }
 
   @Override
