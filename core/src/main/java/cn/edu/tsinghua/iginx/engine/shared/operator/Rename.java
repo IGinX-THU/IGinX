@@ -40,6 +40,11 @@ public class Rename extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Rename(source, new HashMap<>(aliasMap));
+  }
+
+  @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("AliasMap: ");

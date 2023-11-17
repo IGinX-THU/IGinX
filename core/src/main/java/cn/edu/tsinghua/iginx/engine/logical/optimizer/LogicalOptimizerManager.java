@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer;
 
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.rbo.RuleBasedOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -14,6 +15,8 @@ public class LogicalOptimizerManager {
   private static final String FILTER_PUSH_DOWN = "filter_push_down";
 
   private static final String FILTER_FRAGMENT = "filter_fragment";
+
+  private static final String RULE_BASE = "rbo";
 
   private LogicalOptimizerManager() {}
 
@@ -34,6 +37,8 @@ public class LogicalOptimizerManager {
         return FilterPushDownOptimizer.getInstance();
       case FILTER_FRAGMENT:
         return FilterFragmentOptimizer.getInstance();
+      case RULE_BASE:
+        return RuleBasedOptimizer.getInstance();
       default:
         throw new IllegalArgumentException(String.format("unknown logical optimizer: %s", name));
     }

@@ -8,7 +8,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class OuterJoin extends AbstractJoinOperator {
+public class OuterJoin extends AbstractJoin {
 
   private final OuterJoinType outerJoinType;
 
@@ -114,6 +114,21 @@ public class OuterJoin extends AbstractJoinOperator {
     return new OuterJoin(
         getSourceA().copy(),
         getSourceB().copy(),
+        getPrefixA(),
+        getPrefixB(),
+        outerJoinType,
+        filter.copy(),
+        new ArrayList<>(joinColumns),
+        isNaturalJoin,
+        getJoinAlgType(),
+        new ArrayList<>(getExtraJoinPrefix()));
+  }
+
+  @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new OuterJoin(
+        sourceA,
+        sourceB,
         getPrefixA(),
         getPrefixB(),
         outerJoinType,

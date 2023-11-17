@@ -23,7 +23,7 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
-  public boolean invalidateStorageEngine(StorageEngineMeta storageEngineMeta) {
+  public boolean removeDummyStorageEngine(long storageEngineId) {
     return false;
   }
 

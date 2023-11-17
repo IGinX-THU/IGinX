@@ -33,6 +33,11 @@ public class PathUnion extends AbstractBinaryOperator {
   }
 
   @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new PathUnion(sourceA, sourceB);
+  }
+
+  @Override
   public String getInfo() {
     return "";
   }
