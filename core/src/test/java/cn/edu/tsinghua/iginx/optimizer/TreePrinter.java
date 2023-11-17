@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.optimizer;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.task.TreeInfoVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.TreeInfoVisitor;
 
 public class TreePrinter {
 

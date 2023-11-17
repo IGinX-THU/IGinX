@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.TaskVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.task.TaskVisitor;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;

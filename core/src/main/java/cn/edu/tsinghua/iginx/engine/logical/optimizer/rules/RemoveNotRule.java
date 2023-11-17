@@ -5,7 +5,7 @@ import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.removeNot;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.OperatorVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.OperatorVisitor;
 
 public class RemoveNotRule extends Rule {
 
@@ -22,7 +22,7 @@ public class RemoveNotRule extends Rule {
      * we want to match the topology like:
      *         Select
      *           |
-     *              Any
+     *          Any
      */
     super(operand(Select.class, any()));
   }

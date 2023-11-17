@@ -19,7 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.TaskVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.task.TaskVisitor;
 import java.util.List;
 
 public interface PhysicalTask extends Measurable {

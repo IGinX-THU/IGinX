@@ -28,7 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.TaskVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.task.TaskVisitor;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.task.OperatorVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.OperatorVisitor;
 import java.util.List;
 
 public abstract class AbstractMultipleOperator extends AbstractOperator

@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.task.DeepFirstQueueVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.DeepFirstQueueVisitor;
 import java.util.Queue;
 
 public class DeepFirstIterator implements TreeIterator {
