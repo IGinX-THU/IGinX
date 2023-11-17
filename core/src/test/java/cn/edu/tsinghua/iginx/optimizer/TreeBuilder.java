@@ -16,13 +16,25 @@ import java.util.Collections;
 
 public class TreeBuilder {
 
-  /** select | project */
+  /*
+     select
+       |
+     project
+  */
   public static Operator buildSelectTree() {
     Project project = new Project(EmptySource.EMPTY_SOURCE, Collections.emptyList(), null);
     return new Select(new OperatorSource(project), new KeyFilter(Op.G, 10), null);
   }
 
-  /** reorder | select | innerJoin / \ projectA projectB */
+  /*
+           reorder
+              |
+           select
+              |
+          innerJoin
+           /    \
+      projectA projectB
+  */
   public static Operator buildJoinTree0() {
     Project projectA = new Project(EmptySource.EMPTY_SOURCE, Collections.emptyList(), null);
     Project projectB = new Project(EmptySource.EMPTY_SOURCE, Collections.emptyList(), null);
@@ -41,7 +53,19 @@ public class TreeBuilder {
     return new Reorder(new OperatorSource(select), Collections.singletonList("*"));
   }
 
-  /** reorder | selectB | outerJoin / \ innerJoin projectC / \ projectA selectA | projectB */
+  /*
+             reorder
+                |
+             selectB
+                |
+            outerJoin
+             /     \
+        innerJoin projectC
+          /    \
+    projectA selectA
+                |
+             projectB
+  */
   public static Operator buildJoinTree1() {
     Project projectA = new Project(EmptySource.EMPTY_SOURCE, Collections.emptyList(), null);
     Project projectB = new Project(EmptySource.EMPTY_SOURCE, Collections.emptyList(), null);

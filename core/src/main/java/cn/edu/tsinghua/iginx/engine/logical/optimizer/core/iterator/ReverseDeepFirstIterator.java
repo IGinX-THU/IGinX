@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.DeepFirstQueueVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.task.DeepFirstQueueVisitor;
 import java.util.Deque;
 import java.util.LinkedList;
 import java.util.Queue;

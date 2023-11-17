@@ -86,6 +86,8 @@ public class Config {
 
   private int statisticsLogInterval = 5000;
 
+  private boolean needOperatorStats = false;
+
   private boolean enableEnvParameter = false;
 
   private String restIp = "127.0.0.1";
@@ -308,6 +310,10 @@ public class Config {
     return timePrecision;
   }
 
+  public void setTimePrecision(TimePrecision timePrecision) {
+    this.timePrecision = timePrecision;
+  }
+
   public String getDatabaseClassNames() {
     return databaseClassNames;
   }
@@ -434,6 +440,14 @@ public class Config {
 
   public void setStatisticsLogInterval(int statisticsLogInterval) {
     this.statisticsLogInterval = statisticsLogInterval;
+  }
+
+  public boolean isNeedOperatorStats() {
+    return needOperatorStats;
+  }
+
+  public void setNeedOperatorStats(boolean needOperatorStats) {
+    this.needOperatorStats = needOperatorStats;
   }
 
   public boolean isEnableEnvParameter() {

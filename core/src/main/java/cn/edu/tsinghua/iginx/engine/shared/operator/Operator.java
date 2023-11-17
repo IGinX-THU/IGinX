@@ -19,7 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.OperatorVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.task.OperatorVisitor;
 
 public interface Operator {
 

@@ -124,6 +124,8 @@ public class ConfigDescriptor {
           properties.getProperty("statisticsCollectorClassName", ""));
       config.setStatisticsLogInterval(
           Integer.parseInt(properties.getProperty("statisticsLogInterval", "5000")));
+      config.setNeedOperatorStats(
+          Boolean.parseBoolean(properties.getProperty("needOperatorStats", "false")));
 
       config.setRestIp(properties.getProperty("restIp", "127.0.0.1"));
       config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "6666")));
@@ -258,6 +260,8 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("statisticsCollectorClassName", config.getStatisticsCollectorClassName()));
     config.setStatisticsLogInterval(
         EnvUtils.loadEnv("statisticsLogInterval", config.getStatisticsLogInterval()));
+    config.setNeedOperatorStats(
+        EnvUtils.loadEnv("needOperatorStats", config.isNeedOperatorStats()));
     config.setRestIp(EnvUtils.loadEnv("restIp", config.getRestIp()));
     config.setRestPort(EnvUtils.loadEnv("restPort", config.getRestPort()));
     config.setDisorderMargin(EnvUtils.loadEnv("disorderMargin", config.getDisorderMargin()));

@@ -1,8 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.utils;
 
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.CompletedFoldedPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.FoldedMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
@@ -33,17 +31,6 @@ public class TaskUtils {
         for (PhysicalTask parentTask : multipleMemoryPhysicalTask.getParentTasks()) {
           getBottomTasks(tasks, parentTask);
         }
-        break;
-      case Folded:
-        FoldedMemoryPhysicalTask foldedMemoryPhysicalTask = (FoldedMemoryPhysicalTask) root;
-        for (PhysicalTask parentTask : foldedMemoryPhysicalTask.getParentTasks()) {
-          getBottomTasks(tasks, parentTask);
-        }
-        break;
-      case CompletedFolded:
-        CompletedFoldedPhysicalTask completedFoldedPhysicalTask =
-            (CompletedFoldedPhysicalTask) root;
-        getBottomTasks(tasks, completedFoldedPhysicalTask.getParentTask());
         break;
       default:
         throw new RuntimeException("unknown task type: " + root.getType());
