@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
@@ -71,5 +72,13 @@ public class TreeBuilder {
     Select selectB = new Select(new OperatorSource(outerJoin), new KeyFilter(Op.G, 10), null);
 
     return new Reorder(new OperatorSource(selectB), Collections.singletonList("*"));
+  }
+
+  public static Operator buildRemoveNotTree() {
+    Project project = new Project(EmptySource.EMPTY_SOURCE, Collections.emptyList(), null);
+    Select select =
+        new Select(new OperatorSource(project), new NotFilter(new KeyFilter(Op.G, 100)), null);
+
+    return new Reorder(new OperatorSource(select), Collections.singletonList("*"));
   }
 }
