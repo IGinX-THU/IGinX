@@ -48,6 +48,12 @@ public class Intersect extends AbstractBinaryOperator {
   }
 
   @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new Intersect(
+        sourceA, sourceB, new ArrayList<>(leftOrder), new ArrayList<>(rightOrder), isDistinct);
+  }
+
+  @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("LeftOrder: ");

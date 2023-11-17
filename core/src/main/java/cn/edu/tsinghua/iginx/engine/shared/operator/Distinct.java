@@ -24,6 +24,11 @@ public class Distinct extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Distinct(source, new ArrayList<>(patterns));
+  }
+
+  @Override
   public String getInfo() {
     return "";
   }

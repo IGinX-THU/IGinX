@@ -66,6 +66,11 @@ public class RowTransform extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new RowTransform(source, new ArrayList<>(functionCallList));
+  }
+
+  @Override
   public String getInfo() {
     return "FuncList: " + functionCallList.toString();
   }

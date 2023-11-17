@@ -36,6 +36,11 @@ public class GroupBy extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new GroupBy(source, new ArrayList<>(groupByCols), new ArrayList<>(functionCallList));
+  }
+
+  @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
     builder.append("GroupByCols: ").append(String.join(",", groupByCols));

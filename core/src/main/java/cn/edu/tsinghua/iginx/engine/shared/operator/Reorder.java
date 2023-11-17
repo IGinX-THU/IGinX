@@ -35,6 +35,12 @@ public class Reorder extends AbstractUnaryOperator {
         getSource().copy(), new ArrayList<>(patterns), new ArrayList<>(isPyUDF), needSelectedPath);
   }
 
+  @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Reorder(
+        source, new ArrayList<>(patterns), new ArrayList<>(isPyUDF), needSelectedPath);
+  }
+
   public List<String> getPatterns() {
     return patterns;
   }

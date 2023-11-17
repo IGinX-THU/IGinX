@@ -57,8 +57,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
 
 public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
@@ -404,20 +403,5 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
     private static final StreamOperatorMemoryExecutor INSTANCE = new StreamOperatorMemoryExecutor();
 
     private StreamOperatorMemoryExecutorHolder() {}
-  }
-
-  private static class EmptySource implements Source {
-
-    public static final EmptySource EMPTY_SOURCE = new EmptySource();
-
-    @Override
-    public SourceType getType() {
-      return null;
-    }
-
-    @Override
-    public Source copy() {
-      return null;
-    }
   }
 }

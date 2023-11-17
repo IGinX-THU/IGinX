@@ -24,5 +24,7 @@ public interface UnaryOperator extends Operator {
 
   Source getSource();
 
+  UnaryOperator copyWithSource(Source source);
+
   void setSource(Source source);
 }
