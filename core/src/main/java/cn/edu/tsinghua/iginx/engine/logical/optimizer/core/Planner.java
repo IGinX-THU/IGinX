@@ -25,6 +25,6 @@ public interface Planner {
   // set the Rule matching order for this query tree, depth-first, leveled etc
   void setMatchOrder(MatchOrder order);
 
-  // get the optimized query tre
+  // get the optimized query tree
   Operator findBest();
 }
