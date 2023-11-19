@@ -32,4 +32,19 @@ public class RBOTest {
     actual = TreePrinter.getTreeInfo(rootAfterRBO);
     Assert.assertEquals(expected, actual);
   }
+
+  @Test
+  public void testRemoveNotRule() {
+    Operator root = TreeBuilder.buildRemoveNotTree();
+    String expected =
+        "[Reorder] Order: *\n" + "  [Select] Filter: !(key > 100)\n" + "    [Project] Patterns:\n";
+    String actual = TreePrinter.getTreeInfo(root);
+    Assert.assertEquals(expected, actual);
+
+    Operator rootAfterRBO = rbo.optimize(root);
+    expected =
+        "[Reorder] Order: *\n" + "  [Select] Filter: key <= 100\n" + "    [Project] Patterns:\n";
+    actual = TreePrinter.getTreeInfo(rootAfterRBO);
+    Assert.assertEquals(expected, actual);
+  }
 }
