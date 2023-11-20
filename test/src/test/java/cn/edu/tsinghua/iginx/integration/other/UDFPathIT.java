@@ -37,21 +37,23 @@ public class UDFPathIT {
     String statement = "show register python task;";
     String expectedRes =
         "Register task infos:\n"
-            + "+------------+---------------+---------------------+-------+--------+\n"
-            + "|        NAME|     CLASS_NAME|            FILE_NAME|     IP|UDF_TYPE|\n"
-            + "+------------+---------------+---------------------+-------+--------+\n"
-            + "|     udf_sum|         UDFSum|           udf_sum.py|0.0.0.0|    UDAF|\n"
-            + "|         cos|         UDFCos|          udtf_cos.py|0.0.0.0|    UDTF|\n"
-            + "|         pow|         UDFPow|          udtf_pow.py|0.0.0.0|    UDTF|\n"
-            + "|columnExpand|UDFColumnExpand|udtf_column_expand.py|0.0.0.0|    UDTF|\n"
-            + "|reverse_rows| UDFReverseRows| udsf_reverse_rows.py|0.0.0.0|    UDSF|\n"
-            + "|     udf_max|         UDFMax|           udf_max.py|0.0.0.0|    UDAF|\n"
-            + "|   transpose|   UDFTranspose|    udsf_transpose.py|0.0.0.0|    UDSF|\n"
-            + "|   udf_count|       UDFCount|         udf_count.py|0.0.0.0|    UDAF|\n"
-            + "|    multiply|    UDFMultiply|     udtf_multiply.py|0.0.0.0|    UDTF|\n"
-            + "|     udf_min|         UDFMin|           udf_min.py|0.0.0.0|    UDAF|\n"
-            + "|     udf_avg|         UDFAvg|           udf_avg.py|0.0.0.0|    UDAF|\n"
-            + "+------------+---------------+---------------------+-------+--------+\n";
+            + "+----------------+---------------+---------------------+-------+--------+\n"
+            + "|            NAME|     CLASS_NAME|            FILE_NAME|     IP|UDF_TYPE|\n"
+            + "+----------------+---------------+---------------------+-------+--------+\n"
+            + "|         udf_sum|         UDFSum|           udf_sum.py|0.0.0.0|    UDAF|\n"
+            + "|udf_max_with_key|  UDFMaxWithKey|  udf_max_with_key.py|0.0.0.0|    UDAF|\n"
+            + "|             cos|         UDFCos|          udtf_cos.py|0.0.0.0|    UDTF|\n"
+            + "|    columnExpand|UDFColumnExpand|udtf_column_expand.py|0.0.0.0|    UDTF|\n"
+            + "|         udf_min|         UDFMin|           udf_min.py|0.0.0.0|    UDAF|\n"
+            + "|         udf_avg|         UDFAvg|           udf_avg.py|0.0.0.0|    UDAF|\n"
+            + "|     key_add_one|   UDFKeyAddOne|  udtf_key_add_one.py|0.0.0.0|    UDTF|\n"
+            + "|             pow|         UDFPow|          udtf_pow.py|0.0.0.0|    UDTF|\n"
+            + "|    reverse_rows| UDFReverseRows| udsf_reverse_rows.py|0.0.0.0|    UDSF|\n"
+            + "|         udf_max|         UDFMax|           udf_max.py|0.0.0.0|    UDAF|\n"
+            + "|       transpose|   UDFTranspose|    udsf_transpose.py|0.0.0.0|    UDSF|\n"
+            + "|       udf_count|       UDFCount|         udf_count.py|0.0.0.0|    UDAF|\n"
+            + "|        multiply|    UDFMultiply|     udtf_multiply.py|0.0.0.0|    UDTF|\n"
+            + "+----------------+---------------+---------------------+-------+--------+\n";
 
     SQLTestTools.executeAndCompare(session, statement, expectedRes);
   }

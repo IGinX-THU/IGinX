@@ -7,7 +7,7 @@ class UDFAvg:
 
         avgRow = []
         rows = data[2:]
-        for row in zip(*rows):
+        for row in list(zip(*rows))[1:]:
             sum, count = 0, 0
             for num in row:
                 if num is not None:
@@ -20,7 +20,7 @@ class UDFAvg:
     def buildHeader(self, data):
         colNames = []
         colTypes = []
-        for name in data[0]:
+        for name in data[0][1:]:
             colNames.append("udf_avg(" + name + ")")
             colTypes.append("DOUBLE")
         return [colNames, colTypes]
