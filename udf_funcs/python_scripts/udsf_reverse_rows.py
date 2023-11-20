@@ -10,5 +10,8 @@ class UDFReverseRows:
   def buildHeader(self, data):
     colNames = []
     for name in data[0]:
-      colNames.append("reverse_rows(" + name + ")")
+      if name != "key":
+        colNames.append("reverse_rows(" + name + ")")
+      else:
+        colNames.append(name)
     return [colNames, data[1]]
