@@ -1,7 +1,9 @@
 package cn.edu.tsinghua.iginx.parquet.local;
 
+import cn.edu.tsinghua.iginx.datasource.DataSourceBaseTest;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
-import cn.edu.tsinghua.iginx.parquet.AbstractExecutorTest;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
 import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
 import java.io.File;
@@ -12,10 +14,13 @@ import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LocalExecutorTest extends AbstractExecutorTest {
+public class LocalExecutorTest extends DataSourceBaseTest {
 
   private static final Logger logger = LoggerFactory.getLogger(LocalExecutorTest.class);
 
@@ -26,6 +31,12 @@ public class LocalExecutorTest extends AbstractExecutorTest {
   protected static String dataDir = "./src/test/resources/dataDir";
 
   protected static String dummyDir = "./src/test/resources/dummyDir";
+
+  protected static final ReentrantReadWriteLock DUIndexLock = new ReentrantReadWriteLock();
+
+  protected Executor executor;
+
+  protected static int DU_INDEX = 0;
 
   public LocalExecutorTest() {
     createOrClearDir(Paths.get(dataDir));
@@ -84,7 +95,6 @@ public class LocalExecutorTest extends AbstractExecutorTest {
     return connection;
   }
 
-  @Override
   public String newDU() {
     try {
       DUIndexLock.writeLock().lock();
@@ -101,5 +111,20 @@ public class LocalExecutorTest extends AbstractExecutorTest {
       DUIndexLock.writeLock().unlock();
     }
     return "";
+  }
+
+  @Test
+  public void testEmptyInsert() {
+    logger.info("Running testEmptyInsert...");
+    DataView EmptyDataView =
+        genRowDataViewNoKey(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
+    executor.executeInsertTask(EmptyDataView, newDU());
+  }
+
+  @Test
+  @Override
+  public void dataSourceUTTest() {
+    logger.info("Running DataSourceTest...");
+    testEmptyInsert();
   }
 }

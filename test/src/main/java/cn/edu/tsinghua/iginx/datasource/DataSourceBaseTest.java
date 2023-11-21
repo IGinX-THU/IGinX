@@ -1,29 +1,20 @@
-package cn.edu.tsinghua.iginx.parquet;
+package cn.edu.tsinghua.iginx.datasource;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import java.util.*;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractExecutorTest {
+public abstract class DataSourceBaseTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(AbstractExecutorTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(DataSourceBaseTest.class);
 
-  protected Executor executor;
-
-  protected static int DU_INDEX = 0;
-
-  protected static final ReentrantReadWriteLock DUIndexLock = new ReentrantReadWriteLock();
-
-  private DataView genRowDataViewNoKey(
+  protected DataView genRowDataViewNoKey(
       List<String> pathList,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
@@ -87,14 +78,5 @@ public abstract class AbstractExecutorTest {
     return new RowDataView(rawData, 0, sortedPaths.size(), 0, valuesList.length);
   }
 
-  // generate new DU and return id
-  public abstract String newDU();
-
-  @Test
-  public void testEmptyInsert() {
-    logger.info("Running testEmptyInsert...");
-    DataView EmptyDataView =
-        genRowDataViewNoKey(new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
-    executor.executeInsertTask(EmptyDataView, newDU());
-  }
+  public abstract void dataSourceUTTest();
 }
