@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.physical.TaskVisitor;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -109,5 +110,21 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
   @Override
   public boolean notifyParentReady() {
     return parentReadyCount.incrementAndGet() == 2;
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    PhysicalTask taskA = getParentTaskA();
+    if (taskA != null) {
+      taskA.accept(visitor);
+    }
+    PhysicalTask taskB = getParentTaskB();
+    if (taskB != null) {
+      taskB.accept(visitor);
+    }
+    visitor.leave();
   }
 }

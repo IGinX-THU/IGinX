@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.physical.TaskVisitor;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,7 +18,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private static final Logger logger = LoggerFactory.getLogger(UnaryMemoryPhysicalTask.class);
 
-  private final PhysicalTask parentTask;
+  private PhysicalTask parentTask;
 
   private final RequestContext context;
 
@@ -30,6 +31,10 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     super(TaskType.UnaryMemory, operators);
     this.parentTask = parentTask;
     this.context = context;
+  }
+
+  public void setParentTask(PhysicalTask parentTask) {
+    this.parentTask = parentTask;
   }
 
   public PhysicalTask getParentTask() {
@@ -67,5 +72,17 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
   @Override
   public boolean notifyParentReady() {
     return parentReadyCount.incrementAndGet() == 1;
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    PhysicalTask task = getParentTask();
+    if (task != null) {
+      task.accept(visitor);
+    }
+    visitor.leave();
   }
 }
