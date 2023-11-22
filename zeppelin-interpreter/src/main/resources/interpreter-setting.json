@@ -42,8 +42,8 @@
       "iginx.outfile.dir": {
         "envName": null,
         "propertyName": "iginx.outfile.dir",
-        "defaultValue": "/home/xyh/code/zeppelin_outfile_dir/",
-        "description": "physical path to storage download files, Default = '/home/xyh/code/zeppelin_outfile_dir/'",
+        "defaultValue": "/your/outfile/path",
+        "description": "physical path to storage download files, change it to your own path",
         "type": "string"
       },
       "iginx.fetch.size": {

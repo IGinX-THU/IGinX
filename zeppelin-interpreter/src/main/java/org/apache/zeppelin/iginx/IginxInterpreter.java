@@ -41,7 +41,7 @@ public class IginxInterpreter extends AbstractInterpreter {
   private static final String DEFAULT_USERNAME = "root";
   private static final String DEFAULT_PASSWORD = "root";
   private static final String DEFAULT_TIME_PRECISION = "ns";
-  private static final String DEFAULT_OUTFILE_DIR = "/home/xyh/code/zeppelin_outfile_dir/";
+  private static final String DEFAULT_OUTFILE_DIR = "/your/outfile/path";
   private static final String DEFAULT_FETCH_SIZE = "1000";
   private static final String DEFAULT_OUTFILE_MAX_NUM = "100";
   private static final String DEFAULT_OUTFILE_MAX_SIZE = "10240";
