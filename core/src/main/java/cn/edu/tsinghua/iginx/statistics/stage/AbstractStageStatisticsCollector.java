@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.statistics;
+package cn.edu.tsinghua.iginx.statistics.stage;
 
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.thrift.Status;

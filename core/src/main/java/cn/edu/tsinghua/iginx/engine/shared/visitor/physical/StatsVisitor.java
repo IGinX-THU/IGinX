@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.engine.shared.visitor.task;
+package cn.edu.tsinghua.iginx.engine.shared.visitor.physical;
 
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
@@ -8,15 +8,15 @@ import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.engine.shared.stats.OperatorStats;
+import cn.edu.tsinghua.iginx.statistics.operator.OperatorStatistics;
 import java.util.HashMap;
 import java.util.Map;
 
 public class StatsVisitor implements TaskVisitor {
 
-  private final Map<OperatorType, OperatorStats> statsMap = new HashMap<>();
+  private final Map<OperatorType, OperatorStatistics> statsMap = new HashMap<>();
 
-  public Map<OperatorType, OperatorStats> getStatsMap() {
+  public Map<OperatorType, OperatorStatistics> getStatsMap() {
     return statsMap;
   }
 
@@ -56,7 +56,7 @@ public class StatsVisitor implements TaskVisitor {
     if (statsMap.containsKey(type)) {
       statsMap.get(type).addStats(costTime, affectRows);
     } else {
-      statsMap.put(type, new OperatorStats(type, 1, costTime, affectRows));
+      statsMap.put(type, new OperatorStatistics(type, 1, costTime, affectRows));
     }
   }
 }

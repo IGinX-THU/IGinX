@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.statistics;
+package cn.edu.tsinghua.iginx.statistics.stage;
 
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;

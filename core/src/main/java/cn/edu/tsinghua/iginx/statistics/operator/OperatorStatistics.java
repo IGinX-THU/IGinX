@@ -1,8 +1,8 @@
-package cn.edu.tsinghua.iginx.engine.shared.stats;
+package cn.edu.tsinghua.iginx.statistics.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 
-public class OperatorStats {
+public class OperatorStatistics {
 
   private final OperatorType type;
 
@@ -12,11 +12,11 @@ public class OperatorStats {
 
   private long affectRows = 0;
 
-  public OperatorStats(OperatorType type) {
+  public OperatorStatistics(OperatorType type) {
     this.type = type;
   }
 
-  public OperatorStats(OperatorType type, int count, long costTime, long affectRows) {
+  public OperatorStatistics(OperatorType type, int count, long costTime, long affectRows) {
     this.type = type;
     this.count = count;
     this.costTime = costTime;
@@ -29,7 +29,7 @@ public class OperatorStats {
     this.affectRows += affectRows;
   }
 
-  public void addStats(OperatorStats other) {
+  public void addStats(OperatorStatistics other) {
     this.count += other.count;
     this.costTime += other.costTime;
     this.affectRows += other.affectRows;

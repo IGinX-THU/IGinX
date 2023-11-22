@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.engine.shared.stats;
+package cn.edu.tsinghua.iginx.statistics.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.HashMap;
@@ -6,32 +6,32 @@ import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.LinkedBlockingQueue;
 
-public class StatsCollector {
+public class OperatorStatisticsCollector {
 
   private static class StatsCollectorHolder {
-    private static final StatsCollector instance = new StatsCollector();
+    private static final OperatorStatisticsCollector instance = new OperatorStatisticsCollector();
   }
 
-  public static StatsCollector getInstance() {
+  public static OperatorStatisticsCollector getInstance() {
     return StatsCollectorHolder.instance;
   }
 
-  private final Map<OperatorType, OperatorStats> statsMap = new HashMap<>();
+  private final Map<OperatorType, OperatorStatistics> statsMap = new HashMap<>();
 
-  private final LinkedBlockingQueue<OperatorStats> statsQueue = new LinkedBlockingQueue<>();
+  private final LinkedBlockingQueue<OperatorStatistics> statsQueue = new LinkedBlockingQueue<>();
 
-  private StatsCollector() {
+  private OperatorStatisticsCollector() {
     Executors.newSingleThreadExecutor()
         .submit(
             () -> {
               while (true) {
-                OperatorStats stats = statsQueue.take();
+                OperatorStatistics stats = statsQueue.take();
                 processStats(stats);
               }
             });
   }
 
-  private void processStats(OperatorStats stats) {
+  private void processStats(OperatorStatistics stats) {
     OperatorType type = stats.getType();
     if (statsMap.containsKey(type)) {
       statsMap.get(type).addStats(stats);
@@ -40,11 +40,11 @@ public class StatsCollector {
     }
   }
 
-  public void addStats(OperatorStats stats) {
+  public void addStats(OperatorStatistics stats) {
     statsQueue.add(stats);
   }
 
-  public Map<OperatorType, OperatorStats> getStatsMap() {
+  public Map<OperatorType, OperatorStatistics> getStatsMap() {
     return statsMap;
   }
 }

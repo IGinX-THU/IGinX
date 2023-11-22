@@ -40,10 +40,10 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.Processor;
-import cn.edu.tsinghua.iginx.engine.shared.stats.StatsCollector;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.operator.OperatorInfoVisitor;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.task.StatsVisitor;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.task.TaskInfoVisitor;
+import cn.edu.tsinghua.iginx.statistics.operator.OperatorStatisticsCollector;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.logical.OperatorInfoVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.physical.StatsVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.visitor.physical.TaskInfoVisitor;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
@@ -62,7 +62,7 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.SystemStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
-import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
+import cn.edu.tsinghua.iginx.statistics.stage.IStatisticsCollector;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
@@ -119,7 +119,7 @@ public class StatementExecutor {
   private static final List<LogicalGenerator> insertGeneratorList = new ArrayList<>();
   private static final List<LogicalGenerator> showTSGeneratorList = new ArrayList<>();
 
-  private static final StatsCollector statsCollector = StatsCollector.getInstance();
+  private static final OperatorStatisticsCollector statisticsCollector = OperatorStatisticsCollector.getInstance();
 
   private final List<PreParseProcessor> preParseProcessors = new ArrayList<>();
   private final List<PostParseProcessor> postParseProcessors = new ArrayList<>();
@@ -373,7 +373,7 @@ public class StatementExecutor {
         if (config.isNeedOperatorStats()) {
           StatsVisitor visitor = new StatsVisitor();
           ctx.getPhysicalTree().accept(visitor);
-          visitor.getStatsMap().values().forEach(statsCollector::addStats);
+          visitor.getStatsMap().values().forEach(statisticsCollector::addStats);
         }
         return;
       }

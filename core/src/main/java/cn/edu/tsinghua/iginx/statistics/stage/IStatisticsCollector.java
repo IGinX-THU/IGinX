@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.statistics;
+package cn.edu.tsinghua.iginx.statistics.stage;
 
 public interface IStatisticsCollector
     extends IParseStatisticsCollector,

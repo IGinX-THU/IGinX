@@ -1,23 +1,23 @@
-package cn.edu.tsinghua.iginx.statistics;
+package cn.edu.tsinghua.iginx.statistics.stage;
 
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
+import cn.edu.tsinghua.iginx.engine.shared.processor.PostParseProcessor;
+import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class LogicalStatisticsCollector extends AbstractStageStatisticsCollector
-    implements ILogicalStatisticsCollector {
+public class ParseStatisticsCollector extends AbstractStageStatisticsCollector
+    implements IParseStatisticsCollector {
 
-  private static final Logger logger = LoggerFactory.getLogger(LogicalStatisticsCollector.class);
+  private static final Logger logger = LoggerFactory.getLogger(ParseStatisticsCollector.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
   private long count = 0;
   private long span = 0;
 
   @Override
   protected String getStageName() {
-    return "LogicalStage";
+    return "ParseSQLStage";
   }
 
   @Override
@@ -31,7 +31,7 @@ public class LogicalStatisticsCollector extends AbstractStageStatisticsCollector
   @Override
   public void broadcastStatistics() {
     lock.readLock().lock();
-    logger.info("Logical Stage Statistics Info: ");
+    logger.info("Parse Stage Statistics Info: ");
     logger.info("\tcount: " + count + ", span: " + span + "μs");
     if (count != 0) {
       logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
@@ -40,12 +40,12 @@ public class LogicalStatisticsCollector extends AbstractStageStatisticsCollector
   }
 
   @Override
-  public PreLogicalProcessor getPreLogicalProcessor() {
+  public PreParseProcessor getPreParseProcessor() {
     return before::apply;
   }
 
   @Override
-  public PostLogicalProcessor getPostLogicalProcessor() {
+  public PostParseProcessor getPostParseProcessor() {
     return after::apply;
   }
 }
