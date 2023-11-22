@@ -29,7 +29,7 @@ public class ThriftConnPool {
 
   private GenericObjectPool<TTransport> pool;
 
-  private final long idleTimeout = 60 * 1000L;
+  private final long idleTimeout = 60 * 10000L;
 
   public ThriftConnPool(String ip, int port) {
     this(ip, port, DEFAULT_MAX_SIZE);
@@ -108,14 +108,13 @@ public class ThriftConnPool {
     @Override
     public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {
       TTransport transport = pooledObject.getObject();
-      if (transport != null && !transport.isOpen()) {
-        transport.open();
-      }
+      transport.open();
     }
 
     @Override
     public void passivateObject(PooledObject<TTransport> pooledObject) throws Exception {
-      // No-op
+      TTransport transport = pooledObject.getObject();
+      transport.close();
     }
   }
 }
