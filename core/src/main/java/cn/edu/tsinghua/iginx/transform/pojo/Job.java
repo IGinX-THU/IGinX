@@ -8,10 +8,13 @@ import cn.edu.tsinghua.iginx.utils.TaskFromYAML;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.logging.Logger;
+
 import lombok.Data;
 
 @Data
 public class Job {
+  Logger logger = Logger.getLogger(Job.class.getName());
 
   private long jobId;
 
@@ -30,6 +33,7 @@ public class Job {
   private final List<Stage> stageList;
 
   public Job(long id, CommitTransformJobReq req) {
+    logger.info("CommitTransformJobReq: " + req);
     jobId = id;
     sessionId = req.getSessionId();
     state = JobState.JOB_CREATED;
@@ -81,6 +85,7 @@ public class Job {
   }
 
   public Job(long id, long sessionId, JobFromYAML jobFromYAML) {
+    logger.info("JobFromYAML: " + jobFromYAML);
     this.jobId = id;
     this.sessionId = sessionId;
     this.state = JobState.JOB_CREATED;

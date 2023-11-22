@@ -6,7 +6,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class CrossJoin extends AbstractJoinOperator {
+public class CrossJoin extends AbstractJoin {
 
   public CrossJoin(Source sourceA, Source sourceB, String prefixA, String prefixB) {
     this(sourceA, sourceB, prefixA, prefixB, new ArrayList<>());
@@ -36,6 +36,12 @@ public class CrossJoin extends AbstractJoinOperator {
         getPrefixA(),
         getPrefixB(),
         new ArrayList<>(getExtraJoinPrefix()));
+  }
+
+  @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new CrossJoin(
+        sourceA, sourceB, getPrefixA(), getPrefixB(), new ArrayList<>(getExtraJoinPrefix()));
   }
 
   @Override

@@ -35,6 +35,7 @@ public class PemjaWorker {
   }
 
   public void process(BatchData batchData) {
+    logger.info("[DEBUG] PemjaWorker.process: " + batchData);
     List<List<Object>> data = new ArrayList<>();
 
     List<Object> headerRow = new ArrayList<>();
@@ -62,6 +63,7 @@ public class PemjaWorker {
     List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
     PemjaReader reader = new PemjaReader(res, config.getBatchSize());
 
+    logger.info("[DEBUG] PemjaWorker.process: " + reader);
     try {
       while (reader.hasNextBatch()) {
         BatchData nextBatchData = reader.loadNextBatch();
@@ -70,6 +72,7 @@ public class PemjaWorker {
     } catch (WriteBatchException e) {
       logger.error(String.format("PemjaWorker identifier=%s fail to writer data.", identifier));
     }
+    logger.info("[DEBUG] PemjaWorker.process done.");
   }
 
   public String getIdentifier() {

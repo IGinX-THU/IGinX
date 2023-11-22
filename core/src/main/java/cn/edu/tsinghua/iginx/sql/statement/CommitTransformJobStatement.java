@@ -10,8 +10,10 @@ import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import cn.edu.tsinghua.iginx.utils.YAMLReader;
 import java.io.FileNotFoundException;
+import java.util.logging.Logger;
 
 public class CommitTransformJobStatement extends SystemStatement {
+  Logger logger = Logger.getLogger(CommitTransformJobStatement.class.getName());
 
   private final String path;
 
@@ -25,6 +27,7 @@ public class CommitTransformJobStatement extends SystemStatement {
   @Override
   public void execute(RequestContext ctx) throws ExecutionException {
     try {
+      logger.info("CommitTransformJobStatement: " + path);
       YAMLReader reader = new YAMLReader(path);
       JobFromYAML jobFromYAML = reader.getJobFromYAML();
 

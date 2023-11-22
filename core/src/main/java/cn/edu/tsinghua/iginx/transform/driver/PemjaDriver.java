@@ -8,10 +8,13 @@ import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import java.io.File;
+import java.util.logging.Logger;
+
 import pemja.core.PythonInterpreter;
 import pemja.core.PythonInterpreterConfig;
 
 public class PemjaDriver {
+  Logger logger = Logger.getLogger(PemjaDriver.class.getName());
 
   private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
@@ -38,6 +41,7 @@ public class PemjaDriver {
   }
 
   public PemjaWorker createWorker(PythonTask task, Writer writer) {
+    logger.info("[DEBUG] PemjaDriver.createWorker: " + task);
     String identifier = task.getPyTaskName();
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
     if (taskMeta == null) {

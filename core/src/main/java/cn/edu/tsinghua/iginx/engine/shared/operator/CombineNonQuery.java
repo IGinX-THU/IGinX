@@ -16,6 +16,11 @@ public class CombineNonQuery extends AbstractMultipleOperator {
   }
 
   @Override
+  public MultipleOperator copyWithSource(List<Source> sources) {
+    return new CombineNonQuery(sources);
+  }
+
+  @Override
   public String getInfo() {
     return "";
   }

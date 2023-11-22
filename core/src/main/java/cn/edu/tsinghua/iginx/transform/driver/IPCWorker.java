@@ -59,6 +59,7 @@ public class IPCWorker extends Thread {
 
   @Override
   public void run() {
+    logger.info("[DEBUG] IPCWorker.run: " + this);
     try {
       while (true) {
         Socket socket = serverSocket.accept();
@@ -69,9 +70,11 @@ public class IPCWorker extends Thread {
     } catch (IOException e) {
       throw new RuntimeException("An error occurred while listening.", e);
     }
+    logger.info("[DEBUG] IPCWorker.run: " + this + " end.");
   }
 
   public void process(Socket socket) {
+    logger.info("[DEBUG] IPCWorker.process: " + socket);
     RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
     try (ArrowStreamReader reader = new ArrowStreamReader(socket.getInputStream(), allocator)) {
       VectorSchemaRoot readBatch = reader.getVectorSchemaRoot();
@@ -89,6 +92,7 @@ public class IPCWorker extends Thread {
       logger.error(String.format("Worker pid=%d fail to process socket.", pid));
       throw new RuntimeException("Fail to process socket", e);
     }
+    logger.info("[DEBUG] IPCWorker.process: " + socket + " end.");
   }
 
   public void close() {

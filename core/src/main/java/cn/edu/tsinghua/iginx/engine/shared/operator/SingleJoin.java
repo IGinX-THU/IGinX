@@ -9,7 +9,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class SingleJoin extends AbstractJoinOperator {
+public class SingleJoin extends AbstractJoin {
 
   private Filter filter;
 
@@ -47,6 +47,12 @@ public class SingleJoin extends AbstractJoinOperator {
         filter.copy(),
         getJoinAlgType(),
         new ArrayList<>(getExtraJoinPrefix()));
+  }
+
+  @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new SingleJoin(
+        sourceA, sourceB, filter.copy(), getJoinAlgType(), new ArrayList<>(getExtraJoinPrefix()));
   }
 
   @Override

@@ -59,6 +59,7 @@ public class TransformJobManager {
   }
 
   public long commitJob(Job job) {
+    logger.info("[DEBUG] CommitTransformJobReq: " + job);
     if (checker.check(job)) {
       jobMap.put(job.getJobId(), job);
       threadPool.submit(() -> processWithRetry(job, config.getTransformMaxRetryTimes()));
@@ -73,6 +74,7 @@ public class TransformJobManager {
     // this process will be executed at most retryTimes+1 times.
     for (int processCnt = 0; processCnt <= retryTimes; processCnt++) {
       try {
+        logger.info("[DEBUG] process job id=" + job.getJobId());
         process(job);
         processCnt = retryTimes; // don't retry
       } catch (Exception e) {
@@ -84,6 +86,7 @@ public class TransformJobManager {
   private void process(Job job) throws Exception {
     JobRunner runner = new JobRunner(job);
     job.setStartTime(System.currentTimeMillis());
+    logger.info(String.format("[DEBUG] Start to process transform job id=%d.", job.getJobId()));
     try {
       runner.start();
       jobRunnerMap.put(job.getJobId(), runner);
@@ -153,6 +156,7 @@ public class TransformJobManager {
 
   public JobState queryJobState(long jobId) {
     if (jobMap.containsKey(jobId)) {
+      logger.info("[DEBUG] query job state: " + jobMap.get(jobId).getState());
       return jobMap.get(jobId).getState();
     } else {
       return null;
