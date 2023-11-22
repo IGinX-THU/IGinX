@@ -30,6 +30,7 @@ public class BatchStageRunner implements Runner {
   private static final Logger logger = LoggerFactory.getLogger(BatchStageRunner.class);
 
   public BatchStageRunner(BatchStage batchStage) {
+    logger.info("[DEBUG] BatchStageRunner: " + batchStage);
     this.batchStage = batchStage;
     this.writer = batchStage.getExportWriter();
     this.mutex = ((ExportWriter) writer).getMutex();
@@ -37,6 +38,7 @@ public class BatchStageRunner implements Runner {
 
   @Override
   public void start() throws TransformException {
+    logger.info("[DEBUG] BatchStageRunner.start: " + batchStage);
     Task task = batchStage.getTask();
     if (task.isPythonTask()) {
       pemjaWorker = driver.createWorker((PythonTask) task, writer);
@@ -49,10 +51,12 @@ public class BatchStageRunner implements Runner {
 
   @Override
   public void run() throws WriteBatchException {
+    logger.info("[DEBUG] BatchStageRunner.run: " + batchStage);
     CollectionWriter collectionWriter =
         (CollectionWriter) batchStage.getBeforeStage().getExportWriter();
     BatchData batchData = collectionWriter.getCollectedData();
 
+    logger.info("[DEBUG] BatchStageRunner.run: " + batchData);
     mutex.lock();
     writer.writeBatch(batchData);
 

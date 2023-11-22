@@ -23,12 +23,14 @@ public class JobRunner implements Runner {
   private static final Logger logger = LoggerFactory.getLogger(JobRunner.class);
 
   public JobRunner(Job job) {
+    logger.info("[DEBUG] JobRunner: " + job);
     this.job = job;
     this.runnerList = new ArrayList<>();
   }
 
   @Override
   public void start() throws UnknownDataFlowException {
+    logger.info("[DEBUG] JobRunner.start: " + job);
     for (Stage stage : job.getStageList()) {
       DataFlowType dataFlowType = stage.getStageType();
       switch (dataFlowType) {

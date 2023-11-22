@@ -90,17 +90,21 @@ public class StreamStageRunner implements Runner {
 
     ExecuteStatementReq req = new ExecuteStatementReq(sessionId, sqlList.get(sqlList.size() - 1));
     RequestContext context = contextBuilder.build(req);
+    logger.info("[DEBUG] Execute statement: " + sqlList.get(sqlList.size() - 1));
     executor.execute(context);
+    logger.info("[DEBUG] Execute statement done.");
     return context.getResult().getResultStream();
   }
 
   @Override
   public void run() throws WriteBatchException {
+    logger.info("[DEBUG] Start to run stream stage.");
     while (reader.hasNextBatch()) {
       mutex.lock();
       BatchData batchData = reader.loadNextBatch();
       writer.writeBatch(batchData);
     }
+    logger.info("[DEBUG] Stream stage finished.");
 
     // wait for last batch finished.
     mutex.lock();

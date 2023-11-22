@@ -751,6 +751,7 @@ public class IginxWorker implements IService.Iface {
   public QueryTransformJobStatusResp queryTransformJobStatus(QueryTransformJobStatusReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
     JobState jobState = manager.queryJobState(req.getJobId());
+    logger.info("[DEBUG] query job state: {}", jobState);
     if (jobState != null) {
       return new QueryTransformJobStatusResp(RpcUtils.SUCCESS, jobState);
     } else {
