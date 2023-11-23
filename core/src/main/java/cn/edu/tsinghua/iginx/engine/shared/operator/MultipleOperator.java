@@ -7,5 +7,7 @@ public interface MultipleOperator extends Operator {
 
   List<Source> getSources();
 
+  MultipleOperator copyWithSource(List<Source> sources);
+
   void setSources(List<Source> sources);
 }

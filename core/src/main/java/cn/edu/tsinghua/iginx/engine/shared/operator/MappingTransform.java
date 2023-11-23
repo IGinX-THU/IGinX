@@ -48,6 +48,11 @@ public class MappingTransform extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new MappingTransform(source, functionCall.copy());
+  }
+
+  @Override
   public String getInfo() {
     return "Func: " + functionCall.toString();
   }

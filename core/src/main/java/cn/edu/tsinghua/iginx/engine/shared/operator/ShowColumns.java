@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
 import java.util.HashSet;
 import java.util.Set;
@@ -56,6 +57,12 @@ public class ShowColumns extends AbstractUnaryOperator {
         tagFilter.copy(),
         limit,
         offset);
+  }
+
+  @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new ShowColumns(
+        (GlobalSource) source, new HashSet<>(pathRegexSet), tagFilter.copy(), limit, offset);
   }
 
   @Override

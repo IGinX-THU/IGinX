@@ -614,4 +614,61 @@ public class UDFIT {
     }
     assertEquals(expected, actual);
   }
+
+  @Test
+  public void testUsingKeyInUDSF() {
+    String insert = "INSERT INTO test(key, a) VALUES (1699950998000, 2), (1699951690000, 3);";
+    execute(insert);
+
+    String query = "select reverse_rows(a) from test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+-------------+--------------------+\n"
+            + "|          key|reverse_rows(test.a)|\n"
+            + "+-------------+--------------------+\n"
+            + "|1699951690000|                   3|\n"
+            + "|1699950998000|                   2|\n"
+            + "+-------------+--------------------+\n"
+            + "Total line number = 2\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUsingKeyInUDAF() {
+    String insert = "INSERT INTO test(key, a, b) VALUES (1,2,3), (2,3,4) (3,4,5);";
+    execute(insert);
+
+    String query = "select udf_max_with_key(a) from test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+------------------------+\n"
+            + "|key|udf_max_with_key(test.a)|\n"
+            + "+---+------------------------+\n"
+            + "|  3|                       4|\n"
+            + "+---+------------------------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testUsingKeyInUDTF() {
+    String insert = "INSERT INTO test(key, a, b) VALUES (1,2,3), (2,3,4) (3,4,5);";
+    execute(insert);
+
+    String query = "select key_add_one(a) from test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|key_add_one(test.a)|\n"
+            + "+---+-------------------+\n"
+            + "|  2|                  2|\n"
+            + "|  3|                  3|\n"
+            + "|  4|                  4|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
 }

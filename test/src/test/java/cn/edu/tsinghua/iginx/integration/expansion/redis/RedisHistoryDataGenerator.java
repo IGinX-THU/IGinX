@@ -36,8 +36,7 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
           for (int i = 0; i < row.size(); i++) {
             Object value = row.get(i);
             String fullPath = pathList.get(i);
-            String pathWithoutPrefix = fullPath.substring(fullPath.indexOf('.') + 1);
-            jedis.lpush(pathWithoutPrefix, String.valueOf(value));
+            jedis.lpush(fullPath, String.valueOf(value));
           }
         });
     jedis.close();

@@ -30,9 +30,6 @@ public class HostUtils {
           }
         }
       }
-      for (String localHostAddress : LOCAL_HOST_ADDRESS_SET) {
-        System.out.println(String.format("local host address: %s", localHostAddress));
-      }
     } catch (SocketException e) {
       System.out.printf("get local host address error: %s%n", e.getMessage());
     }

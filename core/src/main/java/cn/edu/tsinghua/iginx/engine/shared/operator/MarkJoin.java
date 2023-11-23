@@ -9,7 +9,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MarkJoin extends AbstractJoinOperator {
+public class MarkJoin extends AbstractJoin {
 
   public static String MARK_PREFIX = "&mark";
 
@@ -68,6 +68,18 @@ public class MarkJoin extends AbstractJoinOperator {
     return new MarkJoin(
         getSourceA().copy(),
         getSourceB().copy(),
+        filter.copy(),
+        markColumn,
+        isAntiJoin,
+        getJoinAlgType(),
+        new ArrayList<>(getExtraJoinPrefix()));
+  }
+
+  @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new MarkJoin(
+        sourceA,
+        sourceB,
         filter.copy(),
         markColumn,
         isAntiJoin,

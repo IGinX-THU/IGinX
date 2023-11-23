@@ -59,6 +59,11 @@ public class SetTransform extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new SetTransform(source, functionCall.copy());
+  }
+
+  @Override
   public String getInfo() {
     if (isDistinct()) {
       return "Func: " + functionCall.toString() + ", isDistinct: true";

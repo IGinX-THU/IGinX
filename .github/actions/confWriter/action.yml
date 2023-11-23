@@ -42,17 +42,9 @@ runs:
           run: |
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [ "$RUNNER_OS" == "Linux" ]; then
-                  if [ "${{ inputs.DB-name }}" == "Redis" ]; then
-                    sed -i "s/has_data=false/has_data=true#schema_prefix=mn/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
-                  else
-                    sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
-                  fi
+                  sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  if [ "${{ inputs.DB-name }}" == "Redis" ]; then
-                    sed -i "" "s/has_data=false/has_data=true#schema_prefix=mn/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
-                  else
-                    sed -i "" "s/has_data=false/has_data=true/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
-                  fi
+                  sed -i "" "s/has_data=false/has_data=true/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
                 fi
               elif [[ "${{ inputs.Test-Way }}" == "oriNoDataExpHasData" || "${{ inputs.Test-Way }}" == "oriNoDataExpNoData" ]]; then
                 if [ "$RUNNER_OS" == "Linux" ]; then

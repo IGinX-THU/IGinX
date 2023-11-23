@@ -55,7 +55,7 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
     while (streamB.hasNext()) {
       Row rowB = streamB.next();
       Value value = rowB.getAsValue(joinPathB);
-      if (value == null) {
+      if (value.isNull()) {
         continue;
       }
       if (needTypeCast) {
@@ -97,7 +97,7 @@ public class HashSingleJoinLazyStream extends BinaryLazyStream {
     Row rowA = streamA.next();
 
     Value value = rowA.getAsValue(joinPathA);
-    if (value == null) {
+    if (value.isNull()) {
       return;
     }
     if (needTypeCast) {

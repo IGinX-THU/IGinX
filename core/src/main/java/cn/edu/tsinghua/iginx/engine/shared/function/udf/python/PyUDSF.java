@@ -14,10 +14,9 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 import pemja.core.PythonInterpreter;
@@ -58,8 +57,8 @@ public class PyUDSF implements UDSF {
 
     PythonInterpreter interpreter = interpreters.take();
 
-    List<Object> colNames = new ArrayList<>();
-    List<Object> colTypes = new ArrayList<>();
+    List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
+    List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
     List<Integer> indices = new ArrayList<>();
 
     List<String> paths = params.getPaths();
@@ -88,7 +87,7 @@ public class PyUDSF implements UDSF {
       }
     }
 
-    if (colNames.isEmpty()) {
+    if (colNames.size() == 1) {
       return Table.EMPTY_TABLE;
     }
 
@@ -98,6 +97,7 @@ public class PyUDSF implements UDSF {
     while (rows.hasNext()) {
       Row row = rows.next();
       List<Object> rowData = new ArrayList<>();
+      rowData.add(row.getKey());
       for (Integer idx : indices) {
         rowData.add(row.getValues()[idx]);
       }
@@ -115,8 +115,22 @@ public class PyUDSF implements UDSF {
     }
     interpreters.add(interpreter);
 
-    Header header = RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(res, false, funcName);
-    return RowUtils.constructNewTable(header, res, 2);
+    // [["key", col1, col2 ....],
+    // ["LONG", type1, type2 ...],
+    // [key1, val11, val21 ...],
+    // [key2, val21, val22 ...]
+    // ...]
+    boolean hasKey = res.get(0).get(0).equals("key");
+    if (hasKey) {
+      res.get(0).remove(0);
+      res.get(1).remove(0);
+    }
+
+    // if returns key, build header with key, and construct rows with key values
+    Header header = RowUtils.constructHeaderWithFirstTwoRowsUsingFuncName(res, hasKey, funcName);
+    return hasKey
+        ? RowUtils.constructNewTableWithKey(header, res, 2)
+        : RowUtils.constructNewTable(header, res, 2);
   }
 
   @Override
