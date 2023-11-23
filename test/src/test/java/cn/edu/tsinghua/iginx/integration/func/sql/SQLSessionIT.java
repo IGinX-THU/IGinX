@@ -750,6 +750,51 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testDistinctWithNullValues() {
+    String insert = "INSERT INTO test(key, a) values (1, 1), (2, 2), (5, 3), (6, 3), (7, 4);";
+    executor.execute(insert);
+
+    insert = "INSERT INTO test(key, b) values (1, 1.5), (2, 1.5), (3, 2.5), (4, 2.5);";
+    executor.execute(insert);
+
+    insert =
+        "INSERT INTO test(key, c) values (3, \"bbb\"), (4, \"bbb\"), (5, \"ccc\"), (6, \"ccc\"), (7, \"ccc\");";
+    executor.execute(insert);
+
+    String statement = "SELECT * FROM test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|\n"
+            + "+---+------+------+------+\n"
+            + "|  1|     1|   1.5|  null|\n"
+            + "|  2|     2|   1.5|  null|\n"
+            + "|  3|  null|   2.5|   bbb|\n"
+            + "|  4|  null|   2.5|   bbb|\n"
+            + "|  5|     3|  null|   ccc|\n"
+            + "|  6|     3|  null|   ccc|\n"
+            + "|  7|     4|  null|   ccc|\n"
+            + "+---+------+------+------+\n"
+            + "Total line number = 7\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT * FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+------+\n"
+            + "|test.a|test.b|test.c|\n"
+            + "+------+------+------+\n"
+            + "|     1|   1.5|  null|\n"
+            + "|     2|   1.5|  null|\n"
+            + "|  null|   2.5|   bbb|\n"
+            + "|     3|  null|   ccc|\n"
+            + "|     4|  null|   ccc|\n"
+            + "+------+------+------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testLimitAndOffsetQuery() {
     String statement = "SELECT s1 FROM us.d1 WHERE key > 0 AND key < 10000 limit 10;";
     String expected =
