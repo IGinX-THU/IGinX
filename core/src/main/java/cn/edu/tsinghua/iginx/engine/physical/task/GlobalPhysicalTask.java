@@ -18,8 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.Collections;
 
 public class GlobalPhysicalTask extends AbstractPhysicalTask {
