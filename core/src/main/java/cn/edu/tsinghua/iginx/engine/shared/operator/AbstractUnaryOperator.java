@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.logical.OperatorVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorVisitor;
 
 public abstract class AbstractUnaryOperator extends AbstractOperator implements UnaryOperator {
 

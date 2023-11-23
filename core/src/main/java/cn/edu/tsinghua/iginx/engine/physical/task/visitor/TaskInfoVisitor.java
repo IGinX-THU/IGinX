@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.engine.shared.visitor.physical;
+package cn.edu.tsinghua.iginx.engine.physical.task.visitor;
 
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;

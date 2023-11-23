@@ -12,7 +12,7 @@ import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.TreeIterator
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.Rule;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.visitor.logical.IndexVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.IndexVisitor;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
