@@ -308,7 +308,7 @@ public class Controller {
           addEmbeddedStorageEngine(
               session, String.format(ADD_STORAGE_ENGINE_PARQUET, dir, tableName));
         } catch (SessionException | ExecutionException e) {
-          if (!e.getMessage().contains("unexpected repeated add")) {
+          if (!e.getMessage().contains("repeatedly add storage engine")) {
             logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
             fail();
           }
