@@ -192,95 +192,98 @@ public class PostgreSQLQueryRowStream implements RowStream {
   }
 
   private void cacheOneRow() throws SQLException, PhysicalException {
-    boolean hasNext = false;
-    long key;
-    Object[] values = new Object[header.getFieldSize()];
+    while (true) {
+      boolean hasNext = false;
+      long key;
+      Object[] values = new Object[header.getFieldSize()];
 
-    int startIndex = 0;
-    int endIndex = 0;
-    for (int i = 0; i < resultSets.size(); i++) {
-      ResultSet resultSet = resultSets.get(i);
-      if (resultSetSizes[i] == 0) {
-        continue;
-      }
-      endIndex += resultSetSizes[i];
-      if (!gotNext[i]) {
-        boolean tempHasNext = resultSet.next();
-        hasNext |= tempHasNext;
-        gotNext[i] = true;
-
-        if (tempHasNext) {
-          long tempKey;
-          Object tempValue;
-
-          Set<String> tableNameSet = new HashSet<>();
-
-          for (int j = 0; j < resultSetSizes[i]; j++) {
-            String columnName = fieldToColumnName.get(header.getField(startIndex + j));
-            PostgreSQLSchema schema =
-                new PostgreSQLSchema(header.getField(startIndex + j).getName(), isDummy);
-            String tableName = schema.getTableName();
-
-            tableNameSet.add(tableName);
-
-            Object value = getResultSetObject(resultSet, columnName, tableName);
-            if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
-              tempValue = value.toString().getBytes();
-            } else {
-              tempValue = value;
-            }
-            cachedValues[startIndex + j] = tempValue;
-          }
-
-          if (isDummy) {
-            // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
-            // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
-            // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
-            String keyString = resultSet.getString(KEY_NAME);
-            keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
-            tempKey = toHash(keyString);
-          } else {
-            tempKey = resultSet.getLong(KEY_NAME);
-          }
-          cachedKeys[i] = tempKey;
-
-        } else {
-          cachedKeys[i] = Long.MAX_VALUE;
-          for (int j = startIndex; j < endIndex; j++) {
-            cachedValues[j] = null;
-          }
-        }
-      } else {
-        hasNext = true;
-      }
-      startIndex = endIndex;
-    }
-
-    if (hasNext) {
-      key = Arrays.stream(cachedKeys).min().getAsLong();
-      startIndex = 0;
-      endIndex = 0;
+      int startIndex = 0;
+      int endIndex = 0;
       for (int i = 0; i < resultSets.size(); i++) {
+        ResultSet resultSet = resultSets.get(i);
+        if (resultSetSizes[i] == 0) {
+          continue;
+        }
         endIndex += resultSetSizes[i];
-        if (cachedKeys[i] == key) {
-          for (int j = 0; j < resultSetSizes[i]; j++) {
-            values[startIndex + j] = cachedValues[startIndex + j];
-          }
-          gotNext[i] = false;
-        } else {
-          for (int j = 0; j < resultSetSizes[i]; j++) {
-            values[startIndex + j] = null;
-          }
+        if (!gotNext[i]) {
+          boolean tempHasNext = resultSet.next();
+          hasNext |= tempHasNext;
           gotNext[i] = true;
+
+          if (tempHasNext) {
+            long tempKey;
+            Object tempValue;
+
+            Set<String> tableNameSet = new HashSet<>();
+
+            for (int j = 0; j < resultSetSizes[i]; j++) {
+              String columnName = fieldToColumnName.get(header.getField(startIndex + j));
+              PostgreSQLSchema schema =
+                  new PostgreSQLSchema(header.getField(startIndex + j).getName(), isDummy);
+              String tableName = schema.getTableName();
+
+              tableNameSet.add(tableName);
+
+              Object value = getResultSetObject(resultSet, columnName, tableName);
+              if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
+                tempValue = value.toString().getBytes();
+              } else {
+                tempValue = value;
+              }
+              cachedValues[startIndex + j] = tempValue;
+            }
+
+            if (isDummy) {
+              // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
+              // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
+              // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
+              String keyString = resultSet.getString(KEY_NAME);
+              keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
+              tempKey = toHash(keyString);
+            } else {
+              tempKey = resultSet.getLong(KEY_NAME);
+            }
+            cachedKeys[i] = tempKey;
+
+          } else {
+            cachedKeys[i] = Long.MAX_VALUE;
+            for (int j = startIndex; j < endIndex; j++) {
+              cachedValues[j] = null;
+            }
+          }
+        } else {
+          hasNext = true;
         }
         startIndex = endIndex;
       }
-      cachedRow = new Row(header, key, values);
-      if (isDummy && !validate(filter, cachedRow)) {
-        cacheOneRow();
+
+      if (hasNext) {
+        key = Arrays.stream(cachedKeys).min().getAsLong();
+        startIndex = 0;
+        endIndex = 0;
+        for (int i = 0; i < resultSets.size(); i++) {
+          endIndex += resultSetSizes[i];
+          if (cachedKeys[i] == key) {
+            for (int j = 0; j < resultSetSizes[i]; j++) {
+              values[startIndex + j] = cachedValues[startIndex + j];
+            }
+            gotNext[i] = false;
+          } else {
+            for (int j = 0; j < resultSetSizes[i]; j++) {
+              values[startIndex + j] = null;
+            }
+            gotNext[i] = true;
+          }
+          startIndex = endIndex;
+        }
+        cachedRow = new Row(header, key, values);
+        if (isDummy && !validate(filter, cachedRow)) {
+          continue;
+        }
+      } else {
+        cachedRow = null;
       }
-    } else {
-      cachedRow = null;
+      break;
     }
     hasCachedRow = true;
   }
