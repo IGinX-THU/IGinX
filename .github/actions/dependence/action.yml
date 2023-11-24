@@ -29,9 +29,18 @@ runs:
                 pip install pemja==0.3.0 pandas numpy
               else
                 pip install pandas numpy
+                "${GITHUB_WORKSPACE}/.github/scripts/pemja/pemja.sh"
               fi
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v1
           with:
               java-version: ${{ inputs.java }}
+
+        - name: Install Pemja On Windows
+          shell: bash
+          run: |
+              "${GITHUB_WORKSPACE}/.github/scripts/pemja/pemja.sh"
+
+#           mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
+

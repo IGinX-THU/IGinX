@@ -17,25 +17,17 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7.16"]
-                os: [ubuntu-latest, macos-latest]
-                DB-name:
-                    [
-                        "IoTDB12",
-                        "InfluxDB",
-                        "Parquet",
-                        "PostgreSQL",
-                        "FileSystem",
-                        "Redis",
-                        "MongoDB",
-                    ]
+                python-version-unix: ["3.7.16"]
+                python-version-win: ["3.7"]
+                os: [ubuntu-latest, macos-latest, windows-latest]
+                DB-name: ["IoTDB12"]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
-                  python-version: ${{ matrix.python-version }}
+                  python-version: ${{ matrix.os == 'windows-latest' && python-version-win || python-version-unix }}
                   java: ${{ matrix.java }}
 
             - name: Run ZooKeeper

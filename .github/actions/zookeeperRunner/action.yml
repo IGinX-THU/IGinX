@@ -26,6 +26,8 @@ runs:
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_macos.sh"
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_windows.sh"
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1

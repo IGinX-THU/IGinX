@@ -28,7 +28,7 @@ runs:
           name: Run DB
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12.sh" 6667 6668 6669
               elif [ "$RUNNER_OS" == "macOS" ]; then
