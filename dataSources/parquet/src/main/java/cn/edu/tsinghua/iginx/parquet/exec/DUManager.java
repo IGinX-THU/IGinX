@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.exec;
 
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.*;
+import static cn.edu.tsinghua.iginx.parquet.common.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;

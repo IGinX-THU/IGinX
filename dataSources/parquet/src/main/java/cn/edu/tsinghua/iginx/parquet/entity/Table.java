@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.IGINX_SEPARATOR;
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.PARQUET_SEPARATOR;
+import static cn.edu.tsinghua.iginx.parquet.common.Constants.IGINX_SEPARATOR;
+import static cn.edu.tsinghua.iginx.parquet.common.Constants.PARQUET_SEPARATOR;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
