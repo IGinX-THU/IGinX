@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import static cn.edu.tsinghua.iginx.parquet.tools.Constant.CMD_DELETE;
+import static cn.edu.tsinghua.iginx.parquet.common.Constants.CMD_DELETE;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.thrift.DataType;
