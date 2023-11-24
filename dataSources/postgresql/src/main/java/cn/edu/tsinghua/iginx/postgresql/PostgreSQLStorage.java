@@ -295,7 +295,7 @@ public class PostgreSQLStorage implements IStorage {
 
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
-      Statement stmt;
+      Statement stmt = null;
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, conn, project.getPatterns());
@@ -323,6 +323,8 @@ public class PostgreSQLStorage implements IStorage {
           } catch (SQLException e) {
             logger.error("meet error when executing query {}: {}", statement, e.getMessage());
             continue;
+          } finally {
+            stmt.close();
           }
           if (rs != null) {
             databaseNameList.add(databaseName);
@@ -405,6 +407,8 @@ public class PostgreSQLStorage implements IStorage {
           logger.info("[Query] execute query: {}", statement);
         } catch (SQLException e) {
           logger.error("meet error when executing query {}: {}", statement, e.getMessage());
+        } finally {
+          stmt.close();
         }
         if (rs != null) {
           databaseNameList.add(databaseName);
@@ -638,7 +642,7 @@ public class PostgreSQLStorage implements IStorage {
       List<ResultSet> resultSets = new ArrayList<>();
       ResultSet rs = null;
       Connection conn = null;
-      Statement stmt;
+      Statement stmt = null;
       String statement;
 
       Map<String, Map<String, String>> splitResults =
@@ -781,21 +785,21 @@ public class PostgreSQLStorage implements IStorage {
             logger.info("[Query] execute query: {}", statement);
           } catch (SQLException e) {
             logger.error("meet error when executing query {}: {}", statement, e.getMessage());
+          } finally {
+            stmt.close();
           }
           if (rs != null) {
             databaseNameList.add(databaseName);
             resultSets.add(rs);
           }
         }
+        conn.close();
       }
 
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new PostgreSQLQueryRowStream(
                   databaseNameList, resultSets, true, filter, project.getTagFilter()));
-      if (conn != null) {
-        conn.close();
-      }
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       logger.error(e.getMessage());
@@ -953,14 +957,14 @@ public class PostgreSQLStorage implements IStorage {
         e = insertNonAlignedColumnRecords(conn, databaseName, (ColumnDataView) dataView);
         break;
     }
-    if (e != null) {
-      return new TaskExecuteResult(
-          null, new PhysicalException("execute insert task in postgresql failure", e));
-    }
     try {
       conn.close();
     } catch (SQLException ex) {
       logger.error("encounter error when closing connection: {}", ex.getMessage());
+    }
+    if (e != null) {
+      return new TaskExecuteResult(
+          null, new PhysicalException("execute insert task in postgresql failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -1234,6 +1238,7 @@ public class PostgreSQLStorage implements IStorage {
               splitResults.put(tempDatabaseName, tableNameToColumnNames);
             }
           }
+          conn.close();
         }
       } else {
         Connection conn = getConnection(databaseName);
@@ -1277,6 +1282,7 @@ public class PostgreSQLStorage implements IStorage {
           tableNameToColumnNames = oldTableNameToColumnNames;
         }
         splitResults.put(databaseName, tableNameToColumnNames);
+        conn.close();
       }
     }
 
@@ -1437,7 +1443,6 @@ public class PostgreSQLStorage implements IStorage {
         cnt += size;
       }
       stmt.close();
-      conn.close();
     } catch (SQLException e) {
       logger.error(e.getMessage());
       return e;
@@ -1549,7 +1554,6 @@ public class PostgreSQLStorage implements IStorage {
         cnt += size;
       }
       stmt.close();
-      conn.close();
     } catch (SQLException e) {
       logger.error(e.getMessage());
       return e;
