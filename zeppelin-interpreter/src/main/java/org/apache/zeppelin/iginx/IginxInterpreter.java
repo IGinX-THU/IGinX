@@ -14,6 +14,10 @@ import java.io.*;
 import java.nio.file.*;
 import java.security.InvalidParameterException;
 import java.util.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
@@ -66,6 +70,8 @@ public class IginxInterpreter extends AbstractInterpreter {
 
   private String outfileRegex = "(?i)(\\bINTO\\s+OUTFILE\\s+\")(.*?)(\"\\s+AS\\s+STREAM\\b)";
 
+  private static Map<String, CompletableFuture<InterpreterResult>> taskMap =
+      new ConcurrentHashMap<>();
 
   private Session session;
 
@@ -141,21 +147,51 @@ public class IginxInterpreter extends AbstractInterpreter {
 
     String[] cmdList = parseMultiLinesSQL(st);
 
-    InterpreterResult interpreterResult = null;
-    for (String cmd : cmdList) {
-      interpreterResult = processSql(cmd);
-      if (isSessionClosedError(interpreterResult)) {
-        if (reopenSession()) {
-          interpreterResult = processSql(cmd);
-        } else {
-          interpreterResult.add(
-              InterpreterResult.Type.TEXT,
-              "Can not reopen session successfully, please check IGinX Server.");
-        }
-      }
+    CompletableFuture<InterpreterResult> future = processSqlListAsync(cmdList, context);
+    InterpreterResult interpreterResult;
+
+    try {
+      interpreterResult = future.get();
+    } catch (Exception e) {
+      interpreterResult = new InterpreterResult(InterpreterResult.Code.ERROR, e.getMessage());
     }
 
     return interpreterResult;
+  }
+
+  /**
+   * 异步执行sql语句列表，返回CompletableFuture，可以通过CompletableFuture获取执行结果
+   * 为什么要异步执行？因为Session没有提供取消任务的操作，因此通过异步执行，当cancel方法被调用时，不继续等待结果，而是直接返回。
+   *
+   * @param sqlList sql语句列表
+   * @param context InterpreterContext上下文
+   * @return CompletableFuture 通过CompletableFuture获取执行结果
+   */
+  private CompletableFuture<InterpreterResult> processSqlListAsync(
+      String[] sqlList, InterpreterContext context) {
+    String paragraphId = context.getParagraphId();
+    CompletableFuture<InterpreterResult> future = new CompletableFuture<>();
+    taskMap.put(paragraphId, future);
+
+    CompletableFuture.runAsync(
+        () -> {
+          InterpreterResult interpreterResult = null;
+          for (String cmd : sqlList) {
+            interpreterResult = processSql(cmd);
+            if (isSessionClosedError(interpreterResult)) {
+              if (reopenSession()) {
+                interpreterResult = processSql(cmd);
+              } else {
+                interpreterResult.add(
+                    InterpreterResult.Type.TEXT,
+                    "Can not reopen session successfully, please check IGinX Server.");
+              }
+            }
+          }
+          future.complete(interpreterResult);
+        });
+
+    return future;
   }
 
   private InterpreterResult processSql(String sql) {
@@ -231,18 +267,18 @@ public class IginxInterpreter extends AbstractInterpreter {
     // 替换sql中最后一个outfile关键词，替换文件路径为Zeppelin在服务端指定的路径
     Pattern pattern = Pattern.compile(outfileRegex);
     Matcher matcher = pattern.matcher(sql);
-    if(matcher.find()){
+    if (matcher.find()) {
       int lastMatchEnd = 0;
       while (matcher.find()) {
         lastMatchEnd = matcher.end(); // 记录匹配结束的位置
       }
 
       // 替换最后一个匹配的路径
-      sql = sql.substring(0, lastMatchEnd) +
-              sql.substring(lastMatchEnd).replaceFirst(outfileRegex, "$1" + outfileDirPath + "$3");
-
+      sql =
+          sql.substring(0, lastMatchEnd)
+              + sql.substring(lastMatchEnd)
+                  .replaceFirst(outfileRegex, "$1" + outfileDirPath + "$3");
     }
-
 
     QueryDataSet res = session.executeQuery(sql);
 
@@ -582,8 +618,23 @@ public class IginxInterpreter extends AbstractInterpreter {
     return "%html" + str.replace("\n", "<br>").replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
   }
 
+  /**
+   * 取消任务，如果任务正在执行，将任务的CompletableFuture设置为异常状态，使得任务能够被取消
+   *
+   * @param context InterpreterContext上下文
+   * @throws InterpreterException InterpreterException
+   */
   @Override
-  public void cancel(InterpreterContext context) throws InterpreterException {}
+  public void cancel(InterpreterContext context) throws InterpreterException {
+    String paragraphId = context.getParagraphId();
+    CompletableFuture<InterpreterResult> future = taskMap.get(paragraphId);
+    if (future != null) {
+      future.completeExceptionally(new CancellationException("任务被取消"));
+    }
+    taskMap.remove(paragraphId);
+
+    TimeUnit.MILLISECONDS.toSeconds(100); // 暂停0.1秒，防止反复快速调用导致IGinX负载过大
+  }
 
   @Override
   public FormType getFormType() throws InterpreterException {
