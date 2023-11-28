@@ -18,11 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-import org.apache.zeppelin.interpreter.AbstractInterpreter;
-import org.apache.zeppelin.interpreter.InterpreterContext;
-import org.apache.zeppelin.interpreter.InterpreterException;
-import org.apache.zeppelin.interpreter.InterpreterResult;
-import org.apache.zeppelin.interpreter.ZeppelinContext;
+import org.apache.zeppelin.interpreter.*;
 
 public class IginxInterpreter extends AbstractInterpreter {
 
@@ -67,6 +63,9 @@ public class IginxInterpreter extends AbstractInterpreter {
   private Queue<String> downloadFileQueue = new LinkedList<>();
   private Queue<Double> downloadFileSizeQueue = new LinkedList<>();
   private double downloadFileTotalSize = 0L;
+
+  private String outfileRegex = "(?i)(\\bINTO\\s+OUTFILE\\s+\")(.*?)(\"\\s+AS\\s+STREAM\\b)";
+
 
   private Session session;
 
@@ -145,6 +144,15 @@ public class IginxInterpreter extends AbstractInterpreter {
     InterpreterResult interpreterResult = null;
     for (String cmd : cmdList) {
       interpreterResult = processSql(cmd);
+      if (isSessionClosedError(interpreterResult)) {
+        if (reopenSession()) {
+          interpreterResult = processSql(cmd);
+        } else {
+          interpreterResult.add(
+              InterpreterResult.Type.TEXT,
+              "Can not reopen session successfully, please check IGinX Server.");
+        }
+      }
     }
 
     return interpreterResult;
@@ -153,9 +161,9 @@ public class IginxInterpreter extends AbstractInterpreter {
   private InterpreterResult processSql(String sql) {
     try {
       // 如果sql中有outfile关键字，则进行特殊处理，将结果下载到zeppelin所在的服务器上，并在表单中返回下载链接
-      String outfileRegex = " into outfile \"(.*)\" as stream;?";
+      String outfileRegex = "(?i)(\\bINTO\\s+OUTFILE\\s+\")(.*?)(\"\\s+AS\\s+STREAM\\b)";
       Pattern pattern = Pattern.compile(outfileRegex);
-      Matcher matcher = pattern.matcher(sql);
+      Matcher matcher = pattern.matcher(sql.toLowerCase());
       if (matcher.find()) {
         return processOutfileSql(sql, matcher.group(1));
       }
@@ -221,11 +229,21 @@ public class IginxInterpreter extends AbstractInterpreter {
     String outfileDirPath = Paths.get(outfileDir, dateDir).toString();
 
     // 替换sql中最后一个outfile关键词，替换文件路径为Zeppelin在服务端指定的路径
-    String outfileStr = " into outfile \"%s\" as stream";
-    sql =
-        sql.replace(
-            String.format(outfileStr, originOutfilePath),
-            String.format(outfileStr, outfileDirPath));
+    Pattern pattern = Pattern.compile(outfileRegex);
+    Matcher matcher = pattern.matcher(sql);
+    if(matcher.find()){
+      int lastMatchEnd = 0;
+      while (matcher.find()) {
+        lastMatchEnd = matcher.end(); // 记录匹配结束的位置
+      }
+
+      // 替换最后一个匹配的路径
+      sql = sql.substring(0, lastMatchEnd) +
+              sql.substring(lastMatchEnd).replaceFirst(outfileRegex, "$1" + outfileDirPath + "$3");
+
+    }
+
+
     QueryDataSet res = session.executeQuery(sql);
 
     processExportByteStream(res);
@@ -234,18 +252,19 @@ public class IginxInterpreter extends AbstractInterpreter {
     File outfileFolder = new File(outfileDirPath);
     String[] fileNames = outfileFolder.list();
 
-    // 压缩outfileDirPath文件夹
+    // 如果有多个文件，压缩outfileDirPath文件夹
+    boolean hasMultipleFiles = fileNames != null && fileNames.length > 1;
     String zipName = "all_file.zip";
-    FileOutputStream outputStream =
-        new FileOutputStream(Paths.get(outfileDirPath, zipName).toString());
-    ArrayList<File> fileList = new ArrayList<>();
-    if (fileNames != null) {
+    if (hasMultipleFiles) {
+      FileOutputStream outputStream =
+          new FileOutputStream(Paths.get(outfileDirPath, zipName).toString());
+      ArrayList<File> fileList = new ArrayList<>();
       for (String fileName : fileNames) {
         fileList.add(new File(outfileDirPath + "/" + fileName));
       }
+      toZip(fileList, outputStream);
+      outputStream.close();
     }
-    toZip(fileList, outputStream);
-    outputStream.close();
 
     // 清理NGINX_STATIC文件夹
     downloadFileQueue.add(outfileDirPath);
@@ -258,11 +277,13 @@ public class IginxInterpreter extends AbstractInterpreter {
     String downloadLink = "%%html<a href=\"%s\" download=\"%s\">点击下载</a>";
     StringBuilder builder = new StringBuilder();
     builder.append("文件名").append(TAB).append("下载链接").append(NEWLINE);
-    builder
-        .append("所有文件压缩包")
-        .append(TAB)
-        .append(String.format(downloadLink, Paths.get("static", dateDir, zipName), zipName))
-        .append(NEWLINE);
+    if (hasMultipleFiles) {
+      builder
+          .append("所有文件压缩包")
+          .append(TAB)
+          .append(String.format(downloadLink, Paths.get("static", dateDir, zipName), zipName))
+          .append(NEWLINE);
+    }
     if (fileNames != null) {
       for (String fileName : fileNames) {
         builder
@@ -562,14 +583,7 @@ public class IginxInterpreter extends AbstractInterpreter {
   }
 
   @Override
-  public void cancel(InterpreterContext context) throws InterpreterException {
-    try {
-      session.closeSession();
-    } catch (SessionException e) {
-      exception = e;
-      System.out.println("Can not close session successfully.");
-    }
-  }
+  public void cancel(InterpreterContext context) throws InterpreterException {}
 
   @Override
   public FormType getFormType() throws InterpreterException {
@@ -579,5 +593,36 @@ public class IginxInterpreter extends AbstractInterpreter {
   @Override
   public int getProgress(InterpreterContext context) throws InterpreterException {
     return 0;
+  }
+
+  /**
+   * 根据InterpreterResult返回的错误信息，判断是不是session关闭导致的错误
+   *
+   * @param interpreterResult InterpreterResult
+   * @return true表示是session关闭导致的错误，false表示不是
+   */
+  private boolean isSessionClosedError(InterpreterResult interpreterResult) {
+    if (interpreterResult.code() != InterpreterResult.Code.ERROR) {
+      return false;
+    }
+
+    for (InterpreterResultMessage interpreterResultMessage : interpreterResult.message()) {
+      String msg = interpreterResultMessage.getData();
+      if (msg.contains("org.apache.thrift.transport.TTransportException")) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  private boolean reopenSession() {
+    try {
+      session.closeSession();
+      session.openSession();
+    } catch (SessionException e) {
+      return false;
+    }
+    return true;
   }
 }
