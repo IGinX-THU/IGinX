@@ -1,20 +1,23 @@
-package cn.edu.tsinghua.iginx.datasource;
+package cn.edu.tsinghua.iginx.shared;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
+import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
+import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class DataSourceBaseTest {
+public class EmptyClassGenerator {
+  private static final Logger logger = LoggerFactory.getLogger(EmptyClassGenerator.class);
 
-  private static final Logger logger = LoggerFactory.getLogger(DataSourceBaseTest.class);
-
-  protected DataView genRowDataViewNoKey(
+  public static DataView genRowDataViewNoKey(
       List<String> pathList,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
@@ -78,5 +81,19 @@ public abstract class DataSourceBaseTest {
     return new RowDataView(rawData, 0, sortedPaths.size(), 0, valuesList.length);
   }
 
-  public abstract void dataSourceUTTest();
+  public static FragmentMeta genFragmentMeta() {
+    return new FragmentMeta(null, null, 0, 0);
+  }
+
+  public static FragmentSource genFragmentSource() {
+    return new FragmentSource(genFragmentMeta());
+  }
+
+  public static KeyInterval genKeyInterval() {
+    return new KeyInterval(0, Long.MAX_VALUE);
+  }
+
+  public static DataArea genDataArea() {
+    return new DataArea(null, genKeyInterval());
+  }
 }
