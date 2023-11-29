@@ -1,7 +1,9 @@
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.parquet.entity.Field;
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetWriter;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IRecord;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -43,18 +45,18 @@ public class Storer {
 
   public void flush(Table memTable) throws IOException {
     MessageType schema = getMessageTypeStartWithKey("test", memTable.getHeader());
-    IginxParquetWriter.Builder writerBuilder = IginxParquetWriter.builder(path, schema);
+    IParquetWriter.Builder writerBuilder = IParquetWriter.builder(path, schema);
 
-    try (IginxParquetWriter writer = writerBuilder.build()) {
+    try (IParquetWriter writer = writerBuilder.build()) {
       long lastKey = Long.MIN_VALUE;
-      IginxRecord record = null;
+      IRecord record = null;
       for (Table.Point point : memTable.scanRows()) {
         if (record != null && point.key != lastKey) {
           writer.write(record);
           record = null;
         }
         if (record == null) {
-          record = new IginxRecord();
+          record = new IRecord();
           record.add(0, point.key);
           lastKey = point.key;
         }

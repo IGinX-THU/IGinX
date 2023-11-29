@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.io.parquet.impl;
 
 import cn.edu.tsinghua.iginx.parquet.tools.ByteUtils;
 import java.util.ArrayList;
@@ -12,14 +12,14 @@ import org.apache.parquet.schema.GroupType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
-public class IginxGroupConverter extends GroupConverter {
+public class IGroupConverter extends GroupConverter {
   private final Converter[] converters;
 
-  private final Consumer<IginxRecord> setter;
+  private final Consumer<IRecord> setter;
 
   private final List<IginxRepeatedPrimitiveConverter> repeatedConverters = new ArrayList<>();
 
-  public IginxGroupConverter(GroupType groupType, Consumer<IginxRecord> setter) {
+  public IGroupConverter(GroupType groupType, Consumer<IRecord> setter) {
     this.setter = setter;
     this.converters = new Converter[groupType.getFieldCount()];
     for (int fieldIndex = 0; fieldIndex < groupType.getFieldCount(); fieldIndex++) {
@@ -46,11 +46,11 @@ public class IginxGroupConverter extends GroupConverter {
     return converters[fieldIndex];
   }
 
-  private IginxRecord currentRecord = null;
+  private IRecord currentRecord = null;
 
   @Override
   public void start() {
-    currentRecord = new IginxRecord();
+    currentRecord = new IRecord();
   }
 
   @Override
@@ -62,7 +62,7 @@ public class IginxGroupConverter extends GroupConverter {
   }
 
   private Converter createGroupConverter(GroupType fieldType, int index) {
-    return new IginxGroupConverter(
+    return new IGroupConverter(
         fieldType,
         record -> {
           currentRecord.add(index, record);

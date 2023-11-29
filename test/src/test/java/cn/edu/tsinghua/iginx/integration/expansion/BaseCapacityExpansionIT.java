@@ -10,7 +10,7 @@ import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetFormatCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
@@ -37,7 +37,7 @@ public abstract class BaseCapacityExpansionIT {
   protected String extraParams;
 
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
-      this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
+      this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetFormatCapacityExpansionIT;
 
   private final boolean IS_FLAT_STORAGE_ENGINE = this instanceof RedisCapacityExpansionIT;
 
@@ -601,7 +601,7 @@ public abstract class BaseCapacityExpansionIT {
       } else {
         scriptPath = ".github/scripts/dataSources/filesystem.sh";
       }
-    } else if (this instanceof ParquetCapacityExpansionIT) {
+    } else if (this instanceof ParquetFormatCapacityExpansionIT) {
       if (isOnMac) {
         scriptPath = ".github/scripts/dataSources/parquet_macos.sh";
       } else {

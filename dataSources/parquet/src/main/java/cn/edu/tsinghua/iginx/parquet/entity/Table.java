@@ -1,8 +1,5 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.IGINX_SEPARATOR;
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.PARQUET_SEPARATOR;
-
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.util.*;
@@ -63,7 +60,8 @@ public class Table {
     List<Column> columns = new ArrayList<>();
     for (int i = 0; i < fieldList.size(); i++) {
       String physicalPath = fieldList.get(i).getName();
-      String pathName = physicalPath.replaceAll(PARQUET_SEPARATOR, IGINX_SEPARATOR);
+      String pathName =
+          physicalPath.replaceAll(Constants.PARQUET_SEPARATOR, Constants.IGINX_SEPARATOR);
       Column column = new Column(pathName, physicalPath, fieldList.get(i).getType());
       column.putBatchData(columnList.get(i));
       columns.add(column);

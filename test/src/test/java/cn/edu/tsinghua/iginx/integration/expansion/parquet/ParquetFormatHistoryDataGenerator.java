@@ -4,7 +4,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
-import cn.edu.tsinghua.iginx.parquet.io.Storer;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.io.IOException;
@@ -15,13 +15,13 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
+public class ParquetFormatHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetHistoryDataGenerator.class);
+  private static final Logger logger = LoggerFactory.getLogger(ParquetFormatHistoryDataGenerator.class);
 
   private static final char IGINX_SEPARATOR = '.';
 
-  public ParquetHistoryDataGenerator() {}
+  public ParquetFormatHistoryDataGenerator() {}
 
   @Override
   public void writeHistoryData(

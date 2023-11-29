@@ -1,11 +1,11 @@
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.io.parquet.impl;
 
 import java.util.*;
 
-public class IginxRecord implements Iterable<Map.Entry<Integer, Object>> {
+public class IRecord implements Iterable<Map.Entry<Integer, Object>> {
   private final List<Map.Entry<Integer, Object>> values = new ArrayList<>();
 
-  public IginxRecord add(int field, Object value) {
+  public IRecord add(int field, Object value) {
     values.add(new AbstractMap.SimpleEntry<>(field, value));
     return this;
   }

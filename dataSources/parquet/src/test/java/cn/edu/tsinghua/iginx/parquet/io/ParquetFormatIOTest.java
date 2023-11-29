@@ -3,6 +3,10 @@ package cn.edu.tsinghua.iginx.parquet.io;
 import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.Loader;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetWriter;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IRecord;
 import cn.edu.tsinghua.iginx.parquet.tools.ByteUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
@@ -20,9 +24,9 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetIOTest {
+public class ParquetFormatIOTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetIOTest.class);
+  private static final Logger logger = LoggerFactory.getLogger(ParquetFormatIOTest.class);
 
   protected static final Path FILE_PATH = Paths.get("./src/test/temp.parquet");
 
@@ -204,23 +208,23 @@ public class ParquetIOTest {
                     new PrimitiveType(
                         Type.Repetition.OPTIONAL, PrimitiveType.PrimitiveTypeName.INT32, "c1"))));
 
-    IginxParquetWriter.Builder builder = IginxParquetWriter.builder(FILE_PATH, schema);
-    try (IginxParquetWriter writer = builder.build()) {
+    IParquetWriter.Builder builder = IParquetWriter.builder(FILE_PATH, schema);
+    try (IParquetWriter writer = builder.build()) {
       for (int i = 0; i < ROW_NUM; i++) {
-        IginxRecord optRecord = new IginxRecord();
+        IRecord optRecord = new IRecord();
         if (i % 2 == 0) {
           optRecord.add(0, i);
         }
         writer.write(
-            new IginxRecord()
+            new IRecord()
                 .add(0, (long) i)
                 .add(
                     1,
-                    new IginxRecord()
+                    new IRecord()
                         .add(1, (double) i)
                         .add(0, (long) i)
                         .add(2, ("test" + i).getBytes()))
-                .add(2, new IginxRecord().add(0, optRecord)));
+                .add(2, new IRecord().add(0, optRecord)));
       }
     }
 
@@ -269,8 +273,8 @@ public class ParquetIOTest {
                 new PrimitiveType(
                     Type.Repetition.REPEATED, PrimitiveType.PrimitiveTypeName.BINARY, "b3")));
 
-    IginxParquetWriter.Builder builder = IginxParquetWriter.builder(FILE_PATH, schema);
-    try (IginxParquetWriter writer = builder.build()) {
+    IParquetWriter.Builder builder = IParquetWriter.builder(FILE_PATH, schema);
+    try (IParquetWriter writer = builder.build()) {
       for (int i = 0; i < ROW_NUM; i++) {
         Object[] b1 = new Object[REPEATED_NUM];
         Object[] b2 = new Object[REPEATED_NUM];
@@ -281,9 +285,7 @@ public class ParquetIOTest {
           b3[j] = ("test" + (i + j)).getBytes();
         }
         writer.write(
-            new IginxRecord()
-                .add(0, (long) i)
-                .add(1, new IginxRecord().add(1, b2).add(0, b1).add(2, b3)));
+            new IRecord().add(0, (long) i).add(1, new IRecord().add(1, b2).add(0, b1).add(2, b3)));
       }
     }
 

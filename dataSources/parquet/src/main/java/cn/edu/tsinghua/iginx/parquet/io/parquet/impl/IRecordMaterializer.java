@@ -1,17 +1,17 @@
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.io.parquet.impl;
 
 import org.apache.parquet.io.api.GroupConverter;
 import org.apache.parquet.io.api.RecordMaterializer;
 import org.apache.parquet.schema.MessageType;
 
-public class IginxRecordMaterializer extends RecordMaterializer<IginxRecord> {
-  private final IginxGroupConverter root;
+public class IRecordMaterializer extends RecordMaterializer<IRecord> {
+  private final IGroupConverter root;
 
-  private IginxRecord currentRecord = null;
+  private IRecord currentRecord = null;
 
-  public IginxRecordMaterializer(MessageType schema) {
+  public IRecordMaterializer(MessageType schema) {
     this.root =
-        new IginxGroupConverter(
+        new IGroupConverter(
             schema,
             record -> {
               currentRecord = record;
@@ -19,7 +19,7 @@ public class IginxRecordMaterializer extends RecordMaterializer<IginxRecord> {
   }
 
   @Override
-  public IginxRecord getCurrentRecord() {
+  public IRecord getCurrentRecord() {
     return currentRecord;
   }
 

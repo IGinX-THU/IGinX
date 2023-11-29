@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.CMD_DELETE;
-
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
@@ -67,7 +65,7 @@ public class FileMeta {
     }
 
     StringBuilder builder = new StringBuilder();
-    builder.append(CMD_DELETE).append(" ");
+    builder.append(Constants.CMD_DELETE).append(" ");
     for (String path : paths) {
       builder.append(path).append(",");
     }

@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.parquet.tools;
 
 import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.IGINX_SEPARATOR;
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.PARQUET_SEPARATOR;
+import static cn.edu.tsinghua.iginx.parquet.entity.Constants.IGINX_SEPARATOR;
+import static cn.edu.tsinghua.iginx.parquet.entity.Constants.PARQUET_SEPARATOR;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;

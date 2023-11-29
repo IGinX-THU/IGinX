@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.io.parquet.impl;
 
 import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
@@ -6,7 +6,7 @@ import org.apache.parquet.hadoop.api.ReadSupport;
 import org.apache.parquet.io.api.RecordMaterializer;
 import org.apache.parquet.schema.MessageType;
 
-class IginxReadSupport extends ReadSupport<IginxRecord> {
+class IReadSupport extends ReadSupport<IRecord> {
 
   @Override
   public ReadContext init(
@@ -15,11 +15,11 @@ class IginxReadSupport extends ReadSupport<IginxRecord> {
   }
 
   @Override
-  public RecordMaterializer<IginxRecord> prepareForRead(
+  public RecordMaterializer<IRecord> prepareForRead(
       Configuration configuration,
       Map<String, String> keyValueMetaData,
       MessageType fileSchema,
       ReadContext readContext) {
-    return new IginxRecordMaterializer(fileSchema);
+    return new IRecordMaterializer(fileSchema);
   }
 }

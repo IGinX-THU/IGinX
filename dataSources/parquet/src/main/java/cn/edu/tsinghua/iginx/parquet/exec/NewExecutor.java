@@ -13,11 +13,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterRowStreamWrapper;
-import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
@@ -26,6 +23,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,38 +36,31 @@ public class NewExecutor implements Executor {
 
   public String dataDir;
 
-  public String dummyDir;
+  private final Map<String, Manager> managers = new ConcurrentHashMap<>();
 
-  private final String embeddedPrefix;
-
-  private final Map<String, DUManager> duManagerMap = new ConcurrentHashMap<>();
-
-  private boolean isClosed = false;
+  private final Manager dummyManager;
 
   public NewExecutor(boolean hasData, boolean readOnly, String dataDir, String dummyDir)
       throws StorageInitializationException {
     this(hasData, readOnly, dataDir, dummyDir, null);
   }
 
-  // dirPrefix: the last layer dir name of parquet data path will be added as prefix in every data
-  // column
   public NewExecutor(
       boolean hasData, boolean readOnly, String dataDir, String dummyDir, String dirPrefix)
       throws StorageInitializationException {
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
+    String embeddedPrefix;
     if (dummyDir != null && !dummyDir.isEmpty() && (dirPrefix == null || dirPrefix.isEmpty())) {
       embeddedPrefix = FileUtils.getLastDirName(dummyDir);
     } else {
       embeddedPrefix = dirPrefix;
     }
 
-    if (hasData) {
-      try {
-        recoverFromParquet();
-      } catch (IOException e) {
-        logger.error("Initial parquet data read error, details: {}", e.getMessage());
-      }
+    if (dummyDir != null && !dummyDir.isEmpty()) {
+      dummyManager = new DummyManager(Paths.get(dummyDir), embeddedPrefix);
+    } else {
+      dummyManager = new EmptyManager();
     }
 
     Runtime.getRuntime()
@@ -101,7 +92,6 @@ public class NewExecutor implements Executor {
         throw new StorageInitializationException(
             String.format("Dummy dir %s is not a directory.", dummy_dir));
       }
-      this.dummyDir = dummy_dir;
       if (!read_only) {
         if (data_dir == null || data_dir.isEmpty()) {
           throw new StorageInitializationException(
@@ -155,37 +145,29 @@ public class NewExecutor implements Executor {
     }
   }
 
-  private void recoverFromDisk() throws IOException {
+  private void recoverFromDisk() throws PhysicalException {
     File file = new File(dataDir);
     File[] duDirs = file.listFiles();
     if (duDirs != null) {
       for (File duDir : duDirs) {
         if (duDir.isFile()) continue;
-        DUManager duManager = new DUManager(duDir.getName(), dataDir, false, embeddedPrefix);
-        duManagerMap.put(duDir.getName(), duManager);
+        try {
+          Manager manager = new DataManager(duDir.toPath());
+          managers.putIfAbsent(duDir.getName(), manager);
+        } catch (IOException e) {
+          logger.error("Fail to recover from disk ", e);
+          throw new PhysicalException(e);
+        }
       }
     }
   }
 
-  private void recoverFromParquet() throws IOException {
-    DUManager duManager = new DUManager(dummyDir, dummyDir, true, embeddedPrefix);
-    duManagerMap.put(dummyDir, duManager);
-  }
-
-  private DUManager getDUManager(String storageUnit, boolean isDummyStorageUnit)
-      throws IOException {
-    DUManager duManager = duManagerMap.get(storageUnit);
-    if (duManager == null) {
-      duManager =
-          new DUManager(
-              storageUnit,
-              isDummyStorageUnit ? dummyDir : dataDir,
-              isDummyStorageUnit,
-              embeddedPrefix);
-      duManagerMap.putIfAbsent(storageUnit, duManager);
-      duManager = duManagerMap.get(storageUnit);
+  private Manager getOrCreateManager(String storageUnit) throws PhysicalException, IOException {
+    if (!managers.containsKey(storageUnit)) {
+      Manager manager = new DataManager(Paths.get(dataDir, storageUnit));
+      managers.putIfAbsent(storageUnit, manager);
     }
-    return duManager;
+    return managers.get(storageUnit);
   }
 
   @Override
@@ -195,36 +177,43 @@ public class NewExecutor implements Executor {
       Filter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
-    DUManager duManager;
+
+    Manager manager;
     try {
-      duManager = getDUManager(storageUnit, isDummyStorageUnit);
-    } catch (IOException e) {
+      if (isDummyStorageUnit) {
+        manager = dummyManager;
+      } else {
+        manager = getOrCreateManager(storageUnit);
+      }
+    } catch (Exception e) {
+      logger.error("Fail to get du manager ", e);
       return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
     }
 
     try {
-      List<cn.edu.tsinghua.iginx.parquet.entity.Column> columns =
-          duManager.project(paths, tagFilter, filter);
-      RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
+      RowStream rowStream = manager.project(paths, tagFilter, filter);
+      rowStream = new ClearEmptyRowStreamWrapper(rowStream);
       rowStream = new FilterRowStreamWrapper(rowStream, filter);
       return new TaskExecuteResult(rowStream, null);
-    } catch (IOException e) {
+    } catch (PhysicalException e) {
+      logger.error("Fail to project data ", e);
       return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
     }
   }
 
   @Override
   public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
-    DUManager duManager;
+    Manager manager;
     try {
-      duManager = getDUManager(storageUnit, false);
-    } catch (IOException e) {
+      manager = getOrCreateManager(storageUnit);
+    } catch (Exception e) {
       return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
     }
 
     try {
-      duManager.insert(dataView);
-    } catch (IOException e) {
+      manager.insert(dataView);
+    } catch (Exception e) {
+      logger.error("Fail to insert data ", e);
       return new TaskExecuteResult(null, new PhysicalException("Fail to insert data ", e));
     }
 
@@ -234,16 +223,18 @@ public class NewExecutor implements Executor {
   @Override
   public TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
-    DUManager duManager;
+    Manager manager;
     try {
-      duManager = getDUManager(storageUnit, false);
-    } catch (IOException e) {
+      manager = getOrCreateManager(storageUnit);
+    } catch (Exception e) {
+      logger.error("Fail to get du manager ", e);
       return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
     }
 
     try {
-      duManager.delete(paths, keyRanges, tagFilter);
+      manager.delete(paths, keyRanges, tagFilter);
     } catch (Exception e) {
+      logger.error("Fail to delete data ", e);
       return new TaskExecuteResult(null, new PhysicalException("Fail to delete data " + e));
     }
 
@@ -252,60 +243,55 @@ public class NewExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    List<Column> ret = new ArrayList<>();
     try {
       if (storageUnit.equals("*")) {
-        for (Map.Entry<String, DUManager> entry : duManagerMap.entrySet()) {
-          DUManager duManager = entry.getValue();
-          Map<String, DataType> paths = duManager.getPaths();
-          for (Map.Entry<String, DataType> e : paths.entrySet()) {
-            String path = e.getKey();
-            DataType type = e.getValue();
-            Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-            ret.add(new Column(pair.k, type, pair.v));
+        recoverFromDisk();
+        Map<String, Column> columns = new HashMap<>();
+        for (Manager manager : managers.values()) {
+          for (Column column : manager.getColumns()) {
+            columns.put(column.getPhysicalPath(), column);
           }
         }
-      } else {
-        DUManager duManager = getDUManager(storageUnit, false);
-        for (Map.Entry<String, DataType> entry : duManager.getPaths().entrySet()) {
-          String path = entry.getKey();
-          DataType type = entry.getValue();
-          Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-          ret.add(new Column(pair.k, type, pair.v));
+        for (Column column : dummyManager.getColumns()) {
+          columns.put(column.getPhysicalPath(), column);
         }
+        return new ArrayList<>(columns.values());
+      } else {
+        throw new RuntimeException("not implemented!");
       }
-    } catch (IOException e) {
+    } catch (Exception e) {
+      logger.error("Fail to get columns ", e);
       throw new PhysicalException("fail to get columns ", e);
     }
-    return ret;
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
-    for (DUManager duManager : duManagerMap.values()) {
+    for (Manager manager : managers.values()) {
       try {
-        duManager
-            .getPaths()
-            .forEach(
-                (path, type) -> {
-                  Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-                  paths.add(pair.k);
-                });
-      } catch (IOException e) {
+        for (Column column : manager.getColumns()) {
+          paths.add(column.getPath());
+        }
+      } catch (Exception e) {
         throw new PhysicalException("Fail to get paths", e);
       }
-      KeyInterval interval = duManager.getTimeInterval();
-      if (interval.getStartKey() < start) {
-        start = interval.getStartKey();
-      }
-      if (interval.getEndKey() > end) {
-        end = interval.getEndKey();
+      try {
+        KeyInterval interval = manager.getKeyInterval();
+        if (interval.getStartKey() < start) {
+          start = interval.getStartKey();
+        }
+        if (interval.getEndKey() > end) {
+          end = interval.getEndKey();
+        }
+      } catch (Exception e) {
+        logger.error("Fail to get key interval", e);
+        throw new PhysicalException("fail to get key interval", e);
       }
     }
     paths.sort(String::compareTo);
-    if (paths.size() == 0) {
+    if (paths.isEmpty()) {
       throw new PhysicalTaskExecuteFailureException("no data");
     }
     if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
@@ -319,18 +305,14 @@ public class NewExecutor implements Executor {
 
   @Override
   public void close() throws PhysicalException {
-    if (isClosed) {
-      return;
-    }
-
-    for (DUManager duManager : duManagerMap.values()) {
+    logger.info("closing...");
+    for (Manager manager : managers.values()) {
       try {
-        duManager.flushBeforeExist();
+        manager.close();
       } catch (Exception e) {
-        throw new PhysicalException("Flush before exist error, details: {}", e);
+        throw new PhysicalException("failed to close local executor", e);
       }
+      managers.clear();
     }
-
-    isClosed = true;
   }
 }

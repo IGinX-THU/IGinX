@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.io.parquet.impl;
 
 import java.util.Collections;
 import java.util.Map;
@@ -10,11 +10,11 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
-class IginxWriteSupport extends WriteSupport<IginxRecord> {
+class IWriteSupport extends WriteSupport<IRecord> {
 
   private final MessageType schema;
 
-  IginxWriteSupport(MessageType schema) {
+  IWriteSupport(MessageType schema) {
     this.schema = schema;
   }
 
@@ -31,13 +31,13 @@ class IginxWriteSupport extends WriteSupport<IginxRecord> {
   }
 
   @Override
-  public void write(IginxRecord record) {
+  public void write(IRecord record) {
     recordConsumer.startMessage();
     addGroup(schema, record);
     recordConsumer.endMessage();
   }
 
-  private void addGroup(GroupType groupType, IginxRecord record) {
+  private void addGroup(GroupType groupType, IRecord record) {
     for (Map.Entry<Integer, Object> e : record) {
       int fieldIndex = e.getKey();
       Object fieldValue = e.getValue();
@@ -47,7 +47,7 @@ class IginxWriteSupport extends WriteSupport<IginxRecord> {
         addPrimitive(fieldType.asPrimitiveType(), fieldValue);
       } else {
         recordConsumer.startGroup();
-        addGroup(fieldType.asGroupType(), (IginxRecord) fieldValue);
+        addGroup(fieldType.asGroupType(), (IRecord) fieldValue);
         recordConsumer.endGroup();
       }
       recordConsumer.endField(fieldType.getName(), fieldIndex);

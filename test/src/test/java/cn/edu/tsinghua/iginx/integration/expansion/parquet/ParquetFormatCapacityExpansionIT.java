@@ -6,11 +6,11 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
+public class ParquetFormatCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
+  private static final Logger logger = LoggerFactory.getLogger(ParquetFormatCapacityExpansionIT.class);
 
-  public ParquetCapacityExpansionIT() {
+  public ParquetFormatCapacityExpansionIT() {
     super(parquet, null);
   }
 }

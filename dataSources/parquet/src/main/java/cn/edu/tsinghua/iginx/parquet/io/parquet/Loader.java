@@ -1,7 +1,10 @@
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.parquet.entity.Field;
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetReader;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IRecord;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.MetaUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -25,8 +28,8 @@ public class Loader {
 
   public List<Field> getHeader() throws IOException {
     Table table = new Table();
-    IginxParquetReader.Builder builder = IginxParquetReader.builder(path);
-    try (IginxParquetReader reader = builder.build()) {
+    IParquetReader.Builder builder = IParquetReader.builder(path);
+    try (IParquetReader reader = builder.build()) {
       MessageType schema = reader.getSchema();
 
       Integer keyIndex = getFieldIndex(schema, Storer.KEY_FIELD_NAME);
@@ -51,8 +54,8 @@ public class Loader {
 
   public void load(Table table) throws IOException {
 
-    IginxParquetReader.Builder builder = IginxParquetReader.builder(path);
-    try (IginxParquetReader reader = builder.build()) {
+    IParquetReader.Builder builder = IParquetReader.builder(path);
+    try (IParquetReader reader = builder.build()) {
       MessageType schema = reader.getSchema();
 
       Integer keyIndex = getFieldIndex(schema, Storer.KEY_FIELD_NAME);
@@ -68,7 +71,7 @@ public class Loader {
         schameIndexList.clear();
       }
 
-      IginxRecord record;
+      IRecord record;
       long cnt = 0;
       while ((record = reader.read()) != null) {
         Long key = null;
@@ -111,8 +114,8 @@ public class Loader {
       Table table,
       Map<List<Integer>, Integer> indexMap,
       Long key) {
-    if (value instanceof IginxRecord) {
-      IginxRecord record = (IginxRecord) value;
+    if (value instanceof IRecord) {
+      IRecord record = (IRecord) value;
       for (Map.Entry<Integer, Object> entry : record) {
         Integer index = entry.getKey();
         Object v = entry.getValue();
@@ -134,7 +137,7 @@ public class Loader {
     typeNameList.add(type.getName());
     if (type.isPrimitive()) {
       PrimitiveType primitiveType = type.asPrimitiveType();
-      DataType iginxType = getIginxType(primitiveType);
+      DataType iginxType = MetaUtils.toIginxType(primitiveType);
       String name = String.join(".", typeNameList);
       indexMap.put(new ArrayList<>(indexList), table.declareColumn(name, iginxType));
     } else {
@@ -146,29 +149,6 @@ public class Loader {
       }
     }
     typeNameList.remove(typeNameList.size() - 1);
-  }
-
-  public static DataType getIginxType(PrimitiveType primitiveType) {
-    if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
-      return DataType.BINARY;
-    }
-    switch (primitiveType.getPrimitiveTypeName()) {
-      case BOOLEAN:
-        return DataType.BOOLEAN;
-      case INT32:
-        return DataType.INTEGER;
-      case INT64:
-        return DataType.LONG;
-      case FLOAT:
-        return DataType.FLOAT;
-      case DOUBLE:
-        return DataType.DOUBLE;
-      case BINARY:
-        return DataType.BINARY;
-      default:
-        throw new RuntimeException(
-            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
-    }
   }
 
   public static Integer getFieldIndex(MessageType schema, String fieldName) {
