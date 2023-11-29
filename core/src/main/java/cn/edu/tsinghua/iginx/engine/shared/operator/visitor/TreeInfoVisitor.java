@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.engine.shared.visitor;
+package cn.edu.tsinghua.iginx.engine.shared.operator.visitor;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;

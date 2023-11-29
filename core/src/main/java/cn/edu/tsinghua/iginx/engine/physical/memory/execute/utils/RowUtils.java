@@ -116,10 +116,8 @@ public class RowUtils {
 
   public static boolean isValueEqualRow(Row row1, Row row2, boolean compareKey)
       throws PhysicalException {
-    if (compareKey) {
-      if (row1.getKey() != row2.getKey()) {
-        return false;
-      }
+    if (compareKey && row1.getKey() != row2.getKey()) {
+      return false;
     }
     if (row1.getHeader().getFieldSize() != row2.getHeader().getFieldSize()) {
       return false;
@@ -129,6 +127,13 @@ public class RowUtils {
     for (int index = 0; index < size; index++) {
       Value value1 = row1.getAsValue(index);
       Value value2 = row2.getAsValue(index);
+      boolean v1Null = value1.isNull();
+      boolean v2Null = value2.isNull();
+      if (v1Null && v2Null) {
+        continue;
+      } else if (v1Null ^ v2Null) {
+        return false;
+      }
       if (ValueUtils.compare(value1, value2) != 0) {
         return false;
       }
@@ -869,7 +874,7 @@ public class RowUtils {
     tableScan:
     for (Row row : rows) {
       Value value = row.getAsValue(row.getField(0).getName());
-      if (value == null) {
+      if (value.isNull()) {
         for (Row nullValueRow : nullValueRows) {
           if (isEqualRow(row, nullValueRow, false)) {
             continue tableScan;
