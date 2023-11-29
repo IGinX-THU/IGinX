@@ -80,7 +80,7 @@ public class DataSourceIT {
                     {
                       put("url", "http://localhost:8086/");
                       put("token", "testToken");
-                      put("org", "testOrg");
+                      put("organization", "testOrg");
                     }
                   },
                   StorageEngineType.influxdb,
@@ -165,6 +165,7 @@ public class DataSourceIT {
     Insert insert = new Insert(EmptyClassGenerator.genFragmentSource(), EmptyDataView);
     try {
       storage.executeInsert(insert, EmptyClassGenerator.genDataArea());
+      storage.release();
     } catch (Exception e) {
       logger.error("insert empty body fail, caused by: {}", e.getMessage());
       e.printStackTrace();

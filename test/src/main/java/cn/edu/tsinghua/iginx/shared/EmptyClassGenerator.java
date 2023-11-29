@@ -94,6 +94,6 @@ public class EmptyClassGenerator {
   }
 
   public static DataArea genDataArea() {
-    return new DataArea(null, genKeyInterval());
+    return new DataArea("unit0000000000", genKeyInterval());
   }
 }
