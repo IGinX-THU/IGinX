@@ -538,7 +538,7 @@ public class PostgreSQLStorage implements IStorage {
 
   private List<String> getMatchedPath(String path, List<List<String>> columnNamesList) {
     List<String> matchedPath = new ArrayList<>();
-    path = path.replaceAll("[.^${}+?]", "\\\\$0");
+    path = replaceRegexCharacter(path);
     path = path.replace("*", ".*");
     Pattern pattern = Pattern.compile("^" + path + "$");
     for (int i = 0; i < columnNamesList.size(); i++) {
@@ -632,6 +632,7 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
+    List<Connection> connList = new ArrayList<>();
     try {
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
@@ -649,6 +650,8 @@ public class PostgreSQLStorage implements IStorage {
         if (conn == null) {
           continue;
         }
+        connList.add(conn);
+
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
                 && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
@@ -792,14 +795,19 @@ public class PostgreSQLStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new PostgreSQLQueryRowStream(
                   databaseNameList, resultSets, true, filter, project.getTagFilter()));
-      if (conn != null) {
-        conn.close();
-      }
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       logger.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
+    } finally {
+      for (Connection conn : connList) {
+        try {
+          conn.close();
+        } catch (SQLException e) {
+          logger.error(e.getMessage());
+        }
+      }
     }
   }
 
@@ -1044,11 +1052,21 @@ public class PostgreSQLStorage implements IStorage {
     return new Pair<>(columnsInterval, new KeyInterval(minKey, maxKey + 1));
   }
 
+  /**
+   * 将正则表达式中的特殊字符转义
+   *
+   * @param str 正则表达式
+   * @return 转义后的正则表达式
+   */
+  private String replaceRegexCharacter(String str) {
+    return str.replaceAll("[.^${}+?\\\\]", "\\\\$0");
+  }
+
   private List<Pattern> getRegexPatternByName(
       String tableName, String columnNames, boolean isDummy) {
     // 我们输入例如test%，是希望匹配到test或test.abc这样的表，但是不希望匹配到test1这样的表，但语法不支持，因此在这里做一下过滤
     String tableNameRegex = tableName;
-    tableNameRegex = tableNameRegex.replaceAll("[.^${}+?]", "\\\\$0");
+    tableNameRegex = replaceRegexCharacter(tableNameRegex);
     tableNameRegex = tableNameRegex.replace("%", ".*");
     if (tableNameRegex.endsWith(".*")
         && !tableNameRegex.endsWith(SEPARATOR + ".*")
@@ -1060,14 +1078,14 @@ public class PostgreSQLStorage implements IStorage {
 
     String columnNameRegex = columnNames;
     if (isDummy) {
-      columnNameRegex = columnNameRegex.replaceAll("[.^${}+?]", "\\\\$0");
+      columnNameRegex = replaceRegexCharacter(columnNameRegex);
       columnNameRegex = columnNameRegex.replace("%", ".*");
     } else {
       if (columnNames.equals("%")) {
         columnNameRegex = ".*";
       } else {
         // columnNames中只会有一个 %
-        columnNameRegex = columnNameRegex.replaceAll("[.^${}+?]", "\\\\$0");
+        columnNameRegex = replaceRegexCharacter(columnNameRegex);
         columnNameRegex = columnNameRegex.replace("%", "(" + TAGKV_SEPARATOR + ".*)?");
       }
     }
@@ -1113,7 +1131,13 @@ public class PostgreSQLStorage implements IStorage {
       if (!columnNames.endsWith("%")) {
         columnNames += "%"; // 匹配 tagKV
       }
-      ResultSet rs = conn.getMetaData().getColumns(databaseName, "public", tableName, columnNames);
+      ResultSet rs =
+          conn.getMetaData()
+              .getColumns(
+                  databaseName,
+                  "public",
+                  replaceRegexCharacter(tableName),
+                  replaceRegexCharacter(columnNames));
 
       List<Pattern> patternList = getRegexPatternByName(tableName, columnNames, false);
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
@@ -1228,6 +1252,7 @@ public class PostgreSQLStorage implements IStorage {
               splitResults.put(tempDatabaseName, tableNameToColumnNames);
             }
           }
+          conn.close();
         }
       } else {
         Connection conn = getConnection(databaseName);
@@ -1271,6 +1296,7 @@ public class PostgreSQLStorage implements IStorage {
           tableNameToColumnNames = oldTableNameToColumnNames;
         }
         splitResults.put(databaseName, tableNameToColumnNames);
+        conn.close();
       }
     }
 
