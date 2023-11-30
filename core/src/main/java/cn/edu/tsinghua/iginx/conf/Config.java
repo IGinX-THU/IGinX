@@ -82,7 +82,7 @@ public class Config {
 
   private double maxTimeseriesLoadBalanceThreshold = 2;
 
-  private String statisticsCollectorClassName = "";
+  private boolean enableCollectStatistics = false;
 
   private int statisticsLogInterval = 5000;
 
@@ -420,12 +420,12 @@ public class Config {
     this.maxTimeseriesLoadBalanceThreshold = maxTimeseriesLoadBalanceThreshold;
   }
 
-  public String getStatisticsCollectorClassName() {
-    return statisticsCollectorClassName;
+  public boolean isEnableCollectStatistics() {
+    return enableCollectStatistics;
   }
 
-  public void setStatisticsCollectorClassName(String statisticsCollectorClassName) {
-    this.statisticsCollectorClassName = statisticsCollectorClassName;
+  public void setEnableCollectStatistics(boolean enableCollectStatistics) {
+    this.enableCollectStatistics = enableCollectStatistics;
   }
 
   public int getStatisticsLogInterval() {

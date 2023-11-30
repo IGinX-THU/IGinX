@@ -120,8 +120,8 @@ public class ConfigDescriptor {
       config.setEnableEnvParameter(
           Boolean.parseBoolean(properties.getProperty("enableEnvParameter", "false")));
 
-      config.setStatisticsCollectorClassName(
-          properties.getProperty("statisticsCollectorClassName", ""));
+      config.setEnableCollectStatistics(
+          Boolean.parseBoolean(properties.getProperty("enableCollectStatistics", "false")));
       config.setStatisticsLogInterval(
           Integer.parseInt(properties.getProperty("statisticsLogInterval", "5000")));
 
@@ -254,8 +254,8 @@ public class ConfigDescriptor {
     config.setDatabaseClassNames(
         EnvUtils.loadEnv("databaseClassNames", config.getDatabaseClassNames()));
     config.setPolicyClassName(EnvUtils.loadEnv("policyClassName", config.getPolicyClassName()));
-    config.setStatisticsCollectorClassName(
-        EnvUtils.loadEnv("statisticsCollectorClassName", config.getStatisticsCollectorClassName()));
+    config.setEnableCollectStatistics(
+        EnvUtils.loadEnv("enableCollectStatistics", config.isEnableCollectStatistics()));
     config.setStatisticsLogInterval(
         EnvUtils.loadEnv("statisticsLogInterval", config.getStatisticsLogInterval()));
     config.setRestIp(EnvUtils.loadEnv("restIp", config.getRestIp()));
