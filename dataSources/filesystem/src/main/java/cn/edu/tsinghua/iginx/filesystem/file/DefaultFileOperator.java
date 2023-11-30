@@ -7,6 +7,7 @@ import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
+import cn.edu.tsinghua.iginx.filesystem.tools.LimitedSizeMap;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
@@ -22,6 +23,16 @@ import org.slf4j.LoggerFactory;
 public class DefaultFileOperator implements IFileOperator {
 
   private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
+  private LimitedSizeMap<File, BufferedWriter> writerMap =
+      new LimitedSizeMap<>(
+          100_000,
+          (BufferedWriter writer) -> {
+            try {
+              writer.close();
+            } catch (IOException e) {
+              e.printStackTrace();
+            }
+          });
 
   public DefaultFileOperator() {}
 
@@ -103,6 +114,16 @@ public class DefaultFileOperator implements IFileOperator {
       return new IOException(
           String.format(
               "cannot write to file %s because it does not exist", file.getAbsolutePath()));
+    }
+
+    if (!writerMap.containsKey(file)) {
+      try {
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file, true), 32768);
+        writerMap.put(file, writer);
+      } catch (IOException e) {
+        logger.error("cannot create writer for file {} {}", file.getAbsolutePath(), e.getMessage());
+        return e;
+      }
     }
 
     // 如果是一个空文件，即没有内容，只有元数据，则直接添加数据
@@ -193,7 +214,8 @@ public class DefaultFileOperator implements IFileOperator {
 
   // 直接将数据append到文件
   private Exception appendRecordsToIginxFile(File file, List<Record> records, int begin, int end) {
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+    BufferedWriter writer = writerMap.get(file);
+    try {
       for (int i = begin; i < end; i++) {
         writer.write(recordToString(records.get(i)));
         writer.write("\n");
