@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.source;
 
 public enum SourceType {
   Unknown,
-
+  Constant,
   Fragment,
   Operator,
   Global,

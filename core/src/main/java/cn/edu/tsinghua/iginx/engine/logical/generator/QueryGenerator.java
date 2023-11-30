@@ -48,9 +48,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
-import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.*;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -246,8 +244,17 @@ public class QueryGenerator extends AbstractGenerator {
         root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
       }
     } else {
-      policy.notify(selectStatement);
-      root = filterAndMergeFragments(selectStatement);
+      if (selectStatement.getFromParts().isEmpty()) {
+        // 先将输入的常量表达式构造成一张二维表作为最底层的source，然后得到一个Project operator作为root
+        List<String> expressionList = new ArrayList<String>();
+        for (Expression expression : selectStatement.getExpressions()) {
+          expressionList.add(expression.getColumnName());
+        }
+        root = new Project(new ConstantSource(expressionList), expressionList, null);
+      } else {
+        policy.notify(selectStatement);
+        root = filterAndMergeFragments(selectStatement);
+      }
     }
 
     if (root == null && !metaManager.hasWritableStorageEngines()) {

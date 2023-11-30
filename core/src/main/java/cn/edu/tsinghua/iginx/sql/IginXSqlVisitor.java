@@ -828,15 +828,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (ret.size() == 1 && select.asClause() != null) {
         ret.get(0).setAlias(select.asClause().ID().getText());
       }
-      ret.forEach(
-          expression -> {
-            if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
-              throw new SQLParserException(
-                  "SELECT constant arithmetic expression isn't supported yet.");
-            } else {
-              selectStatement.setExpression(expression);
-            }
-          });
+      ret.forEach(selectStatement::setExpression);
     }
 
     if (!selectStatement.getFuncTypeSet().isEmpty()) {
@@ -947,22 +939,26 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         isDistinct = true;
       }
     }
-
     List<String> columns = new ArrayList<>();
-    for (PathContext pathContext : funcCtx.path()) {
-      columns.add(parsePath(pathContext));
-    }
-
     List<Object> args = new ArrayList<>();
     Map<String, Object> kvargs = new HashMap<>();
-    for (ParamContext paramContext : funcCtx.param()) {
-      Object val = parseValue(paramContext.value);
-      if (paramContext.key != null) {
-        String key = paramContext.key.getText();
-        kvargs.put(key, val);
-      } else {
-        args.add(val);
+    if (ctx.path() != null) {
+      for (PathContext pathContext : funcCtx.path()) {
+        columns.add(parsePath(pathContext));
       }
+      for (ParamContext paramContext : funcCtx.param()) {
+        Object val = parseValue(paramContext.value);
+        if (paramContext.key != null) {
+          String key = paramContext.key.getText();
+          kvargs.put(key, val);
+        } else {
+          args.add(val);
+        }
+      }
+    }
+    if (ctx.constant() != null) {
+      // TODO columns args, kvargs
+      columns.add(parseValue(ctx.constant()).toString());
     }
 
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀

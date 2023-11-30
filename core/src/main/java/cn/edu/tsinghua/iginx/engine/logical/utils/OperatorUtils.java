@@ -120,6 +120,9 @@ public class OperatorUtils {
       UnaryOperator unaryOp = (UnaryOperator) operator;
       Source source = unaryOp.getSource();
       if (source.getType() != SourceType.Fragment) {
+        if (source.getType() == SourceType.Constant) {
+          return;
+        }
         findSelectOperators(selectOperatorList, ((OperatorSource) source).getOperator());
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {

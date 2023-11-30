@@ -66,7 +66,7 @@ queryClause
    ;
 
 select
-   : selectClause fromClause whereClause? withClause? specialClause?
+   : selectClause fromClause? whereClause? withClause? specialClause?
    ;
 
 selectClause
@@ -90,7 +90,7 @@ expression
    ;
 
 function
-   : functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* (COMMA param)* RR_BRACKET
+   : functionName LR_BRACKET (ALL | DISTINCT)? ((path (COMMA path)* (COMMA param)*) | constant) RR_BRACKET
    ;
 
 param

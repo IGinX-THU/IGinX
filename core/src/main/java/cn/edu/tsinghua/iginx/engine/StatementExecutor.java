@@ -32,6 +32,8 @@ import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostExecuteProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
@@ -42,6 +44,7 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.Processor;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
@@ -342,6 +345,17 @@ public class StatementExecutor {
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
         setResult(ctx, new EmptyRowStream());
+        return;
+      }
+      if (root.getType() == OperatorType.Project
+              && ((Project) root).getSource().getType() == SourceType.Constant) {
+        // 空表查询特殊处理
+        logger.info("handle empty source");
+        before(ctx, prePhysicalProcessors);
+        RowStream stream = engine.executeConstantSource(ctx, root);
+        after(ctx, postPhysicalProcessors);
+        ctx.setResult(new Result(RpcUtils.SUCCESS));
+        setResult(ctx, stream);
         return;
       }
       if (constraintManager.check(root) && checker.check(root)) {

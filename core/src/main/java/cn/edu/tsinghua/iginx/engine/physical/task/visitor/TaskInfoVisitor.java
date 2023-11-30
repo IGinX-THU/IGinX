@@ -1,12 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.visitor;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.*;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -58,6 +53,11 @@ public class TaskInfoVisitor implements TaskVisitor {
 
   @Override
   public void visit(GlobalPhysicalTask task) {
+    collectTaskInfo(task);
+  }
+
+  @Override
+  public void visit(ConstantSourceMemoryPhysicalTask task) {
     collectTaskInfo(task);
   }
 

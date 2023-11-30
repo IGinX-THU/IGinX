@@ -32,6 +32,8 @@ public class TaskUtils {
           getBottomTasks(tasks, parentTask);
         }
         break;
+      case ConstantSourceMemory:
+        break;
       default:
         throw new RuntimeException("unknown task type: " + root.getType());
     }

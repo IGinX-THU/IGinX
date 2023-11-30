@@ -94,6 +94,17 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     return result.getRowStream();
   }
 
+  @Override
+  public RowStream executeConstantSource(RequestContext ctx, Operator root) throws PhysicalException {
+    PhysicalTask task = optimizer.optimize(root, ctx);
+    ctx.setPhysicalTree(task);
+    TaskExecuteResult result = task.getResult();
+    if (result.getException() != null) {
+      throw result.getException();
+    }
+    return result.getRowStream();
+  }
+
   private void commitBottomTasks(List<PhysicalTask> bottomTasks) {
     List<StoragePhysicalTask> storageTasks = new ArrayList<>();
     List<GlobalPhysicalTask> globalTasks = new ArrayList<>();

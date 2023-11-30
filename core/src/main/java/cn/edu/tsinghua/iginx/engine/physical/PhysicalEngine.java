@@ -31,6 +31,8 @@ public interface PhysicalEngine {
 
   RowStream execute(RequestContext ctx, Operator root) throws PhysicalException;
 
+  RowStream executeConstantSource(RequestContext ctx, Operator root) throws PhysicalException;
+
   PhysicalOptimizer getOptimizer();
 
   ConstraintManager getConstraintManager();
