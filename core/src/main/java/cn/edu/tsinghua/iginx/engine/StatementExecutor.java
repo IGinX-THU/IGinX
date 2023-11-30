@@ -350,7 +350,6 @@ public class StatementExecutor {
       if (root.getType() == OperatorType.Project
               && ((Project) root).getSource().getType() == SourceType.Constant) {
         // 空表查询特殊处理
-        logger.info("handle empty source");
         before(ctx, prePhysicalProcessors);
         RowStream stream = engine.executeConstantSource(ctx, root);
         after(ctx, postPhysicalProcessors);

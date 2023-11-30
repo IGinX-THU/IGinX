@@ -14,35 +14,13 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.LogicalOptimizerManager;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
-import cn.edu.tsinghua.iginx.engine.shared.operator.FoldedOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ProjectWaitingForPath;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
@@ -73,13 +51,9 @@ import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+
+import java.util.*;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -261,6 +235,26 @@ public class QueryGenerator extends AbstractGenerator {
       return null;
     }
 
+    // TODO 全是常数表达式 select 1 from test 或者 select count(1) from test
+    if(selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()) {
+      // 直接构建一个function为count的setTransfor
+      List<String> columns = new ArrayList<>(selectStatement.getPathSet());  // 将 Set 转换为 List
+      List<Object> args = new ArrayList<>();
+      Map<String, Object> kvargs = new HashMap<>();
+      FunctionParams params = new FunctionParams(columns, args, kvargs);
+      root = new SetTransform(
+              new OperatorSource(root),
+              new FunctionCall(functionManager.getFunction("count"), params));
+      // 然后根据返回值构造表
+      List<String> expressionList = new ArrayList<String>();
+      for (Expression expression : selectStatement.getExpressions()) {
+        expressionList.add(expression.getColumnName());
+      }
+      root = new CountTransform(
+              new OperatorSource(root),
+              expressionList);
+    }
+
     // 处理where子查询
     if (!selectStatement.getWhereSubQueryParts().isEmpty()) {
       int sizeWhereSubQueryParts = selectStatement.getWhereSubQueryParts().size();
@@ -370,7 +364,8 @@ public class QueryGenerator extends AbstractGenerator {
       queryList.add(
           new GroupBy(
               new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
-    } else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
+    }
+    else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
       // DownSample Query
       Operator finalRoot = root;
       selectStatement
@@ -401,7 +396,8 @@ public class QueryGenerator extends AbstractGenerator {
                                 new KeyRange(
                                     selectStatement.getStartKey(), selectStatement.getEndKey())));
                       }));
-    } else if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
+    }
+    else if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
       // Aggregate Query
       Operator finalRoot = root;
       selectStatement
@@ -436,7 +432,7 @@ public class QueryGenerator extends AbstractGenerator {
                                   new FunctionCall(functionManager.getFunction(k), params)));
                         } else {
                           queryList.add(
-                              new SetTransform(
+                              new SetTransform(  // count
                                   new OperatorSource(copySelect),
                                   new FunctionCall(functionManager.getFunction(k), params)));
                         }

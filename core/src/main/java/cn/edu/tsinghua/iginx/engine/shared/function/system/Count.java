@@ -68,6 +68,7 @@ public class Count implements SetMappingFunction {
   public Row transform(RowStream rows, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
+      // TODO try count(a,b) ??
       throw new IllegalArgumentException("unexpected param type for avg.");
     }
 

@@ -58,33 +58,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
-import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
-import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
@@ -153,6 +128,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         return executeDistinct((Distinct) operator, table);
       case ValueToSelectedPath:
         return executeValueToSelectedPath((ValueToSelectedPath) operator, table);
+      case CountTransform:
+        return executeCountTransform((CountTransform) operator, table);
       default:
         throw new UnexpectedOperatorException("unknown unary operator: " + operator.getType());
     }
@@ -646,6 +623,32 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
             });
 
     return new Table(targetHeader, targetRows);
+  }
+
+  private RowStream executeCountTransform(CountTransform operator, Table table) {
+    // TODO 从operator中取出expressions，从table中取出行数（max），写为新的Table
+    Object[] rowCounts = table.getRow(0).getValues();
+    long maxCount = 0;
+    for(Object rowCount: rowCounts) {
+      if(maxCount < (Long)rowCount) {
+        maxCount = (Long)rowCount;
+      }
+    }
+    List<Field> fields = new ArrayList<>();
+    // 遍历EmptySource中的表达式加入
+    Object[] values = new Object[operator.getExpressionList().size()];
+    for(int i = 0; i < operator.getExpressionList().size(); i++) {
+      fields.add(new Field(operator.getExpressionList().get(i), DataType.FLOAT));
+      values[i] = 1.0;
+    }
+    //新建一个RowStream
+    Header header = new Header(fields);
+    List<Row> rowList = new ArrayList<>();
+    for(int i = 0; i < maxCount; i++) {
+      rowList.add(new Row(header, values));  // 新建maxCount行
+    }
+    RowStream stream = new Table(header, rowList);
+    return stream;
   }
 
   private RowStream executeJoin(Join join, Table tableA, Table tableB) throws PhysicalException {

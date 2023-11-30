@@ -828,7 +828,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (ret.size() == 1 && select.asClause() != null) {
         ret.get(0).setAlias(select.asClause().ID().getText());
       }
-      ret.forEach(selectStatement::setExpression);
+      ret.forEach(
+              expression -> {
+                if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
+                  selectStatement.addConstExpression();
+                }
+                selectStatement.setExpression(expression);
+              });
     }
 
     if (!selectStatement.getFuncTypeSet().isEmpty()) {
@@ -860,6 +866,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return Collections.singletonList(parseBaseExpression(ctx, selectStatement));
     }
     if (ctx.constant() != null) {
+      // TODO 为了确保行数和结果行数相同, 在常数表达式中，如果有from子句，不管有join，都将其路径处理为其中一个tableName.*
+      if (!selectStatement.getFromParts().isEmpty()) {
+        PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
+        String originFullPath = pathFromPart.getOriginPrefix() + SQLConstant.DOT + "*";
+        selectStatement.setPathSet(originFullPath);
+      }
       return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
     }
 

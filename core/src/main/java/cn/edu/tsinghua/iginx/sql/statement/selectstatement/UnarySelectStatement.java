@@ -42,7 +42,7 @@ public class UnarySelectStatement extends SelectStatement {
   private boolean hasDownsample;
   private boolean hasGroupBy;
   private boolean hasValueToSelectedPath = false;
-
+  private int constExpressionsCount = 0;
   private final List<Expression> expressions;
   private final Map<String, List<FuncExpression>> funcExpressionMap;
   private final List<BaseExpression> baseExpressionList;
@@ -302,6 +302,13 @@ public class UnarySelectStatement extends SelectStatement {
     this.hasValueToSelectedPath = hasValueToSelectedPath;
   }
 
+  public int getConstExpressionsCount() {
+    return constExpressionsCount;
+  }
+
+  public void addConstExpression() {
+    this.constExpressionsCount ++;
+  }
   public Map<String, List<FuncExpression>> getFuncExpressionMap() {
     return funcExpressionMap;
   }
@@ -343,7 +350,7 @@ public class UnarySelectStatement extends SelectStatement {
       expressions.add(expression);
     }
 
-    if (addToPathSet) {
+    if (addToPathSet) {  // 这里将function中的列名加入pathSet
       this.pathSet.addAll(expression.getColumns());
     }
 
