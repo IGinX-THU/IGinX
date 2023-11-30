@@ -942,7 +942,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     List<String> columns = new ArrayList<>();
     List<Object> args = new ArrayList<>();
     Map<String, Object> kvargs = new HashMap<>();
-    if (ctx.path() != null) {
+    if (funcCtx.path() != null) {
       for (PathContext pathContext : funcCtx.path()) {
         columns.add(parsePath(pathContext));
       }
