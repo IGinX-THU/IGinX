@@ -93,12 +93,10 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         PhysicalTask task = new UnaryMemoryPhysicalTask(operators, sourceTask, context);
         sourceTask.setFollowerTask(task);
         return task;
-      } else { // EmptySource
-        // 这里构建任务的时候应该要通过EmptySource把expressions的信息穿进去
+      } else {
+        // 这里构建任务的时候应该要通过ConstantSource把expressions的信息穿进去
         List<Operator> operators = new ArrayList<>();
         operators.add(operator);
-        // TODO change
-        // UnaryMemoryPhysicalTask ret = new UnaryMemoryPhysicalTask(operators, null);
         ConstantSourceMemoryPhysicalTask ret = new ConstantSourceMemoryPhysicalTask(operators);
         MemoryPhysicalTaskDispatcher.getInstance().addMemoryTask(ret);
         return ret;
