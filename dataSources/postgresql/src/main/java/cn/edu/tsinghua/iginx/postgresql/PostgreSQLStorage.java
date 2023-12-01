@@ -538,8 +538,7 @@ public class PostgreSQLStorage implements IStorage {
 
   private List<String> getMatchedPath(String path, List<List<String>> columnNamesList) {
     List<String> matchedPath = new ArrayList<>();
-    path = replaceRegexCharacter(path);
-    path = path.replace("*", ".*");
+    path = StringUtils.reformatPath(path);
     Pattern pattern = Pattern.compile("^" + path + "$");
     for (int i = 0; i < columnNamesList.size(); i++) {
       List<String> columnNames = columnNamesList.get(i);
@@ -1052,21 +1051,11 @@ public class PostgreSQLStorage implements IStorage {
     return new Pair<>(columnsInterval, new KeyInterval(minKey, maxKey + 1));
   }
 
-  /**
-   * 将正则表达式中的特殊字符转义
-   *
-   * @param str 正则表达式
-   * @return 转义后的正则表达式
-   */
-  private String replaceRegexCharacter(String str) {
-    return str.replaceAll("[.^${}+?\\\\]", "\\\\$0");
-  }
-
   private List<Pattern> getRegexPatternByName(
       String tableName, String columnNames, boolean isDummy) {
     // 我们输入例如test%，是希望匹配到test或test.abc这样的表，但是不希望匹配到test1这样的表，但语法不支持，因此在这里做一下过滤
     String tableNameRegex = tableName;
-    tableNameRegex = replaceRegexCharacter(tableNameRegex);
+    tableNameRegex = StringUtils.reformatPath(tableNameRegex);
     tableNameRegex = tableNameRegex.replace("%", ".*");
     if (tableNameRegex.endsWith(".*")
         && !tableNameRegex.endsWith(SEPARATOR + ".*")
@@ -1078,14 +1067,14 @@ public class PostgreSQLStorage implements IStorage {
 
     String columnNameRegex = columnNames;
     if (isDummy) {
-      columnNameRegex = replaceRegexCharacter(columnNameRegex);
+      columnNameRegex = StringUtils.reformatPath(columnNameRegex);
       columnNameRegex = columnNameRegex.replace("%", ".*");
     } else {
       if (columnNames.equals("%")) {
         columnNameRegex = ".*";
       } else {
         // columnNames中只会有一个 %
-        columnNameRegex = replaceRegexCharacter(columnNameRegex);
+        columnNameRegex = StringUtils.reformatPath(columnNameRegex);
         columnNameRegex = columnNameRegex.replace("%", "(" + TAGKV_SEPARATOR + ".*)?");
       }
     }
@@ -1136,8 +1125,8 @@ public class PostgreSQLStorage implements IStorage {
               .getColumns(
                   databaseName,
                   "public",
-                  replaceRegexCharacter(tableName),
-                  replaceRegexCharacter(columnNames));
+                  StringUtils.reformatPath(tableName),
+                  StringUtils.reformatPath(columnNames));
 
       List<Pattern> patternList = getRegexPatternByName(tableName, columnNames, false);
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
