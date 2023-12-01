@@ -14,12 +14,10 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.LogicalOptimizerManager;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -220,7 +218,7 @@ public class QueryGenerator extends AbstractGenerator {
     } else {
       if (selectStatement.getFromParts().isEmpty()) {
         // 先将输入的常量表达式构造成一张二维表作为最底层的source，然后得到一个Project operator作为root
-        List<String> expressionList = new ArrayList<String>();
+        List<String> expressionList = new ArrayList<>();
         for (Expression expression : selectStatement.getExpressions()) {
           expressionList.add(expression.getColumnName());
         }
@@ -236,7 +234,7 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     // 如果有from且全是常数表达式，例如 select 1 from test 或者 select count(1) from test
-    if(!selectStatement.getPathSet().isEmpty()
+    if(!selectStatement.getFromParts().isEmpty()
             && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
             || selectStatement.getIsConstFuncParam())) {
       // 直接构建一个function为count的setTransfor
@@ -249,7 +247,7 @@ public class QueryGenerator extends AbstractGenerator {
               new FunctionCall(functionManager.getFunction("count"), params));
       // 然后根据返回值构造表
       double funcParam = 1.0;
-      List<String> expressionList = new ArrayList<String>();
+      List<String> expressionList = new ArrayList<>();
       for (Expression expression : selectStatement.getExpressions()) {
         if(expression.getType() == Expression.ExpressionType.Function) {
           expressionList.add(((FuncExpression) expression).getColumnNameWithoutFunc());

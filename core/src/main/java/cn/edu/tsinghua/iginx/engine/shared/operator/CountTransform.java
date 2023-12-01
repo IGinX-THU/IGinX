@@ -2,14 +2,13 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class CountTransform extends AbstractUnaryOperator {
-    private  List<String> expressionList;
-    private double funcParam;
+    private final List<String> expressionList;
+    private final double funcParam;
 
     public CountTransform(Source source, List<String> expressionList, double funcParam) {
         super(OperatorType.CountTransform, source);
