@@ -235,9 +235,10 @@ public class QueryGenerator extends AbstractGenerator {
       return null;
     }
 
-    // TODO 全是常数表达式 select 1 from test 或者 select count(1) from test
-    if(selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
-            || selectStatement.getIsConstFuncParam()) {
+    // 如果有from且全是常数表达式，例如 select 1 from test 或者 select count(1) from test
+    if(!selectStatement.getPathSet().isEmpty()
+            && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
+            || selectStatement.getIsConstFuncParam())) {
       // 直接构建一个function为count的setTransfor
       List<String> columns = new ArrayList<>(selectStatement.getPathSet());  // 将 Set 转换为 List
       List<Object> args = new ArrayList<>();

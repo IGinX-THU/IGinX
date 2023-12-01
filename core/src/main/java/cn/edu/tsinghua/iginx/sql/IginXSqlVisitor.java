@@ -980,12 +980,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       String fromPath = selectStatement.getFromPart(0).getPrefix();
       if (funcCtx.constant() != null) {
         selectStatement.setPathSet(fromPath + SQLConstant.DOT + "*");
+      } else {
+        List<String> newColumns = new ArrayList<>();
+        for (String column : columns) {
+          newColumns.add(fromPath + SQLConstant.DOT + column);
+        }
+        columns = newColumns;
       }
-      List<String> newColumns = new ArrayList<>();
-      for (String column : columns) {
-        newColumns.add(fromPath + SQLConstant.DOT + column);
-      }
-      columns = newColumns;
     }
     FuncExpression expression = new FuncExpression(funcName, columns, args, kvargs, isDistinct);
     if (funcCtx.constant() != null) {
