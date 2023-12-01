@@ -236,7 +236,8 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     // TODO 全是常数表达式 select 1 from test 或者 select count(1) from test
-    if(selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()) {
+    if(selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
+            || selectStatement.getIsConstFuncParam()) {
       // 直接构建一个function为count的setTransfor
       List<String> columns = new ArrayList<>(selectStatement.getPathSet());  // 将 Set 转换为 List
       List<Object> args = new ArrayList<>();
@@ -246,13 +247,20 @@ public class QueryGenerator extends AbstractGenerator {
               new OperatorSource(root),
               new FunctionCall(functionManager.getFunction("count"), params));
       // 然后根据返回值构造表
+      double funcParam = 1.0;
       List<String> expressionList = new ArrayList<String>();
       for (Expression expression : selectStatement.getExpressions()) {
-        expressionList.add(expression.getColumnName());
+        if(expression.getType() == Expression.ExpressionType.Function) {
+          expressionList.add(((FuncExpression) expression).getColumnNameWithoutFunc());
+          funcParam = selectStatement.getConstFuncParam();
+        } else  {
+          expressionList.add(expression.getColumnName());
+        }
       }
       root = new CountTransform(
               new OperatorSource(root),
-              expressionList);
+              expressionList,
+              funcParam);
     }
 
     // 处理where子查询

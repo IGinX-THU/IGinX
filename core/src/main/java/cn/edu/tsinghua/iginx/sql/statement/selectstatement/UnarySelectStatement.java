@@ -43,6 +43,8 @@ public class UnarySelectStatement extends SelectStatement {
   private boolean hasGroupBy;
   private boolean hasValueToSelectedPath = false;
   private int constExpressionsCount = 0;
+  private double constFuncParam = 1.0;
+  private boolean isConstFuncParam = false;
   private final List<Expression> expressions;
   private final Map<String, List<FuncExpression>> funcExpressionMap;
   private final List<BaseExpression> baseExpressionList;
@@ -308,6 +310,16 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void addConstExpression() {
     this.constExpressionsCount ++;
+  }
+  public double getConstFuncParam() {
+    return constFuncParam;
+  }
+  public boolean  getIsConstFuncParam() {
+    return isConstFuncParam;
+  }
+  public void setConstFuncParam(double constFuncParam) {
+    this.constFuncParam = constFuncParam;
+    this.isConstFuncParam = true;
   }
   public Map<String, List<FuncExpression>> getFuncExpressionMap() {
     return funcExpressionMap;

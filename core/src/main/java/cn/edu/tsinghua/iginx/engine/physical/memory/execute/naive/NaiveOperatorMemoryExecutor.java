@@ -635,11 +635,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
     }
     List<Field> fields = new ArrayList<>();
-    // 遍历EmptySource中的表达式加入
     Object[] values = new Object[operator.getExpressionList().size()];
     for(int i = 0; i < operator.getExpressionList().size(); i++) {
-      fields.add(new Field(operator.getExpressionList().get(i), DataType.FLOAT));
-      values[i] = 1.0;
+      fields.add(new Field(operator.getExpressionList().get(i), DataType.DOUBLE));
+      values[i] = operator.getFuncParam();
     }
     //新建一个RowStream
     Header header = new Header(fields);

@@ -79,6 +79,10 @@ public class FuncExpression implements Expression {
     return columnName + String.join(", ", columns) + ")";
   }
 
+  public String getColumnNameWithoutFunc() {
+    return String.join(", ", columns);
+  }
+
   @Override
   public ExpressionType getType() {
     return ExpressionType.Function;

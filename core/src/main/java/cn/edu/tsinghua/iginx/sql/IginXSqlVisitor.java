@@ -968,15 +968,19 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
       }
     }
-    if (ctx.constant() != null) {
+    if (funcCtx.constant() != null) {
       // TODO columns args, kvargs
-      columns.add(parseValue(ctx.constant()).toString());
+      String funcParam = parseValue(funcCtx.constant()).toString();
+      columns.add(funcParam);
+      selectStatement.setConstFuncParam(Double.parseDouble(funcParam));
     }
 
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
     if (selectStatement.isFromSinglePath()) {
       String fromPath = selectStatement.getFromPart(0).getPrefix();
-
+      if (funcCtx.constant() != null) {
+        selectStatement.setPathSet(fromPath + SQLConstant.DOT + "*");
+      }
       List<String> newColumns = new ArrayList<>();
       for (String column : columns) {
         newColumns.add(fromPath + SQLConstant.DOT + column);
@@ -984,7 +988,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       columns = newColumns;
     }
     FuncExpression expression = new FuncExpression(funcName, columns, args, kvargs, isDistinct);
-    selectStatement.setSelectedFuncsAndExpression(funcName, expression);
+    if (funcCtx.constant() != null) {
+      selectStatement.setSelectedFuncsAndExpression(funcName, expression, false);
+    } else {
+      selectStatement.setSelectedFuncsAndExpression(funcName, expression);
+    }
     return expression;
   }
 
