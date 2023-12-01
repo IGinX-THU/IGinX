@@ -5331,10 +5331,6 @@ public class SQLSessionIT {
     executor.executeAndCompareErrMsg(
         errClause, "SELECT constant arithmetic expression isn't supported yet.");
 
-    errClause = "SELECT * FROM test WHERE 1 < 2;";
-    executor.executeAndCompareErrMsg(
-        errClause, "Constant comparison isn't supported in WHERE clause yet.");
-
     errClause = "select * from (show columns a.*), (show columns b.*);";
     executor.executeAndCompareErrMsg(
         errClause, "As clause is expected when multiple ShowColumns are joined together.");

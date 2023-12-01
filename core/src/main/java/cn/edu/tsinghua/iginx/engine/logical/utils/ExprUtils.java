@@ -19,6 +19,8 @@ public class ExprUtils {
       case Key:
       case Value:
       case Path:
+      case Bool:
+      case Expr:
         return filter;
       case Not:
         throw new SQLParserException("Get DNF failed, filter has not-subFilter.");
@@ -126,6 +128,8 @@ public class ExprUtils {
       case Key:
       case Value:
       case Path:
+      case Bool:
+      case Expr:
         return filter;
       case Not:
         throw new SQLParserException("Get CNF failed, filter has not-subFilter.");
@@ -254,6 +258,8 @@ public class ExprUtils {
       case Key:
       case Value:
       case Path:
+      case Bool:
+      case Expr:
         return filter;
       case And:
         return removeNot((AndFilter) filter);
@@ -302,6 +308,9 @@ public class ExprUtils {
       case Path:
         ((PathFilter) filter).reverseFunc();
         return filter;
+      case Expr:
+        ((ExprFilter) filter).reverseFunc();
+        return filter;
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (int i = 0; i < andChildren.size(); i++) {
@@ -333,8 +342,11 @@ public class ExprUtils {
   private static void extractKeyRange(List<KeyRange> keyRanges, Filter f) {
     FilterType type = f.getType();
     switch (type) {
+      case Not:
       case Value:
       case Path:
+      case Bool:
+      case Expr:
         break;
       case Key:
         keyRanges.add(getKeyRangesFromKeyFilter((KeyFilter) f));

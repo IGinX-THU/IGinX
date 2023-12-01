@@ -22,6 +22,7 @@ public enum FilterType {
   Key,
   Value,
   Path,
+  Expr,
   Bool, // holder
 
   And,
