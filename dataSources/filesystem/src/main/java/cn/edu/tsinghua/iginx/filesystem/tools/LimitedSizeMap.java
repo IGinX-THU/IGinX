@@ -20,7 +20,9 @@ public class LimitedSizeMap<K, V> extends LinkedHashMap<K, V> {
     boolean isSizeExceeded = size() > maxSize;
     if (isSizeExceeded) {
       V valueToRemove = eldest.getValue();
-      evictionListener.accept(valueToRemove);
+      if (evictionListener != null) {
+        evictionListener.accept(valueToRemove);
+      }
     }
     return isSizeExceeded;
   }
