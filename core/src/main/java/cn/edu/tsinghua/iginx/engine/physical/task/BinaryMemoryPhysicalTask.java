@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
@@ -109,5 +110,21 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
   @Override
   public boolean notifyParentReady() {
     return parentReadyCount.incrementAndGet() == 2;
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    PhysicalTask taskA = getParentTaskA();
+    if (taskA != null) {
+      taskA.accept(visitor);
+    }
+    PhysicalTask taskB = getParentTaskB();
+    if (taskB != null) {
+      taskB.accept(visitor);
+    }
+    visitor.leave();
   }
 }
