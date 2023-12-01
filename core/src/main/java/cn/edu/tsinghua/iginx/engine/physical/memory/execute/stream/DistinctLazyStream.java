@@ -52,7 +52,7 @@ public class DistinctLazyStream extends UnaryLazyStream {
     }
     Value value = row.getAsValue(row.getField(0).getName());
 
-    if (value == null) {
+    if (value.isNull()) {
       for (Row nullValueRow : nullValueRows) {
         if (isEqualRow(row, nullValueRow, false)) {
           return;

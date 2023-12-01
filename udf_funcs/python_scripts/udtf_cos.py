@@ -8,7 +8,7 @@ class UDFCos:
     def transform(self, data, args, kvargs):
         res = self.buildHeader(data)
         cosRow = []
-        for num in data[2]:
+        for num in data[2][1:]:
             cosRow.append(math.cos(num))
         res.append(cosRow)
         return res
@@ -16,7 +16,7 @@ class UDFCos:
     def buildHeader(self, data):
         colNames = []
         colTypes = []
-        for name in data[0]:
+        for name in data[0][1:]:
             colNames.append("cos(" + name + ")")
             colTypes.append("DOUBLE")
         return [colNames, colTypes]

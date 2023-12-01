@@ -940,7 +940,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> transformedRows = new ArrayList<>();
     for (Row rowA : tableA.getRows()) {
       Value value = rowA.getAsValue(joinPathA);
-      if (value == null) {
+      if (value.isNull()) {
         continue;
       }
       int hash = getHash(value, needTypeCast);
@@ -1393,7 +1393,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     HashMap<Integer, List<Integer>> indexOfRowBHashMap = new HashMap<>();
     for (int indexB = 0; indexB < rowsB.size(); indexB++) {
       Value value = rowsB.get(indexB).getAsValue(joinPathB);
-      if (value == null) {
+      if (value.isNull()) {
         continue;
       }
       int hash = getHash(value, needTypeCast);
@@ -1420,7 +1420,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     for (int indexA = 0; indexA < rowsA.size(); indexA++) {
       Value value = rowsA.get(indexA).getAsValue(joinPathA);
-      if (value == null) {
+      if (value.isNull()) {
         continue;
       }
       int hash = getHash(value, needTypeCast);
@@ -1901,7 +1901,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     int anotherRowSize = tableB.getHeader().getFieldSize();
     for (Row rowA : tableA.getRows()) {
       Value value = rowA.getAsValue(joinPathA);
-      if (value == null) {
+      if (value.isNull()) {
         continue;
       }
       int hash = getHash(value, needTypeCast);
@@ -2025,7 +2025,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     tableScan:
     for (Row rowA : tableA.getRows()) {
       Value value = rowA.getAsValue(joinPathA);
-      if (value == null) {
+      if (value.isNull()) {
         continue;
       }
       int hash = getHash(value, needTypeCast);
@@ -2295,7 +2295,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         hash = Objects.hash(rowA.getKey());
       } else {
         Value value = rowA.getAsValue(0);
-        if (value == null) {
+        if (value.isNull()) {
           continue;
         }
         hash = getHash(value, needTypeCast);
@@ -2318,7 +2318,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         hash = Objects.hash(rowB.getKey());
       } else {
         Value value = rowB.getAsValue(0);
-        if (value == null) {
+        if (value.isNull()) {
           continue;
         }
         hash = getHash(value, needTypeCast);
@@ -2380,7 +2380,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         hash = Objects.hash(rowB.getKey());
       } else {
         Value value = rowB.getAsValue(0);
-        if (value == null) {
+        if (value.isNull()) {
           continue;
         }
         hash = getHash(value, needTypeCast);
@@ -2396,7 +2396,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         hash = Objects.hash(rowA.getKey());
       } else {
         Value value = rowA.getAsValue(0);
-        if (value == null) {
+        if (value.isNull()) {
           continue;
         }
         hash = getHash(value, needTypeCast);
@@ -2464,7 +2464,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         hash = Objects.hash(rowB.getKey());
       } else {
         Value value = rowB.getAsValue(0);
-        if (value == null) {
+        if (value.isNull()) {
           continue;
         }
         hash = getHash(value, needTypeCast);
@@ -2480,7 +2480,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         hash = Objects.hash(rowA.getKey());
       } else {
         Value value = rowA.getAsValue(0);
-        if (value == null) {
+        if (value.isNull()) {
           continue;
         }
         hash = getHash(value, needTypeCast);

@@ -12,7 +12,7 @@ class UDFPow:
 
     res = self.buildHeader(data, n)
     cosRow = []
-    for num in data[2]:
+    for num in data[2][1:]:
       cosRow.append(float(num ** n))
     res.append(cosRow)
     return res
@@ -20,7 +20,7 @@ class UDFPow:
   def buildHeader(self, data, n):
     colNames = []
     colTypes = []
-    for name in data[0]:
+    for name in data[0][1:]:
       colNames.append("pow({col}, {n})".format(col=name, n=n))
       colTypes.append("DOUBLE")
     return [colNames, colTypes]

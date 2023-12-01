@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.ArrayList;
@@ -61,5 +62,19 @@ public class MultipleMemoryPhysicalTask extends MemoryPhysicalTask {
   @Override
   public boolean notifyParentReady() {
     return parentReadyCount.incrementAndGet() == parentTasks.size();
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    List<PhysicalTask> tasks = getParentTasks();
+    for (PhysicalTask task : tasks) {
+      if (task != null) {
+        task.accept(visitor);
+      }
+    }
+    visitor.leave();
   }
 }
