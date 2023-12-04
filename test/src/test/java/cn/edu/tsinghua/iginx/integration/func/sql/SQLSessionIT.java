@@ -15,6 +15,9 @@ import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
 
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -5588,6 +5591,15 @@ public class SQLSessionIT {
             + "|          15270|          15270|          15270|          15270|\n"
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
+    String actualOutput = executor.execute(query);
+    File file1 = new File("test/filesystem/unit0000000000/us/d1/s1.iginx0");
+    try (BufferedReader reader = new BufferedReader(new FileReader(file1))) {
+      String line;
+      int count = 0;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+      }
+    }
     executor.executeAndCompare(query, expected);
   }
 
