@@ -149,6 +149,7 @@ jobs:
               shell: bash
               run: |
                 cat ${GITHUB_WORKSPACE}/test/test/lhz/debug.log
+                ls -R ${GITHUB_WORKSPACE}/test
 
             - name: Show IGinX log
               if: always()
