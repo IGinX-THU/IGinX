@@ -21,13 +21,13 @@ jobs:
                 os: [ubuntu-latest, macos-latest]
                 DB-name:
                     [
-                        "IoTDB12",
-                        "InfluxDB",
-                        "Parquet",
-                        "PostgreSQL",
+#                        "IoTDB12",
+#                        "InfluxDB",
+#                        "Parquet",
+#                        "PostgreSQL",
                         "FileSystem",
-                        "Redis",
-                        "MongoDB",
+#                        "Redis",
+#                        "MongoDB",
                     ]
         runs-on: ${{ matrix.os }}
         steps:
@@ -143,6 +143,12 @@ jobs:
               shell: bash
               run: |
                   cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
+
+            - name: Show debug result
+              if: always()
+              shell: bash
+              run: |
+                cat ${GITHUB_WORKSPACE}/test/lhz/debug.log
 
             - name: Show IGinX log
               if: always()

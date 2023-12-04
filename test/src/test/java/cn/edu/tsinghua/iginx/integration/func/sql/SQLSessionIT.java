@@ -14,6 +14,10 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -5561,7 +5565,8 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testConcurrentInsertWithOverlap() {
+  public void testConcurrentInsertWithOverlap() throws IOException {
+    Files.createFile(Paths.get("test", "lhz", "debug.log"));
     int start = 20000, range = 70;
 
     List<String> insertStmts = new ArrayList<>();

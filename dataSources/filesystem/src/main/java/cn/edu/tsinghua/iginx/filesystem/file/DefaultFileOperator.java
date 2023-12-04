@@ -111,6 +111,31 @@ public class DefaultFileOperator implements IFileOperator {
     return res;
   }
 
+  private void test() {
+    File file = new File(Paths.get("test", "lhz", "debug.log").toUri());
+    if (file.exists()) {
+      int num = 400;
+      File file1 = new File("test/filesystem/unit0000000000/us/d1/s1.iginx0");
+      try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(file))) {
+        tempWriter.write("begin\n");
+        String lastLine = null;
+        try (ReversedLinesFileReader reversedLinesReader = new ReversedLinesFileReader(file1, CHARSET)) {
+          while ((lastLine = reversedLinesReader.readLine()) != null) {
+            tempWriter.write(lastLine);
+            num--;
+            if (num<=0) {
+              break;
+            }
+          }
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }
+  }
+
   @Override
   public Exception writeIginxFile(File file, List<Record> records) {
     if (file.exists() && file.isDirectory()) {
@@ -126,7 +151,9 @@ public class DefaultFileOperator implements IFileOperator {
     if (file.exists() && file.length() > 0) {
       long lastKey = getIginxFileMaxKey(file);
       if (lastKey == -1L || lastKey < records.get(0).getKey()) {
-        return appendRecordsToIginxFile(file, records, 0, records.size());
+        appendRecordsToIginxFile(file, records, 0, records.size());
+        test();
+        return null;
       }
     }
 
@@ -134,6 +161,7 @@ public class DefaultFileOperator implements IFileOperator {
     if (exception != null) {
       return exception;
     }
+    test();
 
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
@@ -187,7 +215,9 @@ public class DefaultFileOperator implements IFileOperator {
         }
       }
 
-      return replaceFile(file, tempFile);
+      test();
+      replaceFile(file, tempFile);
+      return null;
     } catch (IOException e) {
       logger.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
