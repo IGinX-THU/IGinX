@@ -139,6 +139,8 @@ public class DefaultFileOperator implements IFileOperator {
 
   @Override
   public Exception writeIginxFile(File file, List<Record> records) {
+    logger.info("write iginx file {}", file.getAbsolutePath());
+    logger.info("write iginx file {} with first {} ", file.getAbsolutePath(), records.get(0).getKey());
     if (file.exists() && file.isDirectory()) {
       return new IOException(String.format("cannot write to directory %s", file.getAbsolutePath()));
     }
@@ -161,6 +163,7 @@ public class DefaultFileOperator implements IFileOperator {
     if (exception != null) {
       return exception;
     }
+    logger.info("flush writer for file {}", file.getAbsolutePath());
 
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
@@ -275,7 +278,9 @@ public class DefaultFileOperator implements IFileOperator {
 
   // return -1表示空
   private long getIginxFileMaxKey(File file) {
+    logger.info("get max key of iginx file {}", file.getAbsolutePath());
     if (lastKeyMap.containsKey(file)) {
+      logger.info("get max key from map {}", lastKeyMap.get(file));
       return lastKeyMap.get(file);
     }
     try (ReversedLinesFileReader reversedLinesReader = new ReversedLinesFileReader(file, CHARSET)) {
@@ -286,6 +291,7 @@ public class DefaultFileOperator implements IFileOperator {
       String line = lastLine.split(",", 2)[0]; // 获取第一个逗号之前的字符串
       try {
         long number = Long.parseLong(line); // 尝试将字符串解析为long类型
+        logger.info("get max key from file {}", number);
         return number;
       } catch (NumberFormatException e) {
         logger.info("no data has been written to file {}", file.getAbsolutePath());
@@ -515,9 +521,12 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private synchronized void updateLastKey(File file, long key) {
+    logger.info("update last key for file {} with key {}", file.getAbsolutePath(), key);
     if (lastKeyMap.containsKey(file) && lastKeyMap.get(file) < key) {
+      logger.info("last key for file {} is updated from {} to {}", file.getAbsolutePath(), lastKeyMap.get(file), key);
       lastKeyMap.put(file, key);
     } else if (!lastKeyMap.containsKey(file)) {
+      logger.info("last key for file {} is updated from {} to {}", file.getAbsolutePath(), -1L, key);
       lastKeyMap.put(file, key);
     }
   }
