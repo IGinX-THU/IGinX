@@ -5592,7 +5592,7 @@ public class SQLSessionIT {
             + "+---------------+---------------+---------------+---------------+\n"
             + "Total line number = 1\n";
     String actualOutput = executor.execute(query);
-    File file1 = new File("filesystem/unit0000000000/us/d1/s1.iginx0");
+    File file1 = new File("iginx_mn/unit0000000000/us/d1/s1.iginx0");
     try (BufferedReader reader = new BufferedReader(new FileReader(file1))) {
       String line;
       int count = 0;
