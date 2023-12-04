@@ -17,6 +17,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -5566,7 +5567,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsertWithOverlap() throws IOException {
-    Files.createFile(Paths.get("test", "lhz", "debug.log"));
+    Path path = Paths.get("test/lhz/debug.log");
+    Files.createDirectories(path.getParent());
+    Files.createFile(path);
     int start = 20000, range = 70;
 
     List<String> insertStmts = new ArrayList<>();

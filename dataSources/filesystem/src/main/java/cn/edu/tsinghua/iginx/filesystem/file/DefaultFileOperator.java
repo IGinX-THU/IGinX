@@ -112,16 +112,17 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private void test() {
-    File file = new File(Paths.get("test", "lhz", "debug.log").toUri());
+    File file = new File(Paths.get("test", "test", "lhz", "debug.log").toUri());
     if (file.exists()) {
       int num = 400;
       File file1 = new File("test/filesystem/unit0000000000/us/d1/s1.iginx0");
-      try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(file))) {
+      try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(file, true))) {
         tempWriter.write("begin\n");
         String lastLine = null;
         try (ReversedLinesFileReader reversedLinesReader = new ReversedLinesFileReader(file1, CHARSET)) {
           while ((lastLine = reversedLinesReader.readLine()) != null) {
             tempWriter.write(lastLine);
+            tempWriter.write("\n");
             num--;
             if (num<=0) {
               break;
