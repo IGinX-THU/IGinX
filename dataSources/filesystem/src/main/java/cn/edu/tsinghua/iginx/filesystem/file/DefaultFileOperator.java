@@ -153,7 +153,6 @@ public class DefaultFileOperator implements IFileOperator {
       long lastKey = getIginxFileMaxKey(file);
       if (lastKey == -1L || lastKey < records.get(0).getKey()) {
         appendRecordsToIginxFile(file, records, 0, records.size());
-        test();
         return null;
       }
     }
@@ -162,7 +161,6 @@ public class DefaultFileOperator implements IFileOperator {
     if (exception != null) {
       return exception;
     }
-    test();
 
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
@@ -216,7 +214,6 @@ public class DefaultFileOperator implements IFileOperator {
         }
       }
 
-      test();
       replaceFile(file, tempFile);
       return null;
     } catch (IOException e) {
@@ -517,7 +514,7 @@ public class DefaultFileOperator implements IFileOperator {
     return null;
   }
 
-  private void updateLastKey(File file, long key) {
+  private synchronized void updateLastKey(File file, long key) {
     if (lastKeyMap.containsKey(file) && lastKeyMap.get(file) < key) {
       lastKeyMap.put(file, key);
     } else if (!lastKeyMap.containsKey(file)) {
