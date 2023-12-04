@@ -175,6 +175,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
         String line;
+        long key = -1L;
         while ((line = reader.readLine()) != null) {
           currentLine++;
           if (currentLine <= IGINX_FILE_META_INDEX) {
@@ -183,7 +184,7 @@ public class DefaultFileOperator implements IFileOperator {
             continue;
           }
           String[] kv = line.split(",", 2);
-          long key = Long.parseLong(kv[0]);
+          key = Long.parseLong(kv[0]);
           boolean isCovered = false;
           // 找到了需要插入的位置
           while (key >= minKey && recordIndex < maxLen) {
@@ -199,13 +200,13 @@ public class DefaultFileOperator implements IFileOperator {
               break;
             }
           }
-          updateLastKey(file, minKey);
-          updateLastKey(file, key);
           if (!isCovered) {
             tempWriter.write(line);
             tempWriter.write("\n");
           }
         }
+        updateLastKey(file, minKey);
+        updateLastKey(file, key);
       }
 
       tempWriter.close();
@@ -521,7 +522,7 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private synchronized void updateLastKey(File file, long key) {
-    logger.info("update last key for file {} with key {}", file.getAbsolutePath(), key);
+    logger.info("update last key for file {} with key {} and current max key {}", file.getAbsolutePath(), key, lastKeyMap.get(file));
     if (lastKeyMap.containsKey(file) && lastKeyMap.get(file) < key) {
       logger.info("last key for file {} is updated from {} to {}", file.getAbsolutePath(), lastKeyMap.get(file), key);
       lastKeyMap.put(file, key);
