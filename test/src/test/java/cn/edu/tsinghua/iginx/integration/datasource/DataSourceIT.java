@@ -8,7 +8,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.shared.EmptyClassGenerator;
+import cn.edu.tsinghua.iginx.shared.MockClassGenerator;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -160,11 +160,11 @@ public class DataSourceIT {
   @Test
   public void insertEmptyBody() {
     DataView EmptyDataView =
-        EmptyClassGenerator.genRowDataViewNoKey(
+        MockClassGenerator.genRowDataViewNoKey(
             new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
-    Insert insert = new Insert(EmptyClassGenerator.genFragmentSource(), EmptyDataView);
+    Insert insert = new Insert(MockClassGenerator.genFragmentSource(), EmptyDataView);
     try {
-      storage.executeInsert(insert, EmptyClassGenerator.genDataArea());
+      storage.executeInsert(insert, MockClassGenerator.genDataArea());
       storage.release();
     } catch (Exception e) {
       logger.error("insert empty body fail, caused by: {}", e.getMessage());

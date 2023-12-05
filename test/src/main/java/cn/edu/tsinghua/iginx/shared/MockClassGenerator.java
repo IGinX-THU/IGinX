@@ -14,8 +14,8 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class EmptyClassGenerator {
-  private static final Logger logger = LoggerFactory.getLogger(EmptyClassGenerator.class);
+public class MockClassGenerator {
+  private static final Logger logger = LoggerFactory.getLogger(MockClassGenerator.class);
 
   public static DataView genRowDataViewNoKey(
       List<String> pathList,
