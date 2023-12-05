@@ -145,6 +145,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
         String line;
+        long key = -1L;
         while ((line = reader.readLine()) != null) {
           currentLine++;
           if (currentLine <= IGINX_FILE_META_INDEX) {
@@ -153,7 +154,7 @@ public class DefaultFileOperator implements IFileOperator {
             continue;
           }
           String[] kv = line.split(",", 2);
-          long key = Long.parseLong(kv[0]);
+          key = Long.parseLong(kv[0]);
           boolean isCovered = false;
           // 找到了需要插入的位置
           while (key >= minKey && recordIndex < maxLen) {
@@ -169,19 +170,20 @@ public class DefaultFileOperator implements IFileOperator {
               break;
             }
           }
-          updateLastKey(file, minKey);
-          updateLastKey(file, key);
           if (!isCovered) {
             tempWriter.write(line);
             tempWriter.write("\n");
           }
         }
+        updateLastKey(file, minKey);
+        updateLastKey(file, key);
       }
 
       tempWriter.close();
 
       if (recordIndex < maxLen) {
         exception = appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
+        updateLastKey(file, records.get(records.size() - 1).getKey());
         if (exception != null) {
           return exception;
         }
