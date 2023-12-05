@@ -213,6 +213,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       if (recordIndex < maxLen) {
         exception = appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
+        updateLastKey(file, records.get(records.size() - 1).getKey());
         if (exception != null) {
           return exception;
         }
