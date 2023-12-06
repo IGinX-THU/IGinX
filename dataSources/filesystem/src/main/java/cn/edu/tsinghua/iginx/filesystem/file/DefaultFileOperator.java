@@ -12,9 +12,12 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.io.*;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
@@ -281,16 +284,11 @@ public class DefaultFileOperator implements IFileOperator {
       return new IOException(
           String.format("original file %s does not exist", file.getAbsoluteFile()));
     }
-    Exception exception = closeAppendWriter(tempFile);
-    if (exception != null) {
-      return exception;
-    }
-    exception = closeAppendWriter(file);
-    if (exception != null) {
-      return exception;
-    }
     try {
-      Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
+      Exception e = moveFileWithLock(tempFile, file);
+      if (e!= null) {
+        return e;
+      }
       return null;
     } catch (IOException e) {
       logger.error(
@@ -300,6 +298,37 @@ public class DefaultFileOperator implements IFileOperator {
           e.getMessage());
       return e;
     }
+  }
+
+  private Exception moveFileWithLock(File source, File target) throws IOException {
+    boolean movedSuccessfully = false;
+
+    while (!movedSuccessfully) {
+      Exception exception = closeAppendWriter(target);
+      if (exception != null) {
+        return exception;
+      }
+      exception = closeAppendWriter(source);
+      if (exception != null) {
+        return exception;
+      }
+      try {
+        Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        movedSuccessfully = true;
+      } catch (Exception e) {
+        logger.error(
+            "move file from {} to {} failure: {} and wait",
+            source.getAbsolutePath(),
+            target.getAbsoluteFile(),
+            e.getMessage());
+        try {
+          Thread.sleep(1);
+        } catch (InterruptedException interruptedException) {
+          interruptedException.printStackTrace();
+        }
+      }
+    }
+    return null;
   }
 
   @Override
@@ -458,7 +487,7 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private Exception closeAppendWriter(File file) {
-    logger.info("close writer for file {}", file.getAbsolutePath());
+    logger.debug("close writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
       try {
@@ -474,7 +503,7 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private Exception flushAppendWriter(File file) {
-    logger.info("flush writer for file {}", file.getAbsolutePath());
+    logger.debug("flush writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
       try {
