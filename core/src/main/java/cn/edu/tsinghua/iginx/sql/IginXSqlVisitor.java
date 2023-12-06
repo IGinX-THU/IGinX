@@ -871,7 +871,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return Collections.singletonList(parseFuncExpression(ctx, selectStatement));
     }
     if (ctx.path() != null && !ctx.path().isEmpty()) {
-      return Collections.singletonList(parseBaseExpression(ctx, selectStatement, isFromSelectClause));
+      return Collections.singletonList(
+          parseBaseExpression(ctx, selectStatement, isFromSelectClause));
     }
     if (ctx.constant() != null) {
       return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
@@ -879,7 +880,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     List<Expression> ret = new ArrayList<>();
     if (ctx.inBracketExpr != null) {
-      List<Expression> expressions = parseExpression(ctx.inBracketExpr, selectStatement, isFromSelectClause);
+      List<Expression> expressions =
+          parseExpression(ctx.inBracketExpr, selectStatement, isFromSelectClause);
       for (Expression expression : expressions) {
         ret.add(new BracketExpression(expression));
       }
@@ -890,8 +892,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         ret.add(new UnaryExpression(operator, expression));
       }
     } else if (ctx.leftExpr != null && ctx.rightExpr != null) {
-      List<Expression> leftExpressions = parseExpression(ctx.leftExpr, selectStatement, isFromSelectClause);
-      List<Expression> rightExpressions = parseExpression(ctx.rightExpr, selectStatement, isFromSelectClause);
+      List<Expression> leftExpressions =
+          parseExpression(ctx.leftExpr, selectStatement, isFromSelectClause);
+      List<Expression> rightExpressions =
+          parseExpression(ctx.rightExpr, selectStatement, isFromSelectClause);
       Operator operator = parseOperator(ctx);
       for (Expression leftExpression : leftExpressions) {
         for (Expression rightExpression : rightExpressions) {

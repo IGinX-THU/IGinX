@@ -10,10 +10,17 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
+import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 
 public class ExprUtils {
+
+  private static final FunctionManager functionManager = FunctionManager.getInstance();
 
   public static Value calculateExpr(Row row, Expression expr) {
     switch (expr.getType()) {
@@ -51,9 +58,30 @@ public class ExprUtils {
     String colName = funcExpr.getColumnName();
     int index = row.getHeader().indexOf(colName);
     if (index == -1) {
-      return null;
+      return calculateFuncExprNative(row, funcExpr);
     }
     return new Value(row.getValues()[index]);
+  }
+
+  private static Value calculateFuncExprNative(Row row, FuncExpression funcExpr) {
+    Function function = functionManager.getFunction(funcExpr.getFuncName());
+    if (!function.getMappingType().equals(MappingType.RowMapping)) {
+      throw new RuntimeException("only row mapping function can be used in expr");
+    }
+    RowMappingFunction rowMappingFunction = (RowMappingFunction) function;
+    FunctionParams params =
+        new FunctionParams(
+            funcExpr.getColumns(), funcExpr.getArgs(), funcExpr.getKvargs(), funcExpr.isDistinct());
+    try {
+      Row ret = rowMappingFunction.transform(row, params);
+      int retValueSize = ret.getValues().length;
+      if (retValueSize != 1) {
+        throw new RuntimeException("the func in the expr can only have one return value");
+      }
+      return ret.getAsValue(0);
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   private static Value calculateBracketExpr(Row row, BracketExpression bracketExpr) {
