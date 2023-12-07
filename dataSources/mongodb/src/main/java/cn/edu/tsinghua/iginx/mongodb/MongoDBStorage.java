@@ -87,7 +87,8 @@ public class MongoDBStorage implements IStorage {
                 builder ->
                     builder
                         .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
-                        .maxSize(SESSION_POOL_MAX_SIZE))
+                        .maxSize(SESSION_POOL_MAX_SIZE)
+                        .maxConnectionIdleTime(60, TimeUnit.SECONDS))
             .build();
 
     return MongoClients.create(settings);

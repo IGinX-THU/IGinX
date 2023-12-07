@@ -96,6 +96,10 @@ public class PostgreSQLStorage implements IStorage {
             meta.getIp(), meta.getPort(), username, password);
     try {
       connection = DriverManager.getConnection(connUrl);
+      Statement statement = connection.createStatement();
+      String sql = "alter system set idle_in_transaction_session_timeout='1min'";
+      statement.executeUpdate(sql);
+      statement.close();
     } catch (SQLException e) {
       throw new StorageInitializationException("cannot connect to " + meta);
     }
