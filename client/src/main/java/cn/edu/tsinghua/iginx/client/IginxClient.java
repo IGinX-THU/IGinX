@@ -369,7 +369,7 @@ public class IginxClient {
       List<List<String>> cache = cacheResult(res);
       System.out.print(FormatUtils.formatResult(cache));
 
-      boolean isCanceled = false;
+      boolean isCancelled = false;
       int total = cache.size() - 1;
 
       while (res.hasMore()) {
@@ -383,16 +383,16 @@ public class IginxClient {
             System.out.print(FormatUtils.formatResult(cache));
             total += cache.size() - 1;
           } else {
-            isCanceled = true;
+            isCancelled = true;
             break;
           }
         } catch (IOException e) {
           System.out.println("IO Error: " + e.getMessage());
-          isCanceled = true;
+          isCancelled = true;
           break;
         }
       }
-      if (!isCanceled) {
+      if (!isCancelled) {
         System.out.print(FormatUtils.formatCount(total));
       }
       res.close();

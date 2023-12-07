@@ -64,10 +64,10 @@ public class MemoryPhysicalTaskDispatcher {
           try {
             while (true) {
               final MemoryPhysicalTask task = taskQueue.getTask();
-              if (isCanceled(task.getSessionId())) {
+              if (isCancelled(task.getSessionId())) {
                 logger.warn(
                     String.format(
-                        "MemoryPhysicalTask[sessionId=%s] is canceled.", task.getSessionId()));
+                        "MemoryPhysicalTask[sessionId=%s] is cancelled.", task.getSessionId()));
                 continue;
               }
               taskExecuteThreadPool.submit(
@@ -107,7 +107,7 @@ public class MemoryPhysicalTaskDispatcher {
         });
   }
 
-  private boolean isCanceled(long sessionId) {
+  private boolean isCancelled(long sessionId) {
     return SessionManager.getInstance().isSessionClosed(sessionId);
   }
 

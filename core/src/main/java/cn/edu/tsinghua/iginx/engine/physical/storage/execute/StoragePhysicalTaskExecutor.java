@@ -126,10 +126,10 @@ public class StoragePhysicalTaskExecutor {
                             new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
                         continue;
                       }
-                      if (isCanceled(task.getSessionId())) {
+                      if (isCancelled(task.getSessionId())) {
                         logger.warn(
                             String.format(
-                                "StoragePhysicalTask[sessionId=%s] is canceled.",
+                                "StoragePhysicalTask[sessionId=%s] is cancelled.",
                                 task.getSessionId()));
                         continue;
                       }
@@ -275,7 +275,7 @@ public class StoragePhysicalTaskExecutor {
     }
   }
 
-  private boolean isCanceled(long sessionId) {
+  private boolean isCancelled(long sessionId) {
     return SessionManager.getInstance().isSessionClosed(sessionId);
   }
 
