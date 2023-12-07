@@ -65,10 +65,10 @@ public class RemoteExecutor implements Executor {
     if (filter != null && !filter.toString().isEmpty()) {
       req.setFilter(FilterTransformer.toFSFilter(filter));
     }
-    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
       Client client = new Client(new TBinaryProtocol(transport));
       ProjectResp resp = client.executeProject(req);
-      thriftConnPool.returnAndCloseTransport(transport);
+      thriftConnPool.returnTransport(transport);
       if (resp.getStatus().code == SUCCESS_CODE) {
         FSHeader fileDataHeader = resp.getHeader();
         List<DataType> dataTypes = new ArrayList<>();
@@ -151,10 +151,10 @@ public class RemoteExecutor implements Executor {
             dataView.getRawDataType().toString());
 
     InsertReq req = new InsertReq(storageUnit, fileDataRawData);
-    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
       Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeInsert(req);
-      thriftConnPool.returnAndCloseTransport(transport);
+      thriftConnPool.returnTransport(transport);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -186,10 +186,10 @@ public class RemoteExecutor implements Executor {
       req.setKeyRanges(fsKeyRanges);
     }
 
-    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
       Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeDelete(req);
-      thriftConnPool.returnAndCloseTransport(transport);
+      thriftConnPool.returnTransport(transport);
       if (status.code == SUCCESS_CODE) {
         return new TaskExecuteResult(null, null);
       } else {
@@ -203,10 +203,10 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
       Client client = new Client(new TBinaryProtocol(transport));
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
-      thriftConnPool.returnAndCloseTransport(transport);
+      thriftConnPool.returnTransport(transport);
       List<Column> columns = new ArrayList<>();
       resp.getPathList()
           .forEach(
@@ -227,10 +227,10 @@ public class RemoteExecutor implements Executor {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
-    try (TTransport transport = thriftConnPool.borrowAndOpenTransport()) {
+    try (TTransport transport = thriftConnPool.borrowTransport()) {
       Client client = new Client(new TBinaryProtocol(transport));
       GetBoundaryOfStorageResp resp = client.getBoundaryOfStorage(dataPrefix);
-      thriftConnPool.returnAndCloseTransport(transport);
+      thriftConnPool.returnTransport(transport);
       return new Pair<>(
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
