@@ -371,8 +371,7 @@ public class QueryGenerator extends AbstractGenerator {
       queryList.add(
           new GroupBy(
               new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
-    }
-    else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
+    } else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
       // DownSample Query
       Operator finalRoot = root;
       selectStatement
@@ -403,8 +402,7 @@ public class QueryGenerator extends AbstractGenerator {
                                 new KeyRange(
                                     selectStatement.getStartKey(), selectStatement.getEndKey())));
                       }));
-    }
-    else if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
+    } else if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
       // Aggregate Query
       Operator finalRoot = root;
       selectStatement
@@ -439,7 +437,7 @@ public class QueryGenerator extends AbstractGenerator {
                                   new FunctionCall(functionManager.getFunction(k), params)));
                         } else {
                           queryList.add(
-                              new SetTransform(  // count
+                              new SetTransform(
                                   new OperatorSource(copySelect),
                                   new FunctionCall(functionManager.getFunction(k), params)));
                         }

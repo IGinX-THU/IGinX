@@ -829,12 +829,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         ret.get(0).setAlias(select.asClause().ID().getText());
       }
       ret.forEach(
-              expression -> {
-                if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
-                  selectStatement.addConstExpression();
-                }
-                selectStatement.setExpression(expression);
-              });
+          expression -> {
+            if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
+              selectStatement.addConstExpression();
+            }
+            selectStatement.setExpression(expression);
+          });
     }
 
     if (!selectStatement.getFuncTypeSet().isEmpty()) {

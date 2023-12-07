@@ -626,7 +626,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeCountTransform(CountTransform operator, Table table) {
-    // TODO 从operator中取出expressions，从table中取出行数（max），写为新的Table
+    // 从operator中取出expressions，从table中取出行数，写为新的Table
     Object[] rowCounts = table.getRow(0).getValues();
     long maxCount = 0;
     for(Object rowCount: rowCounts) {
@@ -640,11 +640,11 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       fields.add(new Field(operator.getExpressionList().get(i), DataType.DOUBLE));
       values[i] = operator.getFuncParam();
     }
-    //新建一个RowStream
+    //新建一张行数为table行数的表
     Header header = new Header(fields);
     List<Row> rowList = new ArrayList<>();
     for(int i = 0; i < maxCount; i++) {
-      rowList.add(new Row(header, values));  // 新建maxCount行
+      rowList.add(new Row(header, values));
     }
     RowStream stream = new Table(header, rowList);
     return stream;

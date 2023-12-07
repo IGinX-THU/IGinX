@@ -362,7 +362,7 @@ public class UnarySelectStatement extends SelectStatement {
       expressions.add(expression);
     }
 
-    if (addToPathSet) {  // 这里将function中的列名加入pathSet
+    if (addToPathSet) {
       this.pathSet.addAll(expression.getColumns());
     }
 
