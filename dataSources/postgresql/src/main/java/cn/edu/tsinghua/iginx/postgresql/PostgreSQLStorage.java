@@ -97,7 +97,7 @@ public class PostgreSQLStorage implements IStorage {
     try {
       connection = DriverManager.getConnection(connUrl);
       Statement statement = connection.createStatement();
-      String sql = "alter system set idle_in_transaction_session_timeout='5min'";
+      String sql = "alter system set idle_in_transaction_session_timeout='1min'";
       statement.executeUpdate(sql);
       statement.close();
     } catch (SQLException e) {

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 public class ThriftConnPool {
   private static final Logger logger = LoggerFactory.getLogger(ThriftConnPool.class);
 
-  private final int max_size;
+  private final int maxSize;
 
   private static final int DEFAULT_MAX_SIZE = 100;
 
@@ -35,13 +35,13 @@ public class ThriftConnPool {
     this(ip, port, DEFAULT_MAX_SIZE);
   }
 
-  public ThriftConnPool(String ip, int port, int max_size) {
+  public ThriftConnPool(String ip, int port, int maxSize) {
     this.ip = ip;
     this.port = port;
-    this.max_size = max_size;
+    this.maxSize = maxSize;
 
     GenericObjectPoolConfig<TTransport> poolConfig = new GenericObjectPoolConfig<>();
-    poolConfig.setMaxTotal(max_size);
+    poolConfig.setMaxTotal(maxSize);
     poolConfig.setMinEvictableIdleTimeMillis(idleTimeout); // 设置空闲连接的超时时间
 
     TSocketFactory socketFactory = new TSocketFactory(ip, port);
