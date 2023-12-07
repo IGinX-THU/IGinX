@@ -237,7 +237,7 @@ public class QueryGenerator extends AbstractGenerator {
     if(!selectStatement.getFromParts().isEmpty()
             && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
             || selectStatement.getIsConstFuncParam())) {
-      // 直接构建一个function为count的setTransfor
+      // 直接构建一个function为count的setTransform
       List<String> columns = new ArrayList<>(selectStatement.getPathSet());  // 将 Set 转换为 List
       List<Object> args = new ArrayList<>();
       Map<String, Object> kvargs = new HashMap<>();
