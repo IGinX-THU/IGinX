@@ -70,4 +70,8 @@ public class SessionManager {
   public void closeSession(long sessionId) {
     sessionIds.remove(sessionId);
   }
+
+  public boolean isSessionClosed(long sessionId) {
+    return !sessionIds.contains(sessionId);
+  }
 }
