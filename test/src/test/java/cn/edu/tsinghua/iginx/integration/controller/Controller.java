@@ -87,6 +87,19 @@ public class Controller {
         }
       };
 
+  public static final Map<String, Boolean> NEED_SEPARATE_WRITING =
+      new HashMap<String, Boolean>() {
+        {
+          put("FileSystem", true);
+          put("IoTDB12", true);
+          put("InfluxDB", true);
+          put("PostgreSQL", true);
+          put("Redis", false);
+          put("MongoDB", true);
+          put("Parquet", true);
+        }
+      };
+
   public static void clearAllData(Session session) {
     clearAllData(new MultiConnection(session));
   }
@@ -151,7 +164,7 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling()) {
+    if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
       logger.info("skip the write history data step.");
       medium = pathList.size();
     } else {
@@ -235,7 +248,7 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     int medium = 0;
-    if (!conf.isScaling()) {
+    if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
       logger.info("skip the write history data step.");
       medium = keyList.size();
     } else {
