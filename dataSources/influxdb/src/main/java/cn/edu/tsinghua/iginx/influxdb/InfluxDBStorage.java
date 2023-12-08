@@ -449,23 +449,6 @@ public class InfluxDBStorage implements IStorage {
     }
   }
 
-  /** 将字符串中的正则表达式特殊字符转义 */
-  private String replaceRegexChar(String str) {
-    return str.replace("\\", "\\\\")
-        .replace("$", "\\$")
-        .replace("^", "\\^")
-        .replace(".", "\\.")
-        .replace("+", "\\+")
-        .replace("?", "\\?")
-        .replace("(", "\\(")
-        .replace(")", "\\)")
-        .replace("[", "\\[")
-        .replace("]", "\\]")
-        .replace("{", "\\{")
-        .replace("}", "\\}")
-        .replace("|", "\\|");
-  }
-
   private String generateQueryStatement(
       String bucketName,
       List<String> paths,
@@ -487,8 +470,7 @@ public class InfluxDBStorage implements IStorage {
 
         String measurement = schema.getMeasurement();
         if (measurement.contains("*")) {
-          measurement = replaceRegexChar(measurement);
-          measurement = measurement.replace("*", ".+");
+          measurement = StringUtils.reformatPath(measurement);
         }
         filterStr.append(
             schema.getMeasurement().contains("*")
@@ -496,8 +478,7 @@ public class InfluxDBStorage implements IStorage {
                 : "r._measurement == \"" + measurement + "\"");
 
         String field = schema.getField();
-        field = replaceRegexChar(field);
-        field = field.replace("*", ".+");
+        field = StringUtils.reformatPath(field);
         filterStr.append(" and ");
         filterStr.append("r._field =~ /").append(field).append("/");
 
@@ -864,7 +845,7 @@ public class InfluxDBStorage implements IStorage {
             String field = schema.getField();
             if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
               List<String> fields = entry.getValue();
-              String fieldRegex = "^" + field.replace(".", "\\.").replace("*", ".*") + "$";
+              String fieldRegex = "^" + StringUtils.reformatPath(field) + "$";
               if (Pattern.matches(fieldRegex, tableField)) {
                 if (fields == null) {
                   fields = new ArrayList<>();
