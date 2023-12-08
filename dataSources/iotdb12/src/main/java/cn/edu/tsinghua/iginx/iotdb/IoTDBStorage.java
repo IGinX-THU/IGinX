@@ -978,8 +978,7 @@ public class IoTDBStorage implements IStorage {
       Map<String, String> columns2Fragment,
       String storageUnit) {
     List<String> matchedPath = new ArrayList<>();
-    path = path.replaceAll("[.^${}]", "\\\\$0");
-    path = path.replace("*", ".*");
+    path = StringUtils.reformatPath(path);
     Pattern pattern = Pattern.compile("^" + path + "$");
 
     for (Column col : columns) {
