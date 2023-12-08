@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -17,7 +18,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private static final Logger logger = LoggerFactory.getLogger(UnaryMemoryPhysicalTask.class);
 
-  private final PhysicalTask parentTask;
+  private PhysicalTask parentTask;
 
   private final RequestContext context;
 
@@ -30,6 +31,10 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     super(TaskType.UnaryMemory, operators);
     this.parentTask = parentTask;
     this.context = context;
+  }
+
+  public void setParentTask(PhysicalTask parentTask) {
+    this.parentTask = parentTask;
   }
 
   public PhysicalTask getParentTask() {
@@ -67,5 +72,17 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
   @Override
   public boolean notifyParentReady() {
     return parentReadyCount.incrementAndGet() == 1;
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    PhysicalTask task = getParentTask();
+    if (task != null) {
+      task.accept(visitor);
+    }
+    visitor.leave();
   }
 }
