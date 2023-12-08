@@ -108,7 +108,7 @@ public class MemoryPhysicalTaskDispatcher {
   }
 
   private boolean isCancelled(long sessionId) {
-    if (sessionId == 0) {  // empty ctx
+    if (sessionId == 0) { // empty ctx
       return false;
     }
     return SessionManager.getInstance().isSessionClosed(sessionId);
