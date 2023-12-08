@@ -276,6 +276,9 @@ public class StoragePhysicalTaskExecutor {
   }
 
   private boolean isCancelled(long sessionId) {
+    if (sessionId == 0) {  // empty ctx
+      return false;
+    }
     return SessionManager.getInstance().isSessionClosed(sessionId);
   }
 
