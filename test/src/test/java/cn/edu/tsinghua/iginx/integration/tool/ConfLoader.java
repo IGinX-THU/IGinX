@@ -20,6 +20,8 @@ public class ConfLoader {
 
   private static final String DBCONF = "%s-config";
 
+  private static final String DB_MOCK_CONF = "%s_mock";
+
   private static final String RUNNING_STORAGE = "./src/test/resources/DBName.txt";
 
   private static final String IS_SCALING = "./src/test/resources/isScaling.txt";
@@ -115,6 +117,8 @@ public class ConfLoader {
       String[] confKV = conf.split("=");
       dbConf.setEnumValue(DBConf.getDBConfType(confKV[0]), Boolean.parseBoolean(confKV[1]));
     }
+    dbConf.setStorageEngineMockConf(
+        properties.getProperty(String.format(DB_MOCK_CONF, storageEngine)));
     return dbConf;
   }
 

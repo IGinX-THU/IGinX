@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import cn.edu.tsinghua.iginx.metadata.entity.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -15,6 +16,8 @@ public final class DBConf {
   }
 
   private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
+
+  private String StorageEngineMockConf = null;
 
   static {
     // initial default value
@@ -48,5 +51,13 @@ public final class DBConf {
 
   public boolean getEnumValue(DBConfType dbConfType) {
     return DB_CONF_TYPE_MAP.get(dbConfType);
+  }
+
+  public String getStorageEngineMockConf() {
+    return StorageEngineMockConf;
+  }
+
+  public void setStorageEngineMockConf(String storageEngineMockConf) {
+    StorageEngineMockConf = storageEngineMockConf;
   }
 }

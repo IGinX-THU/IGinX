@@ -7,9 +7,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.shared.MockClassGenerator;
-import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -36,113 +36,15 @@ public class DataSourceIT {
         }
       };
 
-  private final Map<String, StorageEngineMeta> NAME_TO_META =
-      new HashMap<String, StorageEngineMeta>() {
-        {
-          // filesystem
-          put(
-              "FileSystem",
-              new StorageEngineMeta(
-                  0,
-                  "127.0.0.1",
-                  6667,
-                  new HashMap<String, String>() {
-                    {
-                      put("dir", "test/iginx_mn");
-                      put("iginx_port", "6888");
-                    }
-                  },
-                  StorageEngineType.filesystem,
-                  0));
-          // iotdb
-          put(
-              "IoTDB12",
-              new StorageEngineMeta(
-                  0,
-                  "127.0.0.1",
-                  6667,
-                  new HashMap<String, String>() {
-                    {
-                      put("username", "root");
-                      put("password", "root");
-                    }
-                  },
-                  StorageEngineType.iotdb12,
-                  0));
-          // influxdb
-          put(
-              "InfluxDB",
-              new StorageEngineMeta(
-                  0,
-                  "127.0.0.1",
-                  8086,
-                  new HashMap<String, String>() {
-                    {
-                      put("url", "http://localhost:8086/");
-                      put("token", "testToken");
-                      put("organization", "testOrg");
-                    }
-                  },
-                  StorageEngineType.influxdb,
-                  0));
-          // postgresql
-          put(
-              "PostgreSQL",
-              new StorageEngineMeta(
-                  0,
-                  "127.0.0.1",
-                  5432,
-                  new HashMap<String, String>() {
-                    {
-                      put("username", "postgres");
-                      put("password", "postgres");
-                    }
-                  },
-                  StorageEngineType.postgresql,
-                  0));
-          // redis
-          put(
-              "Redis",
-              new StorageEngineMeta(
-                  0,
-                  "127.0.0.1",
-                  6379,
-                  new HashMap<String, String>() {
-                    {
-                      put("timeout", "5000");
-                    }
-                  },
-                  StorageEngineType.redis,
-                  0));
-          // mongodb
-          put(
-              "MongoDB",
-              new StorageEngineMeta(
-                  0, "127.0.0.1", 27017, new HashMap<>(), StorageEngineType.mongodb, 0));
-          // parquet
-          put(
-              "Parquet",
-              new StorageEngineMeta(
-                  0,
-                  "127.0.0.1",
-                  6667,
-                  new HashMap<String, String>() {
-                    {
-                      put("dir", "test/iginx_mn");
-                      put("iginx_port", "6888");
-                    }
-                  },
-                  StorageEngineType.parquet,
-                  0));
-        }
-      };
-
   private IStorage getCurrentStorage(ConfLoader conf) {
     String instance = NAME_TO_INSTANCE.get(conf.getStorageType());
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     try {
       Class<?> clazz = Class.forName(instance); // 获取类对象
       Constructor<?> constructor = clazz.getDeclaredConstructor(StorageEngineMeta.class);
-      return (IStorage) constructor.newInstance(NAME_TO_META.get(conf.getStorageType()));
+      return (IStorage)
+          constructor.newInstance(
+              MockClassGenerator.genStorageEngineMetaFromConf(dbConf.getStorageEngineMockConf()));
     } catch (InstantiationException
         | IllegalAccessException
         | ClassNotFoundException

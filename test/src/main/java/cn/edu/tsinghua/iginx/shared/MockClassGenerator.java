@@ -1,14 +1,15 @@
 package cn.edu.tsinghua.iginx.shared;
 
+import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
-import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import java.util.*;
 import org.slf4j.Logger;
@@ -95,5 +96,51 @@ public class MockClassGenerator {
 
   public static DataArea genDataArea() {
     return new DataArea("unit0000000000", genKeyInterval());
+  }
+
+  public static StorageEngineMeta genStorageEngineMetaFromConf(String storageEngineString) {
+    if (storageEngineString.isEmpty()) {
+      return null;
+    }
+    String[] storageEngineParts = storageEngineString.split("#");
+    String ip = storageEngineParts[0];
+    int port = -1;
+    if (!storageEngineParts[1].isEmpty()) {
+      port = Integer.parseInt(storageEngineParts[1]);
+    }
+    String storageEngine = storageEngineParts[2];
+    Map<String, String> extraParams = new HashMap<>();
+    String[] KAndV;
+    for (int j = 3; j < storageEngineParts.length; j++) {
+      if (storageEngineParts[j].contains("\"")) {
+        KAndV = storageEngineParts[j].split("\"");
+        extraParams.put(KAndV[0].substring(0, KAndV[0].length() - 1), KAndV[1]);
+      } else {
+        KAndV = storageEngineParts[j].split("=");
+        extraParams.put(KAndV[0], KAndV[1]);
+      }
+    }
+    boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+    String dataPrefix = null;
+    if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
+      dataPrefix = extraParams.get(Constants.DATA_PREFIX);
+    }
+    boolean readOnly =
+        Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+    String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
+
+    StorageEngineMeta storage =
+        new StorageEngineMeta(
+            0,
+            ip,
+            port,
+            hasData,
+            dataPrefix,
+            schemaPrefix,
+            readOnly,
+            extraParams,
+            StorageEngineType.valueOf(storageEngine.toLowerCase()),
+            0);
+    return storage;
   }
 }
