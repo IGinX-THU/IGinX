@@ -19,7 +19,7 @@ public class ThriftConnPool {
 
   private static final long WAIT_TIME = 1000;
 
-  private static final long MAX_WAIT_TIME = 30_000;
+  private static final int MAX_WAIT_TIME = 300_000;
 
   private boolean closed = false;
 
@@ -44,7 +44,7 @@ public class ThriftConnPool {
     poolConfig.setMaxTotal(maxSize);
     poolConfig.setMinEvictableIdleTimeMillis(idleTimeout); // 设置空闲连接的超时时间
 
-    TSocketFactory socketFactory = new TSocketFactory(ip, port);
+    TSocketFactory socketFactory = new TSocketFactory(ip, port, MAX_WAIT_TIME);
     pool = new GenericObjectPool<>(socketFactory, poolConfig);
   }
 
@@ -79,14 +79,17 @@ public class ThriftConnPool {
     private final String ip;
     private final int port;
 
-    public TSocketFactory(String ip, int port) {
+    private final int connectionTimeout; // 连接超时时间（毫秒）
+
+    public TSocketFactory(String ip, int port, int connectionTimeout) {
       this.ip = ip;
       this.port = port;
+      this.connectionTimeout = connectionTimeout;
     }
 
     @Override
     public PooledObject<TTransport> makeObject() throws Exception {
-      TTransport transport = new TSocket(ip, port);
+      TTransport transport = new TSocket(ip, port, connectionTimeout);
       transport.open();
       return new DefaultPooledObject<>(transport);
     }
@@ -109,7 +112,7 @@ public class ThriftConnPool {
     public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {
       TTransport transport = pooledObject.getObject();
       if (transport == null) {
-        TTransport newTransport = new TSocket(ip, port);
+        TTransport newTransport = new TSocket(ip, port, connectionTimeout);
         newTransport.open();
         pooledObject = new DefaultPooledObject<>(newTransport);
       } else if (!transport.isOpen()) {
