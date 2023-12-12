@@ -121,8 +121,7 @@ public class ConfLoader {
     }
     dbConf.setStorageEngineMockConf(
         properties.getProperty(String.format(DB_MOCK_CONF, storageEngine)));
-    dbConf.setClassName(
-        properties.getProperty(String.format(DB_CLASS_NAME, storageEngine)));
+    dbConf.setClassName(properties.getProperty(String.format(DB_CLASS_NAME, storageEngine)));
     return dbConf;
   }
 
