@@ -19,6 +19,8 @@ public final class DBConf {
 
   private String StorageEngineMockConf = null;
 
+  private String ClassName = null;
+
   static {
     // initial default value
     for (DBConfType type : DBConfType.values()) {
@@ -59,5 +61,13 @@ public final class DBConf {
 
   public void setStorageEngineMockConf(String storageEngineMockConf) {
     StorageEngineMockConf = storageEngineMockConf;
+  }
+
+  public String getClassName() {
+    return ClassName;
+  }
+
+  public void setClassName(String className) {
+    ClassName = className;
   }
 }
