@@ -4,23 +4,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class ConstantSource extends AbstractSource {
-    private List<String> expressionList = new ArrayList<>();
+  private List<String> expressionList = new ArrayList<>();
 
-    public ConstantSource() {
-        super(SourceType.Constant);
-    }
+  public ConstantSource() {
+    super(SourceType.Constant);
+  }
 
-    public ConstantSource(List<String> expressionList) {
-        super(SourceType.Constant);
-        this.expressionList = expressionList;
-    }
+  public ConstantSource(List<String> expressionList) {
+    super(SourceType.Constant);
+    this.expressionList = expressionList;
+  }
 
-    public List<String> getExpressionList() {
-        return expressionList;
-    }
+  public List<String> getExpressionList() {
+    return expressionList;
+  }
 
-    @Override
-    public Source copy() {
-        return new ConstantSource(expressionList);
-    }
+  @Override
+  public Source copy() {
+    return new ConstantSource(expressionList);
+  }
 }

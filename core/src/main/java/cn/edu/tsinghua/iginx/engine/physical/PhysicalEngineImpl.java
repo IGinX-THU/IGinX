@@ -95,7 +95,8 @@ public class PhysicalEngineImpl implements PhysicalEngine {
   }
 
   @Override
-  public RowStream executeConstantSource(RequestContext ctx, Operator root) throws PhysicalException {
+  public RowStream executeConstantSource(RequestContext ctx, Operator root)
+      throws PhysicalException {
     PhysicalTask task = optimizer.optimize(root, ctx);
     ctx.setPhysicalTree(task);
     TaskExecuteResult result = task.getResult();

@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.visitor;
 
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
-
 import java.util.ArrayList;
 import java.util.List;
 

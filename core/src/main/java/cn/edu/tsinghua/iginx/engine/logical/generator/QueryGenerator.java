@@ -49,9 +49,7 @@ import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
-
 import java.util.*;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -234,32 +232,30 @@ public class QueryGenerator extends AbstractGenerator {
     }
 
     // 如果有from且全是常数表达式，例如 select 1 from test 或者 select count(1) from test
-    if(!selectStatement.getFromParts().isEmpty()
-            && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
+    if (!selectStatement.getFromParts().isEmpty()
+        && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
             || selectStatement.getIsConstFuncParam())) {
       // 直接构建一个function为count的setTransform
-      List<String> columns = new ArrayList<>(selectStatement.getPathSet());  // 将 Set 转换为 List
+      List<String> columns = new ArrayList<>(selectStatement.getPathSet()); // 将 Set 转换为 List
       List<Object> args = new ArrayList<>();
       Map<String, Object> kvargs = new HashMap<>();
       FunctionParams params = new FunctionParams(columns, args, kvargs);
-      root = new SetTransform(
+      root =
+          new SetTransform(
               new OperatorSource(root),
               new FunctionCall(functionManager.getFunction("count"), params));
       // 然后根据返回值构造表
       double funcParam = 1.0;
       List<String> expressionList = new ArrayList<>();
       for (Expression expression : selectStatement.getExpressions()) {
-        if(expression.getType() == Expression.ExpressionType.Function) {
+        if (expression.getType() == Expression.ExpressionType.Function) {
           expressionList.add(((FuncExpression) expression).getColumnNameWithoutFunc());
           funcParam = selectStatement.getConstFuncParam();
-        } else  {
+        } else {
           expressionList.add(expression.getColumnName());
         }
       }
-      root = new CountTransform(
-              new OperatorSource(root),
-              expressionList,
-              funcParam);
+      root = new CountTransform(new OperatorSource(root), expressionList, funcParam);
     }
 
     // 处理where子查询

@@ -309,18 +309,22 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public void addConstExpression() {
-    this.constExpressionsCount ++;
+    this.constExpressionsCount++;
   }
+
   public double getConstFuncParam() {
     return constFuncParam;
   }
-  public boolean  getIsConstFuncParam() {
+
+  public boolean getIsConstFuncParam() {
     return isConstFuncParam;
   }
+
   public void setConstFuncParam(double constFuncParam) {
     this.constFuncParam = constFuncParam;
     this.isConstFuncParam = true;
   }
+
   public Map<String, List<FuncExpression>> getFuncExpressionMap() {
     return funcExpressionMap;
   }

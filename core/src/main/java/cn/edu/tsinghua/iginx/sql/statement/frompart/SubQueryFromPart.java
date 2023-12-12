@@ -62,7 +62,8 @@ public class SubQueryFromPart implements FromPart {
       s = ((BinarySelectStatement) s).getLeftQuery();
     }
 
-    if ((((UnarySelectStatement) s).getFromParts().size() > 1) || ((UnarySelectStatement) s).getFromParts().isEmpty()) {
+    if ((((UnarySelectStatement) s).getFromParts().size() > 1)
+        || ((UnarySelectStatement) s).getFromParts().isEmpty()) {
       return false;
     }
     return ((UnarySelectStatement) s).getFromPart(0).hasSinglePrefix();

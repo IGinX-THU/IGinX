@@ -629,21 +629,21 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     // 从operator中取出expressions，从table中取出行数，写为新的Table
     Object[] rowCounts = table.getRow(0).getValues();
     long maxCount = 0;
-    for(Object rowCount: rowCounts) {
-      if(maxCount < (Long)rowCount) {
-        maxCount = (Long)rowCount;
+    for (Object rowCount : rowCounts) {
+      if (maxCount < (Long) rowCount) {
+        maxCount = (Long) rowCount;
       }
     }
     List<Field> fields = new ArrayList<>();
     Object[] values = new Object[operator.getExpressionList().size()];
-    for(int i = 0; i < operator.getExpressionList().size(); i++) {
+    for (int i = 0; i < operator.getExpressionList().size(); i++) {
       fields.add(new Field(operator.getExpressionList().get(i), DataType.DOUBLE));
       values[i] = operator.getFuncParam();
     }
-    //新建一张行数为table行数的表
+    // 新建一张行数为table行数的表
     Header header = new Header(fields);
     List<Row> rowList = new ArrayList<>();
-    for(int i = 0; i < maxCount; i++) {
+    for (int i = 0; i < maxCount; i++) {
       rowList.add(new Row(header, values));
     }
     RowStream stream = new Table(header, rowList);

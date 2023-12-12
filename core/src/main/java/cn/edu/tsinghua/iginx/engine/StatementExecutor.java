@@ -348,7 +348,7 @@ public class StatementExecutor {
         return;
       }
       if (root.getType() == OperatorType.Project
-              && ((Project) root).getSource().getType() == SourceType.Constant) {
+          && ((Project) root).getSource().getType() == SourceType.Constant) {
         // 空表查询特殊处理
         before(ctx, prePhysicalProcessors);
         RowStream stream = engine.executeConstantSource(ctx, root);
