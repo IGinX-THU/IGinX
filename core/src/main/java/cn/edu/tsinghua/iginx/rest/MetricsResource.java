@@ -66,7 +66,7 @@ public class MetricsResource {
   private static final String GRAFANA_STRING = "annotations";
   private static final String ERROR_PATH = "{string : .+}";
   public static final String CLEAR_DATA_EXCEPTION =
-      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: Unable to delete data from read-only node. Data from non-read-only nodes has been cleared.";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);

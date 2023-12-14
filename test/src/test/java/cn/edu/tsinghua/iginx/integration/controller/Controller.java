@@ -24,7 +24,7 @@ public class Controller {
   private static final Logger logger = LoggerFactory.getLogger(Controller.class);
 
   public static final String CLEAR_DATA_EXCEPTION =
-      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
+      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: Unable to delete data from read-only node. Data from non-read-only nodes has been cleared.";
 
   public static final String CLEAR_DATA = "CLEAR DATA;";
 

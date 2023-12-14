@@ -161,7 +161,8 @@ public class RestSession {
       }
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
-      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
+      if (status.message.contains(
+          "Caution: Unable to delete data from read-only node. Data from non-read-only nodes has been cleared.")) {
         logger.warn(status.message);
         return;
       }
@@ -406,7 +407,8 @@ public class RestSession {
       }
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
-      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
+      if (status.message.contains(
+          "Caution: Unable to delete data from read-only node. Data from non-read-only nodes has been cleared.")) {
         logger.warn(status.message);
         return;
       }
