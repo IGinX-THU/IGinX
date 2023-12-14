@@ -38,6 +38,7 @@ public class SQLSessionIT {
   protected static int defaultTestPort = 6888;
   protected static String defaultTestUser = "root";
   protected static String defaultTestPass = "root";
+  protected static String RUNNING_ENGINE;
 
   protected static final Logger logger = LoggerFactory.getLogger(SQLSessionIT.class);
 
@@ -62,7 +63,8 @@ public class SQLSessionIT {
 
   public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    RUNNING_ENGINE = conf.getStorageType();
+    DBConf dbConf = conf.loadDBConf(RUNNING_ENGINE);
     this.isScaling = conf.isScaling();
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
@@ -745,6 +747,51 @@ public class SQLSessionIT {
             + "|  7|                     1|                 4.0|                   4|                   4|                   4|\n"
             + "|  9|                     1|                 4.0|                   4|                   4|                   4|\n"
             + "+---+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testDistinctWithNullValues() {
+    String insert = "INSERT INTO test(key, a) values (1, 1), (2, 2), (5, 3), (6, 3), (7, 4);";
+    executor.execute(insert);
+
+    insert = "INSERT INTO test(key, b) values (1, 1.5), (2, 1.5), (3, 2.5), (4, 2.5);";
+    executor.execute(insert);
+
+    insert =
+        "INSERT INTO test(key, c) values (3, \"bbb\"), (4, \"bbb\"), (5, \"ccc\"), (6, \"ccc\"), (7, \"ccc\");";
+    executor.execute(insert);
+
+    String statement = "SELECT * FROM test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|\n"
+            + "+---+------+------+------+\n"
+            + "|  1|     1|   1.5|  null|\n"
+            + "|  2|     2|   1.5|  null|\n"
+            + "|  3|  null|   2.5|   bbb|\n"
+            + "|  4|  null|   2.5|   bbb|\n"
+            + "|  5|     3|  null|   ccc|\n"
+            + "|  6|     3|  null|   ccc|\n"
+            + "|  7|     4|  null|   ccc|\n"
+            + "+---+------+------+------+\n"
+            + "Total line number = 7\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT DISTINCT * FROM test;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+------+\n"
+            + "|test.a|test.b|test.c|\n"
+            + "+------+------+------+\n"
+            + "|     1|   1.5|  null|\n"
+            + "|     2|   1.5|  null|\n"
+            + "|  null|   2.5|   bbb|\n"
+            + "|     3|  null|   ccc|\n"
+            + "|     4|  null|   ccc|\n"
+            + "+------+------+------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(statement, expected);
   }
@@ -5172,13 +5219,15 @@ public class SQLSessionIT {
 
   @Test
   public void testSpecialCharacterPath() {
-    if (!isSupportSpecialCharacterPath) {
+    if (!isSupportSpecialCharacterPath
+        || (System.getProperty("os.name").toLowerCase().contains("win")
+            && RUNNING_ENGINE.equalsIgnoreCase("filesystem"))) {
       return;
     }
 
     // IGinX SQL 路径中支持的合法字符
     String insert =
-        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
+        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~\\^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
     executor.execute(insert);
 
     String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
@@ -5209,23 +5258,27 @@ public class SQLSessionIT {
             + "Total line number = 3\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT _:@#$~^{}, _:@#$~^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~^;";
+    query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
     expected =
         "ResultSets:\n"
-            + "+---+-------------------+-----------------+\n"
-            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~^|\n"
-            + "+---+-------------------+-----------------+\n"
-            + "|  1|                  1|                2|\n"
-            + "|  2|                  2|                3|\n"
-            + "|  3|                  3|                4|\n"
-            + "+---+-------------------+-----------------+\n"
+            + "+---+-------------------+------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
+            + "+---+-------------------+------------------+\n"
+            + "|  1|                  1|                 2|\n"
+            + "|  2|                  2|                 3|\n"
+            + "|  3|                  3|                 4|\n"
+            + "+---+-------------------+------------------+\n"
             + "Total line number = 3\n";
     executor.executeAndCompare(query, expected);
   }
 
   @Test
   public void testMixSpecialPath() {
-    if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
+    if (!isSupportChinesePath
+        || !isSupportNumericalPath
+        || !isSupportSpecialCharacterPath
+        || (System.getProperty("os.name").toLowerCase().contains("win")
+            && RUNNING_ENGINE.equalsIgnoreCase("filesystem"))) {
       return;
     }
 

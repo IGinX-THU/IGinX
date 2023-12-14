@@ -357,10 +357,12 @@ public class NewSessionIT {
 
   @Test
   public void testQuery() {
+    logger.info("Simple query test started.");
     List<String> paths =
         Arrays.asList(
             "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5", "us.d1.s6", "us.d1.s7");
 
+    logger.info("head section...");
     // query first corner of the base data
     try {
       long start = START_KEY, end = START_KEY + 100;
@@ -371,6 +373,7 @@ public class NewSessionIT {
       fail();
     }
 
+    logger.info("middle section...");
     // query middle of the base data
     try {
       long mid = (START_KEY + END_KEY) / 2;
@@ -382,6 +385,7 @@ public class NewSessionIT {
       fail();
     }
 
+    logger.info("tail section...");
     // query last corner of the base data
     try {
       long start = END_KEY - 100, end = END_KEY;
@@ -391,10 +395,12 @@ public class NewSessionIT {
       logger.error("execute query data failed.");
       fail();
     }
+    logger.info("Simple query test completed.");
   }
 
   @Test
   public void testDeletePaths() {
+    logger.info("Delete paths test started.");
     // delete single path
     List<String> deleteColumns = Collections.singletonList("us.d1.s2");
     try {
@@ -406,6 +412,7 @@ public class NewSessionIT {
       fail();
     }
 
+    logger.info("delete multi paths...");
     // delete multi paths
     deleteColumns = Arrays.asList("us.d1.s1", "us.d1.s3", "us.d1.s5");
     try {
@@ -417,6 +424,7 @@ public class NewSessionIT {
       fail();
     }
 
+    logger.info("delete path with tag...");
     // delete path with tag
     deleteColumns = Collections.singletonList("us.d1.s7");
     try {
@@ -436,10 +444,13 @@ public class NewSessionIT {
       logger.error("execute delete columns failed.");
       fail();
     }
+
+    logger.info("Delete paths test completed.");
   }
 
   @Test
   public void testAggregateQuery() {
+    logger.info("Aggregate query test started.");
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
@@ -525,10 +536,12 @@ public class NewSessionIT {
         fail();
       }
     }
+    logger.info("Aggregate query test completed.");
   }
 
   @Test
   public void testDownsampleQuery() {
+    logger.info("Downsample Query started.");
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
@@ -629,13 +642,18 @@ public class NewSessionIT {
         fail();
       }
     }
+    logger.info("Downsample Query completed.");
   }
 
   @Test
   public void testQueryAfterDelete() {
     if (!isAbleToDelete) return;
+    logger.info("After delete Query started.");
+
+    logger.info("single path delete test");
     // single path delete data
     try {
+      logger.info("first");
       // first
       List<String> paths = Collections.singletonList("us.d1.s1");
       conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100);
@@ -644,6 +662,7 @@ public class NewSessionIT {
           baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(100, 200);
       compare(expected, actual);
 
+      logger.info("middle");
       // middle
       long mid = (START_KEY + END_KEY) / 2;
       conn.deleteDataInColumns(paths, mid - 50, mid + 50);
@@ -658,6 +677,7 @@ public class NewSessionIT {
                       .getSubDataSectionWithKey(mid + 50, mid + 100));
       compare(expected, actual);
 
+      logger.info("last");
       // last
       conn.deleteDataInColumns(paths, END_KEY - 100, END_KEY);
       actual = conn.queryData(paths, END_KEY - 200, END_KEY);
@@ -671,8 +691,10 @@ public class NewSessionIT {
       fail();
     }
 
+    logger.info("multi path delete test");
     // multi paths delete data
     try {
+      logger.info("frst");
       // first
       List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s4", "us.d1.s6");
       conn.deleteDataInColumns(paths, START_KEY, START_KEY + 100);
@@ -681,6 +703,7 @@ public class NewSessionIT {
           baseDataSection.getSubDataSectionWithPath(paths).getSubDataSectionWithKey(100, 200);
       compare(expected, actual);
 
+      logger.info("middle");
       // middle
       long mid = (START_KEY + END_KEY) / 2;
       conn.deleteDataInColumns(paths, mid - 50, mid + 50);
@@ -695,6 +718,7 @@ public class NewSessionIT {
                       .getSubDataSectionWithKey(mid + 50, mid + 100));
       compare(expected, actual);
 
+      logger.info("last");
       // last
       conn.deleteDataInColumns(paths, END_KEY - 100, END_KEY);
       actual = conn.queryData(paths, END_KEY - 200, END_KEY);
@@ -708,6 +732,7 @@ public class NewSessionIT {
       fail();
     }
 
+    logger.info("delete with tag test");
     // delete with tag
     try {
       List<String> paths = Collections.singletonList("us.d1.s7");
@@ -748,6 +773,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(START_KEY + 100, START_KEY + 200);
       compare(expected, actual);
 
+      logger.info("test OR tagType");
       // test OR tagType
       conn.deleteDataInColumns(
           paths,
@@ -768,6 +794,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(START_KEY + 300, START_KEY + 400);
       compare(expected, actual);
 
+      logger.info("test AND tagType");
       // test AND tagType
       conn.deleteDataInColumns(
           paths,

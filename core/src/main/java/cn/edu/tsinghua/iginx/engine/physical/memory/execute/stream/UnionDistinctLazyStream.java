@@ -94,7 +94,7 @@ public class UnionDistinctLazyStream extends BinaryLazyStream {
       hash = Objects.hash(row.getKey());
     } else {
       Value value = row.getAsValue(0);
-      if (value == null) {
+      if (value.isNull()) {
         return;
       }
       hash = getHash(value, needTypeCast);

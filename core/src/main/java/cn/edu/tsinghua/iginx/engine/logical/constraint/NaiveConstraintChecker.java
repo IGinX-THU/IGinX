@@ -14,6 +14,6 @@ public class NaiveConstraintChecker implements ConstraintChecker {
 
   @Override
   public boolean check(Operator root) {
-    return true;
+    return root != null;
   }
 }

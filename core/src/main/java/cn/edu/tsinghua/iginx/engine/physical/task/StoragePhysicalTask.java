@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
@@ -107,5 +108,12 @@ public class StoragePhysicalTask extends AbstractPhysicalTask {
         + ", storage="
         + storage
         + '}';
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+    visitor.leave();
   }
 }

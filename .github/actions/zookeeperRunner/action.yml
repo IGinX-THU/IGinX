@@ -33,15 +33,25 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.if-rerun=='true'
+        - if: ${{ inputs.if-rerun=='true' && runner.os != 'Windows' }}
           name: ReRun ZooKeeper
           shell: bash
           run: |
               zookeeper/bin/zkServer.sh start
 
+        - if: ${{ inputs.if-rerun=='true' && runner.os == 'Windows' }}
+          name: ReRun ZooKeeper
+          shell: powershell
+          run: |
+              Start-Process -FilePath 'zookeeper/bin/zkServer.cmd'
+              sleep 3
+              netstat -ano | findstr 2181
+
         - if: inputs.if-stop=='true'
           name: Stop ZooKeeper
           shell: bash
           run: |
-              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_clear.sh"
+              if [ "$RUNNER_OS" != "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_clear.sh"
+              fi
               "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_clear.sh"

@@ -594,25 +594,33 @@ public abstract class BaseCapacityExpansionIT {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;
+    boolean isOnWindows = false;
     if (os.contains("mac")) {
       isOnMac = true;
       iginxPath = ".github/scripts/iginx/iginx_macos.sh";
+    } else if (os.contains("win")) {
+      isOnWindows = true;
+      iginxPath = ".github/scripts/iginx/iginx_windows.sh";
     }
 
     if (this instanceof FileSystemCapacityExpansionIT) {
       if (isOnMac) {
         scriptPath = ".github/scripts/dataSources/filesystem_macos.sh";
+      } else if (isOnWindows) {
+        scriptPath = ".github/scripts/dataSources/filesystem_windows.sh";
       } else {
         scriptPath = ".github/scripts/dataSources/filesystem.sh";
       }
     } else if (this instanceof ParquetCapacityExpansionIT) {
       if (isOnMac) {
         scriptPath = ".github/scripts/dataSources/parquet_macos.sh";
+      } else if (isOnWindows) {
+        scriptPath = ".github/scripts/dataSources/parquet_windows.sh";
       } else {
         scriptPath = ".github/scripts/dataSources/parquet.sh";
       }
     } else {
-      throw new IllegalStateException("just support file system and parquet");
+      throw new IllegalStateException("Only support file system and parquet");
     }
 
     int iginxPort = PORT_TO_IGINXPORT.get(port);

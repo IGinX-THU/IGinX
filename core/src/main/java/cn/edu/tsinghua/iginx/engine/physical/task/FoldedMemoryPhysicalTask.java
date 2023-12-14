@@ -39,7 +39,7 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
+public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
 
   private static final Logger logger = LoggerFactory.getLogger(FoldedMemoryPhysicalTask.class);
 
@@ -59,27 +59,20 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final Operator foldedRoot;
 
-  private final List<PhysicalTask> parentTasks;
-
   public FoldedMemoryPhysicalTask(
       List<Operator> operators, Operator foldedRoot, List<PhysicalTask> parentTasks) {
-    super(TaskType.Folded, operators);
+    super(operators, parentTasks);
     this.foldedRoot = foldedRoot;
-    this.parentTasks = parentTasks;
   }
 
   public Operator getFoldedRoot() {
     return foldedRoot;
   }
 
-  public List<PhysicalTask> getParentTasks() {
-    return parentTasks;
-  }
-
   @Override
   public TaskExecuteResult execute() {
     List<RowStream> streams = new ArrayList<>();
-    for (PhysicalTask parentTask : parentTasks) {
+    for (PhysicalTask parentTask : getParentTasks()) {
       TaskExecuteResult parentResult = parentTask.getResult();
       if (parentResult == null) {
         return new TaskExecuteResult(
@@ -102,7 +95,7 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
 
     PhysicalTask originFollowTask = getFollowerTask();
     task.setFollowerTask(originFollowTask);
-    if (originFollowTask.getType().equals(TaskType.CompletedFolded)) {
+    if (originFollowTask instanceof CompletedFoldedPhysicalTask) {
       ((CompletedFoldedPhysicalTask) originFollowTask).setParentTask(task);
     } else {
       throw new RuntimeException(
@@ -221,10 +214,5 @@ public class FoldedMemoryPhysicalTask extends MemoryPhysicalTask {
     List<FragmentMeta> dummyFragments = pair.v;
 
     return mergeRawData(fragments, dummyFragments, pathList, tagFilter);
-  }
-
-  @Override
-  public boolean notifyParentReady() {
-    return parentReadyCount.incrementAndGet() == parentTasks.size();
   }
 }

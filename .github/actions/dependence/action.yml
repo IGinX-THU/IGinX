@@ -4,7 +4,7 @@ inputs:
     python-version:
         description: "python version"
         required: false
-        default: 3.7
+        default: 3.9
     java:
         description: "java version"
         required: false
@@ -13,34 +13,53 @@ inputs:
         description: "running environment"
         required: false
         default: ubuntu-latest
+    scope:
+        description: "partial dependency required"
+        required: false
+        default: all
+        # all: setup all
+        # javaOnly: set JDK and local pemja java repo
+
 runs:
     using: "composite"
     steps:
-        - name: Set up Python ${{ inputs.python-version }}
+        - if: runner.os == 'Windows'
+          name: Set Dynamic Timezone
+          shell: cmd
+          run: |
+              tzutil /s "China Standard Time"
+
+        - if: inputs.scope=='all'
+          name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v3
           with:
               python-version: ${{ inputs.python-version }}
 
-        - name: Install Python dependencies
+        - if: inputs.scope=='all'
+          name: Install Python dependencies
           shell: bash
           run: |
               python -m pip install --upgrade pip
-              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "macOS" ]]; then
-                pip install pemja==0.3.0 pandas numpy
-              else
-                pip install pandas numpy
-                "${GITHUB_WORKSPACE}/.github/scripts/pemja/pemja.sh"
-              fi
+              pip install pandas numpy
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v1
           with:
               java-version: ${{ inputs.java }}
 
-        - name: Install Pemja On Windows
+        - if: inputs.scope=='all'
+          name: Install Pemja Locally
           shell: bash
           run: |
-              "${GITHUB_WORKSPACE}/.github/scripts/pemja/pemja.sh"
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                pip install local-dependencies/python/pemja/pemja-0.5.dev0-cp39-cp39-win_amd64.whl            
+              else
+                pip install local-dependencies/python/pemja/pemja-0.5.dev0.tar.gz      
+              fi
+              mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
 
-#           mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
-
+        - if: inputs.scope=='javaOnly'
+          name: Install Pemja Repo
+          shell: bash
+          run: |
+              mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
