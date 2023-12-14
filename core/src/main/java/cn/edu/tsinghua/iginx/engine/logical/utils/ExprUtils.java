@@ -311,6 +311,8 @@ public class ExprUtils {
       case Expr:
         ((ExprFilter) filter).reverseFunc();
         return filter;
+      case Bool:
+        return filter;
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (int i = 0; i < andChildren.size(); i++) {

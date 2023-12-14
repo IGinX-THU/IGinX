@@ -125,15 +125,6 @@ predicate
    | expression comparisonOperator expression
    ;
 
-predicateExpr
-   : path
-   | function
-   | constant
-   | (PLUS | MINUS) expr = predicateExpr
-   | leftPredicateExpr = predicateExpr (STAR | DIV | MOD) rightPredicateExpr = predicateExpr
-   | leftPredicateExpr = predicateExpr (PLUS | MINUS) rightPredicateExpr = predicateExpr
-   ;
-
 predicateWithSubquery
    : OPERATOR_NOT? EXISTS subquery
    | (path | constant | functionName LR_BRACKET path RR_BRACKET) OPERATOR_NOT? IN subquery
