@@ -26,6 +26,7 @@ statement
    | REMOVE HISTORYDATASOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataSourceStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG configName = stringLiteral # showConfigStatement
+   | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
    ;
 
@@ -453,6 +454,7 @@ keyWords
    | PHYSICAL
    | SET
    | CONFIG
+   | SESSIONID
    | COLUMNS
    | INTERSECT
    | UNION
@@ -867,6 +869,10 @@ SET
 
 CONFIG
    : C O N F I G
+   ;
+
+SESSIONID
+   : S E S S I O N I D
    ;
 
 COLUMNS

@@ -216,11 +216,17 @@ public class IginxClient {
             break;
           }
         }
+        session.closeSession();
         System.out.println("Goodbye");
       } else {
         processCommand(parseExecuteCommand(args));
       }
     } catch (UserInterruptException e) {
+      try {
+        session.closeSession();
+      } catch (SessionException ex) {
+        System.out.println("Unable to close session.");
+      }
       System.out.println("Goodbye");
     } catch (RuntimeException e) {
       System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error.");
@@ -326,6 +332,7 @@ public class IginxClient {
         case ShowConfig:
         case CommitTransformJob:
         case ShowJobStatus:
+        case ShowSessionID:
           res.print(false, "");
           break;
         case GetReplicaNum:
@@ -627,6 +634,7 @@ public class IginxClient {
             Arrays.asList("show", "columns"),
             Arrays.asList("show", "cluster", "info"),
             Arrays.asList("show", "register", "python", "task"),
+            Arrays.asList("show", "sessionid"),
             Arrays.asList("remove", "historydatasource"));
     addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 

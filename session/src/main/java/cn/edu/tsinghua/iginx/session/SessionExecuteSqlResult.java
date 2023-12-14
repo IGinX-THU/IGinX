@@ -45,6 +45,7 @@ public class SessionExecuteSqlResult {
   private List<Long> jobIdList;
   private String configValue;
   private String loadCsvPath;
+  private List<Long> sessionIDs;
 
   // Only for mock test
   public SessionExecuteSqlResult() {}
@@ -103,6 +104,8 @@ public class SessionExecuteSqlResult {
         break;
       case LoadCsv:
         this.loadCsvPath = resp.getLoadCsvPath();
+      case ShowSessionID:
+        this.sessionIDs = resp.getSessionIDList();
       default:
         break;
     }
@@ -173,6 +176,8 @@ public class SessionExecuteSqlResult {
         return buildShowRegisterTaskResult();
       case ShowEligibleJob:
         return buildShowEligibleJobResult();
+      case ShowSessionID:
+        return buildShowSessionIDResult();
       case GetReplicaNum:
         return "Replica num: " + replicaNum + "\n";
       case CountPoints:
@@ -356,6 +361,20 @@ public class SessionExecuteSqlResult {
     return builder.toString();
   }
 
+  private String buildShowSessionIDResult() {
+    StringBuilder builder = new StringBuilder();
+    if (sessionIDs != null) {
+      builder.append("Session ID List:").append("\n");
+      List<List<String>> cache = new ArrayList<>();
+      cache.add(new ArrayList<>(Collections.singletonList("SessionID")));
+      for (long sessionID : sessionIDs) {
+        cache.add(new ArrayList<>(Collections.singletonList(String.valueOf(sessionID))));
+      }
+      builder.append(FormatUtils.formatResult(cache));
+    }
+    return builder.toString();
+  }
+
   private String buildShowEligibleJobResult() {
     StringBuilder builder = new StringBuilder();
 
@@ -511,5 +530,9 @@ public class SessionExecuteSqlResult {
 
   public String getLoadCsvPath() {
     return loadCsvPath;
+  }
+
+  public List<Long> getSessionIDs() {
+    return sessionIDs;
   }
 }

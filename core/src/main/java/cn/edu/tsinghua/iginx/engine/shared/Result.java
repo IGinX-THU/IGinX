@@ -62,6 +62,8 @@ public class Result {
   private List<String> loadCSVColumns;
   private Long loadCSVRecordNum;
 
+  private List<Long> sessionIDs;
+
   public Result(Status status) {
     this.status = status;
     this.pointsNum = 0L;
@@ -168,6 +170,7 @@ public class Result {
     resp.setConfigValue(configValue);
     // INFILE AS CSV
     resp.setLoadCsvPath(loadCSVPath);
+    resp.setSessionIDList(sessionIDs);
     return resp;
   }
 

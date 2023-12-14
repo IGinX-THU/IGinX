@@ -93,6 +93,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowSessionIDStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
@@ -136,6 +137,7 @@ import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowSessionIDStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
@@ -806,6 +808,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     String configName = ctx.configName.getText();
     configName = configName.substring(1, configName.length() - 1);
     return new ShowConfigStatement(configName);
+  }
+
+  @Override
+  public Statement visitShowSessionIDStatement(ShowSessionIDStatementContext ctx) {
+    return new ShowSessionIDStatement();
   }
 
   private void parseSelectPaths(SelectClauseContext ctx, UnarySelectStatement selectStatement) {

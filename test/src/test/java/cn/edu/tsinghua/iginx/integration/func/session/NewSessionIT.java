@@ -2,6 +2,8 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -352,6 +354,28 @@ public class NewSessionIT {
       String expectedVal = (String) expected;
       String actualVal = (String) actual;
       assertEquals(expectedVal, actualVal);
+    }
+  }
+
+  @Test
+  public void testCancelSession() {
+    try {
+      List<Long> sessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
+      assertNotNull(sessionIDs);
+      assertEquals(1, sessionIDs.size());
+      long beforeSessionId = sessionIDs.get(0);
+
+      conn.closeSession();
+      conn.openSession();
+
+      sessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
+      assertNotNull(sessionIDs);
+      assertEquals(1, sessionIDs.size());
+      long afterSessionId = sessionIDs.get(0);
+      assertNotEquals(beforeSessionId, afterSessionId);
+    } catch (SessionException | ExecutionException e) {
+      logger.error("execute query data failed.");
+      fail();
     }
   }
 

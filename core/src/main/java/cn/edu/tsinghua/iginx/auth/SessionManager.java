@@ -45,6 +45,10 @@ public class SessionManager {
     return instance;
   }
 
+  public Set<Long> getSessionIds() {
+    return sessionIds;
+  }
+
   public boolean checkSession(long sessionId, AuthType auth) {
     if (!sessionIds.contains(sessionId)) {
       return false;
