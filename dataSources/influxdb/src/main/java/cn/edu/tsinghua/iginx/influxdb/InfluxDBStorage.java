@@ -449,23 +449,6 @@ public class InfluxDBStorage implements IStorage {
     }
   }
 
-  /** 将字符串中的正则表达式特殊字符转义 */
-  private String replaceRegexChar(String str) {
-    return str.replace("\\", "\\\\")
-        .replace("$", "\\$")
-        .replace("^", "\\^")
-        .replace(".", "\\.")
-        .replace("+", "\\+")
-        .replace("?", "\\?")
-        .replace("(", "\\(")
-        .replace(")", "\\)")
-        .replace("[", "\\[")
-        .replace("]", "\\]")
-        .replace("{", "\\{")
-        .replace("}", "\\}")
-        .replace("|", "\\|");
-  }
-
   private String generateQueryStatement(
       String bucketName,
       List<String> paths,
@@ -487,8 +470,7 @@ public class InfluxDBStorage implements IStorage {
 
         String measurement = schema.getMeasurement();
         if (measurement.contains("*")) {
-          measurement = replaceRegexChar(measurement);
-          measurement = measurement.replace("*", ".+");
+          measurement = StringUtils.reformatPath(measurement);
         }
         filterStr.append(
             schema.getMeasurement().contains("*")
@@ -496,8 +478,7 @@ public class InfluxDBStorage implements IStorage {
                 : "r._measurement == \"" + measurement + "\"");
 
         String field = schema.getField();
-        field = replaceRegexChar(field);
-        field = field.replace("*", ".+");
+        field = StringUtils.reformatPath(field);
         filterStr.append(" and ");
         filterStr.append("r._field =~ /").append(field).append("/");
 
@@ -845,28 +826,28 @@ public class InfluxDBStorage implements IStorage {
       Map<String, List<String>> fieldMap = new HashMap<>();
       getAllPathFromFilterWithWildCards(filter, fieldMap);
 
-      if (!fieldMap.isEmpty()) {
-        for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
-          if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
-            continue;
-          }
-          String tableMeasurement = mtfEntry.getKey();
-          List<String> tableFields = mtfEntry.getValue();
-          for (String tableField : tableFields) {
-            for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
-              String path = entry.getKey();
-              InfluxDBSchema schema = new InfluxDBSchema(path);
-              String measurement = schema.getMeasurement();
-              String field = schema.getField();
-              if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
-                List<String> fields = entry.getValue();
-                String fieldRegex = "^" + field.replace(".", "\\.").replace("*", ".*") + "$";
-                if (Pattern.matches(fieldRegex, tableField)) {
-                  if (fields == null) {
-                    fields = new ArrayList<>();
-                  }
-                  fields.add(tableField);
-                  entry.setValue(fields);
+      if (fieldMap.isEmpty()) {
+        return noWildCardStatement;
+      }
+
+      for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
+        if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
+          continue;
+        }
+        String tableMeasurement = mtfEntry.getKey();
+        List<String> tableFields = mtfEntry.getValue();
+        for (String tableField : tableFields) {
+          for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
+            String path = entry.getKey();
+            InfluxDBSchema schema = new InfluxDBSchema(path);
+            String measurement = schema.getMeasurement();
+            String field = schema.getField();
+            if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
+              List<String> fields = entry.getValue();
+              String fieldRegex = "^" + StringUtils.reformatPath(field) + "$";
+              if (Pattern.matches(fieldRegex, tableField)) {
+                if (fields == null) {
+                  fields = new ArrayList<>();
                 }
               }
             }
