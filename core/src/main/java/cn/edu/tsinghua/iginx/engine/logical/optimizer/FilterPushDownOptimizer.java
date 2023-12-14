@@ -207,7 +207,7 @@ public class FilterPushDownOptimizer implements Optimizer {
     if (OperatorType.isUnaryOperator(curOperator.getType())) {
       UnaryOperator unaryOp = (UnaryOperator) curOperator;
       Source source = unaryOp.getSource();
-      if (source.getType() != SourceType.Fragment) {
+      if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
         isCorrectRoad =
             getRenameOperator(((OperatorSource) source).getOperator(), target, renameOperatorList);
       }

@@ -177,29 +177,28 @@ public class FilterFragmentOptimizer implements Optimizer {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOp = (UnaryOperator) operator;
       Source source = unaryOp.getSource();
-      if (source.getType() != SourceType.Fragment) {
+      if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
         res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) source).getOperator());
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
       BinaryOperator binaryOperator = (BinaryOperator) operator;
       Source sourceA = binaryOperator.getSourceA();
       Source sourceB = binaryOperator.getSourceB();
-      if (sourceA.getType() != SourceType.Fragment) {
+      if (sourceA.getType() != SourceType.Fragment && sourceA.getType() != SourceType.Constant) {
         res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) sourceA).getOperator());
       }
-      if (sourceB.getType() != SourceType.Fragment) {
+      if (sourceB.getType() != SourceType.Fragment && sourceB.getType() != SourceType.Constant) {
         res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) sourceB).getOperator());
       }
     } else {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();
       for (Source source : sources) {
-        if (source.getType() != SourceType.Fragment) {
+        if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
           res = res && onlyHasProjectAndJoinByKeyAndUnion(((OperatorSource) source).getOperator());
         }
       }
     }
-
     return res;
   }
 }

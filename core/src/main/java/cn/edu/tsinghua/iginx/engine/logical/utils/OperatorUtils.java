@@ -92,7 +92,7 @@ public class OperatorUtils {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOp = (UnaryOperator) operator;
       Source source = unaryOp.getSource();
-      if (source.getType() != SourceType.Fragment) {
+      if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
         findProjectOperators(projectOperatorList, ((OperatorSource) source).getOperator());
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
@@ -119,10 +119,7 @@ public class OperatorUtils {
     if (OperatorType.isUnaryOperator(operator.getType())) {
       UnaryOperator unaryOp = (UnaryOperator) operator;
       Source source = unaryOp.getSource();
-      if (source.getType() != SourceType.Fragment) {
-        if (source.getType() == SourceType.Constant) {
-          return;
-        }
+      if (source.getType() != SourceType.Fragment && source.getType() != SourceType.Constant) {
         findSelectOperators(selectOperatorList, ((OperatorSource) source).getOperator());
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
