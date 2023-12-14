@@ -5,14 +5,14 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-import org.apache.zeppelin.interpreter.AbstractInterpreter;
-import org.apache.zeppelin.interpreter.InterpreterContext;
-import org.apache.zeppelin.interpreter.InterpreterException;
-import org.apache.zeppelin.interpreter.InterpreterResult;
-import org.apache.zeppelin.interpreter.ZeppelinContext;
+import java.io.*;
+import java.nio.file.*;
+import java.util.*;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import org.apache.zeppelin.interpreter.*;
 
 public class IginxInterpreter extends AbstractInterpreter {
 
@@ -41,6 +41,10 @@ public class IginxInterpreter extends AbstractInterpreter {
   private String username = "";
   private String password = "";
   private String timePrecision = "";
+
+  private static Map<String, CompletableFuture<InterpreterResult>> taskMap =
+      new ConcurrentHashMap<>();
+
   private Session session;
 
   private Exception exception;
@@ -101,12 +105,42 @@ public class IginxInterpreter extends AbstractInterpreter {
 
     String[] cmdList = parseMultiLinesSQL(st);
 
-    InterpreterResult interpreterResult = null;
-    for (String cmd : cmdList) {
-      interpreterResult = processSql(cmd);
+    CompletableFuture<InterpreterResult> future = processSqlListAsync(cmdList, context);
+    InterpreterResult interpreterResult;
+
+    try {
+      interpreterResult = future.get();
+    } catch (Exception e) {
+      interpreterResult = new InterpreterResult(InterpreterResult.Code.ERROR, e.getMessage());
     }
 
     return interpreterResult;
+  }
+
+  /**
+   * 异步执行sql语句列表，返回CompletableFuture，可以通过CompletableFuture获取执行结果
+   * 为什么要异步执行？因为Session没有提供取消任务的操作，因此通过异步执行，当cancel方法被调用时，不继续等待结果，而是直接返回。
+   *
+   * @param sqlList sql语句列表
+   * @param context InterpreterContext上下文
+   * @return CompletableFuture 通过CompletableFuture获取执行结果
+   */
+  private CompletableFuture<InterpreterResult> processSqlListAsync(
+      String[] sqlList, InterpreterContext context) {
+    String paragraphId = context.getParagraphId();
+    CompletableFuture<InterpreterResult> future = new CompletableFuture<>();
+    taskMap.put(paragraphId, future);
+
+    CompletableFuture.runAsync(
+        () -> {
+          InterpreterResult interpreterResult = null;
+          for (String cmd : sqlList) {
+            interpreterResult = processSql(cmd);
+          }
+          future.complete(interpreterResult);
+        });
+
+    return future;
   }
 
   private InterpreterResult processSql(String sql) {
@@ -237,14 +271,22 @@ public class IginxInterpreter extends AbstractInterpreter {
     return "%html" + str.replace("\n", "<br>").replace("\t", "&nbsp;&nbsp;&nbsp;&nbsp;");
   }
 
+  /**
+   * 取消任务，如果任务正在执行，将任务的CompletableFuture设置为异常状态，使得任务能够被取消
+   *
+   * @param context InterpreterContext上下文
+   * @throws InterpreterException InterpreterException
+   */
   @Override
   public void cancel(InterpreterContext context) throws InterpreterException {
-    try {
-      session.closeSession();
-    } catch (SessionException e) {
-      exception = e;
-      System.out.println("Can not close session successfully.");
+    String paragraphId = context.getParagraphId();
+    CompletableFuture<InterpreterResult> future = taskMap.get(paragraphId);
+    if (future != null) {
+      future.completeExceptionally(new CancellationException("任务被取消"));
     }
+    taskMap.remove(paragraphId);
+
+    TimeUnit.MILLISECONDS.toSeconds(100); // 暂停0.1秒，按钮防抖
   }
 
   @Override
