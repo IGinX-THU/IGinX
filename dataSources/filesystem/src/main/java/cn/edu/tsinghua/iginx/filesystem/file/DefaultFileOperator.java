@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
@@ -12,8 +11,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.io.*;
-import java.nio.channels.FileChannel;
-import java.nio.channels.FileLock;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -286,7 +283,7 @@ public class DefaultFileOperator implements IFileOperator {
     }
     try {
       Exception e = moveFileWithLock(tempFile, file);
-      if (e!= null) {
+      if (e != null) {
         return e;
       }
       return null;
