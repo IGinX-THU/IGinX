@@ -393,12 +393,16 @@ public class NewSessionIT {
   public void testCancelClient() {
     String clientPath = "../../client/target/iginx-client-*/sbin/start_cli.sh";
     try {
-      Process pro = Runtime.getRuntime().exec(new String[]{"pwd"});
+      Runtime.getRuntime().exec(new String[]{"chmod", "+x", "../.."});
+      Process pro = Runtime.getRuntime().exec(new String[]{"ls", ".."});
       pro.waitFor();
       InputStream in = pro.getInputStream();
       BufferedReader read = new BufferedReader(new InputStreamReader(in));
-      String dir = read.readLine();
-      logger.info("current dir: " + dir);
+      String out = read.readLine();
+      while (out != null) {
+        logger.info(out);
+        out = read.readLine();
+      }
 
       List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
