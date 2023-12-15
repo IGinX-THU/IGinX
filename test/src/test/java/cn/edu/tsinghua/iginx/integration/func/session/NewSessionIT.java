@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -20,6 +21,7 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -381,6 +383,37 @@ public class NewSessionIT {
     } catch (SessionException | ExecutionException e) {
       logger.error("execute query session id failed.");
       fail();
+    }
+  }
+
+  @Test
+  public void testCancelClient() {
+    String clientPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
+    try {
+      List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
+      logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
+
+      // start a client
+      Runtime.getRuntime().exec(new String[] {"chmod", "u+x", clientPath});
+      Process p = Runtime.getRuntime().exec(new String[] {"sh", clientPath});
+
+      Thread.sleep(3000);
+      logger.info("client is alive: " + p.isAlive());
+
+      List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
+      logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
+
+      // kill the client
+      p.destroy();
+      Thread.sleep(3000);
+
+      List<Long> sessionIDs3 = conn.executeSql("show sessionid;").getSessionIDs();
+      logger.info("after cancel a client, session_id_list size:" + sessionIDs3.size());
+
+      assertEquals(sessionIDs1, sessionIDs3);
+      assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);
+    } catch (SessionException | ExecutionException | IOException | InterruptedException e) {
+      throw new RuntimeException(e);
     }
   }
 

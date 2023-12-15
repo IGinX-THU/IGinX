@@ -164,6 +164,21 @@ public class IginxClient {
     if (!parseCommandLine(options, args, hf)) {
       return;
     }
+
+    // make sure session is closed when client is shutdown.
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(
+                () -> {
+                  try {
+                    if (!session.isClosed()) {
+                      session.closeSession();
+                    }
+                  } catch (SessionException e) {
+                    e.printStackTrace();
+                  }
+                }));
+
     serve(args);
   }
 
