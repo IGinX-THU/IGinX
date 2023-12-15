@@ -401,16 +401,23 @@ public class NewSessionIT {
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
       ProcessBuilder pb = new ProcessBuilder("sudo", "nohup", clientPath, "&");
       Process p = pb.start();
+
+      int code = p.waitFor();
       InputStream in = p.getErrorStream();
-      BufferedReader r = new BufferedReader(new InputStreamReader(in));
-      String line = null;
-      while ((line = r.readLine()) != null) {
-        logger.info(line);
+//      BufferedReader r = new BufferedReader(new InputStreamReader(in));
+//      String line = null;
+//      while ((line = r.readLine()) != null) {
+//        logger.info(line);
+//      }
+      StringBuilder builder = new StringBuilder();
+      for (int i = 0; i < in.available(); i++) {
+        builder.append(in.read());
       }
+      logger.info(builder.toString());
 
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
-      logger.info("exit value: " + p.exitValue());
+      logger.info("exit value: " + code);
 
       List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
