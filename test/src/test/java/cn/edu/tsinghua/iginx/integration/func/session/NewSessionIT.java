@@ -401,12 +401,12 @@ public class NewSessionIT {
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
       ProcessBuilder pb = new ProcessBuilder("sudo", "nohup", clientPath, "&");
       Process p = pb.start();
-//      InputStream in = p.getInputStream();
-//      BufferedReader r = new BufferedReader(new InputStreamReader(in));
-//      String line = null;
-//      while ((line = r.readLine()) != null) {
-//        logger.info(line);
-//      }
+      InputStream in = p.getErrorStream();
+      BufferedReader r = new BufferedReader(new InputStreamReader(in));
+      String line = null;
+      while ((line = r.readLine()) != null) {
+        logger.info(line);
+      }
 
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
