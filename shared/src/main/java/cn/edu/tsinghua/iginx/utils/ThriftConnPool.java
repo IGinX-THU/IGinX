@@ -18,9 +18,7 @@ public class ThriftConnPool {
 
   private static final int DEFAULT_MAX_SIZE = 100;
 
-  private static final long WAIT_TIME = 1000;
-
-  private static final int MAX_WAIT_TIME = 300_000;
+  private static final int MAX_WAIT_TIME = 5000;
 
   private boolean closed = false;
 
