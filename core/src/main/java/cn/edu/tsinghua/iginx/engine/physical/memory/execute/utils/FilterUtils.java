@@ -25,9 +25,11 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
@@ -81,6 +83,9 @@ public class FilterUtils {
       case Path:
         PathFilter pathFilter = (PathFilter) filter;
         return validatePathFilter(pathFilter, row);
+      case Expr:
+        ExprFilter exprFilter = (ExprFilter) filter;
+        return validateExprFilter(exprFilter, row);
       default:
         break;
     }
@@ -168,6 +173,23 @@ public class FilterUtils {
       return false;
     }
     return validateValueCompare(pathFilter.getOp(), valueA, valueB);
+  }
+
+  private static boolean validateExprFilter(ExprFilter exprFilter, Row row)
+      throws PhysicalException {
+    Expression exprA = exprFilter.getExpressionA();
+    Expression exprB = exprFilter.getExpressionB();
+
+    Value valueA = ExprUtils.calculateExpr(row, exprA);
+    Value valueB = ExprUtils.calculateExpr(row, exprB);
+
+    if (valueA == null
+        || valueA.isNull()
+        || valueB == null
+        || valueB.isNull()) { // 如果任何一个是空值，则认为不可比较
+      return false;
+    }
+    return validateValueCompare(exprFilter.getOp(), valueA, valueB);
   }
 
   private static boolean validateValueCompare(Op op, Value valueA, Value valueB)
