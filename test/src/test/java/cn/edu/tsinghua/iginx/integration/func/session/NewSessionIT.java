@@ -391,10 +391,10 @@ public class NewSessionIT {
 
   @Test
   public void testCancelClient() {
-    String clientPath = "../client/target/iginx-client-*/sbin/start_cli.sh";
+    String clientPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
     try {
       Runtime.getRuntime().exec(new String[]{"chmod", "+x", "../.."});
-      Process pro = Runtime.getRuntime().exec(new String[]{"ls", "../client"});
+      Process pro = Runtime.getRuntime().exec(new String[]{"ls", "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin"});
       pro.waitFor();
       InputStream in = pro.getInputStream();
       BufferedReader read = new BufferedReader(new InputStreamReader(in));
