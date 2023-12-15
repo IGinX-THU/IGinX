@@ -394,7 +394,7 @@ public class NewSessionIT {
     String clientPath = "../client/target/iginx-client-*/sbin/start_cli.sh";
     try {
       Runtime.getRuntime().exec(new String[]{"chmod", "+x", "../.."});
-      Process pro = Runtime.getRuntime().exec(new String[]{"ls", "../client/target/iginx-client-*/sbin"});
+      Process pro = Runtime.getRuntime().exec(new String[]{"ls", "../client"});
       pro.waitFor();
       InputStream in = pro.getInputStream();
       BufferedReader read = new BufferedReader(new InputStreamReader(in));
