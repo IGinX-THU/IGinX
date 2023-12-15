@@ -728,7 +728,7 @@ public class StatementExecutor {
     }
 
     if (stream == null) {
-      setEmptyQueryResp(ctx);
+      setEmptyQueryResp(ctx, new ArrayList<>());
       return;
     }
 
