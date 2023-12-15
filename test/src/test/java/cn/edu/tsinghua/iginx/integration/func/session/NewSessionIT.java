@@ -21,7 +21,10 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -388,8 +391,15 @@ public class NewSessionIT {
 
   @Test
   public void testCancelClient() {
-    String clientPath = "../client/target/iginx-client-*/sbin/start_cli.sh";
+    String clientPath = "../../client/target/iginx-client-*/sbin/start_cli.sh";
     try {
+      Process pro = Runtime.getRuntime().exec(new String[]{"pwd"});
+      pro.waitFor();
+      InputStream in = pro.getInputStream();
+      BufferedReader read = new BufferedReader(new InputStreamReader(in));
+      String dir = read.readLine();
+      logger.info("current dir: " + dir);
+
       List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
 
