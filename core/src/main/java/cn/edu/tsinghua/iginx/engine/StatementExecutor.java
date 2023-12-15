@@ -676,12 +676,12 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void setEmptyQueryResp(RequestContext ctx) {
+  private void setEmptyQueryResp(RequestContext ctx, List<String> paths) {
     Result result = new Result(RpcUtils.SUCCESS);
     result.setKeys(new Long[0]);
     result.setValuesList(new ArrayList<>());
     result.setBitmapList(new ArrayList<>());
-    result.setPaths(new ArrayList<>());
+    result.setPaths(paths);
     ctx.setResult(result);
   }
 
@@ -774,7 +774,7 @@ public class StatementExecutor {
     }
 
     if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx);
+      setEmptyQueryResp(ctx, paths);
       return;
     }
 
