@@ -398,13 +398,14 @@ public class NewSessionIT {
 
       // start a client
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
-      Process p = Runtime.getRuntime().exec(new String[] {"nohup", clientPath, "&"});
-      InputStream in = p.getInputStream();
-      BufferedReader r = new BufferedReader(new InputStreamReader(in));
-      String line = null;
-      while ((line = r.readLine()) != null) {
-        logger.info(line);
-      }
+      ProcessBuilder pb = new ProcessBuilder("nohup", clientPath, "&");
+      Process p = pb.start();
+//      InputStream in = p.getInputStream();
+//      BufferedReader r = new BufferedReader(new InputStreamReader(in));
+//      String line = null;
+//      while ((line = r.readLine()) != null) {
+//        logger.info(line);
+//      }
 
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
