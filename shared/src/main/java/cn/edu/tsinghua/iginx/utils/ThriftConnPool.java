@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.utils;
 
+import java.util.Map;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -32,7 +33,16 @@ public class ThriftConnPool {
   private final long idleTimeout = 60 * 10000L;
 
   public ThriftConnPool(String ip, int port) {
-    this(ip, port, DEFAULT_MAX_SIZE);
+    this(ip, port, MAX_WAIT_TIME);
+  }
+
+  public ThriftConnPool(String ip, int port, Map<String, String> extraParams) {
+    this(
+        ip,
+        port,
+        extraParams.containsKey("thrift_timeout")
+            ? Integer.parseInt(extraParams.get("thrift_timeout"))
+            : MAX_WAIT_TIME);
   }
 
   public ThriftConnPool(String ip, int port, int maxSize) {
