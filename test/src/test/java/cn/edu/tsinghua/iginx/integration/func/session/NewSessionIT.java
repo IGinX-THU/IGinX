@@ -397,8 +397,9 @@ public class NewSessionIT {
       logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
 
       // start a client
+      Runtime.getRuntime().exec(new String[] {"chmod", "+x", ".."});
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
-      ProcessBuilder pb = new ProcessBuilder("nohup", clientPath, "&");
+      ProcessBuilder pb = new ProcessBuilder("sudo", "nohup", clientPath, "&");
       Process p = pb.start();
 //      InputStream in = p.getInputStream();
 //      BufferedReader r = new BufferedReader(new InputStreamReader(in));
