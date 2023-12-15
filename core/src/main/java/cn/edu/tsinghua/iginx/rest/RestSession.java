@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
+import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
@@ -161,8 +162,7 @@ public class RestSession {
       }
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
-      if (status.message.contains(
-          "Caution: Unable to delete data from read-only node. Data from non-read-only nodes has been cleared.")) {
+      if (status.message.contains(GlobalConstant.CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(status.message);
         return;
       }
@@ -407,8 +407,7 @@ public class RestSession {
       }
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
-      if (status.message.contains(
-          "Caution: Unable to delete data from read-only node. Data from non-read-only nodes has been cleared.")) {
+      if (status.message.contains(GlobalConstant.CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(status.message);
         return;
       }

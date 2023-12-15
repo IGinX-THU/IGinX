@@ -85,7 +85,7 @@ public class TagIT {
     try {
       res = session.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DATA_EXCEPTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());

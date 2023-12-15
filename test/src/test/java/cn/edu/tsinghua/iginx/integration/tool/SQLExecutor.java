@@ -48,7 +48,7 @@ public class SQLExecutor {
     try {
       res = conn.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DATA_EXCEPTION)) {
         logger.warn(CLEAR_DATA_WARNING);
         return "";
       } else {

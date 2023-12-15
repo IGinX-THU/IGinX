@@ -4,6 +4,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUti
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintCheckerManager;
 import cn.edu.tsinghua.iginx.engine.logical.generator.DeleteGenerator;
@@ -695,8 +696,7 @@ public class StatementExecutor {
       case DELETE:
         DeleteStatement deleteStatement = (DeleteStatement) statement;
         if (deleteStatement.isInvolveDummyData()) {
-          throw new ExecutionException(
-              "Caution: Unable to delete data from read-only node. Data from non-read-only nodes has been cleared.");
+          throw new ExecutionException(GlobalConstant.CLEAR_DUMMY_DATA_CAUTION);
         } else {
           ctx.setResult(new Result(RpcUtils.SUCCESS));
         }

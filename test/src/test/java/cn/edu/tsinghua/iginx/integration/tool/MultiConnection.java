@@ -139,7 +139,7 @@ public class MultiConnection {
         sessionPool.deleteColumns(paths, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DATA_EXCEPTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
@@ -223,7 +223,7 @@ public class MultiConnection {
         sessionPool.deleteDataInColumns(paths, startKey, endKey, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DATA_EXCEPTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
