@@ -826,28 +826,28 @@ public class InfluxDBStorage implements IStorage {
       Map<String, List<String>> fieldMap = new HashMap<>();
       getAllPathFromFilterWithWildCards(filter, fieldMap);
 
-      if (fieldMap.isEmpty()) {
-        return noWildCardStatement;
-      }
-
-      for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
-        if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
-          continue;
-        }
-        String tableMeasurement = mtfEntry.getKey();
-        List<String> tableFields = mtfEntry.getValue();
-        for (String tableField : tableFields) {
-          for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
-            String path = entry.getKey();
-            InfluxDBSchema schema = new InfluxDBSchema(path);
-            String measurement = schema.getMeasurement();
-            String field = schema.getField();
-            if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
-              List<String> fields = entry.getValue();
-              String fieldRegex = "^" + StringUtils.reformatPath(field) + "$";
-              if (Pattern.matches(fieldRegex, tableField)) {
-                if (fields == null) {
-                  fields = new ArrayList<>();
+      if (!fieldMap.isEmpty()) {
+        for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
+          if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
+            continue;
+          }
+          String tableMeasurement = mtfEntry.getKey();
+          List<String> tableFields = mtfEntry.getValue();
+          for (String tableField : tableFields) {
+            for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
+              String path = entry.getKey();
+              InfluxDBSchema schema = new InfluxDBSchema(path);
+              String measurement = schema.getMeasurement();
+              String field = schema.getField();
+              if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
+                List<String> fields = entry.getValue();
+                String fieldRegex = "^" + StringUtils.reformatPath(field) + "$";
+                if (Pattern.matches(fieldRegex, tableField)) {
+                  if (fields == null) {
+                    fields = new ArrayList<>();
+                  }
+                  fields.add(tableField);
+                  entry.setValue(fields);
                 }
               }
             }
