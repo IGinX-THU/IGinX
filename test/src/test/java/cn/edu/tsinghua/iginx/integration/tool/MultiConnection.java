@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.fail;
 
@@ -139,7 +140,7 @@ public class MultiConnection {
         sessionPool.deleteColumns(paths, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().contains(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
@@ -223,7 +224,7 @@ public class MultiConnection {
         sessionPool.deleteDataInColumns(paths, startKey, endKey, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().contains(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
