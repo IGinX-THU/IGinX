@@ -2,8 +2,6 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;
 
@@ -360,21 +358,27 @@ public class NewSessionIT {
   @Test
   public void testCancelSession() {
     try {
-      List<Long> sessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
-      assertNotNull(sessionIDs);
-      assertEquals(1, sessionIDs.size());
-      long beforeSessionId = sessionIDs.get(0);
+      List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
+      List<Long> sessionIDs = conn.getSessionIDs();
+      for (long beforeSessionID : sessionIDs) {
+        if (!existsSessionIDs.contains(beforeSessionID)) {
+          logger.error("Server session_id_list does not contain client session id");
+          fail();
+        }
+      }
 
       conn.closeSession();
       conn.openSession();
 
       sessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
-      assertNotNull(sessionIDs);
-      assertEquals(1, sessionIDs.size());
-      long afterSessionId = sessionIDs.get(0);
-      assertNotEquals(beforeSessionId, afterSessionId);
+      for (long beforeSessionID : sessionIDs) {
+        if (existsSessionIDs.contains(beforeSessionID)) {
+          logger.error("Server session_id_list still contains before client session id");
+          fail();
+        }
+      }
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
+      logger.error("execute query session id failed.");
       fail();
     }
   }
