@@ -409,6 +409,7 @@ public class NewSessionIT {
 
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
+      logger.info("exit value: " + p.exitValue());
 
       List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
