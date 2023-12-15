@@ -21,10 +21,7 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -393,31 +390,14 @@ public class NewSessionIT {
   public void testCancelClient() {
     String clientPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
     try {
-      Runtime.getRuntime().exec(new String[]{"chmod", "+x", "../.."});
-      Process pro = Runtime.getRuntime().exec(new String[]{"ls", "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin"});
-      pro.waitFor();
-      InputStream in = pro.getInputStream();
-      BufferedReader read = new BufferedReader(new InputStreamReader(in));
-      String out = read.readLine();
-      while (out != null) {
-        logger.info(out);
-        out = read.readLine();
-      }
-
       List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
 
       // start a client
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
-      Process p = Runtime.getRuntime().exec(new String[] {"sh", clientPath});
-      p.waitFor();
-      in = p.getInputStream();
-      read = new BufferedReader(new InputStreamReader(in));
-      out = read.readLine();
-      while (out != null) {
-        logger.info(out);
-        out = read.readLine();
-      }
+      Process p =
+          Runtime.getRuntime()
+              .exec(new String[] {"nohup", clientPath, ">", "iginx-client.log", "2>&1", "&"});
 
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
