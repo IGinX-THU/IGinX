@@ -23,8 +23,8 @@ public class RuleCollection {
 
   private RuleCollection() {
     // add rules here
-    addRule(FilterJoinTransposeRule.getInstance());
     addRule(RemoveNotRule.getInstance());
+    addRule(FilterFragmentRule.getInstance());
   }
 
   public void addRule(Rule rule) {

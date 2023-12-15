@@ -89,10 +89,10 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/queryOptimizer=remove_not,filter_fragment/queryOptimizer=remove_not,filter_fragment,filter_push_down/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/queryOptimizer=rbo/queryOptimizer=rbo,filter_push_down/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/queryOptimizer=remove_not,filter_fragment/queryOptimizer=remove_not,filter_fragment,filter_push_down/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/queryOptimizer=rbo/queryOptimizer=rbo,filter_push_down/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
