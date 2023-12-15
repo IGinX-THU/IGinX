@@ -40,9 +40,8 @@ public class ThriftConnPool {
     this(
         ip,
         port,
-        extraParams.containsKey("thrift_timeout")
-            ? Integer.parseInt(extraParams.get("thrift_timeout"))
-            : MAX_WAIT_TIME);
+        Integer.parseInt(
+            extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))));
   }
 
   public ThriftConnPool(String ip, int port, int maxSize) {
