@@ -22,6 +22,7 @@ public enum FilterType {
   Key,
   Value,
   Path,
+  Expr,
   Bool, // holder
 
   And,
@@ -29,7 +30,7 @@ public enum FilterType {
   Not;
 
   public static boolean isLeafFilter(FilterType filterType) {
-    return filterType == Key || filterType == Value || filterType == Path;
+    return filterType == Key || filterType == Value || filterType == Path || filterType == Expr;
   }
 
   public static boolean isCompoundFilter(FilterType filterType) {

@@ -116,13 +116,13 @@ andExpression
    ;
 
 predicate
-   : constant comparisonOperator constant
-   | (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
    | path stringLikeOperator regex = stringLiteral
    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
+   | expression comparisonOperator expression
    ;
 
 predicateWithSubquery
