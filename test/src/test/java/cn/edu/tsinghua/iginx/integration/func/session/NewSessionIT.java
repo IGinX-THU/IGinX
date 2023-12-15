@@ -21,7 +21,10 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -395,9 +398,13 @@ public class NewSessionIT {
 
       // start a client
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
-      Process p =
-          Runtime.getRuntime()
-              .exec(new String[] {"nohup", clientPath, ">", "iginx-client.log", "2>&1", "&"});
+      Process p = Runtime.getRuntime().exec(new String[] {"nohup", clientPath, "&"});
+      InputStream in = p.getInputStream();
+      BufferedReader r = new BufferedReader(new InputStreamReader(in));
+      String line = null;
+      while ((line = r.readLine()) != null) {
+        logger.info(line);
+      }
 
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
