@@ -358,11 +358,12 @@ public class NewSessionIT {
   @Test
   public void testCancelSession() {
     try {
-      List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
       List<Long> sessionIDs = conn.getSessionIDs();
-      for (long beforeSessionID : sessionIDs) {
-        if (!existsSessionIDs.contains(beforeSessionID)) {
-          logger.error("Server session_id_list does not contain client session id");
+
+      List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
+      for (long sessionID : sessionIDs) {
+        if (!existsSessionIDs.contains(sessionID)) {
+          logger.error("Server session_id_list does not contain current client session id");
           fail();
         }
       }
@@ -370,9 +371,9 @@ public class NewSessionIT {
       conn.closeSession();
       conn.openSession();
 
-      sessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
-      for (long beforeSessionID : sessionIDs) {
-        if (existsSessionIDs.contains(beforeSessionID)) {
+      existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
+      for (long sessionID : sessionIDs) {
+        if (existsSessionIDs.contains(sessionID)) {
           logger.error("Server session_id_list still contains before client session id");
           fail();
         }

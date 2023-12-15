@@ -53,7 +53,7 @@ public class SessionPool {
   // whether the queue is closed.
   private boolean closed;
 
-  private List<Long> sessionIDs = new ArrayList<>();
+  private final List<Long> sessionIDs = new ArrayList<>();
 
   public SessionPool(String host, int port) {
     this(host, port, USERNAME, PASSWORD, MAXSIZE);
@@ -406,6 +406,7 @@ public class SessionPool {
         logger.warn(CLOSE_THE_SESSION_FAILED, e);
       }
     }
+    sessionIDs.clear();
     logger.info("closing the session pool, cleaning queues...");
     this.closed = true;
     for (ConcurrentLinkedDeque<Session> sessionsQueue : queueList) {
