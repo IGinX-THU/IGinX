@@ -397,25 +397,24 @@ public class NewSessionIT {
       logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
 
       // start a client
-      Runtime.getRuntime().exec(new String[] {"chmod", "+x", ".."});
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
-      ProcessBuilder pb = new ProcessBuilder("sudo", "nohup", clientPath, "&");
+      ProcessBuilder pb = new ProcessBuilder("bash", "-c", clientPath);
       Process p = pb.start();
 
-      // 读取命令执行结果
+      // print std output
       InputStream inputStream = p.getInputStream();
       BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
       String line;
       while ((line = reader.readLine()) != null) {
-        System.out.println(line);
+        logger.info(line);
       }
 
-      // 读取命令错误信息
+      // print err output
       InputStream errorStream = p.getErrorStream();
       BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream));
       String error;
       while ((error = errorReader.readLine()) != null) {
-        System.err.println(error);
+        logger.error(error);
       }
 
       int code = p.waitFor();
