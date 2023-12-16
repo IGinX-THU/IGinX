@@ -365,7 +365,7 @@ public class NewSessionIT {
       List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
       for (long sessionID : sessionIDs) {
         if (!existsSessionIDs.contains(sessionID)) {
-          logger.error("Server session_id_list does not contain current client session id");
+          logger.error("server session_id_list does not include an active session ID.");
           fail();
         }
       }
@@ -376,7 +376,7 @@ public class NewSessionIT {
       existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
       for (long sessionID : sessionIDs) {
         if (existsSessionIDs.contains(sessionID)) {
-          logger.error("Server session_id_list still contains before client session id");
+          logger.error("the ID for a closed session is still in the server session_id_list.");
           fail();
         }
       }
@@ -400,8 +400,9 @@ public class NewSessionIT {
 
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
-      if (!p.isAlive()) {
+      if (!p.isAlive()) { // fail to start a client.
         logger.info("exit value: " + p.exitValue());
+        fail();
       }
 
       List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
