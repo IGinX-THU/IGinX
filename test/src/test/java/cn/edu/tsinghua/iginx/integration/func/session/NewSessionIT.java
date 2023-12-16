@@ -21,10 +21,7 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -401,26 +398,11 @@ public class NewSessionIT {
       ProcessBuilder pb = new ProcessBuilder("bash", "-c", clientPath);
       Process p = pb.start();
 
-      // print std output
-      InputStream inputStream = p.getInputStream();
-      BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        logger.info(line);
-      }
-
-      // print err output
-      InputStream errorStream = p.getErrorStream();
-      BufferedReader errorReader = new BufferedReader(new InputStreamReader(errorStream));
-      String error;
-      while ((error = errorReader.readLine()) != null) {
-        logger.error(error);
-      }
-
-      int code = p.waitFor();
       Thread.sleep(3000);
       logger.info("client is alive: " + p.isAlive());
-      logger.info("exit value: " + code);
+      if (!p.isAlive()) {
+        logger.info("exit value: " + p.exitValue());
+      }
 
       List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
