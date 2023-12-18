@@ -825,66 +825,66 @@ public class InfluxDBStorage implements IStorage {
       return "";
     }
 
-    String noWildCardStatement =
-        " |> filter(fn: (r) => " + FilterTransformer.toString(filter) + ")";
+    String filterStr = FilterTransformer.toString(filter);
 
     // 检查语句中是否存在*通配符，如果存在需要手动解析
     if (filter.toString().contains("*")) {
       Map<String, List<String>> fieldMap = new HashMap<>();
       getAllPathFromFilterWithWildCards(filter, fieldMap);
 
-      if (fieldMap.isEmpty()) {
-        return noWildCardStatement;
-      }
-
-      for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
-        if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
-          continue;
-        }
-        String tableMeasurement = mtfEntry.getKey();
-        List<String> tableFields = mtfEntry.getValue();
-        for (String tableField : tableFields) {
-          for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
-            String path = entry.getKey();
-            InfluxDBSchema schema = new InfluxDBSchema(path);
-            String measurement = schema.getMeasurement();
-            String field = schema.getField();
-            if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
-              List<String> fields = entry.getValue();
-              String fieldRegex = "^" + StringUtils.reformatPath(field) + "$";
-              if (Pattern.matches(fieldRegex, tableField)) {
-                if (fields == null) {
-                  fields = new ArrayList<>();
+      if (!fieldMap.isEmpty()) {
+        for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
+          if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
+            continue;
+          }
+          String tableMeasurement = mtfEntry.getKey();
+          List<String> tableFields = mtfEntry.getValue();
+          for (String tableField : tableFields) {
+            for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
+              String path = entry.getKey();
+              InfluxDBSchema schema = new InfluxDBSchema(path);
+              String measurement = schema.getMeasurement();
+              String field = schema.getField();
+              if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
+                List<String> fields = entry.getValue();
+                String fieldRegex = "^" + StringUtils.reformatPath(field) + "$";
+                if (Pattern.matches(fieldRegex, tableField)) {
+                  if (fields == null) {
+                    fields = new ArrayList<>();
+                  }
+                  fields.add(tableField);
+                  entry.setValue(fields);
                 }
-                fields.add(tableField);
-                entry.setValue(fields);
               }
             }
           }
         }
+
+        // 根据通配符对应的字段生成filter语句
+        Filter matchFilter = filter.copy();
+        for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
+          matchFilter = generateFilterByWildCardEntry(matchFilter, entry);
+        }
+
+        if (measurementName != null) {
+          matchFilter = setTrueByMeasurement(matchFilter, measurementName);
+        }
+
+        matchFilter = ExprUtils.mergeTrue(matchFilter);
+
+        if (matchFilter.getType() == FilterType.Bool) {
+          return "";
+        }
+
+        filterStr = FilterTransformer.toString(matchFilter);
       }
-
-      // 根据通配符对应的字段生成filter语句
-      Filter matchFilter = filter.copy();
-      for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
-        matchFilter = generateFilterByWildCardEntry(matchFilter, entry);
-      }
-
-      if (measurementName != null) {
-        matchFilter = setTrueByMeasurement(matchFilter, measurementName);
-      }
-
-      matchFilter = ExprUtils.mergeTrue(matchFilter);
-
-      if (matchFilter.getType() == FilterType.Bool) {
-        return "";
-      }
-
-      return " |> filter(fn: (r) => " + FilterTransformer.toString(matchFilter) + ")";
     }
 
     // 没有通配符则直接返回正常拼接的语句
-    return noWildCardStatement;
+    if (filterStr.isEmpty()) {
+      return "";
+    }
+    return " |> filter(fn: (r) => " + filterStr + ")";
   }
 
   private Map<String, List<String>> getMeasurementToFields(String bucketName) {
