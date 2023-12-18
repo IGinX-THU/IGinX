@@ -531,6 +531,11 @@ public class InfluxDBStorage implements IStorage {
       }
 
       Map<String, List<String>> measurementToFieldsMap = getMeasurementToFields(bucketName);
+      // pivot、union的结果不一定会按照时间顺序排列，需要增加一个sort操作
+      String pivotFormat =
+          " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
+              + " %s"
+              + " |> sort(columns: [\"_time\"], desc: false)";
       if (filterHasMeasurementWildCards(filter) || patternHasMeasurementWildCards) {
         String prefix = statement;
         StringBuilder statementBuilder = new StringBuilder();
@@ -538,9 +543,9 @@ public class InfluxDBStorage implements IStorage {
         for (Map.Entry<String, List<String>> entry : measurementToFieldsMap.entrySet()) {
           String measurement = entry.getKey();
           String pivotStr =
-              " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
-                  + generateFilterStatement(
-                      bucketName, measurement, filter, measurementToFieldsMap);
+              String.format(
+                  pivotFormat,
+                  generateFilterStatement(bucketName, measurement, filter, measurementToFieldsMap));
           statementBuilder
               .append("t")
               .append(index)
@@ -568,8 +573,9 @@ public class InfluxDBStorage implements IStorage {
 
       } else {
         String pivotStr =
-            " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
-                + generateFilterStatement(bucketName, null, filter, measurementToFieldsMap);
+            String.format(
+                pivotFormat,
+                generateFilterStatement(bucketName, null, filter, measurementToFieldsMap));
 
         statement += pivotStr;
       }
