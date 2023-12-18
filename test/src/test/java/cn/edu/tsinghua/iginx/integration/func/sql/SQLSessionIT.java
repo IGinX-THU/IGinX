@@ -570,6 +570,138 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testExprFilter() {
+    String insert =
+        "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
+    executor.execute(insert);
+
+    String statement = "SELECT * FROM test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     1|     1|\n"
+            + "|  2|     2|     1|\n"
+            + "|  3|     2|     2|\n"
+            + "|  4|     3|     1|\n"
+            + "|  5|     3|     2|\n"
+            + "|  6|     3|     1|\n"
+            + "|  7|     4|     1|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "| 10|     4|     1|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM test WHERE 1 < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     1|     1|\n"
+            + "|  2|     2|     1|\n"
+            + "|  3|     2|     2|\n"
+            + "|  4|     3|     1|\n"
+            + "|  5|     3|     2|\n"
+            + "|  6|     3|     1|\n"
+            + "|  7|     4|     1|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "| 10|     4|     1|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM test WHERE 1 > 2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "+---+------+------+\n"
+            + "Empty set.\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM test WHERE a = b + 1;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  2|     2|     1|\n"
+            + "|  5|     3|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM test WHERE a + b - 2 > a - b + 1;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  3|     2|     2|\n"
+            + "|  5|     3|     2|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT * FROM test WHERE (a + b) / 2 + 6 > (a - b) * 2.5 + 3;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     1|     1|\n"
+            + "|  2|     2|     1|\n"
+            + "|  3|     2|     2|\n"
+            + "|  5|     3|     2|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT * FROM test WHERE a + b - 2 > a - b + 1 and (a + b) / 2 + 6 > (a - b) * 2.5 + 3;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  3|     2|     2|\n"
+            + "|  5|     3|     2|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT * FROM test WHERE a + b - 2 > a - b + 1 or (a + b) / 2 + 6 > (a - b) * 2.5 + 3;";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     1|     1|\n"
+            + "|  2|     2|     1|\n"
+            + "|  3|     2|     2|\n"
+            + "|  5|     3|     2|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testDistinct() {
     String insert =
         "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
@@ -4783,7 +4915,13 @@ public class SQLSessionIT {
 
     query =
         "SELECT * FROM test WHERE EXISTS (SELECT * FROM (SHOW COLUMNS us.*) WHERE type = \"BOOLEAN\");";
-    expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
+    expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "+---+------+------+------+------+\n"
+            + "Empty set.\n";
     executor.executeAndCompare(query, expected);
   }
 
@@ -5223,7 +5361,7 @@ public class SQLSessionIT {
 
     // IGinX SQL 路径中支持的合法字符
     String insert =
-        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
+        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~\\^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
     executor.execute(insert);
 
     String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
@@ -5254,16 +5392,16 @@ public class SQLSessionIT {
             + "Total line number = 3\n";
     executor.executeAndCompare(query, expected);
 
-    query = "SELECT _:@#$~^{}, _:@#$~^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~^;";
+    query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
     expected =
         "ResultSets:\n"
-            + "+---+-------------------+-----------------+\n"
-            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~^|\n"
-            + "+---+-------------------+-----------------+\n"
-            + "|  1|                  1|                2|\n"
-            + "|  2|                  2|                3|\n"
-            + "|  3|                  3|                4|\n"
-            + "+---+-------------------+-----------------+\n"
+            + "+---+-------------------+------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
+            + "+---+-------------------+------------------+\n"
+            + "|  1|                  1|                 2|\n"
+            + "|  2|                  2|                 3|\n"
+            + "|  3|                  3|                 4|\n"
+            + "+---+-------------------+------------------+\n"
             + "Total line number = 3\n";
     executor.executeAndCompare(query, expected);
   }
@@ -5330,10 +5468,6 @@ public class SQLSessionIT {
     errClause = "SELECT 1 * 2 FROM test;";
     executor.executeAndCompareErrMsg(
         errClause, "SELECT constant arithmetic expression isn't supported yet.");
-
-    errClause = "SELECT * FROM test WHERE 1 < 2;";
-    executor.executeAndCompareErrMsg(
-        errClause, "Constant comparison isn't supported in WHERE clause yet.");
 
     errClause = "select * from (show columns a.*), (show columns b.*);";
     executor.executeAndCompareErrMsg(

@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;

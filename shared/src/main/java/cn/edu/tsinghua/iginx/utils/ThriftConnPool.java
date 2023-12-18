@@ -1,27 +1,24 @@
 package cn.edu.tsinghua.iginx.utils;
 
-import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.Map;
+import org.apache.commons.pool2.PooledObject;
+import org.apache.commons.pool2.PooledObjectFactory;
+import org.apache.commons.pool2.impl.DefaultPooledObject;
+import org.apache.commons.pool2.impl.GenericObjectPool;
+import org.apache.commons.pool2.impl.GenericObjectPoolConfig;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
-import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ThriftConnPool {
   private static final Logger logger = LoggerFactory.getLogger(ThriftConnPool.class);
 
-  private final ConcurrentLinkedDeque<TTransport> availableTransportQueue =
-      new ConcurrentLinkedDeque<>();
-
-  private static int size;
-
-  private final int max_size;
+  private final int maxSize;
 
   private static final int DEFAULT_MAX_SIZE = 100;
 
-  private static final long WAIT_TIME = 1000;
-
-  private static final long MAX_WAIT_TIME = 30_000;
+  private static final int MAX_WAIT_TIME = 30000;
 
   private boolean closed = false;
 
@@ -29,121 +26,112 @@ public class ThriftConnPool {
 
   private final int port;
 
+  private GenericObjectPool<TTransport> pool;
+
+  private final long idleTimeout = 60 * 10000L;
+
   public ThriftConnPool(String ip, int port) {
-    this(ip, port, DEFAULT_MAX_SIZE);
+    this(ip, port, DEFAULT_MAX_SIZE, MAX_WAIT_TIME);
   }
 
-  public ThriftConnPool(String ip, int port, int max_size) {
+  public ThriftConnPool(String ip, int port, Map<String, String> extraParams) {
+    this(
+        ip,
+        port,
+        DEFAULT_MAX_SIZE,
+        Integer.parseInt(
+            extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))));
+  }
+
+  public ThriftConnPool(String ip, int port, int maxSize, int maxWaitTime) {
     this.ip = ip;
     this.port = port;
-    this.max_size = max_size;
-    size = 0;
+    this.maxSize = maxSize;
+
+    GenericObjectPoolConfig<TTransport> poolConfig = new GenericObjectPoolConfig<>();
+    poolConfig.setMaxTotal(maxSize);
+    poolConfig.setMinEvictableIdleTimeMillis(idleTimeout); // 设置空闲连接的超时时间
+
+    TSocketFactory socketFactory = new TSocketFactory(ip, port, maxWaitTime);
+    pool = new GenericObjectPool<>(socketFactory, poolConfig);
   }
 
-  public TTransport borrowAndOpenTransport() {
+  public TTransport borrowTransport() {
     try {
-      TTransport transport = borrowTransport();
-      if (transport != null && !transport.isOpen()) {
-        transport.open();
-      }
-      return transport;
-    } catch (TTransportException e) {
-      logger.error("creating new connection failed:" + e);
+      return pool.borrowObject();
+    } catch (Exception e) {
+      logger.error("borrowing connection failed:" + e);
       return null;
     }
-  }
-
-  private TTransport borrowTransport() {
-    if (isClosed()) {
-      logger.error("client pool closed.");
-      return null;
-    }
-    TTransport transport = availableTransportQueue.poll();
-    if (transport != null) {
-      return transport;
-    }
-
-    boolean canCreate = false;
-    synchronized (this) {
-      if (size < this.max_size) {
-        canCreate = true;
-      }
-    }
-
-    if (canCreate) {
-      try {
-        if (isClosed()) {
-          logger.error("connection pool closed.");
-          return null;
-        }
-        transport = newTransport();
-      } catch (TTransportException e) {
-        logger.error("creating new connection failed:" + e);
-        return null;
-      }
-      synchronized (this) {
-        size++;
-      }
-    } else {
-      long startTime = System.currentTimeMillis();
-      while (transport == null) {
-        synchronized (this) {
-          if (isClosed()) {
-            logger.error("connection pool closed.");
-            return null;
-          }
-          try {
-            this.wait(WAIT_TIME);
-            if (System.currentTimeMillis() - startTime > MAX_WAIT_TIME) {
-              logger.error("time out for connection.");
-              return null;
-            }
-          } catch (InterruptedException e) {
-            logger.error("the connection pool is damaged", e);
-            Thread.currentThread().interrupt();
-          }
-          transport = availableTransportQueue.poll();
-        }
-      }
-    }
-
-    return transport;
   }
 
   private synchronized boolean isClosed() {
     return closed;
   }
 
-  public void returnAndCloseTransport(TTransport transport) {
-    if (transport.isOpen()) {
-      transport.close();
-    }
+  public void returnTransport(TTransport transport) {
     if (isClosed()) {
       logger.warn("returning connection to a closed connection pool.");
       return;
     }
-    availableTransportQueue.offer(transport);
-    synchronized (this) {
-      this.notify();
-    }
-  }
-
-  private TTransport newTransport() throws TTransportException {
-    TTransport transport = new TSocket(this.ip, this.port);
-    if (!transport.isOpen()) {
-      transport.open();
-    }
-    return transport;
+    pool.returnObject(transport);
   }
 
   public void close() {
     logger.info("closing connection pool...");
-    for (TTransport transport : availableTransportQueue) {
-      transport.close();
+    pool.close();
+    closed = true;
+  }
+
+  public static class TSocketFactory implements PooledObjectFactory<TTransport> {
+    private final String ip;
+    private final int port;
+
+    private final int maxWaitTime; // 连接超时时间（毫秒）
+
+    public TSocketFactory(String ip, int port, int maxWaitTime) {
+      this.ip = ip;
+      this.port = port;
+      this.maxWaitTime = maxWaitTime;
     }
-    synchronized (this) {
-      closed = true;
-      availableTransportQueue.clear();
+
+    @Override
+    public PooledObject<TTransport> makeObject() throws Exception {
+      TTransport transport = new TSocket(ip, port, maxWaitTime);
+      transport.open();
+      return new DefaultPooledObject<>(transport);
+    }
+
+    @Override
+    public void destroyObject(PooledObject<TTransport> pooledObject) throws Exception {
+      TTransport transport = pooledObject.getObject();
+      if (transport != null && transport.isOpen()) {
+        transport.close();
+      }
+    }
+
+    @Override
+    public boolean validateObject(PooledObject<TTransport> pooledObject) {
+      TTransport transport = pooledObject.getObject();
+      return transport != null && transport.isOpen();
+    }
+
+    @Override
+    public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {
+      TTransport transport = pooledObject.getObject();
+      if (transport == null) {
+        TTransport newTransport = new TSocket(ip, port, maxWaitTime);
+        newTransport.open();
+        pooledObject = new DefaultPooledObject<>(newTransport);
+      } else if (!transport.isOpen()) {
+        transport.open();
+      }
+    }
+
+    @Override
+    public void passivateObject(PooledObject<TTransport> pooledObject) throws Exception {
+      TTransport transport = pooledObject.getObject();
+      transport.close();
     }
   }
 }

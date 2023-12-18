@@ -23,7 +23,6 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
@@ -52,9 +51,19 @@ public class FilterTransformer {
   }
 
   private static String toString(AndFilter filter) {
-    return filter.getChildren().stream()
-        .map(FilterTransformer::toString)
-        .collect(Collectors.joining(" and ", "(", ")"));
+    StringBuilder sb = new StringBuilder();
+    for (Filter child : filter.getChildren()) {
+      String filterStr = toString(child);
+      if (!filterStr.isEmpty()) {
+        sb.append(toString(child)).append(" and ");
+      }
+    }
+
+    if (sb.length() == 0) {
+      return "";
+    }
+
+    return "(" + sb.substring(0, sb.length() - 4) + ")";
   }
 
   private static String toString(BoolFilter filter) {
@@ -93,9 +102,19 @@ public class FilterTransformer {
   }
 
   private static String toString(OrFilter filter) {
-    return filter.getChildren().stream()
-        .map(FilterTransformer::toString)
-        .collect(Collectors.joining(" or ", "(", ")"));
+    StringBuilder sb = new StringBuilder();
+    for (Filter child : filter.getChildren()) {
+      String filterStr = toString(child);
+      if (!filterStr.isEmpty()) {
+        sb.append(toString(child)).append(" or ");
+      }
+    }
+
+    if (sb.length() == 0) {
+      return "";
+    }
+
+    return "(" + sb.substring(0, sb.length() - 4) + ")";
   }
 
   private static String toString(PathFilter filter) {

@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.sql.expression;
+package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 public interface Expression {
 

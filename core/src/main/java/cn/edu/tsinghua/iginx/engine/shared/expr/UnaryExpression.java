@@ -1,17 +1,23 @@
-package cn.edu.tsinghua.iginx.sql.expression;
+package cn.edu.tsinghua.iginx.engine.shared.expr;
 
-public class BracketExpression implements Expression {
+public class UnaryExpression implements Expression {
 
+  private final Operator operator;
   private final Expression expression;
   private String alias;
 
-  public BracketExpression(Expression expression) {
-    this(expression, "");
+  public UnaryExpression(Operator operator, Expression expression) {
+    this(operator, expression, "");
   }
 
-  public BracketExpression(Expression expression, String alias) {
+  public UnaryExpression(Operator operator, Expression expression, String alias) {
+    this.operator = operator;
     this.expression = expression;
     this.alias = alias;
+  }
+
+  public Operator getOperator() {
+    return operator;
   }
 
   public Expression getExpression() {
@@ -20,12 +26,12 @@ public class BracketExpression implements Expression {
 
   @Override
   public String getColumnName() {
-    return "(" + expression.getColumnName() + ")";
+    return Operator.operatorToString(operator) + " " + expression.getColumnName();
   }
 
   @Override
   public ExpressionType getType() {
-    return ExpressionType.Bracket;
+    return ExpressionType.Unary;
   }
 
   @Override

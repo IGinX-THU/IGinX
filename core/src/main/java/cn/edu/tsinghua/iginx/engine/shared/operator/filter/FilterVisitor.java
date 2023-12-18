@@ -15,4 +15,6 @@ public interface FilterVisitor {
   void visit(PathFilter filter);
 
   void visit(BoolFilter filter);
+
+  void visit(ExprFilter filter);
 }

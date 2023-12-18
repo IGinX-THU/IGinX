@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.sql;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
@@ -66,6 +67,11 @@ public class FilterVisitorTest {
     @Override
     public void visit(BoolFilter filter) {
       System.out.printf("this is bool filter: [%s]\n", filter.isTrue());
+    }
+
+    @Override
+    public void visit(ExprFilter filter) {
+      System.out.printf("this is expr filter: [%s]\n", filter.toString());
     }
   }
 }

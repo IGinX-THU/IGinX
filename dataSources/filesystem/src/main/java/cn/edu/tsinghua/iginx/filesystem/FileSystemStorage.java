@@ -66,7 +66,7 @@ public class FileSystemStorage implements IStorage {
     if (isLocal(meta)) {
       initLocalExecutor(meta);
     } else {
-      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
+      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort(), meta.getExtraParams());
     }
   }
 
