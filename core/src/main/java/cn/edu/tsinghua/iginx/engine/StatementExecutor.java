@@ -645,6 +645,12 @@ public class StatementExecutor {
       ctx.setResult(result);
       return;
     }
+
+    if (stream == null) {
+      setEmptyQueryResp(ctx, new ArrayList<>());
+      return;
+    }
+
     List<String> paths = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
     List<DataType> types = new ArrayList<>();
