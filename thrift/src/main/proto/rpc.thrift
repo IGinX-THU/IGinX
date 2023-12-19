@@ -78,7 +78,8 @@ enum SqlType {
     Compact,
     ExportCsv,
     ExportStream,
-    LoadCsv
+    LoadCsv,
+    ShowSessionID
 }
 
 enum AuthType {
@@ -376,6 +377,7 @@ struct ExecuteSqlResp {
     24: optional list<i64> jobIdList
     25: optional string configValue
     26: optional string loadCsvPath
+    27: optional list<i64> sessionIDList
 }
 
 struct UpdateUserReq {
@@ -659,6 +661,15 @@ struct RemoveHistoryDataSourceReq {
     2: required list<RemovedStorageEngineInfo> removedStorageEngineInfoList
 }
 
+struct ShowSessionIDReq {
+    1: required i64 sessionId
+}
+
+struct ShowSessionIDResp {
+    1: required Status status
+    2: required list<i64> sessionIDList
+}
+
 service IService {
 
     OpenSessionResp openSession(1: OpenSessionReq req);
@@ -730,4 +741,6 @@ service IService {
     CurveMatchResp curveMatch(1: CurveMatchReq req);
 
     DebugInfoResp debugInfo(1: DebugInfoReq req);
+
+    ShowSessionIDResp showSessionID(1: ShowSessionIDReq req);
 }

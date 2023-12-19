@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -28,6 +29,8 @@ import org.slf4j.LoggerFactory;
 public abstract class AbstractPhysicalTask implements PhysicalTask {
 
   private static final Logger logger = LoggerFactory.getLogger(AbstractPhysicalTask.class);
+
+  private final RequestContext context;
 
   private final TaskType type;
 
@@ -40,9 +43,18 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
 
   private long span = 0;
 
-  public AbstractPhysicalTask(TaskType type, List<Operator> operators) {
+  public AbstractPhysicalTask(TaskType type, List<Operator> operators, RequestContext context) {
     this.type = type;
     this.operators = operators;
+    this.context = context;
+  }
+
+  public RequestContext getContext() {
+    return context;
+  }
+
+  public long getSessionId() {
+    return context.getSessionId();
   }
 
   @Override

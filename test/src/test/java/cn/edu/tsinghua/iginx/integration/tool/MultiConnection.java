@@ -15,6 +15,8 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -230,6 +232,16 @@ public class MultiConnection {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
         fail();
       }
+    }
+  }
+
+  public List<Long> getSessionIDs() {
+    if (session != null) {
+      return Collections.singletonList(session.getSessionId());
+    } else if (sessionPool != null) {
+      return sessionPool.getSessionIDs();
+    } else {
+      return new ArrayList<>();
     }
   }
 }
