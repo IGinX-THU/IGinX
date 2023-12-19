@@ -13,7 +13,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.MetaManagerWrapper;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -80,25 +79,25 @@ public class FilterFragmentRule extends Rule {
             onlyHasProjectAndJoinByKeyAndUnionConditions.stream()
                 .anyMatch(innerCondition -> innerCondition.test(operator));
 
-    Operator selectChild = ((OperatorSource)selectOperator.getSource()).getOperator();
+    Operator selectChild = ((OperatorSource) selectOperator.getSource()).getOperator();
 
     selectChild.accept(
-            new OperatorVisitor() {
-              @Override
-              public void visit(UnaryOperator unaryOperator) {
-                res[0] = res[0] && condition.test(unaryOperator);
-              }
+        new OperatorVisitor() {
+          @Override
+          public void visit(UnaryOperator unaryOperator) {
+            res[0] = res[0] && condition.test(unaryOperator);
+          }
 
-              @Override
-              public void visit(BinaryOperator binaryOperator) {
-                res[0] = res[0] && condition.test(binaryOperator);
-              }
+          @Override
+          public void visit(BinaryOperator binaryOperator) {
+            res[0] = res[0] && condition.test(binaryOperator);
+          }
 
-              @Override
-              public void visit(MultipleOperator multipleOperator) {
-                res[0] = res[0] && condition.test(multipleOperator);
-              }
-            });
+          @Override
+          public void visit(MultipleOperator multipleOperator) {
+            res[0] = res[0] && condition.test(multipleOperator);
+          }
+        });
 
     return res[0];
   }

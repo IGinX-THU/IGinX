@@ -49,7 +49,7 @@ public class ConfigDescriptor {
   }
 
   private void loadPropsFromFile() {
-    try  {
+    try {
       InputStream in = new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE));
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 

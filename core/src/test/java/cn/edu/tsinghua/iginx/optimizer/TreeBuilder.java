@@ -106,6 +106,7 @@ public class TreeBuilder {
 
   /**
    * 这棵树会被FilterFragmentRule优化，优化前有10个Project-Fragment，优化后1个Project-Fragment。
+   *
    * @return 一棵树
    */
   public static Operator buildFilterFragmentTree() {
@@ -120,17 +121,18 @@ public class TreeBuilder {
           new StorageUnitMeta("fakeUnit" + startKey, 1, "fakeUnit" + startKey, false);
 
       String startPrefix = "test.a", endPrefix = "test.b";
-      if(startKey % 200 == 0){
+      if (startKey % 200 == 0) {
         startPrefix = "test.b";
         endPrefix = null;
       }
       FragmentMeta fragmentMeta =
-          new FragmentMeta(startPrefix, endPrefix, startKey, startKey + keyInterval, storageUnitMeta);
+          new FragmentMeta(
+              startPrefix, endPrefix, startKey, startKey + keyInterval, storageUnitMeta);
       FragmentSource fragmentSource = new FragmentSource(fragmentMeta);
       Project project = new Project(fragmentSource, Collections.singletonList("test.c"), null);
       operatorSourceQueue.add(new OperatorSource(project));
 
-      ColumnsInterval columnsInterval =new ColumnsInterval(startPrefix, endPrefix);
+      ColumnsInterval columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
       if (!fragmentsByColumnsInterval.containsKey(columnsInterval)) {
         fragmentsByColumnsInterval.put(columnsInterval, new ArrayList<>());
       }
@@ -149,21 +151,19 @@ public class TreeBuilder {
 
     Select select = new Select(operatorSourceQueue.poll(), new AndFilter(filters), null);
 
-
     // 构建MetaManagerMock
     MetaManagerMock metaManagerMock = MetaManagerMock.getInstance();
     metaManagerMock.setGetFragmentMapByColumnsIntervalMap(fragmentsByColumnsInterval);
 
-
     return new Reorder(new OperatorSource(select), Collections.singletonList("*"));
   }
 
-
   /**
    * 这棵树不会被FilterFragmentRule优化，因为Select节点的子树下包含会被FilterFragmentRule跳过的节点。
+   *
    * @return 一棵树
    */
-  public static Operator buildFilterFragmentTreeContainsInvalidOperator(){
+  public static Operator buildFilterFragmentTreeContainsInvalidOperator() {
     int keyInterval = 100;
 
     Queue<OperatorSource> operatorSourceQueue = new LinkedList<>();
@@ -172,20 +172,21 @@ public class TreeBuilder {
     // 生成Project-Fragment
     for (int startKey = 0; startKey < 400; startKey += 100) {
       StorageUnitMeta storageUnitMeta =
-              new StorageUnitMeta("fakeUnit" + startKey, 1, "fakeUnit" + startKey, false);
+          new StorageUnitMeta("fakeUnit" + startKey, 1, "fakeUnit" + startKey, false);
 
       String startPrefix = "test.a", endPrefix = "test.b";
-      if(startKey % 200 == 0){
+      if (startKey % 200 == 0) {
         startPrefix = "test.b";
         endPrefix = null;
       }
       FragmentMeta fragmentMeta =
-              new FragmentMeta(startPrefix, endPrefix, startKey, startKey + keyInterval, storageUnitMeta);
+          new FragmentMeta(
+              startPrefix, endPrefix, startKey, startKey + keyInterval, storageUnitMeta);
       FragmentSource fragmentSource = new FragmentSource(fragmentMeta);
       Project project = new Project(fragmentSource, Collections.singletonList("test.c"), null);
       operatorSourceQueue.add(new OperatorSource(project));
 
-      ColumnsInterval columnsInterval =new ColumnsInterval(startPrefix, endPrefix);
+      ColumnsInterval columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
       if (!fragmentsByColumnsInterval.containsKey(columnsInterval)) {
         fragmentsByColumnsInterval.put(columnsInterval, new ArrayList<>());
       }
@@ -204,11 +205,9 @@ public class TreeBuilder {
 
     Select select = new Select(operatorSourceQueue.poll(), new AndFilter(filters), null);
 
-
     // 构建MetaManagerMock
     MetaManagerMock metaManagerMock = MetaManagerMock.getInstance();
     metaManagerMock.setGetFragmentMapByColumnsIntervalMap(fragmentsByColumnsInterval);
-
 
     return new Reorder(new OperatorSource(select), Collections.singletonList("*"));
   }
