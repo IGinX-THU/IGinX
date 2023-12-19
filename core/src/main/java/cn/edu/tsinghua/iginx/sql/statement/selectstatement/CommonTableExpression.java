@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.sql.SQLConstant;
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
