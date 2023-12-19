@@ -24,6 +24,8 @@ import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
+
+import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -395,7 +397,12 @@ public class NewSessionIT {
 
       // start a client
       Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
-      ProcessBuilder pb = new ProcessBuilder("bash", "-c", clientPath);
+      ProcessBuilder pb = new ProcessBuilder();
+      if (ShellRunner.isCommandOnPath("bash")) {
+        pb.command("bash", "-c", clientPath);
+      } else {
+        pb.command(ShellRunner.BASH_PATH, "-c", clientPath);
+      }
       Process p = pb.start();
 
       Thread.sleep(3000);
