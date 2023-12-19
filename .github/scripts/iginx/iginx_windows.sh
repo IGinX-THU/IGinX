@@ -16,6 +16,8 @@ echo "starting iginx on windows..."
 
 powershell -Command "Start-Process -FilePath '$batPath' -NoNewWindow -RedirectStandardOutput 'iginx-$1.log' -RedirectStandardError 'iginx-$1-error.log'"
 
+sh -c "sleep 3"
+
 log_file="iginx-$1.log"
 timeout=30
 interval=2
@@ -30,6 +32,18 @@ while [ $elapsed_time -lt $timeout ]; do
   sleep $interval
   elapsed_time=$((elapsed_time + interval))
 done
+
+echo "cat iginx-$1.log start"
+
+sh -c "cat iginx-$1.log"
+
+echo "cat iginx-$1.log end"
+
+echo "cat iginx-$1-error.log start"
+
+sh -c "cat iginx-$1-error.log"
+
+echo "cat iginx-$1-error.log end"
 
 echo "Error: IGinX failed to start"
 exit 1

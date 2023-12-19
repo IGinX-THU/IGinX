@@ -21,6 +21,8 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+
+import java.io.File;
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -390,18 +392,25 @@ public class NewSessionIT {
 
   @Test
   public void testCancelClient() {
-    String clientPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
+    String clientUnixPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
+    String clientWinPath = null;
+    try {
+      clientWinPath = new File("../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat").getCanonicalPath();
+    } catch (IOException e) {
+      logger.info("Can't find script ../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat");
+      fail();
+    }
     try {
       List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
 
       // start a client
-      Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
       ProcessBuilder pb = new ProcessBuilder();
-      if (ShellRunner.isCommandOnPath("bash")) {
-        pb.command("bash", "-c", clientPath);
+      if (ShellRunner.isOnWin()) {
+        pb.command(clientWinPath);
       } else {
-        pb.command(ShellRunner.BASH_PATH, "-c", clientPath);
+        Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientUnixPath});
+        pb.command("bash", "-c", clientUnixPath);
       }
       Process p = pb.start();
 

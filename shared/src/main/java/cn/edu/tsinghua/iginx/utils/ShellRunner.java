@@ -38,7 +38,7 @@ public class ShellRunner {
     }
   }
 
-  private boolean isOnWin() {
+  public static boolean isOnWin() {
     return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
