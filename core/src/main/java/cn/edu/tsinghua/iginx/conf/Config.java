@@ -208,6 +208,8 @@ public class Config {
 
   private int batchSizeImportCsv = 10000;
 
+  private boolean isUTTestEnv = false; // 是否是单元测试环境
+
   public int getMaxTimeseriesLength() {
     return maxTimeseriesLength;
   }
@@ -874,5 +876,13 @@ public class Config {
 
   public void setBatchSizeImportCsv(int batchSizeImportCsv) {
     this.batchSizeImportCsv = batchSizeImportCsv;
+  }
+
+  public boolean isUTTestEnv() {
+    return isUTTestEnv;
+  }
+
+  public void setUTTestEnv(boolean UTTestEnv) {
+    isUTTestEnv = UTTestEnv;
   }
 }

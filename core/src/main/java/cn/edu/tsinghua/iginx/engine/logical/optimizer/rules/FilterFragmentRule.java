@@ -15,6 +15,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
+import cn.edu.tsinghua.iginx.metadata.MetaManagerWrapper;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -38,16 +39,16 @@ public class FilterFragmentRule extends Rule {
   protected FilterFragmentRule() {
     /*
      * we want to match the topology like:
-     *          Join
-     *         /    \
-     *       Any    Any
+     *          Select
+     *            |
+     *           Any
      */
     super(operand(Select.class, any()));
   }
 
   private static final Logger logger = LoggerFactory.getLogger(FilterFragmentRule.class);
 
-  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private static final IMetaManager metaManager = MetaManagerWrapper.getInstance();
 
   private static final List<Predicate<Operator>> onlyHasProjectAndJoinByKeyAndUnionConditions =
       new ArrayList<>();
@@ -69,14 +70,7 @@ public class FilterFragmentRule extends Rule {
    */
   @Override
   public boolean matches(RuleCall call) {
-    // 因为该optimizer是针对key范围进行优化，所以如果select operator没有对key进行过滤，那么就不需要进行优化，直接返回
     Select selectOperator = (Select) call.getMatchedRoot();
-    Filter filter = selectOperator.getFilter();
-    List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(filter);
-
-    if (keyRanges.isEmpty()) {
-      return false;
-    }
 
     // 如果Select Operator的子树中包含非Project、Join(ByKey)、Union、PathUnion节点，那么无法进行优化，直接返回
     // 无法优化的情况有(1)Select Operator下含有子查询，(2)含有OUTER JOIN、INNER JOIN等会消除Key列的JOIN操作，在此排除。
@@ -86,8 +80,9 @@ public class FilterFragmentRule extends Rule {
             onlyHasProjectAndJoinByKeyAndUnionConditions.stream()
                 .anyMatch(innerCondition -> innerCondition.test(operator));
 
-    call.getMatchedRoot()
-        .accept(
+    Operator selectChild = ((OperatorSource)selectOperator.getSource()).getOperator();
+
+    selectChild.accept(
             new OperatorVisitor() {
               @Override
               public void visit(UnaryOperator unaryOperator) {

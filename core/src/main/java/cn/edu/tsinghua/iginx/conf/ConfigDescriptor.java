@@ -49,8 +49,8 @@ public class ConfigDescriptor {
   }
 
   private void loadPropsFromFile() {
-    try (InputStream in =
-        new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE))) {
+    try  {
+      InputStream in = new FileInputStream(EnvUtils.loadEnv(Constants.CONF, Constants.CONFIG_FILE));
       BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(in));
 
       Properties properties = new Properties();
@@ -231,7 +231,10 @@ public class ConfigDescriptor {
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
     } catch (IOException e) {
-      logger.error("Fail to load properties: ", e);
+      config.setUTTestEnv(true);
+      config.setNeedInitBasicUDFFunctions(false);
+      loadPropsFromEnv();
+      logger.warn("Use default config, because fail to load properties: ", e);
     }
   }
 
@@ -348,6 +351,7 @@ public class ConfigDescriptor {
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
+    config.setUTTestEnv(EnvUtils.loadEnv("ut_test_env", config.isUTTestEnv()));
   }
 
   private void loadUDFListFromFile() {
