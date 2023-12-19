@@ -429,7 +429,7 @@ public class NewSessionIT {
 
       // kill the client
       try (OutputStream os = p.getOutputStream();
-           PrintWriter writer = new PrintWriter(os, true)) {
+          PrintWriter writer = new PrintWriter(os, true)) {
         writer.println("exit;");
         writer.flush();
       }
