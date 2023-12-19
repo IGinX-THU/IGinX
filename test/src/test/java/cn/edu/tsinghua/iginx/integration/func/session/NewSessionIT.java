@@ -21,13 +21,13 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
-
+import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -395,9 +395,12 @@ public class NewSessionIT {
     String clientUnixPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
     String clientWinPath = null;
     try {
-      clientWinPath = new File("../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat").getCanonicalPath();
+      clientWinPath =
+          new File("../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat")
+              .getCanonicalPath();
     } catch (IOException e) {
-      logger.info("Can't find script ../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat");
+      logger.info(
+          "Can't find script ../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat");
       fail();
     }
     try {
@@ -425,8 +428,13 @@ public class NewSessionIT {
       logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
 
       // kill the client
+      try (OutputStream os = p.getOutputStream();
+           PrintWriter writer = new PrintWriter(os, true)) {
+        writer.println("exit;");
+        writer.flush();
+      }
       p.destroy();
-      Thread.sleep(10000);
+      Thread.sleep(3000);
 
       List<Long> sessionIDs3 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("after cancel a client, session_id_list size:" + sessionIDs3.size());

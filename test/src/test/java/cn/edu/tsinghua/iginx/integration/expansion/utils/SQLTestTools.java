@@ -129,41 +129,41 @@ public class SQLTestTools {
       processBuilder.redirectErrorStream(true);
       Process process = processBuilder.start();
 
-//      if (isOnWin) {
-//        // on windowsOS, the bash script calls a batch script to start iginx.
-//        // If waits, java will wait for the iginx process to end, which would take forever.
-//        // thus create a new process to read the output.
-//        new Thread(
-//                () -> {
-//                  try (BufferedReader reader =
-//                      new BufferedReader(new InputStreamReader(process.getInputStream()))) {
-//                    String line;
-//                    while ((line = reader.readLine()) != null) {
-//                      System.out.println(line);
-//                    }
-//                  } catch (IOException e) {
-//                    e.printStackTrace();
-//                  }
-//                })
-//            .start();
-//
-//        // sleep 10s for new thread to print script output
-//        Thread.sleep(10000);
-//
-//        return 0;
-//      } else {
-        // 读取脚本输出
-        BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-        String line;
-        while ((line = reader.readLine()) != null) {
-          System.out.println(line);
-        }
+      //      if (isOnWin) {
+      //        // on windowsOS, the bash script calls a batch script to start iginx.
+      //        // If waits, java will wait for the iginx process to end, which would take forever.
+      //        // thus create a new process to read the output.
+      //        new Thread(
+      //                () -> {
+      //                  try (BufferedReader reader =
+      //                      new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+      //                    String line;
+      //                    while ((line = reader.readLine()) != null) {
+      //                      System.out.println(line);
+      //                    }
+      //                  } catch (IOException e) {
+      //                    e.printStackTrace();
+      //                  }
+      //                })
+      //            .start();
+      //
+      //        // sleep 10s for new thread to print script output
+      //        Thread.sleep(10000);
+      //
+      //        return 0;
+      //      } else {
+      // 读取脚本输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+      }
 
-        // 等待脚本执行完毕
-        int exitCode = process.waitFor();
-        System.out.println("脚本执行完毕，退出码：" + exitCode);
-        return exitCode;
-//      }
+      // 等待脚本执行完毕
+      int exitCode = process.waitFor();
+      System.out.println("脚本执行完毕，退出码：" + exitCode);
+      return exitCode;
+      //      }
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
     }
