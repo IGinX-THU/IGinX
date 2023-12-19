@@ -44,6 +44,7 @@ public class StatementBuilder {
     typeMap.put(StatementType.COMPACT, SqlType.Compact);
     typeMap.put(StatementType.SET_CONFIG, SqlType.SetConfig);
     typeMap.put(StatementType.SHOW_CONFIG, SqlType.ShowConfig);
+    typeMap.put(StatementType.SHOW_SESSION_ID, SqlType.ShowSessionID);
   }
 
   private static final StatementBuilder instance = new StatementBuilder();
