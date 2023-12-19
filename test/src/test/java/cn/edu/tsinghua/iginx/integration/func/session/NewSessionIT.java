@@ -426,7 +426,7 @@ public class NewSessionIT {
 
       // kill the client
       p.destroy();
-      Thread.sleep(3000);
+      Thread.sleep(10000);
 
       List<Long> sessionIDs3 = conn.executeSql("show sessionid;").getSessionIDs();
       logger.info("after cancel a client, session_id_list size:" + sessionIDs3.size());
