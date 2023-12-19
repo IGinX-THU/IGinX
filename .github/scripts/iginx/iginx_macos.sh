@@ -12,10 +12,9 @@ sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
 sh -c "nohup core/target/iginx-core-*/sbin/start_iginx.sh > iginx-$1.log 2>&1 &"
 
-sleep 15
 log_file="iginx-$1.log"
-timeout=20
-interval=5
+timeout=30
+interval=2
 
 elapsed_time=0
 while [ $elapsed_time -lt $timeout ]; do
