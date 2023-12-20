@@ -48,11 +48,11 @@ do
 
   sh -c "sleep 10"
 
-  sh -c "cat $pathPrefix/logs/influx.log"
+  sh -c "cat $pathPrefix/logs/db.log"
 
   echo "==========================================="
 
-  sh -c "cat $pathPrefix/logs/influx-error.log"
+  sh -c "cat $pathPrefix/logs/db-error.log"
 
   echo "==========================================="
 
