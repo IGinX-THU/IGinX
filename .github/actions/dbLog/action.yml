@@ -20,4 +20,4 @@ runs:
           name: Show DB Log
           shell: bash
           run: |
-              "${GITHUB_WORKSPACE}/.github/actions/dbLog/dbLog.sh" ${{ inputs.list_input }}
+              "${GITHUB_WORKSPACE}/.github/actions/dbLog/dbLog.sh" ${{ inputs.DB-name }}
