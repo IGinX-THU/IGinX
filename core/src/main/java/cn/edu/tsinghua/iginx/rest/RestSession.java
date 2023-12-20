@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.rest;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.exceptions.StatusCode.STATEMENT_EXECUTION_ERROR;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
@@ -161,7 +162,7 @@ public class RestSession {
       }
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
-      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
+      if (status.message.contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(status.message);
         return;
       }
@@ -406,7 +407,7 @@ public class RestSession {
       }
     } while (checkRedirect(status));
     if (status.code == STATEMENT_EXECUTION_ERROR.getStatusCode()) {
-      if (status.message.contains("Caution: can not clear the data of read-only node.")) {
+      if (status.message.contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(status.message);
         return;
       }
