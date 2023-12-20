@@ -29,7 +29,7 @@ do
 
   arguments="-ArgumentList '-D', '$filePrefix/data', '--username=postgres', '--auth', 'trust', '--no-instructions', '-E', 'UTF8'"
 
-  redirect="-RedirectStandardOutput '$filePrefix/logs/inidb.log' -RedirectStandardError '$filePrefix/logs/initdb-error.log'"
+  redirect="-RedirectStandardOutput '$filePrefix/logs/db.log' -RedirectStandardError '$filePrefix/logs/db-error.log'"
 
   powershell -command "Start-Process -FilePath '$filePrefix/bin/initdb' -NoNewWindow $arguments $redirect"
 

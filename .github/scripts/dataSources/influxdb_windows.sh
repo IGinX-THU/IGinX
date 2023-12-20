@@ -18,7 +18,7 @@ sh -c "mkdir influxdb2-2.7.4-windows/logs"
 
 arguments="-ArgumentList 'run', '--bolt-path=influxdb2-2.7.4-windows/.influxdbv2/influxd.bolt', '--engine-path=influxdb2-2.7.4-windows/.influxdbv2/engine', '--http-bind-address=:8086', '--query-memory-bytes=300971520'"
 
-redirect="-RedirectStandardOutput 'influxdb2-2.7.4-windows/logs/influx.log' -RedirectStandardError 'influxdb2-2.7.4-windows/logs/influx-error.log'"
+redirect="-RedirectStandardOutput 'influxdb2-2.7.4-windows/logs/db.log' -RedirectStandardError 'influxdb2-2.7.4-windows/logs/db-error.log'"
 
 powershell -command "Start-Process -FilePath 'influxdb2-2.7.4-windows/influxd' $arguments -NoNewWindow $redirect"
 
@@ -42,7 +42,7 @@ do
 
   arguments="-ArgumentList 'run', '--bolt-path=$pathPrefix/.influxdbv2/influxd.bolt', '--engine-path=$pathPrefix/.influxdbv2/engine', '--http-bind-address=:$port', '--query-memory-bytes=20971520'"
 
-  redirect="-RedirectStandardOutput '$pathPrefix/logs/influx.log' -RedirectStandardError '$pathPrefix/logs/influx-error.log'"
+  redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardError '$pathPrefix/logs/db-error.log'"
 
   powershell -command "Start-Process -FilePath 'influxdb2-2.7.4-windows-$port/influxd' $arguments -NoNewWindow $redirect"
 

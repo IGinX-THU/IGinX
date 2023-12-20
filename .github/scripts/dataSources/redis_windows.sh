@@ -24,7 +24,7 @@ do
 
   sh -c "mkdir -p $filePrefix/logs"
 
-  redirect="-RedirectStandardOutput '$filePrefix/logs/redis-$port.log' -RedirectStandardError '$filePrefix/logs/redis-$port-error.log'"
+  redirect="-RedirectStandardOutput '$filePrefix/logs/db.log' -RedirectStandardError '$filePrefix/logs/db-error.log'"
 
   powershell -command "Start-Process -FilePath '$filePrefix/redis-server' -ArgumentList '--port', '$port' -NoNewWindow $redirect"
 done

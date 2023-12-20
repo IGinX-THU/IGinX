@@ -134,6 +134,12 @@ jobs:
               run: |
                   cat iginx-*.log
 
+            - if: always()
+              name: Show DB Logs on Windows
+              uses: ./.github/actions/dbLog
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
             - uses: codecov/codecov-action@v1
               with:
                   file: ./**/target/site/jacoco/jacoco.xml

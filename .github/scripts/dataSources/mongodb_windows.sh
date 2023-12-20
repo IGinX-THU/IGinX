@@ -20,11 +20,11 @@ for port in "$@"
 do
   sh -c "cp -r mongodb-win32-x86_64-windows-6.0.12/ mongodb-win32-x86_64-windows-6.0.12-$port/"
 
-  sh -c "cd mongodb-win32-x86_64-windows-6.0.12-$port/; mkdir -p data/db; mkdir -p data/log; "
+  sh -c "cd mongodb-win32-x86_64-windows-6.0.12-$port/; mkdir -p data/db; mkdir -p logs; "
 
   filePrefix="mongodb-win32-x86_64-windows-6.0.12-$port"
 
-  arguments="-ArgumentList '--port', '$port', '--dbpath', '$filePrefix/data/db', '--logpath', '$filePrefix/data/log/mongo.log'"
+  arguments="-ArgumentList '--port', '$port', '--dbpath', '$filePrefix/data/db', '--logpath', '$filePrefix/logs/db.log'"
 
   powershell -command "Start-Process -FilePath '$filePrefix/bin/mongod' $arguments"
 
