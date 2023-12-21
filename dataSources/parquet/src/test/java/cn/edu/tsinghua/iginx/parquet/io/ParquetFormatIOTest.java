@@ -1,12 +1,13 @@
 package cn.edu.tsinghua.iginx.parquet.io;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.parquet.entity.Constants;
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Loader;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetWriter;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IRecord;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
 import cn.edu.tsinghua.iginx.parquet.tools.ByteUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
@@ -179,6 +180,44 @@ public class ParquetFormatIOTest {
     Table fileTable = new Table();
     LOADER.load(fileTable);
     assertEquals(memTable, fileTable);
+  }
+
+  @Test
+  public void testWriteReadLargeInMemoryTableWithFilter() throws Exception {
+    Table memTable =
+        createInMemoryTable(
+            new String[] {"s1", "s2", Constants.KEY_FIELD_NAME, "s4", "s5", "s6"},
+            new DataType[] {
+              DataType.BOOLEAN,
+              DataType.INTEGER,
+              DataType.LONG,
+              DataType.FLOAT,
+              DataType.DOUBLE,
+              DataType.BINARY
+            },
+            100000,
+            7,
+            1);
+    STORER.flush(memTable);
+    IParquetReader.Builder builder =
+        IParquetReader.builder(FILE_PATH).filter(new KeyFilter(Op.G, Long.MAX_VALUE / 2));
+    try (IParquetReader reader = builder.build()) {
+      MessageType type = reader.getSchema();
+      while (true) {
+        IRecord record = reader.read();
+        if (record == null) {
+          break;
+        }
+        int index = type.getFieldIndex(Constants.KEY_FIELD_NAME);
+        for (Map.Entry<Integer, Object> entry : record) {
+          if (index == entry.getKey()) {
+            Object v = entry.getValue();
+            assertTrue(v instanceof Long);
+            assertTrue((Long) v > Long.MAX_VALUE / 2);
+          }
+        }
+      }
+    }
   }
 
   @Test

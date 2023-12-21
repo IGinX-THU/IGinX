@@ -2,8 +2,6 @@ package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.parquet.entity.Field;
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetWriter;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IRecord;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -13,6 +11,7 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
+@Deprecated
 public class Storer {
 
   protected final Path path;

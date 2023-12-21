@@ -17,7 +17,8 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetFormatHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetFormatHistoryDataGenerator.class);
+  private static final Logger logger =
+      LoggerFactory.getLogger(ParquetFormatHistoryDataGenerator.class);
 
   private static final char IGINX_SEPARATOR = '.';
 

@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.parquet.entity.NativeStorageException;
 import cn.edu.tsinghua.iginx.parquet.entity.Range;
 import cn.edu.tsinghua.iginx.parquet.entity.RangeSet;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
-
 import java.util.Set;
 
 public interface Database<K extends Comparable<K>, F, V> extends AutoCloseable {

@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.parquet.entity;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
-
 import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
 

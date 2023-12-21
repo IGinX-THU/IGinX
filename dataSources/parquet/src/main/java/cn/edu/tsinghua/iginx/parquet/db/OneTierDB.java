@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.parquet.db;
 
 import cn.edu.tsinghua.iginx.parquet.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.RowUnionScanner;
-import cn.edu.tsinghua.iginx.parquet.io.FileReaderWriter;
+import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -41,9 +41,9 @@ public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, 
 
   private final LongAdder inserted = new LongAdder();
 
-  private final FileReaderWriter<K, F, V> readerWriter;
+  private final ReadWriter<K, F, V> readerWriter;
 
-  public OneTierDB(Path dir, FileReaderWriter<K, F, V> readerWriter) throws NativeStorageException {
+  public OneTierDB(Path dir, ReadWriter<K, F, V> readerWriter) throws NativeStorageException {
     this.dir = dir;
     this.readerWriter = readerWriter;
 

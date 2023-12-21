@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import cn.edu.tsinghua.iginx.parquet.entity.NativeStorageException;
 import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
 

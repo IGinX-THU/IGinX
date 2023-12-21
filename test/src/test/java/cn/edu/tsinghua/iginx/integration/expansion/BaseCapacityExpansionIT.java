@@ -37,7 +37,8 @@ public abstract class BaseCapacityExpansionIT {
   protected String extraParams;
 
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
-      this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetFormatCapacityExpansionIT;
+      this instanceof FileSystemCapacityExpansionIT
+          || this instanceof ParquetFormatCapacityExpansionIT;
 
   private final boolean IS_FLAT_STORAGE_ENGINE = this instanceof RedisCapacityExpansionIT;
 

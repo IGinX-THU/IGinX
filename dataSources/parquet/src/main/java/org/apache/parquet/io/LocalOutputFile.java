@@ -29,7 +29,7 @@ import java.nio.file.StandardOpenOption;
 
 /**
  * {@code LocalOutputFile} is an implementation needed by Parquet to write to local data files using
- * {@link PositionOutputStream} instances.
+ * {@link org.apache.parquet.io.PositionOutputStream} instances.
  */
 public class LocalOutputFile implements OutputFile {
 

@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.parquet.db;
 
 import cn.edu.tsinghua.iginx.parquet.entity.*;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -23,7 +22,11 @@ public class WriteBuffer<K extends Comparable<K>, F, V> {
 
   private final Map<F, RangeSet<K>> deletedRanges = new HashMap<>();
 
-  public void putRows(cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, V>> scanner) throws NativeStorageException {
+  public void putRows(
+      cn.edu.tsinghua.iginx.parquet.entity.Scanner<
+              K, cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, V>>
+          scanner)
+      throws NativeStorageException {
     while (scanner.iterate()) {
       K key = scanner.key();
       try (cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, V> row = scanner.value()) {
@@ -37,7 +40,11 @@ public class WriteBuffer<K extends Comparable<K>, F, V> {
     }
   }
 
-  public void putColumns(cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V>> scanner) throws NativeStorageException {
+  public void putColumns(
+      cn.edu.tsinghua.iginx.parquet.entity.Scanner<
+              F, cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V>>
+          scanner)
+      throws NativeStorageException {
     while (scanner.iterate()) {
       F field = scanner.key();
       try (cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V> column = scanner.value()) {
@@ -167,22 +174,25 @@ public class WriteBuffer<K extends Comparable<K>, F, V> {
   }
 
   @Nonnull
-  public cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, V>> scanRows(Set<F> fields, Range<K> range)
-      throws NativeStorageException {
+  public cn.edu.tsinghua.iginx.parquet.entity.Scanner<
+          K, cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, V>>
+      scanRows(Set<F> fields, Range<K> range) throws NativeStorageException {
     Map<F, cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V>> scanners = new HashMap<>();
     for (F field : fields) {
       NavigableMap<K, V> column = data.get(field);
       if (column != null) {
         NavigableMap<K, V> subColumn = subMapRefOf(column, range);
-        cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V> subColumnScanner = new IteratorScanner<>(subColumn.entrySet().iterator());
+        cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V> subColumnScanner =
+            new IteratorScanner<>(subColumn.entrySet().iterator());
         scanners.put(field, subColumnScanner);
       }
     }
     return new ColumnUnionRowScanner<>(scanners);
   }
 
-  public cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V>> scanColumns(Set<F> fields, Range<K> range)
-      throws NativeStorageException {
+  public cn.edu.tsinghua.iginx.parquet.entity.Scanner<
+          F, cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V>>
+      scanColumns(Set<F> fields, Range<K> range) throws NativeStorageException {
     Map<F, cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V>> scanners = new HashMap<>();
     for (F field : fields) {
       NavigableMap<K, V> column = data.get(field);

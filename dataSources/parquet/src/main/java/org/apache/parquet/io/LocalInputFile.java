@@ -28,7 +28,7 @@ import java.nio.file.Path;
 
 /**
  * {@code LocalInputFile} is an implementation needed by Parquet to read from local data files using
- * {@link SeekableInputStream} instances.
+ * {@link org.apache.parquet.io.SeekableInputStream} instances.
  */
 public class LocalInputFile implements InputFile {
 

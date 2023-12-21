@@ -9,13 +9,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.db.*;
-import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
 import cn.edu.tsinghua.iginx.parquet.entity.*;
-import cn.edu.tsinghua.iginx.parquet.io.FileReaderWriter;
+import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
+import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetReader;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetWriter;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IRecord;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.ProjectUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -41,7 +41,7 @@ public class DataManager implements Manager {
     this.db =
         new OneTierDB<>(
             dir,
-            new FileReaderWriter<Long, String, Object>() {
+            new ReadWriter<Long, String, Object>() {
               @Override
               public void flush(Path path, WriteBuffer<Long, String, Object> buffer)
                   throws NativeStorageException {

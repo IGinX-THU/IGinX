@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
-
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;

@@ -2,9 +2,6 @@ package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.parquet.entity.Field;
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IParquetReader;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.IRecord;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.impl.MetaUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -15,6 +12,7 @@ import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
+@Deprecated
 public class Loader {
   private final Path path;
 
@@ -137,7 +135,7 @@ public class Loader {
     typeNameList.add(type.getName());
     if (type.isPrimitive()) {
       PrimitiveType primitiveType = type.asPrimitiveType();
-      DataType iginxType = MetaUtils.toIginxType(primitiveType);
+      DataType iginxType = ParquetMeta.toIginxType(primitiveType);
       String name = String.join(".", typeNameList);
       indexMap.put(new ArrayList<>(indexList), table.declareColumn(name, iginxType));
     } else {

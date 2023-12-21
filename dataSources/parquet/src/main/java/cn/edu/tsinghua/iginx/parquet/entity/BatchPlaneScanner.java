@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.parquet.entity;
 
-import cn.edu.tsinghua.iginx.parquet.entity.NativeStorageException;
-import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
 import cn.edu.tsinghua.iginx.parquet.tools.SizeUtils;
 import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
