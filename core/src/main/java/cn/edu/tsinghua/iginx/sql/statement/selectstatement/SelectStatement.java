@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
 
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import java.util.ArrayList;

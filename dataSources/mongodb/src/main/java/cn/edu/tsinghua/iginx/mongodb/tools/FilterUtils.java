@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.client.model.Filters;
@@ -205,6 +204,8 @@ public class FilterUtils {
   public static Bson getPostFilter(Filter filter, Map<Field, String> renamedFields) {
     switch (filter.getType()) {
       case Key:
+      case Expr:
+      case Not:
         return null;
       case Value:
         return getFilter((ValueFilter) filter, renamedFields);
@@ -216,8 +217,6 @@ public class FilterUtils {
         return getPostFilter((AndFilter) filter, renamedFields);
       case Or:
         return getFilter((OrFilter) filter, renamedFields);
-      case Not:
-        return getFilter((NotFilter) filter, renamedFields);
       default:
         throw new IllegalStateException("unexpected filter type: " + filter.getType());
     }
@@ -232,14 +231,15 @@ public class FilterUtils {
         return getFilter((ValueFilter) filter, renamedFields);
       case Path:
         return getFilter((PathFilter) filter, renamedFields);
+      case Expr:
+      case Not:
+        return null;
       case Bool:
         return getFilter((BoolFilter) filter);
       case And:
         return getPostFilter((AndFilter) filter, renamedFields);
       case Or:
         return getFilter((OrFilter) filter, renamedFields);
-      case Not:
-        return getFilter((NotFilter) filter, renamedFields);
       default:
         throw new IllegalStateException("unexpected filter type: " + filter.getType());
     }
@@ -441,14 +441,5 @@ public class FilterUtils {
       return null;
     }
     return or(subFilterList);
-  }
-
-  @Nullable
-  private static Bson getFilter(NotFilter filter, Map<Field, String> renamedFields) {
-    Bson childFilter = getFilter((Filter) filter, renamedFields);
-    if (childFilter == null) {
-      return null;
-    }
-    return nor(childFilter);
   }
 }

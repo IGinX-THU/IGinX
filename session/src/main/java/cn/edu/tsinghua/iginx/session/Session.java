@@ -92,6 +92,10 @@ public class Session {
     this.lock = new ReentrantReadWriteLock();
   }
 
+  public long getSessionId() {
+    return sessionId;
+  }
+
   public boolean isClosed() {
     return isClosed;
   }

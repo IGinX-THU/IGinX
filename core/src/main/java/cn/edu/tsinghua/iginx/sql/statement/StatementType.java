@@ -26,5 +26,6 @@ public enum StatementType {
   REMOVE_HISTORY_DATA_SOURCE,
   SET_CONFIG,
   SHOW_CONFIG,
+  SHOW_SESSION_ID,
   COMPACT
 }
