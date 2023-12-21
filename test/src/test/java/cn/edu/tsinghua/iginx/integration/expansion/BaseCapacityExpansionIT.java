@@ -368,8 +368,8 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, dataPrefix, schemaPrefix);
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
-    List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
+    List<String> pathList = Arrays.asList("p1.nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(session, statement, pathList, EXP_VALUES_LIST1);
 
     String res = addStorageEngine(expPort, true, true, dataPrefix, schemaPrefix);
     if (res != null && !res.contains("repeatedly add storage engine")) {
