@@ -356,8 +356,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // 通过 session 接口测试移除节点
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
-    removedStorageEngineList.add(
-        new RemovedStorageEngineInfo("127.0.0.1", expPort, "", ""));
+    removedStorageEngineList.add(new RemovedStorageEngineInfo("127.0.0.1", expPort, "", ""));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
       testShowClusterInfo(1);
