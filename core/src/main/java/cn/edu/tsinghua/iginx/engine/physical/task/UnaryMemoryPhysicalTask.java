@@ -20,17 +20,10 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private PhysicalTask parentTask;
 
-  private final RequestContext context;
-
-  public UnaryMemoryPhysicalTask(List<Operator> operators, PhysicalTask parentTask) {
-    this(operators, parentTask, null);
-  }
-
   public UnaryMemoryPhysicalTask(
       List<Operator> operators, PhysicalTask parentTask, RequestContext context) {
-    super(TaskType.UnaryMemory, operators);
+    super(TaskType.UnaryMemory, operators, context);
     this.parentTask = parentTask;
-    this.context = context;
   }
 
   public void setParentTask(PhysicalTask parentTask) {
@@ -60,7 +53,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
         if (!OperatorType.isUnaryOperator(op.getType())) {
           throw new UnexpectedOperatorException("unexpected operator " + op + " in unary task");
         }
-        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, context);
+        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, getContext());
       }
     } catch (PhysicalException e) {
       logger.error("encounter error when execute operator in memory: ", e);

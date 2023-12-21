@@ -53,6 +53,8 @@ public class SessionPool {
   // whether the queue is closed.
   private boolean closed;
 
+  private final List<Long> sessionIDs = new ArrayList<>();
+
   public SessionPool(String host, int port) {
     this(host, port, USERNAME, PASSWORD, MAXSIZE);
   }
@@ -154,6 +156,10 @@ public class SessionPool {
     this.sessionNum = sessionNum;
     this.maxSize = max(maxSize, THREAD_NUMBER_MINSIZE);
     this.waitToGetSessionTimeoutInMs = waitToGetSessionTimeoutInMs;
+  }
+
+  public List<Long> getSessionIDs() {
+    return sessionIDs;
   }
 
   private Session constructSession(int index) {
@@ -286,6 +292,7 @@ public class SessionPool {
 
       try {
         session.openSession();
+        sessionIDs.add(session.getSessionId());
         // avoid someone has called close() the session pool
         synchronized (this) {
           if (closed) {
@@ -358,6 +365,7 @@ public class SessionPool {
     Session session = constructNewSession(oldSession);
     try {
       session.openSession();
+      sessionIDs.add(session.getSessionId());
       // avoid someone has called close() the session pool
       synchronized (this) {
         if (closed) {
@@ -398,6 +406,7 @@ public class SessionPool {
         logger.warn(CLOSE_THE_SESSION_FAILED, e);
       }
     }
+    sessionIDs.clear();
     logger.info("closing the session pool, cleaning queues...");
     this.closed = true;
     for (ConcurrentLinkedDeque<Session> sessionsQueue : queueList) {

@@ -6,6 +6,7 @@ import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -23,6 +24,7 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -357,6 +359,72 @@ public class NewSessionIT {
       String expectedVal = (String) expected;
       String actualVal = (String) actual;
       assertEquals(expectedVal, actualVal);
+    }
+  }
+
+  @Test
+  public void testCancelSession() {
+    try {
+      List<Long> sessionIDs = conn.getSessionIDs();
+
+      List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
+      for (long sessionID : sessionIDs) {
+        if (!existsSessionIDs.contains(sessionID)) {
+          logger.error("server session_id_list does not include an active session ID.");
+          fail();
+        }
+      }
+
+      conn.closeSession();
+      conn.openSession();
+
+      existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
+      for (long sessionID : sessionIDs) {
+        if (existsSessionIDs.contains(sessionID)) {
+          logger.error("the ID for a closed session is still in the server session_id_list.");
+          fail();
+        }
+      }
+    } catch (SessionException | ExecutionException e) {
+      logger.error("execute query session id failed.");
+      fail();
+    }
+  }
+
+  @Test
+  public void testCancelClient() {
+    String clientPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
+    try {
+      List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
+      logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
+
+      // start a client
+      Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientPath});
+      ProcessBuilder pb = new ProcessBuilder("bash", "-c", clientPath);
+      Process p = pb.start();
+
+      Thread.sleep(3000);
+      logger.info("client is alive: " + p.isAlive());
+      if (!p.isAlive()) { // fail to start a client.
+        logger.info("exit value: " + p.exitValue());
+        fail();
+      }
+
+      List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
+      logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
+
+      // kill the client
+      p.destroy();
+      Thread.sleep(3000);
+
+      List<Long> sessionIDs3 = conn.executeSql("show sessionid;").getSessionIDs();
+      logger.info("after cancel a client, session_id_list size:" + sessionIDs3.size());
+
+      assertEquals(sessionIDs1, sessionIDs3);
+      assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);
+    } catch (SessionException | ExecutionException | IOException | InterruptedException e) {
+      e.printStackTrace();
+      fail();
     }
   }
 

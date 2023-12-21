@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory;
 
+import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.queue.MemoryPhysicalTaskQueue;
@@ -63,6 +64,12 @@ public class MemoryPhysicalTaskDispatcher {
           try {
             while (true) {
               final MemoryPhysicalTask task = taskQueue.getTask();
+              if (isCancelled(task.getSessionId())) {
+                logger.warn(
+                    String.format(
+                        "MemoryPhysicalTask[sessionId=%s] is cancelled.", task.getSessionId()));
+                continue;
+              }
               taskExecuteThreadPool.submit(
                   () -> {
                     MemoryPhysicalTask currentTask = task;
@@ -98,6 +105,13 @@ public class MemoryPhysicalTaskDispatcher {
                 e);
           }
         });
+  }
+
+  private boolean isCancelled(long sessionId) {
+    if (sessionId == 0) { // empty ctx
+      return false;
+    }
+    return SessionManager.getInstance().isSessionClosed(sessionId);
   }
 
   public void stopDispatcher() {

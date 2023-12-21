@@ -261,7 +261,7 @@
                 </os>
             </activation>
             <properties>
-                <thrift.download-url>https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_linux.exe</thrift.download-url>
+                <thrift.download-url>https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/thrift_0.16.0_linux.exe</thrift.download-url>
                 <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}</thrift.exec-cmd.args>
                 <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
                 <thrift.executable>thrift_0.16.0_linux.exe</thrift.executable>
@@ -276,7 +276,7 @@
                 </os>
             </activation>
             <properties>
-                <thrift.download-url>https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_mac.exe</thrift.download-url>
+                <thrift.download-url>https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/thrift_0.16.0_mac.exe</thrift.download-url>
                 <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}</thrift.exec-cmd.args>
                 <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
                 <thrift.executable>thrift_0.16.0_mac.exe</thrift.executable>

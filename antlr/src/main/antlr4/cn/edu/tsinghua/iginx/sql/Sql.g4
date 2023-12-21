@@ -26,6 +26,7 @@ statement
    | REMOVE HISTORYDATASOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataSourceStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG configName = stringLiteral # showConfigStatement
+   | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
    ;
 
@@ -116,13 +117,13 @@ andExpression
    ;
 
 predicate
-   : constant comparisonOperator constant
-   | (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
    | path stringLikeOperator regex = stringLiteral
    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
+   | expression comparisonOperator expression
    ;
 
 predicateWithSubquery
@@ -453,6 +454,7 @@ keyWords
    | PHYSICAL
    | SET
    | CONFIG
+   | SESSIONID
    | COLUMNS
    | INTERSECT
    | UNION
@@ -867,6 +869,10 @@ SET
 
 CONFIG
    : C O N F I G
+   ;
+
+SESSIONID
+   : S E S S I O N I D
    ;
 
 COLUMNS

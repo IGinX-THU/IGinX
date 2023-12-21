@@ -286,7 +286,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
           startIndex = endIndex;
         }
         cachedRow = new Row(header, key, values);
-        if (isDummy && !validate(filter, cachedRow)) {
+        if (!validate(filter, cachedRow)) {
           continue;
         }
       } else {
