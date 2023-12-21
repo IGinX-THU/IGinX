@@ -327,8 +327,6 @@ public class PostgreSQLStorage implements IStorage {
           } catch (SQLException e) {
             logger.error("meet error when executing query {}: {}", statement, e.getMessage());
             continue;
-          } finally {
-            stmt.close();
           }
           if (rs != null) {
             databaseNameList.add(databaseName);
@@ -411,8 +409,6 @@ public class PostgreSQLStorage implements IStorage {
           logger.info("[Query] execute query: {}", statement);
         } catch (SQLException e) {
           logger.error("meet error when executing query {}: {}", statement, e.getMessage());
-        } finally {
-          stmt.close();
         }
         if (rs != null) {
           databaseNameList.add(databaseName);
@@ -423,8 +419,7 @@ public class PostgreSQLStorage implements IStorage {
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new PostgreSQLQueryRowStream(
-                  databaseNameList, resultSets, false, filter, project.getTagFilter()));
-      conn.close();
+                  databaseNameList, resultSets, false, filter, project.getTagFilter(), Collections.singletonList(conn)));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       logger.error(e.getMessage());
@@ -805,20 +800,12 @@ public class PostgreSQLStorage implements IStorage {
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new PostgreSQLQueryRowStream(
-                  databaseNameList, resultSets, true, filter, project.getTagFilter()));
+                  databaseNameList, resultSets, true, filter, project.getTagFilter(), connList));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       logger.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
-    } finally {
-      for (Connection conn : connList) {
-        try {
-          conn.close();
-        } catch (SQLException e) {
-          logger.error(e.getMessage());
-        }
-      }
     }
   }
 

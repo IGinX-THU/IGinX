@@ -20,6 +20,8 @@ import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -55,16 +57,20 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
   private List<Boolean> resultSetHasColumnWithTheSameName;
 
+  private List<Connection> connList;
+
   public PostgreSQLQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
-      TagFilter tagFilter)
+      TagFilter tagFilter,
+      List<Connection> connList)
       throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
+    this.connList = connList;
 
     if (resultSets.isEmpty()) {
       this.header = new Header(Field.KEY, Collections.emptyList());
@@ -151,6 +157,9 @@ public class PostgreSQLQueryRowStream implements RowStream {
     try {
       for (ResultSet resultSet : resultSets) {
         resultSet.close();
+      }
+      for (Connection conn : connList) {
+          conn.close();
       }
     } catch (SQLException e) {
       logger.error(e.getMessage());
