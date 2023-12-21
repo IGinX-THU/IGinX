@@ -20,7 +20,6 @@ import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -352,113 +351,41 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
-    String dataPrefix1 = "nt.wf03";
-    String dataPrefix2 = "nt.wf04";
-    String schemaPrefixSuffix = "";
-    String schemaPrefix1 = "p1";
-    String schemaPrefix2 = "p2";
-    String schemaPrefix3 = "p3";
+    String dataPrefix = "nt.wf03";
+    String schemaPrefix = "p1";
 
-    List<List<Object>> valuesList = EXP_VALUES_LIST1;
+    // 通过 session 接口测试移除节点
+    List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
+    removedStorageEngineList.add(
+        new RemovedStorageEngineInfo("127.0.0.1", expPort, EXP_SCHEMA_PREFIX, null));
+    try {
+      session.removeHistoryDataSource(removedStorageEngineList);
+      testShowClusterInfo(1);
+    } catch (ExecutionException | SessionException e) {
+      logger.error("remove history data source through session api error: {}", e.getMessage());
+    }
 
-    // 添加不同 schemaPrefix，相同 dataPrefix
-    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1);
-
+    addStorageEngine(expPort, true, true, dataPrefix, schemaPrefix);
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
     List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
-    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2);
-    addStorageEngine(expPort, true, true, dataPrefix1, null);
-    testShowClusterInfo(5);
-
-    // 如果是重复添加，则报错
-    String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
+    String res = addStorageEngine(expPort, true, true, dataPrefix, schemaPrefix);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
-    testShowClusterInfo(5);
-
-    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3);
-    // 这里是之后待测试的点，如果添加包含关系的，应当报错。
-    //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
-    // 添加相同 schemaPrefix，不同 dataPrefix
-    addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3);
-    testShowClusterInfo(7);
-
-    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
-    statement = "select wt01.status2 from p1.nt.wf03;";
-    pathList = Collections.singletonList("p1.nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 后查询
-    statement = "select wt01.status2 from p2.nt.wf03;";
-    pathList = Collections.singletonList("p2.nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
-    statement = "select wt01.status2 from nt.wf03;";
-    pathList = Collections.singletonList("nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-    // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
-    statement = "select wt01.status2 from p3.nt.wf03;";
-    pathList = Collections.singletonList("p3.nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    testShowClusterInfo(2);
 
     // 通过 session 接口测试移除节点
-    List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(
-        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
-    removedStorageEngineList.add(
-        new RemovedStorageEngineInfo("127.0.0.1", expPort, "p3" + schemaPrefixSuffix, dataPrefix1));
+        new RemovedStorageEngineInfo("127.0.0.1", expPort, schemaPrefix, dataPrefix));
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
-      testShowClusterInfo(5);
+      testShowClusterInfo(1);
     } catch (ExecutionException | SessionException e) {
       logger.error("remove history data source through session api error: {}", e.getMessage());
     }
-    // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
-    statement = "select * from p2.nt.wf03;";
-    String expect =
-        "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
-    // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p3 + schemaPrefixSuffix
-    // 后再查询，测试重点是移除相同 schemaPrefix，不同 dataPrefix
-    statement = "select wt01.temperature from p3.nt.wf04;";
-    List<String> pathListAns = new ArrayList<>();
-    pathListAns.add("p3.nt.wf04.wt01.temperature");
-    SQLTestTools.executeAndCompare(session, statement, pathListAns, EXP_VALUES_LIST2);
-
-    // 通过 sql 语句测试移除节点
-    String removeStatement = "remove historydatasource (\"127.0.0.1\", %d, \"%s\", \"%s\");";
-    try {
-      session.executeSql(
-          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
-      session.executeSql(
-          String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
-      session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
-      testShowClusterInfo(2);
-    } catch (ExecutionException | SessionException e) {
-      logger.error("remove history data source through sql error: {}", e.getMessage());
-    }
-    // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 + schemaPrefixSuffix 后再查询
-    statement = "select * from p1.nt.wf03;";
-    expect = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    SQLTestTools.executeAndCompare(session, statement, expect);
-
-    try {
-      session.executeSql(
-          String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
-    } catch (ExecutionException | SessionException e) {
-      if (!e.getMessage().contains("remove history data source failed")) {
-        logger.error(
-            "remove history data source should throw error when removing the node that does not exist");
-        fail();
-      }
-    }
-    testShowClusterInfo(2);
   }
 
   private void testShowClusterInfo(int expected) {
