@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.mongodb.dummy.DummyQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.ColumnQuery;
+import cn.edu.tsinghua.iginx.mongodb.entity.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.mongodb.entity.JoinQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
@@ -150,6 +151,7 @@ public class MongoDBStorage implements IStorage {
       } else {
         Filter unionFilter = rangeUnionWithFilter(range, filter);
         result = new JoinQuery(db).query(fieldList, unionFilter);
+        result = new FilterRowStreamWrapper(result, filter);
       }
       return new TaskExecuteResult(result);
     } catch (Exception e) {

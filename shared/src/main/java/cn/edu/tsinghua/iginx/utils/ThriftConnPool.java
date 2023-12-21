@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.utils;
 
+import java.util.Map;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.DefaultPooledObject;
@@ -17,9 +18,7 @@ public class ThriftConnPool {
 
   private static final int DEFAULT_MAX_SIZE = 100;
 
-  private static final long WAIT_TIME = 1000;
-
-  private static final long MAX_WAIT_TIME = 30_000;
+  private static final int MAX_WAIT_TIME = 30000;
 
   private boolean closed = false;
 
@@ -32,10 +31,19 @@ public class ThriftConnPool {
   private final long idleTimeout = 60 * 10000L;
 
   public ThriftConnPool(String ip, int port) {
-    this(ip, port, DEFAULT_MAX_SIZE);
+    this(ip, port, DEFAULT_MAX_SIZE, MAX_WAIT_TIME);
   }
 
-  public ThriftConnPool(String ip, int port, int maxSize) {
+  public ThriftConnPool(String ip, int port, Map<String, String> extraParams) {
+    this(
+        ip,
+        port,
+        DEFAULT_MAX_SIZE,
+        Integer.parseInt(
+            extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))));
+  }
+
+  public ThriftConnPool(String ip, int port, int maxSize, int maxWaitTime) {
     this.ip = ip;
     this.port = port;
     this.maxSize = maxSize;
@@ -44,7 +52,7 @@ public class ThriftConnPool {
     poolConfig.setMaxTotal(maxSize);
     poolConfig.setMinEvictableIdleTimeMillis(idleTimeout); // 设置空闲连接的超时时间
 
-    TSocketFactory socketFactory = new TSocketFactory(ip, port);
+    TSocketFactory socketFactory = new TSocketFactory(ip, port, maxWaitTime);
     pool = new GenericObjectPool<>(socketFactory, poolConfig);
   }
 
@@ -79,14 +87,17 @@ public class ThriftConnPool {
     private final String ip;
     private final int port;
 
-    public TSocketFactory(String ip, int port) {
+    private final int maxWaitTime; // 连接超时时间（毫秒）
+
+    public TSocketFactory(String ip, int port, int maxWaitTime) {
       this.ip = ip;
       this.port = port;
+      this.maxWaitTime = maxWaitTime;
     }
 
     @Override
     public PooledObject<TTransport> makeObject() throws Exception {
-      TTransport transport = new TSocket(ip, port);
+      TTransport transport = new TSocket(ip, port, maxWaitTime);
       transport.open();
       return new DefaultPooledObject<>(transport);
     }
@@ -109,7 +120,7 @@ public class ThriftConnPool {
     public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {
       TTransport transport = pooledObject.getObject();
       if (transport == null) {
-        TTransport newTransport = new TSocket(ip, port);
+        TTransport newTransport = new TSocket(ip, port, maxWaitTime);
         newTransport.open();
         pooledObject = new DefaultPooledObject<>(newTransport);
       } else if (!transport.isOpen()) {

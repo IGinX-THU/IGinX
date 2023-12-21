@@ -1030,4 +1030,10 @@ public class IginxWorker implements IService.Iface {
             .collect(Collectors.toList());
     return new GetMetaResp(fragments, storages, units);
   }
+
+  @Override
+  public ShowSessionIDResp showSessionID(ShowSessionIDReq req) {
+    List<Long> sessionIDs = new ArrayList<>(SessionManager.getInstance().getSessionIds());
+    return new ShowSessionIDResp(RpcUtils.SUCCESS, sessionIDs);
+  }
 }
