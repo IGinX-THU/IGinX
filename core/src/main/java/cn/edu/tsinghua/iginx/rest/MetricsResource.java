@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.rest;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -65,8 +66,6 @@ public class MetricsResource {
   private static final String GRAFANA_QUERY = "query";
   private static final String GRAFANA_STRING = "annotations";
   private static final String ERROR_PATH = "{string : .+}";
-  public static final String CLEAR_DATA_EXCEPTION =
-      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static final Logger logger = LoggerFactory.getLogger(MetricsResource.class);
@@ -552,7 +551,7 @@ public class MetricsResource {
     try {
       executorData.deleteMetric();
     } catch (ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         exception = e;
         cautionDuringDelete = true;
         logger.warn("cant delete the READ_ONLY data and go on.");
