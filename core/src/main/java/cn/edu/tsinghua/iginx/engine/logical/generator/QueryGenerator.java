@@ -214,7 +214,8 @@ public class QueryGenerator extends AbstractGenerator {
         root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
       }
     } else {
-      if (selectStatement.getFromParts().isEmpty() && selectStatement.getQueryType() != QueryType.AggregateQuery) {
+      if (selectStatement.getFromParts().isEmpty() && selectStatement.getPathSet().isEmpty() &&
+           selectStatement.getQueryType() == QueryType.SimpleQuery) {
         // 先将输入的常量表达式构造成一张二维表作为最底层的source，然后得到一个Project operator作为root
         List<String> expressionList = new ArrayList<>();
         for (Expression expression : selectStatement.getExpressions()) {
