@@ -533,7 +533,6 @@ public class NewSessionIT {
       logger.error("execute delete columns failed.");
       fail();
     }
-
   }
 
   @Test
