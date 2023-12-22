@@ -461,6 +461,7 @@ public class TransformIT {
     }
   }
 
+  // no need to write query result into txt file then read file and compare.
   private void verifyMultiplePythonJobs(
       SessionExecuteSqlResult queryResult, int timeIndex, int sumIndex, int lineCount) {
     long index = 0;

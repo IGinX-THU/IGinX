@@ -5357,6 +5357,7 @@ public class SQLSessionIT {
 
   @Test
   public void testSpecialCharacterPath() {
+    // filesystem does not support special character path on windows
     if (!isSupportSpecialCharacterPath
         || (System.getProperty("os.name").toLowerCase().contains("win")
             && RUNNING_ENGINE.equalsIgnoreCase("filesystem"))) {
@@ -5412,6 +5413,7 @@ public class SQLSessionIT {
 
   @Test
   public void testMixSpecialPath() {
+    // filesystem does not support special character path on windows
     if (!isSupportChinesePath
         || !isSupportNumericalPath
         || !isSupportSpecialCharacterPath

@@ -18,7 +18,7 @@ inputs:
         required: false
         default: all
         # all: setup all
-        # javaOnly: set JDK and local pemja java repo
+        # javaOnly: set JDK and local pemja java repo, for metadata test
 
 runs:
     using: "composite"

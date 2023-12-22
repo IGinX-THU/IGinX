@@ -109,7 +109,7 @@ public class SQLTestTools {
 
   public static int executeShellScript(String scriptPath, String... args) {
     try {
-      // 构建shell命令
+      // 构建shell命令，action中的windows runner需要使用绝对路径
       String[] command;
       boolean isOnWin = System.getProperty("os.name").toLowerCase().contains("win");
       command = new String[args.length + 2];

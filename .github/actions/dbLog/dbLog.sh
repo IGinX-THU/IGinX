@@ -30,7 +30,7 @@ for dir in $dirName; do
     if [ -d "$dir" ]; then
         echo "Entering: $dir"
 
-        # db.log & db-error.log
+        # show db.log & db-error.log
         if [ -f "$dir/logs/db.log" ]; then
             echo "cat $dir/logs/db.log :"
             cat "$dir/logs/db.log"

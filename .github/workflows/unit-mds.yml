@@ -35,6 +35,7 @@ jobs:
                   key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
                   restore-keys: ${{ runner.os }}-m2
 
+            # pemja java repo need to be installed manually on Windows
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
@@ -93,6 +94,7 @@ jobs:
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
                   else
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_windows.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_windows.sh"
                   fi
 

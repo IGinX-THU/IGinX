@@ -51,6 +51,7 @@ public class IginXWriter extends ExportWriter {
 
     // construct values
     builder.append(") VALUES");
+    // use System.nanoTime() to avoid timestamp mistake on windows runner in action
     long index = System.nanoTime();
     for (Row row : batchData.getRowList()) {
       builder.append(" (");

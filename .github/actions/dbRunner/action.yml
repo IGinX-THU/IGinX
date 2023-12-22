@@ -27,7 +27,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name == 'IoTDB12'
+        - if: inputs.DB-name=='IoTDB12'
           name: Run DB
           shell: bash
           run: |
@@ -35,6 +35,7 @@ runs:
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12.sh" 6667 6668 6669
               elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_windows.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_windows.sh" 6667 6668 6669
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_macos.sh"
@@ -49,12 +50,9 @@ runs:
           shell: bash
           run: |
               cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
@@ -86,12 +84,9 @@ runs:
           shell: bash
           run: |
               cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
@@ -108,6 +103,7 @@ runs:
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh" 6379 6380 6381
               elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh" 6379 6380 6381
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh"

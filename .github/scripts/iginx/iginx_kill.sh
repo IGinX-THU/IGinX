@@ -6,6 +6,7 @@ jps
 pids=( $(jps | grep Iginx | awk '{print $1}') )
 
 if [ -n "$MSYSTEM" ]; then
+  # need to use taskkill on windows
   for pid in "${pids[@]}"; do
        echo "killing $pid"
        sh -c "taskkill -f -pid $pid"

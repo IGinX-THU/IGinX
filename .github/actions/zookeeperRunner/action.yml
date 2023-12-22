@@ -27,6 +27,7 @@ runs:
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_macos.sh"
               elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_windows.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_windows.sh"
               else
                 echo "$RUNNER_OS is not supported"
@@ -51,7 +52,5 @@ runs:
           name: Stop ZooKeeper
           shell: bash
           run: |
-              if [ "$RUNNER_OS" != "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_clear.sh"
-              fi
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_clear.sh"
               "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_clear.sh"

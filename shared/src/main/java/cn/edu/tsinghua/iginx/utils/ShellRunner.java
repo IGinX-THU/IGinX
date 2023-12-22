@@ -7,6 +7,7 @@ import java.io.InputStreamReader;
 public class ShellRunner {
 
   // to run .sh script on WindowsOS in github action tests
+  // bash.exe path in action windows runners
   public static final String BASH_PATH = "C:/Program Files/Git/bin/bash.exe";
 
   public void runShellCommand(String command) throws Exception {
@@ -42,6 +43,8 @@ public class ShellRunner {
     return System.getProperty("os.name").toLowerCase().contains("win");
   }
 
+  // allow using customized bash path on local windows
+  // if local os has customized bash path then don't need to use BASH_PATH
   public static boolean isCommandOnPath(String command) {
     try {
       Process process = new ProcessBuilder(command, "--version").start();

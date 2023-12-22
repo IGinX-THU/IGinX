@@ -27,6 +27,4 @@ do
   arguments="-ArgumentList '--port', '$port', '--dbpath', '$filePrefix/data/db', '--logpath', '$filePrefix/logs/db.log'"
 
   powershell -command "Start-Process -FilePath '$filePrefix/bin/mongod' $arguments"
-
-  echo $pwd
 done
