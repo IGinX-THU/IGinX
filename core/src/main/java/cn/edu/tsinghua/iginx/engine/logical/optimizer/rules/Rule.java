@@ -7,11 +7,18 @@ import java.util.Arrays;
 
 public abstract class Rule {
 
+  private final String ruleName;
+
   /** operand describes the local topology we want to match in this rule */
   private final Operand operand;
 
-  protected Rule(Operand operand) {
+  protected Rule(String ruleName, Operand operand) {
+    this.ruleName = ruleName;
     this.operand = operand;
+  }
+
+  public String getRuleName() {
+    return ruleName;
   }
 
   public Operand getOperand() {
