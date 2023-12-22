@@ -20,7 +20,6 @@ import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
@@ -159,7 +158,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
         resultSet.close();
       }
       for (Connection conn : connList) {
-          conn.close();
+        conn.close();
       }
     } catch (SQLException e) {
       logger.error(e.getMessage());

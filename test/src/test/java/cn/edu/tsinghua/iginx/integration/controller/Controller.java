@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.controller;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;

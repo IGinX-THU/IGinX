@@ -421,7 +421,12 @@ public class PostgreSQLStorage implements IStorage {
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new PostgreSQLQueryRowStream(
-                  databaseNameList, resultSets, false, filter, project.getTagFilter(), Collections.singletonList(conn)));
+                  databaseNameList,
+                  resultSets,
+                  false,
+                  filter,
+                  project.getTagFilter(),
+                  Collections.singletonList(conn)));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       logger.error(e.getMessage());
@@ -790,15 +795,12 @@ public class PostgreSQLStorage implements IStorage {
             logger.info("[Query] execute query: {}", statement);
           } catch (SQLException e) {
             logger.error("meet error when executing query {}: {}", statement, e.getMessage());
-          } finally {
-            stmt.close();
           }
           if (rs != null) {
             databaseNameList.add(databaseName);
             resultSets.add(rs);
           }
         }
-        conn.close();
       }
 
       RowStream rowStream =

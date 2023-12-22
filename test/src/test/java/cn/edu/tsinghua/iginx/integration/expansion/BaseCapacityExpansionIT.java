@@ -166,7 +166,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -200,7 +200,7 @@ public abstract class BaseCapacityExpansionIT {
     // 写入并查询新数据
     testWriteAndQueryNewData();
     // 扩容
-    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    addStorageEngineInProgress(expPort, false, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容节点的历史数据，结果为空
     testQueryHistoryDataExpNoData();
     // 再次查询新数据
@@ -623,7 +623,9 @@ public abstract class BaseCapacityExpansionIT {
             scriptPath,
             String.valueOf(port),
             String.valueOf(iginxPort),
-            "test/" + PORT_TO_ROOT.get(port),
+            hasData
+                ? "test/" + PORT_TO_ROOT.get(port)
+                : "test/" + INIT_PATH_LIST.get(0).replace(".", "/"),
             "test/iginx_" + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
