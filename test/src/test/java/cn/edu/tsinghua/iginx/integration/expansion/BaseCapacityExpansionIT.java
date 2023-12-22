@@ -135,7 +135,8 @@ public abstract class BaseCapacityExpansionIT {
     if (IS_PARQUET_OR_FILE_SYSTEM) {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
-      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
+      // 测试会添加初始数据，所以hasData=true
+      addStorageEngine(port, true, isReadOnly, dataPrefix, schemaPrefix);
     }
   }
 
