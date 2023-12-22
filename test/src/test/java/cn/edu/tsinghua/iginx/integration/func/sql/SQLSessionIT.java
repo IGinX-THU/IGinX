@@ -5878,12 +5878,11 @@ public class SQLSessionIT {
   @Test
   public void testFilterPushDownExplain() {
     String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
-      if (!queryOptimizer.contains("filter_push_down")) {
-        logger.info(
-            "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
-        return;
-      }
-
+    if (!queryOptimizer.contains("filter_push_down")) {
+      logger.info(
+          "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
+      return;
+    }
 
     String insert =
         "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
@@ -6128,12 +6127,11 @@ public class SQLSessionIT {
   @Test
   public void testFilterFragmentOptimizer() {
     String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
-      if (!queryOptimizer.equals("remove_not,filter_fragment")) {
-        logger.info(
-            "Skip SQLSessionIT.ttestFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
-        return;
-      }
-
+    if (!queryOptimizer.equals("remove_not,filter_fragment")) {
+      logger.info(
+          "Skip SQLSessionIT.ttestFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
+      return;
+    }
 
     String insert =
         "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";

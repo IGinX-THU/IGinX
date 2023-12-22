@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.controller;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.io.*;
