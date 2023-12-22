@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
@@ -38,7 +39,8 @@ public class MigrationPhysicalExecutor {
     return INSTANCE;
   }
 
-  public RowStream execute(Migration migration, StoragePhysicalTaskExecutor storageTaskExecutor)
+  public RowStream execute(
+      RequestContext ctx, Migration migration, StoragePhysicalTaskExecutor storageTaskExecutor)
       throws PhysicalException {
     FragmentMeta toMigrateFragment = migration.getFragmentMeta();
     StorageUnitMeta targetStorageUnitMeta = migration.getTargetStorageUnitMeta();
@@ -49,7 +51,7 @@ public class MigrationPhysicalExecutor {
     List<Operator> projectOperators = new ArrayList<>();
     Project project = new Project(new FragmentSource(toMigrateFragment), paths, null);
     projectOperators.add(project);
-    StoragePhysicalTask projectPhysicalTask = new StoragePhysicalTask(projectOperators);
+    StoragePhysicalTask projectPhysicalTask = new StoragePhysicalTask(projectOperators, ctx);
 
     List<Operator> selectOperators = new ArrayList<>();
     List<Filter> selectTimeFilters = new ArrayList<>();
@@ -58,7 +60,7 @@ public class MigrationPhysicalExecutor {
     selectOperators.add(
         new Select(new OperatorSource(project), new AndFilter(selectTimeFilters), null));
     MemoryPhysicalTask selectPhysicalTask =
-        new UnaryMemoryPhysicalTask(selectOperators, projectPhysicalTask);
+        new UnaryMemoryPhysicalTask(selectOperators, projectPhysicalTask, ctx);
     projectPhysicalTask.setFollowerTask(selectPhysicalTask);
 
     storageTaskExecutor.commit(projectPhysicalTask);
@@ -103,6 +105,7 @@ public class MigrationPhysicalExecutor {
       if (timestampList.size()
           == ConfigDescriptor.getInstance().getConfig().getMigrationBatchSize()) {
         insertDataByBatch(
+            ctx,
             timestampList,
             valuesList,
             bitmapList,
@@ -119,6 +122,7 @@ public class MigrationPhysicalExecutor {
       }
     }
     insertDataByBatch(
+        ctx,
         timestampList,
         valuesList,
         bitmapList,
@@ -132,6 +136,7 @@ public class MigrationPhysicalExecutor {
   }
 
   private void insertDataByBatch(
+      RequestContext ctx,
       List<Long> timestampList,
       List<ByteBuffer> valuesList,
       List<Bitmap> bitmapList,
@@ -156,7 +161,7 @@ public class MigrationPhysicalExecutor {
         new RowDataView(rowData, 0, selectResultPaths.size(), 0, timestampList.size());
     List<Operator> insertOperators = new ArrayList<>();
     insertOperators.add(new Insert(new FragmentSource(toMigrateFragment), rowDataView));
-    StoragePhysicalTask insertPhysicalTask = new StoragePhysicalTask(insertOperators);
+    StoragePhysicalTask insertPhysicalTask = new StoragePhysicalTask(insertOperators, ctx);
     storageTaskExecutor.commitWithTargetStorageUnitId(insertPhysicalTask, storageUnitId);
     TaskExecuteResult insertResult = insertPhysicalTask.getResult();
     if (insertResult.getException() != null) {

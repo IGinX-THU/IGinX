@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -689,12 +690,12 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void setEmptyQueryResp(RequestContext ctx) {
+  private void setEmptyQueryResp(RequestContext ctx, List<String> paths) {
     Result result = new Result(RpcUtils.SUCCESS);
     result.setKeys(new Long[0]);
     result.setValuesList(new ArrayList<>());
     result.setBitmapList(new ArrayList<>());
-    result.setPaths(new ArrayList<>());
+    result.setPaths(paths);
     ctx.setResult(result);
   }
 
@@ -708,7 +709,7 @@ public class StatementExecutor {
       case DELETE:
         DeleteStatement deleteStatement = (DeleteStatement) statement;
         if (deleteStatement.isInvolveDummyData()) {
-          throw new ExecutionException("Caution: can not clear the data of read-only node.");
+          throw new ExecutionException(CLEAR_DUMMY_DATA_CAUTION);
         } else {
           ctx.setResult(new Result(RpcUtils.SUCCESS));
         }
@@ -739,6 +740,12 @@ public class StatementExecutor {
       ctx.setResult(result);
       return;
     }
+
+    if (stream == null) {
+      setEmptyQueryResp(ctx, new ArrayList<>());
+      return;
+    }
+
     List<String> paths = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
     List<DataType> types = new ArrayList<>();
@@ -781,7 +788,7 @@ public class StatementExecutor {
     }
 
     if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx);
+      setEmptyQueryResp(ctx, paths);
       return;
     }
 

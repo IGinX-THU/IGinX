@@ -8,6 +8,15 @@ import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.ConstantExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.FromValueExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
@@ -16,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
@@ -93,6 +103,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowSessionIDStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
@@ -104,15 +115,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
-import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
-import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
-import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
-import cn.edu.tsinghua.iginx.sql.expression.ConstantExpression;
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
-import cn.edu.tsinghua.iginx.sql.expression.FromValueExpression;
-import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
-import cn.edu.tsinghua.iginx.sql.expression.Operator;
-import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
 import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
 import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
@@ -136,6 +138,7 @@ import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowSessionIDStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
@@ -808,6 +811,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return new ShowConfigStatement(configName);
   }
 
+  @Override
+  public Statement visitShowSessionIDStatement(ShowSessionIDStatementContext ctx) {
+    return new ShowSessionIDStatement();
+  }
+
   private void parseSelectPaths(SelectClauseContext ctx, UnarySelectStatement selectStatement) {
     if (ctx.VALUE2META() != null) {
       parseSelectPathsWithValue2Meta(ctx, selectStatement);
@@ -859,11 +867,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private List<Expression> parseExpression(
       ExpressionContext ctx, UnarySelectStatement selectStatement) {
+    return parseExpression(ctx, selectStatement, true);
+  }
+
+  private List<Expression> parseExpression(
+      ExpressionContext ctx, UnarySelectStatement selectStatement, boolean isFromSelectClause) {
     if (ctx.function() != null) {
       return Collections.singletonList(parseFuncExpression(ctx, selectStatement));
     }
     if (ctx.path() != null && !ctx.path().isEmpty()) {
-      return Collections.singletonList(parseBaseExpression(ctx, selectStatement));
+      return Collections.singletonList(
+          parseBaseExpression(ctx, selectStatement, isFromSelectClause));
     }
     if (ctx.constant() != null) {
       // TODO 为了确保行数和结果行数相同, 在常数表达式中，如果有from子句，不管有join，都将其路径处理为其中一个tableName.*
@@ -877,19 +891,22 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     List<Expression> ret = new ArrayList<>();
     if (ctx.inBracketExpr != null) {
-      List<Expression> expressions = parseExpression(ctx.inBracketExpr, selectStatement);
+      List<Expression> expressions =
+          parseExpression(ctx.inBracketExpr, selectStatement, isFromSelectClause);
       for (Expression expression : expressions) {
         ret.add(new BracketExpression(expression));
       }
     } else if (ctx.expr != null) {
-      List<Expression> expressions = parseExpression(ctx.expr, selectStatement);
+      List<Expression> expressions = parseExpression(ctx.expr, selectStatement, isFromSelectClause);
       Operator operator = parseOperator(ctx);
       for (Expression expression : expressions) {
         ret.add(new UnaryExpression(operator, expression));
       }
     } else if (ctx.leftExpr != null && ctx.rightExpr != null) {
-      List<Expression> leftExpressions = parseExpression(ctx.leftExpr, selectStatement);
-      List<Expression> rightExpressions = parseExpression(ctx.rightExpr, selectStatement);
+      List<Expression> leftExpressions =
+          parseExpression(ctx.leftExpr, selectStatement, isFromSelectClause);
+      List<Expression> rightExpressions =
+          parseExpression(ctx.rightExpr, selectStatement, isFromSelectClause);
       Operator operator = parseOperator(ctx);
       for (Expression leftExpression : leftExpressions) {
         for (Expression rightExpression : rightExpressions) {
@@ -998,25 +1015,24 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private Expression parseBaseExpression(
-      ExpressionContext ctx, UnarySelectStatement selectStatement) {
+      ExpressionContext ctx, UnarySelectStatement selectStatement, boolean isFromSelectClause) {
     String selectedPath = parsePath(ctx.path());
-    return parseBaseExpression(selectedPath, selectStatement);
-  }
-
-  private Expression parseBaseExpression(
-      String selectedPath, UnarySelectStatement selectStatement) {
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
     if (selectStatement.isFromSinglePath()) {
       FromPart fromPart = selectStatement.getFromPart(0);
       String fullPath = fromPart.getPrefix() + SQLConstant.DOT + selectedPath;
       String originFullPath = fromPart.getOriginPrefix() + SQLConstant.DOT + selectedPath;
       BaseExpression expression = new BaseExpression(fullPath);
-      selectStatement.addBaseExpression(expression);
-      selectStatement.setPathSet(originFullPath);
+      if (isFromSelectClause) {
+        selectStatement.addBaseExpression(expression);
+        selectStatement.setPathSet(originFullPath);
+      }
       return expression;
     } else {
       BaseExpression expression = new BaseExpression(selectedPath);
-      selectStatement.setSelectedPaths(expression);
+      if (isFromSelectClause) {
+        selectStatement.setSelectedPaths(expression);
+      }
       return expression;
     }
   }
@@ -1300,7 +1316,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       return ctx.OPERATOR_NOT() == null ? filter : new NotFilter(filter);
     } else if (ctx.path().isEmpty()
         && ctx.predicateWithSubquery() == null
-        && ctx.constant().size() == 1) {
+        && ctx.constant() != null) {
       return parseKeyFilter(ctx);
     } else {
       StatementType type = statement.getType();
@@ -1313,8 +1329,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       if (ctx.predicateWithSubquery() != null) {
         return parseFilterWithSubQuery(
             ctx.predicateWithSubquery(), (UnarySelectStatement) statement, isHavingFilter);
-      } else if (ctx.constant().size() == 2) {
-        throw new SQLParserException("Constant comparison isn't supported in WHERE clause yet.");
+      } else if (ctx.expression().size() == 2) {
+        return parseExprFilter(ctx, (UnarySelectStatement) statement);
       } else if (ctx.path().size() == 1) {
         return parseValueFilter(ctx, (UnarySelectStatement) statement);
       } else {
@@ -1329,8 +1345,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.children.get(0) instanceof ConstantContext) {
       op = Op.getDirectionOpposite(op);
     }
-    long time = (long) parseValue(ctx.constant().get(0));
+    long time = (long) parseValue(ctx.constant());
     return new KeyFilter(op, time);
+  }
+
+  private ExprFilter parseExprFilter(PredicateContext ctx, UnarySelectStatement statement) {
+    Op op = Op.str2Op(ctx.comparisonOperator().getText());
+    assert ctx.expression().size() == 2;
+    Expression expressionA = parseExpression(ctx.expression().get(0), statement, false).get(0);
+    Expression expressionB = parseExpression(ctx.expression().get(1), statement, false).get(0);
+    return new ExprFilter(expressionA, op, expressionB);
   }
 
   private Filter parseValueFilter(PredicateContext ctx, UnarySelectStatement statement) {
@@ -1368,7 +1392,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       String regex = ctx.regex.getText();
       value = new Value(regex.substring(1, regex.length() - 1));
     } else {
-      value = new Value(parseValue(ctx.constant().get(0)));
+      value = new Value(parseValue(ctx.constant()));
     }
 
     return new ValueFilter(path, op, value);

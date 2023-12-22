@@ -70,9 +70,9 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         List<Operator> operators = new ArrayList<>();
         operators.add(operator);
         if (OperatorType.isNeedBroadcasting(operator.getType())) {
-          return new StoragePhysicalTask(operators, true, true);
+          return new StoragePhysicalTask(operators, true, true, context);
         } else {
-          return new StoragePhysicalTask(operators);
+          return new StoragePhysicalTask(operators, context);
         }
       } else if (source.getType() == SourceType.Operator) { // 构建内存中的计划
         OperatorSource operatorSource = (OperatorSource) source;
@@ -115,7 +115,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
       sourceTaskB.setFollowerTask(task);
       return task;
     } else if (operator.getType().equals(OperatorType.ShowColumns)) {
-      return new GlobalPhysicalTask(operator);
+      return new GlobalPhysicalTask(operator, context);
     } else {
       MultipleOperator multipleOperator = (MultipleOperator) operator;
       List<Source> sources = multipleOperator.getSources();
@@ -133,14 +133,14 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         FoldedOperator foldedOperator = (FoldedOperator) multipleOperator;
         PhysicalTask foldedTask =
             new FoldedMemoryPhysicalTask(
-                operators, foldedOperator.getIncompleteRoot(), parentTasks);
+                operators, foldedOperator.getIncompleteRoot(), parentTasks, context);
         for (PhysicalTask parentTask : parentTasks) {
           parentTask.setFollowerTask(foldedTask);
         }
-        task = new CompletedFoldedPhysicalTask(foldedTask);
+        task = new CompletedFoldedPhysicalTask(foldedTask, context);
         foldedTask.setFollowerTask(task);
       } else {
-        task = new MultipleMemoryPhysicalTask(operators, parentTasks);
+        task = new MultipleMemoryPhysicalTask(operators, parentTasks, context);
         for (PhysicalTask parentTask : parentTasks) {
           parentTask.setFollowerTask(task);
         }

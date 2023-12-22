@@ -72,9 +72,9 @@ public class PhysicalEngineImpl implements PhysicalEngine {
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
         return MigrationPhysicalExecutor.getInstance()
-            .execute((Migration) root, storageTaskExecutor);
+            .execute(ctx, (Migration) root, storageTaskExecutor);
       } else {
-        GlobalPhysicalTask task = new GlobalPhysicalTask(root);
+        GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
         TaskExecuteResult result = storageTaskExecutor.executeGlobalTask(task);
         if (result.getException() != null) {
           throw result.getException();

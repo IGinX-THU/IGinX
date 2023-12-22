@@ -312,12 +312,13 @@ public class PostgreSQLStorage implements IStorage {
         for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
           String tableName = entry.getKey();
           String quotColumnNames = getQuotColumnNames(entry.getValue());
+          String filterStr = FilterTransformer.toString(filter);
           statement =
               String.format(
                   QUERY_STATEMENT,
                   quotColumnNames,
                   getQuotName(tableName),
-                  FilterTransformer.toString(filter));
+                  filterStr.isEmpty() ? "" : "WHERE " + filterStr);
 
           ResultSet rs = null;
           try {
@@ -394,12 +395,13 @@ public class PostgreSQLStorage implements IStorage {
           filter = ExprUtils.mergeTrue(filter);
         }
 
+        String filterStr = FilterTransformer.toString(filter);
         statement =
             String.format(
                 QUERY_STATEMENT_WITHOUT_KEYNAME,
                 fullColumnNames,
                 fullTableName,
-                FilterTransformer.toString(filter),
+                filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                 PostgreSQLSchema.getQuotFullName(tableNames.get(0), KEY_NAME));
 
         ResultSet rs = null;
@@ -665,16 +667,17 @@ public class PostgreSQLStorage implements IStorage {
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
             fullPathList.replaceAll(s -> PostgreSQLSchema.getQuotFullName(tableName, s));
+            String filterStr =
+                FilterTransformer.toString(
+                    dummyFilterSetTrueByColumnNames(
+                        cutFilterDatabaseNameForDummy(filter.copy(), databaseName), fullPathList));
             statement =
                 String.format(
-                    CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE_AND_CONCAT_KEY,
+                    CONCAT_QUERY_STATEMENT_AND_CONCAT_KEY,
                     allColumnNameForTable.get(tableName),
                     fullQuotColumnNames,
                     getQuotName(tableName),
-                    FilterTransformer.toString(
-                        dummyFilterSetTrueByColumnNames(
-                            cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
-                            fullPathList)),
+                    filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                     allColumnNameForTable.get(tableName));
 
             try {
@@ -771,13 +774,14 @@ public class PostgreSQLStorage implements IStorage {
             copyFilter = ExprUtils.mergeTrue(copyFilter);
           }
 
+          String filterStr = FilterTransformer.toString(copyFilter);
           statement =
               String.format(
-                  CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE_AND_CONCAT_KEY,
+                  CONCAT_QUERY_STATEMENT_AND_CONCAT_KEY,
                   allColumnNames,
                   fullColumnNames,
                   fullTableName,
-                  FilterTransformer.toString(copyFilter),
+                  filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   allColumnNames);
 
           try {

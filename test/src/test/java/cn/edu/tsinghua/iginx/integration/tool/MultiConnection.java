@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.fail;
 
@@ -14,6 +15,8 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -139,7 +142,7 @@ public class MultiConnection {
         sessionPool.deleteColumns(paths, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
@@ -223,12 +226,22 @@ public class MultiConnection {
         sessionPool.deleteDataInColumns(paths, startKey, endKey, tags, type);
       }
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
         fail();
       }
+    }
+  }
+
+  public List<Long> getSessionIDs() {
+    if (session != null) {
+      return Collections.singletonList(session.getSessionId());
+    } else if (sessionPool != null) {
+      return sessionPool.getSessionIDs();
+    } else {
+      return new ArrayList<>();
     }
   }
 }

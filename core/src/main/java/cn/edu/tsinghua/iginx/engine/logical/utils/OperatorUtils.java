@@ -8,6 +8,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isB
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isMultipleOperator;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isUnaryOperator;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
@@ -40,7 +41,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.sql.expression.BaseExpression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
