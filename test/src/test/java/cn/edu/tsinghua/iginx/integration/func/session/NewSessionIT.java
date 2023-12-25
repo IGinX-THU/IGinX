@@ -452,7 +452,6 @@ public class NewSessionIT {
 
   @Test
   public void testQuery() {
-    logger.info("Simple query test started.");
     List<String> paths =
         Arrays.asList(
             "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5", "us.d1.s6", "us.d1.s7");
@@ -491,7 +490,6 @@ public class NewSessionIT {
 
   @Test
   public void testDeletePaths() {
-    logger.info("Delete paths test started.");
     // delete single path
     List<String> deleteColumns = Collections.singletonList("us.d1.s2");
     try {
@@ -537,7 +535,6 @@ public class NewSessionIT {
 
   @Test
   public void testAggregateQuery() {
-    logger.info("Aggregate query test started.");
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
@@ -627,7 +624,6 @@ public class NewSessionIT {
 
   @Test
   public void testDownsampleQuery() {
-    logger.info("Downsample Query started.");
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
@@ -733,7 +729,6 @@ public class NewSessionIT {
   @Test
   public void testQueryAfterDelete() {
     if (!isAbleToDelete) return;
-    logger.info("After delete Query started.");
 
     // single path delete data
     try {
