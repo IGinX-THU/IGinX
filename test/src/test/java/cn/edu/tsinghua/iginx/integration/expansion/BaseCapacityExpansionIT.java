@@ -594,12 +594,10 @@ public abstract class BaseCapacityExpansionIT {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;
-    boolean isOnWindows = false;
     if (os.contains("mac")) {
       isOnMac = true;
       iginxPath = ".github/scripts/iginx/iginx_macos.sh";
     } else if (os.contains("win")) {
-      isOnWindows = true;
       iginxPath = ".github/scripts/iginx/iginx_windows.sh";
     }
 

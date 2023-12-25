@@ -38,7 +38,7 @@ public class SQLSessionIT {
   protected static int defaultTestPort = 6888;
   protected static String defaultTestUser = "root";
   protected static String defaultTestPass = "root";
-  protected static String RUNNING_ENGINE;
+  protected static String runningEngine;
 
   protected static final Logger logger = LoggerFactory.getLogger(SQLSessionIT.class);
 
@@ -63,8 +63,8 @@ public class SQLSessionIT {
 
   public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    RUNNING_ENGINE = conf.getStorageType();
-    DBConf dbConf = conf.loadDBConf(RUNNING_ENGINE);
+    runningEngine = conf.getStorageType();
+    DBConf dbConf = conf.loadDBConf(runningEngine);
     this.isScaling = conf.isScaling();
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
@@ -5360,7 +5360,7 @@ public class SQLSessionIT {
     // filesystem does not support special character path on windows
     if (!isSupportSpecialCharacterPath
         || (System.getProperty("os.name").toLowerCase().contains("win")
-            && RUNNING_ENGINE.equalsIgnoreCase("filesystem"))) {
+            && runningEngine.equalsIgnoreCase("filesystem"))) {
       return;
     }
 
@@ -5418,7 +5418,7 @@ public class SQLSessionIT {
         || !isSupportNumericalPath
         || !isSupportSpecialCharacterPath
         || (System.getProperty("os.name").toLowerCase().contains("win")
-            && RUNNING_ENGINE.equalsIgnoreCase("filesystem"))) {
+            && runningEngine.equalsIgnoreCase("filesystem"))) {
       return;
     }
 
