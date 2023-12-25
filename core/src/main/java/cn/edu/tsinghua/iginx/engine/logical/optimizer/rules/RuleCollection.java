@@ -1,17 +1,23 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RuleCollection {
 
-  private final List<Rule> rules = new ArrayList<>();
+  private static final Logger logger = LoggerFactory.getLogger(RuleCollection.class);
 
-  private final Set<Rule> bannedRules = new HashSet<>();
+  private final Map<String, Rule> rules = new HashMap<>();
+
+  private final Map<String, Rule> bannedRules = new HashMap<>();
 
   private static final class InstanceHolder {
     static final RuleCollection INSTANCE = new RuleCollection();
@@ -27,20 +33,46 @@ public class RuleCollection {
     addRule(FilterFragmentRule.getInstance());
   }
 
-  public void addRule(Rule rule) {
-    this.rules.add(rule);
+  private void addRule(Rule rule) {
+    rules.put(rule.getRuleName(), rule);
   }
 
-  public void addRules(List<Rule> rules) {
-    this.rules.addAll(rules);
+  public void unbanRule(Rule rule) {
+    bannedRules.remove(rule);
   }
 
-  public void banRule(Rule rule) {
-    this.bannedRules.add(rule);
+  public void unbanRules(List<Rule> rules) {
+    rules.forEach(rule -> bannedRules.remove(rule.getRuleName()));
+  }
+
+  public boolean unbanRulesByName(List<String> ruleNames) {
+    ruleNames.forEach(bannedRules::remove);
+    return true;
+  }
+
+  public boolean banRules(Rule rule) {
+    if (!rules.containsKey(rule.getRuleName())) {
+      logger.error("IGinX rule collection does not include rule: " + rule.getRuleName());
+      return false;
+    }
+    bannedRules.put(rule.getRuleName(), rule);
+    return true;
+  }
+
+  public boolean banRulesByName(List<String> ruleNames) {
+    for (String ruleName : ruleNames) {
+      if (!rules.containsKey(ruleName)) {
+        logger.error("IGinX rule collection does not include rule: " + ruleName);
+        return false;
+      }
+      bannedRules.put(ruleName, rules.get(ruleName));
+    }
+    return true;
   }
 
   public Iterator<Rule> iterator() {
-    return new RuleIterator(rules, bannedRules);
+    // ensure that this round of optimization will not be affected by rule set modifications
+    return new RuleIterator(new ArrayList<>(rules.values()), new HashSet<>(bannedRules.values()));
   }
 
   static class RuleIterator implements Iterator<Rule> {

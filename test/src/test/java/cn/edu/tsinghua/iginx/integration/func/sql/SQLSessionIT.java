@@ -5876,6 +5876,68 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testModifyRules() {
+    String statement = "show rules;";
+    String expected =
+        "Current Applied Rules:\n"
+            + "+-----------------------+\n"
+            + "|                   Rule|\n"
+            + "+-----------------------+\n"
+            + "|FilterJoinTransposeRule|\n"
+            + "|          RemoveNotRule|\n"
+            + "+-----------------------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "ban rules \"FilterJoinTransposeRule\";";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected =
+        "Current Applied Rules:\n"
+            + "+-------------+\n"
+            + "|         Rule|\n"
+            + "+-------------+\n"
+            + "|RemoveNotRule|\n"
+            + "+-------------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "unban rules \"FilterJoinTransposeRule\";";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected =
+        "Current Applied Rules:\n"
+            + "+-----------------------+\n"
+            + "|                   Rule|\n"
+            + "+-----------------------+\n"
+            + "|FilterJoinTransposeRule|\n"
+            + "|          RemoveNotRule|\n"
+            + "+-----------------------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "ban rules \"FilterJoinTransposeRule\", \"RemoveNotRule\";";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected = "Current Applied Rules:\n" + "+----+\n" + "|Rule|\n" + "+----+\n" + "+----+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "unban rules \"FilterJoinTransposeRule\", \"RemoveNotRule\";";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected =
+        "Current Applied Rules:\n"
+            + "+-----------------------+\n"
+            + "|                   Rule|\n"
+            + "+-----------------------+\n"
+            + "|FilterJoinTransposeRule|\n"
+            + "|          RemoveNotRule|\n"
+            + "+-----------------------+\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testFilterPushDownExplain() {
     MultiConnection session =
         new MultiConnection(

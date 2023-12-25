@@ -28,6 +28,9 @@ statement
    | SHOW CONFIG configName = stringLiteral # showConfigStatement
    | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
+   | UNBAN RULES stringLiteral (COMMA stringLiteral)* # unbanRulesStatement
+   | BAN RULES stringLiteral (COMMA stringLiteral)* # banRulesStatement
+   | SHOW RULES # showRulesStatement
    ;
 
 insertFullPathSpec
@@ -645,6 +648,18 @@ DATA
 
 ADD
    : A D D
+   ;
+
+BAN
+   : B A N
+   ;
+
+UNBAN
+   : U N B A N
+   ;
+
+RULES
+   : R U L E S
    ;
 
 STORAGEENGINE

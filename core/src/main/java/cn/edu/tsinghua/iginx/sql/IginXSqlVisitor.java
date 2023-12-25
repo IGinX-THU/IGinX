@@ -47,6 +47,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.BanRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
@@ -103,6 +104,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowSessionIDStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
@@ -114,8 +116,10 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.TagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.UnbanRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
 import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
+import cn.edu.tsinghua.iginx.sql.statement.BanRulesStatement;
 import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.CommitTransformJobStatement;
@@ -138,9 +142,11 @@ import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
+import cn.edu.tsinghua.iginx.sql.statement.ShowRulesStatement;
 import cn.edu.tsinghua.iginx.sql.statement.ShowSessionIDStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.UnbanRulesStatement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
@@ -814,6 +820,35 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   @Override
   public Statement visitShowSessionIDStatement(ShowSessionIDStatementContext ctx) {
     return new ShowSessionIDStatement();
+  }
+
+  @Override
+  public Statement visitUnbanRulesStatement(UnbanRulesStatementContext ctx) {
+    List<String> rules = new ArrayList<>();
+    ctx.stringLiteral()
+        .forEach(
+            s -> {
+              String rule = s.getText();
+              rules.add(rule.substring(1, rule.length() - 1));
+            });
+    return new UnbanRulesStatement(rules);
+  }
+
+  @Override
+  public Statement visitBanRulesStatement(BanRulesStatementContext ctx) {
+    List<String> rules = new ArrayList<>();
+    ctx.stringLiteral()
+        .forEach(
+            s -> {
+              String rule = s.getText();
+              rules.add(rule.substring(1, rule.length() - 1));
+            });
+    return new BanRulesStatement(rules);
+  }
+
+  @Override
+  public Statement visitShowRulesStatement(ShowRulesStatementContext ctx) {
+    return new ShowRulesStatement();
   }
 
   private void parseSelectPaths(SelectClauseContext ctx, UnarySelectStatement selectStatement) {

@@ -22,7 +22,7 @@ public class RemoveNotRule extends Rule {
      *           |
      *          Any
      */
-    super(operand(Select.class, any()));
+    super("RemoveNotRule", operand(Select.class, any()));
   }
 
   @Override
