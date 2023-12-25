@@ -24,6 +24,12 @@ sh -c "sed -i 's/^# compaction_strategy=.*$/compaction_strategy=NO_COMPACTION/g'
 
 sh -c "sed -i 's/^# enable_timed_flush_unseq_memtable=.*$/enable_timed_flush_unseq_memtable=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
 
+sh -c "sed -i 's/^# enable_mem_control=.*$/enable_mem_control=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
+sh -c "sed -i 's/^# enable_wal=.*$/enable_wal=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
+sh -c "sed -i 's/^# enable_timed_close_tsfile=.*$/enable_timed_close_tsfile=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
 for port in "$@"
 do
   sh -c "cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb-0.12.6-server-bin-$port"
@@ -37,6 +43,12 @@ do
   sh -c "grep '^compaction_strategy=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
   sh -c "grep '^enable_timed_flush_unseq_memtable=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
+
+  sh -c "grep '^enable_mem_control=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
+
+  sh -c "grep '^enable_wal=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
+
+  sh -c "grep '^enable_timed_close_tsfile=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
   sh -c "mkdir -p apache-iotdb-0.12.6-server-bin-$port/logs"
 
