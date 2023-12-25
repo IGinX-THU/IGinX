@@ -72,12 +72,7 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
-                  work-name: stop-iginx-zk
-
-            - name: set client test context
-              uses: ./.github/actions/context
-              with:
-                  work-name: start-iginx-zk
+                  work-name: restart-iginx-zk
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -100,6 +95,11 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
+
+            - name: clean zk data and restart IGinX
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-zk
 
             - name: TestController IT
               if: always()
