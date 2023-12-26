@@ -16,14 +16,6 @@ sh -c "ls apache-iotdb-0.12.6-server-bin"
 
 sh -c "sudo sed -i 's/^# compaction_strategy=.*$/compaction_strategy=NO_COMPACTION/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
 
-sh -c "sudo sed -i 's/^# enable_timed_flush_unseq_memtable=.*$/enable_timed_flush_unseq_memtable=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
-
-sh -c "sudo sed -i 's/^# enable_mem_control=.*$/enable_mem_control=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
-
-sh -c "sudo sed -i 's/^# enable_wal=.*$/enable_wal=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
-
-sh -c "sudo sed -i 's/^# enable_timed_close_tsfile=.*$/enable_timed_close_tsfile=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
-
 for port in "$@"
 do
   sh -c "sudo cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb-0.12.6-server-bin-$port"
