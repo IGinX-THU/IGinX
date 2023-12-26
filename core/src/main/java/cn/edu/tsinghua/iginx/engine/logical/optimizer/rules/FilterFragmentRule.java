@@ -42,7 +42,7 @@ public class FilterFragmentRule extends Rule {
      *            |
      *           Any
      */
-    super(operand(Select.class, any()));
+    super("FilterFragmentRule", operand(Select.class, any()));
   }
 
   private static final Logger logger = LoggerFactory.getLogger(FilterFragmentRule.class);

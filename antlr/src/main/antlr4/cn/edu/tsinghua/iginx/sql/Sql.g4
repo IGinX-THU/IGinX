@@ -28,9 +28,8 @@ statement
    | SHOW CONFIG configName = stringLiteral # showConfigStatement
    | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
-   | UNBAN RULES stringLiteral (COMMA stringLiteral)* # unbanRulesStatement
-   | BAN RULES stringLiteral (COMMA stringLiteral)* # banRulesStatement
    | SHOW RULES # showRulesStatement
+   | SET RULES ruleAssignment (COMMA ruleAssignment)* # setRulesStatement
    ;
 
 insertFullPathSpec
@@ -511,6 +510,10 @@ realLiteral
 
 removedStorageEngine
    : LR_BRACKET ip = stringLiteral COMMA port = INT COMMA schemaPrefix = stringLiteral COMMA dataPrefix = stringLiteral RR_BRACKET
+   ;
+
+ruleAssignment
+   : ruleName = ID '=' ruleValue = ('on' | 'ON' | 'off' | 'OFF')
    ;
    //============================
    

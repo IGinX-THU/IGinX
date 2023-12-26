@@ -1,13 +1,8 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Set;
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,6 +13,8 @@ public class RuleCollection {
   private final Map<String, Rule> rules = new HashMap<>();
 
   private final Map<String, Rule> bannedRules = new HashMap<>();
+
+  private ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
 
   private static final class InstanceHolder {
     static final RuleCollection INSTANCE = new RuleCollection();
@@ -31,6 +28,24 @@ public class RuleCollection {
     // add rules here
     addRule(RemoveNotRule.getInstance());
     addRule(FilterFragmentRule.getInstance());
+
+    setRulesByConfig();
+  }
+
+  private void setRulesByConfig() {
+    Config config = configDescriptor.getConfig();
+    List<String> rules = Arrays.asList(config.getRuleBasedOptimizer().split(","));
+
+    for (String ruleSetting : rules) {
+      String[] ruleInfo = ruleSetting.split("=");
+      if (ruleInfo.length != 2) {
+        logger.error("Rule setting error: " + ruleSetting);
+        continue;
+      }
+      if (!ruleInfo[1].equalsIgnoreCase("on")) {
+        banRulesByName(Collections.singletonList(ruleInfo[0]));
+      }
+    }
   }
 
   private void addRule(Rule rule) {
@@ -38,7 +53,7 @@ public class RuleCollection {
   }
 
   public void unbanRule(Rule rule) {
-    bannedRules.remove(rule);
+    bannedRules.remove(rule.getRuleName());
   }
 
   public void unbanRules(List<Rule> rules) {
@@ -68,6 +83,34 @@ public class RuleCollection {
       bannedRules.put(ruleName, rules.get(ruleName));
     }
     return true;
+  }
+
+  public boolean setRules(Map<String, Boolean> rulesChange) {
+    // 先检查是否有不存在的规则，再进行设置
+    for (String ruleName : rulesChange.keySet()) {
+      if (!rules.containsKey(ruleName)) {
+        logger.error("IGinX rule collection does not include rule: " + ruleName);
+        return false;
+      }
+    }
+
+    for (String ruleName : rulesChange.keySet()) {
+      if (rulesChange.get(ruleName)) {
+        unbanRule(rules.get(ruleName));
+      } else {
+        banRules(rules.get(ruleName));
+      }
+    }
+
+    return true;
+  }
+
+  public Map<String, Boolean> getRulesInfo() {
+    Map<String, Boolean> rulesInfo = new HashMap<>();
+    for (String ruleName : rules.keySet()) {
+      rulesInfo.put(ruleName, !bannedRules.containsKey(ruleName));
+    }
+    return rulesInfo;
   }
 
   public Iterator<Rule> iterator() {

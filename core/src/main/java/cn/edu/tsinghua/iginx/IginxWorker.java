@@ -34,7 +34,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.Rule;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -1040,26 +1039,13 @@ public class IginxWorker implements IService.Iface {
   }
 
   @Override
-  public Status unbanRules(UnbanRulesReq req) {
-    List<String> rules = req.getRules();
-    RuleCollection collection = RuleCollection.getInstance();
-    return collection.unbanRulesByName(rules) ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
-  }
-
-  @Override
-  public Status banRules(BanRulesReq req) {
-    List<String> rules = req.getRules();
-    RuleCollection collection = RuleCollection.getInstance();
-    return collection.banRulesByName(rules) ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
-  }
-
-  @Override
   public ShowRulesResp showRules(ShowRulesReq req) {
-    Iterator<Rule> rulesIt = RuleCollection.getInstance().iterator();
-    List<String> rules = new ArrayList<>();
-    while (rulesIt.hasNext()) {
-      rules.add(rulesIt.next().getRuleName());
-    }
-    return new ShowRulesResp(RpcUtils.SUCCESS, rules);
+    return new ShowRulesResp(RpcUtils.SUCCESS, RuleCollection.getInstance().getRulesInfo());
+  }
+
+  @Override
+  public Status setRules(SetRulesReq req) {
+    Map<String, Boolean> rulesChange = req.getRulesChange();
+    return RuleCollection.getInstance().setRules(rulesChange) ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
   }
 }

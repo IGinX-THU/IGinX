@@ -182,6 +182,8 @@ public class Config {
 
   private int maxThriftWrokerThreadNum = 2147483647;
 
+  private String ruleBasedOptimizer = "RemoveNotRule=on,FilterFragmentRule=on";
+
   //////////////
 
   public static final String tagNameAnnotation = TagKVUtils.tagNameAnnotation;
@@ -884,5 +886,13 @@ public class Config {
 
   public void setUTTestEnv(boolean UTTestEnv) {
     isUTTestEnv = UTTestEnv;
+  }
+
+  public String getRuleBasedOptimizer() {
+    return ruleBasedOptimizer;
+  }
+
+  public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
+    this.ruleBasedOptimizer = ruleBasedOptimizer;
   }
 }

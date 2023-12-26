@@ -28,7 +28,6 @@ public enum StatementType {
   SHOW_CONFIG,
   SHOW_SESSION_ID,
   COMPACT,
-  UNBAN_RULES,
-  BAN_RULES,
-  SHOW_RULES
+  SHOW_RULES,
+  SET_RULES
 }

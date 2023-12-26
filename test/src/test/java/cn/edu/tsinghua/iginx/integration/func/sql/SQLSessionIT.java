@@ -5879,61 +5879,69 @@ public class SQLSessionIT {
   public void testModifyRules() {
     String statement = "show rules;";
     String expected =
-        "Current Applied Rules:\n"
-            + "+-----------------------+\n"
-            + "|                   Rule|\n"
-            + "+-----------------------+\n"
-            + "|FilterJoinTransposeRule|\n"
-            + "|          RemoveNotRule|\n"
-            + "+-----------------------+\n";
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|    ON|\n"
+            + "|FilterFragmentRule|    ON|\n"
+            + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "ban rules \"FilterJoinTransposeRule\";";
+    statement = "set rules FilterFragmentRule=off;";
     executor.execute(statement);
 
     statement = "show rules;";
     expected =
-        "Current Applied Rules:\n"
-            + "+-------------+\n"
-            + "|         Rule|\n"
-            + "+-------------+\n"
-            + "|RemoveNotRule|\n"
-            + "+-------------+\n";
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|    ON|\n"
+            + "|FilterFragmentRule|   OFF|\n"
+            + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "unban rules \"FilterJoinTransposeRule\";";
+    statement = "set rules FilterFragmentRule=on;";
     executor.execute(statement);
 
     statement = "show rules;";
     expected =
-        "Current Applied Rules:\n"
-            + "+-----------------------+\n"
-            + "|                   Rule|\n"
-            + "+-----------------------+\n"
-            + "|FilterJoinTransposeRule|\n"
-            + "|          RemoveNotRule|\n"
-            + "+-----------------------+\n";
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|    ON|\n"
+            + "|FilterFragmentRule|    ON|\n"
+            + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "ban rules \"FilterJoinTransposeRule\", \"RemoveNotRule\";";
-    executor.execute(statement);
-
-    statement = "show rules;";
-    expected = "Current Applied Rules:\n" + "+----+\n" + "|Rule|\n" + "+----+\n" + "+----+\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement = "unban rules \"FilterJoinTransposeRule\", \"RemoveNotRule\";";
+    statement = "set rules FilterFragmentRule=off, RemoveNotRule=off;";
     executor.execute(statement);
 
     statement = "show rules;";
     expected =
-        "Current Applied Rules:\n"
-            + "+-----------------------+\n"
-            + "|                   Rule|\n"
-            + "+-----------------------+\n"
-            + "|FilterJoinTransposeRule|\n"
-            + "|          RemoveNotRule|\n"
-            + "+-----------------------+\n";
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|   OFF|\n"
+            + "|FilterFragmentRule|   OFF|\n"
+            + "+------------------+------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "set rules FilterFragmentRule=on, RemoveNotRule=on;";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected =
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|    ON|\n"
+            + "|FilterFragmentRule|    ON|\n"
+            + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
   }
 
@@ -6194,6 +6202,170 @@ public class SQLSessionIT {
                     + "Total line number = 13\n"));
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+  }
+
+  @Test
+  public void testFilterFragmentOptimizer() {
+    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
+    if (queryOptimizer.contains("filter_push_down")) {
+      logger.info(
+          "Skip SQLSessionIT.testFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
+      return;
+    }
+
+    if (isScaling) {
+      logger.info("Skip SQLSessionIT.testFilterFragmentOptimizer because it is scaling test");
+      return;
+    }
+
+    String insert =
+        "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
+    executor.execute(insert);
+
+    StringBuilder builder = new StringBuilder();
+    builder.append("INSERT INTO us.d2(key, s1) VALUES ");
+    int size = (int) (endKey - startKey);
+    for (int i = 0; i < size; i++) {
+      builder.append(", (");
+      builder.append(startKey + i).append(", ");
+      builder.append(i + 5);
+      builder.append(")");
+    }
+    builder.append(";");
+
+    insert = builder.toString();
+    executor.execute(insert);
+
+    // 开启filter_fragment
+    String statement = "SET RULES FilterFragmentRule=ON;";
+    executor.execute(statement);
+
+    // 这里的测例是包含了filter_fragment不能处理的节点，因此开不开filter_fragment都是一样的结果
+    List<Pair<String, String>> statementsAndExpectResNoChange =
+        Arrays.asList(
+            new Pair<>(
+                "explain SELECT COUNT(*)\n"
+                    + "FROM (\n"
+                    + "    SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2\n"
+                    + "    FROM us.d1 OVER (RANGE 10 IN [1000, 1100))\n"
+                    + ")\n"
+                    + "OVER (RANGE 20 IN [1000, 1100));",
+                "ResultSets:\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|              Logical Tree|Operator Type|                                                                                                            Operator Info|\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                   |      Reorder|                                                                                                          Order: count(*)|\n"
+                    + "|  +--Downsample           |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select             |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|      +--Rename           |       Rename|                                                                AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1)|\n"
+                    + "|        +--Reorder        |      Reorder|                                                                                       Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
+                    + "|          +--Join         |         Join|                                                                                                              JoinBy: key|\n"
+                    + "|            +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|              +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "|            +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|              +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 12\n"),
+            new Pair<>(
+                "EXPLAIN SELECT s1 FROM us.d1 JOIN us.d2 WHERE key < 100;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+------------------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                                   Operator Info|\n"
+                    + "+----------------------+-------------+------------------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                                       Order: s1|\n"
+                    + "|  +--Project          |      Project|                                    Patterns: s1|\n"
+                    + "|    +--Select         |       Select|                               Filter: key < 100|\n"
+                    + "|      +--InnerJoin    |    InnerJoin|PrefixA: us.d1, PrefixB: us.d2, IsNatural: false|\n"
+                    + "|        +--Join       |         Join|                                     JoinBy: key|\n"
+                    + "|          +--Join     |         Join|                                     JoinBy: key|\n"
+                    + "|            +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000000|\n"
+                    + "|            +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project  |      Project|    Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--Project    |      Project|    Patterns: us.d2.*, Target DU: unit0000000001|\n"
+                    + "+----------------------+-------------+------------------------------------------------+\n"
+                    + "Total line number = 10\n"),
+            new Pair<>(
+                "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                                                                            Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                                                                           Order: avg(bb)|\n"
+                    + "|  +--GroupBy          |      GroupBy|GroupByCols: aa, FunctionCallList: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select         |       Select|                                                                          Filter: key > 2|\n"
+                    + "|      +--Rename       |       Rename|                                                    AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
+                    + "|        +--Reorder    |      Reorder|                                                                   Order: us.d2.a,us.d2.b|\n"
+                    + "|          +--Project  |      Project|                                                                Patterns: us.d2.a,us.d2.b|\n"
+                    + "|            +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000001|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 7\n"));
+
+    // 这里的测例是filter_fragment能处理的节点，开关会导致变化
+    List<Pair<String, String>> statementsAndExpectResAfterOptimize =
+        Arrays.asList(
+            new Pair<>(
+                "EXPLAIN SELECT d1.* FROM us;",
+                "ResultSets:\n"
+                    + "+--------------+-------------+---------------------------------------------+\n"
+                    + "|  Logical Tree|Operator Type|                                Operator Info|\n"
+                    + "+--------------+-------------+---------------------------------------------+\n"
+                    + "|Reorder       |      Reorder|                              Order: us.d1.s1|\n"
+                    + "|  +--Project  |      Project|                           Patterns: us.d1.s1|\n"
+                    + "|    +--Project|      Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+                    + "+--------------+-------------+---------------------------------------------+\n"
+                    + "Total line number = 3\n"),
+            new Pair<>(
+                "EXPLAIN SELECT d2.c FROM us;",
+                "ResultSets:\n"
+                    + "+--------------+-------------+--------------------------------------------+\n"
+                    + "|  Logical Tree|Operator Type|                               Operator Info|\n"
+                    + "+--------------+-------------+--------------------------------------------+\n"
+                    + "|Reorder       |      Reorder|                              Order: us.d2.c|\n"
+                    + "|  +--Project  |      Project|                           Patterns: us.d2.c|\n"
+                    + "|    +--Project|      Project|Patterns: us.d2.c, Target DU: unit0000000001|\n"
+                    + "+--------------+-------------+--------------------------------------------+\n"
+                    + "Total line number = 3\n"));
+
+    executor.concurrentExecuteAndCompare(statementsAndExpectResAfterOptimize);
+    executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
+
+    // 关闭filter_fragment
+    statement = "SET RULES FilterFragmentRule=OFF;";
+    executor.execute(statement);
+
+    List<Pair<String, String>> statementsAndExpectResBeforeOptimize =
+        Arrays.asList(
+            new Pair<>(
+                "EXPLAIN SELECT d1.* FROM us;",
+                "ResultSets:\n"
+                    + "+--------------+-------------+---------------------------------------------+\n"
+                    + "|  Logical Tree|Operator Type|                                Operator Info|\n"
+                    + "+--------------+-------------+---------------------------------------------+\n"
+                    + "|Reorder       |      Reorder|                              Order: us.d1.s1|\n"
+                    + "|  +--Project  |      Project|                           Patterns: us.d1.s1|\n"
+                    + "|    +--Project|      Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+                    + "+--------------+-------------+---------------------------------------------+\n"
+                    + "Total line number = 3\n"),
+            new Pair<>(
+                "EXPLAIN SELECT d2.c FROM us;",
+                "ResultSets:\n"
+                    + "+--------------+-------------+--------------------------------------------+\n"
+                    + "|  Logical Tree|Operator Type|                               Operator Info|\n"
+                    + "+--------------+-------------+--------------------------------------------+\n"
+                    + "|Reorder       |      Reorder|                              Order: us.d2.c|\n"
+                    + "|  +--Project  |      Project|                           Patterns: us.d2.c|\n"
+                    + "|    +--Project|      Project|Patterns: us.d2.c, Target DU: unit0000000001|\n"
+                    + "+--------------+-------------+--------------------------------------------+\n"
+                    + "Total line number = 3\n"));
+
+    executor.concurrentExecuteAndCompare(statementsAndExpectResBeforeOptimize);
+    executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
+
+    // 开启filter_fragment
+    statement = "SET RULES FilterFragmentRule=ON;";
+    executor.execute(statement);
   }
 
   @Test

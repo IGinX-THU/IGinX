@@ -4,25 +4,25 @@ import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.thrift.BanRulesReq;
+import cn.edu.tsinghua.iginx.thrift.SetRulesReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import java.util.List;
+import java.util.Map;
 
-public class BanRulesStatement extends SystemStatement {
+public class SetRulesStatement extends SystemStatement {
 
   private final IginxWorker worker = IginxWorker.getInstance();
 
-  private final List<String> rules;
+  private final Map<String, Boolean> rulesChange;
 
-  public BanRulesStatement(List<String> rules) {
-    this.statementType = StatementType.BAN_RULES;
-    this.rules = rules;
+  public SetRulesStatement(Map<String, Boolean> rulesChange) {
+    this.statementType = StatementType.SET_RULES;
+    this.rulesChange = rulesChange;
   }
 
   @Override
   public void execute(RequestContext ctx) throws ExecutionException {
-    BanRulesReq req = new BanRulesReq(ctx.getSessionId(), rules);
-    Status status = worker.banRules(req);
+    SetRulesReq req = new SetRulesReq(ctx.getSessionId(), rulesChange);
+    Status status = worker.setRules(req);
 
     Result result = new Result(status);
     ctx.setResult(result);

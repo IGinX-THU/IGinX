@@ -64,7 +64,7 @@ public class Result {
 
   private List<Long> sessionIDs;
 
-  private List<String> rules;
+  private Map<String, Boolean> rules;
 
   public Result(Status status) {
     this.status = status;

@@ -47,7 +47,7 @@ public class SessionExecuteSqlResult {
   private String loadCsvPath;
   private List<Long> sessionIDs;
 
-  private List<String> rules;
+  private Map<String, Boolean> rules;
 
   // Only for mock test
   public SessionExecuteSqlResult() {}
@@ -384,11 +384,11 @@ public class SessionExecuteSqlResult {
   private String buildShowRulesResult() {
     StringBuilder builder = new StringBuilder();
     if (rules != null) {
-      builder.append("Current Applied Rules:").append("\n");
+      builder.append("Current Rules Info:").append("\n");
       List<List<String>> cache = new ArrayList<>();
-      cache.add(new ArrayList<>(Collections.singletonList("Rule")));
-      for (String rule : rules) {
-        cache.add(new ArrayList<>(Collections.singletonList(rule)));
+      cache.add(new ArrayList<>(Arrays.asList("RuleName", "Status")));
+      for (Map.Entry<String, Boolean> entry : rules.entrySet()) {
+        cache.add(new ArrayList<>(Arrays.asList(entry.getKey(), entry.getValue() ? "ON" : "OFF")));
       }
       builder.append(FormatUtils.formatResult(cache));
     }

@@ -230,6 +230,8 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
+      config.setRuleBasedOptimizer(
+          properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on"));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
@@ -352,6 +354,8 @@ public class ConfigDescriptor {
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
     config.setUTTestEnv(EnvUtils.loadEnv("ut_test_env", config.isUTTestEnv()));
+    config.setRuleBasedOptimizer(
+        EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
   }
 
   private void loadUDFListFromFile() {

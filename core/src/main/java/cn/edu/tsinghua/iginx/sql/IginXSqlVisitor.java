@@ -47,7 +47,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.BanRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
@@ -96,6 +95,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.SelectContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectSublistContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SetConfigStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SetRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowColumnsOptionsContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowColumnsStatementContext;
@@ -116,37 +116,8 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.TagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.UnbanRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
-import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
-import cn.edu.tsinghua.iginx.sql.statement.BanRulesStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CommitTransformJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CompactStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CountPointsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ExportFileFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromCsvStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RemoveHistoryDataSourceStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SetConfigStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowConfigStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowRulesStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowSessionIDStatement;
-import cn.edu.tsinghua.iginx.sql.statement.Statement;
-import cn.edu.tsinghua.iginx.sql.statement.StatementType;
-import cn.edu.tsinghua.iginx.sql.statement.UnbanRulesStatement;
+import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
@@ -823,27 +794,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   @Override
-  public Statement visitUnbanRulesStatement(UnbanRulesStatementContext ctx) {
-    List<String> rules = new ArrayList<>();
-    ctx.stringLiteral()
-        .forEach(
-            s -> {
-              String rule = s.getText();
-              rules.add(rule.substring(1, rule.length() - 1));
-            });
-    return new UnbanRulesStatement(rules);
-  }
+  public Statement visitSetRulesStatement(SetRulesStatementContext ctx) {
+    Map<String, Boolean> rulesChange = new HashMap<>();
 
-  @Override
-  public Statement visitBanRulesStatement(BanRulesStatementContext ctx) {
-    List<String> rules = new ArrayList<>();
-    ctx.stringLiteral()
+    ctx.ruleAssignment()
         .forEach(
             s -> {
-              String rule = s.getText();
-              rules.add(rule.substring(1, rule.length() - 1));
+              String ruleName = s.ruleName.getText();
+              boolean ruleEnable = s.ruleValue.getText().equalsIgnoreCase("on");
+              rulesChange.put(ruleName, ruleEnable);
             });
-    return new BanRulesStatement(rules);
+    return new SetRulesStatement(rulesChange);
   }
 
   @Override
