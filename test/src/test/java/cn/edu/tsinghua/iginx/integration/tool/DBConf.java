@@ -12,7 +12,9 @@ public final class DBConf {
     isAbleToShowColumns,
     isSupportChinesePath,
     isSupportNumericalPath,
-    isSupportSpecialCharacterPath
+    isSupportSpecialCharacterPath,
+    isSupportKey,
+    isSupportDiffTypeHistoryData
   }
 
   private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
@@ -42,6 +44,10 @@ public final class DBConf {
         return DBConfType.isSupportNumericalPath;
       case "isSupportSpecialCharacterPath":
         return DBConfType.isSupportSpecialCharacterPath;
+      case "isSupportKey":
+        return DBConfType.isSupportKey;
+      case "isSupportDiffTypeHistoryData":
+        return DBConfType.isSupportDiffTypeHistoryData;
       default:
         throw new IllegalArgumentException("Invalid DBConfType value provided");
     }

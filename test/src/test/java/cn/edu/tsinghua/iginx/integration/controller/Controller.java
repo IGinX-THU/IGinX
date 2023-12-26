@@ -11,6 +11,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -45,56 +46,27 @@ public class Controller {
   private static final String ADD_STORAGE_ENGINE_PARQUET =
       "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"parquet\", \"has_data:true, is_read_only:true, dir:test/parquet, dummy_dir:%s, iginx_port:6888, data_prefix:%s\");";
 
-  private static final Map<String, String> NAME_TO_INSTANCE =
-      new HashMap<String, String>() {
-        {
-          put(
-              "FileSystem",
-              "cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemHistoryDataGenerator");
-          put(
-              "IoTDB12",
-              "cn.edu.tsinghua.iginx.integration.expansion.iotdb.IoTDB12HistoryDataGenerator");
-          put(
-              "InfluxDB",
-              "cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBHistoryDataGenerator");
-          put(
-              "PostgreSQL",
-              "cn.edu.tsinghua.iginx.integration.expansion.postgresql.PostgreSQLHistoryDataGenerator");
-          put(
-              "Redis",
-              "cn.edu.tsinghua.iginx.integration.expansion.redis.RedisHistoryDataGenerator");
-          put(
-              "MongoDB",
-              "cn.edu.tsinghua.iginx.integration.expansion.mongodb.MongoDBHistoryDataGenerator");
-          put(
-              "Parquet",
-              "cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator");
-        }
-      };
+  private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   public static final Map<String, Boolean> SUPPORT_KEY =
       new HashMap<String, Boolean>() {
         {
-          put("FileSystem", false);
-          put("IoTDB12", true);
-          put("InfluxDB", true);
-          put("PostgreSQL", false);
-          put("Redis", false);
-          put("MongoDB", false);
-          put("Parquet", true);
+          put(
+              testConf.getStorageType(),
+              testConf
+                  .loadDBConf(testConf.getStorageType())
+                  .getEnumValue(DBConf.DBConfType.isSupportKey));
         }
       };
 
   public static final Map<String, Boolean> NEED_SEPARATE_WRITING =
       new HashMap<String, Boolean>() {
         {
-          put("FileSystem", true);
-          put("IoTDB12", true);
-          put("InfluxDB", true);
-          put("PostgreSQL", true);
-          put("Redis", false);
-          put("MongoDB", true);
-          put("Parquet", true);
+          put(
+              testConf.getStorageType(),
+              testConf
+                  .loadDBConf(testConf.getStorageType())
+                  .getEnumValue(DBConf.DBConfType.isSupportDiffTypeHistoryData));
         }
       };
 
@@ -141,7 +113,8 @@ public class Controller {
   }
 
   private static BaseHistoryDataGenerator getCurrentGenerator(ConfLoader conf) {
-    String instance = NAME_TO_INSTANCE.get(conf.getStorageType());
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    String instance = dbConf.getClassName();
     try {
       return (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
