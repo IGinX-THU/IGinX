@@ -114,7 +114,7 @@ public class Controller {
 
   private static BaseHistoryDataGenerator getCurrentGenerator(ConfLoader conf) {
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    String instance = dbConf.getClassName();
+    String instance = dbConf.getHistoryDataGenClassName();
     try {
       return (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {

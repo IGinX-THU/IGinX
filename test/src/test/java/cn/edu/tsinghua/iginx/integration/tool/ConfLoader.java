@@ -24,6 +24,8 @@ public class ConfLoader {
 
   private static final String DB_CLASS_NAME = "%s_class";
 
+  private static final String DB_HISTORY_DATA_GEN_CLASS_NAME = "%s_data_gen_class";
+
   private static final String RUNNING_STORAGE = "./src/test/resources/DBName.txt";
 
   private static final String IS_SCALING = "./src/test/resources/isScaling.txt";
@@ -122,6 +124,8 @@ public class ConfLoader {
     dbConf.setStorageEngineMockConf(
         properties.getProperty(String.format(DB_MOCK_CONF, storageEngine)));
     dbConf.setClassName(properties.getProperty(String.format(DB_CLASS_NAME, storageEngine)));
+    dbConf.setHistoryDataGenClassName(
+        properties.getProperty(String.format(DB_HISTORY_DATA_GEN_CLASS_NAME, storageEngine)));
     return dbConf;
   }
 
