@@ -477,22 +477,22 @@ public class IginxWorker implements IService.Iface {
   }
 
   private boolean isDuplicated(StorageEngineMeta engine1, StorageEngineMeta engine2) {
-    if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
+    if (!engine1.getIp().equals(engine2.getIp())) {
+      if (!(isLocalHost(engine1.getIp()) && isLocalHost(engine2.getIp()))) {
+        return false;
+      }
       return false;
     }
     if (engine1.getPort() != engine2.getPort()) {
       return false;
     }
+    if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
+      return true;
+    }
     if (!Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())) {
       return false;
     }
-    if (!Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix())) {
-      return false;
-    }
-    if (isLocalHost(engine1.getIp()) && isLocalHost(engine2.getIp())) { // 都是本机IP
-      return true;
-    }
-    return engine1.getIp().equals(engine2.getIp());
+    return Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix());
   }
 
   @Override
