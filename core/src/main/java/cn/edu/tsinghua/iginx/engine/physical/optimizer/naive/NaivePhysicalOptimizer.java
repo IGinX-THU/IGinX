@@ -97,7 +97,8 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
         // 这里构建任务的时候应该要通过ConstantSource把expressions的信息传进去
         List<Operator> operators = new ArrayList<>();
         operators.add(operator);
-        ConstantSourceMemoryPhysicalTask ret = new ConstantSourceMemoryPhysicalTask(operators);
+        ConstantSourceMemoryPhysicalTask ret =
+            new ConstantSourceMemoryPhysicalTask(operators, context);
         MemoryPhysicalTaskDispatcher.getInstance().addMemoryTask(ret);
         return ret;
       }

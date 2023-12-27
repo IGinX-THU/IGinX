@@ -30,10 +30,6 @@ public class ConstantSourceMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private final RequestContext context;
 
-  public ConstantSourceMemoryPhysicalTask(List<Operator> operators) {
-    this(operators, null);
-  }
-
   public ConstantSourceMemoryPhysicalTask(List<Operator> operators, RequestContext context) {
     super(TaskType.ConstantSourceMemory, operators, context);
     this.context = context;
