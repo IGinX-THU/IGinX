@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -614,7 +615,7 @@ public class StatementExecutor {
       case DELETE:
         DeleteStatement deleteStatement = (DeleteStatement) statement;
         if (deleteStatement.isInvolveDummyData()) {
-          throw new ExecutionException("Caution: can not clear the data of read-only node.");
+          throw new ExecutionException(CLEAR_DUMMY_DATA_CAUTION);
         } else {
           ctx.setResult(new Result(RpcUtils.SUCCESS));
         }
