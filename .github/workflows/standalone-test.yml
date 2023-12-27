@@ -113,17 +113,17 @@ jobs:
               with:
                   KeyRangeTestPolicy: "true"
 
-            - name: Restart-IGinX-ZK
+            - name: clean zk data and restart IGinX
               uses: ./.github/actions/context
               with:
-                work-name: restart-iginx-zk
+                  work-name: restart-iginx-zk
 
             - name: FilterFragmentRuleTest IT
               if: always()
               shell: bash
               run: |
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format 
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format
 
             - name: Show test result
               if: always()

@@ -29,7 +29,7 @@ statement
    | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
    | SHOW RULES # showRulesStatement
-   | SET RULES ruleAssignment (COMMA ruleAssignment)* # setRulesStatement
+   | SET RULES stringLiteral (COMMA stringLiteral)* # setRulesStatement
    ;
 
 insertFullPathSpec
@@ -511,10 +511,6 @@ realLiteral
 removedStorageEngine
    : LR_BRACKET ip = stringLiteral COMMA port = INT COMMA schemaPrefix = stringLiteral COMMA dataPrefix = stringLiteral RR_BRACKET
    ;
-
-ruleAssignment
-   : ruleName = ID '=' ruleValue = ('on' | 'ON' | 'off' | 'OFF')
-   ;
    //============================
    
    // Start of the keywords list
@@ -651,14 +647,6 @@ DATA
 
 ADD
    : A D D
-   ;
-
-BAN
-   : B A N
-   ;
-
-UNBAN
-   : U N B A N
    ;
 
 RULES

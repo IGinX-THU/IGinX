@@ -639,8 +639,7 @@ public class IginxClient {
             Arrays.asList("set", "time", "unit", "in"),
             Arrays.asList("set", "config"),
             Arrays.asList("show", "config"),
-            Arrays.asList("unban", "rules"),
-            Arrays.asList("ban", "rules"),
+            Arrays.asList("set", "rules"),
             Collections.singletonList("select"));
     addArgumentCompleters(iginxCompleters, withNullCompleters, true);
 
