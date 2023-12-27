@@ -42,9 +42,18 @@ if __name__ == '__main__':
     # 查询写入的数据
     dataset = session.query(["a.*"], 0, 10)
     print(dataset)
+    df = dataset.to_df()
+    print(df)
+    """
+       key a.a.a a.a.b a.b.b a.c.c
+    0    1  b'a'  b'b'  None  None
+    1    2  None  None  b'b'  None
+    2    3  None  None  None  b'c'
+    3    4  b'Q'  b'W'  b'E'  b'R'
+    """
 
     # 使用 SQL 语句查询写入的数据
-    dataset = session.execute_statement("select * from a", fetch_size=2)
+    dataset = session.execute_statement("select * from a;", fetch_size=2)
 
     columns = dataset.columns()
     for column in columns:
@@ -61,7 +70,7 @@ if __name__ == '__main__':
     dataset.close()
 
     # 使用 SQL 语句查询集群信息
-    dataset = session.execute_statement("show cluster info", fetch_size=2)
+    dataset = session.execute_statement("show cluster info;", fetch_size=2)
 
     columns = dataset.columns()
     for column in columns:
@@ -78,7 +87,7 @@ if __name__ == '__main__':
     dataset.close()
 
     # 使用 SQL 语句查询副本数量
-    dataset = session.execute_statement("show replica number", fetch_size=2)
+    dataset = session.execute_statement("show replica number;", fetch_size=2)
 
     columns = dataset.columns()
     for column in columns:
@@ -95,7 +104,7 @@ if __name__ == '__main__':
     dataset.close()
 
     # 使用 SQL 语句查询时间序列
-    dataset = session.execute_statement("SHOW COLUMNS", fetch_size=2)
+    dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
 
     columns = dataset.columns()
     for column in columns:
