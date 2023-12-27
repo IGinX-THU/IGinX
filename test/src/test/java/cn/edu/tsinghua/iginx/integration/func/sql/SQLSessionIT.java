@@ -42,6 +42,9 @@ public class SQLSessionIT {
 
   protected static final Logger logger = LoggerFactory.getLogger(SQLSessionIT.class);
 
+  protected static final boolean isOnWin =
+      System.getProperty("os.name").toLowerCase().contains("win");
+
   protected boolean isAbleToDelete;
 
   protected boolean isSupportChinesePath;
@@ -5359,8 +5362,7 @@ public class SQLSessionIT {
   public void testSpecialCharacterPath() {
     // filesystem does not support special character path on windows
     if (!isSupportSpecialCharacterPath
-        || (System.getProperty("os.name").toLowerCase().contains("win")
-            && runningEngine.equalsIgnoreCase("filesystem"))) {
+        || (isOnWin && runningEngine.equalsIgnoreCase("filesystem"))) {
       return;
     }
 
@@ -5417,8 +5419,7 @@ public class SQLSessionIT {
     if (!isSupportChinesePath
         || !isSupportNumericalPath
         || !isSupportSpecialCharacterPath
-        || (System.getProperty("os.name").toLowerCase().contains("win")
-            && runningEngine.equalsIgnoreCase("filesystem"))) {
+        || (isOnWin && runningEngine.equalsIgnoreCase("filesystem"))) {
       return;
     }
 

@@ -38,10 +38,6 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
-            - if: runner.os == 'Windows'
-              name: Set JVM heap
-              run: echo "JAVA_OPTS=-Xmx4g -Xmx2g" >> $GITHUB_ENV
-
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
 
