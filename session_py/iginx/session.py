@@ -16,6 +16,8 @@
 # under the License.
 #
 import logging
+import os.path
+
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from pathlib import Path
@@ -50,7 +52,7 @@ from .thrift.rpc.ttypes import (
     DebugInfoReq,
     LoadCSVReq,
 
-    StorageEngine,
+    StorageEngine, DataType,
 )
 from .time_series import TimeSeries
 from .utils.bitmap import Bitmap
@@ -506,6 +508,36 @@ class Session(object):
         resp = self.__client.loadCSV(req)
         Session.verify_status(resp.status)
         return resp
+
+
+    # load all files in a directory into IGinX database
+    def load_directory(self, dir_path):
+        all_files = [os.path.join(dir_path, f) for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
+        for file_path in all_files:
+            print(f"Reading file: {file_path}")
+            self.load_file_by_chunks(file_path)
+            print(f"Load file: {file_path} into IGinX succeeded.")
+
+
+    # divide file into 1mb chunks
+    def load_file_by_chunks(self, file_path, chunk_size=1024*1024):
+        with open(file_path, 'rb') as file:
+            index = 0
+            while True:
+                chunk = file.read(chunk_size)
+                if not chunk:
+                    break
+                self.process_file_chunk(chunk, file_path, index)
+                index += 1
+
+
+    # insert file chunk(1mb, binary) into IGinX
+    # index will be key, chunk will be value
+    def process_file_chunk(self, chunk, file_path, index):
+        file_name = os.path.basename(file_path)
+        file_dir = os.path.basename(os.path.dirname(file_path))
+        data_path = file_dir + "." + str(file_name).replace(".", "")
+        self.insert_row_records(paths=[data_path], timestamps=[index], values_list=[[chunk]], data_type_list=[DataType.BINARY])
 
 
     def get_debug_info(self, payload, typ):

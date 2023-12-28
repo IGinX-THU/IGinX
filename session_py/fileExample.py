@@ -109,6 +109,31 @@ def load_image_file(session: Session):
             cv2.destroyAllWindows()
 
 
+def load_directory(session: Session):
+    dir_path = "../test/src/test/resources/fileReadAndWrite/byteStream/image"
+    session.load_directory(dir_path)
+
+    # 查找刚才添加的图片信息
+    dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
+    columns = dataset.columns()
+    for column in columns:
+        print(column, end="\t")
+    print()
+
+    while dataset.has_more():
+        row = dataset.next()
+        for field in row:
+            print(str(field), end="\t\t")
+        print()
+    print()
+    """
+    path	type	
+    b'image.image1jpg'		b'BINARY'		
+    b'image.image2jpg'		b'BINARY'
+    """
+    dataset.close()
+
+
 
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
@@ -118,5 +143,6 @@ if __name__ == '__main__':
     load_csv_without_header(session)
 
     load_image_file(session)
+    load_directory(session)
 
     session.close()

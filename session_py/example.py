@@ -42,6 +42,7 @@ if __name__ == '__main__':
     # 查询写入的数据
     dataset = session.query(["a.*"], 0, 10)
     print(dataset)
+    # 转换为pandas.Dataframe
     df = dataset.to_df()
     print(df)
     """

@@ -108,16 +108,17 @@
                             <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>
                         </configuration>
                     </execution>
-                    <!--                    <execution>-->
-                    <!--                        <id>generate-thrift-sources-python</id>-->
-                    <!--                        <phase>generate-sources</phase>-->
-                    <!--                        <goals>-->
-                    <!--                            <goal>compile</goal>-->
-                    <!--                        </goals>-->
-                    <!--                        <configuration>-->
-                    <!--                            <generator>py</generator>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
+                    <execution>
+                        <id>generate-thrift-sources-python</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <generator>py</generator>
+                            <outputDirectory>${project.build.directory}/generated-sources/py</outputDirectory>
+                        </configuration>
+                    </execution>
                     <!--                    <execution>-->
                     <!--                        <id>generate-thrift-sources-go</id>-->
                     <!--                        <phase>generate-sources</phase>-->
@@ -145,6 +146,7 @@
                         <configuration>
                             <sources>
                                 <source>${project.build.directory}/generated-sources/thrift</source>
+                                <source>${project.build.directory}/generated-sources/py</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -228,6 +230,18 @@
                                     <generator>java</generator>
                                     <!--                                    <generator>py</generator>-->
                                     <!--                                    <generator>go</generator>-->
+                                    <thriftExecutable>${thrift.exec.absolute.path}</thriftExecutable>
+                                    <thriftSourceRoot>src/main/proto</thriftSourceRoot>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>generate-thrift-sources-python</id>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <generator>py</generator>
                                     <thriftExecutable>${thrift.exec.absolute.path}</thriftExecutable>
                                     <thriftSourceRoot>src/main/proto</thriftSourceRoot>
                                 </configuration>
