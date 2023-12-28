@@ -9,17 +9,17 @@ import java.util.Set;
 public interface Database<K extends Comparable<K>, F, V> extends AutoCloseable {
   Scanner<K, Scanner<F, V>> query(Set<F> fields, Range<K> range) throws NativeStorageException;
 
-  void upsert(Scanner<K, Scanner<F, V>> scanner) throws NativeStorageException;
+  void upsertRows(Scanner<K, Scanner<F, V>> scanner) throws NativeStorageException;
 
   void upsertColumns(Scanner<F, Scanner<K, V>> scanner) throws NativeStorageException;
 
   void delete(Set<F> fields, RangeSet<K> ranges) throws NativeStorageException;
 
-  void delete(Set<F> fields) throws NativeStorageException;
+  void deleteRows(Set<F> fields) throws NativeStorageException;
 
-  void delete(RangeSet<K> ranges) throws NativeStorageException;
+  void deleteColumns(RangeSet<K> ranges) throws NativeStorageException;
 
-  void delete() throws NativeStorageException;
+  void clear() throws NativeStorageException;
 
   @Override
   void close();

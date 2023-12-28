@@ -43,7 +43,7 @@ public class DataManager implements Manager {
             dir,
             new ReadWriter<Long, String, Object>() {
               @Override
-              public void flush(Path path, WriteBuffer<Long, String, Object> buffer)
+              public void flush(Path path, DataBuffer<Long, String, Object> buffer)
                   throws NativeStorageException {
                 DataManager.this.flush(path, buffer);
               }
@@ -56,7 +56,7 @@ public class DataManager implements Manager {
             });
   }
 
-  private void flush(Path path, WriteBuffer<Long, String, Object> buffer)
+  private void flush(Path path, DataBuffer<Long, String, Object> buffer)
       throws NativeStorageException {
     List<Type> fields = new ArrayList<>();
     fields.add(
@@ -196,7 +196,7 @@ public class DataManager implements Manager {
       }
       if (data.isRowData()) {
         try (Scanner<Long, Scanner<String, Object>> scanner = new DataViewRowsScanner(data)) {
-          db.upsert(scanner);
+          db.upsertRows(scanner);
         }
       } else if (data.isColumnData()) {
         try (Scanner<String, Scanner<Long, Object>> scanner = new DataViewColumnsScanner(data)) {
@@ -231,12 +231,12 @@ public class DataManager implements Manager {
     }
     try {
       if (allPath && allRange) {
-        db.delete();
+        db.clear();
         schema.clear();
       } else if (allPath) {
-        db.delete(rangeSet);
+        db.deleteColumns(rangeSet);
       } else if (allRange) {
-        db.delete(fields);
+        db.deleteRows(fields);
         for (String field : fields) {
           schema.remove(field);
         }
