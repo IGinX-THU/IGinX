@@ -134,30 +134,30 @@ public class ParquetStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeProjectWithSelect(
-          Project project, Select select, DataArea dataArea) {
+      Project project, Select select, DataArea dataArea) {
     KeyInterval keyInterval = dataArea.getKeyInterval();
     Filter filter =
-            new AndFilter(
-                    Arrays.asList(
-                            new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                            new KeyFilter(Op.L, keyInterval.getEndKey()),
-                            select.getFilter()));
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey()),
+                select.getFilter()));
     return executor.executeProjectTask(
-            project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
+        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
   }
 
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
-          Project project, Select select, DataArea dataArea) {
+      Project project, Select select, DataArea dataArea) {
     KeyInterval keyInterval = dataArea.getKeyInterval();
     Filter filter =
-            new AndFilter(
-                    Arrays.asList(
-                            new KeyFilter(Op.GE, keyInterval.getStartKey()),
-                            new KeyFilter(Op.L, keyInterval.getEndKey()),
-                            select.getFilter()));
+        new AndFilter(
+            Arrays.asList(
+                new KeyFilter(Op.GE, keyInterval.getStartKey()),
+                new KeyFilter(Op.L, keyInterval.getEndKey()),
+                select.getFilter()));
     return executor.executeProjectTask(
-            project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
+        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
   }
 
   @Override

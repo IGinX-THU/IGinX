@@ -242,7 +242,6 @@ public class DUManager {
         List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
         // dir prefix in dummy column & filter be removed
         filePaths.replaceAll(s -> s.substring(s.indexOf(".") + 1));
-        filter.replaceAll("(?<=^|[^A-Za-z]" + embeddedPrefix + ".)", "");
         if (!filePaths.isEmpty()) {
           List<Column> columns =
               projectInParquet(filePaths, filter, dataFile.getPath(), null, Long.MAX_VALUE);
