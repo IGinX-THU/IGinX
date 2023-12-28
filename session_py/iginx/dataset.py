@@ -167,10 +167,24 @@ class AggregateQueryDataSet(object):
         return value
 
 
-    # def to_df(self):
-    #     columns = []
-    #     if self.__timestamps:
-    #         columns.append("key")
+    def to_df(self):
+        columns = []
+        values = []
+        # multiple row with different keys, each path, and it's value will be turned into a dataframe
+        if self.__timestamps:
+            df_list = []
+            for i in range(len(self.__timestamps)):
+                columns = ["key", AggregateType._VALUES_TO_NAMES[self.__type] + "(" + self.__paths[i] + ")"]
+                values = [self.__timestamps[i], self.__values[i]]
+                df_list.append(pd.DataFrame(data=[values], columns=columns))
+            return df_list
+        # no timestamp specified, only need to match paths and its value
+        else:
+            for path in self.__paths:
+                columns.append(AggregateType._VALUES_TO_NAMES[self.__type] + "(" + path + ")")
+            for v in self.__values:
+                values.append(v)
+            return [pd.DataFrame(data=[values], columns=columns)]
 
 
 

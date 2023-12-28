@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+import pandas as pd
+
 from iginx.session import Session
 from iginx.thrift.rpc.ttypes import DataType, AggregateType
 
@@ -130,6 +132,16 @@ if __name__ == '__main__':
     # 统计每个序列的点数
     dataset = session.aggregate_query(["*"], 0, 10, AggregateType.COUNT)
     print(dataset)
+    # 转换为pandas.Dataframe
+    df_list = dataset.to_df()
+    pd.set_option('display.max_columns', None)
+    pd.set_option('display.width', None)
+    for df in df_list:
+        print(df)
+    """
+       COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))
+    0                    2                    2                    2                    2
+    """
 
     # 获取部分序列的最后一个数据点
     dataset = session.last_query(["a.a.*"], 0)
