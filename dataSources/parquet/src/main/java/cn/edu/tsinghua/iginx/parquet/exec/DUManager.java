@@ -263,12 +263,7 @@ public class DUManager {
       paths.forEach(
           path -> builder.append(path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR)).append(", "));
       ResultSet rs =
-          stmt.executeQuery(
-              String.format(
-                  SELECT_MEM_STMT,
-                  builder.toString(),
-                  curMemTable,
-                  FilterTransformer.toString(filter)));
+          stmt.executeQuery(String.format(SELECT_MEM_STMT, builder.toString(), curMemTable));
       stmt.close();
       conn.close();
 
