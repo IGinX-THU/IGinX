@@ -77,7 +77,7 @@ def load_csv_without_header(session: Session):
 def load_image_file(session: Session):
     extra_params = {
         "iginx_port": "6888",
-        "dummy_dir": "test/src/test/resources/fileReadAndWrite/byteStream/image",
+        "dummy_dir": "test/src/test/resources/fileReadAndWrite/image",
         "has_data": "true",
         "is_read_only": "true"
     }
@@ -110,7 +110,7 @@ def load_image_file(session: Session):
 
 
 def load_directory(session: Session):
-    dir_path = "../test/src/test/resources/fileReadAndWrite/byteStream/image"
+    dir_path = "../test/src/test/resources/fileReadAndWrite/byteStream"
     session.load_directory(dir_path)
 
     # 查找刚才添加的图片信息
@@ -128,8 +128,10 @@ def load_directory(session: Session):
     print()
     """
     path	type	
-    b'image.image1jpg'		b'BINARY'		
-    b'image.image2jpg'		b'BINARY'
+    b'byteStream.tests1'		b'BINARY'		
+    b'byteStream.tests2'		b'BINARY'		
+    b'byteStream.tests3'		b'BINARY'		
+    b'byteStream.tests4'		b'BINARY'		
     """
     dataset.close()
 
