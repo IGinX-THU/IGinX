@@ -26,6 +26,7 @@ public class RuleCollection {
 
   private RuleCollection() {
     // add rules here
+    // 在这里添加规则
     addRule(RemoveNotRule.getInstance());
     addRule(FilterFragmentRule.getInstance());
 
@@ -36,6 +37,7 @@ public class RuleCollection {
     Config config = configDescriptor.getConfig();
     List<String> rules = Arrays.asList(config.getRuleBasedOptimizer().split(","));
 
+    List<String> banRules = new ArrayList<>();
     for (String ruleSetting : rules) {
       String[] ruleInfo = ruleSetting.split("=");
       if (ruleInfo.length != 2) {
@@ -43,9 +45,10 @@ public class RuleCollection {
         continue;
       }
       if (!ruleInfo[1].equalsIgnoreCase("on")) {
-        banRulesByName(Collections.singletonList(ruleInfo[0]));
+        banRules.add(ruleInfo[0]);
       }
     }
+    banRulesByName(banRules);
   }
 
   private void addRule(Rule rule) {
@@ -86,6 +89,7 @@ public class RuleCollection {
   }
 
   public boolean setRules(Map<String, Boolean> rulesChange) {
+    // Check whether any rule does not exist before setting it
     // 先检查是否有不存在的规则，再进行设置
     for (String ruleName : rulesChange.keySet()) {
       if (!rules.containsKey(ruleName)) {
@@ -115,6 +119,7 @@ public class RuleCollection {
 
   public Iterator<Rule> iterator() {
     // ensure that this round of optimization will not be affected by rule set modifications
+    // 确保这一轮优化不会受到规则集修改的影响
     return new RuleIterator(new ArrayList<>(rules.values()), new HashSet<>(bannedRules.values()));
   }
 

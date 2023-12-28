@@ -29,7 +29,7 @@ statement
    | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
    | SHOW RULES # showRulesStatement
-   | SET RULES stringLiteral (COMMA stringLiteral)* # setRulesStatement
+   | SET RULES ruleAssignment (COMMA ruleAssignment)* # setRulesStatement
    ;
 
 insertFullPathSpec
@@ -47,6 +47,10 @@ cteClause
 commonTableExpr
    : cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause RR_BRACKET
    | cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause orderByClause limitClause RR_BRACKET
+   ;
+
+ruleAssignment
+   : ruleName = ID OPERATOR_EQ ruleValue = (ON | OFF)
    ;
 
 cteName
@@ -811,6 +815,10 @@ JOIN
 
 ON
    : O N
+   ;
+
+OFF
+   : O F F
    ;
 
 USING

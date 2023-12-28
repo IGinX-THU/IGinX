@@ -158,7 +158,9 @@ public class FilterFragmentRule extends Rule {
       root = OperatorUtils.joinOperatorsByTime(joinList);
     }
     if (root != null) {
-      selectOperator.setSource(new OperatorSource(root));
+      call.transformTo(
+          new Select(
+              new OperatorSource(root), selectOperator.getFilter(), selectOperator.getTagFilter()));
     }
   }
 

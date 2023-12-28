@@ -797,20 +797,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   public Statement visitSetRulesStatement(SetRulesStatementContext ctx) {
     Map<String, Boolean> rulesChange = new HashMap<>();
 
-    ctx.stringLiteral()
+    ctx.ruleAssignment()
         .forEach(
-            stringLiteralContext -> {
-              String ruleChangeStr = stringLiteralContext.getText();
-              String[] ruleChange =
-                  ruleChangeStr.substring(1, ruleChangeStr.length() - 1).split("=");
-              String ruleName = ruleChange[0];
-              if (ruleChange.length != 2
-                  || (!ruleChange[1].equalsIgnoreCase("on")
-                      && !ruleChange[1].equalsIgnoreCase("off"))) {
-                throw new SQLParserException(
-                    "Illegal rule change string: " + stringLiteralContext.getText());
-              }
-              rulesChange.put(ruleName, ruleChange[1].equalsIgnoreCase("on"));
+            ruleAssignmentContext -> {
+              String ruleName = ruleAssignmentContext.ruleName.getText();
+              boolean enable = ruleAssignmentContext.ruleValue.getText().equalsIgnoreCase("on");
+              rulesChange.put(ruleName, enable);
             });
     return new SetRulesStatement(rulesChange);
   }

@@ -107,8 +107,19 @@ public class TreeBuilder {
   /**
    * 这棵树会被FilterFragmentRule优化，优化前有10个Project-Fragment，优化后1个Project-Fragment。
    *
-   * @return 一棵树
+   * @return 形状如下的树
    */
+  /*
+                   Select
+                     |
+                   Join
+                    / \
+           Join      ....        Join
+           / \                   / \
+     Project Project .... Project Project
+         |       |           |       |
+    Fragment Fragment .... Fragment Fragment
+  */
   public static Operator buildFilterFragmentTree() {
     int keyInterval = 100;
 
@@ -153,7 +164,7 @@ public class TreeBuilder {
 
     // 构建MetaManagerMock
     MetaManagerMock metaManagerMock = MetaManagerMock.getInstance();
-    metaManagerMock.setGetFragmentMapByColumnsIntervalMap(fragmentsByColumnsInterval);
+    metaManagerMock.setGetFragmentMapByColumnsIntervalMockMap(fragmentsByColumnsInterval);
 
     return new Reorder(new OperatorSource(select), Collections.singletonList("*"));
   }
@@ -161,8 +172,19 @@ public class TreeBuilder {
   /**
    * 这棵树不会被FilterFragmentRule优化，因为Select节点的子树下包含会被FilterFragmentRule跳过的节点。
    *
-   * @return 一棵树
+   * @return 形状如下的树
    */
+  /*
+                    Select
+                       |
+                  InnerJoin
+                     / \
+            InnerJoin   ....   InnerJoin
+             / \                   / \
+     Project Project .... Project Project
+           |       |           |       |
+    Fragment Fragment .... Fragment Fragment
+  */
   public static Operator buildFilterFragmentTreeContainsInvalidOperator() {
     int keyInterval = 100;
 
@@ -207,7 +229,7 @@ public class TreeBuilder {
 
     // 构建MetaManagerMock
     MetaManagerMock metaManagerMock = MetaManagerMock.getInstance();
-    metaManagerMock.setGetFragmentMapByColumnsIntervalMap(fragmentsByColumnsInterval);
+    metaManagerMock.setGetFragmentMapByColumnsIntervalMockMap(fragmentsByColumnsInterval);
 
     return new Reorder(new OperatorSource(select), Collections.singletonList("*"));
   }

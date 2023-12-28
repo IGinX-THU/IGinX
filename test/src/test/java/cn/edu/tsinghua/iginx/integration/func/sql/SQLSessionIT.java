@@ -5888,7 +5888,7 @@ public class SQLSessionIT {
             + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "set rules \"FilterFragmentRule=off\";";
+    statement = "set rules FilterFragmentRule=off;";
     executor.execute(statement);
 
     statement = "show rules;";
@@ -5902,7 +5902,7 @@ public class SQLSessionIT {
             + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "set rules \"FilterFragmentRule=on\";";
+    statement = "set rules FilterFragmentRule=on;";
     executor.execute(statement);
 
     statement = "show rules;";
@@ -5916,7 +5916,7 @@ public class SQLSessionIT {
             + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "set rules \"FilterFragmentRule=off\", \"RemoveNotRule=off\";";
+    statement = "set rules FilterFragmentRule=off, RemoveNotRule=off;";
     executor.execute(statement);
 
     statement = "show rules;";
@@ -5930,7 +5930,7 @@ public class SQLSessionIT {
             + "+------------------+------+\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "set rules \"FilterFragmentRule=on\", \"RemoveNotRule=on\";";
+    statement = "set rules FilterFragmentRule=on, RemoveNotRule=on;";
     executor.execute(statement);
 
     statement = "show rules;";
@@ -6244,7 +6244,7 @@ public class SQLSessionIT {
     executor.execute(insert);
 
     // 开启filter_fragment
-    String statement = "SET RULES \"FilterFragmentRule=ON\";";
+    String statement = "SET RULES FilterFragmentRule=ON;";
     executor.execute(statement);
 
     // 这里的测例是包含了filter_fragment不能处理的节点，因此开不开filter_fragment都是一样的结果
@@ -6355,7 +6355,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 关闭filter_fragment
-    statement = "SET RULES \"FilterFragmentRule=OFF\";";
+    statement = "SET RULES FilterFragmentRule=OFF;";
     executor.execute(statement);
 
     List<Pair<String, String>> statementsAndExpectResBeforeOptimize =
@@ -6428,7 +6428,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 开启filter_fragment
-    statement = "SET RULES \"FilterFragmentRule=ON\";";
+    statement = "SET RULES FilterFragmentRule=ON;";
     executor.execute(statement);
   }
 

@@ -15,7 +15,7 @@ import java.util.Set;
 
 public class MetaManagerMock implements IMetaManager {
 
-  private Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalMap =
+  private Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalMockMap =
       new HashMap<>();
 
   private static volatile MetaManagerMock INSTANCE;
@@ -103,10 +103,10 @@ public class MetaManagerMock implements IMetaManager {
     return null;
   }
 
-  public void setGetFragmentMapByColumnsIntervalMap(
-      Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalMap) {
-    this.getFragmentMapByColumnsIntervalMap.clear();
-    this.getFragmentMapByColumnsIntervalMap = getFragmentMapByColumnsIntervalMap;
+  public void setGetFragmentMapByColumnsIntervalMockMap(
+      Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalMockMap) {
+    this.getFragmentMapByColumnsIntervalMockMap.clear();
+    this.getFragmentMapByColumnsIntervalMockMap = getFragmentMapByColumnsIntervalMockMap;
   }
 
   @Override
@@ -119,9 +119,9 @@ public class MetaManagerMock implements IMetaManager {
   public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval, boolean withDummyFragment) {
     Map<ColumnsInterval, List<FragmentMeta>> res = new HashMap<>();
-    for (ColumnsInterval interval : getFragmentMapByColumnsIntervalMap.keySet()) {
+    for (ColumnsInterval interval : getFragmentMapByColumnsIntervalMockMap.keySet()) {
       if (interval.isIntersect(columnsInterval)) {
-        res.put(interval, getFragmentMapByColumnsIntervalMap.get(interval));
+        res.put(interval, getFragmentMapByColumnsIntervalMockMap.get(interval));
       }
     }
 
