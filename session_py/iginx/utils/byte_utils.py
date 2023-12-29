@@ -73,7 +73,12 @@ def row_values_to_bytes(values, types):
             format_str_list.append("d")
             values_to_be_packed.append(value)
         elif type == DataType.BINARY:
-            value_bytes = bytes(value, "utf-8")
+            if isinstance(value, str):
+                value_bytes = bytes(value, "utf-8")
+            elif isinstance(value, bytes):
+                value_bytes = value
+            else:
+                raise RuntimeError(f"Can't resolve value:{value} to binary")
             format_str_list.append("i")
             format_str_list.append(str(len(value_bytes)))
             format_str_list.append("s")
