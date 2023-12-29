@@ -20,8 +20,7 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
@@ -735,7 +734,7 @@ public class UDFIT {
     if (!needCompareResult) {
       return;
     }
-    assertEquals(expected, actual);
+    assertArrayEquals(expected, actual);
   }
 
   @Test
