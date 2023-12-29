@@ -35,10 +35,8 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -473,10 +471,6 @@ public class TransformIT {
 
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultiplePythonJobsWithExportToIginx.yaml";
-      String outputFileName =
-          OUTPUT_DIR_PREFIX
-              + File.separator
-              + "export_file_multiple_python_jobs_by_yaml_with_export_to_iginx.txt";
       SessionExecuteSqlResult result =
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
@@ -491,18 +485,23 @@ public class TransformIT {
         assertNotEquals(-1, sumIndex);
       }
 
-      BufferedWriter writer = new BufferedWriter(new FileWriter(outputFileName));
-      writer.write("key,sum\n");
-      for (List<Object> row : queryResult.getValues()) {
-        writer.write(row.get(timeIndex) + "," + row.get(sumIndex) + "\n");
-      }
-      writer.close();
-
-      verifyMultiplePythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+      verifyMultiplePythonJobs(queryResult, timeIndex, sumIndex, 200);
+    } catch (SessionException | ExecutionException | InterruptedException e) {
       logger.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
+  }
+
+  // no need to write query result into txt file then read file and compare.
+  private void verifyMultiplePythonJobs(
+      SessionExecuteSqlResult queryResult, int timeIndex, int sumIndex, int lineCount) {
+    long index = 0;
+    for (List<Object> row : queryResult.getValues()) {
+      assertEquals(index + 1, row.get(timeIndex));
+      assertEquals(index + 1 + index + 1 + 1, row.get(sumIndex));
+      index++;
+    }
+    assertEquals(lineCount, index);
   }
 
   private void verifyMultiplePythonJobs(String outputFileName) throws IOException {

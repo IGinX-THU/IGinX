@@ -16,6 +16,9 @@
 # under the License.
 #
 from enum import Enum
+
+import pandas as pd
+
 from .thrift.rpc.ttypes import SqlType, AggregateType, ExecuteSqlResp
 from .utils.bitmap import Bitmap
 from .utils.byte_utils import get_long_array, get_values_by_data_type, BytesParser
@@ -45,6 +48,12 @@ class Point(object):
 
     def get_value(self):
         return self.__value
+
+
+    def to_df(self):
+        df = pd.DataFrame([BytesParser(self.__timestamp).next_long(), BytesParser(self.__value).next(self.__type)],
+                          columns=["key", str(self.__path)])
+        return df
 
 
 class QueryDataSet(object):
@@ -100,6 +109,20 @@ class QueryDataSet(object):
         return value
 
 
+    def to_df(self):
+        columns = ["key"]
+        for column in self.__paths:
+            columns.append(str(column))
+
+        value_matrix = []
+        for i in range(len(self.__timestamps)):
+            value = [self.__timestamps[i]]
+            value.extend(self.__values[i])
+            value_matrix.append(value)
+
+        return pd.DataFrame(value_matrix, columns=columns)
+
+
 
 class AggregateQueryDataSet(object):
 
@@ -107,8 +130,8 @@ class AggregateQueryDataSet(object):
         self.__type = type
         self.__paths = resp.paths
         self.__timestamps = None
-        if resp.timestamps is not None:
-            self.__timestamps = get_long_array(resp.timestamps)
+        if resp.keys is not None:
+            self.__timestamps = get_long_array(resp.keys)
         self.__values = get_values_by_data_type(resp.valuesList, resp.dataTypeList)
 
 
@@ -142,6 +165,27 @@ class AggregateQueryDataSet(object):
                 value += str(v) + "\t"
             value += "\n"
         return value
+
+
+    def to_df(self):
+        columns = []
+        values = []
+        # multiple row with different keys, each path, and it's value will be turned into a dataframe
+        if self.__timestamps:
+            df_list = []
+            for i in range(len(self.__timestamps)):
+                columns = ["key", AggregateType._VALUES_TO_NAMES[self.__type] + "(" + self.__paths[i] + ")"]
+                values = [self.__timestamps[i], self.__values[i]]
+                df_list.append(pd.DataFrame(data=[values], columns=columns))
+            return df_list
+        # no timestamp specified, only need to match paths and its value
+        else:
+            for path in self.__paths:
+                columns.append(AggregateType._VALUES_TO_NAMES[self.__type] + "(" + path + ")")
+            for v in self.__values:
+                values.append(v)
+            return [pd.DataFrame(data=[values], columns=columns)]
+
 
 
 class StatementExecuteDataSet(object):

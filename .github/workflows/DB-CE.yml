@@ -6,7 +6,7 @@ on:
             - main
 env:
     VERSION: 0.6.0-SNAPSHOT
-    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,TransformIT
+    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
@@ -18,8 +18,8 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7.16"]
-                os: [ubuntu-latest, macos-latest]
+                python-version: ["3.9"]
+                os: [ubuntu-latest, macos-latest, windows-latest]
                 DB-name:
                     [
                         "FileSystem",
@@ -61,6 +61,7 @@ jobs:
                   Test-Way: oriHasDataExpHasData
 
             - name: oriHasDataExpHasData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
 
@@ -83,6 +84,7 @@ jobs:
                   Test-Way: oriNoDataExpNoData
 
             - name: oriNoDataExpNoData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
 
@@ -105,6 +107,7 @@ jobs:
                   Test-Way: oriHasDataExpNoData
 
             - name: oriHasDataExpNoData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
 
@@ -127,6 +130,7 @@ jobs:
                   Test-Way: oriNoDataExpHasData
 
             - name: oriNoDataExpHasData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
 
@@ -150,6 +154,7 @@ jobs:
                   Read-Only: true
 
             - name: Run testReadOnly
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
@@ -159,6 +164,12 @@ jobs:
               shell: bash
               run: |
                   cat iginx-*.log
+
+            - if: always()
+              name: Show DB Logs on Windows
+              uses: ./.github/actions/dbLog
+              with:
+                  DB-name: ${{ matrix.DB-name }}
 
             - uses: codecov/codecov-action@v1
               with:

@@ -79,7 +79,8 @@ public class Constant {
   public static List<Long> INIT_KEYS_LIST = Arrays.asList(1L, (long) Integer.MAX_VALUE);
 
   // for file system
-  public static final Map<Integer, String> PORT_TO_ROOT =
+  // for file system & influxdb
+  public static Map<Integer, String> PORT_TO_ROOT =
       new HashMap<Integer, String>() {
         {
           put(oriPort, "mn");
