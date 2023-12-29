@@ -34,6 +34,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  Status deleteDataInColumns(DeleteDataInColumnsReq req)')
     print('  QueryDataResp queryData(QueryDataReq req)')
     print('  Status addStorageEngines(AddStorageEnginesReq req)')
+    print('  Status removeHistoryDataSource(RemoveHistoryDataSourceReq req)')
     print('  AggregateQueryResp aggregateQuery(AggregateQueryReq req)')
     print('  LastQueryResp lastQuery(LastQueryReq req)')
     print('  DownsampleQueryResp downsampleQuery(DownsampleQueryReq req)')
@@ -47,6 +48,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  GetClusterInfoResp getClusterInfo(GetClusterInfoReq req)')
     print('  ExecuteStatementResp executeStatement(ExecuteStatementReq req)')
     print('  FetchResultsResp fetchResults(FetchResultsReq req)')
+    print('  LoadCSVResp loadCSV(LoadCSVReq req)')
     print('  Status closeStatement(CloseStatementReq req)')
     print('  CommitTransformJobResp commitTransformJob(CommitTransformJobReq req)')
     print('  QueryTransformJobStatusResp queryTransformJobStatus(QueryTransformJobStatusReq req)')
@@ -57,6 +59,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  GetRegisterTaskInfoResp getRegisterTaskInfo(GetRegisterTaskInfoReq req)')
     print('  CurveMatchResp curveMatch(CurveMatchReq req)')
     print('  DebugInfoResp debugInfo(DebugInfoReq req)')
+    print('  ShowSessionIDResp showSessionID(ShowSessionIDReq req)')
     print('')
     sys.exit(0)
 
@@ -196,6 +199,12 @@ elif cmd == 'addStorageEngines':
         sys.exit(1)
     pp.pprint(client.addStorageEngines(eval(args[0]),))
 
+elif cmd == 'removeHistoryDataSource':
+    if len(args) != 1:
+        print('removeHistoryDataSource requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.removeHistoryDataSource(eval(args[0]),))
+
 elif cmd == 'aggregateQuery':
     if len(args) != 1:
         print('aggregateQuery requires 1 args')
@@ -274,6 +283,12 @@ elif cmd == 'fetchResults':
         sys.exit(1)
     pp.pprint(client.fetchResults(eval(args[0]),))
 
+elif cmd == 'loadCSV':
+    if len(args) != 1:
+        print('loadCSV requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.loadCSV(eval(args[0]),))
+
 elif cmd == 'closeStatement':
     if len(args) != 1:
         print('closeStatement requires 1 args')
@@ -333,6 +348,12 @@ elif cmd == 'debugInfo':
         print('debugInfo requires 1 args')
         sys.exit(1)
     pp.pprint(client.debugInfo(eval(args[0]),))
+
+elif cmd == 'showSessionID':
+    if len(args) != 1:
+        print('showSessionID requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.showSessionID(eval(args[0]),))
 
 else:
     print('Unrecognized method %s' % cmd)
