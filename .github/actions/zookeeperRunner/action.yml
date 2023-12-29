@@ -26,16 +26,27 @@ runs:
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_macos.sh"
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/metadata/zk_windows.sh"
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
 
-        - if: inputs.if-rerun=='true'
+        - if: ${{ inputs.if-rerun=='true' && runner.os != 'Windows' }}
           name: ReRun ZooKeeper
           shell: bash
           run: |
               zookeeper/bin/zkServer.sh start
+
+        - if: ${{ inputs.if-rerun=='true' && runner.os == 'Windows' }}
+          name: ReRun ZooKeeper
+          shell: powershell
+          run: |
+              Start-Process -FilePath 'zookeeper/bin/zkServer.cmd'
+              sleep 3
+              netstat -ano | findstr 2181
 
         - if: inputs.if-stop=='true'
           name: Stop ZooKeeper
