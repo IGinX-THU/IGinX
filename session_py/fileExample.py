@@ -101,9 +101,38 @@ def load_image_file(session: Session):
             cv2.destroyAllWindows()
 
 
-def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668, type: int = StorageEngineType.filesystem, extra_parmas: dict = {
+
+def load_directory(session: Session):
+    dir_path = "../test/src/test/resources/fileReadAndWrite/byteStream"
+    session.load_directory(dir_path)
+
+    # 查找刚才添加的图片信息
+    dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
+    columns = dataset.columns()
+    for column in columns:
+        print(column, end="\t")
+    print()
+
+    while dataset.has_more():
+        row = dataset.next()
+        for field in row:
+            print(str(field), end="\t\t")
+        print()
+    print()
+    """
+    path	type	
+    b'byteStream.tests1'		b'BINARY'		
+    b'byteStream.tests2'		b'BINARY'		
+    b'byteStream.tests3'		b'BINARY'		
+    b'byteStream.tests4'		b'BINARY'		
+    """
+    dataset.close()
+
+
+
+def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668, type: int = StorageEngineType.filesystem, extra_params: dict = {
     "iginx_port": "6888",
-    "dummy_dir": "test/src/test/resources/fileReadAndWrite/byteStream/image",
+    "dummy_dir": "test/src/test/resources/fileReadAndWrite/image",
     "has_data": "true",
     "is_read_only": "true"
 }):
@@ -132,32 +161,6 @@ def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668
         print()
 
         dataset.close()
-
-def load_directory(session: Session):
-    dir_path = "../test/src/test/resources/fileReadAndWrite/byteStream"
-    session.load_directory(dir_path)
-
-    # 查找刚才添加的图片信息
-    dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
-    columns = dataset.columns()
-    for column in columns:
-        print(column, end="\t")
-    print()
-
-    while dataset.has_more():
-        row = dataset.next()
-        for field in row:
-            print(str(field), end="\t\t")
-        print()
-    print()
-    """
-    path	type	
-    b'byteStream.tests1'		b'BINARY'		
-    b'byteStream.tests2'		b'BINARY'		
-    b'byteStream.tests3'		b'BINARY'		
-    b'byteStream.tests4'		b'BINARY'		
-    """
-    dataset.close()
 
 
 
