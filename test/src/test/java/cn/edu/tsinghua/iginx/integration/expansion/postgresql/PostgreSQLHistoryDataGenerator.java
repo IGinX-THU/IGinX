@@ -83,11 +83,10 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
+        String createDatabaseSql = String.format(CREATE_DATABASE_STATEMENT, databaseName);
         try {
-          logger.info(
-              "create database with stmt: {}",
-              String.format(CREATE_DATABASE_STATEMENT, databaseName));
-          stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
+          logger.info("create database with stmt: {}", createDatabaseSql);
+          stmt.execute(createDatabaseSql);
         } catch (SQLException e) {
           logger.info("database {} exists!", databaseName);
         }

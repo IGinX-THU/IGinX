@@ -26,7 +26,8 @@ public class RestIT {
 
   private boolean isAbleToDelete = true;
 
-  private boolean dummyNoData = true;
+  // dummy节点是够已经插入过数据
+  private boolean isDummyHasInitialData = false;
 
   public RestIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
@@ -101,8 +102,8 @@ public class RestIT {
         valuesList,
         tagsList,
         InsertAPIType.Column,
-        dummyNoData);
-    dummyNoData = false;
+        isDummyHasInitialData);
+    isDummyHasInitialData = false;
   }
 
   @After

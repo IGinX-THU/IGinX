@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -173,11 +172,8 @@ public class UDFIT {
     String statement = "SELECT cos(s1) FROM us.d1 WHERE s1 < 10;";
 
     SessionExecuteSqlResult ret = execute(statement);
-    if (!needCompareResult) {
-      return;
-    }
-    assertEquals(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
-    assertArrayEquals(new long[] {0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getKeys());
+    compareResult(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
+    compareResult(new long[] {0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getKeys());
 
     List<Double> expectedValues =
         Arrays.asList(
@@ -192,10 +188,10 @@ public class UDFIT {
             -0.14550003380861354,
             -0.9111302618846769);
     for (int i = 0; i < ret.getValues().size(); i++) {
-      assertEquals(1, ret.getValues().get(i).size());
+      compareResult(1, ret.getValues().get(i).size());
       double expected = expectedValues.get(i);
       double actual = (double) ret.getValues().get(i).get(0);
-      assertEquals(expected, actual, delta);
+      compareResult(expected, actual, delta);
     }
   }
 
@@ -208,9 +204,7 @@ public class UDFIT {
     String query =
         "SELECT * FROM (SELECT cos(s1) AS cos_s1 FROM test) AS t1, (SELECT cos(s2) AS cos_s2 FROM test) AS t2 LIMIT 10;";
     SessionExecuteSqlResult ret = execute(query);
-    if (needCompareResult) {
-      assertEquals(4, ret.getPaths().size());
-    }
+    compareResult(4, ret.getPaths().size());
 
     List<Double> cosS1ExpectedValues =
         Arrays.asList(
@@ -238,14 +232,14 @@ public class UDFIT {
             0.7539022543433046);
 
     for (int i = 0; i < ret.getValues().size(); i++) {
-      assertEquals(4, ret.getValues().get(i).size());
+      compareResult(4, ret.getValues().get(i).size());
       double expected = cosS1ExpectedValues.get(i);
       double actual = (double) ret.getValues().get(i).get(0);
-      assertEquals(expected, actual, delta);
+      compareResult(expected, actual, delta);
 
       expected = cosS2ExpectedValues.get(i);
       actual = (double) ret.getValues().get(i).get(2);
-      assertEquals(expected, actual, delta);
+      compareResult(expected, actual, delta);
     }
   }
 
@@ -452,31 +446,27 @@ public class UDFIT {
     String query = "SELECT `cos(test.a)` FROM(SELECT cos(*) FROM test);";
     SessionExecuteSqlResult ret = execute(query);
 
-    if (needCompareResult) {
-      assertEquals(1, ret.getPaths().size());
-      assertEquals("cos(test.a)", ret.getPaths().get(0));
+    compareResult(1, ret.getPaths().size());
+    compareResult("cos(test.a)", ret.getPaths().get(0));
 
-      for (int i = 0; i < ret.getValues().size(); i++) {
-        assertEquals(1, ret.getValues().get(i).size());
-        double expected = cosTestAExpectedValues.get(i);
-        double actual = (double) ret.getValues().get(i).get(0);
-        assertEquals(expected, actual, delta);
-      }
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(1, ret.getValues().get(i).size());
+      double expected = cosTestAExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      compareResult(expected, actual, delta);
     }
 
     query = "SELECT `cos(test.b)` AS cos_b FROM(SELECT cos(*) FROM test);";
     ret = execute(query);
 
-    if (needCompareResult) {
-      assertEquals(1, ret.getPaths().size());
-      assertEquals("cos_b", ret.getPaths().get(0));
+    compareResult(1, ret.getPaths().size());
+    compareResult("cos_b", ret.getPaths().get(0));
 
-      for (int i = 0; i < ret.getValues().size(); i++) {
-        assertEquals(1, ret.getValues().get(i).size());
-        double expected = cosTestBExpectedValues.get(i);
-        double actual = (double) ret.getValues().get(i).get(0);
-        assertEquals(expected, actual, delta);
-      }
+    for (int i = 0; i < ret.getValues().size(); i++) {
+      compareResult(1, ret.getValues().get(i).size());
+      double expected = cosTestBExpectedValues.get(i);
+      double actual = (double) ret.getValues().get(i).get(0);
+      compareResult(expected, actual, delta);
     }
   }
 
@@ -727,7 +717,21 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
   }
 
-  void compareResult(String expected, String actual) {
+  void compareResult(Object expected, Object actual) {
+    if (!needCompareResult) {
+      return;
+    }
+    assertEquals(expected, actual);
+  }
+
+  void compareResult(double expected, double actual, double delta) {
+    if (!needCompareResult) {
+      return;
+    }
+    assertEquals(expected, actual, delta);
+  }
+
+  void compareResult(long[] expected, long[] actual) {
     if (!needCompareResult) {
       return;
     }
