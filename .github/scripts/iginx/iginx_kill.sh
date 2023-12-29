@@ -5,7 +5,15 @@ jps
 
 pids=( $(jps | grep Iginx | awk '{print $1}') )
 
-for pid in "${pids[@]}"; do
-     echo "killing $pid"
-     kill -9 $pid
-done
+if [ -n "$MSYSTEM" ]; then
+  # need to use taskkill on windows
+  for pid in "${pids[@]}"; do
+       echo "killing $pid"
+       sh -c "taskkill -f -pid $pid"
+  done
+else
+  for pid in "${pids[@]}"; do
+       echo "killing $pid"
+       kill -9 $pid
+  done
+fi

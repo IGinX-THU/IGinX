@@ -1,0 +1,23 @@
+name: "show DB log"
+description: "show DB log"
+inputs:
+    DB-name:
+        description: "DB name"
+        required: true
+        default: IoTDB12
+
+runs:
+    using: "composite"
+    steps:
+        - if: ${{ inputs.DB-name=='Mix-IoTDB12-InfluxDB' && runner.os == 'Windows' }}
+          name: Show DB Log
+          shell: bash
+          run: |
+              "${GITHUB_WORKSPACE}/.github/actions/dbLog/dbLog.sh" IoTDB12
+              "${GITHUB_WORKSPACE}/.github/actions/dbLog/dbLog.sh" InfluxDB
+
+        - if: ${{ inputs.DB-name!='Mix-IoTDB12-InfluxDB' && runner.os == 'Windows' }}
+          name: Show DB Log
+          shell: bash
+          run: |
+              "${GITHUB_WORKSPACE}/.github/actions/dbLog/dbLog.sh" ${{ inputs.DB-name }}

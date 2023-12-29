@@ -125,7 +125,7 @@ goto okClasspath
 @REM set DRIVER=
 @REM setx DRIVER "%IGINX_HOME%\driver"
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -cp %CLASSPATH% %MAIN_CLASS%
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -Dfile.encoding=UTF-8 -cp %CLASSPATH% %MAIN_CLASS%
 
 @REM reg delete "HKEY_CURRENT_USER\Environment" /v "DRIVER" /f
 @REM set DRIVER=

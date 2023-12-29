@@ -14,6 +14,8 @@ sh -c "echo ========================="
 
 sh -c "ls apache-iotdb-0.12.6-server-bin"
 
+sh -c "sudo sed -i '' 's/^# compaction_strategy=.*$/compaction_strategy=NO_COMPACTION/' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
 for port in "$@"
 do
   sh -c "sudo cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb-0.12.6-server-bin-$port"
