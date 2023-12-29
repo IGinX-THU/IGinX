@@ -14,25 +14,25 @@ sh -c "echo ========================="
 
 sh -c "ls apache-iotdb-0.12.6-server-bin"
 
-sh -c "sed -i 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+sh -c "sed -i 's/# compaction_strategy=LEVEL_COMPACTION/compaction_strategy=NO_COMPACTION/' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
 
-sh -c "sed -i 's/^@REM set MAX_HEAP_SIZE=.*$/set MAX_HEAP_SIZE=4G/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-env.bat"
+sh -c "sed -i 's/# enable_wal=true/enable_wal=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
 
-sh -c "sed -i 's/^@REM set HEAP_NEWSIZE=.*$/set HEAP_NEWSIZE=2G/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-env.bat"
+sh -c "sed -i 's/# enable_mem_control=true/enable_mem_control=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
 
-sh -c "sed -i 's/^# compaction_strategy=.*$/compaction_strategy=NO_COMPACTION/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+sh -c "sed -i 's/# enable_timed_flush_unseq_memtable=true/enable_timed_flush_unseq_memtable=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
+sh -c "sed -i 's/# enable_timed_close_tsfile=true/enable_timed_close_tsfile=false/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
+sh -c "sed -i 's/# unseq_tsfile_size=1/seq_tsfile_size=167772160/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
+sh -c "sed -i 's/# seq_tsfile_size=1/unseq_tsfile_size=167772160/g' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
 
 for port in "$@"
 do
   sh -c "cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb-0.12.6-server-bin-$port"
 
   sh -c "sed -i 's/6667/$port/g' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
-
-  sh -c "grep '^set MAX_HEAP_SIZE=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-env.bat"
-
-  sh -c "grep '^set HEAP_NEWSIZE=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-env.bat"
-
-  sh -c "grep '^compaction_strategy=' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"
 
   sh -c "mkdir -p apache-iotdb-0.12.6-server-bin-$port/logs"
 
