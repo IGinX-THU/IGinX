@@ -221,6 +221,7 @@ public class RestAnnotationIT {
   @Test
   public void testAll() {
     for (DataType dataType : DATA_TYPE_ARRAY) {
+      logger.info("Testing datatype: {}...", dataType);
       testQueryAnno(dataType);
       testQueryAll(dataType);
 

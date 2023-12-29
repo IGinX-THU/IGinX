@@ -51,12 +51,13 @@ public class IginXWriter extends ExportWriter {
 
     // construct values
     builder.append(") VALUES");
-    long index = getCurrentTimeInNS();
+    // use System.nanoTime() to avoid timestamp mistake on windows runner in action
+    long index = System.nanoTime();
     for (Row row : batchData.getRowList()) {
       builder.append(" (");
       builder.append(index).append(",");
       for (Object value : row.getValues()) {
-        builder.append(value + ",");
+        builder.append(value).append(",");
       }
       builder.deleteCharAt(builder.length() - 1);
       builder.append("),");
