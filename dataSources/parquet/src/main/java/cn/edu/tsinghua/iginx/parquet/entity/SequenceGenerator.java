@@ -7,14 +7,14 @@ public class SequenceGenerator implements LongSupplier {
 
   private static final long DELTA = 1L;
 
-  private final AtomicLong current;
-
-  public SequenceGenerator(long last) {
-    current = new AtomicLong(last);
-  }
+  private final AtomicLong current = new AtomicLong();;
 
   @Override
   public long getAsLong() {
     return current.getAndAdd(DELTA);
+  }
+
+  public void reset(long last) {
+    current.set(last);
   }
 }

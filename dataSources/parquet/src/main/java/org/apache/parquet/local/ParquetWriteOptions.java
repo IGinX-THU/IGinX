@@ -236,7 +236,7 @@ public class ParquetWriteOptions {
 
     public ParquetWriteOptions build() {
       CompressionCodecFactory.BytesInputCompressor compressor = this.compressor;
-      if(compressor == null) {
+      if (compressor == null) {
         compressor = new CodecFactory().getCompressor(CompressionCodecName.UNCOMPRESSED);
       }
       return new ParquetWriteOptions(

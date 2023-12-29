@@ -8,18 +8,19 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.db.*;
+import cn.edu.tsinghua.iginx.parquet.db.DataBuffer;
+import cn.edu.tsinghua.iginx.parquet.db.Database;
+import cn.edu.tsinghua.iginx.parquet.db.OneTierDB;
+import cn.edu.tsinghua.iginx.parquet.db.RangeTombstone;
 import cn.edu.tsinghua.iginx.parquet.entity.*;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
 import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.ProjectUtils;
+import cn.edu.tsinghua.iginx.parquet.tools.SerializeRangeTombstoneUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.io.*;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
@@ -43,20 +44,69 @@ public class DataManager implements Manager {
             dir,
             new ReadWriter<Long, String, Object>() {
               @Override
-              public void flush(Path path, DataBuffer<Long, String, Object> buffer)
+              public void flush(
+                  Path path,
+                  DataBuffer<Long, String, Object> buffer,
+                  RangeTombstone<Long, String> tombstone)
                   throws NativeStorageException {
-                DataManager.this.flush(path, buffer);
+                DataManager.this.flush(path, buffer, tombstone);
+              }
+
+              @Override
+              public com.google.common.collect.Range<Long> readMeta(
+                  Path path,
+                  Map<String, DataType> typesDst,
+                  RangeTombstone<Long, String> tombstoneDst)
+                  throws NativeStorageException {
+                return DataManager.this.readMeta(path, typesDst, tombstoneDst);
               }
 
               @Override
               public Scanner<Long, Scanner<String, Object>> read(
-                  Path path, Set<String> fields, Range<Long> range) throws NativeStorageException {
-                return DataManager.this.read(path, fields, range);
+                  Path path,
+                  Set<String> fields,
+                  Range<Long> range,
+                  RangeTombstone<Long, String> tombstoneDst)
+                  throws NativeStorageException {
+                return DataManager.this.read(path, fields, range, tombstoneDst);
               }
             });
   }
 
-  private void flush(Path path, DataBuffer<Long, String, Object> buffer)
+  private com.google.common.collect.Range<Long> readMeta(
+      Path path, Map<String, DataType> typeDst, RangeTombstone<Long, String> tombstoneDst)
+      throws NativeStorageException {
+    try (IParquetReader reader = IParquetReader.builder(path).build()) {
+      String tombstoneStr = reader.getExtraMetaData(Constants.TOMBSTONE_NAME);
+
+      RangeTombstone<Long, String> tombstone =
+          SerializeRangeTombstoneUtils.deserialize(tombstoneStr);
+      tombstone
+          .getDeletedRanges()
+          .forEach(
+              (field, rangeSet) -> {
+                tombstoneDst.delete(Collections.singleton(field), rangeSet);
+              });
+      MessageType parquetSchema = reader.getSchema();
+
+      for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
+        Type type = parquetSchema.getType(i);
+        if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
+          continue;
+        }
+        DataType iginxType = ParquetMeta.toIginxType(type.asPrimitiveType());
+        typeDst.put(type.getName(), iginxType);
+      }
+
+      // TODO: get range from file statics
+      return com.google.common.collect.Range.all();
+    } catch (Exception e) {
+      throw new NativeStorageException("failed to read, details: " + path, e);
+    }
+  }
+
+  private void flush(
+      Path path, DataBuffer<Long, String, Object> buffer, RangeTombstone<Long, String> tombstone)
       throws NativeStorageException {
     List<Type> fields = new ArrayList<>();
     fields.add(
@@ -70,24 +120,50 @@ public class DataManager implements Manager {
     try (Scanner<Long, Scanner<String, Object>> scanner =
         buffer.scanRows(buffer.fields(), buffer.range())) {
       Files.createDirectories(path.getParent());
-      try (IParquetWriter writer = IParquetWriter.builder(path, parquetSchema).build()) {
+
+      IParquetWriter.Builder builder = IParquetWriter.builder(path, parquetSchema);
+
+      String tombstoneStr = SerializeRangeTombstoneUtils.serialize(tombstone);
+      builder.withExtraMetaData(Constants.TOMBSTONE_NAME, tombstoneStr);
+
+      try (IParquetWriter writer = builder.build()) {
         while (scanner.iterate()) {
           IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
           writer.write(record);
         }
       }
     } catch (Exception e) {
-      throw new NativeStorageException("failed to flush", e);
+      throw new NativeStorageException("failed to flush, details: " + tombstone, e);
     }
   }
 
   private Scanner<Long, Scanner<String, Object>> read(
-      Path path, Set<String> fields, Range<Long> range) throws NativeStorageException {
+      Path path, Set<String> fields, Range<Long> range, RangeTombstone<Long, String> tombstoneDst)
+      throws NativeStorageException {
     try {
       Filter filter = FilterRangeUtils.filterOf(range);
       IParquetReader reader = IParquetReader.builder(path).project(fields).filter(filter).build();
+
+      int keyIndex;
       MessageType parquetSchema = reader.getSchema();
-      int keyIndex = parquetSchema.getFieldIndex(Constants.KEY_FIELD_NAME);
+      String tombstoneStr = reader.getExtraMetaData(Constants.TOMBSTONE_NAME);
+      try {
+        RangeTombstone<Long, String> tombstone =
+            SerializeRangeTombstoneUtils.deserialize(tombstoneStr);
+        tombstone
+            .getDeletedRanges()
+            .forEach(
+                (field, rangeSet) -> {
+                  tombstoneDst.delete(Collections.singleton(field), rangeSet);
+                });
+
+        keyIndex = parquetSchema.getFieldIndex(Constants.KEY_FIELD_NAME);
+      } catch (Exception e) {
+        reader.close();
+        throw new NativeStorageException(
+            "failed to read, details:" + parquetSchema + ", " + tombstoneStr, e);
+      }
+
       return new Scanner<Long, Scanner<String, Object>>() {
         private Long key;
 
@@ -223,10 +299,13 @@ public class DataManager implements Manager {
       fields = ProjectUtils.project(schema.keySet(), paths, tagFilter);
     }
     boolean allRange = keyRanges == null || keyRanges.isEmpty();
-    RangeSet<Long> rangeSet = new RangeSet<>();
+    com.google.common.collect.RangeSet<Long> rangeSet =
+        com.google.common.collect.TreeRangeSet.create();
     if (!allRange) {
       for (KeyRange range : keyRanges) {
-        rangeSet.add(new Range<>(range.getActualBeginKey(), range.getActualEndKey()));
+        rangeSet.add(
+            com.google.common.collect.Range.closed(
+                range.getActualBeginKey(), range.getActualEndKey()));
       }
     }
     try {
@@ -259,12 +338,11 @@ public class DataManager implements Manager {
   @Override
   public KeyInterval getKeyInterval() {
     // TODO: recovery from disk
-    return new KeyInterval(0, 0);
+    return new KeyInterval(0, Long.MAX_VALUE);
   }
 
   @Override
   public void close() throws Exception {
     db.close();
-    // TODO: save to disk
   }
 }

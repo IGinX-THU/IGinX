@@ -61,6 +61,11 @@ public class IParquetWriter implements AutoCloseable {
       return new IParquetWriter(recordWriter);
     }
 
+    public Builder withExtraMetaData(String key, String value) {
+      extraMetaData.put(key, value);
+      return this;
+    }
+
     public Builder withRowGroupSize(long rowGroupSize) {
       optionsBuilder.withRowGroupSize(rowGroupSize);
       return this;

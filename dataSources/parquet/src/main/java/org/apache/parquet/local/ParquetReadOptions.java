@@ -24,7 +24,6 @@ import org.apache.parquet.bytes.HeapByteBufferAllocator;
 import org.apache.parquet.compression.CompressionCodecFactory;
 import org.apache.parquet.crypto.FileDecryptionProperties;
 import org.apache.parquet.filter2.compat.FilterCompat;
-import org.apache.parquet.hadoop.util.HadoopCodecs;
 
 public class ParquetReadOptions {
   private static final boolean RECORD_FILTERING_ENABLED_DEFAULT = true;
@@ -153,7 +152,8 @@ public class ParquetReadOptions {
     private boolean usePreivousFilter;
     private double lazyFetchRatio;
     protected FilterCompat.Filter recordFilter = null;
-    protected ParquetMetadataConverter.MetadataFilter metadataFilter = ParquetMetadataConverter.NO_FILTER;
+    protected ParquetMetadataConverter.MetadataFilter metadataFilter =
+        ParquetMetadataConverter.NO_FILTER;
     // the page size parameter isn't used when only using the codec factory to get decompressors
     protected CompressionCodecFactory codecFactory = null;
     protected ByteBufferAllocator allocator = new HeapByteBufferAllocator();

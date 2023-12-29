@@ -19,7 +19,7 @@ import org.apache.parquet.local.ParquetReadOptions;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
-class ParquetMeta implements FileMeta {
+public class ParquetMeta implements FileMeta {
 
   public static final String PATH_DELIMITER = ".";
 

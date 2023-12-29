@@ -24,7 +24,6 @@ import static java.lang.Math.min;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Objects;
-
 import org.apache.parquet.column.ColumnWriteStore;
 import org.apache.parquet.column.ParquetProperties;
 import org.apache.parquet.compression.CompressionCodecFactory;
@@ -68,7 +67,8 @@ public class ParquetRecordWriter<T> {
       RecordDematerializer<T> recordDematerializer,
       MessageType schema,
       Map<String, String> extraMetaData,
-      ParquetWriteOptions options) throws IOException {
+      ParquetWriteOptions options)
+      throws IOException {
     parquetFileWriter.start();
 
     this.parquetFileWriter = parquetFileWriter;
