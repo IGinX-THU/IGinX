@@ -58,10 +58,10 @@ runs:
               else
                 pip install local-dependencies/python/pemja/pemja-0.5.dev0.tar.gz      
               fi
-#              mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
+              mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
 
         - if: inputs.scope=='javaOnly'
           name: Install Pemja Repo
           shell: bash
           run: |
-#              mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
+              mvn install:install-file -Dfile=local-dependencies/maven/pemja/pemja-0.5-SNAPSHOT.jar -DgroupId=com.alibaba -DartifactId=pemja -Dversion=0.5-SNAPSHOT -Dpackaging=jar
