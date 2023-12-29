@@ -17,8 +17,8 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7"]
-                os: [ubuntu-latest, macos-latest]
+                python-version: ["3.9"]
+                os: [ubuntu-latest, macos-latest, windows-latest]
                 DB-name:
                     [
                         "InfluxDB",
@@ -37,6 +37,10 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
+            - if: runner.os == 'Windows'
+              name: Set JAVA_OPTS
+              run: echo "JAVA_OPTS=-Xmx4g -Xmx2g" >> $GITHUB_ENV
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner

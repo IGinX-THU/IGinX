@@ -497,38 +497,38 @@ public class DUManager {
   }
 
   private String generateColInsertStmtBody(DataViewWrapper data) {
-    String[] rowValueArray = new String[data.getKeySize()];
+    StringBuilder[] rowStringBuilderArray = new StringBuilder[data.getKeySize()];
     for (int i = 0; i < data.getKeySize(); i++) {
-      rowValueArray[i] = "(" + data.getKey(i) + ", ";
+      rowStringBuilderArray[i] = new StringBuilder("(" + data.getKey(i) + ", ");
     }
     for (int i = 0; i < data.getPathNum(); i++) {
       BitmapView bitmapView = data.getBitmapView(i);
-
       int index = 0;
       for (int j = 0; j < data.getKeySize(); j++) {
         if (bitmapView.get(j)) {
           DataType type = data.getDataType(i);
           if (type == DataType.BINARY) {
             byte[] bytes = (byte[]) data.getValue(i, index);
-            rowValueArray[j] += "'" + new String(bytes) + "', ";
+            rowStringBuilderArray[j].append("'").append(new String(bytes)).append("', ");
             curMemSize += bytes.length;
           } else {
-            rowValueArray[j] += data.getValue(i, index) + ", ";
+            rowStringBuilderArray[j].append(data.getValue(i, index)).append(", ");
             curMemSize += DataTypeTransformer.getDataSize(type);
           }
           index++;
         } else {
-          rowValueArray[j] += "NULL, ";
+          rowStringBuilderArray[j].append("NULL, ");
         }
       }
     }
+
     for (int i = 0; i < data.getKeySize(); i++) {
-      rowValueArray[i] += "), ";
+      rowStringBuilderArray[i].append("), ");
     }
 
     StringBuilder builder = new StringBuilder();
-    for (String row : rowValueArray) {
-      builder.append(row);
+    for (StringBuilder row : rowStringBuilderArray) {
+      builder.append(row.toString());
     }
     return builder.toString();
   }
