@@ -288,6 +288,14 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public void updateStatistics(StatisticMeta statisticMeta) {}
+
+  @Override
+  public List<StatisticMeta> getStatisticsMetas() {
+    return null;
+  }
+
+  @Override
   public void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
       throws Exception {}

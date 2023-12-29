@@ -84,7 +84,9 @@ public class Config {
 
   private boolean enableCollectStatistics = false;
 
-  private int statisticsLogInterval = 5000;
+  private int statisticsLogInterval = 10000;
+
+  private boolean enableStatisticsSync = false;
 
   private boolean enableEnvParameter = false;
 
@@ -434,6 +436,14 @@ public class Config {
 
   public void setStatisticsLogInterval(int statisticsLogInterval) {
     this.statisticsLogInterval = statisticsLogInterval;
+  }
+
+  public boolean isEnableStatisticsSync() {
+    return enableStatisticsSync;
+  }
+
+  public void setEnableStatisticsSync(boolean enableStatisticsSync) {
+    this.enableStatisticsSync = enableStatisticsSync;
   }
 
   public boolean isEnableEnvParameter() {

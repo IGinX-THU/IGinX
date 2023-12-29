@@ -123,7 +123,9 @@ public class ConfigDescriptor {
       config.setEnableCollectStatistics(
           Boolean.parseBoolean(properties.getProperty("enableCollectStatistics", "false")));
       config.setStatisticsLogInterval(
-          Integer.parseInt(properties.getProperty("statisticsLogInterval", "5000")));
+          Integer.parseInt(properties.getProperty("statisticsLogInterval", "10000")));
+      config.setEnableStatisticsSync(
+          Boolean.parseBoolean(properties.getProperty("enableStatisticsSync", "false")));
 
       config.setRestIp(properties.getProperty("restIp", "127.0.0.1"));
       config.setRestPort(Integer.parseInt(properties.getProperty("restPort", "6666")));
@@ -258,6 +260,8 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("enableCollectStatistics", config.isEnableCollectStatistics()));
     config.setStatisticsLogInterval(
         EnvUtils.loadEnv("statisticsLogInterval", config.getStatisticsLogInterval()));
+    config.setEnableStatisticsSync(
+        EnvUtils.loadEnv("enableStatisticsSync", config.isEnableStatisticsSync()));
     config.setRestIp(EnvUtils.loadEnv("restIp", config.getRestIp()));
     config.setRestPort(EnvUtils.loadEnv("restPort", config.getRestPort()));
     config.setDisorderMargin(EnvUtils.loadEnv("disorderMargin", config.getDisorderMargin()));

@@ -1453,6 +1453,21 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public void updateStatistics(StatisticMeta statisticMeta) {
+    try {
+      storage.updateStatistics(statisticMeta);
+      cache.addOrUpdateIGinXStatistics(statisticMeta);
+    } catch (MetaStorageException e) {
+      logger.error("encounter error when update iginx statistics", e);
+    }
+  }
+
+  @Override
+  public List<StatisticMeta> getStatisticsMetas() {
+    return cache.getIGinXStatistics();
+  }
+
+  @Override
   public void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap) {
     try {

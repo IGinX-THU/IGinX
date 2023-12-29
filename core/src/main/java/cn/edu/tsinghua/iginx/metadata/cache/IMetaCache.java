@@ -141,5 +141,9 @@ public interface IMetaCache {
 
   TransformTaskMeta getTransformTask(String name);
 
+  void addOrUpdateIGinXStatistics(StatisticMeta statisticMeta);
+
+  List<StatisticMeta> getIGinXStatistics();
+
   List<TransformTaskMeta> getTransformTasks();
 }

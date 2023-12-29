@@ -55,4 +55,16 @@ public class OperatorInfoCollector extends AbstractStatisticsCollector {
 
     lock.readLock().unlock();
   }
+
+  public Map<OperatorType, Long> getOperatorCounterMap() {
+    return operatorCounterMap;
+  }
+
+  public Map<OperatorType, Long> getOperatorSpanMap() {
+    return operatorSpanMap;
+  }
+
+  public Map<OperatorType, Long> getOperatorRowsCountMap() {
+    return operatorRowsCountMap;
+  }
 }

@@ -16,12 +16,14 @@ public abstract class AbstractStatisticsCollector {
 
   private final LinkedBlockingQueue<Statistics> statisticsQueue = new LinkedBlockingQueue<>();
 
+  // before process logic
   protected Function<RequestContext, Status> before =
       requestContext -> {
         requestContext.setExtraParam(BEGIN + getCollectorType(), System.currentTimeMillis());
         return null;
       };
 
+  // after process logic
   protected Function<RequestContext, Status> after =
       requestContext -> {
         long endTime = System.currentTimeMillis();

@@ -50,4 +50,16 @@ public class WriteInfoCollector extends AbstractStatisticsCollector {
     }
     lock.readLock().unlock();
   }
+
+  public long getCount() {
+    return count;
+  }
+
+  public long getSpan() {
+    return span;
+  }
+
+  public long getPointsCount() {
+    return pointsCount;
+  }
 }
