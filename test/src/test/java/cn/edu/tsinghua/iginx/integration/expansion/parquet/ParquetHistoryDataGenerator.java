@@ -24,7 +24,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char IGINX_SEPARATOR = '.';
 
-  private static final char PARQUET_SEPARATOR = '$';
+  private static final char PARQUET_SEPARATOR = '*';
 
   public ParquetHistoryDataGenerator() {}
 
