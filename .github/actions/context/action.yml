@@ -40,7 +40,7 @@ runs:
           name: Pre Test Client Export File
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
               elif [ "$RUNNER_OS" == "macOS" ]; then
@@ -52,7 +52,7 @@ runs:
           name: Pre Test Client Import File
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
               elif [ "$RUNNER_OS" == "macOS" ]; then

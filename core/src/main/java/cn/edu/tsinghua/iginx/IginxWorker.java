@@ -343,6 +343,7 @@ public class IginxWorker implements IService.Iface {
       if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
         logger.error(
             "missing params or providing invalid ones for {} in statement.", storageEngine);
+        status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
