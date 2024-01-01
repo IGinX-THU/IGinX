@@ -111,6 +111,8 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                   sudo sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                   sudo sed -i '' 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
