@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.utils;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
+import at.favre.lib.bytes.Bytes;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeUtils {
@@ -87,7 +88,8 @@ public class DataTypeUtils {
       case DOUBLE:
         return Double.parseDouble(value);
       case BINARY:
-        return value.getBytes();
+        // use hex to read binary data from file correctly
+        return Bytes.parseHex(value).array();
       case INTEGER:
         return Integer.parseInt(value);
       case FLOAT:
@@ -108,7 +110,8 @@ public class DataTypeUtils {
     String strValue;
     switch (type) {
       case BINARY:
-        strValue = new String((byte[]) object);
+        // use hex to write binary data into file correctly
+        strValue = Bytes.wrap((byte[]) object).encodeHex();
         break;
       case INTEGER:
         strValue = Integer.toString((int) object);
