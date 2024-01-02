@@ -5959,29 +5959,34 @@ public class SQLSessionIT {
 
   @Test
   public void testModifyRules() {
-    String statement = "show rules;";
-    String expected =
-        "Current Rules Info:\n"
-            + "+------------------+------+\n"
-            + "|          RuleName|Status|\n"
-            + "+------------------+------+\n"
-            + "|     RemoveNotRule|    ON|\n"
-            + "|FilterFragmentRule|    ON|\n"
-            + "+------------------+------+\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement = "set rules FilterFragmentRule=off;";
-    executor.execute(statement);
-
+    String statement, expected;
     statement = "show rules;";
-    expected =
-        "Current Rules Info:\n"
-            + "+------------------+------+\n"
-            + "|          RuleName|Status|\n"
-            + "+------------------+------+\n"
-            + "|     RemoveNotRule|    ON|\n"
-            + "|FilterFragmentRule|   OFF|\n"
-            + "+------------------+------+\n";
+
+    String ruleBasedOptimizer = executor.execute("SHOW CONFIG \"ruleBasedOptimizer\";");
+    logger.info("testModifyRules: " + ruleBasedOptimizer);
+    // 2种情况不测试Config设置Rule的效果：
+    // 1. 本地环境下FilterFragmentRule默认是开启的，不测试
+    // 2. SessionPool测试在Session测试后，此时FilterFragmentRule已经被开启，不测试
+    if (ruleBasedOptimizer.contains("FilterFragmentRule=on") || isForSessionPool) {
+      expected =
+          "Current Rules Info:\n"
+              + "+------------------+------+\n"
+              + "|          RuleName|Status|\n"
+              + "+------------------+------+\n"
+              + "|     RemoveNotRule|    ON|\n"
+              + "|FilterFragmentRule|    ON|\n"
+              + "+------------------+------+\n";
+    } else {
+      expected =
+          "Current Rules Info:\n"
+              + "+------------------+------+\n"
+              + "|          RuleName|Status|\n"
+              + "+------------------+------+\n"
+              + "|     RemoveNotRule|    ON|\n"
+              + "|FilterFragmentRule|   OFF|\n"
+              + "+------------------+------+\n";
+    }
+
     executor.executeAndCompare(statement, expected);
 
     statement = "set rules FilterFragmentRule=on;";
@@ -6029,20 +6034,10 @@ public class SQLSessionIT {
 
   @Test
   public void testFilterPushDownExplain() {
-    MultiConnection session =
-        new MultiConnection(
-            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
-    try {
-      session.openSession();
-      String queryOptimizer =
-          session.executeSql("SHOW CONFIG \"queryOptimizer\";").getResultInString(false, "");
-      if (!queryOptimizer.contains("filter_push_down")) {
-        logger.info(
-            "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
-        return;
-      }
-    } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
+    if (!queryOptimizer.contains("filter_push_down")) {
+      logger.info(
+          "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
       return;
     }
 

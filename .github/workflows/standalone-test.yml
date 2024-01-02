@@ -55,6 +55,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
 
             # start udf path test first to avoid being effected
             - name: Start IGinX
@@ -111,7 +112,7 @@ jobs:
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
-                  KeyRangeTestPolicy: "true"
+                  Set-Key-Range-Test-Policy: "true"
 
             - name: clean zk data and restart IGinX
               uses: ./.github/actions/context

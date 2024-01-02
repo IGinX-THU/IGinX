@@ -33,21 +33,25 @@ public class RuleCollection {
     setRulesByConfig();
   }
 
+  /** 根据配置文件设置rules，未在配置文件中出现的规则默认为off */
   private void setRulesByConfig() {
     Config config = configDescriptor.getConfig();
-    List<String> rules = Arrays.asList(config.getRuleBasedOptimizer().split(","));
+    String[] ruleSettingList = config.getRuleBasedOptimizer().split(",");
 
-    List<String> banRules = new ArrayList<>();
-    for (String ruleSetting : rules) {
+    Set<String> banRules = new HashSet<>(rules.keySet());
+
+    for (String ruleSetting : ruleSettingList) {
       String[] ruleInfo = ruleSetting.split("=");
       if (ruleInfo.length != 2) {
         logger.error("Rule setting error: " + ruleSetting);
         continue;
       }
-      if (!ruleInfo[1].equalsIgnoreCase("on")) {
-        banRules.add(ruleInfo[0]);
+
+      if (ruleInfo[1].equalsIgnoreCase("on")) {
+        banRules.remove(ruleInfo[0]);
       }
     }
+
     banRulesByName(banRules);
   }
 
@@ -68,6 +72,11 @@ public class RuleCollection {
     return true;
   }
 
+  public boolean unbanRuleByName(String ruleName) {
+    bannedRules.remove(ruleName);
+    return true;
+  }
+
   public boolean banRules(Rule rule) {
     if (!rules.containsKey(rule.getRuleName())) {
       logger.error("IGinX rule collection does not include rule: " + rule.getRuleName());
@@ -77,7 +86,7 @@ public class RuleCollection {
     return true;
   }
 
-  public boolean banRulesByName(List<String> ruleNames) {
+  public boolean banRulesByName(Collection<String> ruleNames) {
     for (String ruleName : ruleNames) {
       if (!rules.containsKey(ruleName)) {
         logger.error("IGinX rule collection does not include rule: " + ruleName);
@@ -85,6 +94,15 @@ public class RuleCollection {
       }
       bannedRules.put(ruleName, rules.get(ruleName));
     }
+    return true;
+  }
+
+  public boolean banRuleByName(String ruleName) {
+    if (!rules.containsKey(ruleName)) {
+      logger.error("IGinX rule collection does not include rule: " + ruleName);
+      return false;
+    }
+    bannedRules.put(ruleName, rules.get(ruleName));
     return true;
   }
 
