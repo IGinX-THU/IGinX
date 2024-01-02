@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.exec;
 
-import static cn.edu.tsinghua.iginx.parquet.entity.Constants.SUFFIX_PARQUET_FILE;
+import static cn.edu.tsinghua.iginx.parquet.entity.Constants.SUFFIX_FILE_PARQUET;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -151,7 +151,7 @@ public class DummyManager implements Manager {
   private Iterable<Path> getFilePaths() throws PhysicalException {
     try (Stream<Path> pathStream = Files.list(dir)) {
       return pathStream
-          .filter(path -> path.toString().endsWith(SUFFIX_PARQUET_FILE))
+          .filter(path -> path.toString().endsWith(SUFFIX_FILE_PARQUET))
           .filter(Files::isRegularFile)
           .collect(Collectors.toList());
     } catch (IOException e) {

@@ -8,9 +8,10 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.io.StringReader;
 import java.util.Collections;
+import java.util.Map;
 import javax.json.*;
 
-public class SerializeRangeTombstoneUtils {
+public class SerializeUtils {
 
   private static final String ALL_FIELD_NAME = Constants.KEY_FIELD_NAME;
   private static final String RANGE_UPPER_NAME = "upper";
@@ -20,33 +21,45 @@ public class SerializeRangeTombstoneUtils {
 
   public static String serialize(RangeTombstone<Long, String> o) {
     JsonObjectBuilder rootBuilder = Json.createObjectBuilder();
-    o.getDeletedRanges()
-        .forEach(
-            (field, ranges) -> {
-              JsonArrayBuilder builder = Json.createArrayBuilder();
-              jsonBuild(builder, ranges.asRanges());
-              if (field == null) {
-                field = ALL_FIELD_NAME;
-              }
-              rootBuilder.add(field, builder);
-            });
+
+    for (String field : o.getDeletedColumns()) {
+      rootBuilder.addNull(field);
+    }
+
+    JsonArrayBuilder allFieldRangeBuilder = Json.createArrayBuilder();
+    jsonBuild(allFieldRangeBuilder, o.getDeletedRows().asRanges());
+    rootBuilder.add(ALL_FIELD_NAME, allFieldRangeBuilder);
+
+    for (Map.Entry<String, RangeSet<Long>> entry : o.getDeletedRanges().entrySet()) {
+      String field = entry.getKey();
+      RangeSet<Long> ranges = entry.getValue();
+      JsonArrayBuilder builder = Json.createArrayBuilder();
+      jsonBuild(builder, ranges.asRanges());
+      rootBuilder.add(field, builder);
+    }
+
     JsonObject object = rootBuilder.build();
     return object.toString();
   }
 
   private static void jsonBuild(JsonArrayBuilder builder, Iterable<Range<Long>> ranges) {
     for (Range<Long> range : ranges) {
-      JsonObjectBuilder rangeBuilder = Json.createObjectBuilder();
-      if (range.hasUpperBound()) {
-        JsonObjectBuilder upperBuilder = jsonBuild(range.upperEndpoint(), range.upperBoundType());
-        rangeBuilder.add(RANGE_UPPER_NAME, upperBuilder);
-      }
-      if (range.hasLowerBound()) {
-        JsonObjectBuilder lowerBuilder = jsonBuild(range.lowerEndpoint(), range.lowerBoundType());
-        rangeBuilder.add(RANGE_LOWER_NAME, lowerBuilder);
-      }
+      JsonObjectBuilder rangeBuilder = jsonBuild(range);
       builder.add(rangeBuilder);
     }
+  }
+
+  private static JsonObjectBuilder jsonBuild(Range<Long> range) {
+    JsonObjectBuilder rangeBuilder = Json.createObjectBuilder();
+    if (range.hasUpperBound()) {
+      JsonObjectBuilder upperBuilder = jsonBuild(range.upperEndpoint(), range.upperBoundType());
+      rangeBuilder.add(RANGE_UPPER_NAME, upperBuilder);
+    }
+    if (range.hasLowerBound()) {
+      JsonObjectBuilder lowerBuilder = jsonBuild(range.lowerEndpoint(), range.lowerBoundType());
+      rangeBuilder.add(RANGE_LOWER_NAME, lowerBuilder);
+    }
+    return rangeBuilder;
   }
 
   private static JsonObjectBuilder jsonBuild(Long bound, BoundType type) {
@@ -56,19 +69,26 @@ public class SerializeRangeTombstoneUtils {
     return builder;
   }
 
-  public static RangeTombstone<Long, String> deserialize(String s) {
+  public static RangeTombstone<Long, String> deserializeRangeTombstone(String s) {
     StringReader sr = new StringReader(s);
     JsonReader reader = Json.createReader(sr);
     JsonObject object = reader.readObject();
     RangeTombstone<Long, String> rangeTombstone = new RangeTombstone<Long, String>();
-    object.forEach(
-        (field, value) -> {
-          RangeSet<Long> rangeSet = jsonParseRangeSet((JsonArray) value);
-          if (field.equals(ALL_FIELD_NAME)) {
-            field = null;
-          }
-          rangeTombstone.delete(Collections.singleton(field), rangeSet);
-        });
+
+    for (Map.Entry<String, JsonValue> entry : object.entrySet()) {
+      String field = entry.getKey();
+      JsonValue value = entry.getValue();
+      if (value.getValueType() == JsonValue.ValueType.NULL) {
+        rangeTombstone.delete(Collections.singleton(field));
+        continue;
+      }
+      RangeSet<Long> rangeSet = jsonParseRangeSet((JsonArray) value);
+      if (field.equals(ALL_FIELD_NAME)) {
+        rangeTombstone.delete(rangeSet);
+        continue;
+      }
+      rangeTombstone.delete(Collections.singleton(field), rangeSet);
+    }
     return rangeTombstone;
   }
 
@@ -105,5 +125,18 @@ public class SerializeRangeTombstoneUtils {
       BoundType uType = uInclusive ? BoundType.CLOSED : BoundType.OPEN;
       return Range.range(lBound, lType, uBound, uType);
     }
+  }
+
+  public static String serialize(Range<Long> keyRange) {
+    JsonObjectBuilder rangeBuilder = jsonBuild(keyRange);
+    JsonObject object = rangeBuilder.build();
+    return object.toString();
+  }
+
+  public static Range<Long> deserializeKeyRange(String s) {
+    StringReader sr = new StringReader(s);
+    JsonReader reader = Json.createReader(sr);
+    JsonObject object = reader.readObject();
+    return jsonParseRange(object);
   }
 }

@@ -18,8 +18,9 @@ import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.ProjectUtils;
-import cn.edu.tsinghua.iginx.parquet.tools.SerializeRangeTombstoneUtils;
+import cn.edu.tsinghua.iginx.parquet.tools.SerializeUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.google.common.collect.BoundType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -36,13 +37,13 @@ public class DataManager implements Manager {
 
   private final ConcurrentHashMap<String, Column> schema = new ConcurrentHashMap<>();
 
-  private final Database<Long, String, Object> db;
+  private final Database<Long, String, DataType, Object> db;
 
   public DataManager(Path dir) throws PhysicalException, IOException {
     this.db =
         new OneTierDB<>(
             dir,
-            new ReadWriter<Long, String, Object>() {
+            new ReadWriter<Long, String, Object, DataType>() {
               @Override
               public void flush(
                   Path path,
@@ -55,10 +56,10 @@ public class DataManager implements Manager {
               @Override
               public com.google.common.collect.Range<Long> readMeta(
                   Path path,
-                  Map<String, DataType> typesDst,
+                  Map<String, DataType> schemaDst,
                   RangeTombstone<Long, String> tombstoneDst)
                   throws NativeStorageException {
-                return DataManager.this.readMeta(path, typesDst, tombstoneDst);
+                return DataManager.this.readMeta(path, schemaDst, tombstoneDst);
               }
 
               @Override
@@ -71,16 +72,18 @@ public class DataManager implements Manager {
                 return DataManager.this.read(path, fields, range, tombstoneDst);
               }
             });
+    Map<String, DataType> type = db.schema();
+    type.forEach((name, dataType) -> schema.put(name, new Column(name, dataType)));
   }
 
   private com.google.common.collect.Range<Long> readMeta(
-      Path path, Map<String, DataType> typeDst, RangeTombstone<Long, String> tombstoneDst)
+      Path path, Map<String, DataType> schemaDst, RangeTombstone<Long, String> tombstoneDst)
       throws NativeStorageException {
     try (IParquetReader reader = IParquetReader.builder(path).build()) {
       String tombstoneStr = reader.getExtraMetaData(Constants.TOMBSTONE_NAME);
 
       RangeTombstone<Long, String> tombstone =
-          SerializeRangeTombstoneUtils.deserialize(tombstoneStr);
+          SerializeUtils.deserializeRangeTombstone(tombstoneStr);
       tombstone
           .getDeletedRanges()
           .forEach(
@@ -95,11 +98,15 @@ public class DataManager implements Manager {
           continue;
         }
         DataType iginxType = ParquetMeta.toIginxType(type.asPrimitiveType());
-        typeDst.put(type.getName(), iginxType);
+        schemaDst.put(type.getName(), iginxType);
       }
 
-      // TODO: get range from file statics
-      return com.google.common.collect.Range.all();
+      String keyRangeStr = reader.getExtraMetaData(Constants.KEY_RANGE_NAME);
+      if (keyRangeStr == null) {
+        throw new NativeStorageException("range is not found in " + path);
+      }
+
+      return SerializeUtils.deserializeKeyRange(keyRangeStr);
     } catch (Exception e) {
       throw new NativeStorageException("failed to read, details: " + path, e);
     }
@@ -118,13 +125,22 @@ public class DataManager implements Manager {
     MessageType parquetSchema = new MessageType(Constants.RECORD_FIELD_NAME, fields);
 
     try (Scanner<Long, Scanner<String, Object>> scanner =
-        buffer.scanRows(buffer.fields(), buffer.range())) {
+        buffer.scanRows(buffer.fields(), new Range<>(0L, Long.MAX_VALUE))) {
       Files.createDirectories(path.getParent());
 
       IParquetWriter.Builder builder = IParquetWriter.builder(path, parquetSchema);
 
-      String tombstoneStr = SerializeRangeTombstoneUtils.serialize(tombstone);
+      String tombstoneStr = SerializeUtils.serialize(tombstone);
       builder.withExtraMetaData(Constants.TOMBSTONE_NAME, tombstoneStr);
+
+      com.google.common.collect.RangeSet<Long> rangeSet = buffer.ranges();
+      com.google.common.collect.Range<Long> range;
+      if (rangeSet.isEmpty()) {
+        range = com.google.common.collect.Range.closedOpen(0L, 0L); // empty range
+      } else {
+        range = rangeSet.span();
+      }
+      builder.withExtraMetaData(Constants.KEY_RANGE_NAME, SerializeUtils.serialize(range));
 
       try (IParquetWriter writer = builder.build()) {
         while (scanner.iterate()) {
@@ -149,7 +165,7 @@ public class DataManager implements Manager {
       String tombstoneStr = reader.getExtraMetaData(Constants.TOMBSTONE_NAME);
       try {
         RangeTombstone<Long, String> tombstone =
-            SerializeRangeTombstoneUtils.deserialize(tombstoneStr);
+            SerializeUtils.deserializeRangeTombstone(tombstoneStr);
         tombstone
             .getDeletedRanges()
             .forEach(
@@ -331,14 +347,31 @@ public class DataManager implements Manager {
 
   @Override
   public List<Column> getColumns() {
-    // TODO: recovery from disk
     return new ArrayList<>(schema.values());
   }
 
   @Override
-  public KeyInterval getKeyInterval() {
-    // TODO: recovery from disk
-    return new KeyInterval(0, Long.MAX_VALUE);
+  public KeyInterval getKeyInterval() throws PhysicalException {
+    long begin = 0, end = Long.MAX_VALUE;
+
+    com.google.common.collect.RangeSet<Long> range = db.ranges();
+    if (!range.isEmpty()) {
+      com.google.common.collect.Range<Long> span = range.span();
+      if (span.hasLowerBound()) {
+        begin = span.lowerEndpoint();
+        if (span.lowerBoundType() == BoundType.OPEN) {
+          begin += 1;
+        }
+      }
+      if (span.hasUpperBound()) {
+        end = span.upperEndpoint();
+        if (span.upperBoundType() == BoundType.OPEN) {
+          end -= 1;
+        }
+      }
+    }
+
+    return new KeyInterval(begin, end);
   }
 
   @Override

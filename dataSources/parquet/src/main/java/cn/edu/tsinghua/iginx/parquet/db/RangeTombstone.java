@@ -1,7 +1,5 @@
 package cn.edu.tsinghua.iginx.parquet.db;
 
-import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import java.util.*;
@@ -11,36 +9,65 @@ public class RangeTombstone<K extends Comparable<K>, F> {
 
   private final Map<F, RangeSet<K>> deletedRanges = new HashMap<>();
 
+  private final Set<F> deletedColumns = new HashSet<>();
+
+  private final RangeSet<K> deletedRows = TreeRangeSet.create();
+
   public void delete(@Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges) {
+    RangeSet<K> validRanges = TreeRangeSet.create(ranges);
+    validRanges.removeAll(deletedRows);
+    if (validRanges.isEmpty()) {
+      return;
+    }
     for (F deletedField : fields) {
-      deletedRanges.computeIfAbsent(deletedField, k -> TreeRangeSet.create()).addAll(ranges);
+      if (deletedColumns.contains(deletedField)) {
+        continue;
+      }
+      deletedRanges
+          .computeIfAbsent(Objects.requireNonNull(deletedField), k -> TreeRangeSet.create())
+          .addAll(ranges);
     }
   }
 
   public void delete(@Nonnull RangeSet<K> ranges) {
-    delete(Collections.singleton(null), ranges);
+    deletedRows.addAll(ranges);
+    deletedRanges.values().forEach(rangeSet -> rangeSet.removeAll(ranges));
+    deletedRanges.values().removeIf(RangeSet::isEmpty);
   }
 
   public void delete(@Nonnull Set<F> fields) {
-    delete(fields, ImmutableRangeSet.of(Range.all()));
+    deletedColumns.addAll(fields);
+    for (F field : fields) {
+      deletedRanges.remove(field);
+    }
   }
 
   public void reset() {
     deletedRanges.clear();
   }
 
+  public static <F, K extends Comparable<K>> void playback(
+      RangeTombstone<K, F> tombstone, RangeSet<K> flushedRangeSet) {
+    flushedRangeSet.removeAll(tombstone.getDeletedRows());
+  }
+
+  public static <K extends Comparable<K>, F, T> void playback(
+      RangeTombstone<K, F> tombstone, Map<F, T> types) {
+    for (F field : tombstone.getDeletedColumns()) {
+      types.remove(field);
+    }
+  }
+
   public static <K extends Comparable<K>, F, V> void playback(
       RangeTombstone<K, F> tombstone, DataBuffer<K, F, V> buffer) {
+    for (F field : tombstone.getDeletedColumns()) {
+      buffer.remove(Collections.singleton(field));
+    }
+    buffer.remove(tombstone.getDeletedRows());
     for (Map.Entry<F, RangeSet<K>> entry : tombstone.getDeletedRanges().entrySet()) {
       F field = entry.getKey();
       RangeSet<K> rangeSet = entry.getValue();
-      if (field == null) {
-        buffer.remove(rangeSet);
-      } else if (rangeSet.encloses(Range.all())) {
-        buffer.remove(Collections.singleton(field));
-      } else {
-        buffer.remove(Collections.singleton(field), rangeSet);
-      }
+      buffer.remove(Collections.singleton(field), rangeSet);
     }
   }
 
@@ -48,17 +75,27 @@ public class RangeTombstone<K extends Comparable<K>, F> {
     return deletedRanges;
   }
 
+  public Set<F> getDeletedColumns() {
+    return deletedColumns;
+  }
+
+  public RangeSet<K> getDeletedRows() {
+    return deletedRows;
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     RangeTombstone<?, ?> that = (RangeTombstone<?, ?>) o;
-    return Objects.equals(deletedRanges, that.deletedRanges);
+    return Objects.equals(deletedRanges, that.deletedRanges)
+        && Objects.equals(deletedColumns, that.deletedColumns)
+        && Objects.equals(deletedRows, that.deletedRows);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(deletedRanges);
+    return Objects.hash(deletedRanges, deletedColumns, deletedRows);
   }
 
   @Override

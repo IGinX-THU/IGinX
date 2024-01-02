@@ -71,6 +71,7 @@ public class IParquetReader implements AutoCloseable {
     private final ParquetReadOptions.Builder optionsBuilder = ParquetReadOptions.builder();
     private final InputFile localInputfile;
     private boolean skip = false;
+    private Set<String> fields;
 
     public Builder(LocalInputFile localInputFile) {
       this.localInputfile = localInputFile;
@@ -87,7 +88,7 @@ public class IParquetReader implements AutoCloseable {
 
       MessageType schema = footer.getFileMetaData().getSchema();
       // TODO projection schema
-      MessageType requestedSchema = schema;
+      MessageType requestedSchema = ProjectUtils.projectMessageType(schema, fields);
 
       if (skip) {
         return new IParquetReader(requestedSchema, extra);
@@ -101,7 +102,7 @@ public class IParquetReader implements AutoCloseable {
     }
 
     public Builder project(Set<String> fields) {
-      // TODO
+      this.fields = fields;
       return this;
     }
 

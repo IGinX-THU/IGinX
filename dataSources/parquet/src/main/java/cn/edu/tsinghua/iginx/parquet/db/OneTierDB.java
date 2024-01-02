@@ -3,11 +3,14 @@ package cn.edu.tsinghua.iginx.parquet.db;
 import cn.edu.tsinghua.iginx.parquet.entity.*;
 import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.concurrent.ExecutorService;
@@ -21,7 +24,7 @@ import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, V> {
+public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
   private final Path dir;
@@ -29,15 +32,17 @@ public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, 
   private DataBuffer<K, F, V> flushedBuffer;
   private RangeTombstone<K, F> writtenDeleted = new RangeTombstone<>();
   private RangeTombstone<K, F> flushedDeleted;
+  private com.google.common.collect.RangeSet<K> flushedRangeSet =
+      com.google.common.collect.TreeRangeSet.create();
   private final ReadWriteLock flushedLock = new ReentrantReadWriteLock(true);
   private final Semaphore flusherNumber = new Semaphore(1);
   private final ReadWriteLock deletedLock = new ReentrantReadWriteLock(true);
   private final ExecutorService flushPool = Executors.newSingleThreadExecutor();
   private final SequenceGenerator sequenceGenerator = new SequenceGenerator();
   private final LongAdder inserted = new LongAdder();
-  private final ReadWriter<K, F, V> readerWriter;
+  private final ReadWriter<K, F, V, T> readerWriter;
 
-  public OneTierDB(Path dir, ReadWriter<K, F, V> readerWriter) throws NativeStorageException {
+  public OneTierDB(Path dir, ReadWriter<K, F, V, T> readerWriter) throws NativeStorageException {
     this.dir = dir;
     this.readerWriter = readerWriter;
 
@@ -46,6 +51,21 @@ public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, 
       this.sequenceGenerator.reset(numbers.iterator().next());
     } else {
       this.sequenceGenerator.reset(Constants.SEQUENCE_START);
+    }
+
+    initFlushedBoundary();
+  }
+
+  private void initFlushedBoundary() throws NativeStorageException {
+    for (Map.Entry<Long, Path> entry : getSortedPath().entrySet()) {
+      RangeTombstone<K, F> rangeTombstone = new RangeTombstone<>();
+      com.google.common.collect.Range<K> range =
+          readerWriter.readMeta(entry.getValue(), new HashMap<>(), rangeTombstone);
+      RangeTombstone.playback(rangeTombstone, flushedRangeSet);
+      flushedRangeSet.add(range);
+    }
+    if (!flushedRangeSet.isEmpty()) {
+      flushedRangeSet = ImmutableRangeSet.of(flushedRangeSet.span());
     }
   }
 
@@ -91,12 +111,56 @@ public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, 
     return readBuffer.scanRows(fields, range);
   }
 
+  @Override
+  public com.google.common.collect.RangeSet<K> ranges() throws NativeStorageException {
+    flushedLock.readLock().lock();
+    deletedLock.readLock().lock();
+    try {
+      com.google.common.collect.RangeSet<K> rangeSet =
+          com.google.common.collect.TreeRangeSet.create();
+      rangeSet.addAll(flushedRangeSet);
+      RangeTombstone.playback(writtenDeleted, rangeSet);
+      rangeSet.addAll(writtenBuffer.ranges());
+      if (!rangeSet.isEmpty()) {
+        rangeSet = ImmutableRangeSet.of(rangeSet.span());
+      }
+      return rangeSet;
+    } finally {
+      deletedLock.readLock().unlock();
+      flushedLock.readLock().unlock();
+    }
+  }
+
+  @Override
+  public Map<F, T> schema() throws NativeStorageException {
+    TreeMap<Long, Path> sortedFiles = getSortedPath();
+    Map<F, T> result = new HashMap<>();
+    for (Path path : sortedFiles.values()) {
+      RangeTombstone<K, F> rangeTombstone = new RangeTombstone<>();
+      Map<F, T> schema = new HashMap<>();
+
+      readerWriter.readMeta(path, schema, rangeTombstone);
+      RangeTombstone.playback(flushedDeleted, result);
+      for (Map.Entry<F, T> entry : schema.entrySet()) {
+        T oldType = result.get(entry.getKey());
+        if (oldType != null && !oldType.equals(entry.getValue())) {
+          throw new NativeStorageException(
+              String.format(
+                  "conflict types: %s and %s of %s in %s",
+                  oldType, entry.getValue(), entry.getKey(), path));
+        }
+        result.put(entry.getKey(), entry.getValue());
+      }
+    }
+    return result;
+  }
+
   @Nonnull
   private TreeMap<Long, Path> getSortedPath() throws NativeStorageException {
     TreeMap<Long, Path> sortedFiles = new TreeMap<>();
     try (Stream<Path> paths = Files.list(dir)) {
       paths
-          .filter(path -> path.toString().endsWith(".parquet"))
+          .filter(path -> path.toString().endsWith(Constants.SUFFIX_FILE_PARQUET))
           .forEach(
               path -> {
                 String fileName = path.getFileName().toString();
@@ -161,6 +225,7 @@ public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, 
       RangeTombstone<K, F> flushedDeleted;
 
       flushedLock.writeLock().lock();
+      deletedLock.writeLock().lock();
       try {
         this.flushedBuffer = writtenBuffer;
         this.flushedDeleted = writtenDeleted;
@@ -168,9 +233,13 @@ public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, 
         this.writtenDeleted = new RangeTombstone<>();
         this.inserted.reset();
 
+        RangeTombstone.playback(this.flushedDeleted, flushedRangeSet);
+        flushedRangeSet.addAll(this.flushedBuffer.ranges());
+
         flushedBuffer = this.flushedBuffer;
         flushedDeleted = this.flushedDeleted;
       } finally {
+        deletedLock.writeLock().unlock();
         flushedLock.writeLock().unlock();
       }
 
@@ -178,7 +247,10 @@ public class OneTierDB<K extends Comparable<K>, F, V> implements Database<K, F, 
           () -> {
             long seq = sequenceGenerator.getAsLong();
 
-            Path tempPath = this.dir.resolve(String.format("%d.parquet.tmp", seq));
+            Path tempPath =
+                this.dir.resolve(
+                    String.format(
+                        "%d%s%s", seq, Constants.SUFFIX_FILE_PARQUET, Constants.SUFFIX_FILE_TEMP));
             LOGGER.info("flushing into {}", tempPath);
             try {
               readerWriter.flush(tempPath, flushedBuffer, flushedDeleted);

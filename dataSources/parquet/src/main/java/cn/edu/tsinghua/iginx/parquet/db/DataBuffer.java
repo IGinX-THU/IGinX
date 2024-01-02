@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.parquet.db;
 import cn.edu.tsinghua.iginx.parquet.entity.*;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
 import com.google.common.collect.BoundType;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.RangeSet;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,7 +113,7 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
   }
 
   @Nonnull
-  public Range<K> range() {
+  public RangeSet<K> ranges() {
     K min =
         data.values().stream()
             .filter(Objects::nonNull)
@@ -130,8 +131,10 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
             .map(Map.Entry::getKey)
             .max(Comparator.naturalOrder())
             .orElse(null);
-
-    return new Range<>(min, max);
+    if (min == null || max == null) {
+      return ImmutableRangeSet.of();
+    }
+    return ImmutableRangeSet.of(com.google.common.collect.Range.closed(min, max));
   }
 
   @Nonnull

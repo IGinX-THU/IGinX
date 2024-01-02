@@ -6,13 +6,9 @@ public final class Constants {
 
   public static final String PARQUET_SEPARATOR = "\\$";
 
-  public static final String SUFFIX_PARQUET_FILE = ".parquet";
+  public static final String SUFFIX_FILE_PARQUET = ".parquet";
 
-  public static final String SUFFIX_EXTRA_FILE = ".extra";
-
-  public static final String CMD_PATHS = "PATHS";
-
-  public static final String CMD_KEY = "TIME";
+  public static final String SUFFIX_FILE_TEMP = ".tmp";
 
   public static final String CMD_DELETE = "DELETE";
 
@@ -29,5 +25,7 @@ public final class Constants {
   public static final String RECORD_FIELD_NAME = "*";
   public static final String DIR_DB_LSM = "lsm";
   public static final String TOMBSTONE_NAME = "iginx.tombstone";
+  public static final String KEY_RANGE_NAME = "iginx.key.range";
+
   public static final long SEQUENCE_START = 0;
 }
