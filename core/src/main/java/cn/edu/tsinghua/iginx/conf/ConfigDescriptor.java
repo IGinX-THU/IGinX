@@ -236,7 +236,9 @@ public class ConfigDescriptor {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
       loadPropsFromEnv();
-      logger.warn("Use default config, because fail to load properties: ", e);
+      logger.warn(
+          "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
+          e);
     }
   }
 

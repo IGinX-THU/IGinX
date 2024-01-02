@@ -8,12 +8,11 @@ import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class MetaManagerMock implements IMetaManager {
+
+  private final List<FragmentMeta> fragments = new ArrayList<>();
 
   private Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalMockMap =
       new HashMap<>();
@@ -90,7 +89,7 @@ public class MetaManagerMock implements IMetaManager {
 
   @Override
   public List<FragmentMeta> getFragments() {
-    return null;
+    return fragments;
   }
 
   @Override
@@ -344,10 +343,14 @@ public class MetaManagerMock implements IMetaManager {
   public void clearMonitors() {}
 
   @Override
-  public void removeFragment(FragmentMeta fragmentMeta) {}
+  public void removeFragment(FragmentMeta fragmentMeta) {
+    fragments.remove(fragmentMeta);
+  }
 
   @Override
-  public void addFragment(FragmentMeta fragmentMeta) {}
+  public void addFragment(FragmentMeta fragmentMeta) {
+    fragments.add(fragmentMeta);
+  }
 
   @Override
   public void endFragmentByColumnsInterval(FragmentMeta fragmentMeta, String endColumn) {}
