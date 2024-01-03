@@ -6346,71 +6346,71 @@ public class SQLSessionIT {
   public void testDualSelect() {
     String statement = "SELECT 1+1, 2, 3*3;";
     String expected =
-            "ResultSets:\n"
-                    + "+-----+-+-----+\n"
-                    + "|1 + 1|2|3 × 3|\n"
-                    + "+-----+-+-----+\n"
-                    + "|    2|2|    9|\n"
-                    + "+-----+-+-----+\n"
-                    + "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+-----+-+-----+\n"
+            + "|1 + 1|2|3 × 3|\n"
+            + "+-----+-+-----+\n"
+            + "|    2|2|    9|\n"
+            + "+-----+-+-----+\n"
+            + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
   }
 
   @Test
   public void testConstantExpression() {
     String insert =
-            "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
+        "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
     executor.execute(insert);
 
     String statement = "SELECT * FROM test;";
     String expected =
-            "ResultSets:\n"
-                    + "+---+------+------+\n"
-                    + "|key|test.a|test.b|\n"
-                    + "+---+------+------+\n"
-                    + "|  1|     1|     1|\n"
-                    + "|  2|     2|     1|\n"
-                    + "|  3|     2|     2|\n"
-                    + "|  4|     3|     1|\n"
-                    + "|  5|     3|     2|\n"
-                    + "|  6|     3|     1|\n"
-                    + "|  7|     4|     1|\n"
-                    + "|  8|     4|     2|\n"
-                    + "|  9|     4|     3|\n"
-                    + "| 10|     4|     1|\n"
-                    + "+---+------+------+\n"
-                    + "Total line number = 10\n";
+        "ResultSets:\n"
+            + "+---+------+------+\n"
+            + "|key|test.a|test.b|\n"
+            + "+---+------+------+\n"
+            + "|  1|     1|     1|\n"
+            + "|  2|     2|     1|\n"
+            + "|  3|     2|     2|\n"
+            + "|  4|     3|     1|\n"
+            + "|  5|     3|     2|\n"
+            + "|  6|     3|     1|\n"
+            + "|  7|     4|     1|\n"
+            + "|  8|     4|     2|\n"
+            + "|  9|     4|     3|\n"
+            + "| 10|     4|     1|\n"
+            + "+---+------+------+\n"
+            + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT 1+1, 2, 3*3 FROM test;";
     expected =
-            "ResultSets:\n"
-                    + "+-----+-+-----+\n"
-                    + "|1 + 1|2|3 × 3|\n"
-                    + "+-----+-+-----+\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "|    2|2|    9|\n"
-                    + "+-----+-+-----+\n"
-                    + "Total line number = 10\n";
+        "ResultSets:\n"
+            + "+-----+-+-----+\n"
+            + "|1 + 1|2|3 × 3|\n"
+            + "+-----+-+-----+\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "|    2|2|    9|\n"
+            + "+-----+-+-----+\n"
+            + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT COUNT(2), SUM(2), MAX(2) FROM test;";
     expected =
-            "ResultSets:\n"
-                    + "+--------+------+------+\n"
-                    + "|count(2)|sum(2)|max(2)|\n"
-                    + "+--------+------+------+\n"
-                    + "|      10|  20.0|   2.0|\n"
-                    + "+--------+------+------+\n"
-                    + "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+--------+------+------+\n"
+            + "|count(2)|sum(2)|max(2)|\n"
+            + "+--------+------+------+\n"
+            + "|      10|  20.0|   2.0|\n"
+            + "+--------+------+------+\n"
+            + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
   }
 }

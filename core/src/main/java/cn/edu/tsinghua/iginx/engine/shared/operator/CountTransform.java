@@ -28,12 +28,14 @@ public class CountTransform extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new CountTransform(getSource().copy(), new ArrayList<>(expressionList), new ArrayList<>(funcParam));
+    return new CountTransform(
+        getSource().copy(), new ArrayList<>(expressionList), new ArrayList<>(funcParam));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new CountTransform(getSource().copy(), new ArrayList<>(expressionList), new ArrayList<>(funcParam));
+    return new CountTransform(
+        getSource().copy(), new ArrayList<>(expressionList), new ArrayList<>(funcParam));
   }
 
   @Override

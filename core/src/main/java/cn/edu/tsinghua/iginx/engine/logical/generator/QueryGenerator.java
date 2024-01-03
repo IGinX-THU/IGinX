@@ -252,7 +252,7 @@ public class QueryGenerator extends AbstractGenerator {
       for (Expression expression : selectStatement.getExpressions()) {
         if (expression.getType() == Expression.ExpressionType.Function) {
           expressionList.add(((FuncExpression) expression).getColumnNameWithoutFunc());
-          if(funcParam.isEmpty()){
+          if (funcParam.isEmpty()) {
             funcParam = selectStatement.getConstFuncParam();
           }
         } else {
