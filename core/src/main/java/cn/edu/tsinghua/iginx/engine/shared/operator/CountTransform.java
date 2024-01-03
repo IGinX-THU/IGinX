@@ -7,9 +7,9 @@ import java.util.List;
 
 public class CountTransform extends AbstractUnaryOperator {
   private final List<String> expressionList;
-  private final double funcParam;
+  private final List<Double> funcParam;
 
-  public CountTransform(Source source, List<String> expressionList, double funcParam) {
+  public CountTransform(Source source, List<String> expressionList, List<Double> funcParam) {
     super(OperatorType.CountTransform, source);
     if (expressionList.isEmpty()) {
       throw new IllegalArgumentException("expression list shouldn't be empty");
@@ -22,18 +22,18 @@ public class CountTransform extends AbstractUnaryOperator {
     return expressionList;
   }
 
-  public double getFuncParam() {
+  public List<Double> getFuncParam() {
     return funcParam;
   }
 
   @Override
   public Operator copy() {
-    return new CountTransform(getSource().copy(), new ArrayList<>(expressionList), funcParam);
+    return new CountTransform(getSource().copy(), new ArrayList<>(expressionList), new ArrayList<>(funcParam));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new CountTransform(getSource().copy(), new ArrayList<>(expressionList), funcParam);
+    return new CountTransform(getSource().copy(), new ArrayList<>(expressionList), new ArrayList<>(funcParam));
   }
 
   @Override

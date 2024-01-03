@@ -638,7 +638,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Object[] values = new Object[operator.getExpressionList().size()];
     for (int i = 0; i < operator.getExpressionList().size(); i++) {
       fields.add(new Field(operator.getExpressionList().get(i), DataType.DOUBLE));
-      values[i] = operator.getFuncParam();
+      values[i] = operator.getFuncParam().get(i);
     }
     // 新建一张行数为table行数的表
     Header header = new Header(fields);

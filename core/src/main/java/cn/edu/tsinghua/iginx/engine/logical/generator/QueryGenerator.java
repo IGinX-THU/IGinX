@@ -247,14 +247,17 @@ public class QueryGenerator extends AbstractGenerator {
               new OperatorSource(root),
               new FunctionCall(functionManager.getFunction("count"), params));
       // 然后根据返回值构造表
-      double funcParam = 1.0;
+      List<Double> funcParam = new ArrayList<>();
       List<String> expressionList = new ArrayList<>();
       for (Expression expression : selectStatement.getExpressions()) {
         if (expression.getType() == Expression.ExpressionType.Function) {
           expressionList.add(((FuncExpression) expression).getColumnNameWithoutFunc());
-          funcParam = selectStatement.getConstFuncParam();
+          if(funcParam.isEmpty()){
+            funcParam = selectStatement.getConstFuncParam();
+          }
         } else {
           expressionList.add(expression.getColumnName());
+          funcParam.add(1.0);
         }
       }
       root = new CountTransform(new OperatorSource(root), expressionList, funcParam);
