@@ -6259,4 +6259,65 @@ public class SQLSessionIT {
             + "Total line number = 2\n";
     executor.executeAndCompare(query, expect);
   }
+
+  @Test
+  public void testDualSelect() {
+    String statement = "SELECT 1+1, 2, 3*3;";
+    String expected =
+            "ResultSets:\n"
+                    + "+-----+-+-----+\n"
+                    + "|1 + 1|2|3 × 3|\n"
+                    + "+-----+-+-----+\n"
+                    + "|    2|2|    9|\n"
+                    + "+-----+-+-----+\n"
+                    + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testConstantExpression() {
+    String insert =
+            "INSERT INTO test(key, a, b) values (1, 1, 1), (2, 2, 1), (3, 2, 2), (4, 3, 1), (5, 3, 2), (6, 3, 1), (7, 4, 1), (8, 4, 2), (9, 4, 3), (10, 4, 1);";
+    executor.execute(insert);
+
+    String statement = "SELECT * FROM test;";
+    String expected =
+            "ResultSets:\n"
+                    + "+---+------+------+\n"
+                    + "|key|test.a|test.b|\n"
+                    + "+---+------+------+\n"
+                    + "|  1|     1|     1|\n"
+                    + "|  2|     2|     1|\n"
+                    + "|  3|     2|     2|\n"
+                    + "|  4|     3|     1|\n"
+                    + "|  5|     3|     2|\n"
+                    + "|  6|     3|     1|\n"
+                    + "|  7|     4|     1|\n"
+                    + "|  8|     4|     2|\n"
+                    + "|  9|     4|     3|\n"
+                    + "| 10|     4|     1|\n"
+                    + "+---+------+------+\n"
+                    + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT 1+1, 2, 3*3 FROM test;";
+    expected =
+            "ResultSets:\n"
+                    + "+-----+-+-----+\n"
+                    + "|1 + 1|2|3 × 3|\n"
+                    + "+-----+-+-----+\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "|    2|2|    9|\n"
+                    + "+-----+-+-----+\n"
+                    + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+  }
 }
