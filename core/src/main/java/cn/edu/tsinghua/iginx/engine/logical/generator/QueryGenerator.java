@@ -21,35 +21,12 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Except;
-import cn.edu.tsinghua.iginx.engine.shared.operator.FoldedOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Intersect;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Limit;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ProjectWaitingForPath;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
@@ -137,90 +114,168 @@ public class QueryGenerator extends AbstractGenerator {
 
   private Operator generateRoot(BinarySelectStatement selectStatement) {
     Operator root;
-    Operator left = generateRoot(selectStatement.getLeftQuery());
-    Operator right = generateRoot(selectStatement.getRightQuery());
 
-    List<String> leftOrder = new ArrayList<>();
-    selectStatement
-        .getLeftQuery()
-        .getExpressions()
-        .forEach(
-            expression -> {
-              String order =
-                  expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-              leftOrder.add(order);
-            });
-
-    List<String> rightOrder = new ArrayList<>();
-    selectStatement
-        .getRightQuery()
-        .getExpressions()
-        .forEach(
-            expression -> {
-              String order =
-                  expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-              rightOrder.add(order);
-            });
-
-    switch (selectStatement.getSetOperator()) {
-      case Union:
-        root =
-            new Union(
-                new OperatorSource(left),
-                new OperatorSource(right),
-                leftOrder,
-                rightOrder,
-                selectStatement.isDistinct());
-        break;
-      case Except:
-        root =
-            new Except(
-                new OperatorSource(left),
-                new OperatorSource(right),
-                leftOrder,
-                rightOrder,
-                selectStatement.isDistinct());
-        break;
-      case Intersect:
-        root =
-            new Intersect(
-                new OperatorSource(left),
-                new OperatorSource(right),
-                leftOrder,
-                rightOrder,
-                selectStatement.isDistinct());
-        break;
-      default:
-        throw new RuntimeException(
-            "Unknown set operator type: " + selectStatement.getSetOperator());
+    if (!OperatorType.isSetOperator(selectStatement.getSetOperator())) {
+      throw new RuntimeException("Unknown set operator type: " + selectStatement.getSetOperator());
     }
 
-    if (!selectStatement.getOrderByPaths().isEmpty()) {
-      root =
-          new Sort(
-              new OperatorSource(root),
-              selectStatement.getOrderByPaths(),
-              selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC);
-    }
+    root = initUnion(selectStatement);
+    root = root != null ? root : initExcept(selectStatement);
+    root = root != null ? root : initIntersect(selectStatement);
 
-    if (selectStatement.getLimit() != Integer.MAX_VALUE || selectStatement.getOffset() != 0) {
-      root =
-          new Limit(
-              new OperatorSource(root),
-              (int) selectStatement.getLimit(),
-              (int) selectStatement.getOffset());
-    }
+    root = buildOrderByPaths(selectStatement, root);
+
+    root = buildLimit(selectStatement, root);
 
     return root;
   }
 
   private Operator generateRoot(UnarySelectStatement selectStatement) {
     Operator root;
-    if (selectStatement.hasValueToSelectedPath()) {
-      root = new ProjectWaitingForPath(selectStatement);
-    } else if (selectStatement.hasJoinParts()) {
-      root = filterAndMergeFragmentsWithJoin(selectStatement);
-    } else if (!selectStatement.getFromParts().isEmpty()) {
+
+    root = initProjectWaitingForPath(selectStatement);
+    root = root != null ? root : initFilterAndMergeFragmentsWithJoin(selectStatement);
+    root = root != null ? root : initFromPart(selectStatement);
+    root = root != null ? root : initFilterAndMergeFragments(selectStatement);
+
+    if (root == null && !metaManager.hasWritableStorageEngines()) {
+      return null;
+    } else if (!selectStatement.isSubQuery()) {
+      selectStatement.initFreeVariables();
+      List<String> freeVariables = selectStatement.getFreeVariables();
+      if (!freeVariables.isEmpty()) {
+        throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
+      }
+    }
+
+    root = buildWhereSubQuery(selectStatement, root);
+
+    root = buildValueFilter(selectStatement, root);
+
+    root = buildSelectSubQuery(selectStatement, root);
+
+    root = buildGroupByQuery(selectStatement, root);
+
+    root = buildDownSampleQuery(selectStatement, root);
+
+    root = buildAggregateQuery(selectStatement, root);
+
+    root = buildLastFirstQuery(selectStatement, root);
+
+    root = buildSimpleQuery(selectStatement, root);
+
+    root = buildHavingSubQuery(selectStatement, root);
+
+    root = buildHavingFilter(selectStatement, root);
+
+    root = buildRowTransform(selectStatement, root);
+
+    root = buildDistinct(selectStatement, root);
+
+    root = buildOrderByPaths(selectStatement, root);
+
+    root = buildLimit(selectStatement, root);
+
+    root = buildReorder(selectStatement, root);
+
+    root = buildRename(selectStatement, root);
+
+    root = buildValueToMeta(selectStatement, root);
+
+    return root;
+  }
+
+  /**
+   * 获取SelectStatement的Column列表
+   *
+   * @param selectStatement Select上下文
+   * @return Column列表
+   */
+  private List<String> getOrderList(SelectStatement selectStatement) {
+    List<String> orderList = new ArrayList<>();
+    selectStatement
+        .getExpressions()
+        .forEach(
+            expression -> {
+              String order =
+                  expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
+              orderList.add(order);
+            });
+
+    return orderList;
+  }
+
+  /**
+   * 如果BinarySelectStatement的Set Operator Type是Union, 根据它的左右子查询，初始化一个Union操作符及子树
+   *
+   * @param selectStatement Select上下文
+   * @return Union操作符及子树；如果Set Operator Type不是Union，返回null
+   */
+  private Operator initUnion(BinarySelectStatement selectStatement) {
+    if (selectStatement.getSetOperator() == OperatorType.Union) {
+      SelectStatement leftQuery = selectStatement.getLeftQuery();
+      SelectStatement rightQuery = selectStatement.getRightQuery();
+
+      return new Union(
+          new OperatorSource(generateRoot(leftQuery)),
+          new OperatorSource(generateRoot(rightQuery)),
+          getOrderList(leftQuery),
+          getOrderList(rightQuery),
+          selectStatement.isDistinct());
+    }
+    return null;
+  }
+  /**
+   * 如果BinarySelectStatement的Set Operator Type是Except, 根据它的左右子查询，初始化一个Except操作符及子树
+   *
+   * @param selectStatement Select上下文
+   * @return Except操作符及子树；如果Set Operator Type不是Except，返回null
+   */
+  private Operator initExcept(BinarySelectStatement selectStatement) {
+    if (selectStatement.getSetOperator() == OperatorType.Except) {
+      SelectStatement leftQuery = selectStatement.getLeftQuery();
+      SelectStatement rightQuery = selectStatement.getRightQuery();
+
+      return new Except(
+          new OperatorSource(generateRoot(leftQuery)),
+          new OperatorSource(generateRoot(rightQuery)),
+          getOrderList(leftQuery),
+          getOrderList(rightQuery),
+          selectStatement.isDistinct());
+    }
+    return null;
+  }
+
+  /**
+   * 如果BinarySelectStatement的Set Operator Type是Intersect, 根据它的左右子查询，初始化一个Intersect操作符及子树
+   *
+   * @param selectStatement Select上下文
+   * @return Intersect操作符及子树；如果Set Operator Type不是Intersect，返回null
+   */
+  private Operator initIntersect(BinarySelectStatement selectStatement) {
+    if (selectStatement.getSetOperator() == OperatorType.Intersect) {
+      SelectStatement leftQuery = selectStatement.getLeftQuery();
+      SelectStatement rightQuery = selectStatement.getRightQuery();
+
+      return new Intersect(
+          new OperatorSource(generateRoot(leftQuery)),
+          new OperatorSource(generateRoot(rightQuery)),
+          getOrderList(leftQuery),
+          getOrderList(rightQuery),
+          selectStatement.isDistinct());
+    }
+    return null;
+  }
+
+  /**
+   * 如果SelectStatement的from部分不为空，从from部分初始化一个操作符树
+   *
+   * @param selectStatement select语句上下文
+   * @return from部分的操作符树；如果from部分为空，返回null
+   */
+  private Operator initFromPart(UnarySelectStatement selectStatement) {
+    if (!selectStatement.getFromParts().isEmpty()) {
+      Operator root;
       FromPart fromPart = selectStatement.getFromPart(0);
       switch (fromPart.getType()) {
         case Path:
@@ -245,126 +300,243 @@ public class QueryGenerator extends AbstractGenerator {
       if (fromPart.hasAlias()) {
         root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
       }
-    } else {
-      policy.notify(selectStatement);
-      root = filterAndMergeFragments(selectStatement);
+      return root;
     }
+    return null;
+  }
 
-    if (root == null && !metaManager.hasWritableStorageEngines()) {
-      return null;
-    }
+  /**
+   * 如果SelectStatement有Join部分，根据Tag Filter和Path Prefix过滤选择Fragments,并将它们Join成一个操作符树
+   *
+   * @param selectStatement Select上下文
+   * @return Join操作符树；如果没有Join部分，返回null
+   */
+  private Operator initFilterAndMergeFragmentsWithJoin(UnarySelectStatement selectStatement) {
+    if (selectStatement.hasJoinParts()) {
+      TagFilter tagFilter = selectStatement.getTagFilter();
 
-    // 处理where子查询
-    if (!selectStatement.getWhereSubQueryParts().isEmpty()) {
-      int sizeWhereSubQueryParts = selectStatement.getWhereSubQueryParts().size();
-      List<SubQueryFromPart> whereSubQueryParts = selectStatement.getWhereSubQueryParts();
-      for (int i = 0; i < sizeWhereSubQueryParts; i++) {
-        SubQueryFromPart whereSubQueryPart = whereSubQueryParts.get(i);
-        Operator right = generateRoot(whereSubQueryPart.getSubQuery());
-
-        Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
-        String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
-        boolean isAntiJoin = whereSubQueryPart.getJoinCondition().isAntiJoin();
-        JoinAlgType joinAlgType = chooseJoinAlg(filter);
-
-        if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
-          root =
-              new MarkJoin(
-                  new OperatorSource(root),
-                  new OperatorSource(right),
-                  filter,
-                  markColumn,
-                  isAntiJoin,
-                  joinAlgType);
-        } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
-          root =
-              new SingleJoin(
-                  new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
-        }
-        List<String> freeVariables = whereSubQueryParts.get(i).getFreeVariables();
-        List<String> correlatedVariables = new ArrayList<>();
-        // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
-        for (String freeVariable : freeVariables) {
-          if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
-            correlatedVariables.add(freeVariable);
-          }
-        }
-        // 如果右子树中存在关联变量，则将apply算子下推
-        if (!correlatedVariables.isEmpty()) {
-          root = translateApply(root, correlatedVariables);
-        }
-      }
-    }
-
-    TagFilter tagFilter = selectStatement.getTagFilter();
-
-    if (selectStatement.hasValueFilter()) {
-      root = new Select(new OperatorSource(root), selectStatement.getFilter(), tagFilter);
-    }
-
-    // 处理select子查询
-    if (!selectStatement.getSelectSubQueryParts().isEmpty()) {
-      int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
-      List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
-      for (int i = 0; i < sizeSelectSubQuery; i++) {
-        if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
-          Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
-
-          Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
-          JoinAlgType joinAlgType = chooseJoinAlg(filter);
-
-          root =
-              new SingleJoin(
-                  new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
-          List<String> freeVariables = selectSubQueryParts.get(i).getFreeVariables();
-          List<String> correlatedVariables = new ArrayList<>();
-          // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
-          for (String freeVariable : freeVariables) {
-            if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
-              correlatedVariables.add(freeVariable);
-            }
-          }
-          // 如果存在关联变量，则将apply算子下推
-          if (!correlatedVariables.isEmpty()) {
-            root = translateApply(root, correlatedVariables);
-          }
-        }
-      }
-    }
-
-    List<Operator> queryList = new ArrayList<>();
-    if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
-      // GroupBy Query
-      List<FunctionCall> functionCallList = new ArrayList<>();
+      List<Operator> joinList = new ArrayList<>();
+      // 1. get all data of single prefix like a.* or b.*
       selectStatement
-          .getFuncExpressionMap()
+          .getFromParts()
           .forEach(
-              (k, v) -> {
-                if (!k.equals("")) {
-                  v.forEach(
-                      expression -> {
-                        FunctionParams params =
-                            FunctionUtils.isCanUseSetQuantifierFunction(k)
-                                ? new FunctionParams(
-                                    expression.getColumns(),
-                                    expression.getArgs(),
-                                    expression.getKvargs(),
-                                    expression.isDistinct())
-                                : new FunctionParams(
-                                    expression.getColumns(),
-                                    expression.getArgs(),
-                                    expression.getKvargs());
-
-                        functionCallList.add(
-                            new FunctionCall(functionManager.getFunction(k), params));
-                      });
+              fromPart -> {
+                Operator root;
+                switch (fromPart.getType()) {
+                  case Path:
+                    PathFromPart pathFromPart = (PathFromPart) fromPart;
+                    String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
+                    Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
+                        getFragmentsByColumnsInterval(
+                            selectStatement, new ColumnsInterval(prefix, prefix));
+                    Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
+                    List<FragmentMeta> dummyFragments = pair.v;
+                    root =
+                        mergeRawData(
+                            fragments,
+                            dummyFragments,
+                            Collections.singletonList(prefix),
+                            tagFilter);
+                    break;
+                  case SubQuery:
+                    SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
+                    root = generateRoot(subQueryFromPart.getSubQuery());
+                    break;
+                  case Cte:
+                    CteFromPart cteFromPart = (CteFromPart) fromPart;
+                    root = cteFromPart.getRoot().copy();
+                    break;
+                  case ShowColumns:
+                    ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
+                    root =
+                        new ShowColumns(
+                            new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
+                    break;
+                  default:
+                    throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
                 }
+                if (fromPart.hasAlias()) {
+                  root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+                }
+                joinList.add(root);
               });
+      // 2. merge by declare
+      Operator left = joinList.get(0);
+      String prefixA = selectStatement.getFromPart(0).getPrefix();
+      for (int i = 1; i < joinList.size(); i++) {
+        JoinCondition joinCondition = selectStatement.getFromPart(i).getJoinCondition();
+        Operator right = joinList.get(i);
+
+        String prefixB = selectStatement.getFromPart(i).getPrefix();
+
+        Filter filter = joinCondition.getFilter();
+        List<String> joinColumns = joinCondition.getJoinColumns();
+        boolean isNaturalJoin = isNaturalJoin(joinCondition.getJoinType());
+
+        if (!joinColumns.isEmpty() || isNaturalJoin) {
+          if (prefixA == null || prefixB == null) {
+            throw new RuntimeException(
+                "A natural join or a join with USING should have two public prefix");
+          }
+        }
+
+        JoinAlgType joinAlgType = chooseJoinAlg(filter, isNaturalJoin, joinColumns);
+        OuterJoinType outerJoinType = null;
+        switch (joinCondition.getJoinType()) {
+          case CrossJoin:
+            left =
+                new CrossJoin(
+                    new OperatorSource(left), new OperatorSource(right), prefixA, prefixB);
+            break;
+          case InnerJoin:
+          case InnerNaturalJoin:
+            left =
+                new InnerJoin(
+                    new OperatorSource(left),
+                    new OperatorSource(right),
+                    prefixA,
+                    prefixB,
+                    filter,
+                    joinColumns,
+                    isNaturalJoin,
+                    joinAlgType);
+            break;
+          case LeftOuterJoin:
+          case LeftNaturalJoin:
+            outerJoinType = OuterJoinType.LEFT;
+          case RightOuterJoin:
+          case RightNaturalJoin:
+            outerJoinType = outerJoinType == null ? OuterJoinType.RIGHT : outerJoinType;
+          case FullOuterJoin:
+            outerJoinType = outerJoinType == null ? OuterJoinType.FULL : outerJoinType;
+            left =
+                new OuterJoin(
+                    new OperatorSource(left),
+                    new OperatorSource(right),
+                    prefixA,
+                    prefixB,
+                    outerJoinType,
+                    filter,
+                    joinColumns,
+                    isNaturalJoin,
+                    joinAlgType);
+            break;
+          default:
+            break;
+        }
+
+        left =
+            detectAndTranslateCorrelatedVariables(
+                selectStatement.getFromPart(i).getFreeVariables(), selectStatement, i, left);
+
+        prefixA = prefixB;
+      }
+      return left;
+    }
+    return null;
+  }
+
+  /**
+   * 如果SelectStatement有ValueToSelectedPath，初始化生成一个ProjectWaitingForPath操作符
+   *
+   * @param selectStatement Select上下文
+   * @return ProjectWaitingForPath操作符；如果没有ValueToSelectedPath，返回null
+   */
+  private static Operator initProjectWaitingForPath(UnarySelectStatement selectStatement) {
+    if (selectStatement.hasValueToSelectedPath()) {
+      return new ProjectWaitingForPath(selectStatement);
+    }
+    return null;
+  }
+
+  /**
+   * 根据UnarySelectStatement，初始化一个根据Path过滤并合并Fragments的操作符树。
+   * 该函数会在SelectStatement无From部分、无Join部分、无Project部分时被调用
+   *
+   * @param selectStatement Select上下文
+   * @return 根据Path过滤并合并Fragments的操作符树
+   */
+  private Operator initFilterAndMergeFragments(UnarySelectStatement selectStatement) {
+    policy.notify(selectStatement);
+    return filterAndMergeFragments(selectStatement);
+  }
+
+  /**
+   * 如果SelectStatement有LIMIT子句，在root之上构建一个Limit操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了Limit操作符的根节点；如果没有LIMIT子句，返回原根节点
+   */
+  private static Operator buildLimit(SelectStatement selectStatement, Operator root) {
+    if (selectStatement.getLimit() != Integer.MAX_VALUE || selectStatement.getOffset() != 0) {
+      root =
+          new Limit(
+              new OperatorSource(root),
+              (int) selectStatement.getLimit(),
+              (int) selectStatement.getOffset());
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement有Order By子句，在root之上构建一个Sort操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了Sort操作符的根节点；如果没有Order By子句，返回原根节点
+   */
+  private static Operator buildOrderByPaths(SelectStatement selectStatement, Operator root) {
+    if (!selectStatement.getOrderByPaths().isEmpty()) {
+      root =
+          new Sort(
+              new OperatorSource(root),
+              selectStatement.getOrderByPaths(),
+              selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC);
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement的QueryType是SimpleQuery，在root之上构建相关操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了相关操作符的根节点；如果QueryType不是SimpleQuery，返回原根节点
+   */
+  private static Operator buildSimpleQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.getQueryType() == QueryType.SimpleQuery) {
+      List<Operator> queryList = new ArrayList<>();
+      Set<String> selectedPath = new HashSet<>();
+      selectStatement
+          .getBaseExpressionList()
+          .forEach(expression -> selectedPath.add(expression.getPathName()));
       queryList.add(
-          new GroupBy(
-              new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
-    } else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
-      // DownSample Query
+          new Project(
+              new OperatorSource(root),
+              new ArrayList<>(selectedPath),
+              selectStatement.getTagFilter(),
+              selectStatement.hasValueToSelectedPath()));
+
+      if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
+        root = OperatorUtils.joinOperatorsByTime(queryList);
+      } else {
+        root = OperatorUtils.joinOperators(queryList, ORDINAL);
+      }
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement的QueryType是LastFirstQuery，在root之上构建相关操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了相关操作符的根节点；如果QueryType不是LastFirstQuery，返回原根节点
+   */
+  private static Operator buildLastFirstQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.getQueryType() == QueryType.LastFirstQuery) {
+      List<Operator> queryList = new ArrayList<>();
       Operator finalRoot = root;
       selectStatement
           .getFuncExpressionMap()
@@ -372,30 +544,29 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        FunctionParams params =
-                            FunctionUtils.isCanUseSetQuantifierFunction(k)
-                                ? new FunctionParams(
-                                    expression.getColumns(),
-                                    expression.getArgs(),
-                                    expression.getKvargs(),
-                                    expression.isDistinct())
-                                : new FunctionParams(
-                                    expression.getColumns(),
-                                    expression.getArgs(),
-                                    expression.getKvargs());
-
+                        FunctionParams params = getFunctionParams(k, expression);
                         Operator copySelect = finalRoot.copy();
+                        logger.info("function: " + k + ", wrapped path: " + v);
                         queryList.add(
-                            new Downsample(
+                            new MappingTransform(
                                 new OperatorSource(copySelect),
-                                selectStatement.getPrecision(),
-                                selectStatement.getSlideDistance(),
-                                new FunctionCall(functionManager.getFunction(k), params),
-                                new KeyRange(
-                                    selectStatement.getStartKey(), selectStatement.getEndKey())));
+                                new FunctionCall(functionManager.getFunction(k), params)));
                       }));
-    } else if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
-      // Aggregate Query
+      root = OperatorUtils.unionOperators(queryList);
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement的QueryType是AggregateQuery，在root之上构建相关操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了相关操作符的根节点；如果QueryType不是AggregateQuery，返回原根节点
+   */
+  private static Operator buildAggregateQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
+      List<Operator> queryList = new ArrayList<>();
       Operator finalRoot = root;
       selectStatement
           .getFuncExpressionMap()
@@ -403,18 +574,7 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        FunctionParams params =
-                            FunctionUtils.isCanUseSetQuantifierFunction(k)
-                                ? new FunctionParams(
-                                    expression.getColumns(),
-                                    expression.getArgs(),
-                                    expression.getKvargs(),
-                                    expression.isDistinct())
-                                : new FunctionParams(
-                                    expression.getColumns(),
-                                    expression.getArgs(),
-                                    expression.getKvargs());
-
+                        FunctionParams params = getFunctionParams(k, expression);
                         Operator copySelect = finalRoot.copy();
                         logger.info("function: " + expression.getColumnName());
                         if (FunctionUtils.isRowToRowFunction(k)) {
@@ -443,9 +603,65 @@ public class QueryGenerator extends AbstractGenerator {
                     new Project(
                         new OperatorSource(copySelect),
                         Collections.singletonList(expression.getPathName()),
-                        tagFilter));
+                        selectStatement.getTagFilter()));
               });
-    } else if (selectStatement.getQueryType() == QueryType.LastFirstQuery) {
+
+      if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
+        root = OperatorUtils.joinOperatorsByTime(queryList);
+      } else {
+        root = OperatorUtils.joinOperators(queryList, ORDINAL);
+      }
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement的QueryType是GroupByQuery，在root之上构建相关操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了相关操作符的根节点；如果QueryType不是GroupByQuery，返回原根节点
+   */
+  private Operator buildGroupByQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
+      List<Operator> queryList = new ArrayList<>();
+      List<FunctionCall> functionCallList = new ArrayList<>();
+      selectStatement
+          .getFuncExpressionMap()
+          .forEach(
+              (k, v) -> {
+                if (!k.equals("")) {
+                  v.forEach(
+                      expression -> {
+                        FunctionParams params = getFunctionParams(k, expression);
+                        functionCallList.add(
+                            new FunctionCall(functionManager.getFunction(k), params));
+                      });
+                }
+              });
+      queryList.add(
+          new GroupBy(
+              new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
+
+      if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
+        root = OperatorUtils.joinOperatorsByTime(queryList);
+      } else {
+        root = OperatorUtils.joinOperators(queryList, ORDINAL);
+      }
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement的QueryType是DownSampleQuery，在root之上构建相关操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了相关操作符的根节点；如果QueryType不是DownSampleQuery，返回原根节点
+   */
+  private Operator buildDownSampleQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
+      List<Operator> queryList = new ArrayList<>();
       Operator finalRoot = root;
       selectStatement
           .getFuncExpressionMap()
@@ -453,131 +669,30 @@ public class QueryGenerator extends AbstractGenerator {
               (k, v) ->
                   v.forEach(
                       expression -> {
-                        FunctionParams params =
-                            new FunctionParams(
-                                expression.getColumns(),
-                                expression.getArgs(),
-                                expression.getKvargs());
+                        FunctionParams params = getFunctionParams(k, expression);
                         Operator copySelect = finalRoot.copy();
-                        logger.info("function: " + k + ", wrapped path: " + v);
                         queryList.add(
-                            new MappingTransform(
+                            new Downsample(
                                 new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
+                                selectStatement.getPrecision(),
+                                selectStatement.getSlideDistance(),
+                                new FunctionCall(functionManager.getFunction(k), params),
+                                new KeyRange(
+                                    selectStatement.getStartKey(), selectStatement.getEndKey())));
                       }));
-    } else {
-      Set<String> selectedPath = new HashSet<>();
-      selectStatement
-          .getBaseExpressionList()
-          .forEach(expression -> selectedPath.add(expression.getPathName()));
-      queryList.add(
-          new Project(
-              new OperatorSource(root),
-              new ArrayList<>(selectedPath),
-              tagFilter,
-              selectStatement.hasValueToSelectedPath()));
-    }
-
-    if (selectStatement.getQueryType() == QueryType.LastFirstQuery) {
-      root = OperatorUtils.unionOperators(queryList);
-    } else if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
       root = OperatorUtils.joinOperatorsByTime(queryList);
-    } else {
-      if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-        root = OperatorUtils.joinOperatorsByTime(queryList);
-      } else {
-        root = OperatorUtils.joinOperators(queryList, ORDINAL);
-      }
     }
+    return root;
+  }
 
-    // 处理having子查询
-    if (!selectStatement.getHavingSubQueryParts().isEmpty()) {
-      int sizeHavingSubQueryParts = selectStatement.getHavingSubQueryParts().size();
-      List<SubQueryFromPart> havingSubQueryParts = selectStatement.getHavingSubQueryParts();
-      for (int i = 0; i < sizeHavingSubQueryParts; i++) {
-        SubQueryFromPart havingSubQueryPart = havingSubQueryParts.get(i);
-        Operator right = generateRoot(havingSubQueryPart.getSubQuery());
-
-        Filter filter = havingSubQueryPart.getJoinCondition().getFilter();
-        String markColumn = havingSubQueryPart.getJoinCondition().getMarkColumn();
-        boolean isAntiJoin = havingSubQueryPart.getJoinCondition().isAntiJoin();
-        JoinAlgType joinAlgType = chooseJoinAlg(filter);
-
-        if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
-          root =
-              new MarkJoin(
-                  new OperatorSource(root),
-                  new OperatorSource(right),
-                  filter,
-                  markColumn,
-                  isAntiJoin,
-                  joinAlgType);
-        } else if (havingSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
-          root =
-              new SingleJoin(
-                  new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
-        }
-        List<String> freeVariables = havingSubQueryParts.get(i).getFreeVariables();
-        List<String> correlatedVariables = new ArrayList<>();
-        // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
-        for (String freeVariable : freeVariables) {
-          if (selectStatement.hasAttribute(freeVariable, selectStatement.getFromParts().size())) {
-            correlatedVariables.add(freeVariable);
-          }
-        }
-        // 如果右子树中存在关联变量，则将apply算子下推
-        if (!correlatedVariables.isEmpty()) {
-          root = translateApply(root, correlatedVariables);
-        }
-      }
-    }
-
-    if (selectStatement.getHavingFilter() != null) {
-      root = new Select(new OperatorSource(root), selectStatement.getHavingFilter(), null);
-    }
-
-    if (selectStatement.needRowTransform()) {
-      List<FunctionCall> functionCallList = new ArrayList<>();
-      for (Expression expression : selectStatement.getExpressions()) {
-        FunctionParams params = new FunctionParams(expression);
-        functionCallList.add(
-            new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
-      }
-      root = new RowTransform(new OperatorSource(root), functionCallList);
-    }
-
-    if (selectStatement.isDistinct()) {
-      List<String> patterns = new ArrayList<>();
-      for (Expression expression : selectStatement.getExpressions()) {
-        patterns.add(expression.getColumnName());
-      }
-      root = new Distinct(new OperatorSource(root), patterns);
-    }
-
-    if (!selectStatement.isSubQuery()) {
-      selectStatement.initFreeVariables();
-      List<String> freeVariables = selectStatement.getFreeVariables();
-      if (!freeVariables.isEmpty()) {
-        throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
-      }
-    }
-
-    if (!selectStatement.getOrderByPaths().isEmpty()) {
-      root =
-          new Sort(
-              new OperatorSource(root),
-              selectStatement.getOrderByPaths(),
-              selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC);
-    }
-
-    if (selectStatement.getLimit() != Integer.MAX_VALUE || selectStatement.getOffset() != 0) {
-      root =
-          new Limit(
-              new OperatorSource(root),
-              (int) selectStatement.getLimit(),
-              (int) selectStatement.getOffset());
-    }
-
+  /**
+   * 根据SelectStatement构建查询树的Reorder操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了Reorder操作符的根节点
+   */
+  private static Operator buildReorder(UnarySelectStatement selectStatement, Operator root) {
     boolean hasFuncWithArgs =
         selectStatement.getExpressions().stream()
             .anyMatch(
@@ -616,12 +731,32 @@ public class QueryGenerator extends AbstractGenerator {
           new Reorder(
               new OperatorSource(root), order, isPyUDF, selectStatement.hasValueToSelectedPath());
     }
+    return root;
+  }
 
+  /**
+   * 如果SelectStatement有AliasMap, 在root之上构建一个Rename操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了Rename操作符的根节点；如果没有AliasMap，返回原根节点
+   */
+  private static Operator buildRename(UnarySelectStatement selectStatement, Operator root) {
     Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
     if (!aliasMap.isEmpty()) {
       root = new Rename(new OperatorSource(root), aliasMap);
     }
+    return root;
+  }
 
+  /**
+   * 如果SelectStatement有ValueToSelectedPath, 在root之上构建一个ValueToSelectedPath操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了ValueToSelectedPath操作符的根节点；如果没有ValueToSelectedPath，返回原根节点
+   */
+  private Operator buildValueToMeta(UnarySelectStatement selectStatement, Operator root) {
     List<Source> valueToMetaList = new ArrayList<>();
     if (selectStatement.hasValueToSelectedPath()) {
       selectStatement
@@ -644,10 +779,197 @@ public class QueryGenerator extends AbstractGenerator {
               });
       root = new FoldedOperator(valueToMetaList, root);
     }
-
     return root;
   }
 
+  /**
+   * 如果SelectStatement有Distinct, 在root之上构建一个Distinct操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了Distinct操作符的根节点；如果没有Distinct，返回原根节点
+   */
+  private static Operator buildDistinct(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.isDistinct()) {
+      List<String> patterns = new ArrayList<>();
+      for (Expression expression : selectStatement.getExpressions()) {
+        patterns.add(expression.getColumnName());
+      }
+      root = new Distinct(new OperatorSource(root), patterns);
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement有RowTransform, 在root之上构建一个RowTransform操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了RowTransform操作符的根节点；如果没有RowTransform，返回原根节点
+   */
+  private static Operator buildRowTransform(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.needRowTransform()) {
+      List<FunctionCall> functionCallList = new ArrayList<>();
+      for (Expression expression : selectStatement.getExpressions()) {
+        FunctionParams params = new FunctionParams(expression);
+        functionCallList.add(
+            new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
+      }
+      root = new RowTransform(new OperatorSource(root), functionCallList);
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement有HavingSubQuery, 以root为基础构建一个Join起来的树
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return Join起来的带Having子查询的树；如果没有HavingSubQuery，返回原根节点
+   */
+  private Operator buildHavingSubQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (!selectStatement.getHavingSubQueryParts().isEmpty()) {
+      root =
+          buildJoinOperatorFromSubQueries(
+              selectStatement, root, selectStatement.getHavingSubQueryParts());
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement有HavingFilter, 在root之上构建一个Select操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了Select操作符的根节点；如果没有HavingFilter，返回原根节点
+   */
+  private Operator buildHavingFilter(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.getHavingFilter() != null) {
+      root = new Select(new OperatorSource(root), selectStatement.getHavingFilter(), null);
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement有SelectSubQuery, 以root为基础构建一个Join起来的树
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return Join起来的带Select子查询的树；如果没有SelectSubQuery，返回原根节点
+   */
+  private Operator buildSelectSubQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (!selectStatement.getSelectSubQueryParts().isEmpty()) {
+      int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
+      List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
+      for (int i = 0; i < sizeSelectSubQuery; i++) {
+        if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+          Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
+
+          Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
+          JoinAlgType joinAlgType = chooseJoinAlg(filter);
+
+          root =
+              new SingleJoin(
+                  new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+          root =
+              detectAndTranslateCorrelatedVariables(
+                  selectSubQueryParts.get(i).getFreeVariables(),
+                  selectStatement,
+                  selectStatement.getFromParts().size(),
+                  root);
+        }
+      }
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement有ValueFilter, 在root之上构建一个Select操作符
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了Select操作符的根节点；如果没有ValueFilter，返回原根节点
+   */
+  private static Operator buildValueFilter(UnarySelectStatement selectStatement, Operator root) {
+    if (selectStatement.hasValueFilter()) {
+      root =
+          new Select(
+              new OperatorSource(root),
+              selectStatement.getFilter(),
+              selectStatement.getTagFilter());
+    }
+    return root;
+  }
+
+  /**
+   * 如果SelectStatement有WhereSubQuery, 以root为基础构建一个Join起来的树
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return Join起来的带Where子查询的树；如果没有WhereSubQuery，返回原根节点
+   */
+  private Operator buildWhereSubQuery(UnarySelectStatement selectStatement, Operator root) {
+    if (!selectStatement.getWhereSubQueryParts().isEmpty()) {
+      root =
+          buildJoinOperatorFromSubQueries(
+              selectStatement, root, selectStatement.getWhereSubQueryParts());
+    }
+    return root;
+  }
+
+  /** 从子查询构建一个Join起来的子树，用于处理where子查询和having子查询 */
+  private Operator buildJoinOperatorFromSubQueries(
+      UnarySelectStatement selectStatement, Operator root, List<SubQueryFromPart> subQueryParts) {
+    for (SubQueryFromPart whereSubQueryPart : subQueryParts) {
+      Operator right = generateRoot(whereSubQueryPart.getSubQuery());
+
+      Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
+      String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
+      boolean isAntiJoin = whereSubQueryPart.getJoinCondition().isAntiJoin();
+      JoinAlgType joinAlgType = chooseJoinAlg(filter);
+
+      if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
+        root =
+            new MarkJoin(
+                new OperatorSource(root),
+                new OperatorSource(right),
+                filter,
+                markColumn,
+                isAntiJoin,
+                joinAlgType);
+      } else if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+        root =
+            new SingleJoin(
+                new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+      }
+      root =
+          detectAndTranslateCorrelatedVariables(
+              whereSubQueryPart.getFreeVariables(),
+              selectStatement,
+              selectStatement.getFromParts().size(),
+              root);
+    }
+    return root;
+  }
+
+  /** 根据自由变量判断是否需要将apply算子下推 */
+  private static Operator detectAndTranslateCorrelatedVariables(
+      List<String> freeVariables, UnarySelectStatement selectStatement, int index, Operator root) {
+    List<String> correlatedVariables = new ArrayList<>();
+    // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
+    for (String freeVariable : freeVariables) {
+      if (selectStatement.hasAttribute(freeVariable, index)) {
+        correlatedVariables.add(freeVariable);
+      }
+    }
+    // 如果存在关联变量，则将apply算子下推
+    if (!correlatedVariables.isEmpty()) {
+      root = translateApply(root, correlatedVariables);
+    }
+    return root;
+  }
+
+  /** 根据Tag Filter和Project Path，过滤并合并Fragments，生成一棵树 */
   private Operator filterAndMergeFragments(UnarySelectStatement selectStatement) {
     List<String> pathList =
         SortUtils.mergeAndSortPaths(new ArrayList<>(selectStatement.getPathSet()));
@@ -664,151 +986,14 @@ public class QueryGenerator extends AbstractGenerator {
     return mergeRawData(fragments, dummyFragments, pathList, tagFilter);
   }
 
-  private Operator filterAndMergeFragmentsWithJoin(UnarySelectStatement selectStatement) {
-    TagFilter tagFilter = selectStatement.getTagFilter();
-
-    List<Operator> joinList = new ArrayList<>();
-    // 1. get all data of single prefix like a.* or b.*
-    selectStatement
-        .getFromParts()
-        .forEach(
-            fromPart -> {
-              Operator root;
-              switch (fromPart.getType()) {
-                case Path:
-                  PathFromPart pathFromPart = (PathFromPart) fromPart;
-                  String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
-                  Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                      getFragmentsByColumnsInterval(
-                          selectStatement, new ColumnsInterval(prefix, prefix));
-                  Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
-                  List<FragmentMeta> dummyFragments = pair.v;
-                  root =
-                      mergeRawData(
-                          fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
-                  break;
-                case SubQuery:
-                  SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
-                  root = generateRoot(subQueryFromPart.getSubQuery());
-                  break;
-                case Cte:
-                  CteFromPart cteFromPart = (CteFromPart) fromPart;
-                  root = cteFromPart.getRoot().copy();
-                  break;
-                case ShowColumns:
-                  ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
-                  root =
-                      new ShowColumns(
-                          new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
-                  break;
-                default:
-                  throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
-              }
-              if (fromPart.hasAlias()) {
-                root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
-              }
-              joinList.add(root);
-            });
-    // 2. merge by declare
-    Operator left = joinList.get(0);
-    String prefixA = selectStatement.getFromPart(0).getPrefix();
-    for (int i = 1; i < joinList.size(); i++) {
-      JoinCondition joinCondition = selectStatement.getFromPart(i).getJoinCondition();
-      Operator right = joinList.get(i);
-
-      String prefixB = selectStatement.getFromPart(i).getPrefix();
-
-      Filter filter = joinCondition.getFilter();
-      List<String> joinColumns = joinCondition.getJoinColumns();
-      boolean isNaturalJoin = isNaturalJoin(joinCondition.getJoinType());
-
-      if (!joinColumns.isEmpty() || isNaturalJoin) {
-        if (prefixA == null || prefixB == null) {
-          throw new RuntimeException(
-              "A natural join or a join with USING should have two public prefix");
-        }
-      }
-
-      JoinAlgType joinAlgType = chooseJoinAlg(filter, isNaturalJoin, joinColumns);
-
-      switch (joinCondition.getJoinType()) {
-        case CrossJoin:
-          left =
-              new CrossJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB);
-          break;
-        case InnerJoin:
-        case InnerNaturalJoin:
-          left =
-              new InnerJoin(
-                  new OperatorSource(left),
-                  new OperatorSource(right),
-                  prefixA,
-                  prefixB,
-                  filter,
-                  joinColumns,
-                  isNaturalJoin,
-                  joinAlgType);
-          break;
-        case LeftOuterJoin:
-        case LeftNaturalJoin:
-          left =
-              new OuterJoin(
-                  new OperatorSource(left),
-                  new OperatorSource(right),
-                  prefixA,
-                  prefixB,
-                  OuterJoinType.LEFT,
-                  filter,
-                  joinColumns,
-                  isNaturalJoin,
-                  joinAlgType);
-          break;
-        case RightOuterJoin:
-        case RightNaturalJoin:
-          left =
-              new OuterJoin(
-                  new OperatorSource(left),
-                  new OperatorSource(right),
-                  prefixA,
-                  prefixB,
-                  OuterJoinType.RIGHT,
-                  filter,
-                  joinColumns,
-                  isNaturalJoin,
-                  joinAlgType);
-          break;
-        case FullOuterJoin:
-          left =
-              new OuterJoin(
-                  new OperatorSource(left),
-                  new OperatorSource(right),
-                  prefixA,
-                  prefixB,
-                  OuterJoinType.FULL,
-                  filter,
-                  joinColumns,
-                  isNaturalJoin,
-                  joinAlgType);
-          break;
-        default:
-          break;
-      }
-
-      List<String> freeVariables = selectStatement.getFromPart(i).getFreeVariables();
-      List<String> correlatedVariables = new ArrayList<>();
-      // 判断右子树中的自由变量是否来自左子树，如果是，记为关联变量
-      for (String freeVariable : freeVariables) {
-        if (selectStatement.hasAttribute(freeVariable, i)) {
-          correlatedVariables.add(freeVariable);
-        }
-      }
-      // 如果右子树中存在关联变量，则将apply算子下推
-      if (!correlatedVariables.isEmpty()) {
-        left = translateApply(left, correlatedVariables);
-      }
-
-      prefixA = prefixB;
-    }
-    return left;
+  /** 从Expression中获取params */
+  private static FunctionParams getFunctionParams(String functionName, FuncExpression expression) {
+    return FunctionUtils.isCanUseSetQuantifierFunction(functionName)
+        ? new FunctionParams(
+            expression.getColumns(),
+            expression.getArgs(),
+            expression.getKvargs(),
+            expression.isDistinct())
+        : new FunctionParams(expression.getColumns(), expression.getArgs(), expression.getKvargs());
   }
 }
