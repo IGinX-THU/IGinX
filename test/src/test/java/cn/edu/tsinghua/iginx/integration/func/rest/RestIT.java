@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class RestIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(RestIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RestIT.class);
 
   private boolean isAbleToClearData = true;
 
@@ -46,7 +46,7 @@ public class RestIT {
     try {
       execute("insert.json", TYPE.INSERT);
     } catch (Exception e) {
-      logger.error("insertData fail. Caused by: {}.", e.toString());
+      LOGGER.error("insertData fail. Caused by: {}.", e.toString());
       fail();
     }
   }
@@ -118,7 +118,7 @@ public class RestIT {
       result = execute(json, TYPE.QUERY);
     } catch (Exception e) {
       //            if (e.toString().equals())
-      logger.error("executeAndCompare fail. Caused by: {}.", e.toString());
+      LOGGER.error("executeAndCompare fail. Caused by: {}.", e.toString());
     }
     assertEquals(output, result);
   }
@@ -268,9 +268,9 @@ public class RestIT {
   public void pathValidTest() {
     try {
       String res = execute("pathValidTest.json", TYPE.INSERT);
-      logger.warn("insertData fail. Caused by: {}.", res);
+      LOGGER.warn("insertData fail. Caused by: {}.", res);
     } catch (Exception e) {
-      logger.error("insertData fail. Caused by: {}.", e.toString());
+      LOGGER.error("insertData fail. Caused by: {}.", e.toString());
     }
   }
 }

@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLQueryRowStream implements RowStream {
 
-  private static final Logger logger = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
 
   private final List<ResultSet> resultSets;
 
@@ -153,7 +153,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
         resultSet.close();
       }
     } catch (SQLException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
     }
   }
 
@@ -168,7 +168,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
     }
 
     return cachedRow != null;
@@ -186,7 +186,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
       throw new RowFetchException(e);
     }
   }
@@ -304,7 +304,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
         }
       }
     } catch (SQLException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
     }
 
     return null;

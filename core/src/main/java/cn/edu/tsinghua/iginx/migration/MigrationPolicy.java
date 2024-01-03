@@ -42,7 +42,7 @@ public abstract class MigrationPolicy {
 
   protected static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  private Logger logger;
+  private Logger LOGGER;
 
   private final IPolicy policy =
       PolicyManager.getInstance()
@@ -56,7 +56,7 @@ public abstract class MigrationPolicy {
   private static final PhysicalEngine physicalEngine = PhysicalEngineImpl.getInstance();
 
   public MigrationPolicy(Logger logger) {
-    this.logger = logger;
+    this.LOGGER = logger;
   }
 
   public void setMigrationLogger(MigrationLogger migrationLogger) {
@@ -255,7 +255,7 @@ public abstract class MigrationPolicy {
     //      return;
     //    }
     try {
-      logger.info("start to reshard timeseries by write");
+      LOGGER.info("start to reshard timeseries by write");
       migrationLogger.logMigrationExecuteTaskStart(
           new MigrationExecuteTask(
               fragmentMeta,
@@ -277,9 +277,9 @@ public abstract class MigrationPolicy {
           pathSet.add(timeSeries);
         }
       }
-      logger.info("start to add new fragment");
+      LOGGER.info("start to add new fragment");
       String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
-      logger.info("timeseries split middleTimeseries=" + middleTimeseries);
+      LOGGER.info("timeseries split middleTimeseries=" + middleTimeseries);
       ColumnsInterval sourceColumnsInterval =
           new ColumnsInterval(
               fragmentMeta.getColumnsInterval().getStartColumn(),
@@ -291,9 +291,9 @@ public abstract class MigrationPolicy {
               fragmentMeta.getKeyInterval().getStartKey(),
               fragmentMeta.getKeyInterval().getEndKey(),
               fragmentMeta.getMasterStorageUnit());
-      logger.info("timeseries split new fragment=" + newFragment.toString());
+      LOGGER.info("timeseries split new fragment=" + newFragment.toString());
       DefaultMetaManager.getInstance().addFragment(newFragment);
-      logger.info("start to add old fragment");
+      LOGGER.info("start to add old fragment");
       DefaultMetaManager.getInstance().endFragmentByColumnsInterval(fragmentMeta, middleTimeseries);
     } finally {
       migrationLogger.logMigrationExecuteTaskEnd();
@@ -353,9 +353,9 @@ public abstract class MigrationPolicy {
       MigrationTask migrationTask, Map<Long, Long> nodeLoadMap) {
     //    long currTargetNodeLoad = nodeLoadMap.getOrDefault(migrationTask.getTargetStorageId(),
     // 0L);
-    //    logger.error("currTargetNodeLoad = {}", currTargetNodeLoad);
-    //    logger.error("migrationTask.getLoad() = {}", migrationTask.getLoad());
-    //    logger.error("config.getMaxLoadThreshold() = {}", config.getMaxLoadThreshold());
+    //    LOGGER.error("currTargetNodeLoad = {}", currTargetNodeLoad);
+    //    LOGGER.error("migrationTask.getLoad() = {}", migrationTask.getLoad());
+    //    LOGGER.error("config.getMaxLoadThreshold() = {}", config.getMaxLoadThreshold());
     return true;
   }
 
@@ -407,13 +407,13 @@ public abstract class MigrationPolicy {
         migrationTaskQueue.poll();
         this.executor.submit(
             () -> {
-              this.logger.info("start migration: {}", migrationTask);
+              this.LOGGER.info("start migration: {}", migrationTask);
               // 异步执行耗时的操作
               if (migrationTask.getMigrationType() == MigrationType.QUERY) {
                 // 如果之前没切过分区，需要优先切一下分区
                 if (migrationTask.getFragmentMeta().getKeyInterval().getEndKey()
                     == Long.MAX_VALUE) {
-                  this.logger.error("start to reshard query data: {}", migrationTask);
+                  this.LOGGER.error("start to reshard query data: {}", migrationTask);
                   FragmentMeta fragmentMeta =
                       reshardFragment(
                           migrationTask.getSourceStorageId(),
@@ -421,19 +421,19 @@ public abstract class MigrationPolicy {
                           migrationTask.getFragmentMeta());
                   migrationTask.setFragmentMeta(fragmentMeta);
                 }
-                this.logger.error("start to migrate data: {}", migrationTask);
+                this.LOGGER.error("start to migrate data: {}", migrationTask);
                 migrateData(
                     migrationTask.getSourceStorageId(),
                     migrationTask.getTargetStorageId(),
                     migrationTask.getFragmentMeta());
               } else {
-                this.logger.error("start to migrate write data: {}", migrationTask);
+                this.LOGGER.error("start to migrate write data: {}", migrationTask);
                 reshardFragment(
                     migrationTask.getSourceStorageId(),
                     migrationTask.getTargetStorageId(),
                     migrationTask.getFragmentMeta());
               }
-              this.logger.error(
+              this.LOGGER.error(
                   "complete one migration task from {} to {} with load: {}, size: {}, type: {}",
                   migrationTask.getSourceStorageId(),
                   migrationTask.getTargetStorageId(),
@@ -459,7 +459,7 @@ public abstract class MigrationPolicy {
             DefaultMetaManager.getInstance()
                 .generateNewStorageUnitMetaByFragment(fragmentMeta, targetStorageId);
       } catch (MetaStorageException e) {
-        logger.error("cannot create storage unit in target storage engine", e);
+        LOGGER.error("cannot create storage unit in target storage engine", e);
         throw new PhysicalException(e);
       }
       migrationLogger.logMigrationExecuteTaskStart(
@@ -505,7 +505,7 @@ public abstract class MigrationPolicy {
       Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
       physicalEngine.execute(new RequestContext(), delete);
     } catch (Exception e) {
-      logger.error(
+      LOGGER.error(
           "encounter error when migrate data from {} to {} ", sourceStorageId, targetStorageId, e);
     } finally {
       migrationLogger.logMigrationExecuteTaskEnd();
@@ -528,11 +528,11 @@ public abstract class MigrationPolicy {
         if (timeSeries.contains("{") && timeSeries.contains("}")) {
           timeSeries = timeSeries.split("\\{")[0];
         }
-        logger.info("[migrationData] need migration path: {}", timeSeries);
+        LOGGER.info("[migrationData] need migration path: {}", timeSeries);
         for (FragmentMeta fragmentMeta : fragmentMetas) {
           if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
             pathSet.add(timeSeries);
-            logger.info("[migrationData] path {} belong to {}", timeSeries, fragmentMeta);
+            LOGGER.info("[migrationData] path {} belong to {}", timeSeries, fragmentMeta);
           }
         }
       }
@@ -547,7 +547,7 @@ public abstract class MigrationPolicy {
       }
       return true;
     } catch (Exception e) {
-      logger.error(
+      LOGGER.error(
           "encounter error when migrate data from {} to {} ",
           sourceStorageUnitId,
           targetStorageUnitId,
@@ -582,7 +582,7 @@ public abstract class MigrationPolicy {
                 DefaultMetaManager.getInstance().getMaxActiveEndKey(),
                 Long.MAX_VALUE,
                 storageEngineList);
-        logger.info("start to splitFragmentAndStorageUnit");
+        LOGGER.info("start to splitFragmentAndStorageUnit");
         return DefaultMetaManager.getInstance()
             .splitFragmentAndStorageUnit(
                 fragmentMetaStorageUnitMetaPair.getV(),

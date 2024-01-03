@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetQueryRowStream implements RowStream {
 
-  public static final Logger logger = LoggerFactory.getLogger(ParquetQueryRowStream.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(ParquetQueryRowStream.class);
 
   public static final ParquetQueryRowStream EMPTY_PARQUET_ROW_STREAM =
       new ParquetQueryRowStream(null, null);
@@ -75,7 +75,7 @@ public class ParquetQueryRowStream implements RowStream {
         fields.add(field);
       }
     } catch (SQLException e) {
-      logger.error("encounter error when get header of result set.");
+      LOGGER.error("encounter error when get header of result set.");
     }
 
     if (time == null) {

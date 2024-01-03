@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(PostgreSQLHistoryDataGenerator.class);
 
   private static final char SEPARATOR = '.';
@@ -56,7 +56,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       Connection connection = connect(port, true, null);
       if (connection == null) {
-        logger.error("cannot connect to 127.0.0.1:{}!", port);
+        LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
       }
 
@@ -81,7 +81,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         try {
           stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
         } catch (SQLException e) {
-          logger.info("database {} exists!", databaseName);
+          LOGGER.info("database {} exists!", databaseName);
         }
         stmt.close();
 
@@ -126,9 +126,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
       connection.close();
 
-      logger.info("write data to 127.0.0.1:{} success!", port);
+      LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (RuntimeException | SQLException e) {
-      logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
       e.printStackTrace();
     }
   }
@@ -156,9 +156,9 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       databaseSet.close();
       stmt.close();
       conn.close();
-      logger.info("clear data on 127.0.0.1:{} success!", port);
+      LOGGER.info("clear data on 127.0.0.1:{} success!", port);
     } catch (SQLException e) {
-      logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
     }
   }
 

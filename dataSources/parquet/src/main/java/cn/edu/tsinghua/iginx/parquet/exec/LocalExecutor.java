@@ -52,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class LocalExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LocalExecutor.class);
 
   // data-startKey-startPath
   private static final String DATA_FILE_NAME_FORMATTER = "data__%s__%s.parquet";
@@ -117,7 +117,7 @@ public class LocalExecutor implements Executor {
               new MergeTimeRowStreamWrapper(new ParquetQueryRowStream(rs, tagFilter)));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in parquet failure", e));
     }
@@ -153,7 +153,7 @@ public class LocalExecutor implements Executor {
               new MergeTimeRowStreamWrapper(new ParquetQueryRowStream(rs, tagFilter)));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in parquet failure", e));
     }
@@ -247,7 +247,7 @@ public class LocalExecutor implements Executor {
         lock.writeLock().lock();
         executeWritePlan(data, writePlan);
       } catch (SQLException e) {
-        logger.error("execute row write plan error", e);
+        LOGGER.error("execute row write plan error", e);
         return new TaskExecuteResult(
             null, new PhysicalException("execute insert task in parquet failure", e));
       } finally {
@@ -408,7 +408,7 @@ public class LocalExecutor implements Executor {
         addColumnStmts.add(String.format(ADD_COLUMNS_STMT, tableName, path, type));
       }
     }
-    logger.info("add columns: {}", builder.toString());
+    LOGGER.info("add columns: {}", builder.toString());
 
     return addColumnStmts;
   }
@@ -426,7 +426,7 @@ public class LocalExecutor implements Executor {
     builder.deleteCharAt(builder.length() - 2);
     String columns = builder.toString();
     String insertStmtPrefix = String.format(INSERT_STMT_PREFIX, tableName, columns);
-    logger.info("InsertStmtPrefix: {}", insertStmtPrefix);
+    LOGGER.info("InsertStmtPrefix: {}", insertStmtPrefix);
     return insertStmtPrefix;
   }
 
@@ -447,7 +447,7 @@ public class LocalExecutor implements Executor {
     builder.deleteCharAt(builder.length() - 2);
     String columns = builder.toString();
     String createTableStmt = String.format(CREATE_TABLE_STMT, tableName, columns);
-    logger.info("CreateTableStmt: {}", createTableStmt);
+    LOGGER.info("CreateTableStmt: {}", createTableStmt);
     return createTableStmt;
   }
 
@@ -573,7 +573,7 @@ public class LocalExecutor implements Executor {
         try {
           deletedPaths = determinePathListWithTagFilter(storageUnit, paths, tagFilter, false);
         } catch (PhysicalException e) {
-          logger.warn("encounter error when delete path: " + e.getMessage());
+          LOGGER.warn("encounter error when delete path: " + e.getMessage());
           return new TaskExecuteResult(
               new PhysicalTaskExecuteFailureException(
                   "execute delete path task in parquet failure", e));
@@ -590,7 +590,7 @@ public class LocalExecutor implements Executor {
           deleteDataInAllFiles(storageUnit, path, keyRanges);
         }
       } catch (PhysicalException e) {
-        logger.error("encounter error when delete data: " + e.getMessage());
+        LOGGER.error("encounter error when delete data: " + e.getMessage());
         return new TaskExecuteResult(
             new PhysicalTaskExecuteFailureException(
                 "execute delete data task in parquet failure", e));
@@ -660,7 +660,7 @@ public class LocalExecutor implements Executor {
       stmt.close();
       conn.close();
     } catch (SQLException e) {
-      logger.error("delete path failure.", e);
+      LOGGER.error("delete path failure.", e);
     }
   }
 

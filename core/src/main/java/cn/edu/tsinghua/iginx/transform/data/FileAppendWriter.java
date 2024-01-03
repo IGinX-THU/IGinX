@@ -18,7 +18,7 @@ public class FileAppendWriter extends ExportWriter {
 
   private boolean hasWriteHeader;
 
-  private static final Logger logger = LoggerFactory.getLogger(FileAppendWriter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileAppendWriter.class);
 
   public FileAppendWriter(String fileName) {
     this.fileName = fileName;
@@ -47,7 +47,7 @@ public class FileAppendWriter extends ExportWriter {
 
   private void createFileIfNotExist(File file) {
     if (!file.exists()) {
-      logger.info("File not exists, create it...");
+      LOGGER.info("File not exists, create it...");
       // get and create parent dir
       if (!file.getParentFile().exists()) {
         System.out.println("Parent dir not exists, create it...");

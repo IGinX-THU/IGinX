@@ -27,7 +27,7 @@ public class BatchStageRunner implements Runner {
 
   private final PemjaDriver driver = PemjaDriver.getInstance();
 
-  private static final Logger logger = LoggerFactory.getLogger(BatchStageRunner.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BatchStageRunner.class);
 
   public BatchStageRunner(BatchStage batchStage) {
     this.batchStage = batchStage;
@@ -41,7 +41,7 @@ public class BatchStageRunner implements Runner {
     if (task.isPythonTask()) {
       pemjaWorker = driver.createWorker((PythonTask) task, writer);
     } else {
-      logger.error("Batch task must be python task.");
+      LOGGER.error("Batch task must be python task.");
       throw new CreateWorkerException("Only python task can create worker.");
     }
     writer = new PemjaWriter(pemjaWorker);

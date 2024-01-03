@@ -40,7 +40,7 @@ public class SQLSessionIT {
   protected static String defaultTestPass = "root";
   protected static String runningEngine;
 
-  protected static final Logger logger = LoggerFactory.getLogger(SQLSessionIT.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(SQLSessionIT.class);
 
   protected static final boolean isOnWin =
       System.getProperty("os.name").toLowerCase().contains("win");
@@ -108,7 +108,7 @@ public class SQLSessionIT {
                     }
                   }));
     } else {
-      logger.error("isForSession=false, isForSessionPool=false");
+      LOGGER.error("isForSession=false, isForSessionPool=false");
       fail();
       return;
     }
@@ -5590,10 +5590,10 @@ public class SQLSessionIT {
     executor.executeAndCompare(explain, expected);
 
     explain = "explain physical select max(s2), min(s1) from us.d1;";
-    logger.info(executor.execute(explain));
+    LOGGER.info(executor.execute(explain));
 
     explain = "explain physical select s1 from us.d1 where s1 > 10 and s1 < 100;";
-    logger.info(executor.execute(explain));
+    LOGGER.info(executor.execute(explain));
   }
 
   @Test
@@ -5967,12 +5967,12 @@ public class SQLSessionIT {
       String queryOptimizer =
           session.executeSql("SHOW CONFIG \"queryOptimizer\";").getResultInString(false, "");
       if (!queryOptimizer.contains("filter_push_down")) {
-        logger.info(
+        LOGGER.info(
             "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
         return;
       }
     } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
       return;
     }
 
@@ -6226,12 +6226,12 @@ public class SQLSessionIT {
       String queryOptimizer =
           session.executeSql("SHOW CONFIG \"queryOptimizer\"").getResultInString(false, "");
       if (!queryOptimizer.equals("remove_not,filter_fragment")) {
-        logger.info(
+        LOGGER.info(
             "Skip SQLSessionIT.ttestFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
         return;
       }
     } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
       return;
     }
 

@@ -75,7 +75,7 @@ import org.slf4j.LoggerFactory;
 
 public class DUManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(DUManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DUManager.class);
 
   private final String id;
 
@@ -160,7 +160,7 @@ public class DUManager {
           } else if (str.startsWith(CMD_KEY)) {
             String[] times = details.split(",");
             if (times.length != 2) {
-              logger.error("The number of time must be two");
+              LOGGER.error("The number of time must be two");
               continue;
             }
             startTime = Long.parseLong(times[0]);
@@ -377,7 +377,7 @@ public class DUManager {
 
   public void insert(DataView dataView) throws SQLException {
     if (isEmptyReq(dataView)) {
-      logger.warn(String.format("Inserting empty data into %s", id));
+      LOGGER.warn(String.format("Inserting empty data into %s", id));
       return;
     }
     try {
@@ -419,7 +419,7 @@ public class DUManager {
                     path.replaceAll(IGINX_SEPARATOR, PARQUET_SEPARATOR),
                     type));
             curMemTablePathMap.put(path, data.getDataType(i));
-            logger.info("add columns: ({}, {})", path, type);
+            LOGGER.info("add columns: ({}, {})", path, type);
           }
         }
       }
@@ -468,7 +468,7 @@ public class DUManager {
     builder.deleteCharAt(builder.length() - 2);
     String columns = builder.toString();
     String insertStmtPrefix = String.format(INSERT_STMT_PREFIX, tableName, columns);
-    logger.info("InsertStmtPrefix: {}", insertStmtPrefix);
+    LOGGER.info("InsertStmtPrefix: {}", insertStmtPrefix);
     return insertStmtPrefix;
   }
 
@@ -550,7 +550,7 @@ public class DUManager {
           try {
             flushToDisk(flushMemTable, flushMemTablePathMap, flushStartTime, flushEndTime, meta);
           } catch (Exception e) {
-            logger.info("flush error, details: {}", e.getMessage());
+            LOGGER.info("flush error, details: {}", e.getMessage());
           }
         });
 
@@ -745,7 +745,7 @@ public class DUManager {
       stmt.close();
       conn.close();
     } catch (SQLException e) {
-      logger.error("get paths failure", e);
+      LOGGER.error("get paths failure", e);
       return ret;
     }
     return ret;
@@ -792,7 +792,7 @@ public class DUManager {
       stmt.close();
       conn.close();
     } catch (SQLException e) {
-      logger.error("get key range from parquet file failure", e);
+      LOGGER.error("get key range from parquet file failure", e);
       return new KeyInterval(startTime, endTime);
     }
     return new KeyInterval(startTime, endTime);

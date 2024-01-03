@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ThriftConnPool {
-  private static final Logger logger = LoggerFactory.getLogger(ThriftConnPool.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ThriftConnPool.class);
 
   private final int maxSize;
 
@@ -60,7 +60,7 @@ public class ThriftConnPool {
     try {
       return pool.borrowObject();
     } catch (Exception e) {
-      logger.error("borrowing connection failed:" + e);
+      LOGGER.error("borrowing connection failed:" + e);
       return null;
     }
   }
@@ -71,14 +71,14 @@ public class ThriftConnPool {
 
   public void returnTransport(TTransport transport) {
     if (isClosed()) {
-      logger.warn("returning connection to a closed connection pool.");
+      LOGGER.warn("returning connection to a closed connection pool.");
       return;
     }
     pool.returnObject(transport);
   }
 
   public void close() {
-    logger.info("closing connection pool...");
+    LOGGER.info("closing connection pool...");
     pool.close();
     closed = true;
   }

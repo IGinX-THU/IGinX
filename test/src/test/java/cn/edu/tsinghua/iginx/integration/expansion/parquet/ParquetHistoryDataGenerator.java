@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetHistoryDataGenerator.class);
 
   private static final char IGINX_SEPARATOR = '.';
 
@@ -41,23 +41,23 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
   public void writeHistoryData(
       int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
     if (!PARQUET_PARAMS.containsKey(port)) {
-      logger.error("writing to unknown port {}.", port);
+      LOGGER.error("writing to unknown port {}.", port);
       return;
     }
     Connection conn = getConnection();
     if (conn == null) {
-      logger.error("can't get DuckDB connection.");
+      LOGGER.error("can't get DuckDB connection.");
       return;
     }
     Statement stmt;
     try {
       stmt = conn.createStatement();
       if (stmt == null) {
-        logger.error("can't create statement.");
+        LOGGER.error("can't create statement.");
         return;
       }
     } catch (SQLException e) {
-      logger.error("statement creation error.");
+      LOGGER.error("statement creation error.");
       return;
     }
 
@@ -68,7 +68,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       try {
         Files.createDirectories(dirPath);
       } catch (IOException e) {
-        logger.error("can't create data file path {}.", dir);
+        LOGGER.error("can't create data file path {}.", dir);
         return;
       }
     }
@@ -134,14 +134,14 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
               "COPY (SELECT * FROM %s) TO '%s' (FORMAT 'parquet');", tableName, parquetPath));
 
     } catch (SQLException e) {
-      logger.error("write history data failed.");
+      LOGGER.error("write history data failed.");
     }
   }
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
     if (!PARQUET_PARAMS.containsKey(port)) {
-      logger.error("delete from unknown port {}.", port);
+      LOGGER.error("delete from unknown port {}.", port);
       return;
     }
 
@@ -153,7 +153,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     if (file.exists() && file.isFile()) {
       file.delete();
     } else {
-      logger.error("delete {}/{} error: does not exist or is not a file.", dir, filename);
+      LOGGER.error("delete {}/{} error: does not exist or is not a file.", dir, filename);
     }
   }
 }

@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 
 public class SQLTestTools {
 
-  private static final Logger logger = LoggerFactory.getLogger(SQLTestTools.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SQLTestTools.class);
 
   public static void executeAndCompare(Session session, String statement, String exceptOutput) {
     String actualOutput = execute(session, statement);
@@ -26,18 +26,18 @@ public class SQLTestTools {
   }
 
   private static String execute(Session session, String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
       return "";
@@ -83,7 +83,7 @@ public class SQLTestTools {
             .collect(Collectors.toSet());
 
     if (!expectedSet.equals(actualSet)) {
-      logger.error("actual valuesList is {} and it should be {}", actualSet, expectedSet);
+      LOGGER.error("actual valuesList is {} and it should be {}", actualSet, expectedSet);
       fail();
     }
   }
@@ -102,7 +102,7 @@ public class SQLTestTools {
 
       compareValuesList(expectedValuesList, actualValuesList);
     } catch (SessionException | ExecutionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
   }
@@ -121,7 +121,7 @@ public class SQLTestTools {
       command[1] = scriptPath;
       System.arraycopy(args, 0, command, 2, args.length);
       // 创建进程并执行命令
-      logger.info("exe shell : {}", Arrays.toString(command));
+      LOGGER.info("exe shell : {}", Arrays.toString(command));
       ProcessBuilder processBuilder = new ProcessBuilder(command);
 
       // 设置工作目录（可选）

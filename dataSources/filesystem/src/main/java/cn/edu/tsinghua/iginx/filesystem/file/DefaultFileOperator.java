@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
 
-  private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultFileOperator.class);
 
   public DefaultFileOperator() {}
 
@@ -39,7 +39,7 @@ public class DefaultFileOperator implements IFileOperator {
       raf.seek(readPos);
       int len = raf.read(buffer);
       if (len < 0) {
-        logger.info("reach the end of the file {} with len {}", file.getAbsolutePath(), len);
+        LOGGER.info("reach the end of the file {} with len {}", file.getAbsolutePath(), len);
         return null;
       }
       if (len != buffer.length) {
@@ -170,7 +170,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       return replaceFile(file, tempFile);
     } catch (IOException e) {
-      logger.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
     }
   }
@@ -186,7 +186,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return true;
     } catch (IOException e) {
-      logger.error("cannot read file {} {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("cannot read file {} {}", file.getAbsolutePath(), e.getMessage());
       return false;
     }
   }
@@ -200,7 +200,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return null;
     } catch (IOException e) {
-      logger.error(
+      LOGGER.error(
           "append records to iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
     }
@@ -218,7 +218,7 @@ public class DefaultFileOperator implements IFileOperator {
       String lastLine = reversedLinesReader.readLine();
       return Long.parseLong(lastLine.split(",", 2)[0]);
     } catch (IOException e) {
-      logger.error(
+      LOGGER.error(
           "get max key of iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return -1L;
     }
@@ -237,7 +237,7 @@ public class DefaultFileOperator implements IFileOperator {
       Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
       return null;
     } catch (IOException e) {
-      logger.error(
+      LOGGER.error(
           "replace file from {} to {} failure: {}",
           tempFile.getAbsolutePath(),
           file.getAbsoluteFile(),
@@ -319,7 +319,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       return replaceFile(file, tempFile);
     } catch (IOException e) {
-      logger.error("trim file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("trim file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
     }
   }

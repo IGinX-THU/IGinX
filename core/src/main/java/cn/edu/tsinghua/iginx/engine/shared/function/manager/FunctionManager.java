@@ -65,7 +65,7 @@ public class FunctionManager {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
 
   private static final String PY_SUFFIX = ".py";
 
@@ -104,7 +104,7 @@ public class FunctionManager {
     for (String udf : udfList) {
       String[] udfInfo = udf.split(",");
       if (udfInfo.length != 4) {
-        logger.error("udf info len must be 4.");
+        LOGGER.error("udf info len must be 4.");
         continue;
       }
       UDFType udfType;
@@ -122,7 +122,7 @@ public class FunctionManager {
           udfType = UDFType.TRANSFORM;
           break;
         default:
-          logger.error("unknown udf type: " + udfInfo[0]);
+          LOGGER.error("unknown udf type: " + udfInfo[0]);
           continue;
       }
       metaList.add(

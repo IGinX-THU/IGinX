@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 public class DuckDBConnPool {
 
-  private static final Logger logger = LoggerFactory.getLogger(DuckDBConnPool.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DuckDBConnPool.class);
 
   private final ConcurrentLinkedDeque<Connection> queue = new ConcurrentLinkedDeque<>();
 
@@ -56,7 +56,7 @@ public class DuckDBConnPool {
 
     if (canCreated) {
       try {
-        logger.info("create a new connection.");
+        LOGGER.info("create a new connection.");
         conn = constructNewConnection();
         synchronized (this) {
           if (closed) {
@@ -68,7 +68,7 @@ public class DuckDBConnPool {
         synchronized (this) {
           size--;
           this.notify();
-          logger.error("create new connection failed, reduce the count and notify others...");
+          LOGGER.error("create new connection failed, reduce the count and notify others...");
         }
         throw e;
       }
@@ -83,11 +83,11 @@ public class DuckDBConnPool {
           try {
             this.wait(WAIT_TIME);
             if (System.currentTimeMillis() - startTime > MAX_WAIT_TIME) {
-              logger.error("timeout to get a connection");
+              LOGGER.error("timeout to get a connection");
               throw new SQLException("timeout to get a connection");
             }
           } catch (InterruptedException e) {
-            logger.error("the connection pool is damaged", e);
+            LOGGER.error("the connection pool is damaged", e);
             Thread.currentThread().interrupt();
           }
           conn = queue.poll();
@@ -106,7 +106,7 @@ public class DuckDBConnPool {
       try {
         conn.close();
       } catch (SQLException e) {
-        logger.error("connection close failed");
+        LOGGER.error("connection close failed");
       }
     } else {
       queue.offer(conn);
@@ -123,11 +123,11 @@ public class DuckDBConnPool {
       }
       duckDBConnection.close();
     } catch (SQLException e) {
-      logger.error("connection close failed");
+      LOGGER.error("connection close failed");
       throw e;
     }
 
-    logger.info("closing the connection pool, cleaning queues...");
+    LOGGER.info("closing the connection pool, cleaning queues...");
 
     this.closed = true;
     queue.clear();

@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 
 public class QueryClientImpl extends AbstractFunctionClient implements QueryClient {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(QueryClientImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryClientImpl.class);
 
   private final ResultMapper resultMapper;
 

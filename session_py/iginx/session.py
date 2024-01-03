@@ -88,7 +88,7 @@ class Session(object):
             try:
                 self.__transport.open()
             except TTransport.TTransportException as e:
-                logger.exception("TTransportException!", exc_info=e)
+                LOGGER.exception("TTransportException!", exc_info=e)
 
         self.__client = Client(TBinaryProtocol.TBinaryProtocol(self.__transport))
 
@@ -101,7 +101,7 @@ class Session(object):
             self.__is_close = False
         except Exception as e:
             self.__transport.close()
-            logger.exception("session closed because: ", exc_info=e)
+            LOGGER.exception("session closed because: ", exc_info=e)
 
 
     def close(self):
@@ -112,7 +112,7 @@ class Session(object):
         try:
             self.__client.closeSession(req)
         except TTransport.TException as e:
-            logger.exception(
+            LOGGER.exception(
                 "Error occurs when closing session. Error message: ",
                 exc_info=e,
             )
@@ -403,7 +403,7 @@ class Session(object):
 
     def last_query(self, paths, start_time=0, timePrecision=None):
         if len(paths) == 0:
-            logger.warning("paths shouldn't be empty")
+            LOGGER.warning("paths shouldn't be empty")
             return None
         req = LastQueryReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths), startKey=start_time, timePrecision=timePrecision)
         resp = self.__client.lastQuery(req)

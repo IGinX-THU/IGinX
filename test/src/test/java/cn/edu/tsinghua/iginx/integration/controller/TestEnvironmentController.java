@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class TestEnvironmentController {
 
-  private static final Logger logger = LoggerFactory.getLogger(TestEnvironmentController.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TestEnvironmentController.class);
 
   private static Session session;
 
@@ -22,7 +22,7 @@ public class TestEnvironmentController {
     try {
       session.openSession();
     } catch (SessionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
     }
   }
 
@@ -34,14 +34,14 @@ public class TestEnvironmentController {
     try {
       File file = new File(filePath); // 文件路径
       FileWriter fileWriter = new FileWriter(file);
-      logger.info("test should run {}", taskList);
+      LOGGER.info("test should run {}", taskList);
       for (String taskName : taskList) {
         fileWriter.write(taskName + "\n");
       }
       fileWriter.flush(); // 刷新数据，不刷新写入不进去
       fileWriter.close(); // 关闭流
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
     }
   }
 

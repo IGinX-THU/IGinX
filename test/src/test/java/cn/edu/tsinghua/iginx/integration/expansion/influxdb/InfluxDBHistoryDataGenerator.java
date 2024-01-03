@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
 
   public static final String TOKEN = "testToken";
 
@@ -121,7 +121,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                     .time(timeCnt, WRITE_PRECISION);
             break;
           default:
-            logger.error("unsupported data type: {}", dataType);
+            LOGGER.error("unsupported data type: {}", dataType);
             break;
         }
         if (point == null) {
@@ -134,7 +134,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     client.close();
-    logger.info("write data to " + url + " success!");
+    LOGGER.info("write data to " + url + " success!");
   }
 
   @Override
@@ -147,6 +147,6 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       client.getBucketsApi().deleteBucket(bucket);
     }
     client.close();
-    logger.info("clear data on 127.0.0.1:{} success!", port);
+    LOGGER.info("clear data on 127.0.0.1:{} success!", port);
   }
 }

@@ -16,7 +16,7 @@ public class YAMLReader {
 
   private final File file;
 
-  private static final Logger logger = LoggerFactory.getLogger(YAMLReader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(YAMLReader.class);
 
   public YAMLReader(String path) throws FileNotFoundException {
     this.path = path;
@@ -56,12 +56,12 @@ public class YAMLReader {
       conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
       conf = normalize(conf);
     } catch (IOException e) {
-      logger.error(String.format("Fail to find file, path=%s", filePath));
+      LOGGER.error(String.format("Fail to find file, path=%s", filePath));
     } finally {
       try {
         in.close();
       } catch (IOException e) {
-        logger.error("Fail to close the file, path=%s", filePath);
+        LOGGER.error("Fail to close the file, path=%s", filePath);
       }
     }
     return conf;

@@ -48,7 +48,7 @@ public class StreamStageRunner implements Runner {
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(StreamStageRunner.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StreamStageRunner.class);
 
   public StreamStageRunner(StreamStage stage) {
     this.streamStage = stage;

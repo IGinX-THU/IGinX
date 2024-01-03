@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
 
-  private static final Logger logger = LoggerFactory.getLogger(NaiveParquetStoragePolicy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NaiveParquetStoragePolicy.class);
 
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
@@ -100,10 +100,10 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
   private boolean needCreateNewDataPartition(File file) {
     long fileSize = FileUtils.sizeOf(file);
     boolean needCreateNewDataPartition = fileSize > FILE_SIZE_LIMIT_10MB;
-    //        logger.info("current data file '{}' size: {} mb", file.getAbsolutePath(), fileSize
+    //        LOGGER.info("current data file '{}' size: {} mb", file.getAbsolutePath(), fileSize
     // / 1024 / 1024);
     if (needCreateNewDataPartition) {
-      logger.info(
+      LOGGER.info(
           "current data file '{}', size: {} mb, create a new data partition",
           file.getAbsolutePath(),
           fileSize / 1024 / 1024);
@@ -151,7 +151,7 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
       stmt.close();
       conn.close();
     } catch (SQLException e) {
-      logger.error("get latest time failed.");
+      LOGGER.error("get latest time failed.");
     }
     return latestTime;
   }
@@ -200,7 +200,7 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
     try {
       Files.createDirectories(path);
     } catch (IOException e) {
-      logger.error("create dir {} failed", path);
+      LOGGER.error("create dir {} failed", path);
     }
   }
 
@@ -208,7 +208,7 @@ public class NaiveParquetStoragePolicy implements ParquetStoragePolicy {
     try {
       Files.createFile(path);
     } catch (IOException e) {
-      logger.error("create file {} failed", path);
+      LOGGER.error("create file {} failed", path);
     }
   }
 

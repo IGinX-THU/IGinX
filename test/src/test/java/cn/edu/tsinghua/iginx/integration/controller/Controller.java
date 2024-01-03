@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 public class Controller {
 
-  private static final Logger logger = LoggerFactory.getLogger(Controller.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Controller.class);
 
   public static final String CLEAR_DATA = "CLEAR DATA;";
 
@@ -61,15 +61,15 @@ public class Controller {
       res = session.executeSql(CLEAR_DATA);
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
         fail();
       }
     }
 
     if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
+      LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
       fail();
     }
   }

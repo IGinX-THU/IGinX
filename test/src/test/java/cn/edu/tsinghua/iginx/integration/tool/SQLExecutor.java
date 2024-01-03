@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class SQLExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(SQLExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SQLExecutor.class);
 
   private final ExecutorService pool = Executors.newFixedThreadPool(30);
 
@@ -40,9 +40,9 @@ public class SQLExecutor {
 
   public String execute(String statement) {
     if (statement.toLowerCase().startsWith("insert")) {
-      logger.info("Execute Insert Statement.");
+      LOGGER.info("Execute Insert Statement.");
     } else {
-      logger.info("Execute Statement: \"{}\"", statement);
+      LOGGER.info("Execute Statement: \"{}\"", statement);
     }
 
     SessionExecuteSqlResult res = null;
@@ -50,16 +50,16 @@ public class SQLExecutor {
       res = conn.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
         return "";
       } else {
-        logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        LOGGER.error(CLEAR_DATA_ERROR, statement, e.getMessage());
         fail();
       }
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      LOGGER.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
       fail();
       return "";
     }
@@ -73,18 +73,18 @@ public class SQLExecutor {
   }
 
   public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     try {
       conn.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-      logger.info("Statement: \"{}\" execute fail. Because: {}", statement, e.getMessage());
+      LOGGER.info("Statement: \"{}\" execute fail. Because: {}", statement, e.getMessage());
       assertEquals(expectedErrMsg, e.getMessage());
     }
   }
 
   public void concurrentExecute(List<String> statements) {
-    logger.info("Concurrent execute statements, size={}", statements.size());
+    LOGGER.info("Concurrent execute statements, size={}", statements.size());
     CountDownLatch latch = new CountDownLatch(statements.size());
 
     for (String statement : statements) {
@@ -98,13 +98,13 @@ public class SQLExecutor {
     try {
       latch.await();
     } catch (InterruptedException e) {
-      logger.error("Interrupt when latch await");
+      LOGGER.error("Interrupt when latch await");
       fail();
     }
   }
 
   public void concurrentExecuteAndCompare(List<Pair<String, String>> statementsAndExpectRes) {
-    logger.info("Concurrent execute statements, size={}", statementsAndExpectRes.size());
+    LOGGER.info("Concurrent execute statements, size={}", statementsAndExpectRes.size());
     List<Pair<String, Pair<String, String>>> failedList =
         Collections.synchronizedList(new ArrayList<>());
     CountDownLatch start = new CountDownLatch(statementsAndExpectRes.size());
@@ -120,7 +120,7 @@ public class SQLExecutor {
             try {
               start.await();
             } catch (InterruptedException e) {
-              logger.error("Interrupt when latch await");
+              LOGGER.error("Interrupt when latch await");
             }
 
             String actualOutput = execute(statement);
@@ -134,18 +134,18 @@ public class SQLExecutor {
     try {
       end.await();
     } catch (InterruptedException e) {
-      logger.error("Interrupt when latch await");
+      LOGGER.error("Interrupt when latch await");
       fail();
     }
 
     if (!failedList.isEmpty()) {
       failedList.forEach(
           failed -> {
-            logger.error(
+            LOGGER.error(
                 "Statement: \"{}\" execute result is inconsistent with the expectation.",
                 failed.getK());
-            logger.error("Expected: {}", failed.getV().getK());
-            logger.error("Actual: {}", failed.getV().getV());
+            LOGGER.error("Expected: {}", failed.getV().getK());
+            LOGGER.error("Actual: {}", failed.getV().getV());
           });
       fail();
     }

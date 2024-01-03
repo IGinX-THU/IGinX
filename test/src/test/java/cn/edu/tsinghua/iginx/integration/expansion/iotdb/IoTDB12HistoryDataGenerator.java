@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(IoTDB12HistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IoTDB12HistoryDataGenerator.class);
 
   private static final String CREATE_TIMESERIES = "CREATE TIMESERIES root.%s WITH DATATYPE=%s";
 
@@ -59,9 +59,9 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
       }
 
       session.close();
-      logger.info("write data to 127.0.0.1:{} success!", port);
+      LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
     }
   }
 
@@ -72,9 +72,9 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
       session.open();
       session.executeNonQueryStatement("DELETE STORAGE GROUP root.*");
       session.close();
-      logger.info("clear data on 127.0.0.1:{} success!", port);
+      LOGGER.info("clear data on 127.0.0.1:{} success!", port);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
     }
   }
 }

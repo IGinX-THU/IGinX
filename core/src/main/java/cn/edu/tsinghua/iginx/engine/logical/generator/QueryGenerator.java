@@ -87,7 +87,7 @@ import org.slf4j.LoggerFactory;
 
 public class QueryGenerator extends AbstractGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(QueryGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryGenerator.class);
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static final QueryGenerator instance = new QueryGenerator();
   private static final FunctionManager functionManager = FunctionManager.getInstance();
@@ -416,7 +416,7 @@ public class QueryGenerator extends AbstractGenerator {
                                     expression.getKvargs());
 
                         Operator copySelect = finalRoot.copy();
-                        logger.info("function: " + expression.getColumnName());
+                        LOGGER.info("function: " + expression.getColumnName());
                         if (FunctionUtils.isRowToRowFunction(k)) {
                           queryList.add(
                               new RowTransform(
@@ -459,7 +459,7 @@ public class QueryGenerator extends AbstractGenerator {
                                 expression.getArgs(),
                                 expression.getKvargs());
                         Operator copySelect = finalRoot.copy();
-                        logger.info("function: " + k + ", wrapped path: " + v);
+                        LOGGER.info("function: " + k + ", wrapped path: " + v);
                         queryList.add(
                             new MappingTransform(
                                 new OperatorSource(copySelect),

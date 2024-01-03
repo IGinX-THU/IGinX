@@ -62,7 +62,7 @@ public class RowUtils {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  private static final Logger logger = LoggerFactory.getLogger(RowUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RowUtils.class);
 
   private static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
 
@@ -697,7 +697,7 @@ public class RowUtils {
                             }
                           }
                         } catch (Exception e) {
-                          logger.error("encounter error when execute set mapping function ");
+                          LOGGER.error("encounter error when execute set mapping function ");
                         }
                       });
               latch.countDown();
@@ -786,7 +786,7 @@ public class RowUtils {
                   try {
                     return FilterUtils.validate(filter, row);
                   } catch (PhysicalException e) {
-                    logger.error("execute parallel filter error, cause by: ", e.getCause());
+                    LOGGER.error("execute parallel filter error, cause by: ", e.getCause());
                     return false;
                   }
                 })
@@ -805,7 +805,7 @@ public class RowUtils {
                 try {
                   return FilterUtils.validate(filter, row);
                 } catch (PhysicalException e) {
-                  logger.error("execute sequence filter error, cause by: ", e.getCause());
+                  LOGGER.error("execute sequence filter error, cause by: ", e.getCause());
                   return false;
                 }
               })

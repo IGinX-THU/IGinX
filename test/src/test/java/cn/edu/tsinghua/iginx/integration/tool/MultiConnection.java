@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 
 public class MultiConnection {
 
-  private static final Logger logger = LoggerFactory.getLogger(MultiConnection.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MultiConnection.class);
 
   private static Session session = null;
 
@@ -143,9 +143,9 @@ public class MultiConnection {
       }
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
         fail();
       }
     }
@@ -227,9 +227,9 @@ public class MultiConnection {
       }
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
         fail();
       }
     }

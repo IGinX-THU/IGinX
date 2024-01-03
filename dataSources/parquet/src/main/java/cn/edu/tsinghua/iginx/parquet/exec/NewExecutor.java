@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 
 public class NewExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(NewExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NewExecutor.class);
 
   private final Connection connection;
 
@@ -77,7 +77,7 @@ public class NewExecutor implements Executor {
       try {
         recoverFromParquet();
       } catch (IOException e) {
-        logger.error("Initial parquet data read error, details: {}", e.getMessage());
+        LOGGER.error("Initial parquet data read error, details: {}", e.getMessage());
       }
     }
 
@@ -88,7 +88,7 @@ public class NewExecutor implements Executor {
                   try {
                     close();
                   } catch (PhysicalException e) {
-                    logger.error("Fail to close parquet executor, details: {}", e.getMessage());
+                    LOGGER.error("Fail to close parquet executor, details: {}", e.getMessage());
                   }
                 }));
   }
@@ -160,7 +160,7 @@ public class NewExecutor implements Executor {
         Files.createDirectory(path);
       }
     } catch (IOException e) {
-      logger.error(String.format("Create directory %s error: " + e.getMessage(), dirPath));
+      LOGGER.error(String.format("Create directory %s error: " + e.getMessage(), dirPath));
     }
   }
 

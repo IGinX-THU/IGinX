@@ -18,7 +18,7 @@ import org.slf4j.LoggerFactory;
 
 public class TagIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TagIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TagIT.class);
 
   private static Session session;
 
@@ -63,7 +63,7 @@ public class TagIT {
     for (String insertStatement : insertStatements) {
       SessionExecuteSqlResult res = session.executeSql(insertStatement);
       if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-        logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+        LOGGER.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
         fail();
       }
     }
@@ -80,16 +80,16 @@ public class TagIT {
   }
 
   private String execute(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        LOGGER.error(CLEAR_DATA_ERROR, statement, e.getMessage());
         fail();
       }
     }
@@ -99,7 +99,7 @@ public class TagIT {
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      LOGGER.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
       fail();
       return "";
     }
