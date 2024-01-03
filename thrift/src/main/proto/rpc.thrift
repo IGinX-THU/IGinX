@@ -79,7 +79,9 @@ enum SqlType {
     ExportCsv,
     ExportStream,
     LoadCsv,
-    ShowSessionID
+    ShowSessionID,
+    ShowRules,
+    SetRules,
 }
 
 enum AuthType {
@@ -378,6 +380,7 @@ struct ExecuteSqlResp {
     25: optional string configValue
     26: optional string loadCsvPath
     27: optional list<i64> sessionIDList
+    28: optional map<string, bool> rules
 }
 
 struct UpdateUserReq {
@@ -670,6 +673,20 @@ struct ShowSessionIDResp {
     2: required list<i64> sessionIDList
 }
 
+struct ShowRulesReq {
+    1: required i64 sessionId
+}
+
+struct ShowRulesResp {
+    1: required Status status
+    2: required map<string, bool> rules
+}
+
+struct SetRulesReq {
+    1: required i64 sessionId
+    2: required map<string, bool> rulesChange
+}
+
 service IService {
 
     OpenSessionResp openSession(1: OpenSessionReq req);
@@ -743,4 +760,8 @@ service IService {
     DebugInfoResp debugInfo(1: DebugInfoReq req);
 
     ShowSessionIDResp showSessionID(1: ShowSessionIDReq req);
+
+    ShowRulesResp showRules(1: ShowRulesReq req);
+
+    Status setRules(1: SetRulesReq req);
 }
