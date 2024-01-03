@@ -53,7 +53,7 @@ runs:
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Windows" ]; then
-                pip install local-dependencies/python/pemja/pemja-0.5.dev0-cp39-cp39-win_amd64.whl            
+                pip install https://iginx-thu.github.io/pemja/dist/pemja-0.5.dev0-cp39-cp39-win_amd64.whl            
               else
-                pip install local-dependencies/python/pemja/pemja-0.5.dev0.tar.gz      
+                pip install https://iginx-thu.github.io/pemja/dist/pemja-0.5.dev0.tar.gz   
               fi
