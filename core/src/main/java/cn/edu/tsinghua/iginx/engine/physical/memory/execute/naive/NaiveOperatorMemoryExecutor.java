@@ -549,7 +549,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           Field field = header.getField(i);
           if (pattern.equals(field.getName())) {
             matchedFields.add(new Pair<>(field, i));
-            break;
           }
         }
       }
@@ -637,9 +636,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
     List<Field> fields = new ArrayList<>();
     Object[] values = new Object[operator.getExpressionList().size()];
+    Set<String> fieldNames = new HashSet<>(); // 去重
     for (int i = 0; i < operator.getExpressionList().size(); i++) {
-      fields.add(new Field(operator.getExpressionList().get(i), DataType.DOUBLE));
-      values[i] = operator.getFuncParam().get(i);
+      if (!fieldNames.contains(operator.getExpressionList().get(i))) {
+        fieldNames.add(operator.getExpressionList().get(i));
+        fields.add(new Field(operator.getExpressionList().get(i), DataType.DOUBLE));
+        values[i] = operator.getFuncParam().get(i);
+      }
     }
     // 新建一张行数为table行数的表
     Header header = new Header(fields);
