@@ -60,6 +60,7 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Push-Down: "true"
+                  Set-Filter-Fragment-OFF: "true"
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
