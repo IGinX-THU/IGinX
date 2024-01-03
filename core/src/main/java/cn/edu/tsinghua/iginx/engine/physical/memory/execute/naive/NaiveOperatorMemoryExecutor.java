@@ -549,6 +549,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           Field field = header.getField(i);
           if (pattern.equals(field.getName())) {
             matchedFields.add(new Pair<>(field, i));
+            break;
           }
         }
       }
