@@ -30,23 +30,12 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
@@ -696,14 +685,13 @@ public class IginxClient {
 
   public static void displayLogo(String version) {
     System.out.println(
-        "  _____        _        __   __\n"
-            + " |_   _|      (_)       \\ \\ / /\n"
-            + "   | |   __ _  _  _ __   \\ V / \n"
-            + "   | |  / _` || || '_ \\   > <  \n"
-            + "  _| |_| (_| || || | | | / . \\ \n"
-            + " |_____|\\__, ||_||_| |_|/_/ \\_\\\n"
-            + "         __/ |                 \n"
-            + "        |___/                       version "
+        "  _____    _____   _          __   __\n"
+            + " |_   _|  / ____| (_)         \\ \\ / /\n"
+            + "   | |   | |  __   _   _ __    \\ V / \n"
+            + "   | |   | | |_ | | | | '_ \\    > <  \n"
+            + "  _| |_  | |__| | | | | | | |  / . \\ \n"
+            + " |_____|  \\_____| |_| |_| |_| /_/ \\_\\"
+            + "     version "
             + version
             + "\n");
   }
