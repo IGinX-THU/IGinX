@@ -6319,5 +6319,16 @@ public class SQLSessionIT {
                     + "+-----+-+-----+\n"
                     + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT COUNT(2), SUM(2), MAX(2) FROM test;";
+    expected =
+            "ResultSets:\n"
+                    + "+--------+------+------+\n"
+                    + "|count(2)|sum(2)|max(2)|\n"
+                    + "+--------+------+------+\n"
+                    + "|      10|  20.0|   2.0|\n"
+                    + "+--------+------+------+\n"
+                    + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
   }
 }
