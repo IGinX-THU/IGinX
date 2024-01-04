@@ -233,35 +233,7 @@ public class QueryGenerator extends AbstractGenerator {
       return null;
     }
 
-    // 如果有from且全是常数表达式，例如 select 1 from test 或者 select count(1) from test
-    if (!selectStatement.getFromParts().isEmpty()
-        && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
-            || selectStatement.getIsConstFuncParam())) {
-      // 直接构建一个function为count的setTransform
-      List<String> columns = new ArrayList<>(selectStatement.getPathSet()); // 将 Set 转换为 List
-      List<Object> args = new ArrayList<>();
-      Map<String, Object> kvargs = new HashMap<>();
-      FunctionParams params = new FunctionParams(columns, args, kvargs);
-      root =
-          new SetTransform(
-              new OperatorSource(root),
-              new FunctionCall(functionManager.getFunction("count"), params));
-      // 然后根据返回值构造表
-      List<Double> funcParam = new ArrayList<>();
-      List<String> expressionList = new ArrayList<>();
-      for (Expression expression : selectStatement.getExpressions()) {
-        if (expression.getType() == Expression.ExpressionType.Function) {
-          expressionList.add(((FuncExpression) expression).getColumnNameWithoutFunc());
-          if (funcParam.isEmpty()) {
-            funcParam = selectStatement.getConstFuncParam();
-          }
-        } else {
-          expressionList.add(expression.getColumnName());
-          funcParam.add(1.0);
-        }
-      }
-      root = new CountTransform(new OperatorSource(root), expressionList, funcParam);
-    }
+    root = buildCountTransform(selectStatement, root);
 
     // 处理where子查询
     if (!selectStatement.getWhereSubQueryParts().isEmpty()) {
@@ -819,5 +791,44 @@ public class QueryGenerator extends AbstractGenerator {
       prefixA = prefixB;
     }
     return left;
+  }
+
+  /**
+   * 处理有from且全是常数表达式，例如 select 1 from test 或者 select count(1) from test的情况
+   *
+   * @param selectStatement Select上下文
+   * @param root 当前根节点
+   * @return 添加了CountTransform操作符的根节点，如果from子句中没有常数表达式，返回原根节点
+   */
+  private static Operator buildCountTransform(UnarySelectStatement selectStatement, Operator root) {
+    if (!selectStatement.getFromParts().isEmpty()
+        && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
+            || selectStatement.getIsConstFuncParam())) {
+      // 直接构建一个function为count的setTransform
+      List<String> columns = new ArrayList<>(selectStatement.getPathSet()); // 将 Set 转换为 List
+      List<Object> args = new ArrayList<>();
+      Map<String, Object> kvargs = new HashMap<>();
+      FunctionParams params = new FunctionParams(columns, args, kvargs);
+      root =
+          new SetTransform(
+              new OperatorSource(root),
+              new FunctionCall(functionManager.getFunction("count"), params));
+      // 然后根据返回值构造表
+      List<Double> funcParam = new ArrayList<>();
+      List<String> expressionList = new ArrayList<>();
+      for (Expression expression : selectStatement.getExpressions()) {
+        if (expression.getType() == Expression.ExpressionType.Function) {
+          expressionList.add(((FuncExpression) expression).getColumnNameWithoutFunc());
+          if (funcParam.isEmpty()) {
+            funcParam = selectStatement.getConstFuncParam();
+          }
+        } else {
+          expressionList.add(expression.getColumnName());
+          funcParam.add(1.0);
+        }
+      }
+      root = new CountTransform(new OperatorSource(root), expressionList, funcParam);
+    }
+    return root;
   }
 }
