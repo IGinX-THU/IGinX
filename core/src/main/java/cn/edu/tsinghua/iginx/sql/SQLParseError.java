@@ -18,6 +18,6 @@ public class SQLParseError extends BaseErrorListener {
       String msg,
       RecognitionException e) {
     throw new ParseCancellationException(
-        "Parse Error: line " + line + ":" + charPositionInLine + " " + msg);
+        "Parse Error: line " + line + ":" + charPositionInLine + " " + msg, e);
   }
 }

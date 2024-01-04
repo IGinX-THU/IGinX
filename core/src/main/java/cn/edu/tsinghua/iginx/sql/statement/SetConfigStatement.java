@@ -38,12 +38,10 @@ public class SetConfigStatement extends SystemStatement {
       ctx.setResult(new Result(RpcUtils.SUCCESS));
     } catch (NoSuchFieldException e) {
       String errMsg = String.format("no such field, field=%s", configName);
-      LOGGER.error(errMsg);
-      throw new ExecutionException(errMsg);
+      throw new ExecutionException(errMsg, e);
     } catch (IllegalAccessException e) {
       String errMsg = String.format("set %s=%s error", configName, configValue);
-      LOGGER.error(errMsg);
-      throw new ExecutionException(errMsg);
+      throw new ExecutionException(errMsg, e);
     }
   }
 
