@@ -57,6 +57,8 @@ import pemja.core.PythonInterpreterConfig;
 
 public class FunctionManager {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
+
   private static final int INTERPRETER_NUM = 5;
 
   private final Map<String, Function> functions;
@@ -64,8 +66,6 @@ public class FunctionManager {
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
 
   private static final String PY_SUFFIX = ".py";
 
@@ -122,7 +122,7 @@ public class FunctionManager {
           udfType = UDFType.TRANSFORM;
           break;
         default:
-          LOGGER.error("unknown udf type: " + udfInfo[0]);
+          LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
       metaList.add(
