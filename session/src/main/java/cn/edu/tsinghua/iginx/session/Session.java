@@ -28,13 +28,7 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -154,7 +148,7 @@ public class Session {
       try {
         transport.open();
       } catch (TTransportException e) {
-        throw new SessionException(e);
+        throw new SessionException(String.format("fail to open session in %s:%d", host, port), e);
       }
     }
 
@@ -172,7 +166,7 @@ public class Session {
     try {
       client.closeSession(req);
     } catch (TException e) {
-      throw new SessionException(e);
+      throw new SessionException(String.format("fail to close session of %d", sessionId), e);
     } finally {
       if (transport != null) {
         transport.close();
