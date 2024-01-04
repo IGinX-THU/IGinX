@@ -171,7 +171,7 @@ public class StatementExecutor {
         | IllegalAccessException
         | NoSuchMethodException
         | InvocationTargetException e) {
-      LOGGER.error("initial statistics collector error: ", e);
+      throw new RuntimeException("initial statistics collector error: ", e);
     }
   }
 
@@ -269,14 +269,15 @@ public class StatementExecutor {
       after(ctx, postParseProcessors);
       executeStatement(ctx);
     } catch (SQLParserException | ParseCancellationException e) {
+      LOGGER.error("Execute Error: encounter error(s) when executing sql statement ", e);
       StatusCode statusCode = StatusCode.STATEMENT_PARSE_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("Execute Error: encounter error(s) when executing sql statement, see server log for more details.", e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       String errMsg =
           "Execute Error: encounter error(s) when executing sql statement, "
-              + "see server log for more details.";
+              + "see server log for more details." + e.getMessage();
       ctx.setResult(new Result(RpcUtils.status(statusCode, errMsg)));
     } finally {
       ctx.getResult().setSqlType(ctx.getSqlType());
@@ -322,6 +323,7 @@ public class StatementExecutor {
         ((SystemStatement) statement).execute(ctx);
       }
     } catch (ExecutionException | PhysicalException | IOException e) {
+      LOGGER.error("unexpected exception during statment execution, please contact developer to check: ", e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
