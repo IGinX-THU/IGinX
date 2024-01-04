@@ -55,6 +55,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
 
             # start udf path test first to avoid being effected
             - name: Start IGinX
@@ -72,12 +73,7 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
-                  work-name: stop-iginx-zk
-
-            - name: set client test context
-              uses: ./.github/actions/context
-              with:
-                  work-name: start-iginx-zk
+                  work-name: restart-iginx-zk
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -101,12 +97,34 @@ jobs:
               run: |
                   mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
 
+            - name: clean zk data and restart IGinX
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-zk
+
             - name: TestController IT
               if: always()
               shell: bash
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  Set-Key-Range-Test-Policy: "true"
+
+            - name: clean zk data and restart IGinX
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-zk
+
+            - name: FilterFragmentRuleTest IT
+              if: always()
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format
 
             - name: Show test result
               if: always()
