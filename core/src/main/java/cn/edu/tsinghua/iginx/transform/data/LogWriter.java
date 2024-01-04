@@ -10,9 +10,9 @@ import org.slf4j.LoggerFactory;
 
 public class LogWriter extends ExportWriter {
 
-  private boolean hasWriteHeader;
-
   private static final Logger LOGGER = LoggerFactory.getLogger(LogWriter.class);
+
+  private boolean hasWriteHeader;
 
   @Override
   public void write(BatchData batchData) {

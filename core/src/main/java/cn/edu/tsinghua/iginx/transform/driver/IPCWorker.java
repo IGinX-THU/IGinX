@@ -65,7 +65,7 @@ public class IPCWorker extends Thread {
         threadPool.submit(() -> process(socket));
       }
     } catch (SocketException ignored) {
-      LOGGER.info(toString() + " stop server socket.");
+      LOGGER.info("{} stop server socket.", this);
     } catch (IOException e) {
       throw new RuntimeException("An error occurred while listening.", e);
     }
@@ -86,8 +86,7 @@ public class IPCWorker extends Thread {
       reader.close();
       socket.close();
     } catch (IOException | WriteBatchException e) {
-      LOGGER.error(String.format("Worker pid=%d fail to process socket.", pid));
-      throw new RuntimeException("Fail to process socket", e);
+      throw new RuntimeException(String.format("Worker pid=%d fail to process socket.", pid), e);
     }
   }
 
@@ -99,7 +98,7 @@ public class IPCWorker extends Thread {
       try {
         this.serverSocket.close();
       } catch (IOException e) {
-        e.printStackTrace(System.err);
+        LOGGER.error("Fail to close server socket, because ", e);
       }
     }
     threadPool.shutdown();

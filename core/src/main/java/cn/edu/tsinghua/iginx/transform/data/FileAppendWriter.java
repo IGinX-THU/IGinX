@@ -13,12 +13,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileAppendWriter extends ExportWriter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileAppendWriter.class);
 
   private final String fileName;
 
   private boolean hasWriteHeader;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(FileAppendWriter.class);
 
   public FileAppendWriter(String fileName) {
     this.fileName = fileName;
@@ -57,7 +56,7 @@ public class FileAppendWriter extends ExportWriter {
         // create file
         file.createNewFile();
       } catch (IOException e) {
-        e.printStackTrace();
+        LOGGER.error("Create file failed!", e);
       }
     }
   }
@@ -72,7 +71,7 @@ public class FileAppendWriter extends ExportWriter {
         out.flush();
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      LOGGER.error("Write file failed!", e);
     }
   }
 }

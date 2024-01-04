@@ -6,11 +6,11 @@ import org.slf4j.LoggerFactory;
 
 public class RedirectLogger extends Thread {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(RedirectLogger.class);
+
   private final InputStream inputStream;
 
   private final String name;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(RedirectLogger.class);
 
   public RedirectLogger(InputStream inputStream, String name) {
     this.inputStream = inputStream;
@@ -31,7 +31,7 @@ public class RedirectLogger extends Thread {
         System.out.write(buffer, 0, len);
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("Error occurred when redirecting Python output", e);
     }
   }
 }

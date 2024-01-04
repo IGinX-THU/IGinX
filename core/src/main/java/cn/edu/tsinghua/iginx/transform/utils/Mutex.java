@@ -14,7 +14,7 @@ public class Mutex {
       try {
         wait();
       } catch (InterruptedException e) {
-        LOGGER.error("Mutex was interrupted");
+        LOGGER.error("Mutex was interrupted", e);
       }
     }
     this.isLocked = true;

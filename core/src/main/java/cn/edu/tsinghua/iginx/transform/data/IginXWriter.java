@@ -12,13 +12,13 @@ import org.slf4j.LoggerFactory;
 
 public class IginXWriter extends ExportWriter {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(IginXWriter.class);
+
   private final long sessionId;
 
   private final StatementExecutor executor = StatementExecutor.getInstance();
 
   private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(IginXWriter.class);
 
   public IginXWriter(long sessionId) {
     this.sessionId = sessionId;

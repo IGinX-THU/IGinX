@@ -23,7 +23,7 @@ public class TypeUtils {
         return DataType.BINARY;
       default:
         throw new IllegalArgumentException(
-            String.format("Can not convert %s to iginx DataType", type.toString()));
+            String.format("Can not convert %s to iginx DataType", type));
     }
   }
 
