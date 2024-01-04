@@ -190,7 +190,9 @@ public class StoragePhysicalTaskExecutor {
                                               "unsupported physical task"));
                               }
                             } catch (Exception e) {
-                              result = new TaskExecuteResult(new PhysicalException(e));
+                              result =
+                                  new TaskExecuteResult(
+                                      new PhysicalException("unexpected exception", e));
                             }
                             try {
                               HotSpotMonitor.getInstance()

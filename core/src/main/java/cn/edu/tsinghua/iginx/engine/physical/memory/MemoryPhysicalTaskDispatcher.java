@@ -77,7 +77,8 @@ public class MemoryPhysicalTaskDispatcher {
                       try {
                         result = currentTask.execute();
                       } catch (Exception e) {
-                        result = new TaskExecuteResult(new PhysicalException(e));
+                        result =
+                            new TaskExecuteResult(new PhysicalException("unexpected exception", e));
                       }
                       long span = System.currentTimeMillis() - startTime;
                       currentTask.setSpan(span);
