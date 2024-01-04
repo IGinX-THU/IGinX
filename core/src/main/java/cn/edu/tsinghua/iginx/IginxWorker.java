@@ -690,7 +690,7 @@ public class IginxWorker implements IService.Iface {
         }
         break;
       default:
-        LOGGER.error("unexpected meta storage: " + config.getMetaStorage());
+        LOGGER.error("unexpected meta storage: {}", config.getMetaStorage());
     }
 
     if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
@@ -782,13 +782,13 @@ public class IginxWorker implements IService.Iface {
 
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-      LOGGER.error(String.format("Register task %s already exist", transformTaskMeta));
+      LOGGER.error("Register task {} already exist", transformTaskMeta);
       return RpcUtils.FAILURE;
     }
 
     File sourceFile = new File(filePath);
     if (!sourceFile.exists()) {
-      LOGGER.error(String.format("Register file not exist in declared path, path=%s", filePath));
+      LOGGER.error("Register file not exist in declared path, path={}", filePath);
       return RpcUtils.FAILURE;
     }
     if (!sourceFile.isFile()) {
@@ -806,14 +806,14 @@ public class IginxWorker implements IService.Iface {
     File destFile = new File(destPath);
 
     if (destFile.exists()) {
-      LOGGER.error(String.format("Register file already exist, fileName=%s", fileName));
+      LOGGER.error("Register file already exist, fileName={}", fileName);
       return RpcUtils.FAILURE;
     }
 
     try {
       Files.copy(sourceFile.toPath(), destFile.toPath());
     } catch (IOException e) {
-      LOGGER.error(String.format("Fail to copy register file, filePath=%s", filePath), e);
+      LOGGER.error("Fail to copy register file, filePath={}", filePath, e);
       return RpcUtils.FAILURE;
     }
 
@@ -862,16 +862,16 @@ public class IginxWorker implements IService.Iface {
 
     if (!file.exists()) {
       metaManager.dropTransformTask(name);
-      LOGGER.error(String.format("Register file not exist, path=%s", filePath));
+      LOGGER.error("Register file not exist, path={}", filePath);
       return RpcUtils.FAILURE;
     }
 
     if (file.delete()) {
       metaManager.dropTransformTask(name);
-      LOGGER.info(String.format("Register file has been dropped, path=%s", filePath));
+      LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
     } else {
-      LOGGER.error(String.format("Fail to delete register file, path=%s", filePath));
+      LOGGER.error("Fail to delete register file, path={}", filePath);
       return RpcUtils.FAILURE;
     }
   }
@@ -907,7 +907,7 @@ public class IginxWorker implements IService.Iface {
 
     for (DataType type : queryDataResp.getDataTypeList()) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
-        LOGGER.error(String.format("Unsupported data type: %s", type));
+        LOGGER.error("Unsupported data type: {}", type);
         return new CurveMatchResp(RpcUtils.FAILURE);
       }
     }
