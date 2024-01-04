@@ -22,11 +22,12 @@ import org.slf4j.LoggerFactory;
 
 public class SimplePolicy implements IPolicy {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimplePolicy.class);
+
   protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
   private IMetaManager iMetaManager;
   private FragmentCreator fragmentCreator;
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static final Logger LOGGER = LoggerFactory.getLogger(SimplePolicy.class);
 
   @Override
   public void notify(DataStatement statement) {

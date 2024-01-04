@@ -39,7 +39,7 @@ public class PolicyManager {
             | IllegalAccessException
             | NoSuchMethodException
             | InvocationTargetException e) {
-          LOGGER.error(e.getMessage());
+          LOGGER.error("Error occurs when get policy", e);
         }
       }
     }
