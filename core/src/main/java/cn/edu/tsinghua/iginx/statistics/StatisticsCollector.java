@@ -82,7 +82,7 @@ public class StatisticsCollector implements IStatisticsCollector {
                       .getStatisticsLogInterval()); // 每隔 10 秒播报一次统计信息
             }
           } catch (InterruptedException e) {
-            LOGGER.error("encounter error when broadcasting statistics: ", e);
+            throw new RuntimeException("encounter error when broadcasting statistics: ",e);
           }
         });
   }
