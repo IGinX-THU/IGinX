@@ -216,7 +216,7 @@ public class DefaultFileOperator implements IFileOperator {
   private long getIginxFileMaxKey(File file) {
     try (ReversedLinesFileReader reversedLinesReader = new ReversedLinesFileReader(file, CHARSET)) {
       String lastLine = reversedLinesReader.readLine();
-      return Long.parseLong(lastLine.split(",", 2)[0]);
+      return Long.parseLong(lastLine.substring(0, lastLine.indexOf(",")));
     } catch (IOException e) {
       logger.error(
           "get max key of iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
