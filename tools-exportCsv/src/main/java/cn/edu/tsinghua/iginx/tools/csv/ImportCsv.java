@@ -37,8 +37,11 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ImportCsv extends AbstractCsvTool {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ImportCsv.class);
 
   private static final String FILE_ARGS = "f";
   private static final String FILE_NAME = "file";
@@ -115,8 +118,8 @@ public class ImportCsv extends AbstractCsvTool {
         processDirectory();
       }
     } catch (SessionException e) {
-      System.out.printf(
-          "[ERROR] Encounter an error when opening session, because %s%n", e.getMessage());
+      LOGGER.error(
+          "[ERROR] Encounter an error when opening session, because {}", e.getMessage());
     }
   }
 
@@ -268,8 +271,8 @@ public class ImportCsv extends AbstractCsvTool {
       session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
       System.out.printf("Finish to import file [%s].%n", fileName);
     } catch (IOException | SessionException | ExecutionException | ParseException e) {
-      System.out.printf(
-          "[ERROR] Encounter an error when processing file [%s], because %s%n",
+      LOGGER.error(
+          "[ERROR] Encounter an error when processing file [{}], because {}",
           fileName, e.getMessage());
     }
   }
