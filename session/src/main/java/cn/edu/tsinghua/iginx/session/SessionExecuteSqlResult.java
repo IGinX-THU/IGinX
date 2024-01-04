@@ -47,6 +47,8 @@ public class SessionExecuteSqlResult {
   private String loadCsvPath;
   private List<Long> sessionIDs;
 
+  private Map<String, Boolean> rules;
+
   // Only for mock test
   public SessionExecuteSqlResult() {}
 
@@ -106,6 +108,8 @@ public class SessionExecuteSqlResult {
         this.loadCsvPath = resp.getLoadCsvPath();
       case ShowSessionID:
         this.sessionIDs = resp.getSessionIDList();
+      case ShowRules:
+        this.rules = resp.getRules();
       default:
         break;
     }
@@ -178,6 +182,8 @@ public class SessionExecuteSqlResult {
         return buildShowEligibleJobResult();
       case ShowSessionID:
         return buildShowSessionIDResult();
+      case ShowRules:
+        return buildShowRulesResult();
       case GetReplicaNum:
         return "Replica num: " + replicaNum + "\n";
       case CountPoints:
@@ -369,6 +375,20 @@ public class SessionExecuteSqlResult {
       cache.add(new ArrayList<>(Collections.singletonList("SessionID")));
       for (long sessionID : sessionIDs) {
         cache.add(new ArrayList<>(Collections.singletonList(String.valueOf(sessionID))));
+      }
+      builder.append(FormatUtils.formatResult(cache));
+    }
+    return builder.toString();
+  }
+
+  private String buildShowRulesResult() {
+    StringBuilder builder = new StringBuilder();
+    if (rules != null) {
+      builder.append("Current Rules Info:").append("\n");
+      List<List<String>> cache = new ArrayList<>();
+      cache.add(new ArrayList<>(Arrays.asList("RuleName", "Status")));
+      for (Map.Entry<String, Boolean> entry : rules.entrySet()) {
+        cache.add(new ArrayList<>(Arrays.asList(entry.getKey(), entry.getValue() ? "ON" : "OFF")));
       }
       builder.append(FormatUtils.formatResult(cache));
     }
