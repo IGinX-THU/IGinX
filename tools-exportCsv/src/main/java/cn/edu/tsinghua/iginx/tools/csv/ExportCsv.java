@@ -32,8 +32,11 @@ import org.apache.commons.cli.Options;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.csv.QuoteMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExportCsv extends AbstractCsvTool {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExportCsv.class);
 
   private static final String DIRECTORY_ARGS = "d";
   private static final String DIRECTORY_NAME = "directory";
@@ -132,11 +135,11 @@ public class ExportCsv extends AbstractCsvTool {
         processSqlFile();
       }
     } catch (SessionException e) {
-      System.out.printf(
-          "[ERROR] Encounter an error when opening session, because %s%n", e.getMessage());
+      LOGGER.error(
+          "[ERROR] Encounter an error when opening session, because {}", e.getMessage());
     } catch (IOException e) {
-      System.out.printf(
-          "[ERROR] Encounter an error when opening sql file [%s], because %s%n",
+      LOGGER.error(
+          "[ERROR] Encounter an error when opening sql file [{}], because {}",
           sqlFile, e.getMessage());
     }
   }
@@ -181,8 +184,8 @@ public class ExportCsv extends AbstractCsvTool {
         System.out.printf("[ERROR] Non-query sql statement [%s] is not supported.%n", sql);
       }
     } catch (SessionException | ExecutionException e) {
-      System.out.printf(
-          "[ERROR] Encounter an error when executing sql statement [%s], because %s%n",
+      LOGGER.error(
+          "[ERROR] Encounter an error when executing sql statement [{}], because {}",
           sql, e.getMessage());
     }
   }
@@ -203,8 +206,8 @@ public class ExportCsv extends AbstractCsvTool {
       printer.flush();
       printer.close();
     } catch (IOException e) {
-      System.out.printf(
-          "[ERROR] Encounter an error when writing csv file [%s], because %s%n",
+      LOGGER.error(
+          "[ERROR] Encounter an error when writing csv file [{}], because {}",
           filePath, e.getMessage());
     }
   }
