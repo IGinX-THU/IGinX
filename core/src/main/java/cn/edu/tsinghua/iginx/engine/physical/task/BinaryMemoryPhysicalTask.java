@@ -98,8 +98,7 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
         stream = executor.executeUnaryOperator((UnaryOperator) op, stream, getContext());
       }
     } catch (PhysicalException e) {
-      LOGGER.error("encounter error when execute operator in memory: ", e);
-      return new TaskExecuteResult(e);
+      return new TaskExecuteResult(new PhysicalException("encounter error when execute operator in memory: ", e));
     }
     return new TaskExecuteResult(stream);
   }

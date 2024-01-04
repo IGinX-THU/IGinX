@@ -154,8 +154,7 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
               }
             }
           } catch (PhysicalException e) {
-            LOGGER.error("encounter error when execute operator in memory: ", e);
-            throw new RuntimeException(e);
+            throw new RuntimeException("encounter error when execute operator in memory: ", e);
           }
         });
 
