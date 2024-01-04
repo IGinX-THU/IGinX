@@ -10,13 +10,13 @@ import org.yaml.snakeyaml.constructor.Constructor;
 
 public class YAMLReader {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(YAMLReader.class);
+
   private final String path;
 
   private final Yaml yaml;
 
   private final File file;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(YAMLReader.class);
 
   public YAMLReader(String path) throws FileNotFoundException {
     this.path = path;
@@ -56,12 +56,12 @@ public class YAMLReader {
       conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
       conf = normalize(conf);
     } catch (IOException e) {
-      LOGGER.error(String.format("Fail to find file, path=%s", filePath));
+      LOGGER.error("Fail to find file, path={}", filePath);
     } finally {
       try {
         in.close();
       } catch (IOException e) {
-        LOGGER.error("Fail to close the file, path=%s", filePath);
+        LOGGER.error("Fail to close the file, path={}", filePath);
       }
     }
     return conf;
