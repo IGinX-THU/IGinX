@@ -84,16 +84,16 @@ public class StorageManager {
       }
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
-      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure", driver, engine, e);
     } catch (Exception e) {
-      LOGGER.error("unexpected error when process engine {}: {}", engine, e);
+      LOGGER.error("unexpected error when process engine {}", engine, e);
     } finally {
       try {
         if (needRelease) {
           storage.release();
         }
       } catch (Exception e) {
-        LOGGER.error("release session pool failure!");
+        LOGGER.error("release session pool failure!", e);
       }
     }
     return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
@@ -112,10 +112,10 @@ public class StorageManager {
         return initStorage(meta, storage);
       }
     } catch (ClassNotFoundException e) {
-      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure", driver, engine, e);
       return false;
     } catch (Exception e) {
-      LOGGER.error("unexpected error when process engine {}: {}", engine, e);
+      LOGGER.error("unexpected error when process engine {}", engine, e);
       return false;
     }
     return true;
@@ -139,7 +139,7 @@ public class StorageManager {
         storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
       }
     } catch (Exception e) {
-      LOGGER.error("unexpected error when process engine {}: {}", engine, e);
+      LOGGER.error("unexpected error when process engine {}", engine, e);
       return false;
     }
     return true;
@@ -164,7 +164,7 @@ public class StorageManager {
         classLoaders.put(type, classLoader);
         drivers.put(type, driver);
       } catch (IOException e) {
-        LOGGER.error("encounter error when init class loader for {}: {}", storage, e);
+        LOGGER.error("encounter error when init class loader for {}", storage, e);
         System.exit(-1);
       }
     }
@@ -181,20 +181,20 @@ public class StorageManager {
 
   public boolean addStorage(StorageEngineMeta meta) {
     if (!initStorage(meta)) {
-      LOGGER.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      LOGGER.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
 
   public boolean addStorage(StorageEngineMeta meta, IStorage storage) {
     if (!initStorage(meta, storage)) {
-      LOGGER.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      LOGGER.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
@@ -210,10 +210,10 @@ public class StorageManager {
       return (IStorage)
           loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
     } catch (ClassNotFoundException e) {
-      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure", driver, engine, e);
       return null;
     } catch (Exception e) {
-      LOGGER.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return null;
     }
   }

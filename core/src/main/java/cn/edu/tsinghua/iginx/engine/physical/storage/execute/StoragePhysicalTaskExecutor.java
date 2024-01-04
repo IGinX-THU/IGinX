@@ -91,7 +91,7 @@ public class StoragePhysicalTaskExecutor {
     StorageUnitHook storageUnitHook =
         (before, after) -> {
           if (before == null && after != null) { // 新增加 du，处理这种事件，其他事件暂时不处理
-            LOGGER.info("new storage unit " + after.getId() + " come!");
+            LOGGER.info("new storage unit {} come!", after.getId());
             String id = after.getId();
             boolean isDummy = after.isDummy();
             if (storageTaskQueues.containsKey(id)) {
@@ -128,9 +128,7 @@ public class StoragePhysicalTaskExecutor {
                       }
                       if (isCancelled(task.getSessionId())) {
                         LOGGER.warn(
-                            String.format(
-                                "StoragePhysicalTask[sessionId=%s] is cancelled.",
-                                task.getSessionId()));
+                            "StoragePhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
                         continue;
                       }
                       pair.v.submit(
@@ -192,7 +190,6 @@ public class StoragePhysicalTaskExecutor {
                                               "unsupported physical task"));
                               }
                             } catch (Exception e) {
-                              LOGGER.error("execute task error: " + e);
                               result = new TaskExecuteResult(new PhysicalException(e));
                             }
                             try {
@@ -220,12 +217,13 @@ public class StoragePhysicalTaskExecutor {
                             }
                             if (task.isNeedBroadcasting()) { // 需要传播
                               if (result.getException() != null) {
-                                LOGGER.error(
-                                    "task "
-                                        + task
-                                        + " will not broadcasting to replicas for the sake of exception: "
-                                        + result.getException());
-                                task.setResult(new TaskExecuteResult(result.getException()));
+                                PhysicalException exception =
+                                    new PhysicalException(
+                                        String.format(
+                                            "task {} will not broadcasting to replicas for the sake of exception",
+                                            task),
+                                        result.getException());
+                                task.setResult(new TaskExecuteResult(exception));
                               } else {
                                 StorageUnitMeta masterStorageUnit =
                                     task.getTargetFragment().getMasterStorageUnit();
@@ -242,7 +240,7 @@ public class StoragePhysicalTaskExecutor {
                                       new StoragePhysicalTask(
                                           task.getOperators(), false, false, task.getContext());
                                   storageTaskQueues.get(replicaId).addTask(replicaTask);
-                                  LOGGER.info("broadcasting task " + task + " to " + replicaId);
+                                  LOGGER.info("broadcasting task {} to {}", task, replicaId);
                                 }
                               }
                             }
