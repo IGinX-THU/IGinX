@@ -27,5 +27,7 @@ public enum StatementType {
   SET_CONFIG,
   SHOW_CONFIG,
   SHOW_SESSION_ID,
-  COMPACT
+  COMPACT,
+  SHOW_RULES,
+  SET_RULES
 }

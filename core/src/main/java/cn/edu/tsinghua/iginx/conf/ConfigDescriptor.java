@@ -26,20 +26,20 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigDescriptor {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigDescriptor.class);
+  private static final Logger logger = LoggerFactory.getLogger(ConfigDescriptor.class);
 
   private final Config config;
 
   private ConfigDescriptor() {
     config = new Config();
-    LOGGER.info("load parameters from config.properties.");
+    logger.info("load parameters from config.properties.");
     loadPropsFromFile();
     if (config.isEnableEnvParameter()) {
-      LOGGER.info("load parameters from env.");
+      logger.info("load parameters from env.");
       loadPropsFromEnv(); // 如果在环境变量中设置了相关参数，则会覆盖配置文件中设置的参数
     }
     if (config.isNeedInitBasicUDFFunctions()) {
-      LOGGER.info("load UDF list from file.");
+      logger.info("load UDF list from file.");
       loadUDFListFromFile();
     }
   }
@@ -230,8 +230,15 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
+      config.setRuleBasedOptimizer(
+          properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on"));
     } catch (IOException e) {
-      LOGGER.error("Fail to load properties: ", e);
+      config.setUTTestEnv(true);
+      config.setNeedInitBasicUDFFunctions(false);
+      loadPropsFromEnv();
+      logger.warn(
+          "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
+          e);
     }
   }
 
@@ -348,6 +355,9 @@ public class ConfigDescriptor {
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
+    config.setUTTestEnv(EnvUtils.loadEnv("ut_test_env", config.isUTTestEnv()));
+    config.setRuleBasedOptimizer(
+        EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
   }
 
   private void loadUDFListFromFile() {
@@ -367,7 +377,7 @@ public class ConfigDescriptor {
         }
       }
     } catch (IOException e) {
-      LOGGER.error("Fail to load udf list: ", e);
+      logger.error("Fail to load udf list: ", e);
     }
   }
 

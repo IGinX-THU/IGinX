@@ -64,6 +64,8 @@ public class Result {
 
   private List<Long> sessionIDs;
 
+  private Map<String, Boolean> rules;
+
   public Result(Status status) {
     this.status = status;
     this.pointsNum = 0L;
@@ -171,6 +173,7 @@ public class Result {
     // INFILE AS CSV
     resp.setLoadCsvPath(loadCSVPath);
     resp.setSessionIDList(sessionIDs);
+    resp.setRules(rules);
     return resp;
   }
 

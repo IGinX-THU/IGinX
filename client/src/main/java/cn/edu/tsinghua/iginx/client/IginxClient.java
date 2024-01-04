@@ -337,6 +337,7 @@ public class IginxClient {
         case CommitTransformJob:
         case ShowJobStatus:
         case ShowSessionID:
+        case ShowRules:
           res.print(false, "");
           break;
         case GetReplicaNum:
@@ -627,6 +628,7 @@ public class IginxClient {
             Arrays.asList("set", "time", "unit", "in"),
             Arrays.asList("set", "config"),
             Arrays.asList("show", "config"),
+            Arrays.asList("set", "rules"),
             Collections.singletonList("select"));
     addArgumentCompleters(iginxCompleters, withNullCompleters, true);
 
@@ -639,6 +641,7 @@ public class IginxClient {
             Arrays.asList("show", "cluster", "info"),
             Arrays.asList("show", "register", "python", "task"),
             Arrays.asList("show", "sessionid"),
+            Arrays.asList("show", "rules"),
             Arrays.asList("remove", "historydatasource"));
     addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 
