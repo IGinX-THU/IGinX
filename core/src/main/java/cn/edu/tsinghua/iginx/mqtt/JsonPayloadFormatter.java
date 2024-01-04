@@ -48,7 +48,7 @@ public class JsonPayloadFormatter implements IPayloadFormatter {
       return null;
     }
     String txt = payload.toString(StandardCharsets.UTF_8);
-    LOGGER.info("receive message: " + txt);
+    LOGGER.info("receive message {}", txt);
     JSONArray jsonArray = JSON.parseArray(txt);
     List<Message> messages = new ArrayList<>();
     for (int i = 0; i < jsonArray.size(); i++) {

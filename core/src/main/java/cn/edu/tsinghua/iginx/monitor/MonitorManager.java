@@ -49,7 +49,7 @@ public class MonitorManager implements Runnable {
         Map<FragmentMeta, Long> readHotspotMap = HotSpotMonitor.getInstance().getReadHotspotMap();
         metaManager.updateFragmentHeat(writeHotspotMap, readHotspotMap);
       } catch (Exception e) {
-        LOGGER.error("monitor manager error ", e);
+        throw new RuntimeException("monitor manager error ", e);
       }
     }
   }
