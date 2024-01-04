@@ -1,37 +1,36 @@
 package cn.edu.tsinghua.iginx.utils;
 
-import org.apache.commons.io.IOUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import org.apache.commons.io.IOUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileReader {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(FileReader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileReader.class);
 
-    public static String convertToString(String filePath) {
-        String conf = null;
-        InputStream in = null;
-        try {
-            in = new BufferedInputStream(Files.newInputStream(Paths.get(filePath)));
-            conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8)).replace("\n", "");
-        } catch (IOException e) {
-            LOGGER.error("Fail to find file, path={}", filePath, e);
-        } finally {
-            try {
-                if (in != null) {
-                    in.close();
-                }
-            } catch (IOException e) {
-                LOGGER.error("Fail to close the file, path={}", filePath, e);
-            }
+  public static String convertToString(String filePath) {
+    String conf = null;
+    InputStream in = null;
+    try {
+      in = new BufferedInputStream(Files.newInputStream(Paths.get(filePath)));
+      conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8)).replace("\n", "");
+    } catch (IOException e) {
+      LOGGER.error("Fail to find file, path={}", filePath, e);
+    } finally {
+      try {
+        if (in != null) {
+          in.close();
         }
-        return conf;
+      } catch (IOException e) {
+        LOGGER.error("Fail to close the file, path={}", filePath, e);
+      }
     }
+    return conf;
+  }
 }

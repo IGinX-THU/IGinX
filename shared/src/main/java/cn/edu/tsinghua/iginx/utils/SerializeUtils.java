@@ -18,34 +18,33 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import java.io.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-
 public class SerializeUtils {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(SerializeUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SerializeUtils.class);
 
-    public static <T extends Serializable> byte[] serialize(T obj) {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream();
-        try (ObjectOutputStream os = new ObjectOutputStream(bos)) {
-            os.writeObject(obj);
-        } catch (IOException e) {
-            LOGGER.error("encounter error when serialize: {}", obj.getClass(), e);
-        }
-        return bos.toByteArray();
+  public static <T extends Serializable> byte[] serialize(T obj) {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    try (ObjectOutputStream os = new ObjectOutputStream(bos)) {
+      os.writeObject(obj);
+    } catch (IOException e) {
+      LOGGER.error("encounter error when serialize: {}", obj.getClass(), e);
     }
+    return bos.toByteArray();
+  }
 
-    public static <T extends Serializable> T deserialize(byte[] data, Class<T> clazz) {
-        ByteArrayInputStream bin = new ByteArrayInputStream(data);
-        Object obj = null;
-        try (ObjectInputStream in = new ObjectInputStream(bin)) {
-            obj = in.readObject();
-        } catch (IOException | ClassNotFoundException e) {
-            LOGGER.error("encounter error when deserialize: {}", clazz, e);
-        }
-        if (obj == null) return null;
-        return clazz.cast(obj);
+  public static <T extends Serializable> T deserialize(byte[] data, Class<T> clazz) {
+    ByteArrayInputStream bin = new ByteArrayInputStream(data);
+    Object obj = null;
+    try (ObjectInputStream in = new ObjectInputStream(bin)) {
+      obj = in.readObject();
+    } catch (IOException | ClassNotFoundException e) {
+      LOGGER.error("encounter error when deserialize: {}", clazz, e);
     }
+    if (obj == null) return null;
+    return clazz.cast(obj);
+  }
 }
