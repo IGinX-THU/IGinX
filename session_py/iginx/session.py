@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+import csv
 import logging
 import os.path
 
@@ -60,8 +61,8 @@ from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_v
 
 logger = logging.getLogger("IginX")
 
-class Session(object):
 
+class Session(object):
     SUCCESS_CODE = 200
     DEFAULT_USER = "root"
     DEFAULT_PASSWORD = "root"
@@ -76,7 +77,6 @@ class Session(object):
         self.__transport = None
         self.__client = None
         self.__session_id = None
-
 
     def open(self):
         if not self.__is_close:
@@ -103,7 +103,6 @@ class Session(object):
             self.__transport.close()
             logger.exception("session closed because: ", exc_info=e)
 
-
     def close(self):
         if self.__is_close:
             return
@@ -121,7 +120,6 @@ class Session(object):
             if self.__transport is not None:
                 self.__transport.close()
 
-
     def list_time_series(self):
         req = ShowColumnsReq(sessionId=self.__session_id)
         resp = self.__client.showColumns(req)
@@ -133,33 +131,27 @@ class Session(object):
 
         return time_series_list
 
-
     def add_storage_engine(self, ip, port, type, extra_params=None):
         self.batch_add_storage_engine([StorageEngine(ip, port, type, extraParams=extra_params)])
-
 
     def batch_add_storage_engine(self, storage_engines):
         req = AddStorageEnginesReq(sessionId=self.__session_id, storageEngines=storage_engines)
         status = self.__client.addStorageEngines(req)
         Session.verify_status(status)
 
-
     def delete_time_series(self, path):
         self.batch_delete_time_series([path])
-
 
     def batch_delete_time_series(self, paths):
         req = DeleteColumnsReq(sessionId=self.__session_id, paths=paths)
         status = self.__client.deleteColumns(req)
         Session.verify_status(status)
 
-
     def get_replica_num(self):
         req = GetReplicaNumReq(sessionId=self.__session_id)
         resp = self.__client.getReplicaNum(req)
         Session.verify_status(resp.status)
         return resp.replicaNum
-
 
     def insert_row_records(self, paths, timestamps, values_list, data_type_list, tags_list=None, timePrecision=None):
         if len(paths) == 0 or len(timestamps) == 0 or len(values_list) == 0 or len(data_type_list) == 0:
@@ -170,7 +162,7 @@ class Session(object):
             raise RuntimeError("the sizes of timestamps and values_list should be equal")
         if tags_list is not None and len(tags_list) != len(paths):
             raise RuntimeError("the sizes of paths, values_list, tags_list and data_type_list should be equal")
-        if timePrecision is not None and len(timePrecision) ==0 :
+        if timePrecision is not None and len(timePrecision) == 0:
             raise RuntimeError("invalid timePrecision")
 
         # 保证时间戳递增
@@ -202,7 +194,6 @@ class Session(object):
                 values.append(sorted_values_list[i][index[j]])
             sorted_values_list[i] = values
 
-
         values_buffer_list = []
         bitmap_buffer_list = []
         for i in range(len(timestamps)):
@@ -214,14 +205,15 @@ class Session(object):
                     bitmap.set(j)
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
-
-        req = InsertRowRecordsReq(sessionId=self.__session_id, paths=paths, keys=timestamps_to_bytes(timestamps), valuesList=values_buffer_list,
-                                  bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list, tagsList=sorted_tags_list, timePrecision=timePrecision)
+        req = InsertRowRecordsReq(sessionId=self.__session_id, paths=paths, keys=timestamps_to_bytes(timestamps),
+                                  valuesList=values_buffer_list,
+                                  bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list,
+                                  tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertRowRecords(req)
         Session.verify_status(status)
 
-
-    def insert_non_aligned_row_records(self , paths, timestamps, values_list, data_type_list, tags_list=None, timePrecision=None):
+    def insert_non_aligned_row_records(self, paths, timestamps, values_list, data_type_list, tags_list=None,
+                                       timePrecision=None):
         if len(paths) == 0 or len(timestamps) == 0 or len(values_list) == 0 or len(data_type_list) == 0:
             raise RuntimeError("invalid insert request")
         if len(paths) != len(data_type_list):
@@ -230,7 +222,7 @@ class Session(object):
             raise RuntimeError("the sizes of timestamps and values_list should be equal")
         if tags_list is not None and len(tags_list) != len(paths):
             raise RuntimeError("the sizes of paths, values_list, tags_list and data_type_list should be equal")
-        if timePrecision is not None and len(timePrecision) ==0 :
+        if timePrecision is not None and len(timePrecision) == 0:
             raise RuntimeError("invalid timePrecision")
 
         # 保证时间戳递增
@@ -262,7 +254,6 @@ class Session(object):
                 values.append(sorted_values_list[i][index[j]])
             sorted_values_list[i] = values
 
-
         values_buffer_list = []
         bitmap_buffer_list = []
         for i in range(len(timestamps)):
@@ -274,11 +265,12 @@ class Session(object):
                     bitmap.set(j)
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
-        req = InsertNonAlignedRowRecordsReq(sessionId=self.__session_id, paths=paths, timestamps=timestamps_to_bytes(timestamps), valuesList=values_buffer_list,
-                                  bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list, tagsList=sorted_tags_list, timePrecision=timePrecision)
+        req = InsertNonAlignedRowRecordsReq(sessionId=self.__session_id, paths=paths,
+                                            timestamps=timestamps_to_bytes(timestamps), valuesList=values_buffer_list,
+                                            bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list,
+                                            tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertNonAlignedRowRecords(req)
         Session.verify_status(status)
-
 
     def insert_column_records(self, paths, timestamps, values_list, data_type_list, tags_list=None, timePrecision=None):
         if len(paths) == 0 or len(timestamps) == 0 or len(values_list) == 0 or len(data_type_list) == 0:
@@ -289,7 +281,7 @@ class Session(object):
             raise RuntimeError("the sizes of paths and values_list should be equal")
         if tags_list is not None and len(paths) != len(tags_list):
             raise RuntimeError("the sizes of paths, valuesList, dataTypeList and tagsList should be equal")
-        if timePrecision is not None and len(timePrecision) ==0 :
+        if timePrecision is not None and len(timePrecision) == 0:
             raise RuntimeError("invalid timePrecision")
 
         # 保证时间戳递增
@@ -328,14 +320,16 @@ class Session(object):
                     bitmap.set(j)
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
-        req = InsertColumnRecordsReq(sessionId=self.__session_id, paths=paths, timestamps=timestamps_to_bytes(timestamps),
-                                  valuesList=values_buffer_list,
-                                  bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list, tagsList=sorted_tags_list, timePrecision=timePrecision)
+        req = InsertColumnRecordsReq(sessionId=self.__session_id, paths=paths,
+                                     timestamps=timestamps_to_bytes(timestamps),
+                                     valuesList=values_buffer_list,
+                                     bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list,
+                                     tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertColumnRecords(req)
         Session.verify_status(status)
 
-
-    def insert_non_aligned_column_records(self, paths, timestamps, values_list, data_type_list, tags_list=None, timePrecision=None):
+    def insert_non_aligned_column_records(self, paths, timestamps, values_list, data_type_list, tags_list=None,
+                                          timePrecision=None):
         if len(paths) == 0 or len(timestamps) == 0 or len(values_list) == 0 or len(data_type_list) == 0:
             raise RuntimeError("invalid insert request")
         if len(paths) != len(data_type_list):
@@ -344,7 +338,7 @@ class Session(object):
             raise RuntimeError("the sizes of paths and values_list should be equal")
         if tags_list is not None and len(paths) != len(tags_list):
             raise RuntimeError("the sizes of paths, valuesList, dataTypeList and tagsList should be equal")
-        if timePrecision is not None and len(timePrecision) ==0 :
+        if timePrecision is not None and len(timePrecision) == 0:
             raise RuntimeError("invalid timePrecision")
 
         # 保证时间戳递增
@@ -383,12 +377,13 @@ class Session(object):
                     bitmap.set(j)
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
-        req = InsertNonAlignedColumnRecordsReq(sessionId=self.__session_id, paths=paths, timestamps=timestamps_to_bytes(timestamps),
-                                  valuesList=values_buffer_list,
-                                  bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list, tagsList=sorted_tags_list, timePrecision=timePrecision)
+        req = InsertNonAlignedColumnRecordsReq(sessionId=self.__session_id, paths=paths,
+                                               timestamps=timestamps_to_bytes(timestamps),
+                                               valuesList=values_buffer_list,
+                                               bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list,
+                                               tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertNonAlignedColumnRecords(req)
         Session.verify_status(status)
-
 
     def query(self, paths, start_time, end_time, timePrecision=None):
         req = QueryDataReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths),
@@ -400,12 +395,12 @@ class Session(object):
         raw_data_set = resp.queryDataSet
         return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList, raw_data_set.bitmapList)
 
-
     def last_query(self, paths, start_time=0, timePrecision=None):
         if len(paths) == 0:
             logger.warning("paths shouldn't be empty")
             return None
-        req = LastQueryReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths), startKey=start_time, timePrecision=timePrecision)
+        req = LastQueryReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths), startKey=start_time,
+                           timePrecision=timePrecision)
         resp = self.__client.lastQuery(req)
         Session.verify_status(resp.status)
         paths = resp.paths
@@ -414,9 +409,9 @@ class Session(object):
         return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList,
                             raw_data_set.bitmapList)
 
-
     def downsample_query(self, paths, start_time, end_time, type, precision, timePrecision=None):
-        req = DownsampleQueryReq(sessionId=self.__session_id, paths=paths, startTime=start_time, endTime=end_time, aggregateType=type,
+        req = DownsampleQueryReq(sessionId=self.__session_id, paths=paths, startTime=start_time, endTime=end_time,
+                                 aggregateType=type,
                                  precision=precision, timePrecision=timePrecision)
         resp = self.__client.downsampleQuery(req)
         Session.verify_status(resp.status)
@@ -424,37 +419,33 @@ class Session(object):
         data_types = resp.dataTypeList
         raw_data_set = resp.queryDataSet
         return QueryDataSet(paths, data_types, raw_data_set.timestamps, raw_data_set.valuesList,
-                                raw_data_set.bitmapList)
-
+                            raw_data_set.bitmapList)
 
     def aggregate_query(self, paths, start_time, end_time, type, timePrecision=None):
-        req = AggregateQueryReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time, aggregateType=type, timePrecision=timePrecision)
+        req = AggregateQueryReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time,
+                                aggregateType=type, timePrecision=timePrecision)
         resp = self.__client.aggregateQuery(req)
         Session.verify_status(resp.status)
         return AggregateQueryDataSet(resp=resp, type=type)
 
-
     def delete_data(self, path, start_time, end_time, timePrecision=None):
         self.batch_delete_data([path], start_time, end_time, timePrecision)
 
-
     def batch_delete_data(self, paths, start_time, end_time, timePrecision=None):
-        req = DeleteDataInColumnsReq(sessionId=self.__session_id, paths=paths, startTime=start_time, endTime=end_time, timePrecision=timePrecision)
+        req = DeleteDataInColumnsReq(sessionId=self.__session_id, paths=paths, startTime=start_time, endTime=end_time,
+                                     timePrecision=timePrecision)
         status = self.__client.deleteDataInColumns(req)
         Session.verify_status(status)
-
 
     def add_user(self, username, password, auths):
         req = AddUserReq(sessionId=self.__session_id, username=username, password=password, auths=auths)
         status = self.__client.addUser(req)
         Session.verify_status(status)
 
-
     def delete_user(self, username):
         req = DeleteUserReq(sessionId=self.__session_id, username=username)
         status = self.__client.deleteUser(req)
         Session.verify_status(status)
-
 
     def update_user(self, username, password=None, auths=None):
         req = UpdateUserReq(sessionId=self.__session_id, username=username)
@@ -463,8 +454,7 @@ class Session(object):
         if auths:
             req.auths = auths
         status = self.__client.updateUser(req)
-        Session.verify_status(status )
-
+        Session.verify_status(status)
 
     def get_cluster_info(self):
         req = GetClusterInfoReq(sessionId=self.__session_id)
@@ -472,21 +462,19 @@ class Session(object):
         Session.verify_status(resp.status)
         return ClusterInfo(resp)
 
-
     def execute_sql(self, statement):
         req = ExecuteSqlReq(sessionId=self.__session_id, statement=statement)
         resp = self.__client.executeSql(req)
         Session.verify_status(resp.status)
         return resp
 
-
     def execute_statement(self, statement, fetch_size=2147483647):
         req = ExecuteStatementReq(sessionId=self.__session_id, statement=statement, fetchSize=fetch_size)
         resp = self.__client.executeStatement(req)
         Session.verify_status(resp.status)
         return StatementExecuteDataSet(self, resp.queryId, resp.columns, resp.dataTypeList, fetch_size,
-                                       resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList)
-
+                                       resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList, resp.exportStreamDir,
+                                       resp.exportCSV)
 
     def load_csv(self, statement):
         req = ExecuteSqlReq(sessionId=self.__session_id, statement=statement)
@@ -509,18 +497,17 @@ class Session(object):
         Session.verify_status(resp.status)
         return resp
 
-
     # load all files in a directory into IGinX database
-    def load_directory(self, dir_path):
-        all_files = [os.path.join(dir_path, f) for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
+    def load_directory(self, dir_path, chunk_size=1024 * 10):
+        all_files = [os.path.join(dir_path, f) for f in os.listdir(dir_path) if
+                     os.path.isfile(os.path.join(dir_path, f))]
         for file_path in all_files:
             print(f"Reading file: {file_path}")
-            self.load_file_by_chunks(file_path)
+            self.load_file_by_chunks(file_path, chunk_size)
             print(f"Load file: {file_path} into IGinX succeeded.")
 
-
-    # divide file into 1mb chunks
-    def load_file_by_chunks(self, file_path, chunk_size=1024*1024):
+    # divide file into chunks(default:10KB)
+    def load_file_by_chunks(self, file_path, chunk_size):
         with open(file_path, 'rb') as file:
             index = 0
             while True:
@@ -530,15 +517,151 @@ class Session(object):
                 self.process_file_chunk(chunk, file_path, index)
                 index += 1
 
-
-    # insert file chunk(1mb, binary) into IGinX
+    # insert file chunk data into IGinX
     # index will be key, chunk will be value
     def process_file_chunk(self, chunk, file_path, index):
+        if file_path.__contains__("-"):
+            print(f"Warning occurred processing file {file_path}: File path can't contain \"-\"")
+            print(f"\t\t \"-\" will be replaced with \"_\"")
+            file_path = file_path.replace("-", "_")
         file_name = os.path.basename(file_path)
         file_dir = os.path.basename(os.path.dirname(file_path))
-        data_path = file_dir + "." + str(file_name).replace(".", "")
-        self.insert_row_records(paths=[data_path], timestamps=[index], values_list=[[chunk]], data_type_list=[DataType.BINARY])
+        data_path = file_dir + "." + str(file_name).replace(".", "_")
+        print(f"Processing #{index} file chunk...")
+        self.insert_row_records(paths=[data_path], timestamps=[index], values_list=[[chunk]],
+                                data_type_list=[DataType.BINARY])
 
+    def export_to_file(self, statement):
+        resp = self.execute_statement(statement)
+        if resp.get_export_stream_dir():
+            self.export_stream(resp)
+        if resp.get_export_csv():
+            self.export_csv(resp)
+
+    def export_stream(self, resp):
+        dir_path = resp.get_export_stream_dir()
+
+        if not os.path.exists(dir_path):
+            os.makedirs(dir_path)
+        if not os.path.isdir(dir_path):
+            raise ValueError(f"{dir_path} is not a directory!")
+
+        final_cnt = len(resp.columns())
+        columns = list(resp.columns())
+        count_map = {}
+
+        for i in range(len(columns)):
+            origin_column = columns[i]
+            if origin_column == "key":
+                columns[i] = ""
+                final_cnt -= 1
+                continue
+
+            count = count_map.get(origin_column, 0)
+            count += 1
+            count_map[origin_column] = count
+
+            # 重复的列名在列名后面加上(1),(2)...
+            if count >= 2:
+                columns[i] = os.path.join(dir_path, f"{origin_column}({count - 1})")
+            else:
+                columns[i] = os.path.join(dir_path, origin_column)
+
+            # 若将要写入的文件存在，删除之
+            if os.path.exists(columns[i]):
+                os.remove(columns[i])
+
+        print(resp.columns())
+
+        while resp.has_more():
+            cache = self.cache_result_byte_array(resp, True)
+            self.export_byte_stream(cache, columns)
+
+        resp.close()
+
+        print(f"Successfully wrote {final_cnt} file(s) to directory: \"{os.path.abspath(dir_path)}\".")
+
+    def export_byte_stream(self, binary_data_list, columns):
+        for i, column in enumerate(columns):
+            if not column:
+                continue
+
+            try:
+                # 如果文件不存在，则创建并打开文件；否则，以追加模式打开文件
+                mode = 'ab' if os.path.exists(column) else 'wb'
+                with open(column, mode) as fos:
+                    for value in binary_data_list:
+                        # 写入对应列的数据
+                        fos.write(value)
+            except IOError as e:
+                raise RuntimeError(f"Encounter an error when writing file {column}, because {e}")
+
+    def cache_result_byte_array(self, dataset, remove_key):
+        cache = []
+        row_index = 0
+        fetch_size = 1000  # TODO:待确认，暂时设置为1000
+        types = list(dataset.types())
+        if remove_key:
+            types.pop(0)
+
+        print(dataset.types())
+
+        while dataset.has_more() and row_index < fetch_size:
+            byte_value = dataset.next_row_as_bytes(True)
+            if byte_value:
+                cache.append(byte_value)
+            row_index += 1
+        return cache
+
+    # 仿照java代码编写，未经测试，需要注意
+    def export_csv(self, resp):
+        export_csv = resp.get_export_csv()
+
+        path = export_csv.exportCsvPath
+        if not path.endswith(".csv"):
+            raise ValueError(f"The file name must end with [.csv], {path} doesn't satisfy the requirement!")
+
+        # 删除原来的csv文件，新建一个新的csv文件
+        if os.path.exists(path):
+            os.remove(path)
+        with open(path, 'w', newline='') as file:  # newline='' 是为了防止在Windows上写入额外的空行
+            writer = csv.writer(file)
+            has_key = resp.column_list[0] == "key"
+
+            if export_csv.isExportHeader:
+                header_names = ["key"] if has_key else []
+                header_names.extend(resp.columns())
+                writer.writerow(header_names)
+
+            while resp.has_more():
+                cache = self.cache_result(resp, True)
+                writer.writerows(cache)
+
+        print(f"Successfully wrote csv file: \"{os.path.abspath(path)}\".")
+
+    def cache_result(self, dataset, skip_header):
+        has_key = dataset.columns()[0] == "key"
+        cache = []
+        if not skip_header:
+            cache.append(dataset.columns())
+
+        row_index = 0
+        fetch_size = 1000  # TODO:大小待确认
+
+        while dataset.has_more() and row_index < fetch_size:
+            row = dataset.next()
+            if row:
+                str_row = []
+                if has_key:  # TODO:增加时间戳格式化的代码
+                    str_row.append(row[0])
+                    for value in row:
+                        str_row.append(str(value))
+                else:
+                    str_row = [str(value) for value in row]
+                cache.append(str_row)
+                row_index += 1
+
+        return cache
 
     def get_debug_info(self, payload, typ):
         req = DebugInfoReq(payload=payload, payloadType=typ)
@@ -557,12 +680,10 @@ class Session(object):
         status = self.__client.closeStatement(req)
         Session.verify_status(status)
 
-
     @staticmethod
     def verify_status(status):
         if status.code != Session.SUCCESS_CODE:
             raise RuntimeError("Error occurs: " + status.message)
-
 
     @staticmethod
     def merge_and_sort_paths(paths):

@@ -195,7 +195,7 @@ class StatementExecuteDataSet(object):
         NO_MORE = 2,
         UNKNOWN = 3
 
-    def __init__(self, session, query_id, columns, types, fetch_size, values_list, bitmap_list):
+    def __init__(self, session, query_id, columns, types, fetch_size, values_list, bitmap_list, exportStreamDir=None, exportCSV=None):
         self.__session = session
         self.__query_id = query_id
         self.__columns = columns
@@ -204,7 +204,10 @@ class StatementExecuteDataSet(object):
         self.__values_list = values_list
         self.__bitmap_list = bitmap_list
         self.__state = StatementExecuteDataSet.State.UNKNOWN
+        self.__exportStreamDir = exportStreamDir
+        self.__exportCSV = exportCSV
         self.__index = 0
+
 
 
     def fetch(self):
@@ -259,6 +262,16 @@ class StatementExecuteDataSet(object):
                 values.append(None)
         return values
 
+    def next_row_as_bytes(self, remove_key):
+        if not self.has_more():
+            return None
+
+        values_buffer = self.__values_list[self.__index]
+        self.__index += 1
+        bytes_value = BytesParser(values_buffer).get_bytes_from_types(self.__types)
+        if remove_key:
+            bytes_value = bytes_value[8:]
+        return bytes_value
 
 
     def close(self):
@@ -269,3 +282,9 @@ class StatementExecuteDataSet(object):
 
     def types(self):
         return self.__types
+
+    def get_export_stream_dir(self):
+        return self.__exportStreamDir
+
+    def get_export_csv(self):
+        return self.__exportCSV
