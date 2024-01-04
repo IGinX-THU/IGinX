@@ -253,7 +253,7 @@ public class DefaultMetaCache implements IMetaCache {
       }
     }
     if (nextMinKey == 0L || nextMinKey == Long.MAX_VALUE) {
-      LOGGER.error("unexpected next min key " + nextMinKey + "!");
+      LOGGER.error("unexpected next min key {}!", nextMinKey);
       System.exit(-1);
     }
     minKey = nextMinKey;

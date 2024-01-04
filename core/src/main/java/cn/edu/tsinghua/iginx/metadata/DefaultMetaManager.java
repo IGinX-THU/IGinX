@@ -97,7 +97,7 @@ public class DefaultMetaManager implements IMetaManager {
       default:
         // without configuration, file storage should be the safe choice
         LOGGER.info(
-            "unknown meta storage " + ConfigDescriptor.getInstance().getConfig().getMetaStorage());
+            "unknown meta storage {}", ConfigDescriptor.getInstance().getConfig().getMetaStorage());
         storage = null;
         System.exit(-1);
     }
@@ -264,9 +264,8 @@ public class DefaultMetaManager implements IMetaManager {
                   cache.getStorageUnit(storageUnit.getMasterId());
               if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
                 LOGGER.error(
-                    "unexpected storage unit "
-                        + storageUnit.toString()
-                        + ", because it does not has a master storage unit");
+                    "unexpected storage unit {}, because it does not has a master storage unit",
+                    storageUnit);
               } else {
                 masterStorageUnitMeta.addReplica(storageUnit);
               }
@@ -279,9 +278,8 @@ public class DefaultMetaManager implements IMetaManager {
                   cache.getStorageUnit(storageUnit.getMasterId());
               if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
                 LOGGER.error(
-                    "unexpected storage unit "
-                        + storageUnit.toString()
-                        + ", because it does not has a master storage unit");
+                    "unexpected storage unit {}, because it does not has a master storage unit",
+                    storageUnit);
               } else {
                 masterStorageUnitMeta.removeReplica(originStorageUnitMeta);
                 masterStorageUnitMeta.addReplica(storageUnit);
@@ -358,7 +356,7 @@ public class DefaultMetaManager implements IMetaManager {
           try {
             storage.updateTimeseriesData(timeseriesData, getIginxId(), version);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("update timeseries data error: ", e);
           }
         });
     int num = 0;
@@ -367,7 +365,7 @@ public class DefaultMetaManager implements IMetaManager {
       // 从元数据管理器取写入的最大时间戳
       maxActiveEndKey.set(storage.getMaxActiveEndKeyStatistics());
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("register policy error: ", e);
     }
   }
 
@@ -442,7 +440,7 @@ public class DefaultMetaManager implements IMetaManager {
       return cache.removeDummyStorageEngine(storageEngineId);
       // TODO 由于当前 StorageEngineChangeHook 和 StorageUnitHook 只会处理新增事件，因此不必调用相关 onChange 函数
     } catch (MetaStorageException e) {
-      LOGGER.error("remove dummy storage engine {} error: {}", storageEngineId, e.getMessage());
+      LOGGER.error("remove dummy storage engine {}:", storageEngineId, e);
     }
     return false;
   }

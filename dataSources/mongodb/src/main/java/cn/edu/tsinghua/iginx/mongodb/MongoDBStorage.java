@@ -69,13 +69,7 @@ public class MongoDBStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
-    try {
-      this.client = connect(meta.getIp(), meta.getPort());
-    } catch (Exception e) {
-      String message = "fail to connect " + meta.getIp() + ":" + meta.getPort();
-      LOGGER.error(message, e);
-      throw new StorageInitializationException(message);
-    }
+    this.client = connect(meta.getIp(), meta.getPort());
   }
 
   private MongoClient connect(String ip, int port) {

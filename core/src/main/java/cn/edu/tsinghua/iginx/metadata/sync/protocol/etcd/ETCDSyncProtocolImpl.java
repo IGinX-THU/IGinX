@@ -190,7 +190,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                           }
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -230,8 +230,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
         long lastCreateTime =
             Long.parseLong(new String(response.getKvs().get(0).getKey().getBytes()).split("_")[1]);
         if (lastCreateTime + MAX_NETWORK_LATENCY > createTime) {
-          LOGGER.warn(
-              "start protocol for " + category + "-" + key + " failure, due to repeated request");
+          LOGGER.warn("start protocol for {}-{} failure, due to repeated request", category, key);
           return false;
         }
       }
@@ -254,7 +253,6 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
           .get();
       return true;
     } catch (Exception e) {
-      LOGGER.error("start proposal failure: ", e);
       throw new NetworkException("start proposal failure: ", e);
     } finally {
       if (leaseId != -1L) {
@@ -301,11 +299,9 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
               ByteSequence.from(JsonUtils.toJson(vote)))
           .get();
     } catch (VoteExpiredException e) {
-      LOGGER.error("encounter execute error in vote: ", e);
       throw e;
     } catch (Exception e) {
-      LOGGER.error("vote for " + category + "-" + key + " failure: ", e);
-      throw new NetworkException("vote failure: ", e);
+      throw new NetworkException("vote for " + category + "-" + key + " failure", e);
     }
   }
 
@@ -355,8 +351,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
       voteListeners.remove(key).end(key);
       proposalLock.writeLock().unlock();
     } catch (Exception e) {
-      LOGGER.error("end protocol for " + category + "-" + key + " failure: ", e);
-      throw new NetworkException("end proposal failure: ", e);
+      throw new NetworkException("end protocol for " + category + "-" + key + " failure", e);
     } finally {
       if (leaseId != -1L) {
         try {

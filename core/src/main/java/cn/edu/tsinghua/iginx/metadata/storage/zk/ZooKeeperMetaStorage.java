@@ -1297,7 +1297,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             });
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("failed to get columns data", e);
     }
     return ret;
   }
@@ -1457,7 +1457,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           Integer.parseInt(new String(client.getData().forPath(POLICY_VERSION)).split("\t")[0]);
       this.client.setData().forPath(POLICY_VERSION, ((version + 1) + "\t" + "0").getBytes());
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("failed to update version", e);
     }
     return version + 1;
   }
