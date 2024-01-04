@@ -60,9 +60,9 @@ import org.slf4j.LoggerFactory;
 
 public class RowUtils {
 
-  private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
   private static final Logger LOGGER = LoggerFactory.getLogger(RowUtils.class);
+
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
 
@@ -697,7 +697,7 @@ public class RowUtils {
                             }
                           }
                         } catch (Exception e) {
-                          LOGGER.error("encounter error when execute set mapping function ");
+                          LOGGER.error("encounter error when execute set mapping function ", e);
                         }
                       });
               latch.countDown();
@@ -766,7 +766,7 @@ public class RowUtils {
               .get();
       return groups;
     } catch (InterruptedException | ExecutionException e) {
-      throw new PhysicalException("parallel build failed");
+      throw new PhysicalException("parallel build failed", e);
     } finally {
       if (pool != null) {
         poolQueue.add(pool);
@@ -786,13 +786,13 @@ public class RowUtils {
                   try {
                     return FilterUtils.validate(filter, row);
                   } catch (PhysicalException e) {
-                    LOGGER.error("execute parallel filter error, cause by: ", e.getCause());
+                    LOGGER.error("execute parallel filter error, cause by: ", e);
                     return false;
                   }
                 })
             .collect(Collectors.toList());
       } catch (InterruptedException e) {
-        throw new PhysicalException("parallel filter failed");
+        throw new PhysicalException("parallel filter failed", e);
       } finally {
         if (pool != null) {
           poolQueue.add(pool);
@@ -805,7 +805,7 @@ public class RowUtils {
                 try {
                   return FilterUtils.validate(filter, row);
                 } catch (PhysicalException e) {
-                  LOGGER.error("execute sequence filter error, cause by: ", e.getCause());
+                  LOGGER.error("execute sequence filter error, cause by: ", e);
                   return false;
                 }
               })
