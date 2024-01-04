@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.redis;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -17,12 +18,23 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
-import cn.edu.tsinghua.iginx.redis.tools.*;
+import cn.edu.tsinghua.iginx.redis.tools.DataCoder;
+import cn.edu.tsinghua.iginx.redis.tools.DataTransformer;
+import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
+import cn.edu.tsinghua.iginx.redis.tools.FilterUtils;
+import cn.edu.tsinghua.iginx.redis.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -88,8 +100,14 @@ public class RedisStorage implements IStorage {
   public TaskExecuteResult executeProjectWithSelect(
       Project project, Select select, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    List<String> queryPaths =
-        determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
+    List<String> queryPaths;
+    try {
+      queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
+    } catch (PhysicalException e) {
+      LOGGER.error("encounter error when delete path: " + e.getMessage());
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
+    }
 
     Filter filter = select.getFilter();
     List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
@@ -139,6 +157,9 @@ public class RedisStorage implements IStorage {
           columns.add(column);
         }
       }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute query path task in redis failure", e));
     }
 
     return new TaskExecuteResult(new RedisQueryRowStream(columns, filter), null);
@@ -189,11 +210,14 @@ public class RedisStorage implements IStorage {
             break;
           case "none":
             LOGGER.warn("key {} not exists", queryPath);
-            break;
           default:
             LOGGER.warn("unknown key type, type={}", type);
         }
       }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException(
+              "execute query history task in redis failure", e));
     }
 
     Filter filter = select.getFilter();
@@ -203,8 +227,14 @@ public class RedisStorage implements IStorage {
   @Override
   public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    List<String> queryPaths =
-        determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
+    List<String> queryPaths;
+    try {
+      queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
+    } catch (PhysicalException e) {
+      LOGGER.error("encounter error when delete path: " + e.getMessage());
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
+    }
 
     List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
     try (Jedis jedis = jedisPool.getResource()) {
@@ -225,6 +255,9 @@ public class RedisStorage implements IStorage {
           columns.add(column);
         }
       }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute query path task in redis failure", e));
     }
     return new TaskExecuteResult(new RedisQueryRowStream(columns), null);
   }
@@ -273,11 +306,14 @@ public class RedisStorage implements IStorage {
             break;
           case "none":
             LOGGER.warn("key {} not exists", queryPath);
-            break;
           default:
             LOGGER.warn("unknown key type, type={}", type);
         }
       }
+    } catch (Exception e) {
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException(
+              "execute query history task in redis failure", e));
     }
     return new TaskExecuteResult(new RedisQueryRowStream(columns), null);
   }
@@ -285,8 +321,14 @@ public class RedisStorage implements IStorage {
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    List<String> deletedPaths =
-        determinePathList(storageUnit, delete.getPatterns(), delete.getTagFilter());
+    List<String> deletedPaths;
+    try {
+      deletedPaths = determinePathList(storageUnit, delete.getPatterns(), delete.getTagFilter());
+    } catch (PhysicalException e) {
+      LOGGER.warn("encounter error when delete path: " + e.getMessage());
+      return new TaskExecuteResult(
+          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
+    }
 
     if (deletedPaths.isEmpty()) {
       return new TaskExecuteResult(null, null);
@@ -305,6 +347,10 @@ public class RedisStorage implements IStorage {
         }
         jedis.del(deletedPathArray);
         jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
+      } catch (Exception e) {
+        LOGGER.warn("encounter error when delete path: " + e.getMessage());
+        return new TaskExecuteResult(
+            new PhysicalException("execute delete path in redis failure", e));
       }
     } else {
       // 删除指定部分数据
@@ -326,13 +372,17 @@ public class RedisStorage implements IStorage {
             }
           }
         }
+      } catch (Exception e) {
+        LOGGER.warn("encounter error when delete path: " + e.getMessage());
+        return new TaskExecuteResult(
+            new PhysicalException("execute delete data in redis failure", e));
       }
     }
     return new TaskExecuteResult(null, null);
   }
 
   private List<String> determinePathList(
-      String storageUnit, List<String> patterns, TagFilter tagFilter) {
+      String storageUnit, List<String> patterns, TagFilter tagFilter) throws PhysicalException {
     boolean hasTagFilter = tagFilter != null;
     List<String> paths = new ArrayList<>();
     try (Jedis jedis = jedisPool.getResource()) {
@@ -348,6 +398,9 @@ public class RedisStorage implements IStorage {
               }
             });
       }
+    } catch (Exception e) {
+      LOGGER.error("get du time series error, cause by: ", e);
+      return Collections.emptyList();
     }
     if (!hasTagFilter) {
       return paths;
@@ -385,6 +438,8 @@ public class RedisStorage implements IStorage {
 
         jedis.hset(KEY_DATA_TYPE, path, type);
         jedis.set(String.format(KEY_FORMAT_STRING_PATH, storageUnit, path), EMTPY_STRING);
+      } catch (Exception e) {
+        return new TaskExecuteResult(new PhysicalException("execute insert in redis error", e));
       }
     }
     return new TaskExecuteResult(null, null);
@@ -401,6 +456,9 @@ public class RedisStorage implements IStorage {
             Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(k);
             ret.add(new Column(pair.k, type, pair.v));
           });
+    } catch (Exception e) {
+      LOGGER.error("get time series error, cause by: ", e);
+      return ret;
     }
     return ret;
   }
@@ -412,7 +470,7 @@ public class RedisStorage implements IStorage {
     paths.sort(String::compareTo);
 
     if (paths.isEmpty()) {
-      throw new PhysicalException("no data!");
+      throw new PhysicalTaskExecuteFailureException("no data!");
     }
 
     ColumnsInterval columnsInterval;
@@ -448,11 +506,12 @@ public class RedisStorage implements IStorage {
             break;
           case "none":
             LOGGER.warn("key {} not exists", path);
-            break;
           default:
             LOGGER.warn("unknown key type, type={}", type);
         }
       }
+    } catch (Exception e) {
+      LOGGER.error("get keys' length error, cause by: ", e);
     }
     if (maxTime == Long.MIN_VALUE) {
       maxTime = Long.MAX_VALUE - 1;
@@ -466,6 +525,8 @@ public class RedisStorage implements IStorage {
     try (Jedis jedis = jedisPool.getResource()) {
       Set<String> keys = jedis.keys(pattern);
       paths.addAll(keys);
+    } catch (Exception e) {
+      LOGGER.error("get keys error, cause by: ", e);
     }
     return paths;
   }
