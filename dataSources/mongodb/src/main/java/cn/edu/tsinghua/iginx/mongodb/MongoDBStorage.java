@@ -118,15 +118,9 @@ public class MongoDBStorage implements IStorage {
     KeyInterval range = area.getKeyInterval();
     List<String> patterns = project.getPatterns();
 
-    try {
-      Filter unionFilter = rangeUnionWithFilter(range, filter);
-      RowStream result = new DummyQuery(this.client).query(patterns, unionFilter);
-      return new TaskExecuteResult(result);
-    } catch (Exception e) {
-      LOGGER.error("dummy project {} where {}", patterns, filter);
-      LOGGER.error("failed to dummy query ", e);
-      return new TaskExecuteResult(new PhysicalException("failed to query dummy", e));
-    }
+    Filter unionFilter = rangeUnionWithFilter(range, filter);
+    RowStream result = new DummyQuery(this.client).query(patterns, unionFilter);
+    return new TaskExecuteResult(result);
   }
 
   private TaskExecuteResult query(Project project, DataArea area, Filter filter) {
@@ -135,27 +129,18 @@ public class MongoDBStorage implements IStorage {
     List<String> patterns = project.getPatterns();
     TagFilter tagFilter = project.getTagFilter();
 
-    try {
-      MongoDatabase db = this.getDatabase(unit);
-      List<Field> fieldList = NameUtils.match(getFields(db), patterns, tagFilter);
+    MongoDatabase db = this.getDatabase(unit);
+    List<Field> fieldList = NameUtils.match(getFields(db), patterns, tagFilter);
 
-      RowStream result;
-      if (filter == null) {
-        result = new ColumnQuery(db).query(fieldList, range);
-      } else {
-        Filter unionFilter = rangeUnionWithFilter(range, filter);
-        result = new JoinQuery(db).query(fieldList, unionFilter);
-        result = new FilterRowStreamWrapper(result, filter);
-      }
-      return new TaskExecuteResult(result);
-    } catch (Exception e) {
-      String message = String.format("project %s from %s[%s]", patterns, unit, range);
-      if (tagFilter != null) {
-        message += " with " + tagFilter;
-      }
-      LOGGER.error(message, e);
-      return new TaskExecuteResult(new PhysicalException("failed to project", e));
+    RowStream result;
+    if (filter == null) {
+      result = new ColumnQuery(db).query(fieldList, range);
+    } else {
+      Filter unionFilter = rangeUnionWithFilter(range, filter);
+      result = new JoinQuery(db).query(fieldList, unionFilter);
+      result = new FilterRowStreamWrapper(result, filter);
     }
+    return new TaskExecuteResult(result);
   }
 
   private static Filter rangeUnionWithFilter(KeyInterval range, Filter filter) {
@@ -174,23 +159,18 @@ public class MongoDBStorage implements IStorage {
     List<KeyRange> ranges = delete.getKeyRanges();
 
     MongoDatabase db = this.getDatabase(unit);
-    try {
-      List<Field> fieldList = NameUtils.match(getFields(db), patterns, tagFilter);
-      for (Field field : fieldList) {
-        String collName = NameUtils.getCollectionName(field);
-        MongoCollection<BsonDocument> coll = db.getCollection(collName, BsonDocument.class);
-        if (ranges == null || ranges.isEmpty()) {
-          coll.drop();
-        } else {
-          Bson filter = FilterUtils.ranges(ranges);
-          coll.deleteMany(filter);
-        }
+    List<Field> fieldList = NameUtils.match(getFields(db), patterns, tagFilter);
+    for (Field field : fieldList) {
+      String collName = NameUtils.getCollectionName(field);
+      MongoCollection<BsonDocument> coll = db.getCollection(collName, BsonDocument.class);
+      if (ranges == null || ranges.isEmpty()) {
+        coll.drop();
+      } else {
+        Bson filter = FilterUtils.ranges(ranges);
+        coll.deleteMany(filter);
       }
-    } catch (Exception e) {
-      LOGGER.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
-      LOGGER.error("failed to delete", e);
-      return new TaskExecuteResult(new PhysicalException("failed to delete", e));
     }
+
     return new TaskExecuteResult();
   }
 
@@ -199,70 +179,68 @@ public class MongoDBStorage implements IStorage {
     String unit = dataArea.getStorageUnit();
     DataView data = insert.getData();
 
-    try {
-      MongoDatabase db = this.getDatabase(unit);
-      Map<String, DataType> existedColumnTypes = new HashMap<>();
-      for (Field field : getFields(db)) {
-        existedColumnTypes.put(field.getName(), field.getType());
-      }
+    MongoDatabase db = this.getDatabase(unit);
+    Map<String, DataType> existedColumnTypes = new HashMap<>();
+    for (Field field : getFields(db)) {
+      existedColumnTypes.put(field.getName(), field.getType());
+    }
 
-      for (SourceTable.Column column : new SourceTable(data)) {
-        Field field = column.getField();
+    for (SourceTable.Column column : new SourceTable(data)) {
+      Field field = column.getField();
 
-        if (existedColumnTypes.containsKey(field.getName())) {
-          DataType existedType = existedColumnTypes.get(field.getName());
-          if (!existedType.equals(field.getType())) {
-            throw new PhysicalException(
-                "data type ("
-                    + field.getType()
-                    + ") not match existed column type ("
-                    + existedType
-                    + ")");
-          }
-        }
-
-        Map<Long, Object> columnData = column.getData();
-        List<BsonDocument> documents = new ArrayList<>();
-        for (Map.Entry<Long, Object> point : columnData.entrySet()) {
-          BsonValue key = new BsonInt64(point.getKey());
-          BsonValue value = TypeUtils.toBsonValue(field.getType(), point.getValue());
-          BsonDocument document = new BsonDocument("_id", key).append(VALUE_FIELD, value);
-          documents.add(document);
-        }
-
-        String collName = NameUtils.getCollectionName(field);
-        MongoCollection<BsonDocument> collection = db.getCollection(collName, BsonDocument.class);
-
-        try {
-          collection.insertMany(documents, new InsertManyOptions().ordered(false)); // try to insert
-        } catch (MongoBulkWriteException e) { // exist duplicate key
-          List<WriteModel<BsonDocument>> writeModels = new ArrayList<>();
-          for (WriteError error : e.getWriteErrors()) {
-            if (error.getCode() != 11000) throw e; // E11000: duplicate key error
-
-            long key = getDuplicateKey(error);
-            Bson filter = Filters.eq("_id", key);
-
-            BsonValue value = TypeUtils.toBsonValue(field.getType(), columnData.get(key));
-            BsonDocument doc = new BsonDocument(VALUE_FIELD, value);
-
-            writeModels.add(new ReplaceOneModel<>(filter, doc, new ReplaceOptions().upsert(true)));
-          }
-
-          collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false));
+      if (existedColumnTypes.containsKey(field.getName())) {
+        DataType existedType = existedColumnTypes.get(field.getName());
+        if (!existedType.equals(field.getType())) {
+          String message =
+              String.format(
+                  "insert %s into %s which contains %s",
+                  field.getType(), field.getName(), existedType);
+          return new TaskExecuteResult(new PhysicalTaskExecuteFailureException(message));
         }
       }
-    } catch (Exception e) {
-      LOGGER.error("failed to insert", e);
-      return new TaskExecuteResult(new PhysicalException("failed to insert", e));
+
+      Map<Long, Object> columnData = column.getData();
+      List<BsonDocument> documents = new ArrayList<>();
+      for (Map.Entry<Long, Object> point : columnData.entrySet()) {
+        BsonValue key = new BsonInt64(point.getKey());
+        BsonValue value = TypeUtils.toBsonValue(field.getType(), point.getValue());
+        BsonDocument document = new BsonDocument("_id", key).append(VALUE_FIELD, value);
+        documents.add(document);
+      }
+
+      String collName = NameUtils.getCollectionName(field);
+      MongoCollection<BsonDocument> collection = db.getCollection(collName, BsonDocument.class);
+
+      try {
+        collection.insertMany(documents, new InsertManyOptions().ordered(false)); // try to insert
+      } catch (MongoBulkWriteException e) { // exist duplicate key
+        List<WriteModel<BsonDocument>> writeModels = new ArrayList<>();
+        for (WriteError error : e.getWriteErrors()) {
+          if (error.getCode() != 11000) throw e; // E11000: duplicate key error
+
+          long key = getDuplicateKey(error);
+          Bson filter = Filters.eq("_id", key);
+
+          BsonValue value = TypeUtils.toBsonValue(field.getType(), columnData.get(key));
+          BsonDocument doc = new BsonDocument(VALUE_FIELD, value);
+
+          writeModels.add(new ReplaceOneModel<>(filter, doc, new ReplaceOptions().upsert(true)));
+        }
+
+        collection.bulkWrite(writeModels, new BulkWriteOptions().ordered(false));
+      }
     }
     return new TaskExecuteResult();
   }
 
   private static long getDuplicateKey(WriteError error) {
-    String msg = error.getMessage();
-    String id = msg.substring(msg.lastIndexOf(':') + 2, msg.length() - 2);
-    return Long.parseLong(id);
+    try {
+      String msg = error.getMessage();
+      String id = msg.substring(msg.lastIndexOf(':') + 2, msg.length() - 2);
+      return Long.parseLong(id);
+    } catch (Exception e) {
+      throw new RuntimeException("failed to parse " + error, e);
+    }
   }
 
   @Override

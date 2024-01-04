@@ -4,6 +4,8 @@ import static com.mongodb.client.model.Filters.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -87,7 +89,7 @@ public class FilterUtils {
       case Not:
         return toBson((NotFilter) filter);
       default:
-        throw new IllegalArgumentException("unsupported filter: " + filter);
+        throw new IllegalArgumentException("unsupported filter: " + filter.getType());
     }
   }
 
@@ -141,7 +143,7 @@ public class FilterUtils {
 
   private static void checkPath(String path) {
     if (NameUtils.containNumberNode(path)) {
-      throw new IllegalArgumentException("path contain number");
+      throw new IllegalArgumentException("path contain number: " + path);
     }
   }
 

@@ -158,40 +158,27 @@ public class JoinQuery {
 
     @Override
     public void close() throws PhysicalException {
-      try {
-        this.cursor.close();
-      } catch (Exception e) {
-        throw new PhysicalException(e);
-      }
+      this.cursor.close();
     }
 
     @Override
     public boolean hasNext() throws PhysicalException {
-      try {
-        return this.cursor.hasNext();
-      } catch (Exception e) {
-        throw new PhysicalException(e);
-      }
+      return this.cursor.hasNext();
     }
 
     @Override
     public Row next() throws PhysicalException {
-      try {
-        BsonDocument doc = this.cursor.next();
+      BsonDocument doc = this.cursor.next();
 
-        long key = doc.remove("_id").asInt64().getValue();
+      long key = doc.remove("_id").asInt64().getValue();
 
-        Object[] data = new Object[header.getFieldSize()];
-        for (Map.Entry<String, BsonValue> renamedValue : doc.entrySet()) {
-          int idx = this.nameIdx.get(renamedValue.getKey());
-          Object value = TypeUtils.toObject(renamedValue.getValue());
-          data[idx] = value;
-        }
-
-        return new Row(this.header, key, data);
-      } catch (Exception e) {
-        throw new PhysicalException(e);
+      Object[] data = new Object[header.getFieldSize()];
+      for (Map.Entry<String, BsonValue> renamedValue : doc.entrySet()) {
+        int idx = this.nameIdx.get(renamedValue.getKey());
+        Object value = TypeUtils.toObject(renamedValue.getValue());
+        data[idx] = value;
       }
+      return new Row(this.header, key, data);
     }
   }
 }
