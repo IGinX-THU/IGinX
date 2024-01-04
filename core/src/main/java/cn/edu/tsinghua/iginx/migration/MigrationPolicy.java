@@ -38,11 +38,11 @@ import org.slf4j.Logger;
 
 public abstract class MigrationPolicy {
 
+  private Logger LOGGER;
+
   protected ExecutorService executor;
 
   protected static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private Logger LOGGER;
 
   private final IPolicy policy =
       PolicyManager.getInstance()
@@ -459,8 +459,7 @@ public abstract class MigrationPolicy {
             DefaultMetaManager.getInstance()
                 .generateNewStorageUnitMetaByFragment(fragmentMeta, targetStorageId);
       } catch (MetaStorageException e) {
-        LOGGER.error("cannot create storage unit in target storage engine", e);
-        throw new PhysicalException(e);
+        throw new PhysicalException("cannot create storage unit in target storage engine",e);
       }
       migrationLogger.logMigrationExecuteTaskStart(
           new MigrationExecuteTask(
@@ -504,9 +503,9 @@ public abstract class MigrationPolicy {
               false));
       Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
       physicalEngine.execute(new RequestContext(), delete);
-    } catch (Exception e) {
-      LOGGER.error(
-          "encounter error when migrate data from {} to {} ", sourceStorageId, targetStorageId, e);
+    } catch (PhysicalException e) {
+      String cause = String.format("encounter error when migrate data from %d to %d ", sourceStorageId, targetStorageId);
+      throw new RuntimeException(cause, e);
     } finally {
       migrationLogger.logMigrationExecuteTaskEnd();
     }
@@ -546,7 +545,7 @@ public abstract class MigrationPolicy {
         physicalEngine.execute(new RequestContext(), migration);
       }
       return true;
-    } catch (Exception e) {
+    } catch (PhysicalException e) {
       LOGGER.error(
           "encounter error when migrate data from {} to {} ",
           sourceStorageUnitId,

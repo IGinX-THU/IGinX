@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.migration;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+
+import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -37,8 +39,8 @@ public class MigrationManager {
                   .asSubclass(MigrationPolicy.class);
           policy = clazz.getConstructor().newInstance();
           policies.put(policyClassName, policy);
-        } catch (Exception e) {
-          LOGGER.error(e.getMessage());
+        } catch (InvocationTargetException | InstantiationException | IllegalAccessException | NoSuchMethodException | ClassNotFoundException e) {
+          LOGGER.error("get migration policy failed", e);
         }
       }
     }
