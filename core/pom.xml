@@ -187,7 +187,7 @@
             <version>1.32</version>
         </dependency>
         <dependency>
-            <groupId>com.alibaba</groupId>
+            <groupId>cn.edu.tsinghua.iginx</groupId>
             <artifactId>pemja</artifactId>
             <version>0.5-SNAPSHOT</version>
         </dependency>
@@ -204,6 +204,15 @@
     </dependencies>
 
     <repositories>
+        <repository>
+            <snapshots>
+                <enabled>true</enabled>
+                <updatePolicy>always</updatePolicy>
+            </snapshots>
+            <id>IGinX-Pemja</id>
+            <name>IGinX Pemja GitHub repository</name>
+            <url>https://iginx-thu.github.io/pemja/maven-repo</url>
+        </repository>
         <!--   repository for moquette    -->
         <repository>
             <releases>
