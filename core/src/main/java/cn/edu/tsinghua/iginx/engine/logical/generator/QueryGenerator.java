@@ -113,12 +113,16 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /**
-   * 根据BinarySelectStatement，生成一个操作符树 大体步骤如下： 1. 根据Set Operator
-   * Type，初始化一个Union或Except或Intersect操作符及子树 2. 如果有Order By子句或Limit子句，构建相关操作符
+   * 根据BinarySelectStatement，生成一个操作符树
    *
    * @param selectStatement Select上下文
    * @return 生成的操作符树
    */
+  /*
+   大体步骤如下：
+   1. 根据Set Operator Type，初始化一个Union或Except或Intersect操作符及子树
+   2. 如果有Order By子句或Limit子句，构建相关操作符
+  */
   private Operator generateRoot(BinarySelectStatement selectStatement) {
     Operator root;
 
@@ -136,18 +140,22 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /**
-   * 根据UnarySelectStatement，生成一个操作符树 大体步骤如下： 1.
-   * 首先根据SelectStatement的Project、Join、From部分，初始化一个操作符树，最终只会调用其中一个init函数 2.
-   * 检查操作符树是否为空，或者metaManager是否有可写的存储引擎，或者SubQuery是否有freeVariables 3. 按顺序处理其他相关操作符，并加入到操作符树中
-   *
-   * <p>今后拓展generator时，应该该按照通过添加相应函数来拓展，而不是直接把逻辑写在该函数中 1.
-   * 添加初始化逻辑时，应该实现一个init函数，如果满足条件则返回一个操作符树，否则返回null。 2.
-   * 添加针对某个操作符的构建逻辑时，应该写一个build函数，如果满足条件则在root之上构建一个操作符，否则返回原root。 3.
-   * 添加检查逻辑时，应该写一个check函数，如果根据条件返回true/false,或者不满足条件时抛出异常。
+   * 根据UnarySelectStatement，生成一个操作符树
    *
    * @param selectStatement Select上下文
    * @return 生成的操作符树
    */
+  /*
+  大体步骤如下：
+  1.首先根据SelectStatement的Project、Join、From部分，初始化一个操作符树，最终只会调用其中一个init函数
+  2.检查操作符树是否为空，或者metaManager是否有可写的存储引擎，或者SubQuery是否有freeVariables
+  3.按顺序处理其他相关操作符，并加入到操作符树中
+
+  今后拓展generator时，应该该按照通过添加相应函数来拓展，而不是直接把逻辑写在该函数中
+  1.添加初始化逻辑时，应该实现一个init函数，如果满足条件则返回一个操作符树，否则返回null。
+  2.添加针对某个操作符的构建逻辑时，应该写一个build函数，如果满足条件则在root之上构建一个操作符，否则返回原root。
+  3.添加检查逻辑时，应该写一个check函数，如果根据条件返回true/false,或者不满足条件时抛出异常。
+  */
   private Operator generateRoot(UnarySelectStatement selectStatement) {
     Operator root;
 
@@ -156,7 +164,7 @@ public class QueryGenerator extends AbstractGenerator {
     root = root != null ? root : initFromPart(selectStatement);
     root = root != null ? root : initFilterAndMergeFragments(selectStatement);
 
-    if (!checkRootAndIsMetaWritable(root)) {
+    if (!checkRoot(root) && !checkIsMetaWritable()) {
       return null;
     }
     checkSubQueryHasFreeVariables(selectStatement);
@@ -220,8 +228,12 @@ public class QueryGenerator extends AbstractGenerator {
    * @param root 根节点
    * @return 如果root为空或者metaManager没有可写的存储引擎，返回false
    */
-  private boolean checkRootAndIsMetaWritable(Operator root) {
-    return root != null || metaManager.hasWritableStorageEngines();
+  private boolean checkRoot(Operator root) {
+    return root != null;
+  }
+
+  private boolean checkIsMetaWritable() {
+    return metaManager.hasWritableStorageEngines();
   }
 
   /**
