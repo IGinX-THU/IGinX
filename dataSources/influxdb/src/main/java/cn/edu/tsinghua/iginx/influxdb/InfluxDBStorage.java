@@ -449,23 +449,6 @@ public class InfluxDBStorage implements IStorage {
     }
   }
 
-  /** 将字符串中的正则表达式特殊字符转义 */
-  private String replaceRegexChar(String str) {
-    return str.replace("\\", "\\\\")
-        .replace("$", "\\$")
-        .replace("^", "\\^")
-        .replace(".", "\\.")
-        .replace("+", "\\+")
-        .replace("?", "\\?")
-        .replace("(", "\\(")
-        .replace(")", "\\)")
-        .replace("[", "\\[")
-        .replace("]", "\\]")
-        .replace("{", "\\{")
-        .replace("}", "\\}")
-        .replace("|", "\\|");
-  }
-
   private String generateQueryStatement(
       String bucketName,
       List<String> paths,
@@ -487,8 +470,7 @@ public class InfluxDBStorage implements IStorage {
 
         String measurement = schema.getMeasurement();
         if (measurement.contains("*")) {
-          measurement = replaceRegexChar(measurement);
-          measurement = measurement.replace("*", ".+");
+          measurement = StringUtils.reformatPath(measurement);
         }
         filterStr.append(
             schema.getMeasurement().contains("*")
@@ -496,8 +478,7 @@ public class InfluxDBStorage implements IStorage {
                 : "r._measurement == \"" + measurement + "\"");
 
         String field = schema.getField();
-        field = replaceRegexChar(field);
-        field = field.replace("*", ".+");
+        field = StringUtils.reformatPath(field);
         filterStr.append(" and ");
         filterStr.append("r._field =~ /").append(field).append("/");
 
@@ -550,6 +531,11 @@ public class InfluxDBStorage implements IStorage {
       }
 
       Map<String, List<String>> measurementToFieldsMap = getMeasurementToFields(bucketName);
+      // pivot、union的结果不一定会按照时间顺序排列，需要增加一个sort操作
+      String pivotFormat =
+          " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
+              + " %s"
+              + " |> sort(columns: [\"_time\"], desc: false)";
       if (filterHasMeasurementWildCards(filter) || patternHasMeasurementWildCards) {
         String prefix = statement;
         StringBuilder statementBuilder = new StringBuilder();
@@ -557,9 +543,9 @@ public class InfluxDBStorage implements IStorage {
         for (Map.Entry<String, List<String>> entry : measurementToFieldsMap.entrySet()) {
           String measurement = entry.getKey();
           String pivotStr =
-              " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
-                  + generateFilterStatement(
-                      bucketName, measurement, filter, measurementToFieldsMap);
+              String.format(
+                  pivotFormat,
+                  generateFilterStatement(bucketName, measurement, filter, measurementToFieldsMap));
           statementBuilder
               .append("t")
               .append(index)
@@ -587,8 +573,9 @@ public class InfluxDBStorage implements IStorage {
 
       } else {
         String pivotStr =
-            " |> pivot(rowKey: [\"_time\"], columnKey: [\"_field\"], valueColumn: \"_value\")"
-                + generateFilterStatement(bucketName, null, filter, measurementToFieldsMap);
+            String.format(
+                pivotFormat,
+                generateFilterStatement(bucketName, null, filter, measurementToFieldsMap));
 
         statement += pivotStr;
       }
@@ -838,66 +825,66 @@ public class InfluxDBStorage implements IStorage {
       return "";
     }
 
-    String noWildCardStatement =
-        " |> filter(fn: (r) => " + FilterTransformer.toString(filter) + ")";
+    String filterStr = FilterTransformer.toString(filter);
 
     // 检查语句中是否存在*通配符，如果存在需要手动解析
     if (filter.toString().contains("*")) {
       Map<String, List<String>> fieldMap = new HashMap<>();
       getAllPathFromFilterWithWildCards(filter, fieldMap);
 
-      if (fieldMap.isEmpty()) {
-        return noWildCardStatement;
-      }
-
-      for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
-        if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
-          continue;
-        }
-        String tableMeasurement = mtfEntry.getKey();
-        List<String> tableFields = mtfEntry.getValue();
-        for (String tableField : tableFields) {
-          for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
-            String path = entry.getKey();
-            InfluxDBSchema schema = new InfluxDBSchema(path);
-            String measurement = schema.getMeasurement();
-            String field = schema.getField();
-            if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
-              List<String> fields = entry.getValue();
-              String fieldRegex = "^" + field.replace(".", "\\.").replace("*", ".*") + "$";
-              if (Pattern.matches(fieldRegex, tableField)) {
-                if (fields == null) {
-                  fields = new ArrayList<>();
+      if (!fieldMap.isEmpty()) {
+        for (Map.Entry<String, List<String>> mtfEntry : measurementToFieldsMap.entrySet()) {
+          if (measurementName != null && !measurementName.equals(mtfEntry.getKey())) {
+            continue;
+          }
+          String tableMeasurement = mtfEntry.getKey();
+          List<String> tableFields = mtfEntry.getValue();
+          for (String tableField : tableFields) {
+            for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
+              String path = entry.getKey();
+              InfluxDBSchema schema = new InfluxDBSchema(path);
+              String measurement = schema.getMeasurement();
+              String field = schema.getField();
+              if (measurement.equals(tableMeasurement) || measurement.equals("*")) {
+                List<String> fields = entry.getValue();
+                String fieldRegex = "^" + StringUtils.reformatPath(field) + "$";
+                if (Pattern.matches(fieldRegex, tableField)) {
+                  if (fields == null) {
+                    fields = new ArrayList<>();
+                  }
+                  fields.add(tableField);
+                  entry.setValue(fields);
                 }
-                fields.add(tableField);
-                entry.setValue(fields);
               }
             }
           }
         }
+
+        // 根据通配符对应的字段生成filter语句
+        Filter matchFilter = filter.copy();
+        for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
+          matchFilter = generateFilterByWildCardEntry(matchFilter, entry);
+        }
+
+        if (measurementName != null) {
+          matchFilter = setTrueByMeasurement(matchFilter, measurementName);
+        }
+
+        matchFilter = ExprUtils.mergeTrue(matchFilter);
+
+        if (matchFilter.getType() == FilterType.Bool) {
+          return "";
+        }
+
+        filterStr = FilterTransformer.toString(matchFilter);
       }
-
-      // 根据通配符对应的字段生成filter语句
-      Filter matchFilter = filter.copy();
-      for (Map.Entry<String, List<String>> entry : fieldMap.entrySet()) {
-        matchFilter = generateFilterByWildCardEntry(matchFilter, entry);
-      }
-
-      if (measurementName != null) {
-        matchFilter = setTrueByMeasurement(matchFilter, measurementName);
-      }
-
-      matchFilter = ExprUtils.mergeTrue(matchFilter);
-
-      if (matchFilter.getType() == FilterType.Bool) {
-        return "";
-      }
-
-      return " |> filter(fn: (r) => " + FilterTransformer.toString(matchFilter) + ")";
     }
 
     // 没有通配符则直接返回正常拼接的语句
-    return noWildCardStatement;
+    if (filterStr.isEmpty()) {
+      return "";
+    }
+    return " |> filter(fn: (r) => " + filterStr + ")";
   }
 
   private Map<String, List<String>> getMeasurementToFields(String bucketName) {

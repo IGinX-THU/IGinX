@@ -1,7 +1,10 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import java.util.List;
 
 public abstract class AbstractMultipleOperator extends AbstractOperator
@@ -25,6 +28,23 @@ public abstract class AbstractMultipleOperator extends AbstractOperator
 
   public AbstractMultipleOperator(List<Source> sources) {
     this(OperatorType.Multiple, sources);
+  }
+
+  @Override
+  public void accept(OperatorVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    if (visitor.needStop()) {
+      return;
+    }
+
+    for (Source source : this.getSources()) {
+      if (source.getType() == SourceType.Operator) {
+        ((OperatorSource) source).getOperator().accept(visitor);
+      }
+    }
+    visitor.leave();
   }
 
   @Override

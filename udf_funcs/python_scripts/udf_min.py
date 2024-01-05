@@ -7,7 +7,7 @@ class UDFMin:
 
         minRow = []
         rows = data[2:]
-        for row in zip(*rows):
+        for row in list(zip(*rows))[1:]:
             min = None
             for num in row:
                 if num is not None:
@@ -21,6 +21,6 @@ class UDFMin:
 
     def buildHeader(self, data):
         colNames = []
-        for name in data[0]:
+        for name in data[0][1:]:
             colNames.append("udf_min(" + name + ")")
-        return [colNames, data[1]]
+        return [colNames, data[1][1:]]

@@ -164,6 +164,21 @@ public class IginxClient {
     if (!parseCommandLine(options, args, hf)) {
       return;
     }
+
+    // make sure session is closed when client is shutdown.
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(
+                () -> {
+                  try {
+                    if (!session.isClosed()) {
+                      session.closeSession();
+                    }
+                  } catch (SessionException e) {
+                    e.printStackTrace();
+                  }
+                }));
+
     serve(args);
   }
 
@@ -216,11 +231,17 @@ public class IginxClient {
             break;
           }
         }
+        session.closeSession();
         System.out.println("Goodbye");
       } else {
         processCommand(parseExecuteCommand(args));
       }
     } catch (UserInterruptException e) {
+      try {
+        session.closeSession();
+      } catch (SessionException ex) {
+        System.out.println("Unable to close session.");
+      }
       System.out.println("Goodbye");
     } catch (RuntimeException e) {
       System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error.");
@@ -326,6 +347,8 @@ public class IginxClient {
         case ShowConfig:
         case CommitTransformJob:
         case ShowJobStatus:
+        case ShowSessionID:
+        case ShowRules:
           res.print(false, "");
           break;
         case GetReplicaNum:
@@ -369,7 +392,7 @@ public class IginxClient {
       List<List<String>> cache = cacheResult(res);
       System.out.print(FormatUtils.formatResult(cache));
 
-      boolean isCanceled = false;
+      boolean isCancelled = false;
       int total = cache.size() - 1;
 
       while (res.hasMore()) {
@@ -383,16 +406,16 @@ public class IginxClient {
             System.out.print(FormatUtils.formatResult(cache));
             total += cache.size() - 1;
           } else {
-            isCanceled = true;
+            isCancelled = true;
             break;
           }
         } catch (IOException e) {
           System.out.println("IO Error: " + e.getMessage());
-          isCanceled = true;
+          isCancelled = true;
           break;
         }
       }
-      if (!isCanceled) {
+      if (!isCancelled) {
         System.out.print(FormatUtils.formatCount(total));
       }
       res.close();
@@ -616,6 +639,7 @@ public class IginxClient {
             Arrays.asList("set", "time", "unit", "in"),
             Arrays.asList("set", "config"),
             Arrays.asList("show", "config"),
+            Arrays.asList("set", "rules"),
             Collections.singletonList("select"));
     addArgumentCompleters(iginxCompleters, withNullCompleters, true);
 
@@ -627,6 +651,8 @@ public class IginxClient {
             Arrays.asList("show", "columns"),
             Arrays.asList("show", "cluster", "info"),
             Arrays.asList("show", "register", "python", "task"),
+            Arrays.asList("show", "sessionid"),
+            Arrays.asList("show", "rules"),
             Arrays.asList("remove", "historydatasource"));
     addArgumentCompleters(iginxCompleters, withoutNullCompleters, false);
 

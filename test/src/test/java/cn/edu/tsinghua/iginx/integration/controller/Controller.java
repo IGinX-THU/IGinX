@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.controller;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -22,9 +23,6 @@ import org.slf4j.LoggerFactory;
 public class Controller {
 
   private static final Logger logger = LoggerFactory.getLogger(Controller.class);
-
-  public static final String CLEAR_DATA_EXCEPTION =
-      "cn.edu.tsinghua.iginx.exceptions.ExecutionException: Caution: can not clear the data of read-only node.";
 
   public static final String CLEAR_DATA = "CLEAR DATA;";
 
@@ -62,7 +60,7 @@ public class Controller {
     try {
       res = session.executeSql(CLEAR_DATA);
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
         logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());

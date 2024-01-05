@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
@@ -33,28 +35,32 @@ public class StoragePhysicalTask extends AbstractPhysicalTask {
   private long storage;
   private boolean dummyStorageUnit;
 
-  public StoragePhysicalTask(List<Operator> operators) {
+  public StoragePhysicalTask(List<Operator> operators, RequestContext context) {
     this(
         operators,
         ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(),
         true,
-        false);
+        false,
+        context);
   }
 
-  public StoragePhysicalTask(List<Operator> operators, boolean sync, boolean needBroadcasting) {
+  public StoragePhysicalTask(
+      List<Operator> operators, boolean sync, boolean needBroadcasting, RequestContext context) {
     this(
         operators,
         ((FragmentSource) ((UnaryOperator) operators.get(0)).getSource()).getFragment(),
         sync,
-        needBroadcasting);
+        needBroadcasting,
+        context);
   }
 
   public StoragePhysicalTask(
       List<Operator> operators,
       FragmentMeta targetFragment,
       boolean sync,
-      boolean needBroadcasting) {
-    super(TaskType.Storage, operators);
+      boolean needBroadcasting,
+      RequestContext context) {
+    super(TaskType.Storage, operators, context);
     this.targetFragment = targetFragment;
     this.sync = sync;
     this.needBroadcasting = needBroadcasting;
@@ -107,5 +113,12 @@ public class StoragePhysicalTask extends AbstractPhysicalTask {
         + ", storage="
         + storage
         + '}';
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+    visitor.leave();
   }
 }

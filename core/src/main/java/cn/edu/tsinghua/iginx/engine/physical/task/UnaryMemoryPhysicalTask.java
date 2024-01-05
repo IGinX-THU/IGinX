@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -17,19 +18,16 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private static final Logger logger = LoggerFactory.getLogger(UnaryMemoryPhysicalTask.class);
 
-  private final PhysicalTask parentTask;
-
-  private final RequestContext context;
-
-  public UnaryMemoryPhysicalTask(List<Operator> operators, PhysicalTask parentTask) {
-    this(operators, parentTask, null);
-  }
+  private PhysicalTask parentTask;
 
   public UnaryMemoryPhysicalTask(
       List<Operator> operators, PhysicalTask parentTask, RequestContext context) {
-    super(TaskType.UnaryMemory, operators);
+    super(TaskType.UnaryMemory, operators, context);
     this.parentTask = parentTask;
-    this.context = context;
+  }
+
+  public void setParentTask(PhysicalTask parentTask) {
+    this.parentTask = parentTask;
   }
 
   public PhysicalTask getParentTask() {
@@ -55,7 +53,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
         if (!OperatorType.isUnaryOperator(op.getType())) {
           throw new UnexpectedOperatorException("unexpected operator " + op + " in unary task");
         }
-        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, context);
+        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, getContext());
       }
     } catch (PhysicalException e) {
       logger.error("encounter error when execute operator in memory: ", e);
@@ -67,5 +65,17 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
   @Override
   public boolean notifyParentReady() {
     return parentReadyCount.incrementAndGet() == 1;
+  }
+
+  @Override
+  public void accept(TaskVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    PhysicalTask task = getParentTask();
+    if (task != null) {
+      task.accept(visitor);
+    }
+    visitor.leave();
   }
 }

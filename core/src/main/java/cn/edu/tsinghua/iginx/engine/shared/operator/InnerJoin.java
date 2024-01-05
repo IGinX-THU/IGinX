@@ -9,7 +9,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
-public class InnerJoin extends AbstractJoinOperator {
+public class InnerJoin extends AbstractJoin {
 
   private Filter filter;
 
@@ -113,6 +113,20 @@ public class InnerJoin extends AbstractJoinOperator {
     return new InnerJoin(
         getSourceA().copy(),
         getSourceB().copy(),
+        getPrefixA(),
+        getPrefixB(),
+        filter.copy(),
+        new ArrayList<>(joinColumns),
+        isNaturalJoin,
+        getJoinAlgType(),
+        new ArrayList<>(getExtraJoinPrefix()));
+  }
+
+  @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new InnerJoin(
+        sourceA,
+        sourceB,
         getPrefixA(),
         getPrefixB(),
         filter.copy(),

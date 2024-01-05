@@ -19,7 +19,10 @@
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorVisitor;
+import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 
 public abstract class AbstractBinaryOperator extends AbstractOperator implements BinaryOperator {
 
@@ -38,6 +41,26 @@ public abstract class AbstractBinaryOperator extends AbstractOperator implements
 
   public AbstractBinaryOperator(Source sourceA, Source sourceB) {
     this(OperatorType.Binary, sourceA, sourceB);
+  }
+
+  @Override
+  public void accept(OperatorVisitor visitor) {
+    visitor.enter();
+    visitor.visit(this);
+
+    if (visitor.needStop()) {
+      return;
+    }
+
+    Source sourceA = this.getSourceA();
+    if (sourceA.getType() == SourceType.Operator) {
+      ((OperatorSource) sourceA).getOperator().accept(visitor);
+    }
+    Source sourceB = this.getSourceB();
+    if (sourceB.getType() == SourceType.Operator) {
+      ((OperatorSource) sourceB).getOperator().accept(visitor);
+    }
+    visitor.leave();
   }
 
   @Override

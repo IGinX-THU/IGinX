@@ -7,6 +7,8 @@ on:
 env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
+    IOTDB_FUNCTEST: SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
+
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
@@ -18,9 +20,12 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                python-version: ["3.7.16"]
-                os: [ubuntu-latest, macos-latest]
-                DB-name: ["Parquet"]
+                python-version: ["3.9"]
+                os: [ubuntu-latest, macos-latest, windows-latest]
+                DB-name:
+                    [
+                        "Parquet",
+                    ]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -52,9 +57,14 @@ jobs:
                   Test-Way: oriHasDataExpHasData
 
             - name: oriHasDataExpHasData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+                  else
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  fi
 
             # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
@@ -65,9 +75,14 @@ jobs:
                   Test-Way: oriNoDataExpNoData
 
             - name: oriNoDataExpNoData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+                  else
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  fi
 
             # 第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
@@ -78,9 +93,14 @@ jobs:
                   Test-Way: oriHasDataExpNoData
 
             - name: oriHasDataExpNoData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+                  else
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  fi
 
             # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
@@ -91,9 +111,14 @@ jobs:
                   Test-Way: oriNoDataExpHasData
 
             - name: oriNoDataExpHasData IT
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+                  else
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  fi
 
             # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
@@ -105,15 +130,26 @@ jobs:
                   Read-Only: true
 
             - name: Run testReadOnly
+              shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+                  else
+                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  fi
 
             - name: Show IGinX log
               if: always()
               shell: bash
               run: |
                   cat iginx-*.log
+
+            - if: always()
+              name: Show DB Logs on Windows
+              uses: ./.github/actions/dbLog
+              with:
+                  DB-name: ${{ matrix.DB-name }}
 
             - uses: codecov/codecov-action@v1
               with:

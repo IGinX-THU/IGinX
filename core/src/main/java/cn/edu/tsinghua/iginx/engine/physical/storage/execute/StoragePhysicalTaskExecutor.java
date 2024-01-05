@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage.execute;
 
+import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.NonExecutablePhysicalTaskException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -123,6 +124,13 @@ public class StoragePhysicalTaskExecutor {
                       if (pair.v.getQueue().size() > maxCachedPhysicalTaskPerStorage) {
                         task.setResult(
                             new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
+                        continue;
+                      }
+                      if (isCancelled(task.getSessionId())) {
+                        logger.warn(
+                            String.format(
+                                "StoragePhysicalTask[sessionId=%s] is cancelled.",
+                                task.getSessionId()));
                         continue;
                       }
                       pair.v.submit(
@@ -231,7 +239,8 @@ public class StoragePhysicalTaskExecutor {
                                     continue;
                                   }
                                   StoragePhysicalTask replicaTask =
-                                      new StoragePhysicalTask(task.getOperators(), false, false);
+                                      new StoragePhysicalTask(
+                                          task.getOperators(), false, false, task.getContext());
                                   storageTaskQueues.get(replicaId).addTask(replicaTask);
                                   logger.info("broadcasting task " + task + " to " + replicaId);
                                 }
@@ -264,6 +273,13 @@ public class StoragePhysicalTaskExecutor {
         storageUnitHook.onChange(null, storage.getDummyStorageUnit());
       }
     }
+  }
+
+  private boolean isCancelled(long sessionId) {
+    if (sessionId == 0) { // empty ctx
+      return false;
+    }
+    return SessionManager.getInstance().isSessionClosed(sessionId);
   }
 
   public static StoragePhysicalTaskExecutor getInstance() {

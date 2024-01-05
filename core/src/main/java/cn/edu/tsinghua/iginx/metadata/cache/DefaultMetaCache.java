@@ -643,22 +643,20 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public boolean invalidateStorageEngine(StorageEngineMeta storageEngineMeta) {
+  public boolean removeDummyStorageEngine(long storageEngineId) {
     storageUnitLock.writeLock().lock();
     fragmentLock.writeLock().lock();
 
-    long storageEngineId = storageEngineMeta.getId();
     if (!storageEngineMetaMap.containsKey(storageEngineId)) {
-      logger.error("unexpected storage engine to be invalidated");
+      logger.error("unexpected dummy storage engine {} to be removed", storageEngineId);
       return false;
     }
     String dummyStorageUnitId = generateDummyStorageUnitId(storageEngineId);
     StorageEngineMeta oldStorageEngineMeta = storageEngineMetaMap.get(storageEngineId);
-    if (oldStorageEngineMeta.isHasData()) {
-      dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
-      dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
-    }
-    storageEngineMetaMap.put(storageEngineId, storageEngineMeta);
+    assert oldStorageEngineMeta.isHasData();
+    dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
+    dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
+    storageEngineMetaMap.remove(storageEngineId);
 
     fragmentLock.writeLock().unlock();
     storageUnitLock.writeLock().unlock();

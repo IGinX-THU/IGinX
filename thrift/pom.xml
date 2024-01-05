@@ -108,16 +108,17 @@
                             <outputDirectory>${project.build.directory}/generated-sources/thrift</outputDirectory>
                         </configuration>
                     </execution>
-                    <!--                    <execution>-->
-                    <!--                        <id>generate-thrift-sources-python</id>-->
-                    <!--                        <phase>generate-sources</phase>-->
-                    <!--                        <goals>-->
-                    <!--                            <goal>compile</goal>-->
-                    <!--                        </goals>-->
-                    <!--                        <configuration>-->
-                    <!--                            <generator>py</generator>-->
-                    <!--                        </configuration>-->
-                    <!--                    </execution>-->
+                    <execution>
+                        <id>generate-thrift-sources-python</id>
+                        <goals>
+                            <goal>compile</goal>
+                        </goals>
+                        <phase>generate-sources</phase>
+                        <configuration>
+                            <generator>py</generator>
+                            <outputDirectory>${project.build.directory}/generated-sources/py</outputDirectory>
+                        </configuration>
+                    </execution>
                     <!--                    <execution>-->
                     <!--                        <id>generate-thrift-sources-go</id>-->
                     <!--                        <phase>generate-sources</phase>-->
@@ -145,6 +146,7 @@
                         <configuration>
                             <sources>
                                 <source>${project.build.directory}/generated-sources/thrift</source>
+                                <source>${project.build.directory}/generated-sources/py</source>
                             </sources>
                         </configuration>
                     </execution>
@@ -232,6 +234,18 @@
                                     <thriftSourceRoot>src/main/proto</thriftSourceRoot>
                                 </configuration>
                             </execution>
+                            <execution>
+                                <id>generate-thrift-sources-python</id>
+                                <goals>
+                                    <goal>compile</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <generator>py</generator>
+                                    <thriftExecutable>${thrift.exec.absolute.path}</thriftExecutable>
+                                    <thriftSourceRoot>src/main/proto</thriftSourceRoot>
+                                </configuration>
+                            </execution>
                         </executions>
                     </plugin>
                 </plugins>
@@ -261,7 +275,7 @@
                 </os>
             </activation>
             <properties>
-                <thrift.download-url>https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_linux.exe</thrift.download-url>
+                <thrift.download-url>https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/thrift_0.16.0_linux.exe</thrift.download-url>
                 <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}</thrift.exec-cmd.args>
                 <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
                 <thrift.executable>thrift_0.16.0_linux.exe</thrift.executable>
@@ -276,7 +290,7 @@
                 </os>
             </activation>
             <properties>
-                <thrift.download-url>https://github.com/thulab/IginX-benchmarks/raw/main/resources/thrift_0.16.0_mac.exe</thrift.download-url>
+                <thrift.download-url>https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/thrift_0.16.0_mac.exe</thrift.download-url>
                 <thrift.exec-cmd.args>+x ${project.build.directory}/tools/${thrift.executable}</thrift.exec-cmd.args>
                 <thrift.exec-cmd.executable>chmod</thrift.exec-cmd.executable>
                 <thrift.executable>thrift_0.16.0_mac.exe</thrift.executable>

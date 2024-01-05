@@ -50,6 +50,11 @@ public class Limit extends AbstractUnaryOperator {
   }
 
   @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Limit(source, limit, offset);
+  }
+
+  @Override
   public String getInfo() {
     return "Limit: " + limit + ", Offset: " + offset;
   }

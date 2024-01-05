@@ -1,31 +1,11 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import java.util.Collections;
 
-public class CompletedFoldedPhysicalTask extends MemoryPhysicalTask {
+public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private PhysicalTask parentTask;
-
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask) {
-    super(TaskType.CompletedFolded, Collections.emptyList());
-    this.parentTask = parentTask;
-  }
-
-  public PhysicalTask getParentTask() {
-    return parentTask;
-  }
-
-  public void setParentTask(PhysicalTask parentTask) {
-    this.parentTask = parentTask;
-  }
-
-  @Override
-  public TaskExecuteResult execute() {
-    return parentTask.getResult();
-  }
-
-  @Override
-  public boolean notifyParentReady() {
-    return parentReadyCount.incrementAndGet() == 1;
+  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
+    super(Collections.emptyList(), parentTask, context);
   }
 }

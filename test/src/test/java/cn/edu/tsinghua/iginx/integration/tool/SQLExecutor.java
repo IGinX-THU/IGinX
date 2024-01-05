@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
@@ -48,7 +49,7 @@ public class SQLExecutor {
     try {
       res = conn.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-      if (e.toString().trim().equals(CLEAR_DATA_EXCEPTION)) {
+      if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
         return "";
       } else {

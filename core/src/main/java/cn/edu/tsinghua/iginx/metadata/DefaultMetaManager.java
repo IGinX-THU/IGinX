@@ -436,16 +436,13 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
-  public boolean invalidateStorageEngine(StorageEngineMeta storageEngineMeta) {
-    if (storageEngineMeta == null) {
-      return false;
-    }
+  public boolean removeDummyStorageEngine(long storageEngineId) {
     try {
-      storage.invalidateStorageEngine(storageEngineMeta);
-      return cache.invalidateStorageEngine(storageEngineMeta);
+      storage.removeDummyStorageEngine(storageEngineId);
+      return cache.removeDummyStorageEngine(storageEngineId);
       // TODO 由于当前 StorageEngineChangeHook 和 StorageUnitHook 只会处理新增事件，因此不必调用相关 onChange 函数
     } catch (MetaStorageException e) {
-      logger.error("invalidate storage engine error:", e);
+      logger.error("remove dummy storage engine {} error: {}", storageEngineId, e.getMessage());
     }
     return false;
   }
@@ -1218,7 +1215,7 @@ public class DefaultMetaManager implements IMetaManager {
         } else {
           KAndV = storageEngineParts[j].split("=");
           if (KAndV.length != 2) {
-            logger.error("unexpected storage engine meta info: " + storageEngineStrings[i]);
+            logger.error("unexpected storage engine meta info {}", storageEngineStrings[i]);
             continue;
           }
           extraParams.put(KAndV[0], KAndV[1]);
@@ -1233,7 +1230,9 @@ public class DefaultMetaManager implements IMetaManager {
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
       if (!checkEmbeddedStorageExtraParams(
           StorageEngineType.valueOf(storageEngine.toLowerCase()), extraParams)) {
-        logger.error("Missing or providing invalid params for {} in config file.", storageEngine);
+        logger.error(
+            "missing params or providing invalid ones for {} in config file",
+            storageEngineStrings[i]);
         continue;
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);

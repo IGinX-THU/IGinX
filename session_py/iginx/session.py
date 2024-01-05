@@ -16,8 +16,11 @@
 # under the License.
 #
 import logging
+import os.path
+
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
+from pathlib import Path
 
 from .cluster_info import ClusterInfo
 from .dataset import QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
@@ -47,8 +50,9 @@ from .thrift.rpc.ttypes import (
     FetchResultsReq,
     CloseStatementReq,
     DebugInfoReq,
+    LoadCSVReq,
 
-    StorageEngine,
+    StorageEngine, DataType,
 )
 from .time_series import TimeSeries
 from .utils.bitmap import Bitmap
@@ -211,7 +215,7 @@ class Session(object):
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
 
-        req = InsertRowRecordsReq(sessionId=self.__session_id, paths=paths, timestamps=timestamps_to_bytes(timestamps), valuesList=values_buffer_list,
+        req = InsertRowRecordsReq(sessionId=self.__session_id, paths=paths, keys=timestamps_to_bytes(timestamps), valuesList=values_buffer_list,
                                   bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list, tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertRowRecords(req)
         Session.verify_status(status)
@@ -388,26 +392,26 @@ class Session(object):
 
     def query(self, paths, start_time, end_time, timePrecision=None):
         req = QueryDataReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths),
-                           startTime=start_time, endTime=end_time, timePrecision=timePrecision)
+                           startKey=start_time, endKey=end_time, timePrecision=timePrecision)
         resp = self.__client.queryData(req)
         Session.verify_status(resp.status)
         paths = resp.paths
         data_types = resp.dataTypeList
         raw_data_set = resp.queryDataSet
-        return QueryDataSet(paths, data_types, raw_data_set.timestamps, raw_data_set.valuesList, raw_data_set.bitmapList)
+        return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList, raw_data_set.bitmapList)
 
 
     def last_query(self, paths, start_time=0, timePrecision=None):
         if len(paths) == 0:
             logger.warning("paths shouldn't be empty")
             return None
-        req = LastQueryReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths), startTime=start_time, timePrecision=timePrecision)
+        req = LastQueryReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths), startKey=start_time, timePrecision=timePrecision)
         resp = self.__client.lastQuery(req)
         Session.verify_status(resp.status)
         paths = resp.paths
         data_types = resp.dataTypeList
         raw_data_set = resp.queryDataSet
-        return QueryDataSet(paths, data_types, raw_data_set.timestamps, raw_data_set.valuesList,
+        return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList,
                             raw_data_set.bitmapList)
 
 
@@ -424,7 +428,7 @@ class Session(object):
 
 
     def aggregate_query(self, paths, start_time, end_time, type, timePrecision=None):
-        req = AggregateQueryReq(sessionId=self.__session_id, paths=paths, startTime=start_time, endTime=end_time, aggregateType=type, timePrecision=timePrecision)
+        req = AggregateQueryReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time, aggregateType=type, timePrecision=timePrecision)
         resp = self.__client.aggregateQuery(req)
         Session.verify_status(resp.status)
         return AggregateQueryDataSet(resp=resp, type=type)
@@ -482,6 +486,58 @@ class Session(object):
         Session.verify_status(resp.status)
         return StatementExecuteDataSet(self, resp.queryId, resp.columns, resp.dataTypeList, fetch_size,
                                        resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList)
+
+
+    def load_csv(self, statement):
+        req = ExecuteSqlReq(sessionId=self.__session_id, statement=statement)
+        resp = self.__client.executeSql(req)
+        Session.verify_status(resp.status)
+
+        path = resp.loadCsvPath
+        file = Path(path)
+        if not file.is_file():
+            raise ValueError(f"{path} is not a file!")
+        if not path.endswith(".csv"):
+            raise ValueError(f"The file name must end with [.csv], {path} doesn't satisfy the requirement!")
+
+        with open(file, 'rb') as f:
+            bytes_content = f.read()  # 读取文件内容为bytes
+
+        csv_content = bytes_content
+        req = LoadCSVReq(sessionId=self.__session_id, statement=statement, csvFile=csv_content)
+        resp = self.__client.loadCSV(req)
+        Session.verify_status(resp.status)
+        return resp
+
+
+    # load all files in a directory into IGinX database
+    def load_directory(self, dir_path):
+        all_files = [os.path.join(dir_path, f) for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
+        for file_path in all_files:
+            print(f"Reading file: {file_path}")
+            self.load_file_by_chunks(file_path)
+            print(f"Load file: {file_path} into IGinX succeeded.")
+
+
+    # divide file into 1mb chunks
+    def load_file_by_chunks(self, file_path, chunk_size=1024*1024):
+        with open(file_path, 'rb') as file:
+            index = 0
+            while True:
+                chunk = file.read(chunk_size)
+                if not chunk:
+                    break
+                self.process_file_chunk(chunk, file_path, index)
+                index += 1
+
+
+    # insert file chunk(1mb, binary) into IGinX
+    # index will be key, chunk will be value
+    def process_file_chunk(self, chunk, file_path, index):
+        file_name = os.path.basename(file_path)
+        file_dir = os.path.basename(os.path.dirname(file_path))
+        data_path = file_dir + "." + str(file_name).replace(".", "")
+        self.insert_row_records(paths=[data_path], timestamps=[index], values_list=[[chunk]], data_type_list=[DataType.BINARY])
 
 
     def get_debug_info(self, payload, typ):

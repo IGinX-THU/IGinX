@@ -1,0 +1,61 @@
+name: "set context"
+description: "set context"
+inputs:
+    work-name:
+        description: "current work name"
+        required: false
+        default: client
+    shell:
+        description: "start shell"
+        required: false
+        default: client
+
+runs:
+    using: "composite" # Mandatory parameter
+    steps:
+        - if: inputs.work-name=='stop-iginx-zk' || inputs.work-name=='restart-iginx-zk'
+          name: Stop IGinX
+          uses: ./.github/actions/iginxRunner
+          with:
+              version: ${VERSION}
+              if-stop: true
+
+        - if: inputs.work-name=='stop-iginx-zk' || inputs.work-name=='restart-iginx-zk'
+          name: Stop and clear ZooKeeper
+          uses: ./.github/actions/zookeeperRunner
+          with:
+              if-stop: true
+
+        - if: inputs.work-name=='start-iginx-zk' || inputs.work-name=='restart-iginx-zk'
+          name: Run ZooKeeper
+          uses: ./.github/actions/zookeeperRunner
+          with:
+              if-rerun: true
+
+        - if: inputs.work-name=='start-iginx-zk' || inputs.work-name=='restart-iginx-zk'
+          name: Start IGinX
+          uses: ./.github/actions/iginxRunner
+
+        - if: inputs.shell=='client-before'
+          name: Pre Test Client Export File
+          shell: bash
+          run: |
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+              fi
+
+        - if: inputs.shell=='client-after'
+          name: Pre Test Client Import File
+          shell: bash
+          run: |
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile.sh"
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_infile_macos.sh"
+              fi

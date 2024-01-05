@@ -48,6 +48,11 @@ public class Join extends AbstractBinaryOperator {
   }
 
   @Override
+  public BinaryOperator copyWithSource(Source sourceA, Source sourceB) {
+    return new Join(sourceA, sourceB, joinBy);
+  }
+
+  @Override
   public String getInfo() {
     return "JoinBy: " + joinBy;
   }

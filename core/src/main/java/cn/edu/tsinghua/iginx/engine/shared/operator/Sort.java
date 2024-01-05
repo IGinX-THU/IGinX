@@ -54,6 +54,11 @@ public class Sort extends AbstractUnaryOperator {
     return new Sort(getSource().copy(), new ArrayList<>(sortByCols), sortType);
   }
 
+  @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Sort(source, new ArrayList<>(sortByCols), sortType);
+  }
+
   public enum SortType {
     ASC,
     DESC

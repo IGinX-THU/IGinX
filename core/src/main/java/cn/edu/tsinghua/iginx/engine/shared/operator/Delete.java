@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +39,15 @@ public class Delete extends AbstractUnaryOperator {
   public Operator copy() {
     return new Delete(
         (FragmentSource) getSource().copy(),
+        new ArrayList<>(keyRanges),
+        new ArrayList<>(patterns),
+        tagFilter == null ? null : tagFilter.copy());
+  }
+
+  @Override
+  public UnaryOperator copyWithSource(Source source) {
+    return new Delete(
+        (FragmentSource) source,
         new ArrayList<>(keyRanges),
         new ArrayList<>(patterns),
         tagFilter == null ? null : tagFilter.copy());

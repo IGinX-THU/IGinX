@@ -76,7 +76,7 @@ public class IntersectLazyStream extends BinaryLazyStream {
         hash = Objects.hash(rowB.getKey());
       } else {
         Value value = rowB.getAsValue(0);
-        if (value == null) {
+        if (value.isNull()) {
           continue;
         }
         hash = getHash(value, needTypeCast);
@@ -115,7 +115,7 @@ public class IntersectLazyStream extends BinaryLazyStream {
       hash = Objects.hash(rowA.getKey());
     } else {
       Value value = rowA.getAsValue(0);
-      if (value == null) {
+      if (value.isNull()) {
         return;
       }
       hash = getHash(value, needTypeCast);

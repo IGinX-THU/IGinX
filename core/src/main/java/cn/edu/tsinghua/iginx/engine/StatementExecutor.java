@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -16,11 +17,8 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
-import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskType;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
@@ -34,11 +32,8 @@ import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
-import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostExecuteProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PostParseProcessor;
@@ -48,9 +43,6 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.Processor;
-import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.exceptions.StatusCode;
@@ -391,54 +383,9 @@ public class StatementExecutor {
                 new Field("Operator Info", DataType.BINARY)));
     Header header = new Header(fields);
 
-    List<Object[]> cache = new ArrayList<>();
-    int[] maxLen = new int[] {0};
-    dfsLogicalTree(cache, root, 0, maxLen);
-    formatTree(ctx, header, cache, maxLen[0]);
-  }
-
-  private void dfsLogicalTree(List<Object[]> cache, Operator op, int depth, int[] maxLen) {
-    OperatorType type = op.getType();
-    StringBuilder builder = new StringBuilder();
-    if (depth != 0) {
-      for (int i = 0; i < depth; i++) {
-        builder.append("  ");
-      }
-      builder.append("+--");
-    }
-    builder.append(type);
-
-    maxLen[0] = Math.max(maxLen[0], builder.length());
-
-    Object[] values = new Object[3];
-    values[0] = builder.toString();
-    values[1] = op.getType().toString().getBytes();
-    values[2] = op.getInfo().getBytes();
-    cache.add(values);
-
-    if (OperatorType.isUnaryOperator(type)) {
-      Source source = ((UnaryOperator) op).getSource();
-      if (source.getType() == SourceType.Operator) {
-        dfsLogicalTree(cache, ((OperatorSource) source).getOperator(), depth + 1, maxLen);
-      }
-    } else if (OperatorType.isBinaryOperator(type)) {
-      BinaryOperator binaryOp = (BinaryOperator) op;
-      Source sourceA = binaryOp.getSourceA();
-      if (sourceA.getType() == SourceType.Operator) {
-        dfsLogicalTree(cache, ((OperatorSource) sourceA).getOperator(), depth + 1, maxLen);
-      }
-      Source sourceB = binaryOp.getSourceB();
-      if (sourceB.getType() == SourceType.Operator) {
-        dfsLogicalTree(cache, ((OperatorSource) sourceB).getOperator(), depth + 1, maxLen);
-      }
-    } else if (OperatorType.isMultipleOperator(type)) {
-      MultipleOperator multipleOp = (MultipleOperator) op;
-      for (Source source : multipleOp.getSources()) {
-        if (source.getType() == SourceType.Operator) {
-          dfsLogicalTree(cache, ((OperatorSource) source).getOperator(), depth + 1, maxLen);
-        }
-      }
-    }
+    OperatorInfoVisitor visitor = new OperatorInfoVisitor();
+    root.accept(visitor);
+    formatTree(ctx, header, visitor.getCache(), visitor.getMaxLen());
   }
 
   private void processExplainPhysicalStatement(RequestContext ctx)
@@ -454,46 +401,9 @@ public class StatementExecutor {
                 new Field("Affect Rows", DataType.INTEGER)));
     Header header = new Header(fields);
 
-    List<Object[]> cache = new ArrayList<>();
-    int[] maxLen = new int[] {0};
-    dfsPhysicalTree(cache, root, 0, maxLen);
-    formatTree(ctx, header, cache, maxLen[0]);
-  }
-
-  private void dfsPhysicalTree(List<Object[]> cache, PhysicalTask task, int depth, int[] maxLen) {
-    TaskType type = task.getType();
-    StringBuilder builder = new StringBuilder();
-    if (depth != 0) {
-      for (int i = 0; i < depth; i++) {
-        builder.append("  ");
-      }
-      builder.append("+--");
-    }
-    builder.append(type);
-
-    maxLen[0] = Math.max(maxLen[0], builder.length());
-
-    Object[] values = new Object[5];
-    values[0] = builder.toString();
-    values[1] = (task.getSpan() + "ms").getBytes();
-    values[2] = task.getType().toString().getBytes();
-    values[3] = task.getInfo().getBytes();
-    values[4] = task.getAffectedRows();
-    cache.add(values);
-
-    if (task.getType() == TaskType.BinaryMemory) {
-      BinaryMemoryPhysicalTask binaryTask = (BinaryMemoryPhysicalTask) task;
-      dfsPhysicalTree(cache, binaryTask.getParentTaskA(), depth + 1, maxLen);
-      dfsPhysicalTree(cache, binaryTask.getParentTaskB(), depth + 1, maxLen);
-    } else if (task.getType() == TaskType.UnaryMemory) {
-      UnaryMemoryPhysicalTask unaryTask = (UnaryMemoryPhysicalTask) task;
-      dfsPhysicalTree(cache, unaryTask.getParentTask(), depth + 1, maxLen);
-    } else if (task.getType() == TaskType.MultipleMemory) {
-      MultipleMemoryPhysicalTask multipleTask = (MultipleMemoryPhysicalTask) task;
-      for (PhysicalTask parentTask : multipleTask.getParentTasks()) {
-        dfsPhysicalTree(cache, parentTask, depth + 1, maxLen);
-      }
-    }
+    TaskInfoVisitor visitor = new TaskInfoVisitor();
+    root.accept(visitor);
+    formatTree(ctx, header, visitor.getCache(), visitor.getMaxLen());
   }
 
   private void formatTree(RequestContext ctx, Header header, List<Object[]> cache, int maxLen)
@@ -767,12 +677,12 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void setEmptyQueryResp(RequestContext ctx) {
+  private void setEmptyQueryResp(RequestContext ctx, List<String> paths) {
     Result result = new Result(RpcUtils.SUCCESS);
     result.setKeys(new Long[0]);
     result.setValuesList(new ArrayList<>());
     result.setBitmapList(new ArrayList<>());
-    result.setPaths(new ArrayList<>());
+    result.setPaths(paths);
     ctx.setResult(result);
   }
 
@@ -786,7 +696,7 @@ public class StatementExecutor {
       case DELETE:
         DeleteStatement deleteStatement = (DeleteStatement) statement;
         if (deleteStatement.isInvolveDummyData()) {
-          throw new ExecutionException("Caution: can not clear the data of read-only node.");
+          throw new ExecutionException(CLEAR_DUMMY_DATA_CAUTION);
         } else {
           ctx.setResult(new Result(RpcUtils.SUCCESS));
         }
@@ -817,6 +727,12 @@ public class StatementExecutor {
       ctx.setResult(result);
       return;
     }
+
+    if (stream == null) {
+      setEmptyQueryResp(ctx, new ArrayList<>());
+      return;
+    }
+
     List<String> paths = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
     List<DataType> types = new ArrayList<>();
@@ -859,7 +775,7 @@ public class StatementExecutor {
     }
 
     if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx);
+      setEmptyQueryResp(ctx, paths);
       return;
     }
 

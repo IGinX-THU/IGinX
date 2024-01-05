@@ -23,10 +23,13 @@ import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionManager {
 
-  private static SessionManager instance;
+  private static final Logger logger = LoggerFactory.getLogger(SessionManager.class);
+
   private final UserManager userManager;
   private final Set<Long> sessionIds = ConcurrentHashMap.newKeySet();
 
@@ -34,15 +37,16 @@ public class SessionManager {
     this.userManager = userManager;
   }
 
+  private static final class InstanceHolder {
+    static final SessionManager instance = new SessionManager(UserManager.getInstance());
+  }
+
   public static SessionManager getInstance() {
-    if (instance == null) {
-      synchronized (UserManager.class) {
-        if (instance == null) {
-          instance = new SessionManager(UserManager.getInstance());
-        }
-      }
-    }
-    return instance;
+    return InstanceHolder.instance;
+  }
+
+  public Set<Long> getSessionIds() {
+    return sessionIds;
   }
 
   public boolean checkSession(long sessionId, AuthType auth) {
@@ -63,11 +67,17 @@ public class SessionManager {
     for (AuthType auth : userMeta.getAuths()) {
       sessionId += (1L << auth.getValue());
     }
+    logger.info("new session id comes: " + sessionId);
     sessionIds.add(sessionId);
     return sessionId;
   }
 
   public void closeSession(long sessionId) {
+    logger.info(String.format("session id %s is removed.", sessionId));
     sessionIds.remove(sessionId);
+  }
+
+  public boolean isSessionClosed(long sessionId) {
+    return !sessionIds.contains(sessionId);
   }
 }
