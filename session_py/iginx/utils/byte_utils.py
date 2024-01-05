@@ -144,42 +144,34 @@ class BytesParser(object):
         self.__bytes = bytes
         self.__index = 0
 
-
     def _next(self, length):
         bytes = self.__bytes[self.__index: self.__index + length]
         self.__index += length
         return bytes
 
-
     def next_int(self):
         bytes = self._next(4)
         return struct.unpack(">i", bytes)[0]
-
 
     def next_long(self):
         bytes = self._next(8)
         return struct.unpack(">q", bytes)[0]
 
-
     def next_binary(self):
         size = self.next_int()
         return self._next(size)
-
 
     def next_boolean(self):
         bytes = self._next(1)
         return struct.unpack(">?", bytes)[0]
 
-
     def next_float(self):
         bytes = self._next(4)
         return struct.unpack(">f", bytes)[0]
 
-
     def next_double(self):
         bytes = self._next(8)
         return struct.unpack(">d", bytes)[0]
-
 
     def next(self, type):
         if type == DataType.BOOLEAN:

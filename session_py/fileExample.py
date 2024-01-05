@@ -206,7 +206,7 @@ def load_largefile_directory_and_export(session: Session):
 
     # 将数据另存到本地文件，注意此处给出的相对路径是相对于本测试脚本的，也可以使用绝对路径
     session.export_to_file("select large_img_jpg from largefile into outfile \"img_outfile\" as stream;")
-    # 此时生成的文件路径为{IGINX_HOME}/img_outfile/largefile.large_img_jpg
+    # 此时生成的文件路径为./img_outfile/largefile.large_img_jpg
 
 
 def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668,
@@ -249,10 +249,10 @@ if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
 
-    # load_csv_with_header(session)
-    # load_csv_without_header(session)
-    # load_image_file(session)
-    # load_directory(session)
+    load_csv_with_header(session)
+    load_csv_without_header(session)
+    load_image_file(session)
+    load_directory(session)
     load_largefile_directory_and_export(session)
 
     session.close()
