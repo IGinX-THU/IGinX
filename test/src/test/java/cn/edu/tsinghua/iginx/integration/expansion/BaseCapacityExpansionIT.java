@@ -12,7 +12,6 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.redis.RedisCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;

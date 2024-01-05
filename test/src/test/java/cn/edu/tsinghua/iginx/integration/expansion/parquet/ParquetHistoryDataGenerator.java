@@ -15,14 +15,13 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ParquetFormatHistoryDataGenerator extends BaseHistoryDataGenerator {
+public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger =
-      LoggerFactory.getLogger(ParquetFormatHistoryDataGenerator.class);
+  private static final Logger logger = LoggerFactory.getLogger(ParquetHistoryDataGenerator.class);
 
   private static final char IGINX_SEPARATOR = '.';
 
-  public ParquetFormatHistoryDataGenerator() {}
+  public ParquetHistoryDataGenerator() {}
 
   @Override
   public void writeHistoryData(
