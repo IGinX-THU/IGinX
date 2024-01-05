@@ -508,26 +508,43 @@ class Session(object):
 
     # divide file into chunks(default:10KB)
     def load_file_by_chunks(self, file_path, chunk_size):
+        step = self.decide_log_step(file_path)
         with open(file_path, 'rb') as file:
             index = 0
             while True:
                 chunk = file.read(chunk_size)
                 if not chunk:
                     break
-                self.process_file_chunk(chunk, file_path, index)
+                self.process_file_chunk(chunk, file_path, index, index % step == 0)
                 index += 1
+
+    def decide_log_step(self, file_path):
+        file_size = Path(file_path).stat().st_size
+        # 10MB以内
+        if file_size < 100 * 1024 * 1024:
+            return 10  # 每10块记录一次
+        # 100MB到1GB
+        elif file_size < 1 * 1024 * 1024 * 1024:
+            return 100  # 每100块记录一次
+        # 大于1GB
+        else:
+            return 1000  # 每1000块记录一次
+
 
     # insert file chunk data into IGinX
     # index will be key, chunk will be value
-    def process_file_chunk(self, chunk, file_path, index):
-        if file_path.__contains__("-"):
-            print(f"Warning occurred processing file {file_path}: File path can't contain \"-\"")
+    def process_file_chunk(self, chunk, file_path, index, is_report):
+        file_name = os.path.basename(file_path).replace("-", "_")
+        file_dir = os.path.basename(os.path.dirname(file_path)).replace("-", "_")
+        if file_name.__contains__("-") or file_dir.__contains__("-"):
+            print(f"Warning occurred processing file {file_path}: File name: {file_name} and last dir: {file_dir}/ can't contain \"-\"")
             print(f"\t\t \"-\" will be replaced with \"_\"")
-            file_path = file_path.replace("-", "_")
-        file_name = os.path.basename(file_path)
-        file_dir = os.path.basename(os.path.dirname(file_path))
+            file_name = file_name.replace("-", "_")
+            file_dir = file_dir.replace("-", "_")
         data_path = file_dir + "." + str(file_name).replace(".", "_")
-        print(f"Processing #{index} file chunk...")
+        # 若干个块一报，避免大文件报太多
+        if is_report:
+            print(f"Processing #{index} file chunk and more chunks...")
         self.insert_row_records(paths=[data_path], timestamps=[index], values_list=[[chunk]],
                                 data_type_list=[DataType.BINARY])
 
