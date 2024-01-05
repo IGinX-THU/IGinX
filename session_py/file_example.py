@@ -201,7 +201,7 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
     """
     path	type    
     b'largeImg.large_img_jpg'		b'BINARY'		
-    结果显示添加了largefile目录中的large_img.jpg文件
+    结果显示添加了largeImg目录中的large_img.jpg文件
     """
 
     # 查看第一个文件在IGinX内存储块数（默认10KB为一块，推荐勿改此参数）
@@ -226,7 +226,7 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
     # 将数据另存到本地文件，注意此处给出的相对路径是相对于本测试脚本的，也可以使用绝对路径
     # 注意导出为数据流时给出的是目标文件夹的路径
     session.export_to_file(f"select {file_list[0]} from {base_dir} into outfile \"{out_dir_path}\" as stream;")
-    # 此时生成的文件路径为./img_outfile/largefile.large_img_jpg
+    # 此时生成的文件路径为./img_outfile/largeImg.large_img_jpg
     print()
 
 
