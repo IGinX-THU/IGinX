@@ -158,7 +158,7 @@ public class InfluxDBStorage implements IStorage {
       if (bucket.getName().startsWith("unit")) {
         continue;
       }
-      LOGGER.debug("history data bucket info: " + bucket);
+      LOGGER.debug("history data bucket info: {}", bucket);
       historyBucketMap.put(bucket.getName(), bucket);
     }
   }
@@ -202,7 +202,7 @@ public class InfluxDBStorage implements IStorage {
                   ? MEASUREMENTALL
                   : "= \"" + measurementPrefix + "\"",
               fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/");
-      LOGGER.debug("execute statement: " + statement);
+      LOGGER.debug("execute statement: {}" , statement);
       // 查询 first
       List<FluxTable> tables =
           client.getQueryApi().query(statement + " |> first()", organization.getId());
@@ -211,7 +211,7 @@ public class InfluxDBStorage implements IStorage {
           long time = instantToNs(record.getTime());
           minTime = Math.min(time, minTime);
           maxTime = Math.max(time, maxTime);
-          LOGGER.debug("record: " + InfluxDBStorage.toString(table, record));
+          LOGGER.debug("record: {}", InfluxDBStorage.toString(table, record));
         }
       }
       // 查询 last
@@ -221,7 +221,7 @@ public class InfluxDBStorage implements IStorage {
           long time = instantToNs(record.getTime());
           minTime = Math.min(time, minTime);
           maxTime = Math.max(time, maxTime);
-          LOGGER.debug("record: " + InfluxDBStorage.toString(table, record));
+          LOGGER.debug("record: {}", InfluxDBStorage.toString(table, record));
         }
       }
     }
@@ -353,7 +353,7 @@ public class InfluxDBStorage implements IStorage {
               keyInterval.getStartKey(),
               keyInterval.getEndKey());
 
-      LOGGER.info("execute query: " + statement);
+      LOGGER.info("execute query: {}", statement);
       bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
     }
 
@@ -405,7 +405,7 @@ public class InfluxDBStorage implements IStorage {
       if (!bucketQueries.get(bucket).equals("()")) {
         statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
       }
-      LOGGER.info("execute query: " + statement);
+      LOGGER.info("execute query: {}", statement);
       bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
     }
 
@@ -581,7 +581,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
 
-    LOGGER.info("generate query: " + statement);
+    LOGGER.info("generate query: {}", statement);
     return statement;
   }
 
@@ -1026,7 +1026,7 @@ public class InfluxDBStorage implements IStorage {
       LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      LOGGER.error("encounter error when write points to influxdb: ", e);
+      return new PhysicalTaskExecuteFailureException("encounter error when write points to influxdb: " + e.getMessage());
     } finally {
       LOGGER.info("数据写入完毕！");
     }
@@ -1116,7 +1116,7 @@ public class InfluxDBStorage implements IStorage {
       LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      LOGGER.error("encounter error when write points to influxdb: ", e);
+      return new PhysicalTaskExecuteFailureException("encounter error when write points to influxdb: " + e.getMessage());
     } finally {
       LOGGER.info("数据写入完毕！");
     }

@@ -205,7 +205,7 @@ public class InfluxDBQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      LOGGER.error(e.getMessage());
+      throw new RowFetchException(e);
     }
 
     return cachedRow != null;
@@ -303,7 +303,6 @@ public class InfluxDBQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      LOGGER.error(e.getMessage());
       throw new RowFetchException(e);
     }
   }
