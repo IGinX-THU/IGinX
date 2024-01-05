@@ -650,7 +650,10 @@ class Session(object):
                 header_names.extend(resp.columns())
                 writer.writerow(header_names)
 
+            index = 0
             while resp.has_more():
+                index += 1
+                print(f"Writing #{index} 1000 records into file: {os.path.abspath(path)}...")
                 cache = self.cache_result(resp, True)
                 writer.writerows(cache)
 

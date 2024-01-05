@@ -17,7 +17,7 @@ def load_csv_with_header(session: Session, csv_path):
         f"LOAD DATA FROM INFILE \"{csv_path}\" AS CSV SKIPPING HEADER INTO ta(key, a, b, c, d);")
     columns = resp.columns
     recordsNum = resp.recordsNum
-    print(f"Successfully write {recordsNum} record(s) to: {columns}")
+    print(f"Successfully wrote {recordsNum} record(s) to: {columns}")
 
     # 查询插入的数据
     dataset = session.execute_statement("select * from ta;", fetch_size=2)
@@ -51,7 +51,7 @@ def load_csv_without_header(session: Session, csv_path):
         f"LOAD DATA FROM INFILE \"{csv_path}\" AS CSV INTO tb(key, a, b, c, d);")
     columns = resp.columns
     recordsNum = resp.recordsNum
-    print(f"Successfully write {recordsNum} record(s) to: {columns}")
+    print(f"Successfully wrote {recordsNum} record(s) to: {columns}")
 
     # 查询插入的数据
     dataset = session.execute_statement("select * from tb;", fetch_size=2)
@@ -237,7 +237,7 @@ def load_largecsv_and_export(session: Session, csv_path, out_file_path):
         f"{table_name}(key, Name, Email, Phone, Address, City, State);")
     columns = resp.columns
     recordsNum = resp.recordsNum
-    print(f"Successfully write {recordsNum} record(s) to: {columns}")
+    print(f"Successfully wrote {recordsNum} record(s) to: {columns}")
 
     # 查看数据量
     dataset = session.execute_statement(f"select count(*) from {table_name};", fetch_size=2)
