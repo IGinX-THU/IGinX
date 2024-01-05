@@ -164,8 +164,7 @@ public class IoTDBQueryRowStream implements RowStream {
       }
       return state == State.HAS_NEXT;
     } catch (SQLException e) {
-      LOGGER.error(e.getMessage());
-      throw new RowFetchException(e);
+      throw new RowFetchException(new RuntimeException("IoTDBQueryRowStream hasNext error", e));
     }
   }
 
@@ -181,8 +180,7 @@ public class IoTDBQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      LOGGER.error(e.getMessage());
-      throw new RowFetchException(e);
+      throw new RowFetchException(new RuntimeException("IoTDBQueryRowStream next error", e));
     }
   }
 
@@ -214,8 +212,7 @@ public class IoTDBQueryRowStream implements RowStream {
         cachedRow = null;
       }
     } catch (StatementExecutionException | IoTDBConnectionException e) {
-      LOGGER.error(e.getMessage());
-      throw new RowFetchException(e);
+      throw new RowFetchException(new RuntimeException("IoTDBQueryRowStream cacheOneRow error", e));
     }
   }
 

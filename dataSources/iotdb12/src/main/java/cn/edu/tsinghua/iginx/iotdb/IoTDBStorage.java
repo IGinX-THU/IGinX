@@ -338,14 +338,13 @@ public class IoTDBStorage implements IStorage {
         statement += String.format(QUERY_WHERE, filterStr);
       }
 
-      LOGGER.info("[Query] execute query: " + statement);
+      LOGGER.info("[Query] execute query: {}", statement);
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new IoTDBQueryRowStream(
                   sessionPool.executeQueryStatement(statement), true, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
-      LOGGER.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
     }
@@ -395,14 +394,13 @@ public class IoTDBStorage implements IStorage {
         statement += String.format(QUERY_WHERE, filterStr);
       }
 
-      LOGGER.info("[Query] execute query: " + statement);
+      LOGGER.info("[Query] execute query: {}", statement);
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new IoTDBQueryRowStream(
                   sessionPool.executeQueryStatement(statement), false, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
-      LOGGER.error(e.getMessage());
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
     }
@@ -503,8 +501,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        LOGGER.error(e.getMessage());
-        return e;
+        return new RuntimeException("insert tablets error", e);
       }
 
       for (Tablet tablet : tablets.values()) {
@@ -582,8 +579,7 @@ public class IoTDBStorage implements IStorage {
           }
         }
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        LOGGER.error(e.getMessage());
-        return e;
+        return new RuntimeException("insert tablets error", e);
       }
 
       // 重置 tablets
@@ -664,8 +660,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        LOGGER.error(e.getMessage());
-        return e;
+        return new RuntimeException("insert tablets error", e);
       }
 
       for (Tablet tablet : tablets.values()) {
@@ -744,8 +739,7 @@ public class IoTDBStorage implements IStorage {
         try {
           sessionPool.insertTablets(tabletsMap.get(entry.getKey()));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-          LOGGER.error(e.getMessage());
-          return e;
+          return new RuntimeException("insert tablets error", e);
         }
 
         for (Tablet tablet : tabletsMap.get(entry.getKey()).values()) {
@@ -767,7 +761,7 @@ public class IoTDBStorage implements IStorage {
           sessionPool.executeNonQueryStatement(
               String.format(DELETE_STORAGE_GROUP_CLAUSE, storageUnit));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-          LOGGER.warn("encounter error when clear data: " + e.getMessage());
+          LOGGER.warn("encounter error when clear data: {}", e.getMessage());
           if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
             return new TaskExecuteResult(
                 new PhysicalTaskExecuteFailureException(
@@ -779,7 +773,7 @@ public class IoTDBStorage implements IStorage {
         try {
           deletedPaths = determineDeletePathList(storageUnit, delete);
         } catch (PhysicalException e) {
-          LOGGER.warn("encounter error when delete path: " + e.getMessage());
+          LOGGER.warn("encounter error when delete path: {}", e.getMessage());
           return new TaskExecuteResult(
               new PhysicalTaskExecuteFailureException(
                   "execute delete path task in iotdb11 failure", e));
@@ -788,7 +782,7 @@ public class IoTDBStorage implements IStorage {
           try {
             sessionPool.executeNonQueryStatement(String.format(DELETE_TIMESERIES_CLAUSE, path));
           } catch (IoTDBConnectionException | StatementExecutionException e) {
-            LOGGER.warn("encounter error when delete path: " + e.getMessage());
+            LOGGER.warn("encounter error when delete path: {}", e.getMessage());
             if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
               return new TaskExecuteResult(
                   new PhysicalTaskExecuteFailureException(
@@ -806,7 +800,7 @@ public class IoTDBStorage implements IStorage {
           }
         }
       } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
-        LOGGER.warn("encounter error when delete data: " + e.getMessage());
+        LOGGER.warn("encounter error when delete data: {}", e.getMessage());
         if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
           return new TaskExecuteResult(
               new PhysicalTaskExecuteFailureException(
