@@ -38,7 +38,7 @@ public class ProjectUtils {
     schemaFields.add(Constants.KEY_FIELD_NAME);
 
     Types.MessageTypeBuilder builder = Types.buildMessage();
-    for (String field : fields) {
+    for (String field : schemaFields) {
       if (schema.containsField(field)) {
         Type type = schema.getType(field);
         if (!type.isPrimitive()) {

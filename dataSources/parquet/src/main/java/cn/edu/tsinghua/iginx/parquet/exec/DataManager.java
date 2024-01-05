@@ -166,18 +166,14 @@ public class DataManager implements Manager {
       try {
         RangeTombstone<Long, String> tombstone =
             SerializeUtils.deserializeRangeTombstone(tombstoneStr);
-        tombstone
-            .getDeletedRanges()
-            .forEach(
-                (field, rangeSet) -> {
-                  tombstoneDst.delete(Collections.singleton(field), rangeSet);
-                });
+        tombstoneDst.delete(tombstone);
 
         keyIndex = parquetSchema.getFieldIndex(Constants.KEY_FIELD_NAME);
       } catch (Exception e) {
         reader.close();
-        throw new NativeStorageException(
-            "failed to read, details:" + parquetSchema + ", " + tombstoneStr, e);
+        String message =
+            String.format("failed to read, details: %s, %s, %s", path, parquetSchema, tombstoneStr);
+        throw new NativeStorageException(message, e);
       }
 
       return new Scanner<Long, Scanner<String, Object>>() {

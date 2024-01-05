@@ -65,7 +65,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       flushedRangeSet.add(range);
     }
     if (!flushedRangeSet.isEmpty()) {
-      flushedRangeSet = ImmutableRangeSet.of(flushedRangeSet.span());
+      flushedRangeSet.add(flushedRangeSet.span());
     }
   }
 
@@ -122,9 +122,10 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       RangeTombstone.playback(writtenDeleted, rangeSet);
       rangeSet.addAll(writtenBuffer.ranges());
       if (!rangeSet.isEmpty()) {
-        rangeSet = ImmutableRangeSet.of(rangeSet.span());
+        return ImmutableRangeSet.of(rangeSet.span());
+      } else {
+        return ImmutableRangeSet.of();
       }
-      return rangeSet;
     } finally {
       deletedLock.readLock().unlock();
       flushedLock.readLock().unlock();
@@ -140,7 +141,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       Map<F, T> schema = new HashMap<>();
 
       readerWriter.readMeta(path, schema, rangeTombstone);
-      RangeTombstone.playback(flushedDeleted, result);
+      RangeTombstone.playback(rangeTombstone, result);
       for (Map.Entry<F, T> entry : schema.entrySet()) {
         T oldType = result.get(entry.getKey());
         if (oldType != null && !oldType.equals(entry.getValue())) {
@@ -235,6 +236,9 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
 
         RangeTombstone.playback(this.flushedDeleted, flushedRangeSet);
         flushedRangeSet.addAll(this.flushedBuffer.ranges());
+        if (!flushedRangeSet.isEmpty()) {
+          flushedRangeSet.add(flushedRangeSet.span());
+        }
 
         flushedBuffer = this.flushedBuffer;
         flushedDeleted = this.flushedDeleted;
@@ -245,37 +249,41 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
 
       flushPool.submit(
           () -> {
-            long seq = sequenceGenerator.getAsLong();
-
-            Path tempPath =
-                this.dir.resolve(
-                    String.format(
-                        "%d%s%s", seq, Constants.SUFFIX_FILE_PARQUET, Constants.SUFFIX_FILE_TEMP));
-            LOGGER.info("flushing into {}", tempPath);
             try {
-              readerWriter.flush(tempPath, flushedBuffer, flushedDeleted);
-            } catch (Exception e) {
-              LOGGER.error("failed to flush " + tempPath, e);
-            }
+              long seq = sequenceGenerator.getAsLong();
+              Path tempPath =
+                  this.dir.resolve(
+                      String.format(
+                          "%d%s%s",
+                          seq, Constants.SUFFIX_FILE_PARQUET, Constants.SUFFIX_FILE_TEMP));
+              LOGGER.info("flushing into {}", tempPath);
+              try {
+                readerWriter.flush(tempPath, flushedBuffer, flushedDeleted);
+              } catch (Exception e) {
+                LOGGER.error("failed to flush " + tempPath, e);
+              }
 
-            Path newPath = this.dir.resolve(String.format("%d.parquet", seq));
-            flushedLock.writeLock().lock();
-            try {
-              LOGGER.info("rename {} to {}", tempPath, newPath);
-              Files.move(tempPath, newPath);
-              if (this.flushedBuffer == flushedBuffer) {
-                this.flushedBuffer = null;
+              Path newPath = this.dir.resolve(String.format("%d.parquet", seq));
+              flushedLock.writeLock().lock();
+              try {
+                LOGGER.info("rename {} to {}", tempPath, newPath);
+                Files.move(tempPath, newPath);
+              } catch (NoSuchFileException e) {
+                LOGGER.warn("no such file or directory: {}", tempPath);
+              } catch (Exception e) {
+                LOGGER.error("failed to rename " + tempPath, e);
+              } finally {
+                if (this.flushedBuffer == flushedBuffer) {
+                  this.flushedBuffer = null;
+                }
+                if (this.flushedDeleted == flushedDeleted) {
+                  this.flushedDeleted = null;
+                }
+                flushedLock.writeLock().unlock();
               }
-              if (this.flushedDeleted == flushedDeleted) {
-                this.flushedDeleted = null;
-              }
-            } catch (Exception e) {
-              LOGGER.error("failed to rename " + tempPath, e);
             } finally {
-              flushedLock.writeLock().unlock();
+              flusherNumber.release();
             }
-
-            flusherNumber.release();
           });
     }
   }

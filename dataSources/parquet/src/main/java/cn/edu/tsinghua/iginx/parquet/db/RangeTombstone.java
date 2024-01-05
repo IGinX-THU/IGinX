@@ -42,6 +42,14 @@ public class RangeTombstone<K extends Comparable<K>, F> {
     }
   }
 
+  public void delete(RangeTombstone<K, F> tombstone) {
+    delete(tombstone.getDeletedRows());
+    delete(tombstone.getDeletedColumns());
+    tombstone
+        .getDeletedRanges()
+        .forEach((field, rangeSet) -> delete(Collections.singleton(field), rangeSet));
+  }
+
   public void reset() {
     deletedRanges.clear();
   }
