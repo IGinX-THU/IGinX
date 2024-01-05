@@ -18,6 +18,7 @@
 import csv
 import logging
 import os.path
+from datetime import datetime
 
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
@@ -637,12 +638,15 @@ class Session(object):
         # 删除原来的csv文件，新建一个新的csv文件
         if os.path.exists(path):
             os.remove(path)
+        directory = os.path.dirname(path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
         with open(path, 'w', newline='') as file:  # newline='' 是为了防止在Windows上写入额外的空行
             writer = csv.writer(file)
-            has_key = resp.column_list[0] == "key"
+            has_key = resp.columns()[0] == "key"
 
             if export_csv.isExportHeader:
-                header_names = ["key"] if has_key else []
+                header_names = ["key"] if not has_key else []
                 header_names.extend(resp.columns())
                 writer.writerow(header_names)
 
@@ -665,12 +669,16 @@ class Session(object):
             row = dataset.next()
             if row:
                 str_row = []
-                if has_key:  # TODO:增加时间戳格式化的代码
-                    str_row.append(row[0])
-                    for value in row:
-                        str_row.append(str(value))
+                if has_key:
+                    key = datetime.fromtimestamp(row[0]).strftime("%Y-%m-%d %H:%M:%S")
+                    str_row.append(key)
+                    for i in range(1, len(row)):
+                        if isinstance(row[i], bytes):
+                            str_row.append(row[i].decode("utf-8"))
+                        else:
+                            str_row.append(str(row[i]))
                 else:
-                    str_row = [str(value) for value in row]
+                    str_row = [value.decode("utf-8") if isinstance(value, bytes) else str(value) for value in row]
                 cache.append(str_row)
                 row_index += 1
 

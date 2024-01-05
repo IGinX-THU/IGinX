@@ -223,8 +223,46 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
     dataset.close()
 
     # 将数据另存到本地文件，注意此处给出的相对路径是相对于本测试脚本的，也可以使用绝对路径
+    # 注意导出为数据流时给出的是目标文件夹的路径
     session.export_to_file(f"select {file_list[0]} from {base_dir} into outfile \"{out_dir_path}\" as stream;")
     # 此时生成的文件路径为./img_outfile/largefile.large_img_jpg
+
+
+# 加载一个5MB的csv文件到IGinX数据库，并导出其数据到另一个csv文件中
+def load_largecsv_and_export(session: Session, csv_path, out_file_path):
+    # 将csv文件加载到IGinX数据库中
+    table_name = "person"
+    resp = session.load_csv(
+        f"LOAD DATA FROM INFILE \"{csv_path}\" AS CSV SKIPPING HEADER INTO "
+        f"{table_name}(key, Name, Email, Phone, Address, City, State);")
+    columns = resp.columns
+    recordsNum = resp.recordsNum
+    print(f"Successfully write {recordsNum} record(s) to: {columns}")
+
+    # 查看数据量
+    dataset = session.execute_statement(f"select count(*) from {table_name};", fetch_size=2)
+    columns = dataset.columns()
+    for column in columns:
+        print(column, end="\t")
+    print()
+
+    while dataset.has_more():
+        row = dataset.next()
+        for field in row:
+            print(str(field), end="\t\t")
+        print()
+    print()
+    """
+    count(tc.Address)	count(tc.City)	count(tc.Email)	count(tc.Name)	count(tc.Phone)	count(tc.State)	
+    69763		69763		69763		69763		69763		69763			
+    """
+    dataset.close()
+
+    # 将数据另存到本地文件，注意此处给出的相对路径是相对于本测试脚本的，也可以使用绝对路径
+    # 注意导出为csv的时候给出的是.csv结尾的文件路径
+    session.export_to_file(f"select * from {table_name} into outfile \"{out_file_path}\" as csv with header;")
+    # 此时生成的文件路径为./csv_outfile/output.csv
+
 
 
 def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668,
@@ -276,5 +314,6 @@ if __name__ == '__main__':
     load_csv_without_header(session, "../test/src/test/resources/fileReadAndWrite/csv/test.csv")
     load_directory(session, "../test/src/test/resources/fileReadAndWrite/byteStream")
     load_largefile_directory_and_export(session, "../test/src/test/resources/fileReadAndWrite/largefile", "img_outfile")
+    load_largecsv_and_export(session, "../test/src/test/resources/fileReadAndWrite/largecsv/5MB.csv", "csv_outfile/output.csv")
 
     session.close()
