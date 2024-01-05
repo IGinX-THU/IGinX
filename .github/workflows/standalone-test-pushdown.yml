@@ -24,6 +24,7 @@ jobs:
                         "InfluxDB",
                         "Redis",
                         "PostgreSQL",
+                        "Parquet",
                         "FileSystem",
                         "MongoDB",
                         "IoTDB12",
