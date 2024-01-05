@@ -39,7 +39,6 @@ public class QueryAggregatorFilter extends QueryAggregator {
       long startKey,
       long endKey) {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
-    try {
       SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
       queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
       DataType type = RestUtils.checkType(sessionQueryDataSet);
@@ -85,11 +84,8 @@ public class QueryAggregatorFilter extends QueryAggregator {
           queryResultDataset.setSampleSize(datapoints);
           break;
         default:
-          throw new Exception("Unsupported data type");
+          throw new IllegalArgumentException("Unsupported data type");
       }
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
     return queryResultDataset;
   }
 

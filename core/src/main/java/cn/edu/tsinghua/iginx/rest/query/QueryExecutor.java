@@ -20,6 +20,8 @@ package cn.edu.tsinghua.iginx.rest.query;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
+import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
 import cn.edu.tsinghua.iginx.rest.bean.QueryMetric;
@@ -43,20 +45,19 @@ public class QueryExecutor {
     this.query = query;
   }
 
-  public QueryResult executeShowColumns() throws Exception {
+  public QueryResult executeShowColumns() {
     QueryResult ret = new QueryResult();
     try {
       session.openSession();
       ret.addResultSet(new QueryShowColumns().doAggregate(session));
       session.closeSession();
-    } catch (Exception e) {
-      LOGGER.error("Error occurred during executing", e);
-      throw e;
+    } catch (SessionException e) {
+      throw new RuntimeException("Error occurred during opening or closing session", e);
     }
     return ret;
   }
 
-  public QueryResult execute(boolean isDelete) throws Exception {
+  public QueryResult execute(boolean isDelete) {
     QueryResult ret = new QueryResult();
     try {
       session.openSession();
@@ -101,9 +102,8 @@ public class QueryExecutor {
         }
       }
       session.closeSession();
-    } catch (Exception e) {
-      LOGGER.error("Error occurred during executing", e);
-      throw e;
+    } catch (SessionException | ExecutionException e) {
+      throw new RuntimeException("Error occurred during executing",e);
     }
 
     return ret;
@@ -120,12 +120,11 @@ public class QueryExecutor {
   }
 
   // 结果通过引用传出
-  public void queryAnno(QueryResult anno) throws Exception {
+  public void queryAnno(QueryResult anno) {
     QueryResult title, description;
     Query titleQuery = new Query();
     Query descriptionQuery = new Query();
     boolean hasTitle = false, hasDescription = false;
-    try {
       for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
         QueryResultDataset data = anno.getQueryResultDatasets().get(i);
         if (data.getKeyLists().isEmpty()) continue;
@@ -180,16 +179,16 @@ public class QueryExecutor {
             anno.getQueryResultDatasets().get(i).addDescription(new String());
           }
         }
-      }
-    } catch (Exception e) {
-      LOGGER.error("Error occurred during executing", e);
-      throw e;
     }
   }
 
-  public void deleteMetric() throws Exception {
+  public void deleteMetric() throws ExecutionException {
     RestSession restSession = new RestSession();
-    restSession.openSession();
+    try {
+      restSession.openSession();
+    } catch (SessionException e) {
+      throw new RuntimeException("Error occurred during opening session", e);
+    }
     for (QueryMetric metric : query.getQueryMetrics()) {
       restSession.deleteColumn(metric.getName(), metric.getTags());
     }

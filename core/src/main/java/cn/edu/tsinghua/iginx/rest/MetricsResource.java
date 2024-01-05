@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
 import cn.edu.tsinghua.iginx.rest.query.QueryParser;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -86,7 +87,7 @@ public class MetricsResource {
   public Response grafanaQuery(String jsonStr) {
     try {
       if (jsonStr == null) {
-        throw new Exception("query json must not be null or empty");
+        throw new IllegalArgumentException("query json must not be null or empty");
       }
       QueryParser parser = new QueryParser();
       Query query = parser.parseGrafanaQueryMetric(jsonStr);
@@ -271,7 +272,7 @@ public class MetricsResource {
     return (responseBuilder);
   }
 
-  private static String inputStreamToString(InputStream inputStream) throws Exception {
+  private static String inputStreamToString(InputStream inputStream) throws IOException {
     StringBuilder buffer = new StringBuilder();
     InputStreamReader inputStreamReader =
         new InputStreamReader(inputStream, StandardCharsets.UTF_8);
@@ -503,7 +504,7 @@ public class MetricsResource {
   }
 
   private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
-      throws Exception {
+      {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     // 包含时间范围的查询
@@ -524,8 +525,7 @@ public class MetricsResource {
     threadPool.execute(new InsertWorker(asyncResponse, httpheaders, result, queryBase, true));
   }
 
-  private void updateAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
-      throws Exception {
+  private void updateAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse) throws Exception {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);
@@ -556,8 +556,7 @@ public class MetricsResource {
         cautionDuringDelete = true;
         LOGGER.warn("cant delete the READ_ONLY data and go on.");
       } else {
-        LOGGER.error("Error occurred during executing", e);
-        throw e;
+        throw new RuntimeException("Error occurred during executing", e);
       }
     }
 

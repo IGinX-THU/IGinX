@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.*;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.text.DateFormat;
@@ -46,9 +47,8 @@ public class QueryParser {
       Date date = df.parse(oldDateStr);
       return date.getTime() + 28800000L;
     } catch (ParseException e) {
-      e.printStackTrace();
+      throw new RuntimeException("Error occurred during parsing date", e);
     }
-    return null;
   }
 
   public static Long transTimeFromString(String str) {
@@ -78,38 +78,35 @@ public class QueryParser {
     }
   }
 
-  public Query parseGrafanaQueryMetric(String json) throws Exception {
+  public Query parseGrafanaQueryMetric(String json) {
     Query ret;
     try {
       JsonNode node = mapper.readTree(json);
       ret = getGrafanaQuery(node);
-    } catch (Exception e) {
-      LOGGER.error("Error occurred during parsing query ", e);
-      throw e;
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error occurred during parsing query ", e);
     }
     return ret;
   }
 
-  public Query parseQueryMetric(String json) throws Exception {
+  public Query parseQueryMetric(String json) {
     Query ret;
     try {
       JsonNode node = mapper.readTree(json);
       ret = getQuery(node);
-    } catch (Exception e) {
-      LOGGER.error("Error occurred during parsing query ", e);
-      throw e;
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error occurred during parsing query ", e);
     }
     return ret;
   }
 
-  public Query parseAnnotationQueryMetric(String json, boolean isGrafana) throws Exception {
+  public Query parseAnnotationQueryMetric(String json, boolean isGrafana) {
     Query ret;
     try {
       JsonNode node = mapper.readTree(json);
       ret = getAnnotationQuery(node, isGrafana);
-    } catch (Exception e) {
-      LOGGER.error("Error occurred during parsing query ", e);
-      throw e;
+    } catch (JsonProcessingException e) {
+      throw new RuntimeException("Error occurred during parsing query ", e);
     }
     return ret;
   }

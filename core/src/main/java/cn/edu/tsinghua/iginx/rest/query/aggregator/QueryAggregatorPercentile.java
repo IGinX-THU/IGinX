@@ -41,7 +41,6 @@ public class QueryAggregatorPercentile extends QueryAggregator {
       long startKey,
       long endKey) {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
-    try {
       SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
       queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
       DataType type = RestUtils.checkType(sessionQueryDataSet);
@@ -92,12 +91,9 @@ public class QueryAggregatorPercentile extends QueryAggregator {
           }
           break;
         default:
-          throw new Exception("Unsupported data type");
+          throw new IllegalArgumentException("Unsupported data type");
       }
       queryResultDataset.setSampleSize(datapoints);
-    } catch (Exception e) {
-      e.printStackTrace();
-    }
     return queryResultDataset;
   }
 }
