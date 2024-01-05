@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.integration.mds;
 
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.integration.func.session.NewSessionIT;
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.ProposalListener;
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.SyncProposal;
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.SyncVote;
@@ -16,8 +17,12 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class SyncProtocolTest {
+
+  protected static final Logger LOGGER = LoggerFactory.getLogger(SyncProtocolTest.class);
 
   protected abstract SyncProtocol newSyncProtocol(String category);
 
@@ -47,8 +52,8 @@ public abstract class SyncProtocolTest {
             try {
               protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
             } catch (Exception e) {
-              e.printStackTrace();
-              fail("unexpected vote failure");
+              LOGGER.error("unexpected vote failure", e);
+              fail();
             }
           }
 
@@ -83,8 +88,8 @@ public abstract class SyncProtocolTest {
                 try {
                   protocol.endProposal(voteKey, proposal);
                 } catch (Exception e) {
-                  e.printStackTrace();
-                  fail("unexpected end proposal failure");
+                  LOGGER.error("unexpected end proposal failure", e);
+                  fail();
                 }
               }
 
@@ -133,8 +138,8 @@ public abstract class SyncProtocolTest {
                   try {
                     protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
                   } catch (Exception e) {
-                    e.printStackTrace();
-                    fail("unexpected vote failure");
+                    LOGGER.error("unexpected vote failure", e);
+                    fail();
                   }
                 }
 
@@ -175,7 +180,7 @@ public abstract class SyncProtocolTest {
                       protocol.endProposal(key, proposal);
                     }
                   } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error("unexpected end proposal failure", e);
                     fail();
                   } finally {
                     lock.unlock();
@@ -194,8 +199,8 @@ public abstract class SyncProtocolTest {
           latch.await();
           protocol.close();
         } catch (Exception e) {
-          e.printStackTrace();
-          fail("unexpected exception");
+          LOGGER.error("unexpected exception", e);
+          fail();
         }
       }
     }
@@ -249,8 +254,8 @@ public abstract class SyncProtocolTest {
                     try {
                       protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
                     } catch (Exception e) {
-                      e.printStackTrace();
-                      fail("unexpected vote failure");
+                      LOGGER.error("unexpected vote failure", e);
+                      fail();
                     }
                   }
 
@@ -291,7 +296,7 @@ public abstract class SyncProtocolTest {
                         protocol.endProposal(key, proposal);
                       }
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected end proposal failure", e);
                       fail();
                     } finally {
                       lock.unlock();
@@ -310,8 +315,8 @@ public abstract class SyncProtocolTest {
             latch.await();
             protocol.close();
           } catch (Exception e) {
-            e.printStackTrace();
-            fail("unexpected exception");
+            LOGGER.error("unexpected exception", e);
+            fail();
           }
         }
       }
@@ -376,8 +381,8 @@ public abstract class SyncProtocolTest {
                     try {
                       protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
                     } catch (Exception e) {
-                      e.printStackTrace();
-                      fail("unexpected vote failure");
+                      LOGGER.error("unexpected vote failure", e);
+                      fail();
                     }
                   }
 
@@ -426,7 +431,7 @@ public abstract class SyncProtocolTest {
                         protocol.endProposal(key, proposal);
                       }
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected end proposal failure", e);
                       fail();
                     } finally {
                       lock.unlock();
@@ -445,8 +450,8 @@ public abstract class SyncProtocolTest {
             latch.await();
             protocol.close();
           } catch (Exception e) {
-            e.printStackTrace();
-            fail("unexpected exception");
+            LOGGER.error("unexpected exception", e);
+            fail();
           }
         }
       }

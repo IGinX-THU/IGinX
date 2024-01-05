@@ -46,7 +46,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       Class.forName("org.postgresql.Driver");
       return DriverManager.getConnection(url, USERNAME, PASSWORD);
     } catch (SQLException | ClassNotFoundException e) {
-      throw new RuntimeException(e);
+      throw new RuntimeException("get connection failure" ,e);
     }
   }
 
@@ -129,7 +129,6 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (RuntimeException | SQLException e) {
       LOGGER.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
-      e.printStackTrace();
     }
   }
 

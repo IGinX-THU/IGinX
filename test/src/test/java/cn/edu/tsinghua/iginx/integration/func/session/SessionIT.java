@@ -165,7 +165,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (float) rawResult;
       } catch (Exception e) {
-        LOGGER.error(e.getMessage());
+        LOGGER.error("Failed to change result to float: {}", e.getMessage());
         fail();
       }
     }
@@ -180,7 +180,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (int) rawResult;
       } catch (Exception e) {
-        LOGGER.error(e.getMessage());
+        LOGGER.error("Failed to change result to integer: {}", e.getMessage());
         fail();
       }
     }
@@ -706,7 +706,7 @@ public class SessionIT extends BaseSessionIT {
     try {
       insertFakeNumRecords(paths, count + KEY_PERIOD * 100);
     } catch (Exception e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("Insert fake data failed", e);
       isError = true;
     } finally {
       // assertTrue(isError);

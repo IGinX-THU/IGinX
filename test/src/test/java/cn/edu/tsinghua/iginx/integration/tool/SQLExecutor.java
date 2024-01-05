@@ -98,7 +98,7 @@ public class SQLExecutor {
     try {
       latch.await();
     } catch (InterruptedException e) {
-      LOGGER.error("Interrupt when latch await");
+      LOGGER.error("Interrupt when latch await", e);
       fail();
     }
   }
@@ -120,7 +120,7 @@ public class SQLExecutor {
             try {
               start.await();
             } catch (InterruptedException e) {
-              LOGGER.error("Interrupt when latch await");
+              LOGGER.error("Interrupt when latch await", e);
             }
 
             String actualOutput = execute(statement);
@@ -134,7 +134,7 @@ public class SQLExecutor {
     try {
       end.await();
     } catch (InterruptedException e) {
-      LOGGER.error("Interrupt when latch await");
+      LOGGER.error("Interrupt when latch await", e);
       fail();
     }
 

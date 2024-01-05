@@ -125,6 +125,7 @@ public class RestAnnotationIT {
 
       return ret.toString();
     } catch (InterruptedException e) {
+      LOGGER.error("Error occurred during execution ", e);
       // 强制关闭子进程（如果打开程序，需要额外关闭）
       process.destroyForcibly();
       return null;

@@ -445,7 +445,7 @@ public class NewSessionIT {
       assertEquals(sessionIDs1, sessionIDs3);
       assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);
     } catch (SessionException | ExecutionException | IOException | InterruptedException e) {
-      e.printStackTrace();
+      LOGGER.error("execute query session id failed.", e);
       fail();
     }
   }
@@ -473,7 +473,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute query data failed.");
+      LOGGER.error("execute query data failed.", e);
       fail();
     }
 
@@ -483,7 +483,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute query data failed.");
+      LOGGER.error("execute query data failed.", e);
       fail();
     }
   }
@@ -497,7 +497,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute delete columns failed.");
+      LOGGER.error("execute delete columns failed.", e);
       fail();
     }
 
@@ -508,7 +508,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute delete columns failed.");
+      LOGGER.error("execute delete columns failed.", e);
       fail();
     }
 
@@ -528,7 +528,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute delete columns failed.");
+      LOGGER.error("execute delete columns failed.", e);
       fail();
     }
   }
@@ -616,7 +616,7 @@ public class NewSessionIT {
         SessionAggregateQueryDataSet dataSet = conn.aggregateQuery(paths, START_KEY, END_KEY, type);
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException | ExecutionException e) {
-        LOGGER.error("execute aggregate query failed, AggType={}", type);
+        LOGGER.error("execute aggregate query failed, AggType={} because {}", type, e.getMessage());
         fail();
       }
     }
@@ -720,7 +720,7 @@ public class NewSessionIT {
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException | ExecutionException e) {
-        LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
+        LOGGER.error("execute downsample query failed, AggType={}, Precision={} because {}", type, precision, e.getMessage());
         fail();
       }
     }
@@ -763,7 +763,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute delete or query data failed.");
+      LOGGER.error("execute delete or query data failed.", e);
       fail();
     }
 
@@ -800,7 +800,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute delete or query data failed.");
+      LOGGER.error("execute delete or query data failed.", e);
       fail();
     }
 
@@ -884,7 +884,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(START_KEY + 400, START_KEY + 500);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("execute delete or query data failed.");
+      LOGGER.error("execute delete or query data failed.", e);
       fail();
     }
   }

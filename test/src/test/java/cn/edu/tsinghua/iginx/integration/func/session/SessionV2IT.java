@@ -21,8 +21,11 @@ import java.util.stream.Stream;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SessionV2IT {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionV2IT.class);
 
   private static final long startKey = 0L;
   private static final long endKey = 10000L;
@@ -119,7 +122,8 @@ public class SessionV2IT {
       asyncWriteClient.writePoints(points);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      fail(e.getMessage());
+      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      fail();
     }
   }
 
@@ -154,7 +158,8 @@ public class SessionV2IT {
       asyncWriteClient.writeRecords(records);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      fail(e.getMessage());
+      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      fail();
     }
   }
 
@@ -198,7 +203,8 @@ public class SessionV2IT {
       asyncWriteClient.writeTable(table);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      fail(e.getMessage());
+      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      fail();
     }
   }
 
@@ -260,7 +266,8 @@ public class SessionV2IT {
       asyncWriteClient.writeMeasurements(measurements);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      fail(e.getMessage());
+      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      fail();
     }
   }
 

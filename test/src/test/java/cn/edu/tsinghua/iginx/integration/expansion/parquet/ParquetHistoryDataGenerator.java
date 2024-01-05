@@ -33,6 +33,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       Class.forName("org.duckdb.DuckDBDriver");
       return DriverManager.getConnection("jdbc:duckdb:");
     } catch (Exception e) {
+      LOGGER.error("can't get DuckDB connection.", e);
       return null;
     }
   }
@@ -57,7 +58,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
         return;
       }
     } catch (SQLException e) {
-      LOGGER.error("statement creation error.");
+      LOGGER.error("statement creation error.", e);
       return;
     }
 
@@ -68,7 +69,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       try {
         Files.createDirectories(dirPath);
       } catch (IOException e) {
-        LOGGER.error("can't create data file path {}.", dir);
+        LOGGER.error("can't create data file path {} because {}", dir, e.getMessage());
         return;
       }
     }
@@ -134,7 +135,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
               "COPY (SELECT * FROM %s) TO '%s' (FORMAT 'parquet');", tableName, parquetPath));
 
     } catch (SQLException e) {
-      LOGGER.error("write history data failed.");
+      LOGGER.error("write history data failed.", e);
     }
   }
 

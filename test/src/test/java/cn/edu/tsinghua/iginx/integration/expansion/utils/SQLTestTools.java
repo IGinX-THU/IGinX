@@ -142,7 +142,7 @@ public class SQLTestTools {
                       System.out.println(line);
                     }
                   } catch (IOException e) {
-                    e.printStackTrace();
+                    LOGGER.error("error reading script output", e);
                   }
                 })
             .start();
@@ -165,7 +165,7 @@ public class SQLTestTools {
         return exitCode;
       }
     } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
+      LOGGER.error("error executing script", e);
     }
     return 0;
   }
