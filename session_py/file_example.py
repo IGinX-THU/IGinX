@@ -176,7 +176,7 @@ def load_directory(session: Session, dir_path):
 # 加载大于1MB的文件，并将数据另存到另一个文件中
 def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path):
     # 加载文件数据
-    session.load_directory(dir_path, chunk_size=1024*1024)
+    session.load_directory(dir_path, chunk_size=10*1024)
 
     # 查找刚才添加的文件信息
     base_dir = os.path.basename(dir_path)
@@ -222,7 +222,6 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
     """
     dataset.close()
 
-    file_list[0] = file_list[0][::-1].replace("_", ".", 1)[::-1]
     # 将数据另存到本地文件，注意此处给出的相对路径是相对于本测试脚本的，也可以使用绝对路径
     session.export_to_file(f"select {file_list[0]} from {base_dir} into outfile \"{out_dir_path}\" as stream;")
     # 此时生成的文件路径为./img_outfile/largefile.large_img_jpg
@@ -271,11 +270,11 @@ if __name__ == '__main__':
     session.open()
 
     # load_image_file()接收的文件路径参数是相对于IGinX工作目录的
-    # load_image_file(session, "test/src/test/resources/fileReadAndWrite/image")
+    load_image_file(session, "test/src/test/resources/fileReadAndWrite/image")
     # 以下函数接收的文件路径参数是相对于本测试脚本的
-    # load_csv_with_header(session, "../test/src/test/resources/fileReadAndWrite/csv/test-with-header.csv")
-    # load_csv_without_header(session, "../test/src/test/resources/fileReadAndWrite/csv/test.csv")
-    # load_directory(session, "../test/src/test/resources/fileReadAndWrite/byteStream")
-    load_largefile_directory_and_export(session, "../test/src/test/resources/fileReadAndWrite/image", "img_outfile")
+    load_csv_with_header(session, "../test/src/test/resources/fileReadAndWrite/csv/test-with-header.csv")
+    load_csv_without_header(session, "../test/src/test/resources/fileReadAndWrite/csv/test.csv")
+    load_directory(session, "../test/src/test/resources/fileReadAndWrite/byteStream")
+    load_largefile_directory_and_export(session, "../test/src/test/resources/fileReadAndWrite/largefile", "img_outfile")
 
     session.close()
