@@ -13,9 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -242,10 +240,14 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
 
         flushedBuffer = this.flushedBuffer;
         flushedDeleted = this.flushedDeleted;
+
+        flushedLock.readLock().lock();
       } finally {
         deletedLock.writeLock().unlock();
         flushedLock.writeLock().unlock();
       }
+
+      CyclicBarrier barrier = new CyclicBarrier(2);
 
       flushPool.submit(
           () -> {
@@ -257,10 +259,19 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
                           "%d%s%s",
                           seq, Constants.SUFFIX_FILE_PARQUET, Constants.SUFFIX_FILE_TEMP));
               LOGGER.info("flushing into {}", tempPath);
+              flushedLock.readLock().lock();
               try {
+                barrier.await();
                 readerWriter.flush(tempPath, flushedBuffer, flushedDeleted);
               } catch (Exception e) {
-                LOGGER.error("failed to flush " + tempPath, e);
+                LOGGER.error("failed to flush {}", tempPath, e);
+                try {
+                  Files.delete(tempPath);
+                } catch (IOException ex) {
+                  LOGGER.warn("failed to delete {}", tempPath, ex);
+                }
+              } finally {
+                flushedLock.readLock().unlock();
               }
 
               Path newPath = this.dir.resolve(String.format("%d.parquet", seq));
@@ -285,6 +296,14 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
               flusherNumber.release();
             }
           });
+
+      try {
+        barrier.await();
+      } catch (InterruptedException | BrokenBarrierException e) {
+        throw new RuntimeException(e);
+      } finally {
+        flushedLock.readLock().unlock();
+      }
     }
   }
 

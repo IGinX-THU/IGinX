@@ -50,14 +50,13 @@ public class NewExecutor implements Executor {
       throws StorageInitializationException {
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
-    String embeddedPrefix;
-    if (dummyDir != null && !dummyDir.isEmpty() && (dirPrefix == null || dirPrefix.isEmpty())) {
-      embeddedPrefix = FileUtils.getLastDirName(dummyDir);
-    } else {
-      embeddedPrefix = dirPrefix;
-    }
-
-    if (dummyDir != null && !dummyDir.isEmpty()) {
+    if (hasData) {
+      String embeddedPrefix;
+      if (dirPrefix == null || dirPrefix.isEmpty()) {
+        embeddedPrefix = FileUtils.getLastDirName(dataDir);
+      } else {
+        embeddedPrefix = dirPrefix;
+      }
       dummyManager = new DummyManager(Paths.get(dummyDir), embeddedPrefix);
     } else {
       dummyManager = new EmptyManager();
@@ -121,6 +120,7 @@ public class NewExecutor implements Executor {
         }
       }
     } else {
+
       if (data_dir == null || data_dir.isEmpty()) {
         throw new StorageInitializationException("Dir not provided in non-dummy storage.");
       }
