@@ -84,7 +84,7 @@ def load_image_file(session: Session, dir_path):
     # 将{dir_path}目录作为文件系统数据库添加到IGinX，目录下有若干图片文件
     add_storage_engine(session, dummy_path=dir_path)
 
-    # 列出该目录下的文件，假设
+    # 列出该目录下的文件
     # 查找目录下的文件时，每个文件数据对应的列名是[最后一级目录名].[文件名]，注意此时文件名中的.会被替换为\\
     base_dir = os.path.basename(dir_path)
     dataset = session.execute_statement(f"SHOW COLUMNS {base_dir}.*;", fetch_size=2)
@@ -200,7 +200,7 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
     dataset.close()
     """
     path	type    
-    b'largefile.large_img_jpg'		b'BINARY'		
+    b'largeImg.large_img_jpg'		b'BINARY'		
     结果显示添加了largefile目录中的large_img.jpg文件
     """
 
@@ -218,8 +218,8 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
         print()
     print()
     """
-    count(largefile.large_img_jpg)	
-    284		
+    count(largeImg.large_img_jpg)	
+    286		
     """
     dataset.close()
 
@@ -227,6 +227,7 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
     # 注意导出为数据流时给出的是目标文件夹的路径
     session.export_to_file(f"select {file_list[0]} from {base_dir} into outfile \"{out_dir_path}\" as stream;")
     # 此时生成的文件路径为./img_outfile/largefile.large_img_jpg
+    print()
 
 
 # 加载一个5MB的csv文件到IGinX数据库，并导出其数据到另一个csv文件中
