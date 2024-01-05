@@ -95,6 +95,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.SelectContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectSublistContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SetConfigStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SetRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowClusterInfoStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowColumnsOptionsContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowColumnsStatementContext;
@@ -103,6 +104,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.ShowEligibleJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowJobStatusStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowSessionIDStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
@@ -115,32 +117,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
-import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CancelJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ClearDataStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CommitTransformJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CompactStatement;
-import cn.edu.tsinghua.iginx.sql.statement.CountPointsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
-import cn.edu.tsinghua.iginx.sql.statement.DropTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ExportFileFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromCsvStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertFromSelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.RemoveHistoryDataSourceStatement;
-import cn.edu.tsinghua.iginx.sql.statement.SetConfigStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowClusterInfoStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowConfigStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowEligibleJobStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowJobStatusStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowRegisterTaskStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowReplicationStatement;
-import cn.edu.tsinghua.iginx.sql.statement.ShowSessionIDStatement;
-import cn.edu.tsinghua.iginx.sql.statement.Statement;
-import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
@@ -814,6 +791,25 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   @Override
   public Statement visitShowSessionIDStatement(ShowSessionIDStatementContext ctx) {
     return new ShowSessionIDStatement();
+  }
+
+  @Override
+  public Statement visitSetRulesStatement(SetRulesStatementContext ctx) {
+    Map<String, Boolean> rulesChange = new HashMap<>();
+
+    ctx.ruleAssignment()
+        .forEach(
+            ruleAssignmentContext -> {
+              String ruleName = ruleAssignmentContext.ruleName.getText();
+              boolean enable = ruleAssignmentContext.ruleValue.getText().equalsIgnoreCase("on");
+              rulesChange.put(ruleName, enable);
+            });
+    return new SetRulesStatement(rulesChange);
+  }
+
+  @Override
+  public Statement visitShowRulesStatement(ShowRulesStatementContext ctx) {
+    return new ShowRulesStatement();
   }
 
   private void parseSelectPaths(SelectClauseContext ctx, UnarySelectStatement selectStatement) {

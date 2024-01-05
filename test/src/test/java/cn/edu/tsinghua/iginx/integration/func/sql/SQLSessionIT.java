@@ -5958,21 +5958,86 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testModifyRules() {
+    String statement, expected;
+    statement = "show rules;";
+
+    String ruleBasedOptimizer = executor.execute("SHOW CONFIG \"ruleBasedOptimizer\";");
+    logger.info("testModifyRules: " + ruleBasedOptimizer);
+    // 2种情况不测试Config设置Rule的效果：
+    // 1. 本地环境下FilterFragmentRule默认是开启的，不测试
+    // 2. SessionPool测试在Session测试后，此时FilterFragmentRule已经被开启，不测试
+    if (ruleBasedOptimizer.contains("FilterFragmentRule=on") || isForSessionPool) {
+      expected =
+          "Current Rules Info:\n"
+              + "+------------------+------+\n"
+              + "|          RuleName|Status|\n"
+              + "+------------------+------+\n"
+              + "|     RemoveNotRule|    ON|\n"
+              + "|FilterFragmentRule|    ON|\n"
+              + "+------------------+------+\n";
+    } else {
+      expected =
+          "Current Rules Info:\n"
+              + "+------------------+------+\n"
+              + "|          RuleName|Status|\n"
+              + "+------------------+------+\n"
+              + "|     RemoveNotRule|    ON|\n"
+              + "|FilterFragmentRule|   OFF|\n"
+              + "+------------------+------+\n";
+    }
+
+    executor.executeAndCompare(statement, expected);
+
+    statement = "set rules FilterFragmentRule=on;";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected =
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|    ON|\n"
+            + "|FilterFragmentRule|    ON|\n"
+            + "+------------------+------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "set rules FilterFragmentRule=off, RemoveNotRule=off;";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected =
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|   OFF|\n"
+            + "|FilterFragmentRule|   OFF|\n"
+            + "+------------------+------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "set rules FilterFragmentRule=on, RemoveNotRule=on;";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected =
+        "Current Rules Info:\n"
+            + "+------------------+------+\n"
+            + "|          RuleName|Status|\n"
+            + "+------------------+------+\n"
+            + "|     RemoveNotRule|    ON|\n"
+            + "|FilterFragmentRule|    ON|\n"
+            + "+------------------+------+\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
   public void testFilterPushDownExplain() {
-    MultiConnection session =
-        new MultiConnection(
-            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
-    try {
-      session.openSession();
-      String queryOptimizer =
-          session.executeSql("SHOW CONFIG \"queryOptimizer\";").getResultInString(false, "");
-      if (!queryOptimizer.contains("filter_push_down")) {
-        logger.info(
-            "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
-        return;
-      }
-    } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
+    if (!queryOptimizer.contains("filter_push_down")) {
+      logger.info(
+          "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
       return;
     }
 
@@ -6218,20 +6283,22 @@ public class SQLSessionIT {
 
   @Test
   public void testFilterFragmentOptimizer() {
-    MultiConnection session =
-        new MultiConnection(
-            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
-    try {
-      session.openSession();
-      String queryOptimizer =
-          session.executeSql("SHOW CONFIG \"queryOptimizer\"").getResultInString(false, "");
-      if (!queryOptimizer.equals("remove_not,filter_fragment")) {
-        logger.info(
-            "Skip SQLSessionIT.ttestFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
-        return;
-      }
-    } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+    String policy = executor.execute("SHOW CONFIG \"policyClassName\";");
+    if (!policy.contains("KeyRangeTestPolicy")) {
+      logger.info(
+          "Skip SQLSessionIT.testFilterFragmentOptimizer because policy is not KeyRangeTestPolicy");
+      return;
+    }
+
+    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
+    if (queryOptimizer.contains("filter_push_down")) {
+      logger.info(
+          "Skip SQLSessionIT.testFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
+      return;
+    }
+
+    if (isScaling) {
+      logger.info("Skip SQLSessionIT.testFilterFragmentOptimizer because it is scaling test");
       return;
     }
 
@@ -6253,7 +6320,59 @@ public class SQLSessionIT {
     insert = builder.toString();
     executor.execute(insert);
 
-    List<Pair<String, String>> statementsAndExpectRes =
+    // 开启filter_fragment
+    String statement = "SET RULES FilterFragmentRule=ON;";
+    executor.execute(statement);
+
+    // 这里的测例是包含了filter_fragment不能处理的节点，因此开不开filter_fragment都是一样的结果
+    List<Pair<String, String>> statementsAndExpectResNoChange =
+        Arrays.asList(
+            new Pair<>(
+                "EXPLAIN SELECT s1 FROM us.d1 JOIN us.d2 WHERE key < 100;",
+                "ResultSets:\n"
+                    + "+------------------------+-------------+------------------------------------------------+\n"
+                    + "|            Logical Tree|Operator Type|                                   Operator Info|\n"
+                    + "+------------------------+-------------+------------------------------------------------+\n"
+                    + "|Reorder                 |      Reorder|                                       Order: s1|\n"
+                    + "|  +--Project            |      Project|                                    Patterns: s1|\n"
+                    + "|    +--Select           |       Select|                               Filter: key < 100|\n"
+                    + "|      +--InnerJoin      |    InnerJoin|PrefixA: us.d1, PrefixB: us.d2, IsNatural: false|\n"
+                    + "|        +--PathUnion    |    PathUnion|                                                |\n"
+                    + "|          +--Join       |         Join|                                     JoinBy: key|\n"
+                    + "|            +--Join     |         Join|                                     JoinBy: key|\n"
+                    + "|              +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000000|\n"
+                    + "|              +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|            +--Project  |      Project|    Patterns: us.d1.*, Target DU: unit0000000004|\n"
+                    + "|          +--Join       |         Join|                                     JoinBy: key|\n"
+                    + "|            +--Join     |         Join|                                     JoinBy: key|\n"
+                    + "|              +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|              +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000003|\n"
+                    + "|            +--Project  |      Project|    Patterns: us.d1.*, Target DU: unit0000000005|\n"
+                    + "|        +--PathUnion    |    PathUnion|                                                |\n"
+                    + "|          +--Project    |      Project|    Patterns: us.d2.*, Target DU: unit0000000002|\n"
+                    + "|          +--Project    |      Project|    Patterns: us.d2.*, Target DU: unit0000000003|\n"
+                    + "+------------------------+-------------+------------------------------------------------+\n"
+                    + "Total line number = 18\n"),
+            new Pair<>(
+                "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
+                "ResultSets:\n"
+                    + "+------------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|            Logical Tree|Operator Type|                                                                            Operator Info|\n"
+                    + "+------------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                 |      Reorder|                                                                           Order: avg(bb)|\n"
+                    + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FunctionCallList: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select           |       Select|                                                                          Filter: key > 2|\n"
+                    + "|      +--Rename         |       Rename|                                                    AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
+                    + "|        +--Reorder      |      Reorder|                                                                   Order: us.d2.a,us.d2.b|\n"
+                    + "|          +--Project    |      Project|                                                                Patterns: us.d2.a,us.d2.b|\n"
+                    + "|            +--PathUnion|    PathUnion|                                                                                         |\n"
+                    + "|              +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000002|\n"
+                    + "|              +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000003|\n"
+                    + "+------------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 9\n"));
+
+    // 这里的测例是filter_fragment能处理的节点，开关会导致变化
+    List<Pair<String, String>> statementsAndExpectResAfterOptimize =
         Arrays.asList(
             new Pair<>(
                 "explain SELECT COUNT(*)\n"
@@ -6269,54 +6388,125 @@ public class SQLSessionIT {
                     + "|Reorder                   |      Reorder|                                                                                                          Order: count(*)|\n"
                     + "|  +--Downsample           |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
                     + "|    +--Select             |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|      +--Rename           |       Rename|                                            AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1), IgnorePatterns: []|\n"
-                    + "|        +--Join           |         Join|                                                                                                              JoinBy: key|\n"
-                    + "|          +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|            +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|              +--PathUnion|    PathUnion|                                                                                                                         |\n"
-                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
-                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000002|\n"
-                    + "|          +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|            +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|              +--PathUnion|    PathUnion|                                                                                                                         |\n"
-                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
-                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000002|\n"
+                    + "|      +--Rename           |       Rename|                                                                AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1)|\n"
+                    + "|        +--Reorder        |      Reorder|                                                                                       Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
+                    + "|          +--Join         |         Join|                                                                                                              JoinBy: key|\n"
+                    + "|            +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|              +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "|            +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|              +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
                     + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
-                    + "Total line number = 15\n"),
+                    + "Total line number = 12\n"),
             new Pair<>(
-                "EXPLAIN SELECT s1 FROM us.d1 JOIN us.d2 WHERE key < 100;",
+                "EXPLAIN SELECT d1.* FROM us where key < 10;",
                 "ResultSets:\n"
-                    + "+--------------------+-------------+------------------------------------------------+\n"
-                    + "|        Logical Tree|Operator Type|                                   Operator Info|\n"
-                    + "+--------------------+-------------+------------------------------------------------+\n"
-                    + "|Reorder             |      Reorder|                                       Order: s1|\n"
-                    + "|  +--Project        |      Project|                                    Patterns: s1|\n"
-                    + "|    +--Select       |       Select|                               Filter: key < 100|\n"
-                    + "|      +--InnerJoin  |    InnerJoin|PrefixA: us.d1, PrefixB: us.d2, IsNatural: false|\n"
-                    + "|        +--PathUnion|    PathUnion|                                                |\n"
-                    + "|          +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000001|\n"
-                    + "|          +--Project|      Project|    Patterns: us.d1.*, Target DU: unit0000000002|\n"
-                    + "|        +--PathUnion|    PathUnion|                                                |\n"
-                    + "|          +--Project|      Project|    Patterns: us.d2.*, Target DU: unit0000000001|\n"
-                    + "|          +--Project|      Project|    Patterns: us.d2.*, Target DU: unit0000000002|\n"
-                    + "+--------------------+-------------+------------------------------------------------+\n"
-                    + "Total line number = 10\n"),
+                    + "+--------------------+-------------+--------------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                               Operator Info|\n"
+                    + "+--------------------+-------------+--------------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                              Order: us.d1.*|\n"
+                    + "|  +--Project        |      Project|                           Patterns: us.d1.*|\n"
+                    + "|    +--Select       |       Select|                            Filter: key < 10|\n"
+                    + "|      +--Join       |         Join|                                 JoinBy: key|\n"
+                    + "|        +--Join     |         Join|                                 JoinBy: key|\n"
+                    + "|          +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000000|\n"
+                    + "|          +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--Project  |      Project|Patterns: us.d1.*, Target DU: unit0000000004|\n"
+                    + "+--------------------+-------------+--------------------------------------------+\n"
+                    + "Total line number = 8\n"),
             new Pair<>(
-                "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
+                "EXPLAIN SELECT d2.c FROM us where key < 10;",
                 "ResultSets:\n"
-                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
-                    + "|        Logical Tree|Operator Type|                                                                            Operator Info|\n"
-                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
-                    + "|Reorder             |      Reorder|                                                                           Order: avg(bb)|\n"
-                    + "|  +--GroupBy        |      GroupBy|GroupByCols: aa, FunctionCallList: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|    +--Select       |       Select|                                                                          Filter: key > 2|\n"
-                    + "|      +--Rename     |       Rename|                                AliasMap: (us.d2.a, aa),(us.d2.b, bb), IgnorePatterns: []|\n"
-                    + "|        +--Project  |      Project|                                                                Patterns: us.d2.a,us.d2.b|\n"
-                    + "|          +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000001|\n"
-                    + "+--------------------+-------------+-----------------------------------------------------------------------------------------+\n"
-                    + "Total line number = 6\n"));
+                    + "+----------------+-------------+--------------------------------------------+\n"
+                    + "|    Logical Tree|Operator Type|                               Operator Info|\n"
+                    + "+----------------+-------------+--------------------------------------------+\n"
+                    + "|Reorder         |      Reorder|                              Order: us.d2.c|\n"
+                    + "|  +--Project    |      Project|                           Patterns: us.d2.c|\n"
+                    + "|    +--Select   |       Select|                            Filter: key < 10|\n"
+                    + "|      +--Project|      Project|Patterns: us.d2.c, Target DU: unit0000000002|\n"
+                    + "+----------------+-------------+--------------------------------------------+\n"
+                    + "Total line number = 4\n"));
 
-    executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+    executor.concurrentExecuteAndCompare(statementsAndExpectResAfterOptimize);
+    executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
+
+    // 关闭filter_fragment
+    statement = "SET RULES FilterFragmentRule=OFF;";
+    executor.execute(statement);
+
+    List<Pair<String, String>> statementsAndExpectResBeforeOptimize =
+        Arrays.asList(
+            new Pair<>(
+                "explain SELECT COUNT(*)\n"
+                    + "FROM (\n"
+                    + "    SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2\n"
+                    + "    FROM us.d1 OVER (RANGE 10 IN [1000, 1100))\n"
+                    + ")\n"
+                    + "OVER (RANGE 20 IN [1000, 1100));",
+                "ResultSets:\n"
+                    + "+----------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|                Logical Tree|Operator Type|                                                                                                            Operator Info|\n"
+                    + "+----------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                     |      Reorder|                                                                                                          Order: count(*)|\n"
+                    + "|  +--Downsample             |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|    +--Select               |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|      +--Rename             |       Rename|                                                                AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1)|\n"
+                    + "|        +--Reorder          |      Reorder|                                                                                       Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
+                    + "|          +--Join           |         Join|                                                                                                              JoinBy: key|\n"
+                    + "|            +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|              +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|                +--PathUnion|    PathUnion|                                                                                                                         |\n"
+                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
+                    + "|            +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
+                    + "|              +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|                +--PathUnion|    PathUnion|                                                                                                                         |\n"
+                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
+                    + "+----------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 16\n"),
+            new Pair<>(
+                "EXPLAIN SELECT d1.* FROM us;",
+                "ResultSets:\n"
+                    + "+--------------------+-------------+--------------------------------------------+\n"
+                    + "|        Logical Tree|Operator Type|                               Operator Info|\n"
+                    + "+--------------------+-------------+--------------------------------------------+\n"
+                    + "|Reorder             |      Reorder|                              Order: us.d1.*|\n"
+                    + "|  +--Project        |      Project|                           Patterns: us.d1.*|\n"
+                    + "|    +--PathUnion    |    PathUnion|                                            |\n"
+                    + "|      +--Join       |         Join|                                 JoinBy: key|\n"
+                    + "|        +--Join     |         Join|                                 JoinBy: key|\n"
+                    + "|          +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000000|\n"
+                    + "|          +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--Project  |      Project|Patterns: us.d1.*, Target DU: unit0000000004|\n"
+                    + "|      +--Join       |         Join|                                 JoinBy: key|\n"
+                    + "|        +--Join     |         Join|                                 JoinBy: key|\n"
+                    + "|          +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000003|\n"
+                    + "|        +--Project  |      Project|Patterns: us.d1.*, Target DU: unit0000000005|\n"
+                    + "+--------------------+-------------+--------------------------------------------+\n"
+                    + "Total line number = 13\n"),
+            new Pair<>(
+                "EXPLAIN SELECT d2.c FROM us;",
+                "ResultSets:\n"
+                    + "+----------------+-------------+--------------------------------------------+\n"
+                    + "|    Logical Tree|Operator Type|                               Operator Info|\n"
+                    + "+----------------+-------------+--------------------------------------------+\n"
+                    + "|Reorder         |      Reorder|                              Order: us.d2.c|\n"
+                    + "|  +--Project    |      Project|                           Patterns: us.d2.c|\n"
+                    + "|    +--PathUnion|    PathUnion|                                            |\n"
+                    + "|      +--Project|      Project|Patterns: us.d2.c, Target DU: unit0000000002|\n"
+                    + "|      +--Project|      Project|Patterns: us.d2.c, Target DU: unit0000000003|\n"
+                    + "+----------------+-------------+--------------------------------------------+\n"
+                    + "Total line number = 5\n"));
+
+    executor.concurrentExecuteAndCompare(statementsAndExpectResBeforeOptimize);
+    executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
+
+    // 开启filter_fragment
+    statement = "SET RULES FilterFragmentRule=ON;";
+    executor.execute(statement);
   }
 
   @Test

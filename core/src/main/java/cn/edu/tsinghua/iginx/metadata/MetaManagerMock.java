@@ -1,7 +1,6 @@
-package cn.edu.tsinghua.iginx.compaction;
+package cn.edu.tsinghua.iginx.metadata;
 
 import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
-import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
@@ -9,13 +8,29 @@ import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class MetaManagerMock implements IMetaManager {
+
   private final List<FragmentMeta> fragments = new ArrayList<>();
+
+  private Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalMockMap =
+      new HashMap<>();
+
+  private static volatile MetaManagerMock INSTANCE;
+
+  private MetaManagerMock() {}
+
+  public static MetaManagerMock getInstance() {
+    if (INSTANCE == null) {
+      synchronized (MetaManagerMock.class) {
+        if (INSTANCE == null) {
+          INSTANCE = new MetaManagerMock();
+        }
+      }
+    }
+    return INSTANCE;
+  }
 
   @Override
   public boolean addStorageEngines(List<StorageEngineMeta> storageEngineMetas) {
@@ -87,16 +102,29 @@ public class MetaManagerMock implements IMetaManager {
     return null;
   }
 
+  public void setGetFragmentMapByColumnsIntervalMockMap(
+      Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsIntervalMockMap) {
+    this.getFragmentMapByColumnsIntervalMockMap.clear();
+    this.getFragmentMapByColumnsIntervalMockMap = getFragmentMapByColumnsIntervalMockMap;
+  }
+
   @Override
   public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval) {
-    return null;
+    return getFragmentMapByColumnsInterval(columnsInterval, false);
   }
 
   @Override
   public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval, boolean withDummyFragment) {
-    return null;
+    Map<ColumnsInterval, List<FragmentMeta>> res = new HashMap<>();
+    for (ColumnsInterval interval : getFragmentMapByColumnsIntervalMockMap.keySet()) {
+      if (interval.isIntersect(columnsInterval)) {
+        res.put(interval, getFragmentMapByColumnsIntervalMockMap.get(interval));
+      }
+    }
+
+    return res;
   }
 
   @Override
@@ -106,7 +134,7 @@ public class MetaManagerMock implements IMetaManager {
 
   @Override
   public boolean hasWritableStorageEngines() {
-    return true;
+    return false;
   }
 
   @Override
@@ -315,7 +343,9 @@ public class MetaManagerMock implements IMetaManager {
   public void clearMonitors() {}
 
   @Override
-  public void removeFragment(FragmentMeta fragmentMeta) {}
+  public void removeFragment(FragmentMeta fragmentMeta) {
+    fragments.remove(fragmentMeta);
+  }
 
   @Override
   public void addFragment(FragmentMeta fragmentMeta) {
