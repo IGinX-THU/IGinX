@@ -5,6 +5,7 @@ import os
 
 import numpy as np
 import cv2
+import requests
 
 from iginx.session import Session
 from iginx.thrift.rpc.ttypes import StorageEngineType
@@ -83,7 +84,7 @@ def load_image_file(session: Session, dir_path):
     # 将{dir_path}目录作为文件系统数据库添加到IGinX，目录下有若干图片文件
     add_storage_engine(session, dummy_path=dir_path)
 
-    # 列出该目录下的文件
+    # 列出该目录下的文件，假设
     # 查找目录下的文件时，每个文件数据对应的列名是[最后一级目录名].[文件名]，注意此时文件名中的.会被替换为\\
     base_dir = os.path.basename(dir_path)
     dataset = session.execute_statement(f"SHOW COLUMNS {base_dir}.*;", fetch_size=2)
@@ -102,7 +103,7 @@ def load_image_file(session: Session, dir_path):
             print(field_str, end="\t\t")
         print()
     print()
-    """
+    """ example:
     path	type	
     b'image.image1\\jpg'		b'BINARY'		
     b'image.image2\\jpg'		b'BINARY'	
@@ -146,7 +147,7 @@ def load_image_file(session: Session, dir_path):
 # 将一个文件夹内的所有文件数据加载到IGinX中
 def load_directory(session: Session, dir_path):
     # 加载文件夹内所有文件，chunk_size为可选参数，控制每次写入IGinX的数据量，推荐勿改
-    session.load_directory(dir_path, chunk_size=10*1024)
+    session.load_directory(dir_path, chunk_size=10 * 1024)
 
     # 查找刚才添加的文件信息，此时文件名中的.被替换为_
     base_dir = os.path.basename(dir_path)
@@ -174,9 +175,9 @@ def load_directory(session: Session, dir_path):
 
 
 # 加载大于1MB的文件，并将数据另存到另一个文件中
-def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path):
+def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path="img_outfile"):
     # 加载文件数据
-    session.load_directory(dir_path, chunk_size=10*1024)
+    session.load_directory(dir_path, chunk_size=10 * 1024)
 
     # 查找刚才添加的文件信息
     base_dir = os.path.basename(dir_path)
@@ -229,7 +230,7 @@ def load_largefile_directory_and_export(session: Session, dir_path, out_dir_path
 
 
 # 加载一个5MB的csv文件到IGinX数据库，并导出其数据到另一个csv文件中
-def load_largecsv_and_export(session: Session, csv_path, out_file_path):
+def load_largecsv_and_export(session: Session, csv_path, out_file_path="csv_outfile/output.csv"):
     # 将csv文件加载到IGinX数据库中
     table_name = "person"
     resp = session.load_csv(
@@ -264,10 +265,9 @@ def load_largecsv_and_export(session: Session, csv_path, out_file_path):
     # 此时生成的文件路径为./csv_outfile/output.csv
 
 
-
 def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668,
                        type: int = StorageEngineType.filesystem,
-                       extra_params=None, dummy_path = None):
+                       extra_params=None, dummy_path=None):
     if extra_params is None:
         extra_params = {
             "iginx_port": "6888",
@@ -303,17 +303,76 @@ def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668
         dataset.close()
 
 
+def download_file(file_path, url):
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        directory = os.path.dirname(file_path)
+        if not os.path.exists(directory):
+            os.makedirs(directory)
+        with open(file_path, 'wb') as file:
+            file.write(response.content)
+    else:
+        print(f"Failed to retrieve the file: {file_path} from {url}.\n"
+              f" Status code: {response.status_code}")
+
+
+def download_dir(dir_path, url_path):
+    url = f"https://api.github.com/repos/IGinX-THU/IGinX-resources/contents/{url_path}"
+    r = requests.get(url)
+    items = r.json()  # List of items in the directory
+
+    for item in items:
+        if item['type'] == 'file':
+            print(f"Downloading {item['name']}...")
+            download_file(os.path.join(dir_path, item['name']), item['download_url'])
+        elif item['type'] == 'dir':
+            new_path = os.path.join(url_path, item['name']).replace('\\', '/')
+            dir_path = os.path.join(dir_path, item['name'])
+            download_dir(dir_path, new_path)  # Recursive call for subdirectories
+
+
 if __name__ == '__main__':
+    resource_map = {
+        "image_dir":
+            ["downloads/image",
+             "iginx-python-example/image"],
+        "csv_with_header_file":
+            ["downloads/csv/test-with-header.csv",
+             "https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/iginx-python-example/csv/test-with-header.csv"],
+        "csv_without_header_file":
+            ["downloads/csv/test-without-header.csv",
+             "https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/iginx-python-example/csv/test-without-header.csv"],
+        "normal_file_dir":
+            ["downloads/byteStream",
+             "iginx-python-example/byteStream"],
+        "large_image_dir":
+            ["downloads/largeImg",
+             "iginx-python-example/largeImg"],
+        "large_csv_file":
+            ["downloads/csv/5MB.csv",
+             "https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/iginx-python-example/csv/5MB.csv"],
+    }
+
+    # 首先下载测试文件
+    for key in resource_map:
+        if os.path.exists(resource_map[key][0]):
+            continue
+        if key.endswith("file"):
+            download_file(resource_map[key][0], resource_map[key][1])
+        elif key.endswith("dir"):
+            download_dir(resource_map[key][0], resource_map[key][1])
+
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
 
     # load_image_file()接收的文件路径参数是相对于IGinX工作目录的
-    load_image_file(session, "test/src/test/resources/fileReadAndWrite/image")
+    load_image_file(session, "session_py/" + resource_map["image_dir"][0])
     # 以下函数接收的文件路径参数是相对于本测试脚本的
-    load_csv_with_header(session, "../test/src/test/resources/fileReadAndWrite/csv/test-with-header.csv")
-    load_csv_without_header(session, "../test/src/test/resources/fileReadAndWrite/csv/test.csv")
-    load_directory(session, "../test/src/test/resources/fileReadAndWrite/byteStream")
-    load_largefile_directory_and_export(session, "../test/src/test/resources/fileReadAndWrite/largefile", "img_outfile")
-    load_largecsv_and_export(session, "../test/src/test/resources/fileReadAndWrite/largecsv/5MB.csv", "csv_outfile/output.csv")
+    load_csv_with_header(session, resource_map["csv_with_header_file"][0])
+    load_csv_without_header(session, resource_map["csv_without_header_file"][0])
+    load_directory(session, resource_map["normal_file_dir"][0])
+    load_largefile_directory_and_export(session, resource_map["large_image_dir"][0])
+    load_largecsv_and_export(session, resource_map["large_csv_file"][0])
 
     session.close()
