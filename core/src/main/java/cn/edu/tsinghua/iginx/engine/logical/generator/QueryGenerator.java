@@ -112,12 +112,17 @@ public class QueryGenerator extends AbstractGenerator {
     }
   }
 
+  /**
+   * 根据BinarySelectStatement，生成一个操作符树 大体步骤如下： 1. 根据Set Operator
+   * Type，初始化一个Union或Except或Intersect操作符及子树 2. 如果有Order By子句或Limit子句，构建相关操作符
+   *
+   * @param selectStatement Select上下文
+   * @return 生成的操作符树
+   */
   private Operator generateRoot(BinarySelectStatement selectStatement) {
     Operator root;
 
-    if (!OperatorType.isSetOperator(selectStatement.getSetOperator())) {
-      throw new RuntimeException("Unknown set operator type: " + selectStatement.getSetOperator());
-    }
+    checkIsSetOperator(selectStatement);
 
     root = initUnion(selectStatement);
     root = root != null ? root : initExcept(selectStatement);
@@ -130,6 +135,19 @@ public class QueryGenerator extends AbstractGenerator {
     return root;
   }
 
+  /**
+   * 根据UnarySelectStatement，生成一个操作符树 大体步骤如下： 1.
+   * 首先根据SelectStatement的Project、Join、From部分，初始化一个操作符树，最终只会调用其中一个init函数 2.
+   * 检查操作符树是否为空，或者metaManager是否有可写的存储引擎，或者SubQuery是否有freeVariables 3. 按顺序处理其他相关操作符，并加入到操作符树中
+   *
+   * <p>今后拓展generator时，应该该按照通过添加相应函数来拓展，而不是直接把逻辑写在该函数中 1.
+   * 添加初始化逻辑时，应该实现一个init函数，如果满足条件则返回一个操作符树，否则返回null。 2.
+   * 添加针对某个操作符的构建逻辑时，应该写一个build函数，如果满足条件则在root之上构建一个操作符，否则返回原root。 3.
+   * 添加检查逻辑时，应该写一个check函数，如果根据条件返回true/false,或者不满足条件时抛出异常。
+   *
+   * @param selectStatement Select上下文
+   * @return 生成的操作符树
+   */
   private Operator generateRoot(UnarySelectStatement selectStatement) {
     Operator root;
 
@@ -138,15 +156,10 @@ public class QueryGenerator extends AbstractGenerator {
     root = root != null ? root : initFromPart(selectStatement);
     root = root != null ? root : initFilterAndMergeFragments(selectStatement);
 
-    if (root == null && !metaManager.hasWritableStorageEngines()) {
+    if (!checkRootAndIsMetaWritable(root)) {
       return null;
-    } else if (!selectStatement.isSubQuery()) {
-      selectStatement.initFreeVariables();
-      List<String> freeVariables = selectStatement.getFreeVariables();
-      if (!freeVariables.isEmpty()) {
-        throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
-      }
     }
+    checkSubQueryHasFreeVariables(selectStatement);
 
     root = buildWhereSubQuery(selectStatement, root);
 
@@ -186,6 +199,43 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /**
+   * 如果selectStatement是SubQuery,检查它的freeVariables是否为空，为空则抛出异常
+   *
+   * @param selectStatement Select上下文
+   */
+  private static void checkSubQueryHasFreeVariables(UnarySelectStatement selectStatement) {
+    if (selectStatement.isSubQuery()) {
+      return;
+    }
+    selectStatement.initFreeVariables();
+    List<String> freeVariables = selectStatement.getFreeVariables();
+    if (!freeVariables.isEmpty()) {
+      throw new RuntimeException("Unexpected paths' name: " + freeVariables + ".");
+    }
+  }
+
+  /**
+   * 如果root为空或者metaManager没有可写的存储引擎，返回false
+   *
+   * @param root 根节点
+   * @return 如果root为空或者metaManager没有可写的存储引擎，返回false
+   */
+  private boolean checkRootAndIsMetaWritable(Operator root) {
+    return root != null || metaManager.hasWritableStorageEngines();
+  }
+
+  /**
+   * 检查BinarySelectStatement的Set Operator Type是否是Union, Except, Intersect, 不是则抛出异常
+   *
+   * @param selectStatement Select上下文
+   */
+  private static void checkIsSetOperator(BinarySelectStatement selectStatement) {
+    if (!OperatorType.isSetOperator(selectStatement.getSetOperator())) {
+      throw new RuntimeException("Unknown set operator type: " + selectStatement.getSetOperator());
+    }
+  }
+
+  /**
    * 获取SelectStatement的Column列表
    *
    * @param selectStatement Select上下文
@@ -212,18 +262,19 @@ public class QueryGenerator extends AbstractGenerator {
    * @return Union操作符及子树；如果Set Operator Type不是Union，返回null
    */
   private Operator initUnion(BinarySelectStatement selectStatement) {
-    if (selectStatement.getSetOperator() == OperatorType.Union) {
-      SelectStatement leftQuery = selectStatement.getLeftQuery();
-      SelectStatement rightQuery = selectStatement.getRightQuery();
-
-      return new Union(
-          new OperatorSource(generateRoot(leftQuery)),
-          new OperatorSource(generateRoot(rightQuery)),
-          getOrderList(leftQuery),
-          getOrderList(rightQuery),
-          selectStatement.isDistinct());
+    if (selectStatement.getSetOperator() != OperatorType.Union) {
+      return null;
     }
-    return null;
+
+    SelectStatement leftQuery = selectStatement.getLeftQuery();
+    SelectStatement rightQuery = selectStatement.getRightQuery();
+
+    return new Union(
+        new OperatorSource(generateRoot(leftQuery)),
+        new OperatorSource(generateRoot(rightQuery)),
+        getOrderList(leftQuery),
+        getOrderList(rightQuery),
+        selectStatement.isDistinct());
   }
   /**
    * 如果BinarySelectStatement的Set Operator Type是Except, 根据它的左右子查询，初始化一个Except操作符及子树
@@ -232,18 +283,18 @@ public class QueryGenerator extends AbstractGenerator {
    * @return Except操作符及子树；如果Set Operator Type不是Except，返回null
    */
   private Operator initExcept(BinarySelectStatement selectStatement) {
-    if (selectStatement.getSetOperator() == OperatorType.Except) {
-      SelectStatement leftQuery = selectStatement.getLeftQuery();
-      SelectStatement rightQuery = selectStatement.getRightQuery();
-
-      return new Except(
-          new OperatorSource(generateRoot(leftQuery)),
-          new OperatorSource(generateRoot(rightQuery)),
-          getOrderList(leftQuery),
-          getOrderList(rightQuery),
-          selectStatement.isDistinct());
+    if (selectStatement.getSetOperator() != OperatorType.Except) {
+      return null;
     }
-    return null;
+    SelectStatement leftQuery = selectStatement.getLeftQuery();
+    SelectStatement rightQuery = selectStatement.getRightQuery();
+
+    return new Except(
+        new OperatorSource(generateRoot(leftQuery)),
+        new OperatorSource(generateRoot(rightQuery)),
+        getOrderList(leftQuery),
+        getOrderList(rightQuery),
+        selectStatement.isDistinct());
   }
 
   /**
@@ -253,18 +304,18 @@ public class QueryGenerator extends AbstractGenerator {
    * @return Intersect操作符及子树；如果Set Operator Type不是Intersect，返回null
    */
   private Operator initIntersect(BinarySelectStatement selectStatement) {
-    if (selectStatement.getSetOperator() == OperatorType.Intersect) {
-      SelectStatement leftQuery = selectStatement.getLeftQuery();
-      SelectStatement rightQuery = selectStatement.getRightQuery();
-
-      return new Intersect(
-          new OperatorSource(generateRoot(leftQuery)),
-          new OperatorSource(generateRoot(rightQuery)),
-          getOrderList(leftQuery),
-          getOrderList(rightQuery),
-          selectStatement.isDistinct());
+    if (selectStatement.getSetOperator() != OperatorType.Intersect) {
+      return null;
     }
-    return null;
+    SelectStatement leftQuery = selectStatement.getLeftQuery();
+    SelectStatement rightQuery = selectStatement.getRightQuery();
+
+    return new Intersect(
+        new OperatorSource(generateRoot(leftQuery)),
+        new OperatorSource(generateRoot(rightQuery)),
+        getOrderList(leftQuery),
+        getOrderList(rightQuery),
+        selectStatement.isDistinct());
   }
 
   /**
@@ -274,35 +325,36 @@ public class QueryGenerator extends AbstractGenerator {
    * @return from部分的操作符树；如果from部分为空，返回null
    */
   private Operator initFromPart(UnarySelectStatement selectStatement) {
-    if (!selectStatement.getFromParts().isEmpty()) {
-      Operator root;
-      FromPart fromPart = selectStatement.getFromPart(0);
-      switch (fromPart.getType()) {
-        case Path:
-          policy.notify(selectStatement);
-          root = filterAndMergeFragments(selectStatement);
-          break;
-        case SubQuery:
-          SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
-          root = generateRoot(subQueryFromPart.getSubQuery());
-          break;
-        case Cte:
-          CteFromPart cteFromPart = (CteFromPart) fromPart;
-          root = cteFromPart.getRoot().copy();
-          break;
-        case ShowColumns:
-          ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
-          root = new ShowColumns(new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
-          break;
-        default:
-          throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
-      }
-      if (fromPart.hasAlias()) {
-        root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
-      }
-      return root;
+    if (selectStatement.getFromParts().isEmpty()) {
+      return null;
     }
-    return null;
+
+    Operator root;
+    FromPart fromPart = selectStatement.getFromPart(0);
+    switch (fromPart.getType()) {
+      case Path:
+        policy.notify(selectStatement);
+        root = filterAndMergeFragments(selectStatement);
+        break;
+      case SubQuery:
+        SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
+        root = generateRoot(subQueryFromPart.getSubQuery());
+        break;
+      case Cte:
+        CteFromPart cteFromPart = (CteFromPart) fromPart;
+        root = cteFromPart.getRoot().copy();
+        break;
+      case ShowColumns:
+        ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
+        root = new ShowColumns(new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
+        break;
+      default:
+        throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
+    }
+    if (fromPart.hasAlias()) {
+      root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+    }
+    return root;
   }
 
   /**
@@ -312,128 +364,124 @@ public class QueryGenerator extends AbstractGenerator {
    * @return Join操作符树；如果没有Join部分，返回null
    */
   private Operator initFilterAndMergeFragmentsWithJoin(UnarySelectStatement selectStatement) {
-    if (selectStatement.hasJoinParts()) {
-      TagFilter tagFilter = selectStatement.getTagFilter();
-
-      List<Operator> joinList = new ArrayList<>();
-      // 1. get all data of single prefix like a.* or b.*
-      selectStatement
-          .getFromParts()
-          .forEach(
-              fromPart -> {
-                Operator root;
-                switch (fromPart.getType()) {
-                  case Path:
-                    PathFromPart pathFromPart = (PathFromPart) fromPart;
-                    String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
-                    Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                        getFragmentsByColumnsInterval(
-                            selectStatement, new ColumnsInterval(prefix, prefix));
-                    Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
-                    List<FragmentMeta> dummyFragments = pair.v;
-                    root =
-                        mergeRawData(
-                            fragments,
-                            dummyFragments,
-                            Collections.singletonList(prefix),
-                            tagFilter);
-                    break;
-                  case SubQuery:
-                    SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
-                    root = generateRoot(subQueryFromPart.getSubQuery());
-                    break;
-                  case Cte:
-                    CteFromPart cteFromPart = (CteFromPart) fromPart;
-                    root = cteFromPart.getRoot().copy();
-                    break;
-                  case ShowColumns:
-                    ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
-                    root =
-                        new ShowColumns(
-                            new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
-                    break;
-                  default:
-                    throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
-                }
-                if (fromPart.hasAlias()) {
-                  root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
-                }
-                joinList.add(root);
-              });
-      // 2. merge by declare
-      Operator left = joinList.get(0);
-      String prefixA = selectStatement.getFromPart(0).getPrefix();
-      for (int i = 1; i < joinList.size(); i++) {
-        JoinCondition joinCondition = selectStatement.getFromPart(i).getJoinCondition();
-        Operator right = joinList.get(i);
-
-        String prefixB = selectStatement.getFromPart(i).getPrefix();
-
-        Filter filter = joinCondition.getFilter();
-        List<String> joinColumns = joinCondition.getJoinColumns();
-        boolean isNaturalJoin = isNaturalJoin(joinCondition.getJoinType());
-
-        if (!joinColumns.isEmpty() || isNaturalJoin) {
-          if (prefixA == null || prefixB == null) {
-            throw new RuntimeException(
-                "A natural join or a join with USING should have two public prefix");
-          }
-        }
-
-        JoinAlgType joinAlgType = chooseJoinAlg(filter, isNaturalJoin, joinColumns);
-        OuterJoinType outerJoinType = null;
-        switch (joinCondition.getJoinType()) {
-          case CrossJoin:
-            left =
-                new CrossJoin(
-                    new OperatorSource(left), new OperatorSource(right), prefixA, prefixB);
-            break;
-          case InnerJoin:
-          case InnerNaturalJoin:
-            left =
-                new InnerJoin(
-                    new OperatorSource(left),
-                    new OperatorSource(right),
-                    prefixA,
-                    prefixB,
-                    filter,
-                    joinColumns,
-                    isNaturalJoin,
-                    joinAlgType);
-            break;
-          case LeftOuterJoin:
-          case LeftNaturalJoin:
-            outerJoinType = OuterJoinType.LEFT;
-          case RightOuterJoin:
-          case RightNaturalJoin:
-            outerJoinType = outerJoinType == null ? OuterJoinType.RIGHT : outerJoinType;
-          case FullOuterJoin:
-            outerJoinType = outerJoinType == null ? OuterJoinType.FULL : outerJoinType;
-            left =
-                new OuterJoin(
-                    new OperatorSource(left),
-                    new OperatorSource(right),
-                    prefixA,
-                    prefixB,
-                    outerJoinType,
-                    filter,
-                    joinColumns,
-                    isNaturalJoin,
-                    joinAlgType);
-            break;
-          default:
-            break;
-        }
-
-        left =
-            detectAndTranslateCorrelatedVariables(
-                selectStatement.getFromPart(i).getFreeVariables(), selectStatement, i, left);
-
-        prefixA = prefixB;
-      }
-      return left;
+    if (!selectStatement.hasJoinParts()) {
+      return null;
     }
-    return null;
+    TagFilter tagFilter = selectStatement.getTagFilter();
+
+    List<Operator> joinList = new ArrayList<>();
+    // 1. get all data of single prefix like a.* or b.*
+    selectStatement
+        .getFromParts()
+        .forEach(
+            fromPart -> {
+              Operator root;
+              switch (fromPart.getType()) {
+                case Path:
+                  PathFromPart pathFromPart = (PathFromPart) fromPart;
+                  String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
+                  Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
+                      getFragmentsByColumnsInterval(
+                          selectStatement, new ColumnsInterval(prefix, prefix));
+                  Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
+                  List<FragmentMeta> dummyFragments = pair.v;
+                  root =
+                      mergeRawData(
+                          fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
+                  break;
+                case SubQuery:
+                  SubQueryFromPart subQueryFromPart = (SubQueryFromPart) fromPart;
+                  root = generateRoot(subQueryFromPart.getSubQuery());
+                  break;
+                case Cte:
+                  CteFromPart cteFromPart = (CteFromPart) fromPart;
+                  root = cteFromPart.getRoot().copy();
+                  break;
+                case ShowColumns:
+                  ShowColumnsFromPart showColumnsFromPart = (ShowColumnsFromPart) fromPart;
+                  root =
+                      new ShowColumns(
+                          new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
+                  break;
+                default:
+                  throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
+              }
+              if (fromPart.hasAlias()) {
+                root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+              }
+              joinList.add(root);
+            });
+    // 2. merge by declare
+    Operator left = joinList.get(0);
+    String prefixA = selectStatement.getFromPart(0).getPrefix();
+    for (int i = 1; i < joinList.size(); i++) {
+      JoinCondition joinCondition = selectStatement.getFromPart(i).getJoinCondition();
+      Operator right = joinList.get(i);
+
+      String prefixB = selectStatement.getFromPart(i).getPrefix();
+
+      Filter filter = joinCondition.getFilter();
+      List<String> joinColumns = joinCondition.getJoinColumns();
+      boolean isNaturalJoin = isNaturalJoin(joinCondition.getJoinType());
+
+      if (!joinColumns.isEmpty() || isNaturalJoin) {
+        if (prefixA == null || prefixB == null) {
+          throw new RuntimeException(
+              "A natural join or a join with USING should have two public prefix");
+        }
+      }
+
+      JoinAlgType joinAlgType = chooseJoinAlg(filter, isNaturalJoin, joinColumns);
+      OuterJoinType outerJoinType = null;
+      switch (joinCondition.getJoinType()) {
+        case CrossJoin:
+          left =
+              new CrossJoin(new OperatorSource(left), new OperatorSource(right), prefixA, prefixB);
+          break;
+        case InnerJoin:
+        case InnerNaturalJoin:
+          left =
+              new InnerJoin(
+                  new OperatorSource(left),
+                  new OperatorSource(right),
+                  prefixA,
+                  prefixB,
+                  filter,
+                  joinColumns,
+                  isNaturalJoin,
+                  joinAlgType);
+          break;
+        case LeftOuterJoin:
+        case LeftNaturalJoin:
+          outerJoinType = OuterJoinType.LEFT;
+        case RightOuterJoin:
+        case RightNaturalJoin:
+          outerJoinType = outerJoinType == null ? OuterJoinType.RIGHT : outerJoinType;
+        case FullOuterJoin:
+          outerJoinType = outerJoinType == null ? OuterJoinType.FULL : outerJoinType;
+          left =
+              new OuterJoin(
+                  new OperatorSource(left),
+                  new OperatorSource(right),
+                  prefixA,
+                  prefixB,
+                  outerJoinType,
+                  filter,
+                  joinColumns,
+                  isNaturalJoin,
+                  joinAlgType);
+          break;
+        default:
+          break;
+      }
+
+      left =
+          detectAndTranslateCorrelatedVariables(
+              selectStatement.getFromPart(i).getFreeVariables(), selectStatement, i, left);
+
+      prefixA = prefixB;
+    }
+    return left;
   }
 
   /**
@@ -469,14 +517,13 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Limit操作符的根节点；如果没有LIMIT子句，返回原根节点
    */
   private static Operator buildLimit(SelectStatement selectStatement, Operator root) {
-    if (selectStatement.getLimit() != Integer.MAX_VALUE || selectStatement.getOffset() != 0) {
-      root =
-          new Limit(
-              new OperatorSource(root),
-              (int) selectStatement.getLimit(),
-              (int) selectStatement.getOffset());
+    if (selectStatement.getLimit() == Integer.MAX_VALUE && selectStatement.getOffset() == 0) {
+      return root;
     }
-    return root;
+    return new Limit(
+        new OperatorSource(root),
+        (int) selectStatement.getLimit(),
+        (int) selectStatement.getOffset());
   }
 
   /**
@@ -487,14 +534,13 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Sort操作符的根节点；如果没有Order By子句，返回原根节点
    */
   private static Operator buildOrderByPaths(SelectStatement selectStatement, Operator root) {
-    if (!selectStatement.getOrderByPaths().isEmpty()) {
-      root =
-          new Sort(
-              new OperatorSource(root),
-              selectStatement.getOrderByPaths(),
-              selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC);
+    if (selectStatement.getOrderByPaths().isEmpty()) {
+      return root;
     }
-    return root;
+    return new Sort(
+        new OperatorSource(root),
+        selectStatement.getOrderByPaths(),
+        selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC);
   }
 
   /**
@@ -505,25 +551,27 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了相关操作符的根节点；如果QueryType不是SimpleQuery，返回原根节点
    */
   private static Operator buildSimpleQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.getQueryType() == QueryType.SimpleQuery) {
-      List<Operator> queryList = new ArrayList<>();
-      Set<String> selectedPath = new HashSet<>();
-      selectStatement
-          .getBaseExpressionList()
-          .forEach(expression -> selectedPath.add(expression.getPathName()));
-      queryList.add(
-          new Project(
-              new OperatorSource(root),
-              new ArrayList<>(selectedPath),
-              selectStatement.getTagFilter(),
-              selectStatement.hasValueToSelectedPath()));
-
-      if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-        root = OperatorUtils.joinOperatorsByTime(queryList);
-      } else {
-        root = OperatorUtils.joinOperators(queryList, ORDINAL);
-      }
+    if (selectStatement.getQueryType() != QueryType.SimpleQuery) {
+      return root;
     }
+    List<Operator> queryList = new ArrayList<>();
+    Set<String> selectedPath = new HashSet<>();
+    selectStatement
+        .getBaseExpressionList()
+        .forEach(expression -> selectedPath.add(expression.getPathName()));
+    queryList.add(
+        new Project(
+            new OperatorSource(root),
+            new ArrayList<>(selectedPath),
+            selectStatement.getTagFilter(),
+            selectStatement.hasValueToSelectedPath()));
+
+    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
+      root = OperatorUtils.joinOperatorsByTime(queryList);
+    } else {
+      root = OperatorUtils.joinOperators(queryList, ORDINAL);
+    }
+
     return root;
   }
 
@@ -535,25 +583,27 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了相关操作符的根节点；如果QueryType不是LastFirstQuery，返回原根节点
    */
   private static Operator buildLastFirstQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.getQueryType() == QueryType.LastFirstQuery) {
-      List<Operator> queryList = new ArrayList<>();
-      Operator finalRoot = root;
-      selectStatement
-          .getFuncExpressionMap()
-          .forEach(
-              (k, v) ->
-                  v.forEach(
-                      expression -> {
-                        FunctionParams params = getFunctionParams(k, expression);
-                        Operator copySelect = finalRoot.copy();
-                        logger.info("function: " + k + ", wrapped path: " + v);
-                        queryList.add(
-                            new MappingTransform(
-                                new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
-                      }));
-      root = OperatorUtils.unionOperators(queryList);
+    if (selectStatement.getQueryType() != QueryType.LastFirstQuery) {
+      return root;
     }
+    List<Operator> queryList = new ArrayList<>();
+    Operator finalRoot = root;
+    selectStatement
+        .getFuncExpressionMap()
+        .forEach(
+            (k, v) ->
+                v.forEach(
+                    expression -> {
+                      FunctionParams params = getFunctionParams(k, expression);
+                      Operator copySelect = finalRoot.copy();
+                      logger.info("function: " + k + ", wrapped path: " + v);
+                      queryList.add(
+                          new MappingTransform(
+                              new OperatorSource(copySelect),
+                              new FunctionCall(functionManager.getFunction(k), params)));
+                    }));
+    root = OperatorUtils.unionOperators(queryList);
+
     return root;
   }
 
@@ -565,53 +615,55 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了相关操作符的根节点；如果QueryType不是AggregateQuery，返回原根节点
    */
   private static Operator buildAggregateQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.getQueryType() == QueryType.AggregateQuery) {
-      List<Operator> queryList = new ArrayList<>();
-      Operator finalRoot = root;
-      selectStatement
-          .getFuncExpressionMap()
-          .forEach(
-              (k, v) ->
-                  v.forEach(
-                      expression -> {
-                        FunctionParams params = getFunctionParams(k, expression);
-                        Operator copySelect = finalRoot.copy();
-                        logger.info("function: " + expression.getColumnName());
-                        if (FunctionUtils.isRowToRowFunction(k)) {
-                          queryList.add(
-                              new RowTransform(
-                                  new OperatorSource(copySelect),
-                                  new FunctionCall(functionManager.getFunction(k), params)));
-                        } else if (FunctionUtils.isSetToSetFunction(k)) {
-                          queryList.add(
-                              new MappingTransform(
-                                  new OperatorSource(copySelect),
-                                  new FunctionCall(functionManager.getFunction(k), params)));
-                        } else {
-                          queryList.add(
-                              new SetTransform(
-                                  new OperatorSource(copySelect),
-                                  new FunctionCall(functionManager.getFunction(k), params)));
-                        }
-                      }));
-      selectStatement
-          .getBaseExpressionList()
-          .forEach(
-              expression -> {
-                Operator copySelect = finalRoot.copy();
-                queryList.add(
-                    new Project(
-                        new OperatorSource(copySelect),
-                        Collections.singletonList(expression.getPathName()),
-                        selectStatement.getTagFilter()));
-              });
-
-      if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-        root = OperatorUtils.joinOperatorsByTime(queryList);
-      } else {
-        root = OperatorUtils.joinOperators(queryList, ORDINAL);
-      }
+    if (selectStatement.getQueryType() != QueryType.AggregateQuery) {
+      return root;
     }
+    List<Operator> queryList = new ArrayList<>();
+    Operator finalRoot = root;
+    selectStatement
+        .getFuncExpressionMap()
+        .forEach(
+            (k, v) ->
+                v.forEach(
+                    expression -> {
+                      FunctionParams params = getFunctionParams(k, expression);
+                      Operator copySelect = finalRoot.copy();
+                      logger.info("function: " + expression.getColumnName());
+                      if (FunctionUtils.isRowToRowFunction(k)) {
+                        queryList.add(
+                            new RowTransform(
+                                new OperatorSource(copySelect),
+                                new FunctionCall(functionManager.getFunction(k), params)));
+                      } else if (FunctionUtils.isSetToSetFunction(k)) {
+                        queryList.add(
+                            new MappingTransform(
+                                new OperatorSource(copySelect),
+                                new FunctionCall(functionManager.getFunction(k), params)));
+                      } else {
+                        queryList.add(
+                            new SetTransform(
+                                new OperatorSource(copySelect),
+                                new FunctionCall(functionManager.getFunction(k), params)));
+                      }
+                    }));
+    selectStatement
+        .getBaseExpressionList()
+        .forEach(
+            expression -> {
+              Operator copySelect = finalRoot.copy();
+              queryList.add(
+                  new Project(
+                      new OperatorSource(copySelect),
+                      Collections.singletonList(expression.getPathName()),
+                      selectStatement.getTagFilter()));
+            });
+
+    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
+      root = OperatorUtils.joinOperatorsByTime(queryList);
+    } else {
+      root = OperatorUtils.joinOperators(queryList, ORDINAL);
+    }
+
     return root;
   }
 
@@ -623,32 +675,33 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了相关操作符的根节点；如果QueryType不是GroupByQuery，返回原根节点
    */
   private Operator buildGroupByQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
-      List<Operator> queryList = new ArrayList<>();
-      List<FunctionCall> functionCallList = new ArrayList<>();
-      selectStatement
-          .getFuncExpressionMap()
-          .forEach(
-              (k, v) -> {
-                if (!k.equals("")) {
-                  v.forEach(
-                      expression -> {
-                        FunctionParams params = getFunctionParams(k, expression);
-                        functionCallList.add(
-                            new FunctionCall(functionManager.getFunction(k), params));
-                      });
-                }
-              });
-      queryList.add(
-          new GroupBy(
-              new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
-
-      if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-        root = OperatorUtils.joinOperatorsByTime(queryList);
-      } else {
-        root = OperatorUtils.joinOperators(queryList, ORDINAL);
-      }
+    if (selectStatement.getQueryType() != QueryType.GroupByQuery) {
+      return root;
     }
+    List<Operator> queryList = new ArrayList<>();
+    List<FunctionCall> functionCallList = new ArrayList<>();
+    selectStatement
+        .getFuncExpressionMap()
+        .forEach(
+            (k, v) -> {
+              if (!k.equals("")) {
+                v.forEach(
+                    expression -> {
+                      FunctionParams params = getFunctionParams(k, expression);
+                      functionCallList.add(
+                          new FunctionCall(functionManager.getFunction(k), params));
+                    });
+              }
+            });
+    queryList.add(
+        new GroupBy(new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
+
+    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
+      root = OperatorUtils.joinOperatorsByTime(queryList);
+    } else {
+      root = OperatorUtils.joinOperators(queryList, ORDINAL);
+    }
+
     return root;
   }
 
@@ -660,28 +713,30 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了相关操作符的根节点；如果QueryType不是DownSampleQuery，返回原根节点
    */
   private Operator buildDownSampleQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.getQueryType() == QueryType.DownSampleQuery) {
-      List<Operator> queryList = new ArrayList<>();
-      Operator finalRoot = root;
-      selectStatement
-          .getFuncExpressionMap()
-          .forEach(
-              (k, v) ->
-                  v.forEach(
-                      expression -> {
-                        FunctionParams params = getFunctionParams(k, expression);
-                        Operator copySelect = finalRoot.copy();
-                        queryList.add(
-                            new Downsample(
-                                new OperatorSource(copySelect),
-                                selectStatement.getPrecision(),
-                                selectStatement.getSlideDistance(),
-                                new FunctionCall(functionManager.getFunction(k), params),
-                                new KeyRange(
-                                    selectStatement.getStartKey(), selectStatement.getEndKey())));
-                      }));
-      root = OperatorUtils.joinOperatorsByTime(queryList);
+    if (selectStatement.getQueryType() != QueryType.DownSampleQuery) {
+      return root;
     }
+    List<Operator> queryList = new ArrayList<>();
+    Operator finalRoot = root;
+    selectStatement
+        .getFuncExpressionMap()
+        .forEach(
+            (k, v) ->
+                v.forEach(
+                    expression -> {
+                      FunctionParams params = getFunctionParams(k, expression);
+                      Operator copySelect = finalRoot.copy();
+                      queryList.add(
+                          new Downsample(
+                              new OperatorSource(copySelect),
+                              selectStatement.getPrecision(),
+                              selectStatement.getSlideDistance(),
+                              new FunctionCall(functionManager.getFunction(k), params),
+                              new KeyRange(
+                                  selectStatement.getStartKey(), selectStatement.getEndKey())));
+                    }));
+    root = OperatorUtils.joinOperatorsByTime(queryList);
+
     return root;
   }
 
@@ -757,28 +812,29 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了ValueToSelectedPath操作符的根节点；如果没有ValueToSelectedPath，返回原根节点
    */
   private Operator buildValueToMeta(UnarySelectStatement selectStatement, Operator root) {
-    List<Source> valueToMetaList = new ArrayList<>();
-    if (selectStatement.hasValueToSelectedPath()) {
-      selectStatement
-          .getExpressions()
-          .forEach(
-              expression -> {
-                if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
-                  FromValueExpression fvExpression = (FromValueExpression) expression;
-                  Operator child = generateRoot(fvExpression.getSubStatement());
-
-                  String prefix = "";
-                  if (selectStatement.isFromSinglePath()) {
-                    prefix = selectStatement.getFromPart(0).getOriginPrefix();
-                  }
-
-                  valueToMetaList.add(
-                      new OperatorSource(
-                          new ValueToSelectedPath(new OperatorSource(child), prefix)));
-                }
-              });
-      root = new FoldedOperator(valueToMetaList, root);
+    if (!selectStatement.hasValueToSelectedPath()) {
+      return root;
     }
+    List<Source> valueToMetaList = new ArrayList<>();
+    selectStatement
+        .getExpressions()
+        .forEach(
+            expression -> {
+              if (expression.getType().equals(Expression.ExpressionType.FromValue)) {
+                FromValueExpression fvExpression = (FromValueExpression) expression;
+                Operator child = generateRoot(fvExpression.getSubStatement());
+
+                String prefix = "";
+                if (selectStatement.isFromSinglePath()) {
+                  prefix = selectStatement.getFromPart(0).getOriginPrefix();
+                }
+
+                valueToMetaList.add(
+                    new OperatorSource(new ValueToSelectedPath(new OperatorSource(child), prefix)));
+              }
+            });
+    root = new FoldedOperator(valueToMetaList, root);
+
     return root;
   }
 
@@ -790,13 +846,15 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Distinct操作符的根节点；如果没有Distinct，返回原根节点
    */
   private static Operator buildDistinct(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.isDistinct()) {
-      List<String> patterns = new ArrayList<>();
-      for (Expression expression : selectStatement.getExpressions()) {
-        patterns.add(expression.getColumnName());
-      }
-      root = new Distinct(new OperatorSource(root), patterns);
+    if (!selectStatement.isDistinct()) {
+      return root;
     }
+    List<String> patterns = new ArrayList<>();
+    for (Expression expression : selectStatement.getExpressions()) {
+      patterns.add(expression.getColumnName());
+    }
+    root = new Distinct(new OperatorSource(root), patterns);
+
     return root;
   }
 
@@ -808,15 +866,16 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了RowTransform操作符的根节点；如果没有RowTransform，返回原根节点
    */
   private static Operator buildRowTransform(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.needRowTransform()) {
-      List<FunctionCall> functionCallList = new ArrayList<>();
-      for (Expression expression : selectStatement.getExpressions()) {
-        FunctionParams params = new FunctionParams(expression);
-        functionCallList.add(
-            new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
-      }
-      root = new RowTransform(new OperatorSource(root), functionCallList);
+    if (!selectStatement.needRowTransform()) {
+      return root;
     }
+    List<FunctionCall> functionCallList = new ArrayList<>();
+    for (Expression expression : selectStatement.getExpressions()) {
+      FunctionParams params = new FunctionParams(expression);
+      functionCallList.add(new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
+    }
+    root = new RowTransform(new OperatorSource(root), functionCallList);
+
     return root;
   }
 
@@ -828,12 +887,11 @@ public class QueryGenerator extends AbstractGenerator {
    * @return Join起来的带Having子查询的树；如果没有HavingSubQuery，返回原根节点
    */
   private Operator buildHavingSubQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (!selectStatement.getHavingSubQueryParts().isEmpty()) {
-      root =
-          buildJoinOperatorFromSubQueries(
-              selectStatement, root, selectStatement.getHavingSubQueryParts());
+    if (selectStatement.getHavingSubQueryParts().isEmpty()) {
+      return root;
     }
-    return root;
+    return buildJoinOperatorFromSubQueries(
+        selectStatement, root, selectStatement.getHavingSubQueryParts());
   }
 
   /**
@@ -858,28 +916,30 @@ public class QueryGenerator extends AbstractGenerator {
    * @return Join起来的带Select子查询的树；如果没有SelectSubQuery，返回原根节点
    */
   private Operator buildSelectSubQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (!selectStatement.getSelectSubQueryParts().isEmpty()) {
-      int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
-      List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
-      for (int i = 0; i < sizeSelectSubQuery; i++) {
-        if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
-          Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
+    if (selectStatement.getSelectSubQueryParts().isEmpty()) {
+      return root;
+    }
+    int sizeSelectSubQuery = selectStatement.getSelectSubQueryParts().size();
+    List<SubQueryFromPart> selectSubQueryParts = selectStatement.getSelectSubQueryParts();
+    for (int i = 0; i < sizeSelectSubQuery; i++) {
+      if (selectSubQueryParts.get(i).getJoinCondition().getJoinType() == JoinType.SingleJoin) {
+        Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
 
-          Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
-          JoinAlgType joinAlgType = chooseJoinAlg(filter);
+        Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
+        JoinAlgType joinAlgType = chooseJoinAlg(filter);
 
-          root =
-              new SingleJoin(
-                  new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
-          root =
-              detectAndTranslateCorrelatedVariables(
-                  selectSubQueryParts.get(i).getFreeVariables(),
-                  selectStatement,
-                  selectStatement.getFromParts().size(),
-                  root);
-        }
+        root =
+            new SingleJoin(
+                new OperatorSource(root), new OperatorSource(right), filter, joinAlgType);
+        root =
+            detectAndTranslateCorrelatedVariables(
+                selectSubQueryParts.get(i).getFreeVariables(),
+                selectStatement,
+                selectStatement.getFromParts().size(),
+                root);
       }
     }
+
     return root;
   }
 
@@ -891,14 +951,11 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Select操作符的根节点；如果没有ValueFilter，返回原根节点
    */
   private static Operator buildValueFilter(UnarySelectStatement selectStatement, Operator root) {
-    if (selectStatement.hasValueFilter()) {
-      root =
-          new Select(
-              new OperatorSource(root),
-              selectStatement.getFilter(),
-              selectStatement.getTagFilter());
+    if (!selectStatement.hasValueFilter()) {
+      return root;
     }
-    return root;
+    return new Select(
+        new OperatorSource(root), selectStatement.getFilter(), selectStatement.getTagFilter());
   }
 
   /**
@@ -909,12 +966,11 @@ public class QueryGenerator extends AbstractGenerator {
    * @return Join起来的带Where子查询的树；如果没有WhereSubQuery，返回原根节点
    */
   private Operator buildWhereSubQuery(UnarySelectStatement selectStatement, Operator root) {
-    if (!selectStatement.getWhereSubQueryParts().isEmpty()) {
-      root =
-          buildJoinOperatorFromSubQueries(
-              selectStatement, root, selectStatement.getWhereSubQueryParts());
+    if (selectStatement.getWhereSubQueryParts().isEmpty()) {
+      return root;
     }
-    return root;
+    return buildJoinOperatorFromSubQueries(
+        selectStatement, root, selectStatement.getWhereSubQueryParts());
   }
 
   /** 从子查询构建一个Join起来的子树，用于处理where子查询和having子查询 */
