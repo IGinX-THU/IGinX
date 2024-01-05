@@ -588,8 +588,6 @@ class Session(object):
             if os.path.exists(columns[i]):
                 os.remove(columns[i])
 
-        print(resp.columns())
-
         while resp.has_more():
             cache = self.cache_result_byte_array(resp, True)
             self.export_byte_stream(cache, columns)
@@ -616,12 +614,10 @@ class Session(object):
     def cache_result_byte_array(self, dataset, remove_key):
         cache = []
         row_index = 0
-        fetch_size = 1000  # TODO:待确认，暂时设置为1000
+        fetch_size = 1000
         types = list(dataset.types())
         if remove_key:
             types.pop(0)
-
-        print(dataset.types())
 
         while dataset.has_more() and row_index < fetch_size:
             byte_value = dataset.next_row_as_bytes(True)
@@ -663,7 +659,7 @@ class Session(object):
             cache.append(dataset.columns())
 
         row_index = 0
-        fetch_size = 1000  # TODO:大小待确认
+        fetch_size = 1000
 
         while dataset.has_more() and row_index < fetch_size:
             row = dataset.next()
