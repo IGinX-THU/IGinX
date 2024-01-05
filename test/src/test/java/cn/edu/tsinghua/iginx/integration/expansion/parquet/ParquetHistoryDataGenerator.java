@@ -24,7 +24,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char IGINX_SEPARATOR = '.';
 
-  private static final char PARQUET_SEPARATOR = '$';
+  private static final char PARQUET_SEPARATOR = '*';
 
   public ParquetHistoryDataGenerator() {}
 
@@ -102,7 +102,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       StringBuilder typeListStr = new StringBuilder();
       StringBuilder insertStr;
       for (Pair<String, String> p : columnList) {
-        typeListStr.append(p.k).append(" ").append(p.v).append(", ");
+        typeListStr.append("\"").append(p.k).append("\" ").append(p.v).append(", ");
       }
 
       stmt.execute(
