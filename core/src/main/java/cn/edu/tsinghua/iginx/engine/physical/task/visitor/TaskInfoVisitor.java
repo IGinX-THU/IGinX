@@ -55,11 +55,6 @@ public class TaskInfoVisitor implements TaskVisitor {
     collectTaskInfo(task);
   }
 
-  @Override
-  public void visit(ConstantSourceMemoryPhysicalTask task) {
-    collectTaskInfo(task);
-  }
-
   private void collectTaskInfo(PhysicalTask task) {
     TaskType type = task.getType();
     StringBuilder builder = new StringBuilder();

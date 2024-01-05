@@ -24,15 +24,15 @@ public class TaskUtils {
         break;
       case UnaryMemory:
         UnaryMemoryPhysicalTask unaryMemoryPhysicalTask = (UnaryMemoryPhysicalTask) root;
-        getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
+        if (unaryMemoryPhysicalTask.getParentTask() != null) {
+          getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
+        }
         break;
       case MultipleMemory:
         MultipleMemoryPhysicalTask multipleMemoryPhysicalTask = (MultipleMemoryPhysicalTask) root;
         for (PhysicalTask parentTask : multipleMemoryPhysicalTask.getParentTasks()) {
           getBottomTasks(tasks, parentTask);
         }
-        break;
-      case ConstantSourceMemory:
         break;
       default:
         throw new RuntimeException("unknown task type: " + root.getType());

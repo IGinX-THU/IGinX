@@ -22,6 +22,4 @@ public interface TaskVisitor {
   void visit(StoragePhysicalTask task);
 
   void visit(GlobalPhysicalTask task);
-
-  void visit(ConstantSourceMemoryPhysicalTask task);
 }

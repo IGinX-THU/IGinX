@@ -33,7 +33,9 @@ import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.migration.MigrationPhysicalExecutor;
 import java.util.ArrayList;
 import java.util.List;
@@ -84,21 +86,13 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     }
     PhysicalTask task = optimizer.optimize(root, ctx);
     ctx.setPhysicalTree(task);
-    List<PhysicalTask> bottomTasks = new ArrayList<>();
-    getBottomTasks(bottomTasks, task);
-    commitBottomTasks(bottomTasks);
-    TaskExecuteResult result = task.getResult();
-    if (result.getException() != null) {
-      throw result.getException();
+    // 空表查询特殊处理，不需要getBottomTasks
+    if (root.getType() != OperatorType.Project
+        || ((Project) root).getSource().getType() != SourceType.Constant) {
+      List<PhysicalTask> bottomTasks = new ArrayList<>();
+      getBottomTasks(bottomTasks, task);
+      commitBottomTasks(bottomTasks);
     }
-    return result.getRowStream();
-  }
-
-  @Override
-  public RowStream executeConstantSource(RequestContext ctx, Operator root)
-      throws PhysicalException {
-    PhysicalTask task = optimizer.optimize(root, ctx);
-    ctx.setPhysicalTree(task);
     TaskExecuteResult result = task.getResult();
     if (result.getException() != null) {
       throw result.getException();

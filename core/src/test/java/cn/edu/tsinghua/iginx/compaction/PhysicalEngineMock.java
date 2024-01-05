@@ -18,12 +18,6 @@ public class PhysicalEngineMock implements PhysicalEngine {
   }
 
   @Override
-  public RowStream executeConstantSource(RequestContext ctx, Operator root)
-      throws PhysicalException {
-    return null;
-  }
-
-  @Override
   public PhysicalOptimizer getOptimizer() {
     return null;
   }

@@ -25,8 +25,7 @@ public enum TaskType {
 
   MultipleMemory,
   BinaryMemory,
-  UnaryMemory,
-  ConstantSourceMemory;
+  UnaryMemory;
 
   public static boolean isMemoryTask(TaskType type) {
     return type == MultipleMemory || type == BinaryMemory || type == UnaryMemory;
