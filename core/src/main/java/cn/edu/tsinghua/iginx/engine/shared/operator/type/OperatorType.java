@@ -110,4 +110,8 @@ public enum OperatorType {
   public static boolean isNeedBroadcasting(OperatorType op) {
     return op == Delete || op == Insert;
   }
+
+  public static boolean isSetOperator(OperatorType op) {
+    return op.value >= 35 && op.value < 39;
+  }
 }
