@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.integration.mds;
 
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.integration.func.session.NewSessionIT;
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.ProposalListener;
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.SyncProposal;
 import cn.edu.tsinghua.iginx.metadata.sync.proposal.SyncVote;

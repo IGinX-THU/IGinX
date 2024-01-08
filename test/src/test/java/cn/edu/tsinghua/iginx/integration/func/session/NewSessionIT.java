@@ -720,7 +720,11 @@ public class NewSessionIT {
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException | ExecutionException e) {
-        LOGGER.error("execute downsample query failed, AggType={}, Precision={} because {}", type, precision, e.getMessage());
+        LOGGER.error(
+            "execute downsample query failed, AggType={}, Precision={} because {}",
+            type,
+            precision,
+            e.getMessage());
         fail();
       }
     }

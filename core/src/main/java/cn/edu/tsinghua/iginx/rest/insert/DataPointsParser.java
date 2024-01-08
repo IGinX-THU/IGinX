@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
 import java.io.IOException;
 import java.io.Reader;
 import java.util.*;
@@ -91,7 +90,7 @@ public class DataPointsParser {
     return true;
   }
   // 如果有anno信息会直接放入到插入路径中
-  private Metric getMetricObject(JsonNode node) throws IllegalArgumentException{
+  private Metric getMetricObject(JsonNode node) throws IllegalArgumentException {
     try {
       Metric ret = new Metric();
       if (!ifInputDataValid(node)) {
@@ -154,7 +153,7 @@ public class DataPointsParser {
       session.openSession();
       sendMetricsData();
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during sending data ",e);
+      throw new RuntimeException("Error occurred during sending data ", e);
     }
     session.closeSession();
   }
@@ -168,37 +167,37 @@ public class DataPointsParser {
   }
 
   private Long ifHasAnnoSequence() {
-      // 构造查询
-      QueryMetric metric = new QueryMetric();
-      metric.setName(ANNOTATION_SEQUENCE);
-      //            metric.addLastAggregator();
-      Query query = new Query();
-      query.addQueryMetrics(metric);
-      query.setStartAbsolute(1L);
-      query.setEndAbsolute(2L);
-      query.setTimePrecision(TimePrecision.NS);
+    // 构造查询
+    QueryMetric metric = new QueryMetric();
+    metric.setName(ANNOTATION_SEQUENCE);
+    //            metric.addLastAggregator();
+    Query query = new Query();
+    query.addQueryMetrics(metric);
+    query.setStartAbsolute(1L);
+    query.setEndAbsolute(2L);
+    query.setTimePrecision(TimePrecision.NS);
 
-      // 执行查询
-      QueryExecutor executor = new QueryExecutor(query);
-      QueryResult result = executor.execute(false);
+    // 执行查询
+    QueryExecutor executor = new QueryExecutor(query);
+    QueryResult result = executor.execute(false);
 
-      // 判断是否存在
-      if (result.getQueryResultDatasets().get(0).getPaths().isEmpty()) {
-        return -1L;
-      } else {
-        if (result.getQueryResultDatasets().get(0).getKeys().isEmpty())
-          return ANNOTATION_START_KEY + 1L;
-        else {
-          Object val = result.getQueryResultDatasets().get(0).getValueLists().get(0).get(0);
-          String valStr;
-          if (val instanceof byte[]) {
-            valStr = new String((byte[]) val);
-          } else {
-            valStr = String.valueOf(val.toString());
-          }
-          return Long.parseLong(valStr);
+    // 判断是否存在
+    if (result.getQueryResultDatasets().get(0).getPaths().isEmpty()) {
+      return -1L;
+    } else {
+      if (result.getQueryResultDatasets().get(0).getKeys().isEmpty())
+        return ANNOTATION_START_KEY + 1L;
+      else {
+        Object val = result.getQueryResultDatasets().get(0).getValueLists().get(0).get(0);
+        String valStr;
+        if (val instanceof byte[]) {
+          valStr = new String((byte[]) val);
+        } else {
+          valStr = String.valueOf(val.toString());
         }
+        return Long.parseLong(valStr);
       }
+    }
   }
 
   private void createAnnoSequence(boolean ifUpdate, Long val) {
@@ -263,8 +262,7 @@ public class DataPointsParser {
       List<String> paths,
       List<Map<String, String>> tagsList,
       Map<String, String> anno,
-      DataType typeAb)
-      {
+      DataType typeAb) {
     // 首先判断是否存在TitleDsp序列，并获取要插入的时间戳
     Long time = ifHasAnnoSequence();
     if (!time.equals(-1L)) {
@@ -424,28 +422,26 @@ public class DataPointsParser {
     } catch (SessionException e) {
       throw new SessionException("Error occurred during opening session", e);
     }
-      for (int pos = 0;
-          pos < preQueryResult.getSize();
-          pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
+    for (int pos = 0; pos < preQueryResult.getSize(); pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
 
-        QueryResultDataset queryResultDataset = preQueryResult.getQueryResultDatasets().get(pos);
-        QueryMetric queryBase = preQueryResult.getQueryMetrics().get(pos);
-        for (int pl = 0; pl < queryResultDataset.getPaths().size(); pl++) {
-          Metric metric = new Metric();
-          // 分析出tag加入到metric中
-          String name =
-              pathAppendAnno(
-                  metric, queryResultDataset.getPaths().get(pl), queryBase.getAnnotationLimit());
-          metric.setName(name);
+      QueryResultDataset queryResultDataset = preQueryResult.getQueryResultDatasets().get(pos);
+      QueryMetric queryBase = preQueryResult.getQueryMetrics().get(pos);
+      for (int pl = 0; pl < queryResultDataset.getPaths().size(); pl++) {
+        Metric metric = new Metric();
+        // 分析出tag加入到metric中
+        String name =
+            pathAppendAnno(
+                metric, queryResultDataset.getPaths().get(pl), queryBase.getAnnotationLimit());
+        metric.setName(name);
 
-          // 向metric中插入，anno以及数据点信息
-          metricGetData(metric, queryResultDataset, queryBase.getAnnotationLimit(), pl);
+        // 向metric中插入，anno以及数据点信息
+        metricGetData(metric, queryResultDataset, queryBase.getAnnotationLimit(), pl);
 
-          // 执行插入
-          insertExe(metric, TimePrecision.NS);
-        }
+        // 执行插入
+        insertExe(metric, TimePrecision.NS);
       }
-      session.closeSession();
+    }
+    session.closeSession();
   }
 
   private Metric updateAnnoPath(String path, AnnotationLimit annoLimit) {
@@ -467,33 +463,31 @@ public class DataPointsParser {
     return metric;
   }
 
-  public void handleAnnotationUpdate(Query preQuery, QueryResult preQueryResult) throws SessionException {
+  public void handleAnnotationUpdate(Query preQuery, QueryResult preQueryResult)
+      throws SessionException {
     // 创建session
     try {
       session.openSession();
     } catch (SessionException e) {
       throw new SessionException("Error occurred during opening session", e);
     }
-      for (int pos = 0;
-          pos < preQueryResult.getSize();
-          pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
-        QueryResultDataset queryResultDataset = preQueryResult.getQueryResultDatasets().get(pos);
-        QueryMetric queryBase = preQueryResult.getQueryMetrics().get(pos);
-        for (int pl = 0; pl < queryResultDataset.getPaths().size(); pl++) {
-          // 添加包含@的路径
-          /*这里更新为包含关系2022.8.12.23.24，如果之后修改，在此处加入if限制条件*/
-          // 更改为新的anno信息，即将路径中的cat信息更新
-          AnnotationLimit newAnnoLimit =
-              preQuery.getQueryMetrics().get(pos).getNewAnnotationLimit();
-          Metric metric = updateAnnoPath(queryResultDataset.getPaths().get(pl), newAnnoLimit);
+    for (int pos = 0; pos < preQueryResult.getSize(); pos++) { // LHZ这里在测试时确认是否每个resultDataSet只有一个值
+      QueryResultDataset queryResultDataset = preQueryResult.getQueryResultDatasets().get(pos);
+      QueryMetric queryBase = preQueryResult.getQueryMetrics().get(pos);
+      for (int pl = 0; pl < queryResultDataset.getPaths().size(); pl++) {
+        // 添加包含@的路径
+        /*这里更新为包含关系2022.8.12.23.24，如果之后修改，在此处加入if限制条件*/
+        // 更改为新的anno信息，即将路径中的cat信息更新
+        AnnotationLimit newAnnoLimit = preQuery.getQueryMetrics().get(pos).getNewAnnotationLimit();
+        Metric metric = updateAnnoPath(queryResultDataset.getPaths().get(pl), newAnnoLimit);
 
-          // 添加anno的title等信息，以及数据点信息
-          metricGetData(metric, queryResultDataset, queryBase.getNewAnnotationLimit(), pl);
+        // 添加anno的title等信息，以及数据点信息
+        metricGetData(metric, queryResultDataset, queryBase.getNewAnnotationLimit(), pl);
 
-          insertExe(metric, TimePrecision.NS);
-        }
+        insertExe(metric, TimePrecision.NS);
       }
-      session.closeSession();
+    }
+    session.closeSession();
   }
 
   public String getStringVal(Object val) {

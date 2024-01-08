@@ -459,7 +459,7 @@ public abstract class MigrationPolicy {
             DefaultMetaManager.getInstance()
                 .generateNewStorageUnitMetaByFragment(fragmentMeta, targetStorageId);
       } catch (MetaStorageException e) {
-        throw new PhysicalException("cannot create storage unit in target storage engine",e);
+        throw new PhysicalException("cannot create storage unit in target storage engine", e);
       }
       migrationLogger.logMigrationExecuteTaskStart(
           new MigrationExecuteTask(
@@ -504,7 +504,9 @@ public abstract class MigrationPolicy {
       Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
       physicalEngine.execute(new RequestContext(), delete);
     } catch (PhysicalException e) {
-      String cause = String.format("encounter error when migrate data from %d to %d ", sourceStorageId, targetStorageId);
+      String cause =
+          String.format(
+              "encounter error when migrate data from %d to %d ", sourceStorageId, targetStorageId);
       throw new RuntimeException(cause, e);
     } finally {
       migrationLogger.logMigrationExecuteTaskEnd();

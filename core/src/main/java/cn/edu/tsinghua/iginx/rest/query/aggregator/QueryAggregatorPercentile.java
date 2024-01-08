@@ -41,59 +41,59 @@ public class QueryAggregatorPercentile extends QueryAggregator {
       long startKey,
       long endKey) {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
-      SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
-      queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
-      DataType type = RestUtils.checkType(sessionQueryDataSet);
-      int n = sessionQueryDataSet.getKeys().length;
-      int m = sessionQueryDataSet.getPaths().size();
-      int datapoints = 0;
-      switch (type) {
-        case LONG:
-          List<Long> tmp = new ArrayList<>();
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                datapoints += 1;
-                tmp.add((long) sessionQueryDataSet.getValues().get(i).get(j));
-              }
-            }
-            if (i == n - 1
-                || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                    != RestUtils.getInterval(
-                        sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
-              Collections.sort(tmp);
-              queryResultDataset.add(
-                  RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
-                  tmp.get((int) Math.floor(getPercentile() * (tmp.size() - 1))));
-              tmp = new ArrayList<>();
+    SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
+    queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
+    DataType type = RestUtils.checkType(sessionQueryDataSet);
+    int n = sessionQueryDataSet.getKeys().length;
+    int m = sessionQueryDataSet.getPaths().size();
+    int datapoints = 0;
+    switch (type) {
+      case LONG:
+        List<Long> tmp = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+          for (int j = 0; j < m; j++) {
+            if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
+              datapoints += 1;
+              tmp.add((long) sessionQueryDataSet.getValues().get(i).get(j));
             }
           }
-          break;
-        case DOUBLE:
-          List<Double> tmpd = new ArrayList<>();
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                datapoints += 1;
-                tmpd.add((double) sessionQueryDataSet.getValues().get(i).get(j));
-              }
-            }
-            if (i == n - 1
-                || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                    != RestUtils.getInterval(
-                        sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
-              Collections.sort(tmpd);
-              queryResultDataset.add(
-                  RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
-                  tmpd.get((int) Math.floor(getPercentile() * (tmpd.size() - 1))));
-              tmpd = new ArrayList<>();
+          if (i == n - 1
+              || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
+                  != RestUtils.getInterval(
+                      sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
+            Collections.sort(tmp);
+            queryResultDataset.add(
+                RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
+                tmp.get((int) Math.floor(getPercentile() * (tmp.size() - 1))));
+            tmp = new ArrayList<>();
+          }
+        }
+        break;
+      case DOUBLE:
+        List<Double> tmpd = new ArrayList<>();
+        for (int i = 0; i < n; i++) {
+          for (int j = 0; j < m; j++) {
+            if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
+              datapoints += 1;
+              tmpd.add((double) sessionQueryDataSet.getValues().get(i).get(j));
             }
           }
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported data type");
-      }
-      queryResultDataset.setSampleSize(datapoints);
+          if (i == n - 1
+              || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
+                  != RestUtils.getInterval(
+                      sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
+            Collections.sort(tmpd);
+            queryResultDataset.add(
+                RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
+                tmpd.get((int) Math.floor(getPercentile() * (tmpd.size() - 1))));
+            tmpd = new ArrayList<>();
+          }
+        }
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported data type");
+    }
+    queryResultDataset.setSampleSize(datapoints);
     return queryResultDataset;
   }
 }

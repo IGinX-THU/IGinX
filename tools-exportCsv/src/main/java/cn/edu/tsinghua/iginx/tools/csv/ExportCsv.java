@@ -135,12 +135,12 @@ public class ExportCsv extends AbstractCsvTool {
         processSqlFile();
       }
     } catch (SessionException e) {
-      LOGGER.error(
-          "[ERROR] Encounter an error when opening session, because {}", e.getMessage());
+      LOGGER.error("[ERROR] Encounter an error when opening session, because {}", e.getMessage());
     } catch (IOException e) {
       LOGGER.error(
           "[ERROR] Encounter an error when opening sql file [{}], because {}",
-          sqlFile, e.getMessage());
+          sqlFile,
+          e.getMessage());
     }
   }
 
@@ -186,7 +186,8 @@ public class ExportCsv extends AbstractCsvTool {
     } catch (SessionException | ExecutionException e) {
       LOGGER.error(
           "[ERROR] Encounter an error when executing sql statement [{}], because {}",
-          sql, e.getMessage());
+          sql,
+          e.getMessage());
     }
   }
 
@@ -208,7 +209,8 @@ public class ExportCsv extends AbstractCsvTool {
     } catch (IOException e) {
       LOGGER.error(
           "[ERROR] Encounter an error when writing csv file [{}], because {}",
-          filePath, e.getMessage());
+          filePath,
+          e.getMessage());
     }
   }
 }

@@ -273,11 +273,14 @@ public class StatementExecutor {
       StatusCode statusCode = StatusCode.STATEMENT_PARSE_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
-      LOGGER.error("Execute Error: encounter error(s) when executing sql statement, see server log for more details.", e);
+      LOGGER.error(
+          "Execute Error: encounter error(s) when executing sql statement, see server log for more details.",
+          e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       String errMsg =
           "Execute Error: encounter error(s) when executing sql statement, "
-              + "see server log for more details." + e.getMessage();
+              + "see server log for more details."
+              + e.getMessage();
       ctx.setResult(new Result(RpcUtils.status(statusCode, errMsg)));
     } finally {
       ctx.getResult().setSqlType(ctx.getSqlType());
@@ -323,7 +326,8 @@ public class StatementExecutor {
         ((SystemStatement) statement).execute(ctx);
       }
     } catch (ExecutionException | PhysicalException | IOException e) {
-      LOGGER.error("unexpected exception during statment execution, please contact developer to check: ", e);
+      LOGGER.error(
+          "unexpected exception during statment execution, please contact developer to check: ", e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {

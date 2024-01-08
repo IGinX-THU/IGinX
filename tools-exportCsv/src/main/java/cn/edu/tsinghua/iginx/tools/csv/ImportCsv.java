@@ -118,8 +118,7 @@ public class ImportCsv extends AbstractCsvTool {
         processDirectory();
       }
     } catch (SessionException e) {
-      LOGGER.error(
-          "[ERROR] Encounter an error when opening session, because {}", e.getMessage());
+      LOGGER.error("[ERROR] Encounter an error when opening session, because {}", e.getMessage());
     }
   }
 
@@ -273,7 +272,8 @@ public class ImportCsv extends AbstractCsvTool {
     } catch (IOException | SessionException | ExecutionException | ParseException e) {
       LOGGER.error(
           "[ERROR] Encounter an error when processing file [{}], because {}",
-          fileName, e.getMessage());
+          fileName,
+          e.getMessage());
     }
   }
 }

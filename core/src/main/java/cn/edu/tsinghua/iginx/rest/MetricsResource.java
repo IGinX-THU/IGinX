@@ -503,8 +503,7 @@ public class MetricsResource {
     restSession.closeSession();
   }
 
-  private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
-      {
+  private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse) {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     // 包含时间范围的查询
@@ -525,7 +524,8 @@ public class MetricsResource {
     threadPool.execute(new InsertWorker(asyncResponse, httpheaders, result, queryBase, true));
   }
 
-  private void updateAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse) throws Exception {
+  private void updateAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
+      throws Exception {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     Query queryBase = parser.parseAnnotationQueryMetric(jsonStr, false);

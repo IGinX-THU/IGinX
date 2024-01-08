@@ -103,7 +103,7 @@ public class QueryExecutor {
       }
       session.closeSession();
     } catch (SessionException | ExecutionException e) {
-      throw new RuntimeException("Error occurred during executing",e);
+      throw new RuntimeException("Error occurred during executing", e);
     }
 
     return ret;
@@ -125,60 +125,60 @@ public class QueryExecutor {
     Query titleQuery = new Query();
     Query descriptionQuery = new Query();
     boolean hasTitle = false, hasDescription = false;
-      for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
-        QueryResultDataset data = anno.getQueryResultDatasets().get(i);
-        if (data.getKeyLists().isEmpty()) continue;
-        int subLen = data.getKeyLists().size();
-        for (int j = 0; j < subLen; j++) {
-          List<Long> timeList = data.getKeyLists().get(j);
-          for (int z = timeList.size() - 1; z >= 0; z--) {
-            // 这里减小了对时间查询的范围
-            if (timeList.get(z) < DESCRIPTION_KEY) break;
+    for (int i = 0; i < anno.getQueryResultDatasets().size(); i++) {
+      QueryResultDataset data = anno.getQueryResultDatasets().get(i);
+      if (data.getKeyLists().isEmpty()) continue;
+      int subLen = data.getKeyLists().size();
+      for (int j = 0; j < subLen; j++) {
+        List<Long> timeList = data.getKeyLists().get(j);
+        for (int z = timeList.size() - 1; z >= 0; z--) {
+          // 这里减小了对时间查询的范围
+          if (timeList.get(z) < DESCRIPTION_KEY) break;
 
-            // 将多种类型转换为Long
-            Long annoTime = getLongVal(data.getValueLists().get(j).get(z));
+          // 将多种类型转换为Long
+          Long annoTime = getLongVal(data.getValueLists().get(j).get(z));
 
-            if (timeList.get(z).equals(TITLE_KEY)) {
-              hasTitle = true;
-              titleQuery.setStartAbsolute(annoTime);
-              titleQuery.setEndAbsolute(annoTime + 1L);
-            } else if (timeList.get(z).equals(DESCRIPTION_KEY)) {
-              hasDescription = true;
-              descriptionQuery.setStartAbsolute(annoTime);
-              descriptionQuery.setEndAbsolute(annoTime + 1L);
-            }
-          }
-
-          QueryMetric metric = new QueryMetric();
-          metric.setName(ANNOTATION_SEQUENCE);
-          List<QueryMetric> metrics = new ArrayList<>();
-          metrics.add(metric);
-          if (hasTitle) {
-            titleQuery.setQueryMetrics(metrics);
-            titleQuery.setTimePrecision(TimePrecision.NS);
-            this.query = titleQuery;
-            title = execute(false);
-            anno.getQueryResultDatasets()
-                .get(i)
-                .addTitle(
-                    getStringFromObject(title.getQueryResultDatasets().get(0).getValues().get(0)));
-          } else {
-            anno.getQueryResultDatasets().get(i).addTitle(new String());
-          }
-          if (hasDescription) {
-            descriptionQuery.setQueryMetrics(metrics);
-            descriptionQuery.setTimePrecision(TimePrecision.NS);
-            this.query = descriptionQuery;
-            description = execute(false);
-            anno.getQueryResultDatasets()
-                .get(i)
-                .addDescription(
-                    getStringFromObject(
-                        description.getQueryResultDatasets().get(0).getValues().get(0)));
-          } else {
-            anno.getQueryResultDatasets().get(i).addDescription(new String());
+          if (timeList.get(z).equals(TITLE_KEY)) {
+            hasTitle = true;
+            titleQuery.setStartAbsolute(annoTime);
+            titleQuery.setEndAbsolute(annoTime + 1L);
+          } else if (timeList.get(z).equals(DESCRIPTION_KEY)) {
+            hasDescription = true;
+            descriptionQuery.setStartAbsolute(annoTime);
+            descriptionQuery.setEndAbsolute(annoTime + 1L);
           }
         }
+
+        QueryMetric metric = new QueryMetric();
+        metric.setName(ANNOTATION_SEQUENCE);
+        List<QueryMetric> metrics = new ArrayList<>();
+        metrics.add(metric);
+        if (hasTitle) {
+          titleQuery.setQueryMetrics(metrics);
+          titleQuery.setTimePrecision(TimePrecision.NS);
+          this.query = titleQuery;
+          title = execute(false);
+          anno.getQueryResultDatasets()
+              .get(i)
+              .addTitle(
+                  getStringFromObject(title.getQueryResultDatasets().get(0).getValues().get(0)));
+        } else {
+          anno.getQueryResultDatasets().get(i).addTitle(new String());
+        }
+        if (hasDescription) {
+          descriptionQuery.setQueryMetrics(metrics);
+          descriptionQuery.setTimePrecision(TimePrecision.NS);
+          this.query = descriptionQuery;
+          description = execute(false);
+          anno.getQueryResultDatasets()
+              .get(i)
+              .addDescription(
+                  getStringFromObject(
+                      description.getQueryResultDatasets().get(0).getValues().get(0)));
+        } else {
+          anno.getQueryResultDatasets().get(i).addDescription(new String());
+        }
+      }
     }
   }
 

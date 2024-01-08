@@ -202,7 +202,7 @@ public class InfluxDBStorage implements IStorage {
                   ? MEASUREMENTALL
                   : "= \"" + measurementPrefix + "\"",
               fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/");
-      LOGGER.debug("execute statement: {}" , statement);
+      LOGGER.debug("execute statement: {}", statement);
       // 查询 first
       List<FluxTable> tables =
           client.getQueryApi().query(statement + " |> first()", organization.getId());
@@ -1026,7 +1026,8 @@ public class InfluxDBStorage implements IStorage {
       LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      return new PhysicalTaskExecuteFailureException("encounter error when write points to influxdb: " + e.getMessage());
+      return new PhysicalTaskExecuteFailureException(
+          "encounter error when write points to influxdb: " + e.getMessage());
     } finally {
       LOGGER.info("数据写入完毕！");
     }
@@ -1116,7 +1117,8 @@ public class InfluxDBStorage implements IStorage {
       LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      return new PhysicalTaskExecuteFailureException("encounter error when write points to influxdb: " + e.getMessage());
+      return new PhysicalTaskExecuteFailureException(
+          "encounter error when write points to influxdb: " + e.getMessage());
     } finally {
       LOGGER.info("数据写入完毕！");
     }

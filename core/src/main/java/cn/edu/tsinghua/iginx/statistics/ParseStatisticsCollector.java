@@ -32,9 +32,9 @@ public class ParseStatisticsCollector extends AbstractStageStatisticsCollector
   public void broadcastStatistics() {
     lock.readLock().lock();
     LOGGER.info("Parse Stage Statistics Info: ");
-    LOGGER.info("\tcount: {}, span: {}μs", count ,span);
+    LOGGER.info("\tcount: {}, span: {}μs", count, span);
     if (count != 0) {
-      LOGGER.info("\taverage-span: {}μs" ,(1.0 * span) / count);
+      LOGGER.info("\taverage-span: {}μs", (1.0 * span) / count);
     }
     lock.readLock().unlock();
   }

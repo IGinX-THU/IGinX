@@ -39,41 +39,41 @@ public class QueryAggregatorSampler extends QueryAggregator {
       long startKey,
       long endKey) {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
-      SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
-      queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
-      DataType type = RestUtils.checkType(sessionQueryDataSet);
-      int n = sessionQueryDataSet.getKeys().length;
-      int m = sessionQueryDataSet.getPaths().size();
-      int datapoints = 0;
-      switch (type) {
-          // 当前数据点的值 * （单位时间(unit) / （当前点的时间戳 - 前一个点的时间戳））
+    SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
+    queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
+    DataType type = RestUtils.checkType(sessionQueryDataSet);
+    int n = sessionQueryDataSet.getKeys().length;
+    int m = sessionQueryDataSet.getPaths().size();
+    int datapoints = 0;
+    switch (type) {
+        // 当前数据点的值 * （单位时间(unit) / （当前点的时间戳 - 前一个点的时间戳））
 
-        case LONG:
-        case DOUBLE:
-          Double nowd = null;
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                if (nowd == null) {
-                  nowd = (double) sessionQueryDataSet.getValues().get(i).get(j);
-                }
-                datapoints += 1;
+      case LONG:
+      case DOUBLE:
+        Double nowd = null;
+        for (int i = 0; i < n; i++) {
+          for (int j = 0; j < m; j++) {
+            if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
+              if (nowd == null) {
+                nowd = (double) sessionQueryDataSet.getValues().get(i).get(j);
               }
+              datapoints += 1;
             }
-            if (i != 0) {
-              queryResultDataset.add(
-                  sessionQueryDataSet.getKeys()[i],
-                  nowd
-                      * getUnit()
-                      / (sessionQueryDataSet.getKeys()[i] - sessionQueryDataSet.getKeys()[i - 1]));
-            }
-            nowd = null;
           }
-          queryResultDataset.setSampleSize(datapoints);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported data type");
-      }
+          if (i != 0) {
+            queryResultDataset.add(
+                sessionQueryDataSet.getKeys()[i],
+                nowd
+                    * getUnit()
+                    / (sessionQueryDataSet.getKeys()[i] - sessionQueryDataSet.getKeys()[i - 1]));
+          }
+          nowd = null;
+        }
+        queryResultDataset.setSampleSize(datapoints);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported data type");
+    }
     return queryResultDataset;
   }
 }

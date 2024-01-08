@@ -39,53 +39,52 @@ public class QueryAggregatorFilter extends QueryAggregator {
       long startKey,
       long endKey) {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
-      SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
-      queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
-      DataType type = RestUtils.checkType(sessionQueryDataSet);
-      int n = sessionQueryDataSet.getKeys().length;
-      int m = sessionQueryDataSet.getPaths().size();
-      int datapoints = 0;
-      switch (type) {
-        case LONG:
-          for (int i = 0; i < n; i++) {
-            Long now = null;
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                if (now == null
-                    && filted((long) sessionQueryDataSet.getValues().get(i).get(j), getFilter())) {
-                  now = (long) sessionQueryDataSet.getValues().get(i).get(j);
-                }
-                datapoints += 1;
+    SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
+    queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
+    DataType type = RestUtils.checkType(sessionQueryDataSet);
+    int n = sessionQueryDataSet.getKeys().length;
+    int m = sessionQueryDataSet.getPaths().size();
+    int datapoints = 0;
+    switch (type) {
+      case LONG:
+        for (int i = 0; i < n; i++) {
+          Long now = null;
+          for (int j = 0; j < m; j++) {
+            if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
+              if (now == null
+                  && filted((long) sessionQueryDataSet.getValues().get(i).get(j), getFilter())) {
+                now = (long) sessionQueryDataSet.getValues().get(i).get(j);
               }
-            }
-            if (now != null) {
-              queryResultDataset.add(sessionQueryDataSet.getKeys()[i], now);
+              datapoints += 1;
             }
           }
-          queryResultDataset.setSampleSize(datapoints);
-          break;
-        case DOUBLE:
-          for (int i = 0; i < n; i++) {
-            Double nowd = null;
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                if (nowd == null
-                    && filted(
-                        (double) sessionQueryDataSet.getValues().get(i).get(j), getFilter())) {
-                  nowd = (double) sessionQueryDataSet.getValues().get(i).get(j);
-                }
-                datapoints += 1;
+          if (now != null) {
+            queryResultDataset.add(sessionQueryDataSet.getKeys()[i], now);
+          }
+        }
+        queryResultDataset.setSampleSize(datapoints);
+        break;
+      case DOUBLE:
+        for (int i = 0; i < n; i++) {
+          Double nowd = null;
+          for (int j = 0; j < m; j++) {
+            if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
+              if (nowd == null
+                  && filted((double) sessionQueryDataSet.getValues().get(i).get(j), getFilter())) {
+                nowd = (double) sessionQueryDataSet.getValues().get(i).get(j);
               }
-            }
-            if (nowd != null) {
-              queryResultDataset.add(sessionQueryDataSet.getKeys()[i], nowd);
+              datapoints += 1;
             }
           }
-          queryResultDataset.setSampleSize(datapoints);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported data type");
-      }
+          if (nowd != null) {
+            queryResultDataset.add(sessionQueryDataSet.getKeys()[i], nowd);
+          }
+        }
+        queryResultDataset.setSampleSize(datapoints);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported data type");
+    }
     return queryResultDataset;
   }
 

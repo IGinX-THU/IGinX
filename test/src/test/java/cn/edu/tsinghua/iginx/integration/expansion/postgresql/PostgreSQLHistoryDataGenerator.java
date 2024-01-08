@@ -46,7 +46,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       Class.forName("org.postgresql.Driver");
       return DriverManager.getConnection(url, USERNAME, PASSWORD);
     } catch (SQLException | ClassNotFoundException e) {
-      throw new RuntimeException("get connection failure" ,e);
+      throw new RuntimeException("get connection failure", e);
     }
   }
 

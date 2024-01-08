@@ -39,43 +39,43 @@ public class QueryAggregatorDev extends QueryAggregator {
       long startKey,
       long endKey) {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
-      SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
-      queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
-      DataType type = RestUtils.checkType(sessionQueryDataSet);
-      int n = sessionQueryDataSet.getKeys().length;
-      int m = sessionQueryDataSet.getPaths().size();
-      switch (type) {
-        case LONG:
-        case DOUBLE:
-          int datapoints = 0;
-          double sum = 0, sum2 = 0;
-          long cnt = 0;
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                sum += (double) sessionQueryDataSet.getValues().get(i).get(j);
-                sum2 += Math.pow((double) sessionQueryDataSet.getValues().get(i).get(j), 2);
-                cnt += 1;
-                datapoints += 1;
-              }
-            }
-            if (i == n - 1
-                || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                    != RestUtils.getInterval(
-                        sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
-              queryResultDataset.add(
-                  RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
-                  sum2 / cnt - Math.pow(sum / cnt, 2));
-              sum = 0;
-              sum2 = 0;
-              cnt = 0;
+    SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
+    queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
+    DataType type = RestUtils.checkType(sessionQueryDataSet);
+    int n = sessionQueryDataSet.getKeys().length;
+    int m = sessionQueryDataSet.getPaths().size();
+    switch (type) {
+      case LONG:
+      case DOUBLE:
+        int datapoints = 0;
+        double sum = 0, sum2 = 0;
+        long cnt = 0;
+        for (int i = 0; i < n; i++) {
+          for (int j = 0; j < m; j++) {
+            if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
+              sum += (double) sessionQueryDataSet.getValues().get(i).get(j);
+              sum2 += Math.pow((double) sessionQueryDataSet.getValues().get(i).get(j), 2);
+              cnt += 1;
+              datapoints += 1;
             }
           }
-          queryResultDataset.setSampleSize(datapoints);
-          break;
-        default:
-          throw new IllegalArgumentException("Unsupported data type");
-      }
+          if (i == n - 1
+              || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
+                  != RestUtils.getInterval(
+                      sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
+            queryResultDataset.add(
+                RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
+                sum2 / cnt - Math.pow(sum / cnt, 2));
+            sum = 0;
+            sum2 = 0;
+            cnt = 0;
+          }
+        }
+        queryResultDataset.setSampleSize(datapoints);
+        break;
+      default:
+        throw new IllegalArgumentException("Unsupported data type");
+    }
     return queryResultDataset;
   }
 }

@@ -61,7 +61,11 @@ public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
       LOGGER.info("\taverage-span: {}μs", (1.0 * span) / count);
     }
     for (Map.Entry<StatementType, Pair<Long, Long>> entry : detailInfos.entrySet()) {
-      LOGGER.info("\t\tFor Request: {}, count: {}, span: {}μs", entry.getKey(), entry.getValue().k, entry.getValue().v);
+      LOGGER.info(
+          "\t\tFor Request: {}, count: {}, span: {}μs",
+          entry.getKey(),
+          entry.getValue().k,
+          entry.getValue().v);
     }
     LOGGER.info("\ttotal insert points: {}", insertPoints);
     LOGGER.info("\ttotal query points: {}", queryPoints);
