@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.io;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
+import cn.edu.tsinghua.iginx.parquet.common.Scanner;
 import java.io.IOException;
 import javax.annotation.Nonnull;
 

@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.parquet.entity.Constants;
+import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import java.util.HashSet;
 import java.util.Set;
 import javax.annotation.Nonnull;

@@ -17,26 +17,23 @@
 package cn.edu.tsinghua.iginx.parquet.io;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.db.DataBuffer;
-import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.parquet.common.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.common.DataBuffer;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public interface ReadWriter<K extends Comparable<K>, F, V, T> {
 
-  void flush(
-      Path path,
-      DataBuffer<K, F, V> buffer,
-      Map<String, DataType> schema,
-      Map<String, String> extra)
+  void flush(Path path, DataBuffer<K, F, V> buffer, Map<F, T> schema, Map<String, String> extra)
       throws IOException;
 
   Map.Entry<Map<F, T>, Map<String, String>> readMeta(Path path) throws IOException;
 
-  Scanner<Long, Scanner<String, Object>> scanData(Path path, Set<F> fields, Filter filter)
-      throws IOException;
+  Scanner<K, Scanner<F, V>> scanData(Path path, Set<F> fields, Filter predicate) throws IOException;
+
+  ObjectFormat<K> getKeyFormat();
+
+  ObjectFormat<F> getFieldFormat();
 }

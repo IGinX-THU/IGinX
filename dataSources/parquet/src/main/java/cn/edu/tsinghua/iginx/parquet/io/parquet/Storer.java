@@ -16,8 +16,6 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.parquet.entity.Field;
-import cn.edu.tsinghua.iginx.parquet.entity.Table;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;

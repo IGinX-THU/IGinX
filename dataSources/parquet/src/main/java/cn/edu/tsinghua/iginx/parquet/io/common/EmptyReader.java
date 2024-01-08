@@ -16,8 +16,6 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.common;
 
-import cn.edu.tsinghua.iginx.parquet.entity.DataChunk;
-import cn.edu.tsinghua.iginx.parquet.entity.DataChunks;
 import cn.edu.tsinghua.iginx.parquet.io.FileReader;
 import java.io.IOException;
 import java.util.HashMap;

@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.parquet.tools.ByteUtils;
+import cn.edu.tsinghua.iginx.parquet.common.utils.ByteUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;

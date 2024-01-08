@@ -5,10 +5,11 @@ import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.parquet.entity.Constants;
-import cn.edu.tsinghua.iginx.parquet.entity.Table;
+import cn.edu.tsinghua.iginx.parquet.common.Constants;
+import cn.edu.tsinghua.iginx.parquet.common.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
-import cn.edu.tsinghua.iginx.parquet.tools.ByteUtils;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.Loader;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.nio.file.Files;
@@ -25,6 +26,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Deprecated
 public class ParquetFormatIOTest {
 
   private static final Logger logger = LoggerFactory.getLogger(ParquetFormatIOTest.class);

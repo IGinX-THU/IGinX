@@ -16,8 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet.db;
 
-import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
-import cn.edu.tsinghua.iginx.parquet.entity.StorageException;
+import cn.edu.tsinghua.iginx.parquet.common.Scanner;
+import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import com.google.common.collect.RangeSet;
 import java.util.Map;
 import java.util.Set;

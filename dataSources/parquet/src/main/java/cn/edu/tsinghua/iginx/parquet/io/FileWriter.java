@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.io;
 
-import cn.edu.tsinghua.iginx.parquet.entity.DataChunk;
+import cn.edu.tsinghua.iginx.parquet.io.common.DataChunk;
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
