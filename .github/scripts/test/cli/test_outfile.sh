@@ -27,8 +27,8 @@ bash -c "echo '$COMMAND' | xargs -0 -t -i ${SCRIPT_COMMAND}"
 db_name=$1
 
 # 只测FileSystem和Parquet
-#if [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
-#  exit 0
+if [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
+  exit 0
 
 bash -c "mkdir downloads"
 

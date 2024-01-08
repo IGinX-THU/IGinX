@@ -30,6 +30,8 @@ import static cn.edu.tsinghua.iginx.parquet.tools.Constant.SUFFIX_PARQUET_FILE;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromDuckDBDataType;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.fromParquetDataType;
 import static cn.edu.tsinghua.iginx.parquet.tools.DataTypeTransformer.toParquetDataType;
+import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.parseStringByDataType;
+import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -347,7 +349,7 @@ public class DUManager {
         Object value = rs.getObject(column.getPhysicalPath());
         if (value != null) {
           if (column.getType() == DataType.BINARY) {
-            column.putData(time, ((String) value).getBytes());
+            column.putData(time, parseStringByDataType((String) value, DataType.BINARY));
           } else {
             column.putData(time, value);
           }
@@ -484,7 +486,9 @@ public class DUManager {
           DataType type = data.getDataType(j);
           if (type == DataType.BINARY) {
             byte[] bytes = (byte[]) data.getValue(i, index);
-            builder.append("'").append(new String(bytes)).append("', ");
+            String value =
+                transformObjectToStringByDataType(data.getValue(i, index), DataType.BINARY);
+            builder.append("'").append(value).append("', ");
             curMemSize += bytes.length;
           } else {
             builder.append(data.getValue(i, index)).append(", ");
@@ -513,7 +517,9 @@ public class DUManager {
           DataType type = data.getDataType(i);
           if (type == DataType.BINARY) {
             byte[] bytes = (byte[]) data.getValue(i, index);
-            rowStringBuilderArray[j].append("'").append(new String(bytes)).append("', ");
+            String value =
+                transformObjectToStringByDataType(data.getValue(i, index), DataType.BINARY);
+            rowStringBuilderArray[j].append("'").append(value).append("', ");
             curMemSize += bytes.length;
           } else {
             rowStringBuilderArray[j].append(data.getValue(i, index)).append(", ");

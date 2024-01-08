@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.postgresql.query.entity;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
-import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.parseStringByDataType;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
@@ -226,8 +225,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
             Object value = getResultSetObject(resultSet, columnName, tableName);
             if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
-//              tempValue = value.toString().getBytes();
-              tempValue = parseStringByDataType(value.toString(), DataType.BINARY);
+              tempValue = value.toString().getBytes();
             } else {
               tempValue = value;
             }

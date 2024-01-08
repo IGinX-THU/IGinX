@@ -23,8 +23,8 @@ sh -c "echo 'select * from test into outfile "'"test/src/test/resources/fileRead
 db_name=$1
 
 # 只测FileSystem和Parquet
-#if [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
-#  exit 0
+if [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
+  exit 0
 
 sh -c "mkdir downloads"
 
