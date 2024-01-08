@@ -42,4 +42,4 @@ bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false 
 
 OUTFILE_COMMAND='select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
 
-bash -c "echo '$OUTFILE_COMMAND' | xargs -t -i ${SCRIPT_COMMAND}"
+bash -c "echo '$OUTFILE_COMMAND' | xargs -t -i bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"

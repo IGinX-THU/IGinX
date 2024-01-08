@@ -87,11 +87,11 @@ jobs:
               shell: bash
               run: |
                   if [[ "${{ matrix.DB-name }}" == "FileSystem" || "${{ matrix.DB-name }}" == "Parquet" ]]; then
-                      TEST_METHODS="ExportFileIT"
+                      mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
                   else
-                      TEST_METHODS="ExportFileIT#checkExportByteStream+ExportFileIT#checkExportCsv"
+                      mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
+                      mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
                   fi
-                  mvn test -q -Dtest=$TEST_METHODS -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
