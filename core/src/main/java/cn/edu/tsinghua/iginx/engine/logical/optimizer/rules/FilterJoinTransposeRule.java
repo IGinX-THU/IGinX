@@ -27,7 +27,9 @@ public class FilterJoinTransposeRule extends Rule {
      *        /     \
      *     Any       Any
      */
-    super(operand(Select.class, operand(AbstractJoin.class, any(), any())));
+    super(
+        "FilterJoinTransposeRule",
+        operand(Select.class, operand(AbstractJoin.class, any(), any())));
   }
 
   @Override

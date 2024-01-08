@@ -73,6 +73,11 @@
             <version>1.10.0</version>
             <scope>compile</scope>
         </dependency>
+        <dependency>
+            <groupId>at.favre.lib</groupId>
+            <artifactId>bytes</artifactId>
+            <version>1.6.1</version>
+        </dependency>
     </dependencies>
 
 </project>

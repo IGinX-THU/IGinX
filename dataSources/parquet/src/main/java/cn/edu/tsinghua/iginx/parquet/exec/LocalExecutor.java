@@ -14,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.MergeTimeRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -77,7 +78,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      String filter,
+      Filter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
     try {
@@ -124,7 +125,7 @@ public class LocalExecutor implements Executor {
   }
 
   private TaskExecuteResult executeDummyProjectTask(
-      List<String> paths, TagFilter tagFilter, String filter, String storageUnit) {
+      List<String> paths, TagFilter tagFilter, Filter filter, String storageUnit) {
     try {
       Connection conn = ((DuckDBConnection) connection).duplicate();
       Statement stmt = conn.createStatement();

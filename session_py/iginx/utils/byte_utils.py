@@ -73,7 +73,12 @@ def row_values_to_bytes(values, types):
             format_str_list.append("d")
             values_to_be_packed.append(value)
         elif type == DataType.BINARY:
-            value_bytes = bytes(value, "utf-8")
+            if isinstance(value, str):
+                value_bytes = bytes(value, "utf-8")
+            elif isinstance(value, bytes):
+                value_bytes = value
+            else:
+                raise RuntimeError(f"Can't resolve value:{value} to binary")
             format_str_list.append("i")
             format_str_list.append(str(len(value_bytes)))
             format_str_list.append("s")
@@ -139,42 +144,34 @@ class BytesParser(object):
         self.__bytes = bytes
         self.__index = 0
 
-
     def _next(self, length):
         bytes = self.__bytes[self.__index: self.__index + length]
         self.__index += length
         return bytes
 
-
     def next_int(self):
         bytes = self._next(4)
         return struct.unpack(">i", bytes)[0]
-
 
     def next_long(self):
         bytes = self._next(8)
         return struct.unpack(">q", bytes)[0]
 
-
     def next_binary(self):
         size = self.next_int()
         return self._next(size)
-
 
     def next_boolean(self):
         bytes = self._next(1)
         return struct.unpack(">?", bytes)[0]
 
-
     def next_float(self):
         bytes = self._next(4)
         return struct.unpack(">f", bytes)[0]
 
-
     def next_double(self):
         bytes = self._next(8)
         return struct.unpack(">d", bytes)[0]
-
 
     def next(self, type):
         if type == DataType.BOOLEAN:
@@ -191,3 +188,25 @@ class BytesParser(object):
             return self.next_binary()
         else:
             raise RuntimeError("unknown data type " + type)
+
+    def get_bytes_from_types(self, types):
+        bytes_value = bytearray()
+        for type in types:
+            if type is None:
+                continue
+            if type == DataType.BOOLEAN:
+                bytes_value.extend(self._next(1))
+            elif type == DataType.INTEGER:
+                bytes_value.extend(self._next(4))
+            elif type == DataType.LONG:
+                bytes_value.extend(self._next(8))
+            elif type == DataType.FLOAT:
+                bytes_value.extend(self._next(4))
+            elif type == DataType.DOUBLE:
+                bytes_value.extend(self._next(8))
+            elif type == DataType.BINARY:
+                size = self.next_int()
+                bytes_value.extend(self._next(size))
+            else:
+                raise RuntimeError("unknown data type " + type)
+        return bytes_value

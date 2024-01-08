@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -342,6 +343,7 @@ public class IginxWorker implements IService.Iface {
       if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
         logger.error(
             "missing params or providing invalid ones for {} in statement.", storageEngine);
+        status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
@@ -1035,5 +1037,16 @@ public class IginxWorker implements IService.Iface {
   public ShowSessionIDResp showSessionID(ShowSessionIDReq req) {
     List<Long> sessionIDs = new ArrayList<>(SessionManager.getInstance().getSessionIds());
     return new ShowSessionIDResp(RpcUtils.SUCCESS, sessionIDs);
+  }
+
+  @Override
+  public ShowRulesResp showRules(ShowRulesReq req) {
+    return new ShowRulesResp(RpcUtils.SUCCESS, RuleCollection.getInstance().getRulesInfo());
+  }
+
+  @Override
+  public Status setRules(SetRulesReq req) {
+    Map<String, Boolean> rulesChange = req.getRulesChange();
+    return RuleCollection.getInstance().setRules(rulesChange) ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
   }
 }
