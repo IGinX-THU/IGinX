@@ -89,7 +89,7 @@ jobs:
                   if [[ "${{ matrix.DB-name }}" == "FileSystem" || "${{ matrix.DB-name }}" == "Parquet" ]]; then
                       TEST_METHODS="ExportFileIT"
                   else
-                      TEST_METHODS="ExportFileIT#checkExportByteStream+checkExportCsv"
+                      TEST_METHODS="ExportFileIT#checkExportByteStream+ExportFileIT#checkExportCsv"
                   fi
                   mvn test -q -Dtest=$TEST_METHODS -DfailIfNoTests=false -P-format
 
