@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.jdbc;
 
-public class IginXConnectionParams {
+public class IginxConnectionParams {
 
   private String host = Config.IGINX_DEFAULT_HOST;
   private int port = Config.IGINX_DEFAULT_PORT;
@@ -8,7 +8,7 @@ public class IginXConnectionParams {
   private String username = Config.DEFAULT_USER;
   private String password = Config.DEFAULT_PASSWORD;
 
-  public IginXConnectionParams() {}
+  public IginxConnectionParams() {}
 
   public String getHost() {
     return host;

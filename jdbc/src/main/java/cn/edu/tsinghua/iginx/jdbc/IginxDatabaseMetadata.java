@@ -3,12 +3,12 @@ package cn.edu.tsinghua.iginx.jdbc;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.sql.*;
 
-public class IginXDatabaseMetadata implements DatabaseMetaData {
+public class IginxDatabaseMetadata implements DatabaseMetaData {
 
-  private IginXConnection connection;
+  private IginxConnection connection;
   private Session session;
 
-  public IginXDatabaseMetadata(IginXConnection connection, Session session) {
+  public IginxDatabaseMetadata(IginxConnection connection, Session session) {
     this.connection = connection;
     this.session = session;
   }
@@ -70,7 +70,7 @@ public class IginXDatabaseMetadata implements DatabaseMetaData {
 
   @Override
   public String getDriverName() {
-    return cn.edu.tsinghua.iginx.jdbc.IginXDriver.class.getName();
+    return IginxDriver.class.getName();
   }
 
   @Override

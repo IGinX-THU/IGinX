@@ -2,31 +2,32 @@ package cn.edu.tsinghua.iginx.jdbc;
 
 import java.sql.*;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.Pattern;
-import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
-public class IginXDriver implements Driver {
+public class IginxDriver implements Driver {
+
+  private static final Logger LOGGER = Logger.getLogger(IginxDriver.class.getName());
 
   private static final boolean IGINX_JDBC_COMPLIANT = false;
 
   static {
     try {
-      DriverManager.registerDriver(new IginXDriver());
+      DriverManager.registerDriver(new IginxDriver());
     } catch (SQLException e) {
-      log.error("Error occurs when registering IginX driver", e);
+      LOGGER.log(Level.SEVERE, e, () -> "Error occurs when registering IginX driver");
     }
   }
 
   private final String IGINX_URL_PREFIX = Config.IGINX_URL_PREFIX + ".*";
 
-  public IginXDriver() {}
+  public IginxDriver() {}
 
   @Override
   public Connection connect(String url, Properties info) throws SQLException {
     try {
-      return acceptsURL(url) ? new IginXConnection(url, info) : null;
+      return acceptsURL(url) ? new IginxConnection(url, info) : null;
     } catch (Exception e) {
       throw new SQLException(
           "Connection Error, please check whether the network is available or the server has started.");

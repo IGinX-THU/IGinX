@@ -1,4 +1,4 @@
-import cn.edu.tsinghua.iginx.jdbc.IginXPreparedStatement;
+import cn.edu.tsinghua.iginx.jdbc.IginxPreparedStatement;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -8,7 +8,7 @@ public class PreparedStatementTest {
   public void testSetParams() {
     String preSQL =
         "SELECT a, b, c, d FROM root.sg WHERE TIME > ? AND TIME < ? AND a > ? OR b < ? AND c = ? AND d = ?;";
-    IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
+    IginxPreparedStatement ps = new IginxPreparedStatement(null, null, preSQL);
     ps.setLong(1, 10);
     ps.setLong(2, 15);
     ps.setFloat(3, 66.8f);
@@ -27,7 +27,7 @@ public class PreparedStatementTest {
   public void testSetParamsWithSkipDoubleQuotes() {
     String preSQL =
         "SELECT a, b FROM root.sg WHERE TIME > 10 AND TIME < 25 AND a > ? AND b = \"asda?asd\";";
-    IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
+    IginxPreparedStatement ps = new IginxPreparedStatement(null, null, preSQL);
     ps.setLong(1, 10);
 
     String expectedSQL =
@@ -41,7 +41,7 @@ public class PreparedStatementTest {
   public void testSetParamsWithSkipSingleQuote() {
     String preSQL =
         "SELECT a, b FROM root.sg WHERE TIME > 10 AND < 25 AND a > ? AND b = \'asda?asd\';";
-    IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
+    IginxPreparedStatement ps = new IginxPreparedStatement(null, null, preSQL);
     ps.setLong(1, 10);
 
     String expectedSQL =

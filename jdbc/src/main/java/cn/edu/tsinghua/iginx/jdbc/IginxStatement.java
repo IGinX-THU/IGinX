@@ -8,9 +8,9 @@ import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 
-public class IginXStatement implements Statement {
+public class IginxStatement implements Statement {
 
-  private IginXConnection connection;
+  private IginxConnection connection;
   private Session session;
   private boolean isClosed;
   private SQLWarning warningChain; // Not used for now.
@@ -18,7 +18,7 @@ public class IginXStatement implements Statement {
   private List<String> batchSQLList;
   private ResultSet resultSet;
 
-  public IginXStatement(IginXConnection connection, Session session) {
+  public IginxStatement(IginxConnection connection, Session session) {
     this.connection = connection;
     this.session = session;
     this.batchSQLList = new ArrayList<>();
@@ -81,7 +81,7 @@ public class IginXStatement implements Statement {
   private void executeSQL(String sql) throws SQLException {
     try {
       SessionExecuteSqlResult res = session.executeSql(sql);
-      this.resultSet = new IginXResultSet(this, res);
+      this.resultSet = new IginxResultSet(this, res);
     } catch (SessionException | ExecutionException e) {
       throw new SQLException(String.format("Fail to execute %s", sql), e);
     }

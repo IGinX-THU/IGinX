@@ -1,4 +1,4 @@
-import cn.edu.tsinghua.iginx.jdbc.IginXResultSet;
+import cn.edu.tsinghua.iginx.jdbc.IginxResultSet;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.SqlType;
@@ -54,6 +54,6 @@ public class TestUtils {
                 DataType.BINARY));
     result.setDataTypeList(types);
 
-    return new IginXResultSet(null, result);
+    return new IginxResultSet(null, result);
   }
 }

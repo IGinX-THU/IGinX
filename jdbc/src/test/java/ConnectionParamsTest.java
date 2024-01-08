@@ -1,7 +1,7 @@
 import static org.junit.Assert.assertEquals;
 
 import cn.edu.tsinghua.iginx.jdbc.Config;
-import cn.edu.tsinghua.iginx.jdbc.IginXConnectionParams;
+import cn.edu.tsinghua.iginx.jdbc.IginxConnectionParams;
 import cn.edu.tsinghua.iginx.jdbc.IginxUrlException;
 import cn.edu.tsinghua.iginx.jdbc.Utils;
 import java.util.Properties;
@@ -19,7 +19,7 @@ public class ConnectionParamsTest {
     properties.setProperty(Config.USER, userName);
 
     properties.setProperty(Config.PASSWORD, userPwd);
-    IginXConnectionParams params =
+    IginxConnectionParams params =
         Utils.parseUrl(String.format(Config.IGINX_URL_PREFIX + "%s:%s/", host1, port1), properties);
     assertEquals(host1, params.getHost());
     assertEquals(port1, params.getPort());

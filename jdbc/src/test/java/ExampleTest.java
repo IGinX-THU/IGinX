@@ -1,4 +1,4 @@
-import cn.edu.tsinghua.iginx.jdbc.IginXPreparedStatement;
+import cn.edu.tsinghua.iginx.jdbc.IginxPreparedStatement;
 import java.sql.*;
 import org.apache.commons.lang3.RandomStringUtils;
 
@@ -135,7 +135,7 @@ public class ExampleTest {
     preparedStatement.setLong(2, 25); // end time
     preparedStatement.setLong(3, 20); // S3 < 20
     resultSet = preparedStatement.executeQuery();
-    System.out.println("sql: " + ((IginXPreparedStatement) preparedStatement).getCompleteSql());
+    System.out.println("sql: " + ((IginxPreparedStatement) preparedStatement).getCompleteSql());
     outputResult(resultSet);
 
     // Clear and query.
@@ -144,7 +144,7 @@ public class ExampleTest {
     preparedStatement.setLong(2, 99); // end time
     preparedStatement.setLong(3, 86); // S3 < 86
     resultSet = preparedStatement.executeQuery();
-    System.out.println("sql: " + ((IginXPreparedStatement) preparedStatement).getCompleteSql());
+    System.out.println("sql: " + ((IginxPreparedStatement) preparedStatement).getCompleteSql());
     outputResult(resultSet);
 
     // Close prepareStatement

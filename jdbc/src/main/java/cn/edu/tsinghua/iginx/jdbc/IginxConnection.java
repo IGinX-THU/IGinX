@@ -7,16 +7,16 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
-public class IginXConnection implements Connection {
+public class IginxConnection implements Connection {
 
   private Session session;
-  private IginXConnectionParams params;
+  private IginxConnectionParams params;
 
   private boolean autoCommit;
   private boolean isClosed;
   private SQLWarning warningChain;
 
-  public IginXConnection(String url, Properties info) throws SQLException, SessionException {
+  public IginxConnection(String url, Properties info) throws SQLException, SessionException {
     if (url == null) {
       throw new IginxUrlException("Input url cannot be null");
     }
@@ -34,7 +34,7 @@ public class IginXConnection implements Connection {
   @Override
   public Statement createStatement() throws SQLException {
     checkClosed();
-    return new IginXStatement(this, session);
+    return new IginxStatement(this, session);
   }
 
   @Override
@@ -50,13 +50,13 @@ public class IginXConnection implements Connection {
       throw new SQLException(
           String.format("Statements with ResultSet type %d are not supported", resultSetType));
     }
-    return new IginXStatement(this, session);
+    return new IginxStatement(this, session);
   }
 
   @Override
   public PreparedStatement prepareStatement(String sql) throws SQLException {
     checkClosed();
-    return new IginXPreparedStatement(this, session, sql);
+    return new IginxPreparedStatement(this, session, sql);
   }
 
   private void checkClosed() throws SQLException {
@@ -87,7 +87,7 @@ public class IginXConnection implements Connection {
 
   @Override
   public DatabaseMetaData getMetaData() {
-    return new IginXDatabaseMetadata(this, session);
+    return new IginxDatabaseMetadata(this, session);
   }
 
   @Override

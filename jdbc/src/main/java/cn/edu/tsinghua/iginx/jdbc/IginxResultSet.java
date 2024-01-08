@@ -14,11 +14,11 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
-import lombok.extern.slf4j.Slf4j;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-@Slf4j
-public class IginXResultSet implements ResultSet {
-
+public class IginxResultSet implements ResultSet {
+  private static final Logger LOGGER = Logger.getLogger(IginxResultSet.class.toString());
   private final Statement statement;
   private final ResultSetMetaData metadata;
 
@@ -33,7 +33,7 @@ public class IginXResultSet implements ResultSet {
   private boolean hasTime;
   private SQLWarning warningChain;
 
-  public IginXResultSet(Statement statement, SessionExecuteSqlResult result) {
+  public IginxResultSet(Statement statement, SessionExecuteSqlResult result) {
     switch (result.getSqlType()) {
       case Insert:
       case Delete:
@@ -53,7 +53,7 @@ public class IginXResultSet implements ResultSet {
     this.pos = -1;
     this.isClosed = false;
     this.statement = statement;
-    this.metadata = new IginXResultMetadata(columnNames, columnTypes, hasTime);
+    this.metadata = new IginxResultMetadata(columnNames, columnTypes, hasTime);
   }
 
   private void constructQueryResult(SessionExecuteSqlResult result) {
@@ -65,7 +65,7 @@ public class IginXResultSet implements ResultSet {
     long[] keys = result.getKeys();
     if (keys != null) {
       if (keys.length != values.size()) {
-        log.error("keys and values size did not match.");
+        LOGGER.log(Level.SEVERE, "keys and values size did not match.");
         return;
       }
       columnNames.add(0, GlobalConstant.KEY_NAME);
@@ -115,7 +115,7 @@ public class IginXResultSet implements ResultSet {
 
   @Override
   public void close() {
-    synchronized (IginXResultSet.class) {
+    synchronized (IginxResultSet.class) {
       isClosed = true;
     }
   }

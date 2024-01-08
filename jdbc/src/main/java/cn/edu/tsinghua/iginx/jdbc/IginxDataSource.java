@@ -5,10 +5,12 @@ import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 
-public class IginXDataSource implements DataSource {
+public class IginxDataSource implements DataSource {
+  private static final Logger LOGGER = Logger.getLogger(IginxDataSource.class.getName());
   private String url;
   private String user;
   private String password;
@@ -60,9 +62,9 @@ public class IginXDataSource implements DataSource {
   @Override
   public Connection getConnection() throws SQLException {
     try {
-      return new IginXConnection(url, properties);
+      return new IginxConnection(url, properties);
     } catch (SessionException e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, e, () -> "Failed to get connection");
     }
     return null;
   }
@@ -73,9 +75,9 @@ public class IginXDataSource implements DataSource {
       Properties newProp = new Properties();
       newProp.setProperty(Config.USER, username);
       newProp.setProperty(Config.PASSWORD, password);
-      return new IginXConnection(url, newProp);
+      return new IginxConnection(url, newProp);
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, e, () -> "Failed to get connection");
     }
     return null;
   }

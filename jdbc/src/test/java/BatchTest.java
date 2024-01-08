@@ -1,4 +1,4 @@
-import cn.edu.tsinghua.iginx.jdbc.IginXStatement;
+import cn.edu.tsinghua.iginx.jdbc.IginxStatement;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -21,7 +21,7 @@ public class BatchTest {
                 "DELETE FROM test.batch.c WHERE c = \"three\"",
                 "ADD STORAGEENGINE (\"127.0.0.1\", 6667, IOTDB, \"{\"hello\": \"world\"}\");"));
 
-    IginXStatement statement = new IginXStatement(null, null);
+    IginxStatement statement = new IginxStatement(null, null);
 
     for (String sql : sqlList) {
       statement.addBatch(sql);
@@ -37,7 +37,7 @@ public class BatchTest {
 
   @Test(expected = SQLException.class)
   public void testBatchWithSelect() throws SQLException {
-    IginXStatement statement = new IginXStatement(null, null);
+    IginxStatement statement = new IginxStatement(null, null);
     String sql = "SELECT a FROM test.batch WHERE a < 10;";
     statement.addBatch(sql);
     statement.close();
@@ -45,7 +45,7 @@ public class BatchTest {
 
   @Test(expected = SQLException.class)
   public void testBatchWithShow() throws SQLException {
-    IginXStatement statement = new IginXStatement(null, null);
+    IginxStatement statement = new IginxStatement(null, null);
     String sql = "SHOW REPLICATION;";
     statement.addBatch(sql);
     statement.close();

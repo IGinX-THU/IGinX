@@ -8,13 +8,15 @@ import java.net.URL;
 import java.sql.*;
 import java.sql.Date;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
-public class IginXPreparedStatement extends IginXStatement implements PreparedStatement {
-
+public class IginxPreparedStatement extends IginxStatement implements PreparedStatement {
+  private static final Logger LOGGER = Logger.getLogger(IginxPreparedStatement.class.getName());
   private final Map<Integer, String> params = new LinkedHashMap<>();
   private String sql;
 
-  public IginXPreparedStatement(IginXConnection connection, Session session, String sql) {
+  public IginxPreparedStatement(IginxConnection connection, Session session, String sql) {
     super(connection, session);
     this.sql = sql;
   }
@@ -39,7 +41,7 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
     try {
       return createCompleteSql(sql, params);
     } catch (SQLException e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, e, () -> "Error occurs when creating complete sql");
       return "";
     }
   }

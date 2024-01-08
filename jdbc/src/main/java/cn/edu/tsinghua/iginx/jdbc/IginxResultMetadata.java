@@ -6,13 +6,13 @@ import java.sql.SQLException;
 import java.sql.Types;
 import java.util.List;
 
-public class IginXResultMetadata implements ResultSetMetaData {
+public class IginxResultMetadata implements ResultSetMetaData {
 
   private final List<String> columnNames;
   private final List<DataType> columnTypes;
   private final boolean hasTime;
 
-  public IginXResultMetadata(
+  public IginxResultMetadata(
       List<String> columnNames, List<DataType> columnTypes, boolean hasTime) {
     this.columnNames = columnNames;
     this.columnTypes = columnTypes;
