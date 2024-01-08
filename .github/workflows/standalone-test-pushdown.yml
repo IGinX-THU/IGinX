@@ -25,6 +25,7 @@ jobs:
                         "Redis",
                         "Parquet",
                         "PostgreSQL",
+                        "Parquet",
                         "FileSystem",
                         "MongoDB",
                         "IoTDB12",

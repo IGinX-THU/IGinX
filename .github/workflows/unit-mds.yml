@@ -35,13 +35,6 @@ jobs:
                   key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
                   restore-keys: ${{ runner.os }}-m2
 
-            # pemja java repo need to be installed manually on Windows
-            - name: Environment dependence
-              uses: ./.github/actions/dependence
-              with:
-                  java: ${{ matrix.java }}
-                  scope: javaOnly
-
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
             - name: Run test for meta manager
@@ -79,12 +72,6 @@ jobs:
                   path: ~/.m2
                   key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
                   restore-keys: ${{ runner.os }}-m2
-
-            - name: Environment dependence
-              uses: ./.github/actions/dependence
-              with:
-                  java: ${{ matrix.java }}
-                  scope: javaOnly
 
             - name: Run ETCD
               uses: ./.github/actions/etcdRunner
