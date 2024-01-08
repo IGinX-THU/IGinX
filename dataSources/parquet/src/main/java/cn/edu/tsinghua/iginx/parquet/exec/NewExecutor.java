@@ -56,11 +56,6 @@ public class NewExecutor implements Executor {
 
   private final Manager dummyManager;
 
-  public NewExecutor(boolean hasData, boolean readOnly, String dataDir, String dummyDir)
-      throws StorageInitializationException {
-    this(hasData, readOnly, dataDir, dummyDir, null);
-  }
-
   public NewExecutor(
       boolean hasData, boolean readOnly, String dataDir, String dummyDir, String dirPrefix)
       throws StorageInitializationException {

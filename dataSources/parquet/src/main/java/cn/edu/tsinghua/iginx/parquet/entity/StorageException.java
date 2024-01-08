@@ -18,17 +18,17 @@ package cn.edu.tsinghua.iginx.parquet.entity;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 
-public class NativeStorageException extends PhysicalException {
+public class StorageException extends PhysicalException {
 
-  public NativeStorageException(Throwable cause) {
+  public StorageException(Throwable cause) {
     super(cause);
   }
 
-  public NativeStorageException(String message) {
+  public StorageException(String message) {
     super(message);
   }
 
-  public NativeStorageException(String message, Throwable cause) {
+  public StorageException(String message, Throwable cause) {
     super(message, cause);
   }
 }

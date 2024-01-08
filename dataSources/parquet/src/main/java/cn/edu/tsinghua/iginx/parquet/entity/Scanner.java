@@ -26,8 +26,5 @@ public interface Scanner<K, V> extends AutoCloseable {
   @Nonnull
   V value() throws NoSuchElementException;
 
-  boolean iterate() throws NativeStorageException;
-
-  @Override
-  void close() throws NativeStorageException;
+  boolean iterate() throws StorageException;
 }

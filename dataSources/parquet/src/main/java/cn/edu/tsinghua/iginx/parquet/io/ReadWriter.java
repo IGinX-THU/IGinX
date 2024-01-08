@@ -16,24 +16,27 @@
 
 package cn.edu.tsinghua.iginx.parquet.io;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.DataBuffer;
-import cn.edu.tsinghua.iginx.parquet.db.RangeTombstone;
-import cn.edu.tsinghua.iginx.parquet.entity.NativeStorageException;
-import cn.edu.tsinghua.iginx.parquet.entity.Range;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 public interface ReadWriter<K extends Comparable<K>, F, V, T> {
-  void flush(Path path, DataBuffer<K, F, V> buffer, RangeTombstone<K, F> tombstone)
-      throws NativeStorageException;
 
-  Scanner<K, Scanner<F, V>> read(
-      Path path, Set<F> fields, Range<K> range, RangeTombstone<K, F> tombstoneDst)
-      throws NativeStorageException;
+  void flush(
+      Path path,
+      DataBuffer<K, F, V> buffer,
+      Map<String, DataType> schema,
+      Map<String, String> extra)
+      throws IOException;
 
-  com.google.common.collect.Range<K> readMeta(
-      Path path, Map<F, T> schemaDst, RangeTombstone<K, F> tombstoneDst)
-      throws NativeStorageException;
+  Map.Entry<Map<F, T>, Map<String, String>> readMeta(Path path) throws IOException;
+
+  Scanner<Long, Scanner<String, Object>> scanData(Path path, Set<F> fields, Filter filter)
+      throws IOException;
 }

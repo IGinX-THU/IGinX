@@ -16,17 +16,17 @@
 
 package cn.edu.tsinghua.iginx.parquet.db;
 
-import cn.edu.tsinghua.iginx.parquet.entity.NativeStorageException;
 import cn.edu.tsinghua.iginx.parquet.entity.Range;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
+import cn.edu.tsinghua.iginx.parquet.entity.StorageException;
 import com.google.common.collect.RangeSet;
 import java.util.Map;
 import java.util.Set;
 
 public interface ImmutableDatabase<K extends Comparable<K>, F, T, V> extends AutoCloseable {
-  Scanner<K, Scanner<F, V>> query(Set<F> fields, Range<K> range) throws NativeStorageException;
+  Scanner<K, Scanner<F, V>> query(Set<F> fields, Range<K> range) throws StorageException;
 
-  RangeSet<K> ranges() throws NativeStorageException;
+  RangeSet<K> ranges() throws StorageException;
 
-  Map<F, T> schema() throws NativeStorageException;
+  Map<F, T> schema() throws StorageException;
 }

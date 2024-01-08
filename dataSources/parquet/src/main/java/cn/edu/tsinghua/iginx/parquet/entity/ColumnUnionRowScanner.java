@@ -37,7 +37,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     this.scanners = scanners;
   }
 
-  private void init() throws NativeStorageException {
+  private void init() throws StorageException {
     this.queue = new PriorityQueue<>(Comparator.comparing(l -> l.getValue().key()));
     for (Map.Entry<F, Scanner<K, V>> entry : scanners.entrySet()) {
       if (entry.getValue().iterate()) {
@@ -66,7 +66,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
   }
 
   @Override
-  public boolean iterate() throws NativeStorageException {
+  public boolean iterate() throws StorageException {
     if (queue == null) {
       init();
     }
@@ -83,7 +83,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
   }
 
   @Override
-  public void close() throws NativeStorageException {
+  public void close() throws StorageException {
     Map.Entry<F, Scanner<K, V>> entry;
     while ((entry = queue.poll()) != null) {
       entry.getValue().close();
@@ -113,7 +113,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     }
 
     @Override
-    public boolean iterate() throws NativeStorageException {
+    public boolean iterate() throws StorageException {
       if (queue.isEmpty()) {
         return false;
       }
@@ -136,7 +136,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     }
 
     @Override
-    public void close() throws NativeStorageException {
+    public void close() throws StorageException {
       boolean hasNext;
       do {
         hasNext = iterate();

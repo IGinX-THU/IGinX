@@ -21,7 +21,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;

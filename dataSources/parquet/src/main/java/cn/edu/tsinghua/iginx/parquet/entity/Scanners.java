@@ -35,12 +35,12 @@ public class Scanners {
     }
 
     @Override
-    public boolean iterate() throws NativeStorageException {
+    public boolean iterate() throws StorageException {
       return false;
     }
 
     @Override
-    public void close() throws NativeStorageException {}
+    public void close() throws StorageException {}
   }
 
   private static final Scanner<?, ?> EMPTY = new EmptyScanner<>();

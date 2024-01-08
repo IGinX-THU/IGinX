@@ -17,8 +17,8 @@
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.parquet.entity.Constants;
-import cn.edu.tsinghua.iginx.parquet.entity.NativeStorageException;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
+import cn.edu.tsinghua.iginx.parquet.entity.StorageException;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
@@ -94,7 +94,7 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public static IRecord getRecord(MessageType schema, Long key, Scanner<String, Object> value)
-      throws NativeStorageException {
+      throws StorageException {
     IRecord record = new IRecord();
     record.add(schema.getFieldIndex(Constants.KEY_FIELD_NAME), key);
     while (value.iterate()) {

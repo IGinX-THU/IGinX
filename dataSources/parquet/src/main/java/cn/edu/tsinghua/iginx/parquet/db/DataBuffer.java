@@ -34,7 +34,7 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
 
   private final Map<F, NavigableMap<K, V>> data = new ConcurrentHashMap<>();
 
-  public void putRows(Scanner<K, Scanner<F, V>> scanner) throws NativeStorageException {
+  public void putRows(Scanner<K, Scanner<F, V>> scanner) throws StorageException {
     while (scanner.iterate()) {
       K key = scanner.key();
       try (cn.edu.tsinghua.iginx.parquet.entity.Scanner<F, V> row = scanner.value()) {
@@ -48,7 +48,7 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
     }
   }
 
-  public void putColumns(Scanner<F, Scanner<K, V>> scanner) throws NativeStorageException {
+  public void putColumns(Scanner<F, Scanner<K, V>> scanner) throws StorageException {
     while (scanner.iterate()) {
       F field = scanner.key();
       try (cn.edu.tsinghua.iginx.parquet.entity.Scanner<K, V> column = scanner.value()) {
@@ -177,7 +177,7 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
     return scanners;
   }
 
-  public void close() throws NativeStorageException {
+  public void close() throws StorageException {
     data.clear();
   }
 }

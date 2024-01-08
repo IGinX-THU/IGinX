@@ -20,6 +20,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import org.apache.parquet.filter2.compat.FilterCompat;
@@ -63,6 +64,10 @@ public class IParquetReader implements AutoCloseable {
 
   public String getExtraMetaData(String key) {
     return extra.get(key);
+  }
+
+  public Map<String, String> getExtra() {
+    return Collections.unmodifiableMap(extra);
   }
 
   public IRecord read() throws IOException {

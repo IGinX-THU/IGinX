@@ -27,22 +27,20 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.db.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.OneTierDB;
-import cn.edu.tsinghua.iginx.parquet.db.RangeTombstone;
 import cn.edu.tsinghua.iginx.parquet.entity.*;
 import cn.edu.tsinghua.iginx.parquet.entity.Scanner;
 import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
 import cn.edu.tsinghua.iginx.parquet.tools.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.tools.ProjectUtils;
-import cn.edu.tsinghua.iginx.parquet.tools.SerializeUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.BoundType;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import javax.annotation.Nonnull;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
@@ -50,8 +48,6 @@ import org.slf4j.LoggerFactory;
 
 public class DataManager implements Manager {
   private static final Logger LOGGER = LoggerFactory.getLogger(DataManager.class);
-
-  private final ConcurrentHashMap<String, Column> schema = new ConcurrentHashMap<>();
 
   private final Database<Long, String, DataType, Object> db;
 
@@ -64,50 +60,33 @@ public class DataManager implements Manager {
               public void flush(
                   Path path,
                   DataBuffer<Long, String, Object> buffer,
-                  RangeTombstone<Long, String> tombstone)
-                  throws NativeStorageException {
-                DataManager.this.flush(path, buffer, tombstone);
+                  Map<String, DataType> schema,
+                  Map<String, String> extra)
+                  throws IOException {
+                DataManager.this.flush(path, buffer, schema, extra);
               }
 
               @Override
-              public com.google.common.collect.Range<Long> readMeta(
-                  Path path,
-                  Map<String, DataType> schemaDst,
-                  RangeTombstone<Long, String> tombstoneDst)
-                  throws NativeStorageException {
-                return DataManager.this.readMeta(path, schemaDst, tombstoneDst);
+              public Map.Entry<Map<String, DataType>, Map<String, String>> readMeta(Path path)
+                  throws IOException {
+                return DataManager.this.read(path);
               }
 
               @Override
-              public Scanner<Long, Scanner<String, Object>> read(
-                  Path path,
-                  Set<String> fields,
-                  Range<Long> range,
-                  RangeTombstone<Long, String> tombstoneDst)
-                  throws NativeStorageException {
-                return DataManager.this.read(path, fields, range, tombstoneDst);
+              public Scanner<Long, Scanner<String, Object>> scanData(
+                  Path path, Set<String> fields, Filter filter) throws IOException {
+                return DataManager.this.scan(path, fields, filter);
               }
             });
-    Map<String, DataType> type = db.schema();
-    type.forEach((name, dataType) -> schema.put(name, new Column(name, dataType)));
   }
 
-  private com.google.common.collect.Range<Long> readMeta(
-      Path path, Map<String, DataType> schemaDst, RangeTombstone<Long, String> tombstoneDst)
-      throws NativeStorageException {
+  private Map.Entry<Map<String, DataType>, Map<String, String>> read(Path path)
+      throws IOException {
     try (IParquetReader reader = IParquetReader.builder(path).build()) {
-      String tombstoneStr = reader.getExtraMetaData(Constants.TOMBSTONE_NAME);
 
-      RangeTombstone<Long, String> tombstone =
-          SerializeUtils.deserializeRangeTombstone(tombstoneStr);
-      tombstone
-          .getDeletedRanges()
-          .forEach(
-              (field, rangeSet) -> {
-                tombstoneDst.delete(Collections.singleton(field), rangeSet);
-              });
+
+      Map<String, DataType> schemaDst = new HashMap<>();
       MessageType parquetSchema = reader.getSchema();
-
       for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
         Type type = parquetSchema.getType(i);
         if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
@@ -117,254 +96,202 @@ public class DataManager implements Manager {
         schemaDst.put(type.getName(), iginxType);
       }
 
-      String keyRangeStr = reader.getExtraMetaData(Constants.KEY_RANGE_NAME);
-      if (keyRangeStr == null) {
-        throw new NativeStorageException("range is not found in " + path);
-      }
-
-      return SerializeUtils.deserializeKeyRange(keyRangeStr);
+      return new AbstractMap.SimpleImmutableEntry<>(schemaDst, Collections.unmodifiableMap(reader.getExtra()));
+    } catch (IOException e) {
+      throw e;
     } catch (Exception e) {
-      throw new NativeStorageException("failed to read, details: " + path, e);
+      throw new RuntimeException("failed to close reader of " + path, e);
     }
   }
 
   private void flush(
-      Path path, DataBuffer<Long, String, Object> buffer, RangeTombstone<Long, String> tombstone)
-      throws NativeStorageException {
+      Path path,
+      DataBuffer<Long, String, Object> buffer,
+      Map<String, DataType> schema,
+      Map<String, String> extra)
+      throws IOException {
     List<Type> fields = new ArrayList<>();
     fields.add(
         Storer.getParquetType(Constants.KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
     schema.forEach(
-        (name, column) -> {
-          fields.add(Storer.getParquetType(name, column.getDataType(), Type.Repetition.OPTIONAL));
+        (name, type) -> {
+          fields.add(Storer.getParquetType(name, type, Type.Repetition.OPTIONAL));
         });
     MessageType parquetSchema = new MessageType(Constants.RECORD_FIELD_NAME, fields);
 
-    try (Scanner<Long, Scanner<String, Object>> scanner =
-        buffer.scanRows(buffer.fields(), new Range<>(0L, Long.MAX_VALUE))) {
-      Files.createDirectories(path.getParent());
+    IParquetWriter.Builder builder = IParquetWriter.builder(path, parquetSchema);
 
-      IParquetWriter.Builder builder = IParquetWriter.builder(path, parquetSchema);
+    //            String tombstoneStr = SerializeUtils.serialize(tombstone);
+    //            builder.withExtraMetaData(Constants.TOMBSTONE_NAME, tombstoneStr);
+    //
+    //            com.google.common.collect.RangeSet<Long> rangeSet = buffer.ranges();
+    //            com.google.common.collect.Range<Long> range;
+    //            if (rangeSet.isEmpty()) {
+    //                range = com.google.common.collect.Range.closedOpen(0L, 0L); // empty range
+    //            } else {
+    //                range = rangeSet.span();
+    //            }
+    //            builder.withExtraMetaData(Constants.KEY_RANGE_NAME,
+    // SerializeUtils.serialize(range));
 
-      String tombstoneStr = SerializeUtils.serialize(tombstone);
-      builder.withExtraMetaData(Constants.TOMBSTONE_NAME, tombstoneStr);
+    for (Map.Entry<String, String> entry : extra.entrySet()) {
+      builder.withExtraMetaData(entry.getKey(), entry.getValue());
+    }
 
-      com.google.common.collect.RangeSet<Long> rangeSet = buffer.ranges();
-      com.google.common.collect.Range<Long> range;
-      if (rangeSet.isEmpty()) {
-        range = com.google.common.collect.Range.closedOpen(0L, 0L); // empty range
-      } else {
-        range = rangeSet.span();
+    Files.createDirectories(path.getParent());
+    try (IParquetWriter writer = builder.build();
+        Scanner<Long, Scanner<String, Object>> scanner =
+            buffer.scanRows(buffer.fields(), new Range<>(0L, Long.MAX_VALUE))) {
+      while (scanner.iterate()) {
+        IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
+        writer.write(record);
       }
-      builder.withExtraMetaData(Constants.KEY_RANGE_NAME, SerializeUtils.serialize(range));
-
-      try (IParquetWriter writer = builder.build()) {
-        while (scanner.iterate()) {
-          IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
-          writer.write(record);
-        }
-      }
+    } catch (IOException e) {
+      throw e;
     } catch (Exception e) {
-      throw new NativeStorageException("failed to flush, details: " + tombstone, e);
+      throw new RuntimeException("failed to close", e);
     }
   }
 
-  private Scanner<Long, Scanner<String, Object>> read(
-      Path path, Set<String> fields, Range<Long> range, RangeTombstone<Long, String> tombstoneDst)
-      throws NativeStorageException {
-    try {
-      Filter filter = FilterRangeUtils.filterOf(range);
-      IParquetReader reader = IParquetReader.builder(path).project(fields).filter(filter).build();
+  private Scanner<Long, Scanner<String, Object>> scan(Path path, Set<String> fields, Filter filter)
+      throws IOException {
 
-      int keyIndex;
-      MessageType parquetSchema = reader.getSchema();
-      String tombstoneStr = reader.getExtraMetaData(Constants.TOMBSTONE_NAME);
-      try {
-        RangeTombstone<Long, String> tombstone =
-            SerializeUtils.deserializeRangeTombstone(tombstoneStr);
-        tombstoneDst.delete(tombstone);
+    return new Scanner<Long, Scanner<String, Object>>() {
+      private final IParquetReader reader =
+          IParquetReader.builder(path).project(fields).filter(filter).build();
+      private Long key;
+      private Scanner<String, Object> rowScanner;
 
-        keyIndex = parquetSchema.getFieldIndex(Constants.KEY_FIELD_NAME);
-      } catch (Exception e) {
-        reader.close();
-        String message =
-            String.format("failed to read, details: %s, %s, %s", path, parquetSchema, tombstoneStr);
-        throw new NativeStorageException(message, e);
+      @Nonnull
+      @Override
+      public Long key() throws NoSuchElementException {
+        if (key == null) {
+          throw new NoSuchElementException();
+        }
+        return key;
       }
 
-      return new Scanner<Long, Scanner<String, Object>>() {
-        private Long key;
-
-        private Scanner<String, Object> rowScanner;
-
-        @Nonnull
-        @Override
-        public Long key() throws NoSuchElementException {
-          if (key == null) {
-            throw new NoSuchElementException();
-          }
-          return key;
+      @Nonnull
+      @Override
+      public Scanner<String, Object> value() throws NoSuchElementException {
+        if (rowScanner == null) {
+          throw new NoSuchElementException();
         }
+        return rowScanner;
+      }
 
-        @Nonnull
-        @Override
-        public Scanner<String, Object> value() throws NoSuchElementException {
-          if (rowScanner == null) {
-            throw new NoSuchElementException();
+      @Override
+      public boolean iterate() throws StorageException {
+        try {
+          IRecord record = reader.read();
+          if (record == null) {
+            key = null;
+            rowScanner = null;
+            return false;
           }
-          return rowScanner;
-        }
-
-        @Override
-        public boolean iterate() throws NativeStorageException {
-          try {
-            IRecord record = reader.read();
-            if (record == null) {
-              key = null;
-              rowScanner = null;
-              return false;
+          Map<String, Object> map = new HashMap<>();
+          MessageType parquetSchema = reader.getSchema();
+          int keyIndex = parquetSchema.getFieldIndex(Constants.KEY_FIELD_NAME);
+          for (Map.Entry<Integer, Object> entry : record) {
+            int index = entry.getKey();
+            Object value = entry.getValue();
+            if (index == keyIndex) {
+              key = (Long) value;
+            } else {
+              map.put(parquetSchema.getType(index).getName(), value);
             }
-            Map<String, Object> map = new HashMap<>();
-            for (Map.Entry<Integer, Object> entry : record) {
-              int index = entry.getKey();
-              Object value = entry.getValue();
-              if (index == keyIndex) {
-                key = (Long) value;
-              } else {
-                map.put(parquetSchema.getType(index).getName(), value);
-              }
-            }
-            rowScanner = new IteratorScanner<>(map.entrySet().iterator());
-            return true;
-          } catch (Exception e) {
-            throw new NativeStorageException("failed to read", e);
           }
+          rowScanner = new IteratorScanner<>(map.entrySet().iterator());
+          return true;
+        } catch (Exception e) {
+          throw new StorageException("failed to read", e);
         }
+      }
 
-        @Override
-        public void close() throws NativeStorageException {
-          try {
-            reader.close();
-          } catch (Exception e) {
-            throw new NativeStorageException("failed to close", e);
-          }
+      @Override
+      public void close() throws StorageException {
+        try {
+          reader.close();
+        } catch (Exception e) {
+          throw new StorageException("failed to close", e);
         }
-      };
-    } catch (Exception e) {
-      throw new NativeStorageException("failed to read", e);
-    }
+      }
+    };
   }
 
   @Override
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
       throws PhysicalException {
-    try {
-      Set<String> fieldSetMatchTags = ProjectUtils.project(schema.keySet(), tagFilter);
+    Map<String, DataType> schemaMatchTags = ProjectUtils.project(db.schema(), tagFilter);
 
-      Map<String, Column> projected = new HashMap<>();
-      for (String field : ProjectUtils.project(fieldSetMatchTags, paths)) {
-        Column column = schema.get(field);
-        if (column != null) {
-          projected.put(field, column);
-        }
-      }
-      Filter projectedFilter = ProjectUtils.project(filter, fieldSetMatchTags);
-      RangeSet<Long> rangeSet = FilterRangeUtils.rangeSetOf(projectedFilter);
-      List<Scanner<Long, Scanner<String, Object>>> scanners = new ArrayList<>();
-      for (Range<Long> range : rangeSet) {
-        scanners.add(db.query(projected.keySet(), range));
-      }
-      return new ScannerRowStream(projected, new ConcatScanner<>(scanners.iterator()));
-    } catch (Exception e) {
-      String message =
-          String.format(
-              "failed to projected, details: %s, %s, %s, %s",
-              paths, tagFilter, filter, schema.keySet());
-      throw new PhysicalException(message, e);
+    Map<String, DataType> projectedSchema = ProjectUtils.project(schemaMatchTags, paths);
+    Filter projectedFilter = ProjectUtils.project(filter, schemaMatchTags);
+    RangeSet<Long> rangeSet = FilterRangeUtils.rangeSetOf(projectedFilter);
+    List<Scanner<Long, Scanner<String, Object>>> scanners = new ArrayList<>();
+    for (Range<Long> range : rangeSet) {
+      scanners.add(db.query(projectedSchema.keySet(), range));
     }
+    return new ScannerRowStream(projectedSchema, new ConcatScanner<>(scanners.iterator()));
   }
 
   @Override
   public void insert(DataView data) throws PhysicalException {
+    DataViewWrapper wrappedData = new DataViewWrapper(data);
     try {
-      DataViewWrapper dataViewWrapper = new DataViewWrapper(data);
-      for(Column column: dataViewWrapper.getColumns()) {
-        schema.putIfAbsent(column.getPhysicalPath(), column);
-      }
-
-      try (Scanner<String, Column> schemaScanner = new DataViewSchemaWrapper(data)) {
-        while (schemaScanner.iterate()) {
-          String name = schemaScanner.key();
-          Column column = schemaScanner.value();
-          schema.putIfAbsent(name, column);
-          Column curr = schema.get(name);
-          if (!curr.equals(column)) {
-            throw new PhysicalException(String.format("conflict data type %s->%s", column, curr));
-          }
-        }
-      }
-      if (data.isRowData()) {
-        try (Scanner<Long, Scanner<String, Object>> scanner = new DataViewWrapper.DataViewRowsScanner(data)) {
-          db.upsertRows(scanner);
-        }
-      } else if (data.isColumnData()) {
-        try (Scanner<String, Scanner<Long, Object>> scanner = new DataViewWrapper.DataViewColumnsScanner(data)) {
-          db.upsertColumns(scanner);
+      if (wrappedData.isRowData()) {
+        try (Scanner<Long, Scanner<String, Object>> scanner = wrappedData.getRowsScanner()) {
+          db.upsertRows(scanner, wrappedData.getSchema());
         }
       } else {
-        throw new IllegalArgumentException("unsupported data type");
+        try (Scanner<String, Scanner<Long, Object>> scanner = wrappedData.getColumnsScanner()) {
+          db.upsertColumns(scanner, wrappedData.getSchema());
+        }
       }
     } catch (Exception e) {
-      String message =
-          String.format(
-              "failed to insert, details: %s, %s,%s,%s",
-              data.getPaths(), data.getDataTypeList(), data.getTagsList(), data.getKeySize());
-      throw new PhysicalException(message, e);
+      throw new RuntimeException("failed to close scanner of DataView", e);
     }
   }
 
   @Override
   public void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
       throws PhysicalException {
-    boolean allPath = ProjectUtils.isMatchAll(paths);
-    Set<String> fields = new HashSet<>();
-    if (!allPath) {
-      fields = ProjectUtils.project(schema.keySet(), paths, tagFilter);
-    }
-    boolean allRange = keyRanges == null || keyRanges.isEmpty();
+
     com.google.common.collect.RangeSet<Long> rangeSet =
         com.google.common.collect.TreeRangeSet.create();
-    if (!allRange) {
+    if (keyRanges != null && !keyRanges.isEmpty()) {
       for (KeyRange range : keyRanges) {
         rangeSet.add(
             com.google.common.collect.Range.closed(
                 range.getActualBeginKey(), range.getActualEndKey()));
       }
     }
-    try {
-      if (allPath && allRange) {
-        db.clear();
-        schema.clear();
-      } else if (allPath) {
-        db.deleteColumns(rangeSet);
-      } else if (allRange) {
-        db.deleteRows(fields);
-        for (String field : fields) {
-          schema.remove(field);
-        }
+
+    if (ProjectUtils.allMatched(paths)) {
+      if (rangeSet.isEmpty()) {
+        db.delete();
+      } else {
+        db.delete(rangeSet);
+      }
+    } else {
+      Map<String, DataType> schemaMatchedTags = ProjectUtils.project(db.schema(), tagFilter);
+      Set<String> fields = ProjectUtils.project(schemaMatchedTags, paths).keySet();
+      if (rangeSet.isEmpty()) {
+        db.delete(fields);
       } else {
         db.delete(fields, rangeSet);
       }
-    } catch (Exception e) {
-      String message =
-          String.format("failed to delete, details: %s, %s, %s", paths, keyRanges, tagFilter);
-      throw new PhysicalException(message, e);
     }
   }
 
   @Override
-  public List<Column> getColumns() {
-    return new ArrayList<>(schema.values());
+  public List<Column> getColumns() throws StorageException {
+    List<Column> columns = new ArrayList<>();
+    for (Map.Entry<String, DataType> entry : db.schema().entrySet()) {
+      Map.Entry<String, Map<String, String>> pathWithTags =
+          DataViewWrapper.parseFieldName(entry.getKey());
+      columns.add(new Column(pathWithTags.getKey(), entry.getValue(), pathWithTags.getValue()));
+    }
+    return columns;
   }
 
   @Override

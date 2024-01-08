@@ -49,7 +49,7 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
   }
 
   @Override
-  public boolean iterate() throws NativeStorageException {
+  public boolean iterate() throws StorageException {
     if (currentScanner != null && currentScanner.iterate()) {
       return true;
     }
@@ -64,7 +64,7 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
   }
 
   @Override
-  public void close() throws NativeStorageException {
+  public void close() throws StorageException {
     while (scannerIterator.hasNext()) {
       scannerIterator.next().close();
     }

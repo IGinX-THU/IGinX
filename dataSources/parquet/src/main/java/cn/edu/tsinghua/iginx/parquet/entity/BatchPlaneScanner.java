@@ -51,7 +51,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
   }
 
   @Override
-  public boolean iterate() throws NativeStorageException {
+  public boolean iterate() throws StorageException {
     if (planeScanned) {
       return false;
     }
@@ -76,7 +76,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
     }
 
     @Override
-    public boolean iterate() throws NativeStorageException {
+    public boolean iterate() throws StorageException {
       if (currentBatchSize >= maxBatchSize) {
         return false;
       }
@@ -111,7 +111,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
       }
 
       @Override
-      public boolean iterate() throws NativeStorageException {
+      public boolean iterate() throws StorageException {
         if (currentBatchSize >= maxBatchSize) {
           lineScanned = false;
           return false;
@@ -130,7 +130,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
   }
 
   @Override
-  public void close() throws NativeStorageException {
+  public void close() throws StorageException {
     planeScanner.close();
   }
 }

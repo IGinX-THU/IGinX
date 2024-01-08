@@ -16,126 +16,98 @@
 
 package cn.edu.tsinghua.iginx.parquet.tools;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.parquet.entity.DataViewWrapper;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
 public class ProjectUtils {
-  public static boolean match(String fullPath, List<Pattern> patterns, TagFilter tagFilter) {
+
+  public static Map<String, DataType> project(Map<String, DataType> schema, TagFilter tagFilter) {
     if (tagFilter == null) {
-      return match(fullPath, patterns);
+      return schema;
     }
-    for (Pattern pattern : patterns) {
-      Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(fullPath);
-      if (pattern.matcher(pair.getK()).matches() && TagKVUtils.match(pair.getV(), tagFilter)) {
-        return true;
-      }
-    }
-    return false;
-  }
 
-  public static boolean match(String fullPath, List<Pattern> patterns) {
-    for (Pattern pattern : patterns) {
-      Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(fullPath);
-      if (pattern.matcher(pair.getK()).matches()) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public static Set<String> project(Set<String> schema, List<String> paths, TagFilter tagFilter) {
-    List<Pattern> patterns =
-        paths.stream().map(ProjectUtils::compliePattern).collect(Collectors.toList());
-
-    Set<String> result = new HashSet<>();
-    for (String fieldName : schema) {
-      if (ProjectUtils.match(fieldName, patterns, tagFilter)) {
-        result.add(fieldName);
+    Map<String, DataType> result = new HashMap<>();
+    for (Map.Entry<String, DataType> entry : schema.entrySet()) {
+      Map.Entry<String, Map<String, String>> pathWithTags =
+          DataViewWrapper.parseFieldName(entry.getKey());
+      if (TagKVUtils.match(pathWithTags.getValue(), tagFilter)) {
+        result.put(entry.getKey(), entry.getValue());
       }
     }
     return result;
   }
 
-  public static Set<String> project(Set<String> schema, TagFilter tagFilter) {
-    if (tagFilter == null) {
-      return new HashSet<>(schema);
-    }
-    Set<String> result = new HashSet<>();
-    for (String fieldName : schema) {
-      Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(fieldName);
-      if (TagKVUtils.match(pair.getV(), tagFilter)) {
-        result.add(fieldName);
+  public static Map<String, DataType> project(Map<String, DataType> schema, List<String> paths) {
+    Map<String, DataType> result = new HashMap<>();
+    for (Map.Entry<String, DataType> entry : schema.entrySet()) {
+      for (String path : paths) {
+        if (StringUtils.match(entry.getKey(), path)) {
+          result.put(entry.getKey(), entry.getValue());
+          break;
+        }
       }
     }
     return result;
   }
 
-  public static Set<String> project(Set<String> schema, List<String> paths) {
-    List<Pattern> patterns =
-        paths.stream().map(ProjectUtils::compliePattern).collect(Collectors.toList());
-    Set<String> result = new HashSet<>();
-    for (String fieldName : schema) {
-      if (ProjectUtils.match(fieldName, patterns)) {
-        result.add(fieldName);
-      }
-    }
-    return result;
-  }
-
-  public static Pattern compliePattern(String wildcard) {
-    return Pattern.compile(StringUtils.reformatPath(wildcard));
-  }
-
-  public static Filter project(Filter filter, Set<String> fields) {
+  public static Filter project(Filter filter, Map<String, DataType> schema)
+      throws PhysicalException {
     switch (filter.getType()) {
       case Key:
       case Bool:
         return filter;
       case And:
-        return project((AndFilter) filter, fields);
+        return project((AndFilter) filter, schema);
       case Or:
-        return project((OrFilter) filter, fields);
+        return project((OrFilter) filter, schema);
       case Not:
-        return project((NotFilter) filter, fields);
+        return project((NotFilter) filter, schema);
       case Value:
-        return project((ValueFilter) filter, fields);
+        return project((ValueFilter) filter, schema);
       case Path:
-        return project((PathFilter) filter, fields);
+        return project((PathFilter) filter, schema);
       default:
         throw new IllegalStateException("unsupported filter: " + filter);
     }
   }
 
-  public static Filter project(AndFilter filter, Set<String> fields) {
+  private static Filter project(AndFilter filter, Map<String, DataType> schema)
+      throws PhysicalException {
     List<Filter> filters = new ArrayList<>();
     for (Filter subfilter : filter.getChildren()) {
-      filters.add(project(subfilter, fields));
+      filters.add(project(subfilter, schema));
     }
     return new AndFilter(filters);
   }
 
-  public static Filter project(OrFilter filter, Set<String> fields) {
+  private static Filter project(OrFilter filter, Map<String, DataType> schema)
+      throws PhysicalException {
     List<Filter> filters = new ArrayList<>();
     for (Filter subfilter : filter.getChildren()) {
-      filters.add(project(subfilter, fields));
+      filters.add(project(subfilter, schema));
     }
     return new OrFilter(filters);
   }
 
-  public static Filter project(NotFilter filter, Set<String> fields) {
-    return new NotFilter(project(filter.getChild(), fields));
+  private static Filter project(NotFilter filter, Map<String, DataType> schema)
+      throws PhysicalException {
+    return new NotFilter(project(filter.getChild(), schema));
   }
 
-  public static Filter project(ValueFilter filter, Set<String> fields) {
-    Set<String> projectedFields = project(fields, Collections.singletonList(filter.getPath()));
+  private static Filter project(ValueFilter filter, Map<String, DataType> schema) {
+    Map<String, DataType> projectedSchema =
+        project(schema, Collections.singletonList(filter.getPath()));
 
     List<Filter> filters = new ArrayList<>();
-    for (String projectedField : projectedFields) {
+    for (String projectedField : projectedSchema.keySet()) {
       filters.add(new ValueFilter(projectedField, getNormalOp(filter.getOp()), filter.getValue()));
     }
 
@@ -146,23 +118,30 @@ public class ProjectUtils {
     }
   }
 
-  public static Filter project(PathFilter filter, Set<String> fields) {
-    Set<String> projectedFieldAs = project(fields, Collections.singletonList(filter.getPathA()));
-    Set<String> projectedFieldBs = project(fields, Collections.singletonList(filter.getPathB()));
+  private static Filter project(PathFilter filter, Map<String, DataType> schema)
+      throws PhysicalException {
+    Map<String, DataType> projectedSchemaA =
+        project(schema, Collections.singletonList(filter.getPathA()));
+    Map<String, DataType> projectedSchemaB =
+        project(schema, Collections.singletonList(filter.getPathB()));
 
     List<Filter> filters = new ArrayList<>();
 
-    if (projectedFieldAs.size() == 1) {
-      String projectedFieldA = projectedFieldAs.iterator().next();
-      for (String projectedFieldB : projectedFieldBs) {
+    if (projectedSchemaA.size() == 1) {
+      String projectedFieldA = projectedSchemaA.keySet().iterator().next();
+      for (String projectedFieldB : projectedSchemaB.keySet()) {
         filters.add(new PathFilter(projectedFieldA, getNormalOp(filter.getOp()), projectedFieldB));
       }
-    }
-    if (projectedFieldBs.size() == 1) {
-      String projectedFieldB = projectedFieldBs.iterator().next();
-      for (String projectedFieldA : projectedFieldAs) {
+    } else if (projectedSchemaB.size() == 1) {
+      String projectedFieldB = projectedSchemaB.keySet().iterator().next();
+      for (String projectedFieldA : projectedSchemaA.keySet()) {
         filters.add(new PathFilter(projectedFieldA, getNormalOp(filter.getOp()), projectedFieldB));
       }
+    } else {
+      String message =
+          String.format(
+              "can't compare %s with %s", projectedSchemaA.keySet(), projectedSchemaB.keySet());
+      throw new PhysicalTaskExecuteFailureException(message);
     }
 
     if (isAndOp(filter.getOp())) {
@@ -223,7 +202,7 @@ public class ProjectUtils {
     }
   }
 
-  public static boolean isMatchAll(List<String> paths) {
+  public static boolean allMatched(List<String> paths) {
     Pattern pattern = Pattern.compile("[*]+(.[*]+)*");
     return paths.stream().anyMatch(s -> pattern.matcher(s).matches());
   }

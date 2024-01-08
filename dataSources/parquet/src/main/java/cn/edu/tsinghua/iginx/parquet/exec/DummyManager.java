@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.parquet.entity.Field;
 import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.entity.Table;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.Loader;
-import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.IOException;

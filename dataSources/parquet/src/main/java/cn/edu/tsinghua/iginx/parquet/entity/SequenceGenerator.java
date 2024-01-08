@@ -31,6 +31,6 @@ public class SequenceGenerator implements LongSupplier {
   }
 
   public void reset(long last) {
-    current.set(last);
+    current.set(last + DELTA);
   }
 }
