@@ -2,11 +2,11 @@
 
 set -e
 
-sh -c "mkdir downloads"
+bash -c "mkdir downloads"
 
 downloadURL="https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/iginx-python-example/largeImg/large_img.jpg"
 
-sh -c "curl -LJO $downloadURL -o downloads/large_img.jpg"
+bash -c "curl -LJ $downloadURL -o downloads/large_img.jpg"
 
 COMMAND='clear data;'
 
@@ -23,7 +23,7 @@ COMMAND+='select * from test into outfile "'"test/src/test/resources/fileReadAnd
 COMMAND+='select * from test into outfile "'"test/src/test/resources/fileReadAndWrite/csv/test.csv"'" as csv;'
 
 # 将 downloads/large_img.jpg 的数据加载到IGinX数据库中
-sh -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P-format"
+bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P-format"
 
 OUTFILE_COMMAND='select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
 
