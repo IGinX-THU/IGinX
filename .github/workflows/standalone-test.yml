@@ -93,12 +93,6 @@ jobs:
                       mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
                   fi
 
-            - name: Show IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat iginx-*.log
-
             - name: set client test context
               uses: ./.github/actions/context
               with:
