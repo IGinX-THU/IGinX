@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
+import cn.edu.tsinghua.iginx.metadata.MetaManagerMock;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.utils.SnowFlakeUtils;
@@ -24,7 +25,7 @@ public class LowWriteFragmentCompactionTest {
   private Map<FragmentMeta, Long> fragmentHeatReadMap = new HashMap<>();
   private Map<FragmentMeta, Long> fragmentMetaPointsMap = new HashMap<>();
   private PhysicalEngine physicalEngine = new PhysicalEngineMock();
-  private IMetaManager metaManager = new MetaManagerMock();
+  private IMetaManager metaManager = MetaManagerMock.getInstance();
   private LowWriteFragmentCompaction compaction =
       new LowWriteFragmentCompaction(physicalEngine, metaManager);
 
@@ -81,5 +82,6 @@ public class LowWriteFragmentCompactionTest {
     assertEquals(fragmentMetas.get(0).getMasterStorageUnit().getStorageEngineId(), 1);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getStartKey(), 0);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getEndKey(), 1000);
+    metaManager.removeFragment(fragmentMetas.get(0));
   }
 }

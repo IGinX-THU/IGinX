@@ -230,8 +230,15 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("streamParallelGroupByWorkerNum", "5")));
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
+      config.setRuleBasedOptimizer(
+          properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on"));
     } catch (IOException e) {
-      logger.error("Fail to load properties: ", e);
+      config.setUTTestEnv(true);
+      config.setNeedInitBasicUDFFunctions(false);
+      loadPropsFromEnv();
+      logger.warn(
+          "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
+          e);
     }
   }
 
@@ -348,6 +355,9 @@ public class ConfigDescriptor {
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
+    config.setUTTestEnv(EnvUtils.loadEnv("ut_test_env", config.isUTTestEnv()));
+    config.setRuleBasedOptimizer(
+        EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
   }
 
   private void loadUDFListFromFile() {

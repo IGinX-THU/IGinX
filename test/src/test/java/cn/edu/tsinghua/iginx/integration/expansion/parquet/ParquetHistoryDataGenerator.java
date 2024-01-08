@@ -23,7 +23,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char IGINX_SEPARATOR = '.';
 
-  private static final char PARQUET_SEPARATOR = '$';
+  private static final char PARQUET_SEPARATOR = '*';
 
   public static final String IT_DATA_DIR = "IT_data";
 
@@ -108,7 +108,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       StringBuilder typeListStr = new StringBuilder();
       StringBuilder insertStr;
       for (Pair<String, String> p : columnList) {
-        typeListStr.append(p.k).append(" ").append(toParquetDataType(p.v)).append(", ");
+        typeListStr.append("\"").append(p.k).append("\" ").append(toParquetDataType(p.v)).append(", ");
       }
 
       stmt.execute(

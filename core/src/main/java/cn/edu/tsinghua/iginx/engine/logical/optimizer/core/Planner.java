@@ -7,11 +7,11 @@ import java.util.List;
 
 public interface Planner {
 
-  // add single rule
-  void addRule(Rule rule);
+  // unban a single rule
+  void unbanRule(Rule rule);
 
-  // add a set of rules，e.g.PPD
-  void addRuleCollection(List<Rule> rules);
+  // unban a set of rules，e.g.PPD
+  void unbanRuleCollection(List<Rule> rules);
 
   // set up the unoptimized query tree and initialize the optimization context
   void setRoot(Operator root);
