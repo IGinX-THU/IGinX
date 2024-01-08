@@ -108,7 +108,12 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       StringBuilder typeListStr = new StringBuilder();
       StringBuilder insertStr;
       for (Pair<String, String> p : columnList) {
-        typeListStr.append("\"").append(p.k).append("\" ").append(toParquetDataType(p.v)).append(", ");
+        typeListStr
+            .append("\"")
+            .append(p.k)
+            .append("\" ")
+            .append(toParquetDataType(p.v))
+            .append(", ");
       }
 
       stmt.execute(
