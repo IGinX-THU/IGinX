@@ -25,6 +25,7 @@ db_name=$1
 # 只测FileSystem和Parquet
 if [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
   exit 0
+fi
 
 sh -c "mkdir downloads"
 
