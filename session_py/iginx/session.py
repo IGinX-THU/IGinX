@@ -58,7 +58,7 @@ from .time_series import TimeSeries
 from .utils.bitmap import Bitmap
 from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_values_to_bytes, bitmap_to_bytes
 
-logger = logging.getLogger("IginX")
+logger = logging.getLogger("IGinX")
 
 class Session(object):
 
@@ -514,9 +514,9 @@ class Session(object):
     def load_directory(self, dir_path):
         all_files = [os.path.join(dir_path, f) for f in os.listdir(dir_path) if os.path.isfile(os.path.join(dir_path, f))]
         for file_path in all_files:
-            print(f"Reading file: {file_path}")
+            LOGGER.information(f"Reading file: {file_path}")
             self.load_file_by_chunks(file_path)
-            print(f"Load file: {file_path} into IGinX succeeded.")
+            LOGGER.information(f"Load file: {file_path} into IGinX succeeded.")
 
 
     # divide file into 1mb chunks
