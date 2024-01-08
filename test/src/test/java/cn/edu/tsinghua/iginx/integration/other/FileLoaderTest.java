@@ -21,8 +21,6 @@ public class FileLoaderTest {
 
   private static final String DOWNLOAD_PATH = "../downloads";
 
-  private static final String PATH_PREFIX = "outfileDownloads";
-
   protected static String defaultTestHost = "127.0.0.1";
   protected static int defaultTestPort = 6888;
   protected static String defaultTestUser = "root";
@@ -51,12 +49,21 @@ public class FileLoaderTest {
     }
   }
 
+  /**
+   * 每处理几块打一次日志，以每块10KB为标准
+   *
+   * @param fileSize 文件大小
+   * @return 每次日志 / 块数
+   */
   private int decideLogStep(long fileSize) {
     if (fileSize < 100 * 1024 * 1024) {
+      // 100MB以内
       return 10;
-    } else if (fileSize < 1 * 1024 * 1024 * 1024) {
+    } else if (fileSize < 1024 * 1024 * 1024) {
+      // 1GB以内
       return 100;
     } else {
+      // 1GB以上
       return 1000;
     }
   }
@@ -67,6 +74,7 @@ public class FileLoaderTest {
       return;
     }
 
+    // 从文件路径生成数据列名：[最后一级目录名].[文件名]，文件名中的“-”和“.”都被替换为“_”
     try {
       Path filePath = Paths.get(path).toAbsolutePath();
       String fileName = filePath.getFileName().toString();
