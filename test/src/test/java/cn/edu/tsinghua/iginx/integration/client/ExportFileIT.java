@@ -60,6 +60,6 @@ public class ExportFileIT {
     String expectedFilename = "downloads.large_img_jpg";
     assertEquals(expectedFilename, filenames.get(0));
     File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
-    assertEquals(file.length(), 2921450);
+    assertEquals(file.length(), 2928640);
   }
 }

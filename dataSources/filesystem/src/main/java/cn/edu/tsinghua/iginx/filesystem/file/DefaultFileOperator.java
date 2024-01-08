@@ -207,6 +207,7 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private String recordToString(Record record) {
+    System.out.println(transformObjectToStringByDataType(record.getRawData(), record.getDataType()));
     return record.getKey()
         + ","
         + transformObjectToStringByDataType(record.getRawData(), record.getDataType());
