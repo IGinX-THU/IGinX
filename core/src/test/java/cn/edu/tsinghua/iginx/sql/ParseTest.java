@@ -4,9 +4,9 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.sql.expression.FuncExpression;
 import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;

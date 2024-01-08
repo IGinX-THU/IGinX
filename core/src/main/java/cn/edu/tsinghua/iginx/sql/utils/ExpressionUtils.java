@@ -1,9 +1,9 @@
 package cn.edu.tsinghua.iginx.sql.utils;
 
-import cn.edu.tsinghua.iginx.sql.expression.BinaryExpression;
-import cn.edu.tsinghua.iginx.sql.expression.BracketExpression;
-import cn.edu.tsinghua.iginx.sql.expression.Expression;
-import cn.edu.tsinghua.iginx.sql.expression.UnaryExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 
 public class ExpressionUtils {
 

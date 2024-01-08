@@ -14,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
+import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -60,8 +61,11 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
   private final Operator foldedRoot;
 
   public FoldedMemoryPhysicalTask(
-      List<Operator> operators, Operator foldedRoot, List<PhysicalTask> parentTasks) {
-    super(operators, parentTasks);
+      List<Operator> operators,
+      Operator foldedRoot,
+      List<PhysicalTask> parentTasks,
+      RequestContext context) {
+    super(operators, parentTasks, context);
     this.foldedRoot = foldedRoot;
   }
 
@@ -91,7 +95,7 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
           "Execute Error: can not reconstruct this folded operator to a legal logical tree.");
     }
 
-    PhysicalTask task = optimizer.optimize(finalRoot, null);
+    PhysicalTask task = optimizer.optimize(finalRoot, getContext());
 
     PhysicalTask originFollowTask = getFollowerTask();
     task.setFollowerTask(originFollowTask);

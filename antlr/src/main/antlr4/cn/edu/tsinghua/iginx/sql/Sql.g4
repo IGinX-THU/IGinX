@@ -26,7 +26,10 @@ statement
    | REMOVE HISTORYDATASOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataSourceStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
    | SHOW CONFIG configName = stringLiteral # showConfigStatement
+   | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
+   | SHOW RULES # showRulesStatement
+   | SET RULES ruleAssignment (COMMA ruleAssignment)* # setRulesStatement
    ;
 
 insertFullPathSpec
@@ -44,6 +47,10 @@ cteClause
 commonTableExpr
    : cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause RR_BRACKET
    | cteName (LR_BRACKET columnsList RR_BRACKET)? AS LR_BRACKET queryClause orderByClause limitClause RR_BRACKET
+   ;
+
+ruleAssignment
+   : ruleName = ID OPERATOR_EQ ruleValue = (ON | OFF)
    ;
 
 cteName
@@ -116,13 +123,13 @@ andExpression
    ;
 
 predicate
-   : constant comparisonOperator constant
-   | (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
    | path stringLikeOperator regex = stringLiteral
    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
+   | expression comparisonOperator expression
    ;
 
 predicateWithSubquery
@@ -453,6 +460,7 @@ keyWords
    | PHYSICAL
    | SET
    | CONFIG
+   | SESSIONID
    | COLUMNS
    | INTERSECT
    | UNION
@@ -645,6 +653,10 @@ ADD
    : A D D
    ;
 
+RULES
+   : R U L E S
+   ;
+
 STORAGEENGINE
    : S T O R A G E E N G I N E
    ;
@@ -805,6 +817,10 @@ ON
    : O N
    ;
 
+OFF
+   : O F F
+   ;
+
 USING
    : U S I N G
    ;
@@ -867,6 +883,10 @@ SET
 
 CONFIG
    : C O N F I G
+   ;
+
+SESSIONID
+   : S E S S I O N I D
    ;
 
 COLUMNS

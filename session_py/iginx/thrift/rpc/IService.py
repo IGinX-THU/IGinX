@@ -99,6 +99,14 @@ class Iface(object):
         """
         pass
 
+    def removeHistoryDataSource(self, req):
+        """
+        Parameters:
+         - req
+
+        """
+        pass
+
     def aggregateQuery(self, req):
         """
         Parameters:
@@ -203,6 +211,14 @@ class Iface(object):
         """
         pass
 
+    def loadCSV(self, req):
+        """
+        Parameters:
+         - req
+
+        """
+        pass
+
     def closeStatement(self, req):
         """
         Parameters:
@@ -276,6 +292,14 @@ class Iface(object):
         pass
 
     def debugInfo(self, req):
+        """
+        Parameters:
+         - req
+
+        """
+        pass
+
+    def showSessionID(self, req):
         """
         Parameters:
          - req
@@ -610,6 +634,38 @@ class Client(Iface):
         if result.success is not None:
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "addStorageEngines failed: unknown result")
+
+    def removeHistoryDataSource(self, req):
+        """
+        Parameters:
+         - req
+
+        """
+        self.send_removeHistoryDataSource(req)
+        return self.recv_removeHistoryDataSource()
+
+    def send_removeHistoryDataSource(self, req):
+        self._oprot.writeMessageBegin('removeHistoryDataSource', TMessageType.CALL, self._seqid)
+        args = removeHistoryDataSource_args()
+        args.req = req
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_removeHistoryDataSource(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = removeHistoryDataSource_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "removeHistoryDataSource failed: unknown result")
 
     def aggregateQuery(self, req):
         """
@@ -1027,6 +1083,38 @@ class Client(Iface):
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "fetchResults failed: unknown result")
 
+    def loadCSV(self, req):
+        """
+        Parameters:
+         - req
+
+        """
+        self.send_loadCSV(req)
+        return self.recv_loadCSV()
+
+    def send_loadCSV(self, req):
+        self._oprot.writeMessageBegin('loadCSV', TMessageType.CALL, self._seqid)
+        args = loadCSV_args()
+        args.req = req
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_loadCSV(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = loadCSV_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "loadCSV failed: unknown result")
+
     def closeStatement(self, req):
         """
         Parameters:
@@ -1347,6 +1435,38 @@ class Client(Iface):
             return result.success
         raise TApplicationException(TApplicationException.MISSING_RESULT, "debugInfo failed: unknown result")
 
+    def showSessionID(self, req):
+        """
+        Parameters:
+         - req
+
+        """
+        self.send_showSessionID(req)
+        return self.recv_showSessionID()
+
+    def send_showSessionID(self, req):
+        self._oprot.writeMessageBegin('showSessionID', TMessageType.CALL, self._seqid)
+        args = showSessionID_args()
+        args.req = req
+        args.write(self._oprot)
+        self._oprot.writeMessageEnd()
+        self._oprot.trans.flush()
+
+    def recv_showSessionID(self):
+        iprot = self._iprot
+        (fname, mtype, rseqid) = iprot.readMessageBegin()
+        if mtype == TMessageType.EXCEPTION:
+            x = TApplicationException()
+            x.read(iprot)
+            iprot.readMessageEnd()
+            raise x
+        result = showSessionID_result()
+        result.read(iprot)
+        iprot.readMessageEnd()
+        if result.success is not None:
+            return result.success
+        raise TApplicationException(TApplicationException.MISSING_RESULT, "showSessionID failed: unknown result")
+
 
 class Processor(Iface, TProcessor):
     def __init__(self, handler):
@@ -1362,6 +1482,7 @@ class Processor(Iface, TProcessor):
         self._processMap["deleteDataInColumns"] = Processor.process_deleteDataInColumns
         self._processMap["queryData"] = Processor.process_queryData
         self._processMap["addStorageEngines"] = Processor.process_addStorageEngines
+        self._processMap["removeHistoryDataSource"] = Processor.process_removeHistoryDataSource
         self._processMap["aggregateQuery"] = Processor.process_aggregateQuery
         self._processMap["lastQuery"] = Processor.process_lastQuery
         self._processMap["downsampleQuery"] = Processor.process_downsampleQuery
@@ -1375,6 +1496,7 @@ class Processor(Iface, TProcessor):
         self._processMap["getClusterInfo"] = Processor.process_getClusterInfo
         self._processMap["executeStatement"] = Processor.process_executeStatement
         self._processMap["fetchResults"] = Processor.process_fetchResults
+        self._processMap["loadCSV"] = Processor.process_loadCSV
         self._processMap["closeStatement"] = Processor.process_closeStatement
         self._processMap["commitTransformJob"] = Processor.process_commitTransformJob
         self._processMap["queryTransformJobStatus"] = Processor.process_queryTransformJobStatus
@@ -1385,6 +1507,7 @@ class Processor(Iface, TProcessor):
         self._processMap["getRegisterTaskInfo"] = Processor.process_getRegisterTaskInfo
         self._processMap["curveMatch"] = Processor.process_curveMatch
         self._processMap["debugInfo"] = Processor.process_debugInfo
+        self._processMap["showSessionID"] = Processor.process_showSessionID
         self._on_message_begin = None
 
     def on_message_begin(self, func):
@@ -1633,6 +1756,29 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("addStorageEngines", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_removeHistoryDataSource(self, seqid, iprot, oprot):
+        args = removeHistoryDataSource_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = removeHistoryDataSource_result()
+        try:
+            result.success = self._handler.removeHistoryDataSource(args.req)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("removeHistoryDataSource", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -1936,6 +2082,29 @@ class Processor(Iface, TProcessor):
         oprot.writeMessageEnd()
         oprot.trans.flush()
 
+    def process_loadCSV(self, seqid, iprot, oprot):
+        args = loadCSV_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = loadCSV_result()
+        try:
+            result.success = self._handler.loadCSV(args.req)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("loadCSV", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
     def process_closeStatement(self, seqid, iprot, oprot):
         args = closeStatement_args()
         args.read(iprot)
@@ -2162,6 +2331,29 @@ class Processor(Iface, TProcessor):
             msg_type = TMessageType.EXCEPTION
             result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
         oprot.writeMessageBegin("debugInfo", msg_type, seqid)
+        result.write(oprot)
+        oprot.writeMessageEnd()
+        oprot.trans.flush()
+
+    def process_showSessionID(self, seqid, iprot, oprot):
+        args = showSessionID_args()
+        args.read(iprot)
+        iprot.readMessageEnd()
+        result = showSessionID_result()
+        try:
+            result.success = self._handler.showSessionID(args.req)
+            msg_type = TMessageType.REPLY
+        except TTransport.TTransportException:
+            raise
+        except TApplicationException as ex:
+            logging.exception('TApplication exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = ex
+        except Exception:
+            logging.exception('Unexpected exception in handler')
+            msg_type = TMessageType.EXCEPTION
+            result = TApplicationException(TApplicationException.INTERNAL_ERROR, 'Internal error')
+        oprot.writeMessageBegin("showSessionID", msg_type, seqid)
         result.write(oprot)
         oprot.writeMessageEnd()
         oprot.trans.flush()
@@ -3415,6 +3607,131 @@ class addStorageEngines_result(object):
         return not (self == other)
 all_structs.append(addStorageEngines_result)
 addStorageEngines_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [Status, None], None, ),  # 0
+)
+
+
+class removeHistoryDataSource_args(object):
+    """
+    Attributes:
+     - req
+
+    """
+
+
+    def __init__(self, req=None,):
+        self.req = req
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.req = RemoveHistoryDataSourceReq()
+                    self.req.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('removeHistoryDataSource_args')
+        if self.req is not None:
+            oprot.writeFieldBegin('req', TType.STRUCT, 1)
+            self.req.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(removeHistoryDataSource_args)
+removeHistoryDataSource_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'req', [RemoveHistoryDataSourceReq, None], None, ),  # 1
+)
+
+
+class removeHistoryDataSource_result(object):
+    """
+    Attributes:
+     - success
+
+    """
+
+
+    def __init__(self, success=None,):
+        self.success = success
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = Status()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('removeHistoryDataSource_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(removeHistoryDataSource_result)
+removeHistoryDataSource_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [Status, None], None, ),  # 0
 )
 
@@ -5044,6 +5361,131 @@ fetchResults_result.thrift_spec = (
 )
 
 
+class loadCSV_args(object):
+    """
+    Attributes:
+     - req
+
+    """
+
+
+    def __init__(self, req=None,):
+        self.req = req
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.req = LoadCSVReq()
+                    self.req.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('loadCSV_args')
+        if self.req is not None:
+            oprot.writeFieldBegin('req', TType.STRUCT, 1)
+            self.req.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(loadCSV_args)
+loadCSV_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'req', [LoadCSVReq, None], None, ),  # 1
+)
+
+
+class loadCSV_result(object):
+    """
+    Attributes:
+     - success
+
+    """
+
+
+    def __init__(self, success=None,):
+        self.success = success
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = LoadCSVResp()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('loadCSV_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(loadCSV_result)
+loadCSV_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [LoadCSVResp, None], None, ),  # 0
+)
+
+
 class closeStatement_args(object):
     """
     Attributes:
@@ -6291,6 +6733,131 @@ class debugInfo_result(object):
 all_structs.append(debugInfo_result)
 debugInfo_result.thrift_spec = (
     (0, TType.STRUCT, 'success', [DebugInfoResp, None], None, ),  # 0
+)
+
+
+class showSessionID_args(object):
+    """
+    Attributes:
+     - req
+
+    """
+
+
+    def __init__(self, req=None,):
+        self.req = req
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.req = ShowSessionIDReq()
+                    self.req.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('showSessionID_args')
+        if self.req is not None:
+            oprot.writeFieldBegin('req', TType.STRUCT, 1)
+            self.req.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(showSessionID_args)
+showSessionID_args.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'req', [ShowSessionIDReq, None], None, ),  # 1
+)
+
+
+class showSessionID_result(object):
+    """
+    Attributes:
+     - success
+
+    """
+
+
+    def __init__(self, success=None,):
+        self.success = success
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 0:
+                if ftype == TType.STRUCT:
+                    self.success = ShowSessionIDResp()
+                    self.success.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('showSessionID_result')
+        if self.success is not None:
+            oprot.writeFieldBegin('success', TType.STRUCT, 0)
+            self.success.write(oprot)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+all_structs.append(showSessionID_result)
+showSessionID_result.thrift_spec = (
+    (0, TType.STRUCT, 'success', [ShowSessionIDResp, None], None, ),  # 0
 )
 fix_spec(all_structs)
 del all_structs

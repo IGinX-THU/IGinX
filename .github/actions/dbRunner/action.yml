@@ -16,6 +16,9 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb.sh" 8088 8087
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb_windows.sh" 8088 8087
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/influxdb_macos.sh" 8088 8087
@@ -31,6 +34,9 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12.sh" 6667 6668 6669
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_windows.sh" 6667 6668 6669
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_macos.sh" 6667 6668 6669
@@ -44,9 +50,9 @@ runs:
           shell: bash
           run: |
               cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
@@ -62,6 +68,9 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh" 27017 27018 27019
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_windows.sh" 27017 27018 27019
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh" 27017 27018 27019
@@ -75,9 +84,9 @@ runs:
           shell: bash
           run: |
               cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
@@ -93,6 +102,9 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh" 6379 6380 6381
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh" 6379 6380 6381
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh" 6379 6380 6381
@@ -108,6 +120,9 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb.sh"
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_windows.sh"
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_macos.sh"
@@ -123,6 +138,9 @@ runs:
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5432 5433 5434
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh" 5432 5433 5434
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5432 5433 5434

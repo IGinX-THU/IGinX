@@ -35,13 +35,13 @@ public class RuleBasedPlanner implements Planner {
   private MatchOrder matchOrder = MatchOrder.DeepFirst;
 
   @Override
-  public void addRule(Rule rule) {
-    ruleCollection.addRule(rule);
+  public void unbanRule(Rule rule) {
+    ruleCollection.unbanRule(rule);
   }
 
   @Override
-  public void addRuleCollection(List<Rule> rules) {
-    ruleCollection.addRules(rules);
+  public void unbanRuleCollection(List<Rule> rules) {
+    ruleCollection.unbanRules(rules);
   }
 
   @Override
