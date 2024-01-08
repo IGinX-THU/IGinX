@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 IGinX of Tsinghua University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cn.edu.tsinghua.iginx.parquet.exec;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -33,7 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DataManager implements Manager {
-  private static final Logger logger = LoggerFactory.getLogger(DataManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataManager.class);
 
   private final ConcurrentHashMap<String, Column> schema = new ConcurrentHashMap<>();
 
@@ -271,7 +287,12 @@ public class DataManager implements Manager {
   @Override
   public void insert(DataView data) throws PhysicalException {
     try {
-      try (Scanner<String, Column> schemaScanner = new DataViewSchemaScanner(data)) {
+      DataViewWrapper dataViewWrapper = new DataViewWrapper(data);
+      for(Column column: dataViewWrapper.getColumns()) {
+        schema.putIfAbsent(column.getPhysicalPath(), column);
+      }
+
+      try (Scanner<String, Column> schemaScanner = new DataViewSchemaWrapper(data)) {
         while (schemaScanner.iterate()) {
           String name = schemaScanner.key();
           Column column = schemaScanner.value();
@@ -283,11 +304,11 @@ public class DataManager implements Manager {
         }
       }
       if (data.isRowData()) {
-        try (Scanner<Long, Scanner<String, Object>> scanner = new DataViewRowsScanner(data)) {
+        try (Scanner<Long, Scanner<String, Object>> scanner = new DataViewWrapper.DataViewRowsScanner(data)) {
           db.upsertRows(scanner);
         }
       } else if (data.isColumnData()) {
-        try (Scanner<String, Scanner<Long, Object>> scanner = new DataViewColumnsScanner(data)) {
+        try (Scanner<String, Scanner<Long, Object>> scanner = new DataViewWrapper.DataViewColumnsScanner(data)) {
           db.upsertColumns(scanner);
         }
       } else {
