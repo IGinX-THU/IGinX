@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer.fromPos
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
+import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -1394,14 +1395,16 @@ public class PostgreSQLStorage implements IStorage {
 
             String value = "null";
             if (bitmapView.get(j)) {
-              if (dataType == DataType.BINARY) {
-                value =
-                    "'"
-                        + new String((byte[]) data.getValue(i, index), StandardCharsets.UTF_8)
-                        + "'";
-              } else {
-                value = data.getValue(i, index).toString();
-              }
+              value = transformObjectToStringByDataType(data.getValue(i, index), dataType);
+              //              if (dataType == DataType.BINARY) {
+              //                value =
+              //                    "'"
+              //                        + new String((byte[]) data.getValue(i, index),
+              // StandardCharsets.UTF_8)
+              //                        + "'";
+              //              } else {
+              //                value = data.getValue(i, index).toString();
+              //              }
               index++;
               if (tableHasData.containsKey(tableName)) {
                 tableHasData.get(tableName)[i - cnt] = true;

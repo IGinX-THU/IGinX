@@ -9,6 +9,10 @@ inputs:
         description: "start shell"
         required: false
         default: client
+    DB-name:
+        description: "DB name"
+        required: false
+        default: IoTDB12
 
 runs:
     using: "composite" # Mandatory parameter
@@ -42,13 +46,13 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile.sh" "${{ inputs.DB-name }}"
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_windows.sh" "${{ inputs.DB-name }}"
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh" "${{ inputs.DB-name }}"
               fi
 
         - if: inputs.shell=='client-after'

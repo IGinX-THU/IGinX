@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.other;
 
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -117,8 +119,10 @@ public class FileLoaderTest {
       inputStream.close();
     } catch (IOException e) {
       logger.info("Read file {} error: {}", path, e.getMessage());
+      fail();
     } catch (SessionException | ExecutionException e) {
       logger.info("Insert Data Error: {}", e.getMessage());
+      fail();
     }
   }
 
