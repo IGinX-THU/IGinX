@@ -1,0 +1,142 @@
+package cn.edu.tsinghua.iginx.integration.other;
+
+import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.*;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
+import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+public class FileLoaderTest {
+  private static final Logger logger = LoggerFactory.getLogger(FileLoaderTest.class);
+
+  private static final String DOWNLOAD_PATH = "../downloads";
+
+  private static final String PATH_PREFIX = "outfileDownloads";
+
+  protected static String defaultTestHost = "127.0.0.1";
+  protected static int defaultTestPort = 6888;
+  protected static String defaultTestUser = "root";
+  protected static String defaultTestPass = "root";
+
+  private static Session session;
+
+  public FileLoaderTest() {}
+
+  @BeforeClass
+  public static void setUp() {
+    try {
+      session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
+      session.openSession();
+    } catch (SessionException e) {
+      logger.error("open session error: {}", e.getMessage());
+    }
+  }
+
+  @AfterClass
+  public static void tearDown() {
+    try {
+      session.closeSession();
+    } catch (SessionException e) {
+      logger.error("close session error: {}", e.getMessage());
+    }
+  }
+
+  private int decideLogStep(long fileSize) {
+    if (fileSize < 100 * 1024 * 1024) {
+      return 10;
+    } else if (fileSize < 1 * 1024 * 1024 * 1024) {
+      return 100;
+    } else {
+      return 1000;
+    }
+  }
+
+  public void loadFile(String path) {
+    if (path == null || path.trim().isEmpty()) {
+      logger.error("Invalid file path: {}", path);
+      return;
+    }
+
+    try {
+      Path filePath = Paths.get(path).toAbsolutePath();
+      String fileName = filePath.getFileName().toString();
+      Path parent = filePath.getParent();
+
+      if (parent != null) {
+        String parentDirName = parent.getFileName().toString();
+        String columnName = (parentDirName + "." + fileName.replace(".", "_")).replace("-", "_");
+        loadFile(path, columnName);
+      } else {
+        logger.error("File {} can't be in root dir.", path);
+      }
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void loadFile(String path, String columnName) {
+    loadFile(path, 10 * 1024, columnName);
+  }
+
+  /**
+   * 加载文件数据到IGinX
+   *
+   * @param path 文件路径
+   * @param chunkSize chunk大小，默认10KB
+   * @param columnName 存入IGinX的列名
+   */
+  public void loadFile(String path, int chunkSize, String columnName) {
+    try {
+      FileInputStream inputStream = new FileInputStream(path);
+      byte[] buffer = new byte[chunkSize];
+
+      int index = 0;
+      long fileSize = new File(path).length();
+      int step = decideLogStep(fileSize);
+      while ((inputStream.read(buffer)) != -1) {
+        processChunk(buffer, columnName, index++, step);
+      }
+      inputStream.close();
+    } catch (IOException e) {
+      logger.info("Read file {} error: {}", path, e.getMessage());
+    } catch (SessionException | ExecutionException e) {
+      logger.info("Insert Data Error: {}", e.getMessage());
+    }
+  }
+
+  private void processChunk(byte[] chunk, String pathName, int chunkIndex, int step)
+      throws SessionException, ExecutionException {
+    if (chunkIndex % step == 0) {
+      logger.info("Processing #{} chunk for {}", chunkIndex, pathName);
+    }
+    List<String> paths = new ArrayList<>(Collections.singletonList(pathName));
+
+    long[] timestamps = new long[1];
+    timestamps[0] = chunkIndex;
+
+    Object[] values = new Object[1];
+    values[0] = chunk;
+    Object[] valueList = new Object[1];
+    valueList[0] = values;
+
+    List<DataType> dataTypeList = new ArrayList<>(Collections.singletonList(DataType.BINARY));
+
+    session.insertRowRecords(paths, timestamps, valueList, dataTypeList, null);
+  }
+
+  @Test
+  public void loadLargeImage() {
+    String fileName = "large_img.jpg";
+    loadFile(DOWNLOAD_PATH + "/" + fileName);
+  }
+}

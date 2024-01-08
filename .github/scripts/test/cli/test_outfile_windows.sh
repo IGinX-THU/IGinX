@@ -6,7 +6,7 @@ sh -c "mkdir downloads"
 
 downloadURL="https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/iginx-python-example/largeImg/large_img.jpg"
 
-sh -c "wget -nv $downloadURL --directory-prefix=downloads"
+sh -c "curl -LJO $downloadURL -o downloads/large_img.jpg"
 
 COMMAND='clear data;'
 
@@ -27,12 +27,8 @@ sh -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P
 
 OUTFILE_COMMAND = 'select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
 
-bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
-
 bash -c "sleep 10"
 
-SCRIPT_COMMAND="bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMAND'"
 
-bash -c "echo '$COMMAND' | xargs -t -i ${SCRIPT_COMMAND}"
-
-bash -c "echo '$OUTFILE_COMMAND' | xargs -t -i ${SCRIPT_COMMAND}"
+bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$OUTFILE_COMMAND'"

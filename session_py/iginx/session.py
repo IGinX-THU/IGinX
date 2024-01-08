@@ -521,7 +521,7 @@ class Session(object):
 
     def decide_log_step(self, file_path):
         file_size = Path(file_path).stat().st_size
-        # 10MB以内
+        # 100MB以内
         if file_size < 100 * 1024 * 1024:
             return 10  # 每10块记录一次
         # 100MB到1GB
