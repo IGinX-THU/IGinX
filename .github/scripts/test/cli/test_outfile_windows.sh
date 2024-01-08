@@ -25,7 +25,7 @@ COMMAND+='select * from test into outfile "'"test/src/test/resources/fileReadAnd
 # 将 downloads/large_img.jpg 的数据加载到IGinX数据库中
 sh -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P-format"
 
-OUTFILE_COMMAND = 'select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
+OUTFILE_COMMAND='select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
 
 bash -c "sleep 10"
 
