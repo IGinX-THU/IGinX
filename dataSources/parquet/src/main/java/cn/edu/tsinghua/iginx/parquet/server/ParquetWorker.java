@@ -39,6 +39,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.common.utils.FilterTransformer;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
+import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;

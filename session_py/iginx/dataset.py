@@ -24,7 +24,6 @@ from .utils.bitmap import Bitmap
 from .utils.byte_utils import get_long_array, get_values_by_data_type, BytesParser
 
 
-
 class Point(object):
 
     def __init__(self, path, type, timestamp, value):
@@ -33,22 +32,17 @@ class Point(object):
         self.__timestamp = timestamp
         self.__value = value
 
-
     def get_path(self):
         return self.__path
-
 
     def get_type(self):
         return self.__type
 
-
     def get_timestamp(self):
         return self.__timestamp
 
-
     def get_value(self):
         return self.__value
-
 
     def to_df(self):
         df = pd.DataFrame([BytesParser(self.__timestamp).next_long(), BytesParser(self.__value).next(self.__type)],
@@ -79,18 +73,14 @@ class QueryDataSet(object):
                         values.append(None)
                 self.__values.append(values)
 
-
     def get_paths(self):
         return self.__paths
-
 
     def get_timestamps(self):
         return self.__timestamps
 
-
     def get_values(self):
         return self.__values
-
 
     def __str__(self):
         value = "Time\t"
@@ -108,7 +98,6 @@ class QueryDataSet(object):
             value += "\n"
         return value
 
-
     def to_df(self):
         columns = ["key"]
         for column in self.__paths:
@@ -123,7 +112,6 @@ class QueryDataSet(object):
         return pd.DataFrame(value_matrix, columns=columns)
 
 
-
 class AggregateQueryDataSet(object):
 
     def __init__(self, resp, type):
@@ -134,22 +122,17 @@ class AggregateQueryDataSet(object):
             self.__timestamps = get_long_array(resp.keys)
         self.__values = get_values_by_data_type(resp.valuesList, resp.dataTypeList)
 
-
     def get_type(self):
         return self.__type
-
 
     def get_paths(self):
         return self.__paths
 
-
     def get_timestamps(self):
         return self.__timestamps
 
-
     def get_values(self):
         return self.__values
-
 
     def __str__(self):
         value = ""
@@ -165,7 +148,6 @@ class AggregateQueryDataSet(object):
                 value += str(v) + "\t"
             value += "\n"
         return value
-
 
     def to_df(self):
         columns = []
@@ -187,15 +169,14 @@ class AggregateQueryDataSet(object):
             return [pd.DataFrame(data=[values], columns=columns)]
 
 
-
 class StatementExecuteDataSet(object):
-
     class State(Enum):
         HAS_MORE = 1,
         NO_MORE = 2,
         UNKNOWN = 3
 
-    def __init__(self, session, query_id, columns, types, fetch_size, values_list, bitmap_list):
+    def __init__(self, session, query_id, columns, types, fetch_size, values_list, bitmap_list, exportStreamDir=None,
+                 exportCSV=None):
         self.__session = session
         self.__query_id = query_id
         self.__columns = columns
@@ -204,8 +185,9 @@ class StatementExecuteDataSet(object):
         self.__values_list = values_list
         self.__bitmap_list = bitmap_list
         self.__state = StatementExecuteDataSet.State.UNKNOWN
+        self.__exportStreamDir = exportStreamDir
+        self.__exportCSV = exportCSV
         self.__index = 0
-
 
     def fetch(self):
         if self.__bitmap_list and self.__index != len(self.__bitmap_list):
@@ -226,7 +208,6 @@ class StatementExecuteDataSet(object):
             self.__bitmap_list = tp[1].bitmapList
             self.__values_list = tp[1].valuesList
 
-
     def has_more(self):
         if self.__values_list and self.__index < len(self.__values_list):
             return True
@@ -239,7 +220,6 @@ class StatementExecuteDataSet(object):
             self.fetch()
 
         return self.__values_list
-
 
     def next(self):
         if not self.has_more():
@@ -259,7 +239,16 @@ class StatementExecuteDataSet(object):
                 values.append(None)
         return values
 
+    def next_row_as_bytes(self, remove_key):
+        if not self.has_more():
+            return None
 
+        values_buffer = self.__values_list[self.__index]
+        self.__index += 1
+        bytes_value = BytesParser(values_buffer).get_bytes_from_types(self.__types)
+        if remove_key:
+            bytes_value = bytes_value[8:]
+        return bytes_value
 
     def close(self):
         self.__session._close_statement(query_id=self.__query_id)
@@ -269,3 +258,9 @@ class StatementExecuteDataSet(object):
 
     def types(self):
         return self.__types
+
+    def get_export_stream_dir(self):
+        return self.__exportStreamDir
+
+    def get_export_csv(self):
+        return self.__exportCSV
