@@ -2,6 +2,10 @@
 
 set -e
 
+sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/byteStream"
+
+sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/csv"
+
 sh -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
 
 sh -c "sleep 10"
