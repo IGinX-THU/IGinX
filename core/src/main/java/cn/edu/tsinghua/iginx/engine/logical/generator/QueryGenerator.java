@@ -35,6 +35,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
+import cn.edu.tsinghua.iginx.sql.SQLConstant;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
@@ -184,6 +185,16 @@ public class QueryGenerator extends AbstractGenerator {
 
   private Operator generateRoot(UnarySelectStatement selectStatement) {
     Operator root;
+    // 为了确保行数和结果行数相同, 在常数表达式中，如果有from子句，将其路径处理为其中一个tableName.*
+    if (!selectStatement.getFromParts().isEmpty()
+            && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
+            || !selectStatement.getConstFuncParam().isEmpty())) {
+      PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
+      String originFullPath = pathFromPart.getOriginPrefix() + SQLConstant.DOT + "*";
+      if(selectStatement.getPathSet().isEmpty()){
+        selectStatement.setPathSet(originFullPath);
+      }
+    }
     if (selectStatement.hasValueToSelectedPath()) {
       root = new ProjectWaitingForPath(selectStatement);
     } else if (selectStatement.hasJoinParts()) {
@@ -230,8 +241,6 @@ public class QueryGenerator extends AbstractGenerator {
     if (root == null && !metaManager.hasWritableStorageEngines()) {
       return null;
     }
-
-    root = buildCountTransform(selectStatement, root);
 
     // 处理where子查询
     if (!selectStatement.getWhereSubQueryParts().isEmpty()) {
@@ -310,6 +319,8 @@ public class QueryGenerator extends AbstractGenerator {
         }
       }
     }
+
+    root = buildCountTransform(selectStatement, root);
 
     List<Operator> queryList = new ArrayList<>();
     if (selectStatement.getQueryType() == QueryType.GroupByQuery) {
@@ -801,7 +812,7 @@ public class QueryGenerator extends AbstractGenerator {
   private static Operator buildCountTransform(UnarySelectStatement selectStatement, Operator root) {
     if (!selectStatement.getFromParts().isEmpty()
         && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
-            || selectStatement.getIsConstFuncParam())) {
+            || !selectStatement.getConstFuncParam().isEmpty())) {
       // 直接构建一个function为count的setTransform
       List<String> columns = new ArrayList<>(selectStatement.getPathSet()); // 将 Set 转换为 List
       List<Object> args = new ArrayList<>();

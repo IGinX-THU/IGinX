@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
+import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
@@ -44,7 +45,6 @@ public class UnarySelectStatement extends SelectStatement {
   private boolean hasValueToSelectedPath = false;
   private int constExpressionsCount = 0;
   private List<Double> constFuncParam = new ArrayList<>();
-  private boolean isConstFuncParam = false;
   private final List<Expression> expressions;
   private final Map<String, List<FuncExpression>> funcExpressionMap;
   private final List<BaseExpression> baseExpressionList;
@@ -308,21 +308,12 @@ public class UnarySelectStatement extends SelectStatement {
     return constExpressionsCount;
   }
 
-  public void addConstExpression() {
-    this.constExpressionsCount++;
-  }
-
   public List<Double> getConstFuncParam() {
     return constFuncParam;
   }
 
-  public boolean getIsConstFuncParam() {
-    return isConstFuncParam;
-  }
-
   public void setConstFuncParam(double constFuncParam) {
     this.constFuncParam.add(constFuncParam);
-    this.isConstFuncParam = true;
   }
 
   public Map<String, List<FuncExpression>> getFuncExpressionMap() {
@@ -512,6 +503,9 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void setExpression(Expression expression) {
     expressions.add(expression);
+    if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
+      constExpressionsCount++;
+    }
   }
 
   public Map<String, String> getSelectAliasMap() {

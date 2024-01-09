@@ -834,9 +834,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
       ret.forEach(
           expression -> {
-            if (ExpressionUtils.isConstantArithmeticExpr(expression)) {
-              selectStatement.addConstExpression();
-            }
             selectStatement.setExpression(expression);
           });
     }
@@ -876,12 +873,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
           parseBaseExpression(ctx, selectStatement, isFromSelectClause));
     }
     if (ctx.constant() != null) {
-      // TODO 为了确保行数和结果行数相同, 在常数表达式中，如果有from子句，不管有join，都将其路径处理为其中一个tableName.*
-      if (!selectStatement.getFromParts().isEmpty()) {
-        PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
-        String originFullPath = pathFromPart.getOriginPrefix() + SQLConstant.DOT + "*";
-        selectStatement.setPathSet(originFullPath);
-      }
       return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
     }
 
@@ -981,18 +972,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         }
       }
     }
-    if (funcCtx.constant() != null) {
-      // TODO columns args, kvargs
-      String funcParam = parseValue(funcCtx.constant()).toString();
-      columns.add(funcParam);
-      selectStatement.setConstFuncParam(Double.parseDouble(funcParam));
-    }
 
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
     if (selectStatement.isFromSinglePath()) {
       String fromPath = selectStatement.getFromPart(0).getPrefix();
       if (funcCtx.constant() != null) {
-        selectStatement.setPathSet(fromPath + SQLConstant.DOT + "*");
+        String funcParam = parseValue(funcCtx.constant()).toString();
+        columns.add(funcParam);
+        selectStatement.setConstFuncParam(Double.parseDouble(funcParam));
       } else {
         List<String> newColumns = new ArrayList<>();
         for (String column : columns) {
