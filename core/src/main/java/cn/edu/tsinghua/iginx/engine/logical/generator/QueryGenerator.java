@@ -187,11 +187,11 @@ public class QueryGenerator extends AbstractGenerator {
     Operator root;
     // 为了确保行数和结果行数相同, 在常数表达式中，如果有from子句，将其路径处理为其中一个tableName.*
     if (!selectStatement.getFromParts().isEmpty()
-            && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
+        && (selectStatement.getConstExpressionsCount() == selectStatement.getExpressions().size()
             || !selectStatement.getConstFuncParam().isEmpty())) {
       PathFromPart pathFromPart = (PathFromPart) selectStatement.getFromParts().get(0);
       String originFullPath = pathFromPart.getOriginPrefix() + SQLConstant.DOT + "*";
-      if(selectStatement.getPathSet().isEmpty()){
+      if (selectStatement.getPathSet().isEmpty()) {
         selectStatement.setPathSet(originFullPath);
       }
     }

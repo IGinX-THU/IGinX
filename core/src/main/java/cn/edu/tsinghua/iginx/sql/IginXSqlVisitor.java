@@ -130,7 +130,6 @@ import cn.edu.tsinghua.iginx.sql.statement.selectstatement.BinarySelectStatement
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.CommonTableExpression;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
-import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;

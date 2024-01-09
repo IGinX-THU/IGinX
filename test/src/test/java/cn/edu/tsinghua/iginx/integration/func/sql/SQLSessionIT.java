@@ -6602,5 +6602,21 @@ public class SQLSessionIT {
             + "+--------+------+------+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expected);
+
+    statement = "SELECT 1 FROM test WHERE a < 4;";
+    expected =
+        "ResultSets:\n"
+            + "+-+\n"
+            + "|1|\n"
+            + "+-+\n"
+            + "|1|\n"
+            + "|1|\n"
+            + "|1|\n"
+            + "|1|\n"
+            + "|1|\n"
+            + "|1|\n"
+            + "+-+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
   }
 }
