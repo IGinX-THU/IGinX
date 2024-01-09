@@ -5,9 +5,7 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
-import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
-import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
-import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -24,14 +22,7 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class UnarySelectStatement extends SelectStatement {
   private QueryType queryType;
@@ -39,7 +30,6 @@ public class UnarySelectStatement extends SelectStatement {
   private boolean hasFunc;
 
   private final List<Expression> expressions;
-  private final List<BaseExpression> baseExpressionList;
   private final Map<String, List<FuncExpression>> funcExpressionMap;
   private final Set<FuncType> funcTypeSet;
   private final Set<String> pathSet;
@@ -65,7 +55,6 @@ public class UnarySelectStatement extends SelectStatement {
     this.queryType = QueryType.Unknown;
     this.expressions = new ArrayList<>();
     this.funcExpressionMap = new HashMap<>();
-    this.baseExpressionList = new ArrayList<>();
     this.funcTypeSet = new HashSet<>();
     this.pathSet = new HashSet<>();
 
@@ -265,11 +254,27 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public List<BaseExpression> getBaseExpressionList() {
+    List<BaseExpression> baseExpressionList = new ArrayList<>();
+    Queue<Expression> queue = new LinkedList<>(expressions);
+    while (!queue.isEmpty()) {
+      Expression expression = queue.poll();
+      switch (expression.getType()) {
+        case Base:
+          baseExpressionList.add((BaseExpression) expression);
+          break;
+        case Unary:
+          queue.add(((UnaryExpression) expression).getExpression());
+          break;
+        case Bracket:
+          queue.add(((BracketExpression) expression).getExpression());
+          break;
+        case Binary:
+          queue.add(((BinaryExpression) expression).getLeftExpression());
+          queue.add(((BinaryExpression) expression).getRightExpression());
+          break;
+      }
+    }
     return baseExpressionList;
-  }
-
-  public void addBaseExpression(BaseExpression baseExpression) {
-    this.baseExpressionList.add(baseExpression);
   }
 
   public void setSelectedPaths(BaseExpression baseExpression) {
@@ -277,8 +282,6 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public void setSelectedPaths(BaseExpression baseExpression, boolean addToPathSet) {
-    this.baseExpressionList.add(baseExpression);
-
     if (addToPathSet) {
       this.pathSet.add(baseExpression.getPathName());
     }
@@ -678,7 +681,7 @@ public class UnarySelectStatement extends SelectStatement {
           "SetToSet/SetToRow/RowToRow functions can not be mixed in aggregate query.");
     }
     // SetToSet SetToRow functions and non-function modified path can not be mixed.
-    if (typeCnt == 1 && !hasGroupBy() && cntArr[0] == 0 && !baseExpressionList.isEmpty()) {
+    if (typeCnt == 1 && !hasGroupBy() && cntArr[0] == 0 && !getBaseExpressionList().isEmpty()) {
       throw new SQLParserException(
           "SetToSet/SetToRow functions and non-function modified path can not be mixed.");
     }

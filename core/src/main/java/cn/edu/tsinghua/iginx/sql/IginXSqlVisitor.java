@@ -1003,7 +1003,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       String originFullPath = fromPart.getOriginPrefix() + SQLConstant.DOT + selectedPath;
       BaseExpression expression = new BaseExpression(fullPath);
       if (isFromSelectClause) {
-        selectStatement.addBaseExpression(expression);
         selectStatement.addPathSet(originFullPath);
       }
       return expression;
