@@ -1004,7 +1004,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       BaseExpression expression = new BaseExpression(fullPath);
       if (isFromSelectClause) {
         selectStatement.addBaseExpression(expression);
-        selectStatement.setPathSet(originFullPath);
+        selectStatement.addPathSet(originFullPath);
       }
       return expression;
     } else {
@@ -1095,7 +1095,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     String.format("GROUP BY path '%s' has '*', which is not supported.", path));
               }
               selectStatement.setGroupByPath(path);
-              selectStatement.setPathSet(originPath);
+              selectStatement.addPathSet(originPath);
             });
 
     selectStatement
@@ -1346,7 +1346,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
     }
     if (!statement.isFreeVariable(path)) {
-      statement.setPathSet(originPath);
+      statement.addPathSet(originPath);
     }
 
     // deal with having filter with functions like having avg(a) > 3.
@@ -1394,10 +1394,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       pathB = fromPart.getPrefix() + SQLConstant.DOT + pathB;
     }
     if (!statement.isFreeVariable(pathA)) {
-      statement.setPathSet(originPathA);
+      statement.addPathSet(originPathA);
     }
     if (!statement.isFreeVariable(pathB)) {
-      statement.setPathSet(originPathB);
+      statement.addPathSet(originPathB);
     }
     return new PathFilter(pathA, op, pathB);
   }

@@ -3,6 +3,8 @@ package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause.LimitClause;
+import cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause.OrderByClause;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -17,18 +19,17 @@ public abstract class SelectStatement extends DataStatement {
   protected boolean needPhysicalExplain = false;
   protected final boolean isSubQuery;
   protected List<String> freeVariables;
-  protected final List<String> orderByPaths;
-  protected boolean ascending;
-  protected int limit;
-  protected int offset;
+
+  protected LimitClause limitClause;
+
+  protected OrderByClause orderByClause;
+
   private List<CommonTableExpression> cteList;
 
   public SelectStatement(boolean isSubQuery) {
     this.statementType = StatementType.SELECT;
-    this.orderByPaths = new ArrayList<>();
-    this.ascending = true;
-    this.limit = Integer.MAX_VALUE;
-    this.offset = 0;
+    this.orderByClause = new OrderByClause();
+    this.limitClause = new LimitClause();
     this.isSubQuery = isSubQuery;
     this.cteList = Collections.emptyList();
   }
@@ -62,35 +63,35 @@ public abstract class SelectStatement extends DataStatement {
   public abstract Set<String> getPathSet();
 
   public List<String> getOrderByPaths() {
-    return orderByPaths;
+    return orderByClause.getOrderByPaths();
   }
 
   public void setOrderByPath(String orderByPath) {
-    this.orderByPaths.add(orderByPath);
+    this.orderByClause.setOrderByPaths(orderByPath);
   }
 
   public boolean isAscending() {
-    return ascending;
+    return orderByClause.isAscending();
   }
 
   public void setAscending(boolean ascending) {
-    this.ascending = ascending;
+    this.orderByClause.setAscending(ascending);
   }
 
   public long getLimit() {
-    return limit;
+    return limitClause.getLimit();
   }
 
   public void setLimit(int limit) {
-    this.limit = limit;
+    this.limitClause.setLimit(limit);
   }
 
   public long getOffset() {
-    return offset;
+    return limitClause.getOffset();
   }
 
   public void setOffset(int offset) {
-    this.offset = offset;
+    this.limitClause.setOffset(offset);
   }
 
   public List<CommonTableExpression> getCteList() {
