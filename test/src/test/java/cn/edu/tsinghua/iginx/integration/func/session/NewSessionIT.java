@@ -368,12 +368,12 @@ public class NewSessionIT {
 
       List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
       if (existsSessionIDs.size() != sessionIDs.size()) {
-        logger.error("server session_id_list size is not equal to client session_id_list size.");
+        logger.error("show sessionid 语句获取的session数量与实际session数量不一致");
         fail();
       }
       for (long sessionID : sessionIDs) {
         if (!existsSessionIDs.contains(sessionID)) {
-          logger.error("server session_id_list does not include an active session ID.");
+          logger.error("session id 不匹配");
           fail();
         }
       }
@@ -384,7 +384,7 @@ public class NewSessionIT {
       existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
       for (long sessionID : sessionIDs) {
         if (existsSessionIDs.contains(sessionID)) {
-          logger.error("the ID for a closed session is still in the server session_id_list.");
+          logger.error("show sessionid语句获取的sessionid与实际sessionid不一致");
           fail();
         }
       }
