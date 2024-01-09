@@ -30,7 +30,7 @@ public class DefaultFileOperator implements IFileOperator {
             try {
               writer.close();
             } catch (IOException e) {
-              e.printStackTrace();
+              throw new RuntimeException("close writer failed", e);
             }
           });
 
@@ -72,10 +72,7 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public List<Record> readIginxFile(File file, long startKey, long endKey, DataType dataType)
       throws IOException {
-    Exception e = flushAppendWriter(file);
-    if (e != null) {
-      throw new IOException(e);
-    }
+    flushAppendWriter(file);
     List<Record> res = new ArrayList<>();
     long key;
     if (startKey == -1 && endKey == -1) {
@@ -130,9 +127,10 @@ public class DefaultFileOperator implements IFileOperator {
       }
     }
 
-    Exception exception = flushAppendWriter(file);
-    if (exception != null) {
-      return exception;
+    try {
+      flushAppendWriter(file);
+    } catch (IOException e) {
+      return e;
     }
 
     // Create temporary file
@@ -182,7 +180,8 @@ public class DefaultFileOperator implements IFileOperator {
       tempWriter.close();
 
       if (recordIndex < maxLen) {
-        exception = appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
+        Exception exception =
+            appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
         updateLastKey(file, records.get(records.size() - 1).getKey());
         if (exception != null) {
           return exception;
@@ -257,7 +256,7 @@ public class DefaultFileOperator implements IFileOperator {
       if (!lastLine.contains(",")) {
         return -1L;
       }
-      String line = lastLine.split(",", 2)[0]; // 获取第一个逗号之前的字符串
+      String line = lastLine.substring(0, lastLine.indexOf(",")); // 获取第一个逗号之前的字符串
       try {
         long number = Long.parseLong(line); // 尝试将字符串解析为long类型
         return number;
@@ -377,10 +376,12 @@ public class DefaultFileOperator implements IFileOperator {
   // 删除对应key范围内的数据
   @Override
   public Exception trimFile(File file, long begin, long end) {
-    Exception exception = flushAppendWriter(file);
-    if (exception != null) {
-      return exception;
+    try {
+      flushAppendWriter(file);
+    } catch (IOException e) {
+      return e;
     }
+
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
     try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile))) {
@@ -499,19 +500,17 @@ public class DefaultFileOperator implements IFileOperator {
     return null;
   }
 
-  private Exception flushAppendWriter(File file) {
+  private void flushAppendWriter(File file) throws IOException {
     logger.debug("flush writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
       try {
         writer.flush();
       } catch (IOException e) {
-        logger.error(
-            "flush writer for file {} failure: {}", file.getAbsolutePath(), e.getMessage());
-        return e;
+        throw new IOException(
+            String.format("flush writer for file %s failure", file.getAbsolutePath()), e);
       }
     }
-    return null;
   }
 
   private void updateLastKey(File file, long key) {
