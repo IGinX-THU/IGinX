@@ -84,7 +84,9 @@ public class LocalExecutor implements Executor {
       dummyManager = new EmptyManager();
     }
 
-    recoverFromDisk();
+    if (dataDir != null && !dataDir.isEmpty()) {
+      recoverFromDisk();
+    }
 
     Runtime.getRuntime()
         .addShutdownHook(
@@ -185,8 +187,11 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private Manager getOrCreateManager(String storageUnit) throws IOException {
+  private Manager getOrCreateManager(String storageUnit) throws IOException, PhysicalException {
     if (!managers.containsKey(storageUnit)) {
+      if (dataDir == null || dataDir.isEmpty()) {
+        throw new PhysicalException("dataDir is null or empty");
+      }
       Manager manager = new DataManager(config, Paths.get(dataDir, storageUnit));
       managers.putIfAbsent(storageUnit, manager);
     }

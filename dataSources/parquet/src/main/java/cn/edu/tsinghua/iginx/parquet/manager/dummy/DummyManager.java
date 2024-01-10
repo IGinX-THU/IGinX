@@ -69,7 +69,7 @@ public class DummyManager implements Manager {
                     .map(s -> prefix + "." + s)
                     .collect(Collectors.toSet());
       } catch (IOException e) {
-        throw new PhysicalException("failed to load schema from " + path, e);
+        throw new PhysicalException("failed to load schema from " + path + " : " + e);
       }
 
       List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
@@ -79,7 +79,7 @@ public class DummyManager implements Manager {
         try {
           new Loader(path).load(table);
         } catch (IOException e) {
-          throw new PhysicalException("failed to load data from " + path, e);
+          throw new PhysicalException("failed to load data from " + path + " : " + e);
         }
       }
       projectedPath.addAll(filePaths);
