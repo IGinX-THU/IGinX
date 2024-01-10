@@ -73,6 +73,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriHasDataExpHasData Normal IT
+              shell: bash
               run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
@@ -100,6 +101,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriNoDataExpNoData Normal IT
+              shell: bash
               run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
@@ -127,6 +129,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriHasDataExpNoData Normal IT
+              shell: bash
               run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
@@ -154,6 +157,7 @@ jobs:
                   Test-Way: clearHistoryData
 
             - name: oriNoDataExpHasData Normal IT
+              shell: bash
               run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
