@@ -116,7 +116,7 @@ set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.l
 
 @REM ***** CLASSPATH library setting *****
 @REM Ensure that any user defined CLASSPATH variables are not used on startup
-set CLASSPATH="%IGINX_HOME%\lib\*"
+set CLASSPATH="%IGINX_HOME%\conf";"%IGINX_HOME%\lib\*"
 goto okClasspath
 
 @REM -----------------------------------------------------------------------------
