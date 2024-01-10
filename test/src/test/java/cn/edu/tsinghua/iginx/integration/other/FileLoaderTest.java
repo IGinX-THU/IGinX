@@ -19,7 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileLoaderTest {
-  private static final Logger logger = LoggerFactory.getLogger(FileLoaderTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileLoaderTest.class);
 
   private static final String DOWNLOAD_PATH = "../downloads";
 
@@ -38,7 +38,7 @@ public class FileLoaderTest {
       session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
       session.openSession();
     } catch (SessionException e) {
-      logger.error("open session error: {}", e.getMessage());
+      LOGGER.error("open session error.", e);
     }
   }
 
@@ -47,7 +47,7 @@ public class FileLoaderTest {
     try {
       session.closeSession();
     } catch (SessionException e) {
-      logger.error("close session error: {}", e.getMessage());
+      LOGGER.error("close session error.", e);
     }
   }
 
@@ -72,25 +72,22 @@ public class FileLoaderTest {
 
   public void loadFile(String path) {
     if (path == null || path.trim().isEmpty()) {
-      logger.error("Invalid file path: {}", path);
-      return;
+      LOGGER.error("Invalid file path: {}", path);
+      fail();
     }
 
     // 从文件路径生成数据列名：[最后一级目录名].[文件名]，文件名中的“-”和“.”都被替换为“_”
-    try {
-      Path filePath = Paths.get(path).toAbsolutePath();
-      String fileName = filePath.getFileName().toString();
-      Path parent = filePath.getParent();
+    Path filePath = Paths.get(path).toAbsolutePath();
+    String fileName = filePath.getFileName().toString();
+    Path parent = filePath.getParent();
 
-      if (parent != null) {
-        String parentDirName = parent.getFileName().toString();
-        String columnName = (parentDirName + "." + fileName.replace(".", "_")).replace("-", "_");
-        loadFile(path, columnName);
-      } else {
-        logger.error("File {} can't be in root dir.", path);
-      }
-    } catch (Exception e) {
-      throw new RuntimeException(e);
+    if (parent != null) {
+      String parentDirName = parent.getFileName().toString();
+      String columnName = (parentDirName + "." + fileName.replace(".", "_")).replace("-", "_");
+      loadFile(path, columnName);
+    } else {
+      LOGGER.error("File {} can't be in root dir.", path);
+      fail();
     }
   }
 
@@ -118,10 +115,10 @@ public class FileLoaderTest {
       }
       inputStream.close();
     } catch (IOException e) {
-      logger.info("Read file {} error: {}", path, e.getMessage());
+      LOGGER.error("Read file {} error.", path, e);
       fail();
     } catch (SessionException | ExecutionException e) {
-      logger.info("Insert Data Error: {}", e.getMessage());
+      LOGGER.error("Insert data error.", e);
       fail();
     }
   }
@@ -129,7 +126,7 @@ public class FileLoaderTest {
   private void processChunk(byte[] chunk, String pathName, int chunkIndex, int step)
       throws SessionException, ExecutionException {
     if (chunkIndex % step == 0) {
-      logger.info("Processing #{} chunk for {}", chunkIndex, pathName);
+      LOGGER.info("Processing #{} chunk for {}", chunkIndex, pathName);
     }
     List<String> paths = new ArrayList<>(Collections.singletonList(pathName));
 
