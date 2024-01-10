@@ -15,6 +15,7 @@ public class SelectClause {
   private final Map<String, List<FuncExpression>> funcExpressionMap;
   private boolean hasFunc = false;
   private final List<Expression> expressions;
+  private final Set<String> pathSet;
 
   private static final Map<String, FuncType> str2TypeMap = new HashMap<>();
 
@@ -36,6 +37,7 @@ public class SelectClause {
     this.selectSubQueryParts = new ArrayList<>();
     this.funcExpressionMap = new HashMap<>();
     this.expressions = new ArrayList<>();
+    this.pathSet = new HashSet<>();
   }
 
   public void addSelectSubQueryPart(SubQueryFromPart selectSubQueryPart) {
@@ -120,5 +122,17 @@ public class SelectClause {
 
   public List<Expression> getExpressions() {
     return expressions;
+  }
+
+  public Set<String> getPathSet() {
+    return pathSet;
+  }
+
+  public void addAllPath(Collection<String> paths) {
+    this.pathSet.addAll(paths);
+  }
+
+  public void addPath(String path) {
+    pathSet.add(path);
   }
 }

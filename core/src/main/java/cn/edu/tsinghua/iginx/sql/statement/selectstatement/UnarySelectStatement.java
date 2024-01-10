@@ -25,16 +25,11 @@ import java.util.*;
 
 public class UnarySelectStatement extends SelectStatement {
 
-  private final Set<String> pathSet;
-
   private final SelectClause selectClause;
   private final FromClause fromClause;
   private final WhereClause whereClause;
   private final GroupByClause groupByClause;
   private final HavingClause havingClause;
-
-  private long precision;
-  private long slideDistance;
 
   public UnarySelectStatement() {
     this(false);
@@ -43,7 +38,6 @@ public class UnarySelectStatement extends SelectStatement {
   public UnarySelectStatement(boolean isSubQuery) {
     super(isSubQuery);
     this.selectStatementType = SelectStatementType.UNARY;
-    this.pathSet = new HashSet<>();
 
     this.selectClause = new SelectClause();
     this.fromClause = new FromClause();
@@ -62,7 +56,7 @@ public class UnarySelectStatement extends SelectStatement {
         path -> {
           BaseExpression baseExpression = new BaseExpression(path);
           addSelectClauseExpression(baseExpression);
-          addPathSet(path);
+          addSelectPath(path);
         });
 
     this.setFromSession(startKey, endKey);
@@ -119,8 +113,8 @@ public class UnarySelectStatement extends SelectStatement {
 
     setHasFunc(true);
 
-    this.precision = precision;
-    this.slideDistance = slideDistance;
+    setPrecision(precision);
+    setSlideDistance(slideDistance);
     setStartKey(startKey);
     setEndKey(endKey);
     this.setHasDownsample(true);
@@ -257,7 +251,7 @@ public class UnarySelectStatement extends SelectStatement {
     }
 
     if (addToPathSet) {
-      this.pathSet.addAll(expression.getColumns());
+      this.selectClause.addAllPath(expression.getColumns());
     }
   }
 
@@ -271,11 +265,23 @@ public class UnarySelectStatement extends SelectStatement {
 
   @Override
   public Set<String> getPathSet() {
+    Set<String> pathSet = new HashSet<>();
+    pathSet.addAll(selectClause.getPathSet());
+    pathSet.addAll(whereClause.getPathSet());
+    pathSet.addAll(groupByClause.getPathSet());
     return pathSet;
   }
 
-  public void addPathSet(String path) {
-    this.pathSet.add(path);
+  public void addSelectPath(String path) {
+    selectClause.addPath(path);
+  }
+
+  public void addGroupByPath(String path) {
+    groupByClause.addPath(path);
+  }
+
+  public void addWherePath(String path) {
+    whereClause.addPath(path);
   }
 
   public List<SubQueryFromPart> getSelectSubQueryParts() {
@@ -371,19 +377,19 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public long getPrecision() {
-    return precision;
+    return groupByClause.getPrecision();
   }
 
   public void setPrecision(long precision) {
-    this.precision = precision;
+    this.groupByClause.setPrecision(precision);
   }
 
   public long getSlideDistance() {
-    return slideDistance;
+    return groupByClause.getSlideDistance();
   }
 
   public void setSlideDistance(long slideDistance) {
-    this.slideDistance = slideDistance;
+    this.groupByClause.setSlideDistance(slideDistance);
   }
 
   public QueryType getQueryType() {

@@ -18,13 +18,13 @@ public abstract class SelectStatement extends DataStatement {
   protected boolean needLogicalExplain = false;
   protected boolean needPhysicalExplain = false;
   protected final boolean isSubQuery;
+  private List<CommonTableExpression> cteList;
+
   protected List<String> freeVariables;
 
   protected LimitClause limitClause;
 
   protected OrderByClause orderByClause;
-
-  private List<CommonTableExpression> cteList;
 
   public SelectStatement(boolean isSubQuery) {
     this.statementType = StatementType.SELECT;

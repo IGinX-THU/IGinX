@@ -5,7 +5,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class WhereClause {
   private final List<SubQueryFromPart> whereSubQueryParts;
@@ -22,10 +24,13 @@ public class WhereClause {
 
   private long endKey;
 
+  private final Set<String> pathSet;
+
   public WhereClause() {
     this.whereSubQueryParts = new ArrayList<>();
     this.hasValueFilter = false;
     this.expressions = new ArrayList<>();
+    this.pathSet = new HashSet<>();
   }
 
   public List<SubQueryFromPart> getWhereSubQueryParts() {
@@ -82,5 +87,13 @@ public class WhereClause {
 
   public void setEndKey(long endKey) {
     this.endKey = endKey;
+  }
+
+  public Set<String> getPathSet() {
+    return pathSet;
+  }
+
+  public void addPath(String path) {
+    pathSet.add(path);
   }
 }

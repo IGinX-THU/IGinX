@@ -936,7 +936,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                   selectedPath = expression.getColumnName();
                 }
                 BaseExpression baseExpression = new BaseExpression(selectedPath);
-//                selectStatement.addExpression(baseExpression, isFromSelectClause);
+                //                selectStatement.addExpression(baseExpression, isFromSelectClause);
                 ret.add(baseExpression);
               });
     } else {
@@ -1003,13 +1003,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       String originFullPath = fromPart.getOriginPrefix() + SQLConstant.DOT + selectedPath;
       BaseExpression expression = new BaseExpression(fullPath);
       if (isFromSelectClause) {
-        selectStatement.addPathSet(originFullPath);
+        selectStatement.addSelectPath(originFullPath);
       }
       return expression;
     } else {
       BaseExpression expression = new BaseExpression(selectedPath);
       if (isFromSelectClause) {
-        selectStatement.addPathSet(selectedPath);
+        selectStatement.addSelectPath(selectedPath);
       }
       return expression;
     }
@@ -1094,7 +1094,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                     String.format("GROUP BY path '%s' has '*', which is not supported.", path));
               }
               selectStatement.setGroupByPath(path);
-              selectStatement.addPathSet(originPath);
+              selectStatement.addGroupByPath(originPath);
             });
 
     selectStatement
@@ -1345,7 +1345,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
     }
     if (!statement.isFreeVariable(path)) {
-      statement.addPathSet(originPath);
+      statement.addWherePath(originPath);
     }
 
     // deal with having filter with functions like having avg(a) > 3.
@@ -1393,10 +1393,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       pathB = fromPart.getPrefix() + SQLConstant.DOT + pathB;
     }
     if (!statement.isFreeVariable(pathA)) {
-      statement.addPathSet(originPathA);
+      statement.addWherePath(originPathA);
     }
     if (!statement.isFreeVariable(pathB)) {
-      statement.addPathSet(originPathB);
+      statement.addWherePath(originPathB);
     }
     return new PathFilter(pathA, op, pathB);
   }
