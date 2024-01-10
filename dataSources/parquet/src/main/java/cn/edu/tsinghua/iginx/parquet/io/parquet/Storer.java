@@ -16,6 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
+import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -34,7 +35,7 @@ public class Storer {
     this.path = path;
   }
 
-  public static final String KEY_FIELD_NAME = "key";
+  public static final String KEY_FIELD_NAME = Constants.KEY_FIELD_NAME;
 
   public static PrimitiveType getParquetType(
       String name, DataType type, Type.Repetition repetition) {

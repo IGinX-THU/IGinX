@@ -38,7 +38,7 @@ public final class Constants {
 
   public static final String KEY_FIELD_NAME = "*";
 
-  public static final String RECORD_FIELD_NAME = "*";
+  public static final String RECORD_FIELD_NAME = "iginx";
   public static final String DIR_DB_LSM = "lsm";
   public static final String TOMBSTONE_NAME = "iginx.tombstone";
   public static final String KEY_RANGE_NAME = "iginx.key.range";
