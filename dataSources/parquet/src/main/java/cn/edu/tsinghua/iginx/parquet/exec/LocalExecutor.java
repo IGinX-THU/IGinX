@@ -158,7 +158,7 @@ public class LocalExecutor implements Executor {
       }
     } catch (IOException e) {
       throw new StorageInitializationException(
-          String.format("Create directory %s error: " + e.getMessage(), dirPath));
+          String.format("Create directory %s error: " + e, dirPath));
     }
   }
 
