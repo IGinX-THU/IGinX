@@ -99,7 +99,7 @@ public class PostgreSQLStorage implements IStorage {
       statement.executeUpdate(sql);
       statement.close();
     } catch (SQLException e) {
-      throw new StorageInitializationException("cannot connect to " + meta+" : "+e);
+      throw new StorageInitializationException("cannot connect to " + meta + " : " + e);
     }
   }
 
@@ -115,7 +115,7 @@ public class PostgreSQLStorage implements IStorage {
       Class.forName("org.postgresql.Driver");
       DriverManager.getConnection(connUrl);
     } catch (SQLException | ClassNotFoundException e) {
-      throw new StorageInitializationException("cannot connect to " + meta+" : "+ e);
+      throw new StorageInitializationException("cannot connect to " + meta + " : " + e);
     }
   }
 
