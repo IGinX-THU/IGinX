@@ -326,8 +326,7 @@ public class StatementExecutor {
         ((SystemStatement) statement).execute(ctx);
       }
     } catch (ExecutionException | PhysicalException | IOException e) {
-      LOGGER.error(
-          "unexpected exception during statment execution, please contact developer to check: ", e);
+      LOGGER.debug("some exception occurred during statement execution", e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
