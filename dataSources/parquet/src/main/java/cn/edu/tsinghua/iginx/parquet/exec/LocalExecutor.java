@@ -154,7 +154,7 @@ public class LocalExecutor implements Executor {
     Path path = Paths.get(dirPath);
     try {
       if (!Files.exists(path)) {
-        Files.createDirectory(path);
+        Files.createDirectories(path);
       }
     } catch (IOException e) {
       throw new StorageInitializationException(
