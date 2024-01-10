@@ -214,7 +214,7 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public void setHasValueFilter(boolean hasValueFilter) {
-    setHasValueFilter(hasValueFilter);
+    whereClause.setHasValueFilter(hasValueFilter);
   }
 
   public boolean hasDownsample() {
@@ -340,7 +340,7 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public FromPart getFromPart(int index) {
-    return getFromParts().get(index);
+    return fromClause.getFromParts().get(index);
   }
 
   public void setFromParts(List<FromPart> fromParts) {
@@ -348,7 +348,7 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public void addFromPart(FromPart fromPart) {
-    getFromParts().add(fromPart);
+    fromClause.addFromPart(fromPart);
   }
 
   public List<SubQueryFromPart> getWhereSubQueryParts() {

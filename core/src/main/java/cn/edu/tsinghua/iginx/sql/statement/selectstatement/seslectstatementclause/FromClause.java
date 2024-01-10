@@ -27,4 +27,8 @@ public class FromClause {
   public boolean hasJoinParts() {
     return hasJoinParts;
   }
+
+  public void addFromPart(FromPart fromPart) {
+    fromParts.add(fromPart);
+  }
 }
