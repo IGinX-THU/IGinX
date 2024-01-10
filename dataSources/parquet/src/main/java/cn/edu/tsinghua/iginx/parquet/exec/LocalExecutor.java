@@ -84,8 +84,8 @@ public class LocalExecutor implements Executor {
                 () -> {
                   try {
                     close();
-                  } catch (PhysicalException e) {
-                    logger.error("Fail to close parquet executor, details: {}", e.getMessage());
+                  } catch (Throwable e) {
+                    logger.error("fail to close parquet executor", e);
                   }
                 }));
   }
@@ -130,9 +130,7 @@ public class LocalExecutor implements Executor {
         } catch (IOException e) {
           throw new StorageInitializationException(
               String.format(
-                  "Error reading dummy dir path %s and dir path %s: " + e.getMessage(),
-                  dummy_dir,
-                  data_dir));
+                  "Error reading dummy dir path %s and dir path %s: %s", dummy_dir, data_dir, e));
         }
       }
     } else {

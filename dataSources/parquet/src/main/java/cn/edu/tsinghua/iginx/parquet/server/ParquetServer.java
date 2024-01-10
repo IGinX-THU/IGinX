@@ -67,7 +67,7 @@ public class ParquetServer implements Runnable {
       serverTransport = new TServerSocket(port);
     } catch (TTransportException e) {
       if (!e.getMessage().contains("Could not create ServerSocket on address")) {
-        logger.error("Parquet service starts failure: {}", e.getMessage());
+        logger.error("Parquet service starts failure: ", e);
       }
       return;
     }
