@@ -19,8 +19,8 @@ package cn.edu.tsinghua.iginx.parquet.db.common.utils;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.parquet.db.common.RangeTombstone;
-import cn.edu.tsinghua.iginx.parquet.io.LongFormat;
-import cn.edu.tsinghua.iginx.parquet.io.StringFormat;
+import cn.edu.tsinghua.iginx.parquet.manager.data.LongFormat;
+import cn.edu.tsinghua.iginx.parquet.manager.data.StringFormat;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;

@@ -17,9 +17,9 @@
 package cn.edu.tsinghua.iginx.parquet.db.common;
 
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.common.scanner.ColumnUnionRowScanner;
 import cn.edu.tsinghua.iginx.parquet.db.common.scanner.IteratorScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;

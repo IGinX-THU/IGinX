@@ -14,16 +14,20 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
-public class LongFormat implements ObjectFormat<Long> {
-  @Override
-  public String format(Long value) {
-    return value.toString();
-  }
+import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
+import javax.annotation.Nonnull;
+
+public interface Scanner<K, V> extends AutoCloseable {
+  @Nonnull
+  K key();
+
+  @Nonnull
+  V value();
+
+  boolean iterate() throws StorageException;
 
   @Override
-  public Long parse(String source) {
-    return Long.parseLong(source);
-  }
+  void close() throws StorageException;
 }

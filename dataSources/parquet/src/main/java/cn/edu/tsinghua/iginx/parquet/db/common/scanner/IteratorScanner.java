@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.common.scanner;
 
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;

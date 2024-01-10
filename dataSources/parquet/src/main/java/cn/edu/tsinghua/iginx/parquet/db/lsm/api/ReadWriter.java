@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
 import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Path;

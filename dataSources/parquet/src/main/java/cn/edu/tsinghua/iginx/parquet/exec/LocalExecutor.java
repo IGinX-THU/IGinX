@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.common.utils.FileUtils;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
@@ -67,7 +66,7 @@ public class LocalExecutor implements Executor {
     if (hasData) {
       String embeddedPrefix;
       if (dirPrefix == null || dirPrefix.isEmpty()) {
-        embeddedPrefix = FileUtils.getLastDirName(dataDir);
+        embeddedPrefix = Paths.get(dataDir).getFileName().toString();
       } else {
         embeddedPrefix = dirPrefix;
       }

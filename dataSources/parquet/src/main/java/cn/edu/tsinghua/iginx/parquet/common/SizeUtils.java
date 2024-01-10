@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.common.utils;
+package cn.edu.tsinghua.iginx.parquet.common;
 
 import java.util.HashMap;
 import java.util.Map;

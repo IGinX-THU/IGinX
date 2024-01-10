@@ -3,8 +3,8 @@ package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Table;
+import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
+import cn.edu.tsinghua.iginx.parquet.manager.dummy.Table;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.io.IOException;

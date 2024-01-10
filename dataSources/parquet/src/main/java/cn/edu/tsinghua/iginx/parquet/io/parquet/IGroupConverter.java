@@ -16,7 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.parquet.common.utils.ByteUtils;
+import com.google.common.primitives.Ints;
+import com.google.common.primitives.Longs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
@@ -142,35 +143,35 @@ class IGroupConverter extends GroupConverter {
         return new IginxRepeatedPrimitiveConverter(index) {
           @Override
           public void addInt(int value) {
-            buffer.add(ByteUtils.asBytes(value));
+            buffer.add(Ints.toByteArray(value));
           }
         };
       case INT64:
         return new IginxRepeatedPrimitiveConverter(index) {
           @Override
           public void addLong(long value) {
-            buffer.add(ByteUtils.asBytes(value));
+            buffer.add(Longs.toByteArray(value));
           }
         };
       case FLOAT:
         return new IginxRepeatedPrimitiveConverter(index) {
           @Override
           public void addFloat(float value) {
-            buffer.add(ByteUtils.asBytes(value));
+            buffer.add(Ints.toByteArray(Float.floatToIntBits(value)));
           }
         };
       case DOUBLE:
         return new IginxRepeatedPrimitiveConverter(index) {
           @Override
           public void addDouble(double value) {
-            buffer.add(ByteUtils.asBytes(value));
+            buffer.add(Longs.toByteArray(Double.doubleToLongBits(value)));
           }
         };
       case BOOLEAN:
         return new IginxRepeatedPrimitiveConverter(index) {
           @Override
           public void addBoolean(boolean value) {
-            buffer.add(ByteUtils.asBytes(value));
+            buffer.add(new byte[] {(byte) (value ? 0xFF : 0)});
           }
         };
       case BINARY:

@@ -37,7 +37,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.common.utils.FilterTransformer;
+import cn.edu.tsinghua.iginx.parquet.server.FilterTransformer;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
 import cn.edu.tsinghua.iginx.thrift.DataType;

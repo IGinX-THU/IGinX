@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.parquet;
+package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.HashMap;

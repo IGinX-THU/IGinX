@@ -16,8 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.common;
 
-import cn.edu.tsinghua.iginx.parquet.common.scanner.EmptyScanner;
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.EmptyScanner;
 import javax.annotation.Nonnull;
 
 public class DataChunks {

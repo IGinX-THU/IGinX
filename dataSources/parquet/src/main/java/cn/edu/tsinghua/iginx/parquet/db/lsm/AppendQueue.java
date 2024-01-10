@@ -18,15 +18,15 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
-import cn.edu.tsinghua.iginx.parquet.common.utils.FileUtils;
 import cn.edu.tsinghua.iginx.parquet.db.common.SequenceGenerator;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.FileTable;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableMeta;
-import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
+import com.google.common.io.MoreFiles;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Iterator;
@@ -118,8 +118,8 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
       cacheSlotNumber.acquire(maxCacheNumber);
       LOGGER.info("clearing data of {}", dir);
       queue.clear();
-      FileUtils.deleteFile(dir.toFile());
-    } catch (InterruptedException e) {
+      MoreFiles.deleteRecursively(dir);
+    } catch (InterruptedException | IOException e) {
       throw new StorageException(e);
     } finally {
       cacheSlotNumber.release(maxCacheNumber);

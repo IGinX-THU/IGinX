@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.common.scanner;
+package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import javax.annotation.Nonnull;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 
-public interface Scanner<K, V> extends AutoCloseable {
-  @Nonnull
-  K key();
-
-  @Nonnull
-  V value();
-
-  boolean iterate() throws StorageException;
+public class StringFormat implements ObjectFormat<String> {
+  @Override
+  public String format(String value) {
+    return value;
+  }
 
   @Override
-  void close() throws StorageException;
+  public String parse(String source) {
+    return source;
+  }
 }

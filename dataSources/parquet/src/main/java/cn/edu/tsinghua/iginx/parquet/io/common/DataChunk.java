@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.common;
 
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import javax.annotation.Nonnull;
 
 public interface DataChunk extends AutoCloseable {

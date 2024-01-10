@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.common.utils;
+package cn.edu.tsinghua.iginx.parquet.server;
 
 import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.IGINX_SEPARATOR;
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.PARQUET_SEPARATOR;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -29,63 +27,8 @@ import cn.edu.tsinghua.iginx.parquet.thrift.RawValue;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class FilterTransformer {
-
-  public static String toString(Filter filter) {
-    if (filter == null) {
-      return "";
-    }
-    switch (filter.getType()) {
-      case And:
-        return toString((AndFilter) filter);
-      case Or:
-        return toString((OrFilter) filter);
-      case Not:
-        return toString((NotFilter) filter);
-      case Value:
-        return toString((ValueFilter) filter);
-      case Key:
-        return toString((KeyFilter) filter);
-      default:
-        return "";
-    }
-  }
-
-  private static String toString(AndFilter filter) {
-    return filter.getChildren().stream()
-        .map(FilterTransformer::toString)
-        .collect(Collectors.joining(" and ", "(", ")"));
-  }
-
-  private static String toString(OrFilter filter) {
-    return filter.getChildren().stream()
-        .map(FilterTransformer::toString)
-        .collect(Collectors.joining(" or ", "(", ")"));
-  }
-
-  private static String toString(NotFilter filter) {
-    return "not " + filter.toString();
-  }
-
-  private static String toString(KeyFilter filter) {
-    return "time " + Op.op2Str(filter.getOp()) + " " + filter.getValue();
-  }
-
-  private static String toString(ValueFilter filter) {
-    if (isLikeOp(filter.getOp())) {
-      return filter.getPath().replace(IGINX_SEPARATOR, PARQUET_SEPARATOR)
-          + " regexp '"
-          + filter.getValue().getBinaryVAsString()
-          + "'";
-    }
-    return filter.getPath().replace(IGINX_SEPARATOR, PARQUET_SEPARATOR)
-        + " "
-        + Op.op2Str(filter.getOp())
-        + " "
-        + filter.getValue().getValue();
-  }
 
   public static RawFilter toRawFilter(Filter filter) {
     if (filter == null) {

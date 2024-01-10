@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.common.scanner;
 
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NoSuchElementException;

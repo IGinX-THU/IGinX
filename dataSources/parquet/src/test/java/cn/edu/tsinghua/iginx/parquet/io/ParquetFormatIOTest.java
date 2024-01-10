@@ -6,11 +6,13 @@ import static org.junit.Assert.assertTrue;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
-import cn.edu.tsinghua.iginx.parquet.common.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Loader;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Storer;
+import cn.edu.tsinghua.iginx.parquet.manager.dummy.Loader;
+import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
+import cn.edu.tsinghua.iginx.parquet.manager.dummy.Table;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.google.common.primitives.Bytes;
+import com.google.common.primitives.Longs;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -344,13 +346,13 @@ public class ParquetFormatIOTest {
       List<byte[]> b2 = new ArrayList<>();
       List<byte[]> b3 = new ArrayList<>();
       for (int j = 0; j < REPEATED_NUM; j++) {
-        b1.add(ByteUtils.asBytes(((long) i + j)));
-        b2.add(ByteUtils.asBytes(((double) i + j)));
+        b1.add(Longs.toByteArray((long) i + j));
+        b2.add(Longs.toByteArray(Double.doubleToLongBits((double) i + j)));
         b3.add(("test" + (i + j)).getBytes());
       }
-      memTable.put(1, i, ByteUtils.concat(b1));
-      memTable.put(2, i, ByteUtils.concat(b2));
-      memTable.put(3, i, ByteUtils.concat(b3));
+      memTable.put(1, i, Bytes.concat(b1.toArray(new byte[0][])));
+      memTable.put(2, i, Bytes.concat(b2.toArray(new byte[0][])));
+      memTable.put(3, i, Bytes.concat(b3.toArray(new byte[0][])));
     }
 
     Table fileTable = new Table();

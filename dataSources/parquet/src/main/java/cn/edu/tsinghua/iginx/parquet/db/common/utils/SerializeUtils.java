@@ -18,7 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.db.common.utils;
 
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.db.common.RangeTombstone;
-import cn.edu.tsinghua.iginx.parquet.io.ObjectFormat;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;

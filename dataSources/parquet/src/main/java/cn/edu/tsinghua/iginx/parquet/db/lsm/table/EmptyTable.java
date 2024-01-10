@@ -17,8 +17,8 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.common.scanner.EmptyScanner;
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.EmptyScanner;
 import com.google.common.collect.Range;
 import java.io.IOException;
 import java.util.HashMap;

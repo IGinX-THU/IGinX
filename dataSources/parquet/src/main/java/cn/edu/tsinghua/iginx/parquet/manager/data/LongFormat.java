@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-public interface ObjectFormat<V> {
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 
-  String format(V value);
+public class LongFormat implements ObjectFormat<Long> {
+  @Override
+  public String format(Long value) {
+    return value.toString();
+  }
 
-  V parse(String source);
+  @Override
+  public Long parse(String source) {
+    return Long.parseLong(source);
+  }
 }

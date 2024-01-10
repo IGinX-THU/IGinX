@@ -26,10 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Field;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Loader;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.NewQueryRowStream;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.Table;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -88,7 +84,7 @@ public class DummyManager implements Manager {
         }
       }
     }
-    List<cn.edu.tsinghua.iginx.parquet.io.parquet.Column> columns =
+    List<cn.edu.tsinghua.iginx.parquet.manager.dummy.Column> columns =
         table.toColumns().stream()
             .filter(column -> paths.contains(column.getPathName()))
             .collect(Collectors.toList());

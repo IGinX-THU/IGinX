@@ -14,16 +14,11 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
-public class StringFormat implements ObjectFormat<String> {
-  @Override
-  public String format(String value) {
-    return value;
-  }
+public interface ObjectFormat<V> {
 
-  @Override
-  public String parse(String source) {
-    return source;
-  }
+  String format(V value);
+
+  V parse(String source);
 }
