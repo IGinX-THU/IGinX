@@ -16,21 +16,17 @@
 
 package cn.edu.tsinghua.iginx.parquet.common;
 
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class Configuration {
+public class Config {
   private final long writeBufferSize;
-
   private final long writeBatchSize;
-
   private final long parquetRowGroupSize;
-
   private final long parquetPageSize;
 
-  private Configuration(
+  private Config(
       long writeBufferSize, long writeBatchSize, long parquetRowGroupSize, long parquetPageSize) {
     this.writeBufferSize = writeBufferSize;
     this.writeBatchSize = writeBatchSize;
@@ -38,21 +34,44 @@ public class Configuration {
     this.parquetPageSize = parquetPageSize;
   }
 
+  public long getWriteBufferSize() {
+    return writeBufferSize;
+  }
+
+  public long getWriteBatchSize() {
+    return writeBatchSize;
+  }
+
+  public long getParquetRowGroupSize() {
+    return parquetRowGroupSize;
+  }
+
+  public long getParquetPageSize() {
+    return parquetPageSize;
+  }
+
+  public static Builder builder() {
+    return new Builder();
+  }
+
   public static class Builder {
-    private static final Logger LOGGER = LoggerFactory.getLogger(Builder.class);
-
+    public static final String DATA_DIR = "dir";
+    public static final String DUMMY_DIR = "dummy_dir";
+    public static final String DUMMY_PREFIX = "embedded_prefix";
     public static final String WRITE_BUFFER_SIZE = "write_buffer_size";
-
     public static final String WRITE_BATCH_SIZE = "write_batch_size";
-
     public static final String PARQUET_ROW_GROUP_SIZE = "parquet.row_group_size";
-
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
 
+    private Path dataDir;
+    private Path dummyDir;
+    private String dummyPrefix;
     private long writeBufferSize = 64 * 1024 * 1024; // BYTE
     private long writeBatchSize = 64 * 1024; // BYTE
     private long parquetRowGroupSize = 2 * 1024 * 1024; // BYTE
     private long parquetPageSize = 4 * 1024; // BYTE
+
+    private Builder() {}
 
     public Builder setWriteBufferSize(long writeBufferSize) {
       this.writeBufferSize = writeBufferSize;
@@ -82,9 +101,13 @@ public class Configuration {
       return this;
     }
 
-    public Configuration build() {
-      return new Configuration(
-          writeBufferSize, writeBatchSize, parquetRowGroupSize, parquetPageSize);
+    public Config build() {
+      check();
+      return new Config(writeBufferSize, writeBatchSize, parquetRowGroupSize, parquetPageSize);
+    }
+
+    private void check() {
+      // TODO: check
     }
 
     private static Optional<Long> getOptionalLong(Map<String, String> properties, String key) {
@@ -92,12 +115,7 @@ public class Configuration {
       if (value == null) {
         return Optional.empty();
       }
-      try {
-        return Optional.of(Long.parseLong(value));
-      } catch (Exception e) {
-        LOGGER.warn("parse {} failed, use default config value for {}", value, key, e);
-        return Optional.empty();
-      }
+      return Optional.of(Long.parseLong(value));
     }
   }
 }

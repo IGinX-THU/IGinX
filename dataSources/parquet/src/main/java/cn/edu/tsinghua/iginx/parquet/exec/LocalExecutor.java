@@ -36,14 +36,13 @@ import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -240,10 +239,9 @@ public class LocalExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     if (storageUnit.equals("*")) {
       List<Column> columns = new ArrayList<>();
-      for (Manager manager : managers.values()) {
+      for (Manager manager : getAllManagers()) {
         columns.addAll(manager.getColumns());
       }
-      columns.addAll(dummyManager.getColumns());
       return columns;
     } else {
       throw new RuntimeException("not implemented!");
@@ -254,7 +252,7 @@ public class LocalExecutor implements Executor {
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
-    for (Manager manager : managers.values()) {
+    for (Manager manager : getAllManagers()) {
       for (Column column : manager.getColumns()) {
         paths.add(column.getPath());
       }
@@ -277,6 +275,10 @@ public class LocalExecutor implements Executor {
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     KeyInterval keyInterval = new KeyInterval(start, end);
     return new Pair<>(columnsInterval, keyInterval);
+  }
+
+  private Iterable<Manager> getAllManagers() {
+    return Iterables.concat(managers.values(), Collections.singleton(dummyManager));
   }
 
   @Override
