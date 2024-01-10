@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.manager;
+package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
 import static cn.edu.tsinghua.iginx.parquet.common.Constants.SUFFIX_FILE_PARQUET;
 
@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.Field;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.Loader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.Table;
+import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;

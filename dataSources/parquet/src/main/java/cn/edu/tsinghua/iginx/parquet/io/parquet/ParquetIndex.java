@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.common.Scanner;
+import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.common.scanner.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.io.FileIndex;
 import cn.edu.tsinghua.iginx.parquet.io.FileMeta;

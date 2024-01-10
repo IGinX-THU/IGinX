@@ -14,13 +14,11 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.manager;
+package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
+import com.google.common.collect.*;
+import java.util.ArrayList;
 import java.util.List;
 
 class FilterRangeUtils {
@@ -96,5 +94,18 @@ class FilterRangeUtils {
       result.addAll(rangeSetOf(child));
     }
     return result;
+  }
+
+  public static AndFilter filterOf(Range<Long> range) {
+    List<Filter> filters = new ArrayList<>();
+    if (range.hasLowerBound()) {
+      Op op = range.lowerBoundType() == BoundType.CLOSED ? Op.GE : Op.G;
+      filters.add(new KeyFilter(op, range.lowerEndpoint()));
+    }
+    if (range.hasUpperBound()) {
+      Op op = range.upperBoundType() == BoundType.CLOSED ? Op.LE : Op.L;
+      filters.add(new KeyFilter(op, range.upperEndpoint()));
+    }
+    return new AndFilter(filters);
   }
 }

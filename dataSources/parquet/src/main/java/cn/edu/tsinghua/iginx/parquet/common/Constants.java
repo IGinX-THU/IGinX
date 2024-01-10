@@ -28,7 +28,7 @@ public final class Constants {
 
   public static final String CMD_DELETE = "DELETE";
 
-  public static final int MAX_MEM_SIZE = 1 * 1024 * 1024 /* BYTE */;
+  public static final int MAX_MEM_SIZE = 1024 * 1024 /* BYTE */;
 
   public static final long ROW_GROUP_SIZE = 100 * 1024 /* BYTE */;
 

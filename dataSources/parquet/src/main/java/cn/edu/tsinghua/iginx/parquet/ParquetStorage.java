@@ -34,7 +34,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
-import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
+import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -74,7 +74,7 @@ public class ParquetStorage implements IStorage {
     String dirPrefix = extraParams.get("embedded_prefix");
 
     this.executor =
-        new NewExecutor(meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
+        new LocalExecutor(meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
     this.server = new ParquetServer(meta.getPort(), executor);
     this.thread = new Thread(server);
     thread.start();

@@ -14,26 +14,25 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common;
+package cn.edu.tsinghua.iginx.parquet.common.exception;
 
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
-import javax.annotation.Nonnull;
+public class InvalidFieldNameException extends SchemaException {
 
-public interface DataChunk extends AutoCloseable {
+  private final String fieldName;
 
-  /**
-   * get the size of this data chunk
-   *
-   * @return size of this data chunk in bytes
-   */
-  long bytes();
+  private final String reason;
 
-  /**
-   * get the scanner of this data chunk
-   *
-   * @param start begin row offset
-   * @return scanner of this data chunk
-   */
-  @Nonnull
-  Scanner<Long, Object> scan(long start);
+  public InvalidFieldNameException(String fieldName, String reason) {
+    super(String.format("invalid field name %s, because: ", fieldName, reason));
+    this.fieldName = fieldName;
+    this.reason = reason;
+  }
+
+  public String getFieldName() {
+    return fieldName;
+  }
+
+  public String getReason() {
+    return reason;
+  }
 }

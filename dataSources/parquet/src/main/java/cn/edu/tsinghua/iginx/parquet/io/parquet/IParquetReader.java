@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
@@ -33,13 +34,18 @@ import org.apache.parquet.local.ParquetFileReader;
 import org.apache.parquet.local.ParquetReadOptions;
 import org.apache.parquet.local.ParquetRecordReader;
 import org.apache.parquet.schema.MessageType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IParquetReader implements AutoCloseable {
+  private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
 
   private final ParquetRecordReader<IRecord> internalReader;
   private final MessageType schema;
 
   private final Map<String, String> extra;
+
+  private long count = 0;
 
   private IParquetReader(
       ParquetRecordReader<IRecord> internalReader, MessageType schema, Map<String, String> extra) {
@@ -62,10 +68,6 @@ public class IParquetReader implements AutoCloseable {
     return schema;
   }
 
-  public String getExtraMetaData(String key) {
-    return extra.get(key);
-  }
-
   public Map<String, String> getExtra() {
     return Collections.unmodifiableMap(extra);
   }
@@ -77,6 +79,7 @@ public class IParquetReader implements AutoCloseable {
     if (!internalReader.nextKeyValue()) {
       return null;
     }
+    count++;
     return internalReader.getCurrentValue();
   }
 
@@ -85,6 +88,7 @@ public class IParquetReader implements AutoCloseable {
     if (internalReader != null) {
       internalReader.close();
     }
+    LOGGER.info("read {} records", count);
   }
 
   public static class Builder {
@@ -105,11 +109,17 @@ public class IParquetReader implements AutoCloseable {
         footer = ParquetFileReader.readFooter(localInputfile, options, in);
       }
 
-      Map<String, String> extra = footer.getFileMetaData().getKeyValueMetaData();
-
       MessageType schema = footer.getFileMetaData().getSchema();
-      // TODO projection schema
-      MessageType requestedSchema = ProjectUtils.projectMessageType(schema, fields);
+
+      MessageType requestedSchema;
+      if (fields == null) {
+        requestedSchema = schema;
+      } else {
+        requestedSchema = ProjectUtils.projectMessageType(schema, fields);
+        LOGGER.info("project schema with {} as {}", fields, requestedSchema);
+      }
+
+      Map<String, String> extra = footer.getFileMetaData().getKeyValueMetaData();
 
       if (skip) {
         return new IParquetReader(requestedSchema, extra);
@@ -123,12 +133,13 @@ public class IParquetReader implements AutoCloseable {
     }
 
     public Builder project(Set<String> fields) {
-      this.fields = fields;
+      this.fields = Objects.requireNonNull(fields);
       return this;
     }
 
     public Builder filter(Filter filter) {
-      Pair<FilterPredicate, Boolean> filterPredicate = FilterUtils.toFilterPredicate(filter);
+      Pair<FilterPredicate, Boolean> filterPredicate =
+          FilterUtils.toFilterPredicate(Objects.requireNonNull(filter));
       if (filterPredicate.k != null) {
         optionsBuilder.withRecordFilter(FilterCompat.get(filterPredicate.k));
       } else {

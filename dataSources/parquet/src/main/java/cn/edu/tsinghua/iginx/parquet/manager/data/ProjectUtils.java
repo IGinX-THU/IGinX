@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.manager;
+package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.parquet.common.exception.UnsupportedFilterException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
 import java.util.regex.Pattern;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class ProjectUtils {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ProjectUtils.class);
 
   public static Map<String, DataType> project(Map<String, DataType> schema, TagFilter tagFilter) {
     if (tagFilter == null) {
@@ -47,8 +50,10 @@ class ProjectUtils {
   public static Map<String, DataType> project(Map<String, DataType> schema, List<String> paths) {
     Map<String, DataType> result = new HashMap<>();
     for (Map.Entry<String, DataType> entry : schema.entrySet()) {
+      Map.Entry<String, Map<String, String>> pathWithTags =
+          DataViewWrapper.parseFieldName(entry.getKey());
       for (String path : paths) {
-        if (StringUtils.match(entry.getKey(), path)) {
+        if (StringUtils.match(pathWithTags.getKey(), path)) {
           result.put(entry.getKey(), entry.getValue());
           break;
         }
@@ -57,51 +62,69 @@ class ProjectUtils {
     return result;
   }
 
-  public static Filter project(Filter filter, Map<String, DataType> schema)
-      throws PhysicalException {
-    switch (filter.getType()) {
-      case Key:
-      case Bool:
-        return filter;
-      case And:
-        return project((AndFilter) filter, schema);
-      case Or:
-        return project((OrFilter) filter, schema);
-      case Not:
-        return project((NotFilter) filter, schema);
-      case Value:
-        return project((ValueFilter) filter, schema);
-      case Path:
-        return project((PathFilter) filter, schema);
-      default:
-        throw new IllegalStateException("unsupported filter: " + filter);
+  public static Filter project(Filter filter, Map<String, DataType> schema) {
+    try {
+      return project(filter, schema, false);
+    } catch (UnsupportedFilterException e) {
+      return new BoolFilter(true);
     }
   }
 
-  private static Filter project(AndFilter filter, Map<String, DataType> schema)
-      throws PhysicalException {
+  private static Filter project(Filter filter, Map<String, DataType> schema, boolean notInParent)
+      throws UnsupportedFilterException {
+    try {
+      switch (filter.getType()) {
+        case Key:
+        case Bool:
+          return filter;
+        case And:
+          return project((AndFilter) filter, schema, notInParent);
+        case Or:
+          return project((OrFilter) filter, schema, notInParent);
+        case Not:
+          return project((NotFilter) filter, schema, notInParent);
+        case Value:
+          return project((ValueFilter) filter, schema);
+        case Path:
+          return project((PathFilter) filter, schema);
+        default:
+          throw new UnsupportedFilterException(filter);
+      }
+    } catch (UnsupportedFilterException e) {
+      if (notInParent) {
+        throw e;
+      } else {
+        LOGGER.trace("unsupported filter {} is regarded as true because: {}", filter, e.toString());
+        return new BoolFilter(true);
+      }
+    }
+  }
+
+  private static Filter project(AndFilter filter, Map<String, DataType> schema, boolean notInParent)
+      throws UnsupportedFilterException {
     List<Filter> filters = new ArrayList<>();
     for (Filter subfilter : filter.getChildren()) {
-      filters.add(project(subfilter, schema));
+      filters.add(project(subfilter, schema, notInParent));
     }
     return new AndFilter(filters);
   }
 
-  private static Filter project(OrFilter filter, Map<String, DataType> schema)
-      throws PhysicalException {
+  private static Filter project(OrFilter filter, Map<String, DataType> schema, boolean notInParent)
+      throws UnsupportedFilterException {
     List<Filter> filters = new ArrayList<>();
     for (Filter subfilter : filter.getChildren()) {
-      filters.add(project(subfilter, schema));
+      filters.add(project(subfilter, schema, notInParent));
     }
     return new OrFilter(filters);
   }
 
-  private static Filter project(NotFilter filter, Map<String, DataType> schema)
-      throws PhysicalException {
-    return new NotFilter(project(filter.getChild(), schema));
+  private static Filter project(NotFilter filter, Map<String, DataType> schema, boolean notInParent)
+      throws UnsupportedFilterException {
+    return new NotFilter(project(filter.getChild(), schema, true));
   }
 
-  private static Filter project(ValueFilter filter, Map<String, DataType> schema) {
+  private static Filter project(ValueFilter filter, Map<String, DataType> schema)
+      throws UnsupportedFilterException {
     Map<String, DataType> projectedSchema =
         project(schema, Collections.singletonList(filter.getPath()));
 
@@ -118,7 +141,7 @@ class ProjectUtils {
   }
 
   private static Filter project(PathFilter filter, Map<String, DataType> schema)
-      throws PhysicalException {
+      throws UnsupportedFilterException {
     Map<String, DataType> projectedSchemaA =
         project(schema, Collections.singletonList(filter.getPathA()));
     Map<String, DataType> projectedSchemaB =
@@ -140,7 +163,7 @@ class ProjectUtils {
       String message =
           String.format(
               "can't compare %s with %s", projectedSchemaA.keySet(), projectedSchemaB.keySet());
-      throw new PhysicalTaskExecuteFailureException(message);
+      throw new UnsupportedFilterException(message, filter);
     }
 
     if (isAndOp(filter.getOp())) {

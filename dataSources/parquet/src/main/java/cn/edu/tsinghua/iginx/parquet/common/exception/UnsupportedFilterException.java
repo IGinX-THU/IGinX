@@ -14,26 +14,24 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common;
+package cn.edu.tsinghua.iginx.parquet.common.exception;
 
-import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
-import javax.annotation.Nonnull;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 
-public interface DataChunk extends AutoCloseable {
+public class UnsupportedFilterException extends StorageException {
+  private final Filter filter;
 
-  /**
-   * get the size of this data chunk
-   *
-   * @return size of this data chunk in bytes
-   */
-  long bytes();
+  public UnsupportedFilterException(Filter filter) {
+    super(String.format("unsupported filter %s", filter.toString()));
+    this.filter = filter;
+  }
 
-  /**
-   * get the scanner of this data chunk
-   *
-   * @param start begin row offset
-   * @return scanner of this data chunk
-   */
-  @Nonnull
-  Scanner<Long, Object> scan(long start);
+  public UnsupportedFilterException(String message, Filter filter) {
+    super(message);
+    this.filter = filter;
+  }
+
+  public Filter getFilter() {
+    return filter;
+  }
 }

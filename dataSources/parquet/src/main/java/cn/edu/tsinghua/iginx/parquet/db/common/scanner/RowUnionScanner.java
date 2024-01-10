@@ -16,40 +16,22 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.common.scanner;
 
-import cn.edu.tsinghua.iginx.parquet.common.Scanner;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
 import java.util.*;
 import javax.annotation.Nonnull;
 
-public class RowUnionScanner<K extends Comparable<K>, F, V>
-    implements cn.edu.tsinghua.iginx.parquet.common.Scanner<
-        K, cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V>> {
+public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K, Scanner<F, V>> {
 
-  private final PriorityQueue<
-          Map.Entry<
-              cn.edu.tsinghua.iginx.parquet.common.Scanner<
-                  K, cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V>>,
-              Long>>
-      queue;
+  private final PriorityQueue<Map.Entry<Scanner<K, Scanner<F, V>>, Long>> queue;
 
-  public RowUnionScanner(
-      Iterable<
-              cn.edu.tsinghua.iginx.parquet.common.Scanner<
-                  K, cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V>>>
-          scanners)
-      throws StorageException {
-    Comparator<
-            Map.Entry<
-                cn.edu.tsinghua.iginx.parquet.common.Scanner<
-                    K, cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V>>,
-                Long>>
-        comparing = Comparator.comparing(e -> e.getKey().key());
+  public RowUnionScanner(Iterable<Scanner<K, Scanner<F, V>>> scanners) throws StorageException {
+    Comparator<Map.Entry<Scanner<K, Scanner<F, V>>, Long>> comparing =
+        Comparator.comparing(e -> e.getKey().key());
     this.queue = new PriorityQueue<>(comparing.thenComparing(Map.Entry::getValue));
 
     long i = 0;
-    for (cn.edu.tsinghua.iginx.parquet.common.Scanner<
-            K, cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V>>
-        scanner : scanners) {
+    for (Scanner<K, Scanner<F, V>> scanner : scanners) {
       if (scanner.iterate()) {
         queue.add(new AbstractMap.SimpleImmutableEntry<>(scanner, i));
         i++;
@@ -57,7 +39,7 @@ public class RowUnionScanner<K extends Comparable<K>, F, V>
     }
   }
 
-  private cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V> currentRow = null;
+  private Scanner<F, V> currentRow = null;
 
   private K currentKey = null;
 
@@ -72,7 +54,7 @@ public class RowUnionScanner<K extends Comparable<K>, F, V>
 
   @Nonnull
   @Override
-  public cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V> value() throws NoSuchElementException {
+  public Scanner<F, V> value() throws NoSuchElementException {
     if (currentRow == null) {
       throw new NoSuchElementException();
     }
@@ -90,13 +72,9 @@ public class RowUnionScanner<K extends Comparable<K>, F, V>
     }
     currentKey = queue.peek().getKey().key();
     while (!queue.isEmpty() && currentKey.compareTo(queue.peek().getKey().key()) == 0) {
-      Map.Entry<
-              cn.edu.tsinghua.iginx.parquet.common.Scanner<
-                  K, cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V>>,
-              Long>
-          entry = queue.poll();
+      Map.Entry<Scanner<K, Scanner<F, V>>, Long> entry = queue.poll();
       assert entry != null;
-      cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V> scanner = entry.getKey().value();
+      Scanner<F, V> scanner = entry.getKey().value();
       while (scanner.iterate()) {
         row.putIfAbsent(scanner.key(), scanner.value());
       }
@@ -105,7 +83,7 @@ public class RowUnionScanner<K extends Comparable<K>, F, V>
       }
     }
     currentRow =
-        new cn.edu.tsinghua.iginx.parquet.common.Scanner<F, V>() {
+        new Scanner<F, V>() {
           private final Iterator<Map.Entry<F, V>> iterator = row.entrySet().iterator();
 
           private F key;
@@ -151,8 +129,7 @@ public class RowUnionScanner<K extends Comparable<K>, F, V>
 
   @Override
   public void close() throws StorageException {
-    for (Map.Entry<cn.edu.tsinghua.iginx.parquet.common.Scanner<K, Scanner<F, V>>, Long> entry :
-        queue) {
+    for (Map.Entry<Scanner<K, Scanner<F, V>>, Long> entry : queue) {
       entry.getKey().close();
     }
   }

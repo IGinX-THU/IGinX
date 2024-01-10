@@ -82,9 +82,6 @@ class FilterUtils {
   }
 
   private static Pair<FilterPredicate, Boolean> toFilterPredicate(AndFilter filter) {
-    if (filter.getChildren().isEmpty()) {
-      return new Pair<>(null, true);
-    }
     if (filter.getChildren().stream()
         .map(FilterUtils::toFilterPredicate)
         .map(Pair::getV)
@@ -92,20 +89,16 @@ class FilterUtils {
         .anyMatch(v -> !v)) {
       return new Pair<>(null, false);
     }
-    FilterPredicate result =
-        filter.getChildren().stream()
-            .map(FilterUtils::toFilterPredicate)
-            .map(Pair::getK)
-            .filter(Objects::nonNull)
-            .reduce(FilterApi::and)
-            .orElse(null);
-    return new Pair<>(result, result == null);
+    return filter.getChildren().stream()
+        .map(FilterUtils::toFilterPredicate)
+        .map(Pair::getK)
+        .filter(Objects::nonNull)
+        .reduce(FilterApi::and)
+        .map(filterPredicate -> new Pair<FilterPredicate, Boolean>(filterPredicate, null))
+        .orElseGet(() -> new Pair<>(null, true));
   }
 
   private static Pair<FilterPredicate, Boolean> toFilterPredicate(OrFilter filter) {
-    if (filter.getChildren().isEmpty()) {
-      return new Pair<>(null, false);
-    }
     if (filter.getChildren().stream()
         .map(FilterUtils::toFilterPredicate)
         .map(Pair::getV)
@@ -113,13 +106,12 @@ class FilterUtils {
         .anyMatch(v -> v)) {
       return new Pair<>(null, true);
     }
-    FilterPredicate result =
-        filter.getChildren().stream()
-            .map(FilterUtils::toFilterPredicate)
-            .map(Pair::getK)
-            .filter(Objects::nonNull)
-            .reduce(FilterApi::and)
-            .orElse(null);
-    return new Pair<>(result, result != null);
+    return filter.getChildren().stream()
+        .map(FilterUtils::toFilterPredicate)
+        .map(Pair::getK)
+        .filter(Objects::nonNull)
+        .reduce(FilterApi::and)
+        .map(filterPredicate -> new Pair<FilterPredicate, Boolean>(filterPredicate, null))
+        .orElseGet(() -> new Pair<>(null, false));
   }
 }

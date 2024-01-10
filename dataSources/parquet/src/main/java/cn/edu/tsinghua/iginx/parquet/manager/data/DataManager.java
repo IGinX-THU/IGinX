@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.manager;
+package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
-import cn.edu.tsinghua.iginx.parquet.common.Scanner;
+import cn.edu.tsinghua.iginx.parquet.common.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
-import cn.edu.tsinghua.iginx.parquet.db.common.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.common.scanner.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.OneTierDB;
 import cn.edu.tsinghua.iginx.parquet.io.LongFormat;
@@ -36,7 +37,9 @@ import cn.edu.tsinghua.iginx.parquet.io.ObjectFormat;
 import cn.edu.tsinghua.iginx.parquet.io.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.io.StringFormat;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
+import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -55,7 +58,7 @@ public class DataManager implements Manager {
 
   private final Database<Long, String, DataType, Object> db;
 
-  public DataManager(Path dir) throws PhysicalException, IOException {
+  public DataManager(Path dir) throws IOException {
     this.db =
         new OneTierDB<>(
             dir,
@@ -63,11 +66,11 @@ public class DataManager implements Manager {
               @Override
               public void flush(
                   Path path,
-                  DataBuffer<Long, String, Object> buffer,
+                  Scanner<Long, Scanner<String, Object>> scanner,
                   Map<String, DataType> schema,
                   Map<String, String> extra)
                   throws IOException {
-                DataManager.this.flush(path, buffer, schema, extra);
+                DataManager.this.flush(path, scanner, schema, extra);
               }
 
               @Override
@@ -78,8 +81,9 @@ public class DataManager implements Manager {
 
               @Override
               public Scanner<Long, Scanner<String, Object>> scanData(
-                  Path path, Set<String> fields, Filter filter) throws IOException {
-                return DataManager.this.scan(path, fields, filter);
+                  Path path, Set<String> fields, Range<Long> range, Filter filter)
+                  throws IOException {
+                return DataManager.this.scan(path, fields, range, filter);
               }
 
               @Override
@@ -119,7 +123,7 @@ public class DataManager implements Manager {
 
   private void flush(
       Path path,
-      DataBuffer<Long, String, Object> buffer,
+      Scanner<Long, Scanner<String, Object>> scanner,
       Map<String, DataType> schema,
       Map<String, String> extra)
       throws IOException {
@@ -134,27 +138,12 @@ public class DataManager implements Manager {
 
     IParquetWriter.Builder builder = IParquetWriter.builder(path, parquetSchema);
 
-    //            String tombstoneStr = SerializeUtils.serialize(tombstone);
-    //            builder.withExtraMetaData(Constants.TOMBSTONE_NAME, tombstoneStr);
-    //
-    //            com.google.common.collect.RangeSet<Long> rangeSet = buffer.ranges();
-    //            com.google.common.collect.Range<Long> range;
-    //            if (rangeSet.isEmpty()) {
-    //                range = com.google.common.collect.Range.closedOpen(0L, 0L); // empty range
-    //            } else {
-    //                range = rangeSet.span();
-    //            }
-    //            builder.withExtraMetaData(Constants.KEY_RANGE_NAME,
-    // SerializeUtils.serialize(range));
-
     for (Map.Entry<String, String> entry : extra.entrySet()) {
       builder.withExtraMetaData(entry.getKey(), entry.getValue());
     }
 
     Files.createDirectories(path.getParent());
-    try (IParquetWriter writer = builder.build();
-        Scanner<Long, Scanner<String, Object>> scanner =
-            buffer.scanRows(buffer.fields(), Range.all())) {
+    try (IParquetWriter writer = builder.build()) {
       while (scanner.iterate()) {
         IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
         writer.write(record);
@@ -166,12 +155,17 @@ public class DataManager implements Manager {
     }
   }
 
-  private Scanner<Long, Scanner<String, Object>> scan(Path path, Set<String> fields, Filter filter)
-      throws IOException {
+  private Scanner<Long, Scanner<String, Object>> scan(
+      Path path, Set<String> fields, Range<Long> range, Filter filter) throws IOException {
+
+    AndFilter unionFilter = FilterRangeUtils.filterOf(range);
+    if (filter != null) {
+      unionFilter.getChildren().add(filter);
+    }
 
     return new Scanner<Long, Scanner<String, Object>>() {
       private final IParquetReader reader =
-          IParquetReader.builder(path).project(fields).filter(filter).build();
+          IParquetReader.builder(path).project(fields).filter(unionFilter).build();
       private Long key;
       private Scanner<String, Object> rowScanner;
 
@@ -235,13 +229,10 @@ public class DataManager implements Manager {
   @Override
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
       throws PhysicalException {
-    Map<String, DataType> schemaMatchTags =
-        cn.edu.tsinghua.iginx.parquet.manager.ProjectUtils.project(db.schema(), tagFilter);
+    Map<String, DataType> schemaMatchTags = ProjectUtils.project(db.schema(), tagFilter);
 
-    Map<String, DataType> projectedSchema =
-        cn.edu.tsinghua.iginx.parquet.manager.ProjectUtils.project(schemaMatchTags, paths);
-    Filter projectedFilter =
-        cn.edu.tsinghua.iginx.parquet.manager.ProjectUtils.project(filter, schemaMatchTags);
+    Map<String, DataType> projectedSchema = ProjectUtils.project(schemaMatchTags, paths);
+    Filter projectedFilter = ProjectUtils.project(filter, schemaMatchTags);
     RangeSet<Long> rangeSet = FilterRangeUtils.rangeSetOf(projectedFilter);
 
     Scanner<Long, Scanner<String, Object>> scanner =
@@ -252,6 +243,11 @@ public class DataManager implements Manager {
   @Override
   public void insert(DataView data) throws PhysicalException {
     DataViewWrapper wrappedData = new DataViewWrapper(data);
+    for (String fullName : wrappedData.getSchema().keySet()) {
+      if (StringUtils.isPattern(fullName)) {
+        throw new InvalidFieldNameException(fullName, "name is a pattern");
+      }
+    }
     try {
       if (wrappedData.isRowData()) {
         try (Scanner<Long, Scanner<String, Object>> scanner = wrappedData.getRowsScanner()) {
@@ -281,15 +277,14 @@ public class DataManager implements Manager {
       }
     }
 
-    if (cn.edu.tsinghua.iginx.parquet.manager.ProjectUtils.allMatched(paths)) {
+    if (ProjectUtils.allMatched(paths) && tagFilter == null) {
       if (rangeSet.isEmpty()) {
         db.delete();
       } else {
         db.delete(rangeSet);
       }
     } else {
-      Map<String, DataType> schemaMatchedTags =
-          cn.edu.tsinghua.iginx.parquet.manager.ProjectUtils.project(db.schema(), tagFilter);
+      Map<String, DataType> schemaMatchedTags = ProjectUtils.project(db.schema(), tagFilter);
       Set<String> fields = ProjectUtils.project(schemaMatchedTags, paths).keySet();
       if (rangeSet.isEmpty()) {
         db.delete(fields);

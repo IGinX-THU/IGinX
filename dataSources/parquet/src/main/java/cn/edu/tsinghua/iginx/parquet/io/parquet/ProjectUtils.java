@@ -18,6 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -30,11 +31,7 @@ public class ProjectUtils {
 
   @Nonnull
   static MessageType projectMessageType(@Nonnull MessageType schema, @Nullable Set<String> fields) {
-    if (fields == null) {
-      return schema;
-    }
-
-    Set<String> schemaFields = new HashSet<>(fields);
+    Set<String> schemaFields = new HashSet<>(Objects.requireNonNull(fields));
     schemaFields.add(Constants.KEY_FIELD_NAME);
 
     Types.MessageTypeBuilder builder = Types.buildMessage();

@@ -14,35 +14,29 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
-import cn.edu.tsinghua.iginx.parquet.common.scanner.EmptyScanner;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
+import com.google.common.collect.Range;
+import java.io.IOException;
+import java.util.Set;
 import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 
-public class DataChunks {
-  private DataChunks() {}
+public interface Table<K extends Comparable<K>, F, V, T> {
 
-  private static class EmptyDataChunk implements DataChunk {
+  @Nonnull
+  TableMeta<F, T> getMeta() throws IOException;
 
-    @Override
-    public long bytes() {
-      return 0;
-    }
+  @Nonnull
+  Scanner<K, Scanner<F, V>> scan(
+      @Nonnull Set<F> fields, @Nonnull Range<K> range, @Nullable Filter predicate)
+      throws IOException;
 
-    @Nonnull
-    @Override
-    public Scanner<Long, Object> scan(long position) {
-      return EmptyScanner.getInstance();
-    }
-
-    @Override
-    public void close() throws Exception {}
-  }
-
-  private static final DataChunk EMPTY = new EmptyDataChunk();
-
-  public static DataChunk empty() {
-    return EMPTY;
+  @Nonnull
+  default Scanner<K, Scanner<F, V>> scan(@Nonnull Set<F> fields, @Nonnull Range<K> range)
+      throws IOException {
+    return scan(fields, range, null);
   }
 }

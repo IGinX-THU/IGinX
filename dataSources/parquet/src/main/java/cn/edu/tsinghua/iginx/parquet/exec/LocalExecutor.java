@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -30,10 +31,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.common.utils.FileUtils;
-import cn.edu.tsinghua.iginx.parquet.manager.DataManager;
-import cn.edu.tsinghua.iginx.parquet.manager.DummyManager;
-import cn.edu.tsinghua.iginx.parquet.manager.EmptyManager;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
+import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
+import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
+import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
@@ -42,16 +43,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NewExecutor implements Executor {
+public class LocalExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(NewExecutor.class);
+  private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
 
   public String dataDir;
 
@@ -59,7 +59,7 @@ public class NewExecutor implements Executor {
 
   private final Manager dummyManager;
 
-  public NewExecutor(
+  public LocalExecutor(
       boolean hasData, boolean readOnly, String dataDir, String dummyDir, String dirPrefix)
       throws StorageInitializationException {
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
@@ -75,6 +75,8 @@ public class NewExecutor implements Executor {
     } else {
       dummyManager = new EmptyManager();
     }
+
+    recoverFromDisk();
 
     Runtime.getRuntime()
         .addShutdownHook(
@@ -148,35 +150,36 @@ public class NewExecutor implements Executor {
     }
   }
 
-  private void createDir(String dirPath) {
+  private void createDir(String dirPath) throws StorageInitializationException {
     Path path = Paths.get(dirPath);
     try {
       if (!Files.exists(path)) {
         Files.createDirectory(path);
       }
     } catch (IOException e) {
-      logger.error(String.format("Create directory %s error: " + e.getMessage(), dirPath));
+      throw new StorageInitializationException(
+          String.format("Create directory %s error: " + e.getMessage(), dirPath));
     }
   }
 
-  private void recoverFromDisk() throws PhysicalException {
+  private void recoverFromDisk() {
     File file = new File(dataDir);
     File[] duDirs = file.listFiles();
     if (duDirs != null) {
       for (File duDir : duDirs) {
         if (duDir.isFile()) continue;
         try {
+          logger.info("recovering {} from disk", duDir);
           Manager manager = new DataManager(duDir.toPath());
           managers.putIfAbsent(duDir.getName(), manager);
         } catch (IOException e) {
-          logger.error("Fail to recover from disk ", e);
-          throw new PhysicalException(e);
+          logger.error("fail to recovery {} from disk ", duDir, e);
         }
       }
     }
   }
 
-  private Manager getOrCreateManager(String storageUnit) throws PhysicalException, IOException {
+  private Manager getOrCreateManager(String storageUnit) throws IOException {
     if (!managers.containsKey(storageUnit)) {
       Manager manager = new DataManager(Paths.get(dataDir, storageUnit));
       managers.putIfAbsent(storageUnit, manager);
@@ -191,91 +194,62 @@ public class NewExecutor implements Executor {
       Filter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
-
-    Manager manager;
     try {
+      Manager manager;
       if (isDummyStorageUnit) {
         manager = dummyManager;
       } else {
         manager = getOrCreateManager(storageUnit);
       }
-    } catch (Exception e) {
-      logger.error("Fail to get du manager ", e);
-      return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
-    }
-
-    try {
       RowStream rowStream = manager.project(paths, tagFilter, filter);
       rowStream = new ClearEmptyRowStreamWrapper(rowStream);
       rowStream = new FilterRowStreamWrapper(rowStream, filter);
       return new TaskExecuteResult(rowStream, null);
     } catch (PhysicalException e) {
-      logger.error("Fail to project data ", e);
-      return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
+      return new TaskExecuteResult(null, e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 
   @Override
   public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
-    Manager manager;
     try {
-      manager = getOrCreateManager(storageUnit);
-    } catch (Exception e) {
-      return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
-    }
-
-    try {
+      Manager manager = getOrCreateManager(storageUnit);
       manager.insert(dataView);
-    } catch (Exception e) {
-      logger.error("Fail to insert data ", e);
-      return new TaskExecuteResult(null, new PhysicalException("Fail to insert data ", e));
+      return new TaskExecuteResult(null, null);
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(null, e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-
-    return new TaskExecuteResult(null, null);
   }
 
   @Override
   public TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
-    Manager manager;
     try {
-      manager = getOrCreateManager(storageUnit);
-    } catch (Exception e) {
-      logger.error("Fail to get du manager ", e);
-      return new TaskExecuteResult(null, new PhysicalException("Fail to get du manager ", e));
-    }
-
-    try {
+      Manager manager = getOrCreateManager(storageUnit);
       manager.delete(paths, keyRanges, tagFilter);
-    } catch (Exception e) {
-      logger.error("Fail to delete data ", e);
-      return new TaskExecuteResult(null, new PhysicalException("Fail to delete data " + e));
+      return new TaskExecuteResult(null, null);
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(null, e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
-
-    return new TaskExecuteResult(null, null);
   }
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    try {
-      if (storageUnit.equals("*")) {
-        recoverFromDisk();
-        Map<String, Column> columns = new HashMap<>();
-        for (Manager manager : managers.values()) {
-          for (Column column : manager.getColumns()) {
-            columns.put(column.getPhysicalPath(), column);
-          }
-        }
-        for (Column column : dummyManager.getColumns()) {
-          columns.put(column.getPhysicalPath(), column);
-        }
-        return new ArrayList<>(columns.values());
-      } else {
-        throw new RuntimeException("not implemented!");
+    if (storageUnit.equals("*")) {
+      List<Column> columns = new ArrayList<>();
+      for (Manager manager : managers.values()) {
+        columns.addAll(manager.getColumns());
       }
-    } catch (Exception e) {
-      logger.error("Fail to get columns ", e);
-      throw new PhysicalException("fail to get columns ", e);
+      columns.addAll(dummyManager.getColumns());
+      return columns;
+    } else {
+      throw new RuntimeException("not implemented!");
     }
   }
 
@@ -284,24 +258,15 @@ public class NewExecutor implements Executor {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (Manager manager : managers.values()) {
-      try {
-        for (Column column : manager.getColumns()) {
-          paths.add(column.getPath());
-        }
-      } catch (Exception e) {
-        throw new PhysicalException("Fail to get paths", e);
+      for (Column column : manager.getColumns()) {
+        paths.add(column.getPath());
       }
-      try {
-        KeyInterval interval = manager.getKeyInterval();
-        if (interval.getStartKey() < start) {
-          start = interval.getStartKey();
-        }
-        if (interval.getEndKey() > end) {
-          end = interval.getEndKey();
-        }
-      } catch (Exception e) {
-        logger.error("Fail to get key interval", e);
-        throw new PhysicalException("fail to get key interval", e);
+      KeyInterval interval = manager.getKeyInterval();
+      if (interval.getStartKey() < start) {
+        start = interval.getStartKey();
+      }
+      if (interval.getEndKey() > end) {
+        end = interval.getEndKey();
       }
     }
     paths.sort(String::compareTo);
@@ -323,10 +288,10 @@ public class NewExecutor implements Executor {
     for (Manager manager : managers.values()) {
       try {
         manager.close();
-      } catch (Exception e) {
-        throw new PhysicalException("failed to close local executor", e);
+      } catch (Throwable e) {
+        logger.error("fail to close manager", e);
       }
-      managers.clear();
     }
+    managers.clear();
   }
 }

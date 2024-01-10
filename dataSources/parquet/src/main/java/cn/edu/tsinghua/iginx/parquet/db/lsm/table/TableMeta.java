@@ -14,20 +14,25 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.common;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
-import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import javax.annotation.Nonnull;
+import java.util.Map;
 
-public interface Scanner<K, V> extends AutoCloseable {
-  @Nonnull
-  K key();
+public class TableMeta<F, T> {
+  private final Map<F, T> schema;
 
-  @Nonnull
-  V value();
+  private final Map<String, String> extra;
 
-  boolean iterate() throws StorageException;
+  public TableMeta(Map<F, T> schema, Map<String, String> extra) {
+    this.schema = schema;
+    this.extra = extra;
+  }
 
-  @Override
-  void close() throws StorageException;
+  public Map<F, T> getSchema() {
+    return schema;
+  }
+
+  public Map<String, String> getExtra() {
+    return extra;
+  }
 }

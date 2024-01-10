@@ -17,8 +17,8 @@
 package cn.edu.tsinghua.iginx.parquet.io;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.common.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.common.DataBuffer;
+import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
+import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Map;
@@ -26,12 +26,14 @@ import java.util.Set;
 
 public interface ReadWriter<K extends Comparable<K>, F, V, T> {
 
-  void flush(Path path, DataBuffer<K, F, V> buffer, Map<F, T> schema, Map<String, String> extra)
+  void flush(
+      Path path, Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema, Map<String, String> extra)
       throws IOException;
 
   Map.Entry<Map<F, T>, Map<String, String>> readMeta(Path path) throws IOException;
 
-  Scanner<K, Scanner<F, V>> scanData(Path path, Set<F> fields, Filter predicate) throws IOException;
+  Scanner<K, Scanner<F, V>> scanData(Path path, Set<F> fields, Range<K> range, Filter predicate)
+      throws IOException;
 
   ObjectFormat<K> getKeyFormat();
 

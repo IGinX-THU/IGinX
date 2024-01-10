@@ -14,18 +14,15 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.exec;
+package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import java.util.NoSuchElementException;
 
-class FilterRowStreamWrapper implements RowStream {
+public class FilterRowStreamWrapper implements RowStream {
 
   private final RowStream stream;
 

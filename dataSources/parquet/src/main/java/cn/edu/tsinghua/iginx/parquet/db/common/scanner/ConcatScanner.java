@@ -16,8 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.common.scanner;
 
-import cn.edu.tsinghua.iginx.parquet.common.Scanner;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.common.scanner.Scanner;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
