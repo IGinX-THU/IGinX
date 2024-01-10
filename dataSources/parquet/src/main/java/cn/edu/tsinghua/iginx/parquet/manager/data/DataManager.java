@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.parquet.common.Config;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
@@ -34,7 +35,10 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.OneTierDB;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.ParquetMeta;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -57,9 +61,13 @@ public class DataManager implements Manager {
 
   private final Database<Long, String, DataType, Object> db;
 
-  public DataManager(Path dir) throws IOException {
+  private final Config config;
+
+  public DataManager(Config config, Path dir) throws IOException {
+    this.config = config;
     this.db =
         new OneTierDB<>(
+            config,
             dir,
             new ReadWriter<Long, String, Object, DataType>() {
               @Override
@@ -99,7 +107,6 @@ public class DataManager implements Manager {
 
   private Map.Entry<Map<String, DataType>, Map<String, String>> read(Path path) throws IOException {
     try (IParquetReader reader = IParquetReader.builder(path).build()) {
-
       Map<String, DataType> schemaDst = new HashMap<>();
       MessageType parquetSchema = reader.getSchema();
       for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
@@ -136,6 +143,9 @@ public class DataManager implements Manager {
     MessageType parquetSchema = new MessageType(Constants.RECORD_FIELD_NAME, fields);
 
     IParquetWriter.Builder builder = IParquetWriter.builder(path, parquetSchema);
+
+    builder.withRowGroupSize(config.getParquetRowGroupSize());
+    builder.withPageSize((int) config.getParquetPageSize());
 
     for (Map.Entry<String, String> entry : extra.entrySet()) {
       builder.withExtraMetaData(entry.getKey(), entry.getValue());

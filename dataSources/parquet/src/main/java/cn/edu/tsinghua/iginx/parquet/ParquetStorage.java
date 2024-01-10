@@ -77,7 +77,8 @@ public class ParquetStorage implements IStorage {
     Config config = Config.builder().parse(extraParams).build();
 
     this.executor =
-        new LocalExecutor(meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
+        new LocalExecutor(
+            config, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
     this.server = new ParquetServer(meta.getPort(), executor);
     this.thread = new Thread(server);
     thread.start();

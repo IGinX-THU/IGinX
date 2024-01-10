@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.parquet.common.Config;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
@@ -57,9 +58,18 @@ public class LocalExecutor implements Executor {
 
   private final Manager dummyManager;
 
+  private final Config config;
+
   public LocalExecutor(
-      boolean hasData, boolean readOnly, String dataDir, String dummyDir, String dirPrefix)
+      Config config,
+      boolean hasData,
+      boolean readOnly,
+      String dataDir,
+      String dummyDir,
+      String dirPrefix)
       throws StorageInitializationException {
+    this.config = config;
+
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
     if (hasData) {
@@ -69,7 +79,7 @@ public class LocalExecutor implements Executor {
       } else {
         embeddedPrefix = dirPrefix;
       }
-      dummyManager = new DummyManager(Paths.get(dummyDir), embeddedPrefix);
+      dummyManager = new DummyManager(Paths.get(dummyDir), this.config, embeddedPrefix);
     } else {
       dummyManager = new EmptyManager();
     }
@@ -166,7 +176,7 @@ public class LocalExecutor implements Executor {
         if (duDir.isFile()) continue;
         try {
           logger.info("recovering {} from disk", duDir);
-          Manager manager = new DataManager(duDir.toPath());
+          Manager manager = new DataManager(config, duDir.toPath());
           managers.putIfAbsent(duDir.getName(), manager);
         } catch (IOException e) {
           logger.error("fail to recovery {} from disk ", duDir, e);
@@ -177,7 +187,7 @@ public class LocalExecutor implements Executor {
 
   private Manager getOrCreateManager(String storageUnit) throws IOException {
     if (!managers.containsKey(storageUnit)) {
-      Manager manager = new DataManager(Paths.get(dataDir, storageUnit));
+      Manager manager = new DataManager(config, Paths.get(dataDir, storageUnit));
       managers.putIfAbsent(storageUnit, manager);
     }
     return managers.get(storageUnit);

@@ -17,6 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.parquet.common.Config;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.TypeConflictedException;
@@ -58,9 +59,13 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final AppendQueue<K, F, V, T> appendQueue;
   private final ReadWriter<K, F, V, T> readerWriter;
 
-  public OneTierDB(Path dir, ReadWriter<K, F, V, T> readerWriter) throws IOException {
-    this.appendQueue = new AppendQueue<>(dir, readerWriter, 1);
+  private final Config config;
+
+  public OneTierDB(Config config, Path dir, ReadWriter<K, F, V, T> readerWriter)
+      throws IOException {
+    this.config = config;
     this.readerWriter = readerWriter;
+    this.appendQueue = new AppendQueue<>(dir, readerWriter, 1);
     reload();
   }
 
@@ -153,7 +158,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   public void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema)
       throws StorageException {
     try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, Constants.SIZE_INSERT_BATCH)) {
+        new BatchPlaneScanner<>(scanner, config.getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         checkBufferSize();
         deletedLock.readLock().lock();
@@ -172,7 +177,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   public void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema)
       throws StorageException {
     try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, Constants.SIZE_INSERT_BATCH)) {
+        new BatchPlaneScanner<>(scanner, config.getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         checkBufferSize();
         deletedLock.readLock().lock();
@@ -198,12 +203,12 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   private void checkBufferSize() {
-    if (inserted.sum() < Constants.MAX_MEM_SIZE) {
+    if (inserted.sum() < config.getWriteBufferSize()) {
       return;
     }
 
     synchronized (inserted) {
-      if (inserted.sum() < Constants.MAX_MEM_SIZE) {
+      if (inserted.sum() < config.getWriteBufferSize()) {
         return;
       }
       LOGGER.info("flushing is triggered when write buffer reaching {}", Constants.MAX_MEM_SIZE);

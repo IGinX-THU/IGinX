@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.parquet.common.Config;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -51,7 +52,7 @@ public class DummyManager implements Manager {
 
   private final String prefix;
 
-  public DummyManager(@NotNull Path dummyDir, @NotNull String prefix) {
+  public DummyManager(@NotNull Path dummyDir, Config config, @NotNull String prefix) {
     this.dir = dummyDir;
     this.prefix = prefix;
   }
