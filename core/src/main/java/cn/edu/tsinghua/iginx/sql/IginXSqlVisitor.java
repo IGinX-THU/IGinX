@@ -838,7 +838,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
               throw new SQLParserException(
                   "SELECT constant arithmetic expression isn't supported yet.");
             } else {
-              selectStatement.setExpression(expression);
+              selectStatement.addSelectClauseExpression(expression);
             }
           });
     }
@@ -859,7 +859,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       parseLimitClause(ctx.limitClause(), subStatement);
     }
 
-    selectStatement.setExpression(new FromValueExpression(subStatement));
+    selectStatement.addSelectClauseExpression(new FromValueExpression(subStatement));
     selectStatement.setHasValueToSelectedPath(true);
   }
 
@@ -936,7 +936,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                   selectedPath = expression.getColumnName();
                 }
                 BaseExpression baseExpression = new BaseExpression(selectedPath);
-                selectStatement.setSelectedPaths(baseExpression, false);
+//                selectStatement.addExpression(baseExpression, isFromSelectClause);
                 ret.add(baseExpression);
               });
     } else {
@@ -1009,7 +1009,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     } else {
       BaseExpression expression = new BaseExpression(selectedPath);
       if (isFromSelectClause) {
-        selectStatement.setSelectedPaths(expression);
+        selectStatement.addPathSet(selectedPath);
       }
       return expression;
     }
