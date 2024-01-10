@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableMeta;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Iterator;
@@ -118,7 +119,10 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
       cacheSlotNumber.acquire(maxCacheNumber);
       LOGGER.info("clearing data of {}", dir);
       queue.clear();
-      MoreFiles.deleteRecursively(dir);
+      MoreFiles.deleteDirectoryContents(dir, RecursiveDeleteOption.ALLOW_INSECURE);
+      Files.deleteIfExists(dir);
+    } catch (NoSuchFileException ignored) {
+      LOGGER.debug("delete not existed dir named {} ", dir, ignored);
     } catch (InterruptedException | IOException e) {
       throw new StorageException(e);
     } finally {

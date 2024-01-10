@@ -197,7 +197,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       T old = this.schema.putIfAbsent(entry.getKey(), entry.getValue());
       if (old != null && !old.equals(entry.getValue())) {
         throw new TypeConflictedException(
-            old.toString(), entry.getValue().toString(), entry.getKey().toString());
+            entry.getKey().toString(), entry.getValue().toString(), old.toString());
       }
     }
   }
