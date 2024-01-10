@@ -34,10 +34,7 @@ import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
@@ -61,6 +58,7 @@ public class DummyManager implements Manager {
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
       throws PhysicalException {
     Table table = new Table();
+    Set<String> projectedPath = new HashSet<>();
     for (Path path : getFilePaths()) {
       Set<String> pathsInFile;
       try {
@@ -84,10 +82,11 @@ public class DummyManager implements Manager {
           throw new PhysicalException("failed to load data from " + path, e);
         }
       }
+      projectedPath.addAll(filePaths);
     }
     List<cn.edu.tsinghua.iginx.parquet.manager.dummy.Column> columns =
         table.toColumns().stream()
-            .filter(column -> paths.contains(column.getPathName()))
+            .filter(column -> projectedPath.contains(column.getPathName()))
             .collect(Collectors.toList());
     columns.forEach(
         column -> {
