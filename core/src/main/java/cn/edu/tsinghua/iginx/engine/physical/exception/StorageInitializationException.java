@@ -25,8 +25,4 @@ public class StorageInitializationException extends PhysicalException {
   public StorageInitializationException(String message) {
     super(message);
   }
-
-  public StorageInitializationException(String message, Throwable cause) {
-    super(message, cause);
-  }
 }
