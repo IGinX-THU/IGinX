@@ -23,6 +23,7 @@ jobs:
                     [
                         "InfluxDB",
                         "Redis",
+                        "Parquet",
                         "PostgreSQL",
                         "Parquet",
                         "FileSystem",
