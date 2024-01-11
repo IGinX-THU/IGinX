@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause;
 
-import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
@@ -18,8 +17,6 @@ public class WhereClause {
 
   private boolean hasValueFilter;
 
-  private final List<Expression> expressions;
-
   private long startKey;
 
   private long endKey;
@@ -29,7 +26,6 @@ public class WhereClause {
   public WhereClause() {
     this.whereSubQueryParts = new ArrayList<>();
     this.hasValueFilter = false;
-    this.expressions = new ArrayList<>();
     this.pathSet = new HashSet<>();
   }
 
@@ -63,14 +59,6 @@ public class WhereClause {
 
   public void setHasValueFilter(boolean hasValueFilter) {
     this.hasValueFilter = hasValueFilter;
-  }
-
-  public void addExpression(Expression expression) {
-    expressions.add(expression);
-  }
-
-  public List<Expression> getExpressions() {
-    return expressions;
   }
 
   public long getStartKey() {

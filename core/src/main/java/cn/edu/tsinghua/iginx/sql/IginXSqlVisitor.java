@@ -936,7 +936,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                   selectedPath = expression.getColumnName();
                 }
                 BaseExpression baseExpression = new BaseExpression(selectedPath);
-                //                selectStatement.addExpression(baseExpression, isFromSelectClause);
                 ret.add(baseExpression);
               });
     } else {
@@ -1310,9 +1309,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       } else if (ctx.expression().size() == 2) {
         return parseExprFilter(ctx, (UnarySelectStatement) statement);
       } else if (ctx.path().size() == 1) {
-        return parseValueFilter(ctx, (UnarySelectStatement) statement);
+        return parseValueFilter(ctx, (UnarySelectStatement) statement, isHavingFilter);
       } else {
-        return parsePathFilter(ctx, (UnarySelectStatement) statement);
+        return parsePathFilter(ctx, (UnarySelectStatement) statement, isHavingFilter);
       }
     }
   }
@@ -1335,7 +1334,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return new ExprFilter(expressionA, op, expressionB);
   }
 
-  private Filter parseValueFilter(PredicateContext ctx, UnarySelectStatement statement) {
+  private Filter parseValueFilter(
+      PredicateContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     String path = parsePath(ctx.path().get(0));
     String originPath = path;
     // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
@@ -1345,7 +1345,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
     }
     if (!statement.isFreeVariable(path)) {
-      statement.addWherePath(originPath);
+      if (isHavingFilter) {
+        statement.addHavingPath(originPath);
+      } else {
+        statement.addWherePath(originPath);
+      }
     }
 
     // deal with having filter with functions like having avg(a) > 3.
@@ -1376,7 +1380,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return new ValueFilter(path, op, value);
   }
 
-  private Filter parsePathFilter(PredicateContext ctx, UnarySelectStatement statement) {
+  private Filter parsePathFilter(
+      PredicateContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     String pathA = parsePath(ctx.path().get(0));
     String originPathA = pathA;
     String pathB = parsePath(ctx.path().get(1));
@@ -1393,10 +1398,18 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       pathB = fromPart.getPrefix() + SQLConstant.DOT + pathB;
     }
     if (!statement.isFreeVariable(pathA)) {
-      statement.addWherePath(originPathA);
+      if (isHavingFilter) {
+        statement.addHavingPath(originPathA);
+      } else {
+        statement.addWherePath(originPathA);
+      }
     }
     if (!statement.isFreeVariable(pathB)) {
-      statement.addWherePath(originPathB);
+      if (isHavingFilter) {
+        statement.addHavingPath(originPathB);
+      } else {
+        statement.addWherePath(originPathB);
+      }
     }
     return new PathFilter(pathA, op, pathB);
   }

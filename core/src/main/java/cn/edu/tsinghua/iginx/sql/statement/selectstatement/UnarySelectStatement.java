@@ -137,14 +137,6 @@ public class UnarySelectStatement extends SelectStatement {
     setHasValueFilter(true);
   }
 
-  public void addExpression(Expression expression, boolean isSelectClause) {
-    if (isSelectClause) {
-      addSelectClauseExpression(expression);
-    } else {
-      addWhereClauseExpression(expression);
-    }
-  }
-
   public boolean hasFunc() {
     return selectClause.hasFunc();
   }
@@ -269,6 +261,7 @@ public class UnarySelectStatement extends SelectStatement {
     pathSet.addAll(selectClause.getPathSet());
     pathSet.addAll(whereClause.getPathSet());
     pathSet.addAll(groupByClause.getPathSet());
+    pathSet.addAll(havingClause.getPathSet());
     return pathSet;
   }
 
@@ -282,6 +275,10 @@ public class UnarySelectStatement extends SelectStatement {
 
   public void addWherePath(String path) {
     whereClause.addPath(path);
+  }
+
+  public void addHavingPath(String path) {
+    havingClause.addPath(path);
   }
 
   public List<SubQueryFromPart> getSelectSubQueryParts() {
@@ -404,17 +401,11 @@ public class UnarySelectStatement extends SelectStatement {
   public List<Expression> getExpressions() {
     List<Expression> expressions = new ArrayList<>();
     expressions.addAll(selectClause.getExpressions());
-    expressions.addAll(whereClause.getExpressions());
-
     return expressions;
   }
 
   public void addSelectClauseExpression(Expression expression) {
     selectClause.addExpression(expression);
-  }
-
-  public void addWhereClauseExpression(Expression expression) {
-    whereClause.addExpression(expression);
   }
 
   public Map<String, String> getSelectAliasMap() {
