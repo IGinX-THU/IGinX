@@ -653,13 +653,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     boolean hasIntersect = false;
     Header headerA = tableA.getHeader();
     Header headerB = tableB.getHeader();
-    logger.info("executeJoin headerAField:{}, headerB:{}", headerA.getFields(), headerB.getFields());
     // 检查 field，暂时不需要
     for (Field field : headerA.getFields()) {
-      logger.info("executeJoin field:{}", field);
-      logger.info("executeJoin field full name:{}", field.getFullName());
       Field relatedField = headerB.getFieldByName(field.getFullName());
-      logger.info("executeJoin relatedField:{}", relatedField);
       if (relatedField != null) {
         if (relatedField.getType() != field.getType()) {
           throw new PhysicalException(
