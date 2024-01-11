@@ -40,11 +40,10 @@ fi
 
 MAIN_CLASS=cn.edu.tsinghua.iginx.Iginx
 
-CLASSPATH=""
+CLASSPATH="$IGINX_HOME/conf"
 for f in "$IGINX_HOME"/lib/*.jar; do
   CLASSPATH=${CLASSPATH}:${f}
 done
-CLASSPATH=${CLASSPATH:1} # remove first ":"
 
 if [ -n "$JAVA_HOME" ]; then
   for java in "$JAVA_HOME"/bin/amd64/java "$JAVA_HOME"/bin/java; do
