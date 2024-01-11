@@ -72,6 +72,11 @@ public class SelectClause {
     return funcExpressionMap;
   }
 
+  /**
+   * 通过函数名，以及str2FuncType函数，获取函数类型的集合
+   *
+   * @return 函数类型的集合
+   */
   public Set<FuncType> getFuncTypeSet() {
     Set<FuncType> funcTypeSet = new HashSet<>();
     for (Map.Entry<String, List<FuncExpression>> entry : funcExpressionMap.entrySet()) {

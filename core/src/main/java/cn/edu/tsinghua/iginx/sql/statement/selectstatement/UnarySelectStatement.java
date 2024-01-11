@@ -201,6 +201,11 @@ public class UnarySelectStatement extends SelectStatement {
     selectClause.addFuncExpressionMap(func, expressions);
   }
 
+  /**
+   * 获取ExpressionList中获取所有的BaseExpression，包括嵌套的BaseExpression
+   *
+   * @return BaseExpression列表
+   */
   public List<BaseExpression> getBaseExpressionList() {
     List<BaseExpression> baseExpressionList = new ArrayList<>();
     Queue<Expression> queue = new LinkedList<>(getExpressions());
