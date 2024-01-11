@@ -86,7 +86,7 @@ public class StorageManager {
     } catch (ClassNotFoundException e) {
       LOGGER.error("load class {} for engine {} failure", driver, engine, e);
     } catch (Exception e) {
-      LOGGER.error("unexpected error when process engine {}", engine, e);
+      LOGGER.error("unexpected error when new engine {} with {}", engine, meta, e);
     } finally {
       try {
         if (needRelease) {
@@ -115,7 +115,7 @@ public class StorageManager {
       LOGGER.error("load class {} for engine {} failure", driver, engine, e);
       return false;
     } catch (Exception e) {
-      LOGGER.error("unexpected error when process engine {}", engine, e);
+      LOGGER.error("unexpected error when new engine {} with {}", engine, meta, e);
       return false;
     }
     return true;
@@ -213,7 +213,7 @@ public class StorageManager {
       LOGGER.error("load class {} for engine {} failure", driver, engine, e);
       return null;
     } catch (Exception e) {
-      LOGGER.error("add storage {} failure!", meta);
+      LOGGER.error("add storage {} failure!", meta, e);
       return null;
     }
   }
