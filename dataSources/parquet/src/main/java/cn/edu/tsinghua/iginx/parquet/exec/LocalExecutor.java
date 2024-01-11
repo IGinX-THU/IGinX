@@ -40,6 +40,7 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -56,6 +57,8 @@ public class LocalExecutor implements Executor {
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalExecutor.class);
 
   public String dataDir;
+
+  public String dummyDir;
 
   private final Map<String, Manager> managers = new ConcurrentHashMap<>();
 
@@ -75,7 +78,7 @@ public class LocalExecutor implements Executor {
 
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
-    if (hasData) {
+    if (this.dummyDir != null) {
       String embeddedPrefix;
       if (dirPrefix == null || dirPrefix.isEmpty()) {
         embeddedPrefix = Paths.get(dataDir).getFileName().toString();
@@ -87,7 +90,7 @@ public class LocalExecutor implements Executor {
       dummyManager = new EmptyManager();
     }
 
-    if (!(hasData && readOnly)) {
+    if (this.dataDir != null) {
       recoverFromDisk();
     }
 
@@ -120,6 +123,7 @@ public class LocalExecutor implements Executor {
         throw new StorageInitializationException(
             String.format("Dummy dir %s is not a directory.", dummy_dir));
       }
+      this.dummyDir = dummy_dir;
     }
 
     if (!(has_data && read_only)) {
@@ -163,24 +167,27 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private void recoverFromDisk() {
-    File file = new File(dataDir);
-    File[] duDirs = file.listFiles();
-    if (duDirs != null) {
-      for (File duDir : duDirs) {
-        if (duDir.isFile()) continue;
+  private void recoverFromDisk() throws StorageInitializationException {
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(dataDir))) {
+      for (Path path : stream) {
+        if (!Files.isDirectory(path)) continue;
         try {
-          LOGGER.info("recovering {} from disk", duDir);
-          Manager manager = new DataManager(config, duDir.toPath());
-          managers.putIfAbsent(duDir.getName(), manager);
-        } catch (IOException e) {
-          LOGGER.error("fail to recovery {} from disk ", duDir, e);
+          LOGGER.info("recovering {} from disk", path);
+          getOrCreateManager(path.getFileName().toString());
+        } catch (PhysicalException e) {
+          throw new RuntimeException(e);
         }
       }
+    } catch (IOException e) {
+      throw new StorageInitializationException(
+          String.format("Error reading data dir %s: %s", dataDir, e));
     }
   }
 
-  private Manager getOrCreateManager(String storageUnit) {
+  private Manager getOrCreateManager(String storageUnit) throws PhysicalException {
+    if (dataDir == null) {
+      throw new PhysicalException("data dir not provided");
+    }
     return managers.computeIfAbsent(
         storageUnit,
         s -> {
