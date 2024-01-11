@@ -128,12 +128,7 @@ public class RemoteExecutor implements Executor {
                   }
                 });
         RowStream rowStream = new Table(header, rowList);
-          try {
-              logger.info("execute remote project task success,{},{},{},{},{},{}",paths,tagFilter,filter,storageUnit,isDummyStorageUnit,rowStream.getHeader());
-          } catch (PhysicalException e) {
-              throw new RuntimeException(e);
-          }
-          return new TaskExecuteResult(rowStream, null);
+        return new TaskExecuteResult(rowStream, null);
       } else {
         return new TaskExecuteResult(
             null, new PhysicalException("execute remote project task error"));
