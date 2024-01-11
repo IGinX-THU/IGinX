@@ -398,6 +398,11 @@ public abstract class BaseCapacityExpansionIT {
     pathList = Collections.singletonList("p2.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
+    // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
+    statement = "select wt01.status2 from p3.nt.wf03;";
+    pathList = Collections.singletonList("p3.nt.wf03.wt01.status2");
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
     try {
       SessionExecuteSqlResult clusterInfo = session.executeSql("show cluster info;");
       clusterInfo.print(false,"");
@@ -422,11 +427,6 @@ public abstract class BaseCapacityExpansionIT {
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
     statement = "select wt01.status2 from nt.wf03;";
     pathList = Collections.singletonList("nt.wf03.wt01.status2");
-    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-
-    // 添加节点 dataPrefix = null && schemaPrefix = p3 后查询
-    statement = "select wt01.status2 from p3.nt.wf03;";
-    pathList = Collections.singletonList("p3.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 session 接口测试移除节点
