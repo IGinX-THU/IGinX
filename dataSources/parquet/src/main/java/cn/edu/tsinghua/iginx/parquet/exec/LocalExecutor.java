@@ -85,10 +85,8 @@ public class LocalExecutor implements Executor {
       } else {
         embeddedPrefix = dirPrefix;
       }
-      LOGGER.info("embedded prefix: {}", embeddedPrefix);
-      dummyManager = new DummyManager(this.dummyDir, this.config, embeddedPrefix);
+      dummyManager = new DummyManager(Paths.get(dummyDir), this.config, embeddedPrefix);
     } else {
-      LOGGER.info("no dummy dir provided");
       dummyManager = new EmptyManager();
     }
 
@@ -128,7 +126,7 @@ public class LocalExecutor implements Executor {
       this.dummyDir = Paths.get(dummy_dir);
     }
 
-    if (!read_only) {
+    if (!(has_data && read_only)) {
       if (data_dir == null || data_dir.isEmpty()) {
         throw new StorageInitializationException("Dir not provided in non-dummy storage.");
       }
@@ -218,7 +216,6 @@ public class LocalExecutor implements Executor {
       RowStream rowStream = manager.project(paths, tagFilter, filter);
       rowStream = new ClearEmptyRowStreamWrapper(rowStream);
       rowStream = new FilterRowStreamWrapper(rowStream, filter);
-      LOGGER.info("project task executed,{},{},{},{},{},{}",paths,tagFilter,filter,storageUnit,isDummyStorageUnit,rowStream.getHeader());
       return new TaskExecuteResult(rowStream, null);
     } catch (PhysicalException e) {
       return new TaskExecuteResult(null, e);
