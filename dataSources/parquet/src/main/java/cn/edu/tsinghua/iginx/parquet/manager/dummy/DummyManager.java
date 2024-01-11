@@ -57,7 +57,7 @@ public class DummyManager implements Manager {
   @Override
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
       throws PhysicalException {
-    LOGGER.info("project paths: {}", paths);
+    LOGGER.debug("project paths: {}", paths);
     Table table = new Table();
     Set<String> projectedPath = new HashSet<>();
     for (Path path : getFilePaths()) {
@@ -72,7 +72,7 @@ public class DummyManager implements Manager {
       } catch (IOException e) {
         throw new PhysicalException("failed to load schema from " + path + " : " + e);
       }
-      LOGGER.info("paths in {}: {}", path, pathsInFile);
+      LOGGER.debug("paths in {}: {}", path, pathsInFile);
 
       List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
       filePaths.replaceAll(s -> s.substring(s.indexOf(".") + 1));
@@ -93,7 +93,7 @@ public class DummyManager implements Manager {
     columns.forEach(
         column -> {
           column.setPathName(prefix + "." + column.getPathName());
-          LOGGER.info(
+          LOGGER.debug(
               "return column {}, records={}", column.getPathName(), column.getData().size());
         });
     return new NewQueryRowStream(columns);
@@ -106,12 +106,12 @@ public class DummyManager implements Manager {
       for (String pattern : patterns) {
         Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(path);
         if (tagFilter == null) {
-          if (StringUtils.match(pattern, pair.getK())) {
+          if (StringUtils.match(pair.getK(), pattern)) {
             ret.add(path);
             break;
           }
         } else {
-          if (StringUtils.match(pattern, pair.getK())
+          if (StringUtils.match(pair.getK(), pattern)
               && cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils.match(
                   pair.getV(), tagFilter)) {
             ret.add(path);
