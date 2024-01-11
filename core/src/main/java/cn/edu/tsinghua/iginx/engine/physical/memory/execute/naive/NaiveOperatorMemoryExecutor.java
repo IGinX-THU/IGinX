@@ -669,7 +669,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         hasIntersect = true;
       }
     }
-    logger.info("executeJoin hasIntersect:{}", hasIntersect);
     if (hasIntersect) {
       return executeIntersectJoin(join, tableA, tableB);
     }
