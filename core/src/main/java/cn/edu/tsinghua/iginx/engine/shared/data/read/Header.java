@@ -61,6 +61,7 @@ public final class Header {
   }
 
   public Field getFieldByName(String name) {
+    System.out.println(indexMap);
     int index = indexMap.getOrDefault(name, -1);
     if (index == -1) {
       return null;
