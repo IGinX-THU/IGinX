@@ -166,7 +166,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Table tableB = transformToTable(streamB);
     tableA.setContext(context);
     tableB.setContext(context);
-    logger.info("execute {} TableA:{},{} with TableB:{},{}", operator.getType(), tableA.getRows(), tableA.getHeader(), tableB.getRows(), tableB.getHeader());
     switch (operator.getType()) {
       case Join:
         return executeJoin((Join) operator, tableA, tableB);
@@ -2065,6 +2064,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeIntersectJoin(Join join, Table tableA, Table tableB)
       throws PhysicalException {
+    logger.info("execute {} TableA:{},{} with TableB:{},{}", join, tableA.getRows(), tableA.getHeader(), tableB.getRows(), tableB.getHeader());
     Header headerA = tableA.getHeader();
     Header headerB = tableB.getHeader();
     List<Field> newFields = new ArrayList<>();
