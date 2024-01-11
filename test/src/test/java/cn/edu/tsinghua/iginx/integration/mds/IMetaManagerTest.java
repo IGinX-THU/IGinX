@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.*;
 
-public class IFileMetaManagerTest {
+public class IMetaManagerTest {
 
   private static IMetaManager iMetaManager;
 
