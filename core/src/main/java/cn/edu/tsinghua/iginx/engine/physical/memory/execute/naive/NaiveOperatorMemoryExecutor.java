@@ -2076,7 +2076,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Map<Field, Integer> fieldIndices = new HashMap<>();
     boolean containOverlappedKeys = false;
     for (Field field : headerA.getFields()) {
-      logger.info("field tags: {}",field.getTags());
       if (fieldIndices.containsKey(field)) {
         continue;
       }
@@ -2084,14 +2083,13 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       newFields.add(field);
     }
     for (Field field : headerB.getFields()) {
-      logger.info("field tags: {}",field.getTags());
       if (fieldIndices.containsKey(field)) {
         continue;
       }
       fieldIndices.put(field, newFields.size());
       newFields.add(field);
     }
-    logger.info("newFields:{}",newFields);
+
     // 目前只支持使用时间戳和顺序
     if (join.getJoinBy().equals(Constants.KEY)) {
       // 检查时间戳
@@ -2141,7 +2139,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         writeToNewRow(values, rowB, fieldIndices);
         newRows.add(new Row(newHeader, rowB.getKey(), values));
       }
-      logger.info("result:{},{}",newHeader,newRows);
       Table table = new Table(newHeader, newRows);
       RequestContext context = null;
       if (tableA.getContext() != null) {
