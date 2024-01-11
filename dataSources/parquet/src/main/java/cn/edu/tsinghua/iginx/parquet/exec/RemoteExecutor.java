@@ -127,9 +127,9 @@ public class RemoteExecutor implements Executor {
                     rowList.add(new Row(header, values));
                   }
                 });
-        Table rowStream = new Table(header, rowList);
+        RowStream rowStream = new Table(header, rowList);
           try {
-              logger.info("execute remote project task success,{},{},{},{},{},{},{}",paths,tagFilter,filter,storageUnit,isDummyStorageUnit,rowStream.getHeader(), rowStream.getRows());
+              logger.info("execute remote project task success,{},{},{},{},{},{},{}",paths,tagFilter,filter,storageUnit,isDummyStorageUnit,rowStream.getHeader(),rowStream);
           } catch (PhysicalException e) {
               throw new RuntimeException(e);
           }
