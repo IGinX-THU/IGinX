@@ -43,14 +43,17 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LocalExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LocalExecutor.class);
 
   public String dataDir;
 
@@ -84,7 +87,7 @@ public class LocalExecutor implements Executor {
       dummyManager = new EmptyManager();
     }
 
-    if (dataDir != null && !dataDir.isEmpty()) {
+    if (!(hasData && readOnly)) {
       recoverFromDisk();
     }
 
@@ -95,7 +98,7 @@ public class LocalExecutor implements Executor {
                   try {
                     close();
                   } catch (Throwable e) {
-                    logger.error("fail to close parquet executor", e);
+                    LOGGER.error("fail to close parquet executor", e);
                   }
                 }));
   }
@@ -117,34 +120,9 @@ public class LocalExecutor implements Executor {
         throw new StorageInitializationException(
             String.format("Dummy dir %s is not a directory.", dummy_dir));
       }
-      if (!read_only) {
-        if (data_dir == null || data_dir.isEmpty()) {
-          throw new StorageInitializationException(
-              "Data dir not provided in non-read-only storage.");
-        }
-        File dataFile = new File(data_dir);
-        if (dataFile.isFile()) {
-          throw new StorageInitializationException(
-              String.format("Data dir %s is not a directory.", data_dir));
-        }
-        try {
-          String dummyDirPath = new File(dummy_dir).getCanonicalPath();
-          String dirPath = new File(data_dir).getCanonicalPath();
-          if (dummyDirPath.equals(dirPath)) {
-            throw new StorageInitializationException(
-                String.format(
-                    "%s can't be used as dummy dir and data dir at same time.", dummy_dir));
-          }
-          this.dataDir = data_dir;
-          createDir(data_dir);
-        } catch (IOException e) {
-          throw new StorageInitializationException(
-              String.format(
-                  "Error reading dummy dir path %s and dir path %s: %s", dummy_dir, data_dir, e));
-        }
-      }
-    } else {
+    }
 
+    if (!(has_data && read_only)) {
       if (data_dir == null || data_dir.isEmpty()) {
         throw new StorageInitializationException("Dir not provided in non-dummy storage.");
       }
@@ -155,6 +133,21 @@ public class LocalExecutor implements Executor {
       }
       this.dataDir = data_dir;
       createDir(data_dir);
+    }
+
+    if (has_data && !read_only) {
+      try {
+        String dummyDirPath = new File(dummy_dir).getCanonicalPath();
+        String dirPath = new File(data_dir).getCanonicalPath();
+        if (dummyDirPath.equals(dirPath)) {
+          throw new StorageInitializationException(
+              String.format("%s can't be used as dummy dir and data dir at same time.", dummy_dir));
+        }
+      } catch (IOException e) {
+        throw new StorageInitializationException(
+            String.format(
+                "Error reading dummy dir path %s and dir path %s: %s", dummy_dir, data_dir, e));
+      }
     }
   }
 
@@ -177,25 +170,26 @@ public class LocalExecutor implements Executor {
       for (File duDir : duDirs) {
         if (duDir.isFile()) continue;
         try {
-          logger.info("recovering {} from disk", duDir);
+          LOGGER.info("recovering {} from disk", duDir);
           Manager manager = new DataManager(config, duDir.toPath());
           managers.putIfAbsent(duDir.getName(), manager);
         } catch (IOException e) {
-          logger.error("fail to recovery {} from disk ", duDir, e);
+          LOGGER.error("fail to recovery {} from disk ", duDir, e);
         }
       }
     }
   }
 
-  private Manager getOrCreateManager(String storageUnit) throws IOException, PhysicalException {
-    if (!managers.containsKey(storageUnit)) {
-      if (dataDir == null || dataDir.isEmpty()) {
-        throw new PhysicalException("dataDir is null or empty");
-      }
-      Manager manager = new DataManager(config, Paths.get(dataDir, storageUnit));
-      managers.putIfAbsent(storageUnit, manager);
-    }
-    return managers.get(storageUnit);
+  private Manager getOrCreateManager(String storageUnit) {
+    return managers.computeIfAbsent(
+        storageUnit,
+        s -> {
+          try {
+            return new DataManager(config, Paths.get(dataDir, storageUnit));
+          } catch (IOException e) {
+            throw new RuntimeException(e);
+          }
+        });
   }
 
   @Override
@@ -218,8 +212,6 @@ public class LocalExecutor implements Executor {
       return new TaskExecuteResult(rowStream, null);
     } catch (PhysicalException e) {
       return new TaskExecuteResult(null, e);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -231,8 +223,6 @@ public class LocalExecutor implements Executor {
       return new TaskExecuteResult(null, null);
     } catch (PhysicalException e) {
       return new TaskExecuteResult(null, e);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -245,8 +235,6 @@ public class LocalExecutor implements Executor {
       return new TaskExecuteResult(null, null);
     } catch (PhysicalException e) {
       return new TaskExecuteResult(null, e);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     }
   }
 
@@ -298,12 +286,12 @@ public class LocalExecutor implements Executor {
 
   @Override
   public void close() throws PhysicalException {
-    logger.info("closing...");
+    LOGGER.info("closing...");
     for (Manager manager : managers.values()) {
       try {
         manager.close();
       } catch (Throwable e) {
-        logger.error("fail to close manager", e);
+        LOGGER.error("fail to close manager", e);
       }
     }
     managers.clear();
