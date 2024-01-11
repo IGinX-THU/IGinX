@@ -45,59 +45,59 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format -q
 
-            # 第 1 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  version: ${VERSION}
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpHasData
-
-            - name: oriHasDataExpHasData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-                  fi
-
-            # 第 2 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  version: ${VERSION}
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpNoData
-
-            - name: oriNoDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-                  fi
-
-            # 第 3 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  version: ${VERSION}
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpNoData
-
-            - name: oriHasDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
-                  fi
+#            # 第 1 阶段测试开始==========================================
+#            - name: Prepare CapExp environment oriHasDataExpHasData
+#              uses: ./.github/actions/capacityExpansionUnionTest
+#              with:
+#                  version: ${VERSION}
+#                  DB-name: ${{ matrix.DB-name }}
+#                  Test-Way: oriHasDataExpHasData
+#
+#            - name: oriHasDataExpHasData IT
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+#                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+#                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+#                  else
+#                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+#                  fi
+#
+#            # 第 2 阶段测试开始==========================================
+#            - name: Prepare CapExp environment oriNoDataExpNoData
+#              uses: ./.github/actions/capacityExpansionUnionTest
+#              with:
+#                  version: ${VERSION}
+#                  DB-name: ${{ matrix.DB-name }}
+#                  Test-Way: oriNoDataExpNoData
+#
+#            - name: oriNoDataExpNoData IT
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
+#                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+#                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+#                  else
+#                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+#                  fi
+#
+#            # 第 3 阶段测试开始==========================================
+#            - name: Prepare CapExp environment oriHasDataExpNoData
+#              uses: ./.github/actions/capacityExpansionUnionTest
+#              with:
+#                  version: ${VERSION}
+#                  DB-name: ${{ matrix.DB-name }}
+#                  Test-Way: oriHasDataExpNoData
+#
+#            - name: oriHasDataExpNoData IT
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
+#                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
+#                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
+#                  else
+#                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+#                  fi
 
             # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData

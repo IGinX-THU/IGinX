@@ -16,6 +16,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
@@ -387,7 +388,7 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3);
     testShowClusterInfo(7);
 
-    // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
+      // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     statement = "select wt01.status2 from p1.nt.wf03;";
     pathList = Collections.singletonList("p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
@@ -396,6 +397,13 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select wt01.status2 from p2.nt.wf03;";
     pathList = Collections.singletonList("p2.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    try {
+      SessionExecuteSqlResult clusterInfo = session.executeSql("show cluster info;");
+      clusterInfo.print(false,"");
+    } catch (SessionException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
     statement = "select wt01.status2 from nt.wf03;";
