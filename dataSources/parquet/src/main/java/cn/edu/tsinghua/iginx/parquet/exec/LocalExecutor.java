@@ -56,9 +56,9 @@ public class LocalExecutor implements Executor {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalExecutor.class);
 
-  public String dataDir;
+  public Path dataDir;
 
-  public String dummyDir;
+  public Path dummyDir;
 
   private final Map<String, Manager> managers = new ConcurrentHashMap<>();
 
@@ -123,7 +123,7 @@ public class LocalExecutor implements Executor {
         throw new StorageInitializationException(
             String.format("Dummy dir %s is not a directory.", dummy_dir));
       }
-      this.dummyDir = dummy_dir;
+      this.dummyDir = Paths.get(dummy_dir);
     }
 
     if (!(has_data && read_only)) {
@@ -135,7 +135,7 @@ public class LocalExecutor implements Executor {
         throw new StorageInitializationException(
             String.format("Data dir %s is not a directory.", data_dir));
       }
-      this.dataDir = data_dir;
+      this.dataDir = Paths.get(data_dir);
       createDir(data_dir);
     }
 
@@ -168,7 +168,7 @@ public class LocalExecutor implements Executor {
   }
 
   private void recoverFromDisk() throws StorageInitializationException {
-    try (DirectoryStream<Path> stream = Files.newDirectoryStream(Paths.get(dataDir))) {
+    try (DirectoryStream<Path> stream = Files.newDirectoryStream(dataDir)) {
       for (Path path : stream) {
         if (!Files.isDirectory(path)) continue;
         try {
@@ -192,7 +192,7 @@ public class LocalExecutor implements Executor {
         storageUnit,
         s -> {
           try {
-            return new DataManager(config, Paths.get(dataDir, storageUnit));
+            return new DataManager(config, dataDir.resolve(s));
           } catch (IOException e) {
             throw new RuntimeException(e);
           }

@@ -57,6 +57,7 @@ public class DummyManager implements Manager {
   @Override
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
       throws PhysicalException {
+    LOGGER.info("project paths: {}", paths);
     Table table = new Table();
     Set<String> projectedPath = new HashSet<>();
     for (Path path : getFilePaths()) {
@@ -71,6 +72,7 @@ public class DummyManager implements Manager {
       } catch (IOException e) {
         throw new PhysicalException("failed to load schema from " + path + " : " + e);
       }
+      LOGGER.info("paths in {}: {}", path, pathsInFile);
 
       List<String> filePaths = determinePathList(pathsInFile, paths, tagFilter);
       filePaths.replaceAll(s -> s.substring(s.indexOf(".") + 1));
@@ -91,6 +93,8 @@ public class DummyManager implements Manager {
     columns.forEach(
         column -> {
           column.setPathName(prefix + "." + column.getPathName());
+          LOGGER.info(
+              "return column {}, records={}", column.getPathName(), column.getData().size());
         });
     return new NewQueryRowStream(columns);
   }
