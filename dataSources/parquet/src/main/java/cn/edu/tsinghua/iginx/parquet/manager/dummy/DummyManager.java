@@ -154,8 +154,18 @@ public class DummyManager implements Manager {
 
   @Override
   public KeyInterval getKeyInterval() throws PhysicalException {
-    // TODO: get key interval from parquet files
-    return new KeyInterval(0, Long.MAX_VALUE);
+    long max = 0;
+    for (Path path : getFilePaths()) {
+      try {
+        long count = new Loader(path).getRowCount();
+        if (count > max) {
+          max = count;
+        }
+      } catch (IOException e) {
+        throw new PhysicalException("failed to get row count from " + path + ": " + e);
+      }
+    }
+    return new KeyInterval(0, max);
   }
 
   @Override

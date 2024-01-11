@@ -26,6 +26,7 @@ import java.util.Objects;
 import java.util.Set;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
+import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.LocalInputFile;
@@ -42,22 +43,15 @@ public class IParquetReader implements AutoCloseable {
 
   private final ParquetRecordReader<IRecord> internalReader;
   private final MessageType schema;
-
-  private final Map<String, String> extra;
+  private final ParquetMetadata metadata;
 
   private long count = 0;
 
   private IParquetReader(
-      ParquetRecordReader<IRecord> internalReader, MessageType schema, Map<String, String> extra) {
+      ParquetRecordReader<IRecord> internalReader, MessageType schema, ParquetMetadata metadata) {
     this.internalReader = internalReader;
     this.schema = schema;
-    this.extra = extra;
-  }
-
-  private IParquetReader(MessageType schema, Map<String, String> extra) {
-    this.extra = extra;
-    this.internalReader = null;
-    this.schema = schema;
+    this.metadata = metadata;
   }
 
   public static Builder builder(Path path) {
@@ -69,7 +63,7 @@ public class IParquetReader implements AutoCloseable {
   }
 
   public Map<String, String> getExtra() {
-    return Collections.unmodifiableMap(extra);
+    return Collections.unmodifiableMap(metadata.getFileMetaData().getKeyValueMetaData());
   }
 
   public IRecord read() throws IOException {
@@ -91,6 +85,10 @@ public class IParquetReader implements AutoCloseable {
     LOGGER.info("read {} records", count);
   }
 
+  public long getRowCount() {
+    return metadata.getBlocks().stream().mapToLong(BlockMetaData::getRowCount).sum();
+  }
+
   public static class Builder {
 
     private final ParquetReadOptions.Builder optionsBuilder = ParquetReadOptions.builder();
@@ -110,7 +108,6 @@ public class IParquetReader implements AutoCloseable {
       }
 
       MessageType schema = footer.getFileMetaData().getSchema();
-
       MessageType requestedSchema;
       if (fields == null) {
         requestedSchema = schema;
@@ -119,17 +116,15 @@ public class IParquetReader implements AutoCloseable {
         LOGGER.info("project schema with {} as {}", fields, requestedSchema);
       }
 
-      Map<String, String> extra = footer.getFileMetaData().getKeyValueMetaData();
-
       if (skip) {
-        return new IParquetReader(requestedSchema, extra);
+        return new IParquetReader(null, requestedSchema, footer);
       }
 
       ParquetFileReader reader = new ParquetFileReader(localInputfile, footer, options);
       reader.setRequestedSchema(requestedSchema);
       ParquetRecordReader<IRecord> internalReader =
           new ParquetRecordReader<>(new IRecordMaterializer(requestedSchema), reader, options);
-      return new IParquetReader(internalReader, requestedSchema, extra);
+      return new IParquetReader(internalReader, requestedSchema, footer);
     }
 
     public Builder project(Set<String> fields) {

@@ -41,6 +41,17 @@ public class Loader {
     return path;
   }
 
+  public long getRowCount() throws IOException {
+    IParquetReader.Builder builder = IParquetReader.builder(path);
+    try (IParquetReader reader = builder.build()) {
+      return reader.getRowCount();
+    } catch (IOException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new IOException("unexpected reader error!", e);
+    }
+  }
+
   public List<Field> getHeader() throws IOException {
     Table table = new Table();
     IParquetReader.Builder builder = IParquetReader.builder(path);
