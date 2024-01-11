@@ -9,11 +9,13 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.entity.NewQueryRowStream;
 import cn.edu.tsinghua.iginx.parquet.tools.FileUtils;
+import cn.edu.tsinghua.iginx.parquet.tools.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.parquet.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -203,7 +205,7 @@ public class NewExecutor implements Executor {
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
       TagFilter tagFilter,
-      String filter,
+      Filter filter,
       String storageUnit,
       boolean isDummyStorageUnit) {
     DUManager duManager;
@@ -217,6 +219,7 @@ public class NewExecutor implements Executor {
       List<cn.edu.tsinghua.iginx.parquet.entity.Column> columns =
           duManager.project(paths, tagFilter, filter);
       RowStream rowStream = new ClearEmptyRowStreamWrapper(new NewQueryRowStream(columns));
+      rowStream = new FilterRowStreamWrapper(rowStream, filter);
       return new TaskExecuteResult(rowStream, null);
     } catch (SQLException e) {
       return new TaskExecuteResult(null, new PhysicalException("Fail to project data ", e));
