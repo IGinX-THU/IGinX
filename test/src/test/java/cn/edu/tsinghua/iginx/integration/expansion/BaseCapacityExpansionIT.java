@@ -405,6 +405,13 @@ public abstract class BaseCapacityExpansionIT {
       throw new RuntimeException(e);
     }
 
+    try {
+      SessionExecuteSqlResult explain = session.executeSql("explain select wt01.status2 from nt.wf03;");
+      logger.info("explain result: {}", explain.getResultInString(false,""));
+    } catch (SessionException | ExecutionException e) {
+      throw new RuntimeException(e);
+    }
+
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = null 后查询
     statement = "select wt01.status2 from nt.wf03;";
     pathList = Collections.singletonList("nt.wf03.wt01.status2");
