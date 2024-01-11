@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.controller;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.io.*;
@@ -16,19 +15,6 @@ public class TestEnvironmentController {
 
   private static final String ADD_STORAGE_ENGINE =
       "ADD STORAGEENGINE (\"%s\", %s, \"%s\", \"%s\");";
-
-  public TestEnvironmentController() {
-    session = new Session("127.0.0.1", 6888, "root", "root");
-    try {
-      session.openSession();
-    } catch (SessionException e) {
-      logger.error(e.getMessage());
-    }
-  }
-
-  public void addStorageEngine(StorageEngineMeta meta) throws Exception {
-    session.executeSql(toCmd(meta));
-  }
 
   public void setTestTasks(List<String> taskList, String filePath) {
     try {
