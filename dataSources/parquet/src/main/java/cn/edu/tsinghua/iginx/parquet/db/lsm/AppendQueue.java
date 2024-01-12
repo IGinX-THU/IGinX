@@ -18,7 +18,6 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.db.common.SequenceGenerator;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.FileTable;

@@ -96,7 +96,7 @@ class FilterRangeUtils {
     return result;
   }
 
-  public static AndFilter filterOf(Range<Long> range) {
+  public static Filter filterOf(Range<Long> range) {
     List<Filter> filters = new ArrayList<>();
     if (range.hasLowerBound()) {
       Op op = range.lowerBoundType() == BoundType.CLOSED ? Op.GE : Op.G;

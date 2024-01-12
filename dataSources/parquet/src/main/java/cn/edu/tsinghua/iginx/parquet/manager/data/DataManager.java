@@ -30,11 +30,11 @@ import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
-import cn.edu.tsinghua.iginx.parquet.db.common.scanner.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.OneTierDB;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
@@ -167,10 +167,16 @@ public class DataManager implements Manager {
   private Scanner<Long, Scanner<String, Object>> scan(
       Path path, Set<String> fields, Range<Long> range, Filter filter) throws IOException {
 
-    AndFilter unionFilter = FilterRangeUtils.filterOf(range);
+    List<Filter> filters = new ArrayList<>();
+
+    Filter rangeFilter = FilterRangeUtils.filterOf(range);
+    filters.add(rangeFilter);
+
     if (filter != null) {
-      unionFilter.getChildren().add(filter);
+      filters.add(filter);
     }
+
+    Filter unionFilter = new AndFilter(filters);
 
     return new Scanner<Long, Scanner<String, Object>>() {
       private final IParquetReader reader =

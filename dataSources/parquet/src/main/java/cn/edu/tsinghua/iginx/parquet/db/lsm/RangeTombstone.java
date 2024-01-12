@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.common;
+package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;

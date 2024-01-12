@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.common;
+package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.db.common.scanner.ColumnUnionRowScanner;
-import cn.edu.tsinghua.iginx.parquet.db.common.scanner.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.ColumnUnionRowScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.IteratorScanner;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;

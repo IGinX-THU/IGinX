@@ -22,16 +22,14 @@ import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
-import cn.edu.tsinghua.iginx.parquet.db.common.DataBuffer;
-import cn.edu.tsinghua.iginx.parquet.db.common.RangeTombstone;
-import cn.edu.tsinghua.iginx.parquet.db.common.scanner.BatchPlaneScanner;
-import cn.edu.tsinghua.iginx.parquet.db.common.scanner.ConcatScanner;
-import cn.edu.tsinghua.iginx.parquet.db.common.utils.SerializeUtils;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.BatchPlaneScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.ConcatScanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.SerializeUtils;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -105,7 +103,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
                 rangeTombstoneStr, readerWriter.getKeyFormat(), readerWriter.getFieldFormat());
         RangeTombstone.playback(rangeTombstone, readBuffer);
         for (Range<K> range : ranges.asRanges()) {
-          try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, range, filter)) {
+          try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, range)) {
             readBuffer.putRows(scanner);
           }
         }

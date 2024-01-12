@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.common.utils;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.utils;
 
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
-import cn.edu.tsinghua.iginx.parquet.db.common.RangeTombstone;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.RangeTombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
