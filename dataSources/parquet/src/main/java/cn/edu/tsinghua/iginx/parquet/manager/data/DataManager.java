@@ -290,7 +290,7 @@ public class DataManager implements Manager {
       }
     }
 
-    if (ProjectUtils.allMatched(paths) && tagFilter == null) {
+    if (StringUtils.allPathMatched(paths) && tagFilter == null) {
       if (rangeSet.isEmpty()) {
         db.delete();
       } else {
