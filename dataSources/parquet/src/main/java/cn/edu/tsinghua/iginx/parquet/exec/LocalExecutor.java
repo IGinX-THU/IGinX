@@ -31,6 +31,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.common.Config;
+import cn.edu.tsinghua.iginx.parquet.common.Constants;
+import cn.edu.tsinghua.iginx.parquet.common.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
@@ -47,10 +49,11 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class LocalExecutor implements Executor {
 
@@ -60,11 +63,13 @@ public class LocalExecutor implements Executor {
 
   public Path dummyDir;
 
-  private final Map<String, Manager> managers = new ConcurrentHashMap<>();
+  private final ConcurrentHashMap<String, Manager> managers = new ConcurrentHashMap<>();
 
   private final Manager dummyManager;
 
   private final Config config;
+
+  private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   public LocalExecutor(
       Config config,
@@ -188,9 +193,13 @@ public class LocalExecutor implements Executor {
     if (dataDir == null) {
       throw new PhysicalException("data dir not provided");
     }
+
     return managers.computeIfAbsent(
         storageUnit,
         s -> {
+          if (isClosed.get()) {
+            throw new IsClosedException("executor is closed: " + dataDir);
+          }
           try {
             return new DataManager(config, dataDir.resolve(s));
           } catch (IOException e) {
@@ -216,9 +225,9 @@ public class LocalExecutor implements Executor {
       RowStream rowStream = manager.project(paths, tagFilter, filter);
       rowStream = new ClearEmptyRowStreamWrapper(rowStream);
       rowStream = new FilterRowStreamWrapper(rowStream, filter);
-      return new TaskExecuteResult(rowStream, null);
+      return new TaskExecuteResult(rowStream);
     } catch (PhysicalException e) {
-      return new TaskExecuteResult(null, e);
+      return new TaskExecuteResult(e);
     }
   }
 
@@ -227,9 +236,9 @@ public class LocalExecutor implements Executor {
     try {
       Manager manager = getOrCreateManager(storageUnit);
       manager.insert(dataView);
-      return new TaskExecuteResult(null, null);
+      return new TaskExecuteResult();
     } catch (PhysicalException e) {
-      return new TaskExecuteResult(null, e);
+      return new TaskExecuteResult(e);
     }
   }
 
@@ -239,9 +248,9 @@ public class LocalExecutor implements Executor {
     try {
       Manager manager = getOrCreateManager(storageUnit);
       manager.delete(paths, keyRanges, tagFilter);
-      return new TaskExecuteResult(null, null);
+      return new TaskExecuteResult();
     } catch (PhysicalException e) {
-      return new TaskExecuteResult(null, e);
+      return new TaskExecuteResult(e);
     }
   }
 
@@ -294,13 +303,26 @@ public class LocalExecutor implements Executor {
   @Override
   public void close() throws PhysicalException {
     LOGGER.info("closing...");
-    for (Manager manager : managers.values()) {
-      try {
-        manager.close();
-      } catch (Throwable e) {
-        LOGGER.error("fail to close manager", e);
-      }
+
+    try {
+      dummyManager.close();
+    } catch (Throwable e) {
+      LOGGER.error("fail to close dummy manager", e);
     }
-    managers.clear();
+
+    isClosed.set(true);
+
+    managers.forEach(
+        1,
+        (unit, manager) -> {
+          MDC.put(Constants.STORAGE_UNIT_NAME, unit);
+          try {
+            manager.close();
+          } catch (Throwable e) {
+            LOGGER.error("fail to close manager", e);
+          } finally {
+            MDC.remove(Constants.STORAGE_UNIT_NAME);
+          }
+        });
   }
 }

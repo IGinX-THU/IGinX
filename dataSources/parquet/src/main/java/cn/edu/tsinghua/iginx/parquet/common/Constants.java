@@ -44,4 +44,6 @@ public final class Constants {
   public static final String KEY_RANGE_NAME = "iginx.key.range";
 
   public static final long SEQUENCE_START = 0;
+
+  public static final String STORAGE_UNIT_NAME = "storageUnit";
 }

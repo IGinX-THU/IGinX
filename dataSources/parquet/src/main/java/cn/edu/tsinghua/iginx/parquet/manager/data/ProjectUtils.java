@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.parquet.common.exception.UnsupportedFilterException
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,10 +221,5 @@ class ProjectUtils {
       default:
         throw new IllegalStateException("unsupported op: " + op);
     }
-  }
-
-  public static boolean allMatched(List<String> paths) {
-    Pattern pattern = Pattern.compile("[*]+(.[*]+)*");
-    return paths.stream().anyMatch(s -> pattern.matcher(s).matches());
   }
 }
