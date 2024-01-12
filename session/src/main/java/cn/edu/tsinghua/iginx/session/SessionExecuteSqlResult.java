@@ -570,4 +570,8 @@ public class SessionExecuteSqlResult {
   public List<Long> getSessionIDs() {
     return sessionIDs;
   }
+
+  public Map<String, String> getConfigs() {
+    return configs;
+  }
 }
