@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.mongodb;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -239,7 +240,7 @@ public class MongoDBStorage implements IStorage {
       String id = msg.substring(msg.lastIndexOf(':') + 2, msg.length() - 2);
       return Long.parseLong(id);
     } catch (Exception e) {
-      throw new RuntimeException("failed to parse " + error, e);
+      throw new PhysicalRuntimeException("failed to parse " + error, e);
     }
   }
 
