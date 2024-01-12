@@ -52,7 +52,7 @@ public class FileTable<K extends Comparable<K>, F, V, T> implements Table<K, F, 
   public Scanner<K, Scanner<F, V>> scan(
       @Nonnull Set<F> fields, @Nonnull Range<K> range, @Nullable Filter predicate)
       throws IOException {
-    LOGGER.info("read {} where {} & {} from {}", fields, range, predicate, path);
+    LOGGER.debug("read {} where {} & {} from {}", fields, range, predicate, path);
     return readWriter.scanData(path, fields, range, predicate);
   }
 

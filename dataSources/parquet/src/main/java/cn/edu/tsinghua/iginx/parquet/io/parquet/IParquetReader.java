@@ -82,7 +82,7 @@ public class IParquetReader implements AutoCloseable {
     if (internalReader != null) {
       internalReader.close();
     }
-    LOGGER.info("read {} records", count);
+    LOGGER.debug("read {} records", count);
   }
 
   public long getRowCount() {
@@ -113,7 +113,7 @@ public class IParquetReader implements AutoCloseable {
         requestedSchema = schema;
       } else {
         requestedSchema = ProjectUtils.projectMessageType(schema, fields);
-        LOGGER.info("project schema with {} as {}", fields, requestedSchema);
+        LOGGER.debug("project schema with {} as {}", fields, requestedSchema);
       }
 
       if (skip) {
