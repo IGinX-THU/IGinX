@@ -16,7 +16,7 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                os: [ubuntu-latest, windows-latest]
+                os: [ubuntu-latest, windows-latest, macos-latest]
         runs-on: ${{ matrix.os}}
         env:
             STORAGE: zookeeper
@@ -37,7 +37,6 @@ jobs:
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
-
             - name: Run test for meta manager
               run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format
 
@@ -55,7 +54,7 @@ jobs:
             max-parallel: 20
             matrix:
                 java: [8]
-                os: [ubuntu-latest, windows-latest]
+                os: [ubuntu-latest, windows-latest, macos-latest]
         runs-on: ${{ matrix.os}}
         env:
             STORAGE: etcd
@@ -75,15 +74,7 @@ jobs:
                   restore-keys: ${{ runner.os }}-m2
 
             - name: Run ETCD
-              shell: bash
-              run: |
-                  if [ "$RUNNER_OS" != "Windows" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
-                  else
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_windows.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_windows.sh"
-                  fi
+              uses: ./.github/actions/etcdRunner
 
             - name: Run test for meta manager
               run: mvn test -q -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format

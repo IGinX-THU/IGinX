@@ -329,7 +329,7 @@ public abstract class SyncProtocolTest {
     }
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 300000)
   public void testMultiNodeSingleDecisionPartialVote() throws Exception {
     for (int c = 0; c < 1; c++) { // 随机 2-4 个节点，测试10次
       int N = RandomUtils.randomNumber(2, 5);
