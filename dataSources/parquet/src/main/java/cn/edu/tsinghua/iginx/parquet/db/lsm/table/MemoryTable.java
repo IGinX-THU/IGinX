@@ -63,7 +63,7 @@ public class MemoryTable<K extends Comparable<K>, F, V, T> implements Table<K, F
   public Scanner<K, Scanner<F, V>> scan(
       @Nonnull Set<F> fields, @Nonnull Range<K> range, @Nullable Filter predicate)
       throws IOException {
-    LOGGER.info("read {} where {} from {}", fields, range, buffer);
+    LOGGER.debug("read {} where {} from {},{}", fields, range, buffer.fields(), buffer.range());
     return buffer.scanRows(fields, range);
   }
 }
