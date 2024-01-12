@@ -167,16 +167,14 @@ public class DataManager implements Manager {
   private Scanner<Long, Scanner<String, Object>> scan(
       Path path, Set<String> fields, Range<Long> range, Filter filter) throws IOException {
 
-    List<Filter> filters = new ArrayList<>();
-
     Filter rangeFilter = FilterRangeUtils.filterOf(range);
-    filters.add(rangeFilter);
 
-    if (filter != null) {
-      filters.add(filter);
+    Filter unionFilter;
+    if (filter == null) {
+      unionFilter = rangeFilter;
+    } else {
+      unionFilter = new AndFilter(Arrays.asList(rangeFilter, filter));
     }
-
-    Filter unionFilter = new AndFilter(filters);
 
     return new Scanner<Long, Scanner<String, Object>>() {
       private final IParquetReader reader =

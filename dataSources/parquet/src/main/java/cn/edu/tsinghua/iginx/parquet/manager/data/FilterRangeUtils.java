@@ -18,7 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import com.google.common.collect.*;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 class FilterRangeUtils {
@@ -97,15 +97,30 @@ class FilterRangeUtils {
   }
 
   public static Filter filterOf(Range<Long> range) {
-    List<Filter> filters = new ArrayList<>();
+    Filter lFilter = null;
     if (range.hasLowerBound()) {
       Op op = range.lowerBoundType() == BoundType.CLOSED ? Op.GE : Op.G;
-      filters.add(new KeyFilter(op, range.lowerEndpoint()));
+      lFilter = new KeyFilter(op, range.lowerEndpoint());
     }
+
+    Filter rFilter = null;
     if (range.hasUpperBound()) {
       Op op = range.upperBoundType() == BoundType.CLOSED ? Op.LE : Op.L;
-      filters.add(new KeyFilter(op, range.upperEndpoint()));
+      rFilter = new KeyFilter(op, range.upperEndpoint());
     }
-    return new AndFilter(filters);
+
+    if (lFilter != null && rFilter != null) {
+      if (range.isEmpty()) {
+        return new BoolFilter(false);
+      } else { // !range.isEmpty()
+        return new AndFilter(Arrays.asList(lFilter, rFilter));
+      }
+    } else if (lFilter != null) { // rFilter == null
+      return lFilter;
+    } else if (rFilter != null) { // lFilter == null
+      return rFilter;
+    } else { // lFilter == null && rFilter == null
+      return new BoolFilter(true);
+    }
   }
 }
