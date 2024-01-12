@@ -62,10 +62,10 @@ public class Config {
     public static final String PARQUET_ROW_GROUP_SIZE = "parquet.row_group_size";
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
 
-    private long writeBufferSize = 64 * 1024 * 1024; // BYTE
-    private long writeBatchSize = 64 * 1024; // BYTE
-    private long parquetRowGroupSize = 2 * 1024 * 1024; // BYTE
-    private long parquetPageSize = 4 * 1024; // BYTE
+    private long writeBufferSize = 128 * 1024 * 1024; // BYTE
+    private long writeBatchSize = 1024 * 1024; // BYTE
+    private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
+    private long parquetPageSize = 8 * 1024; // BYTE
 
     private Builder() {}
 
