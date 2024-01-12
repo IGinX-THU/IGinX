@@ -16,7 +16,6 @@
 
 package cn.edu.tsinghua.iginx.parquet.common;
 
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Optional;
 
@@ -63,9 +62,6 @@ public class Config {
     public static final String PARQUET_ROW_GROUP_SIZE = "parquet.row_group_size";
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
 
-    private Path dataDir;
-    private Path dummyDir;
-    private String dummyPrefix;
     private long writeBufferSize = 64 * 1024 * 1024; // BYTE
     private long writeBatchSize = 64 * 1024; // BYTE
     private long parquetRowGroupSize = 2 * 1024 * 1024; // BYTE
