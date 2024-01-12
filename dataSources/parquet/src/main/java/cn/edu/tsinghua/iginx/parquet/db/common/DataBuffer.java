@@ -168,6 +168,13 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
     return scanners;
   }
 
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", DataBuffer.class.getSimpleName() + "{", "}")
+        .add("data=" + data)
+        .toString();
+  }
+
   public void close() throws StorageException {
     data.clear();
   }
