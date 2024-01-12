@@ -17,20 +17,20 @@
 package cn.edu.tsinghua.iginx.parquet.db.common;
 
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.LongSupplier;
 
-public class SequenceGenerator implements LongSupplier {
+public class SequenceGenerator {
 
-  private static final long DELTA = 1L;
+  private final AtomicLong current = new AtomicLong();
 
-  private final AtomicLong current = new AtomicLong();;
+  public long next() {
+    return current.incrementAndGet();
+  }
 
-  @Override
-  public long getAsLong() {
-    return current.getAndAdd(DELTA);
+  public void reset() {
+    reset(new AtomicLong().get());
   }
 
   public void reset(long last) {
-    current.set(last + DELTA);
+    current.set(last);
   }
 }

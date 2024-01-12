@@ -92,7 +92,7 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
     cacheSlotNumber.acquire();
 
     Path tablePath =
-        dir.resolve(String.format("%d%s", seqGen.getAsLong(), Constants.SUFFIX_FILE_PARQUET));
+        dir.resolve(String.format("%d%s", seqGen.next(), Constants.SUFFIX_FILE_PARQUET));
     TableEntity<K, F, V, T> entity = new TableEntity<>(tablePath, table, readWriter);
     flusher.submit(
         () -> {
@@ -119,6 +119,7 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
       cacheSlotNumber.acquire(maxCacheNumber);
       LOGGER.info("clearing data of {}", dir);
       queue.clear();
+      seqGen.reset();
       MoreFiles.deleteDirectoryContents(dir, RecursiveDeleteOption.ALLOW_INSECURE);
       Files.deleteIfExists(dir);
     } catch (NoSuchFileException ignored) {
