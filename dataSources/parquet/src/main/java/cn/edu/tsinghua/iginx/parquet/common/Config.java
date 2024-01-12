@@ -65,7 +65,7 @@ public class Config {
     private long writeBufferSize = 128 * 1024 * 1024; // BYTE
     private long writeBatchSize = 1024 * 1024; // BYTE
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
-    private long parquetPageSize = 8 * 1024; // BYTE
+    private long parquetPageSize = 1024 * 1024; // BYTE
 
     private Builder() {}
 
