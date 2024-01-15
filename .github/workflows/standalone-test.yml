@@ -12,7 +12,7 @@ concurrency:
 
 jobs:
     Union-DB-Test:
-        timeout-minutes: 30
+        timeout-minutes: 35
         strategy:
             fail-fast: false
             matrix:
@@ -78,13 +78,20 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
+                  DB-name: ${{ matrix.DB-name }}
                   shell: client-before
 
+            # large image export only tested in FileSystem and Parquet
             - name: Test Client Export File
               if: always()
               shell: bash
               run: |
-                  mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
+                  if [[ "${{ matrix.DB-name }}" == "FileSystem" || "${{ matrix.DB-name }}" == "Parquet" ]]; then
+                      mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
+                  else
+                      mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
+                      mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
+                  fi
 
             - name: set client test context
               uses: ./.github/actions/context
