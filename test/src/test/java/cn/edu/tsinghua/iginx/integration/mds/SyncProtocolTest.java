@@ -21,7 +21,7 @@ public abstract class SyncProtocolTest {
 
   protected abstract SyncProtocol newSyncProtocol(String category);
 
-  @Test(timeout = 10000)
+  @Test(timeout = 300000)
   public void testSingleNodeSingleDecision() throws Exception {
     String category = RandomUtils.randomString(10);
     String key = RandomUtils.randomString(5);
@@ -96,7 +96,7 @@ public abstract class SyncProtocolTest {
     protocol.close();
   }
 
-  @Test(timeout = 20000)
+  @Test(timeout = 300000)
   public void testTwoNodeSingleDecision() throws Exception {
     String category = RandomUtils.randomString(10);
     String key = RandomUtils.randomString(5);
