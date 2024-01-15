@@ -44,4 +44,22 @@ public class ExportFileIT {
     assertEquals("test.csv", csvFile.getName());
     assertEquals(87, csvFile.length());
   }
+
+  @Test
+  public void checkExportImage() {
+    Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "img_outfile");
+    File dirFile = dir.toFile();
+
+    assertTrue(dirFile.exists());
+    assertTrue(dirFile.isDirectory());
+    List<String> filenames = Arrays.asList(Objects.requireNonNull(dirFile.list()));
+    assertEquals(filenames.size(), 1);
+
+    filenames.sort(String::compareTo);
+
+    String expectedFilename = "downloads.large_img_jpg";
+    assertEquals(expectedFilename, filenames.get(0));
+    File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
+    assertEquals(file.length(), 2928640);
+  }
 }
