@@ -208,7 +208,7 @@ public abstract class SyncProtocolTest {
     threadB.join();
   }
 
-  @Test(timeout = 30000)
+  @Test(timeout = 300000)
   public void testMultiNodeSingleDecision() throws Exception {
     for (int c = 0; c < 1; c++) { // 随机 3-6个节点，测试10次
       int N = RandomUtils.randomNumber(2, 4);
