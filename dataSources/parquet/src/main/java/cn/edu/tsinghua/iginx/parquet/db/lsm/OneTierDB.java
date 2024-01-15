@@ -209,7 +209,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       if (inserted.sum() < config.getWriteBufferSize()) {
         return;
       }
-      LOGGER.info("flushing is triggered when write buffer reaching {}", Constants.MAX_MEM_SIZE);
+      LOGGER.info("flushing is triggered when write buffer reaching {}", config.getWriteBufferSize());
       commitMemoryTable();
     }
   }
