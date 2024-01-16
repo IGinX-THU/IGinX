@@ -21,3 +21,5 @@ sed -i "" "s/#has_data=false#/#has_data=$5#/g" $7
 sed -i "" "s/#is_read_only=false/#is_read_only=$6/g" $7
 
 sed -i "" "s#chunk_size_in_bytes=1048576#chunk_size_in_bytes=8#g" $7
+
+sed -i "" "s#thrift_timeout=5000#thrift_timeout=10000#g" $7
