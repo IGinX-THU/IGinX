@@ -191,20 +191,16 @@ public class FileSystemManager {
   }
 
   /** ******************** 写入相关 ******************** */
-  public synchronized Exception writeFiles(
+  public synchronized void writeFiles(
       List<File> files, List<List<Record>> recordsList, List<Map<String, String>> tagsList)
       throws IOException {
     for (int i = 0; i < files.size(); i++) {
-      Exception e = writeFile(files.get(i), recordsList.get(i), tagsList.get(i));
-      if (e != null) {
-        return e;
-      }
+      writeFile(files.get(i), recordsList.get(i), tagsList.get(i));
     }
-    return null;
   }
 
-  private synchronized Exception writeFile(
-      File file, List<Record> records, Map<String, String> tags) throws IOException {
+  private synchronized void writeFile(File file, List<Record> records, Map<String, String> tags)
+      throws IOException {
     File f;
     // 判断是否已经创建了对应的文件
     File tmpFile = getFileWithTags(file, tags);
@@ -214,7 +210,7 @@ public class FileSystemManager {
     } else {
       f = tmpFile;
     }
-    return fileOperator.writeIginxFile(f, records);
+    fileOperator.writeIginxFile(f, records);
   }
 
   /**
@@ -277,8 +273,8 @@ public class FileSystemManager {
   }
 
   /** ******************** 删除相关 ******************** */
-  public Exception deleteFile(File file) {
-    return deleteFiles(Collections.singletonList(file), null);
+  public void deleteFile(File file) throws IOException {
+    deleteFiles(Collections.singletonList(file), null);
   }
 
   /**
@@ -287,21 +283,17 @@ public class FileSystemManager {
    * @param files 要删除的文件或目录列表
    * @return 如果删除操作失败则抛出异常
    */
-  public Exception deleteFiles(List<File> files, TagFilter filter) {
+  public void deleteFiles(List<File> files, TagFilter filter) throws IOException {
     for (File file : files) {
       try {
         for (File f : getFilesWithTagFilter(file, filter, false)) {
-          Exception e = fileOperator.delete(f);
-          if (e != null) {
-            return e;
-          }
+          fileOperator.delete(f);
           fileMetaMap.remove(f.getAbsolutePath());
         }
       } catch (IOException e) {
-        return new IOException(String.format("delete file %s failed", file.getAbsoluteFile()), e);
+        throw new IOException(String.format("delete file %s failed", file.getAbsoluteFile()), e);
       }
     }
-    return null;
   }
 
   public Exception trimFilesContent(
@@ -313,10 +305,7 @@ public class FileSystemManager {
         continue;
       }
       for (File f : fileList) {
-        Exception e = fileOperator.trimFile(f, startKey, endKey);
-        if (e != null) {
-          return e;
-        }
+        fileOperator.trimFile(f, startKey, endKey);
       }
     }
     return null;
@@ -372,8 +361,8 @@ public class FileSystemManager {
             });
       }
     } catch (IOException e) {
-      LOGGER.error(
-          "get associated files of {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      throw new RuntimeException(
+          String.format("get associated files of %s failure: %s", file.getAbsolutePath(), e));
     }
     return associatedFiles;
   }
@@ -410,7 +399,8 @@ public class FileSystemManager {
             }
           });
     } catch (IOException e) {
-      LOGGER.error("get all files of {} failure: {}", dir.getAbsolutePath(), e.getMessage());
+      throw new RuntimeException(
+          String.format("get all files of %s failure: %s", dir.getAbsolutePath(), e));
     }
     return res;
   }
@@ -443,9 +433,9 @@ public class FileSystemManager {
       }
       return fileMeta;
     } catch (IOException e) {
-      LOGGER.error("getFileMeta failure: {}", e.getMessage());
+      throw new RuntimeException(
+          String.format("get file meta of %s failure", file.getAbsolutePath()), e);
     }
-    return null;
   }
 
   private boolean isDirEmpty(Path dir) throws IOException {

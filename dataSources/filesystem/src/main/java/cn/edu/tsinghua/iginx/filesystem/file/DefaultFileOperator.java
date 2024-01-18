@@ -5,6 +5,7 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -95,26 +96,27 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   @Override
-  public Exception writeIginxFile(File file, List<Record> records) {
+  public void writeIginxFile(File file, List<Record> records) throws IOException {
     if (file.exists() && file.isDirectory()) {
-      return new IOException(String.format("cannot write to directory %s", file.getAbsolutePath()));
+      throw new PhysicalRuntimeException(
+          String.format("cannot write to directory %s", file.getAbsolutePath()));
     }
     if (!file.exists()) {
-      return new IOException(
+      throw new PhysicalRuntimeException(
           String.format(
               "cannot write to file %s because it does not exist", file.getAbsolutePath()));
     }
 
     // 如果是一个空文件，即没有内容，只有元数据，则直接添加数据
     if (ifIginxFileEmpty(file)) {
-      return appendRecordsToIginxFile(file, records, 0, records.size());
+      appendRecordsToIginxFile(file, records, 0, records.size());
     }
 
     // Check if records can be directly appended to the end of the file
     if (file.exists() && file.length() > 0) {
       long lastKey = getIginxFileMaxKey(file);
       if (lastKey < records.get(0).getKey()) {
-        return appendRecordsToIginxFile(file, records, 0, records.size());
+        appendRecordsToIginxFile(file, records, 0, records.size());
       }
     }
 
@@ -162,16 +164,14 @@ public class DefaultFileOperator implements IFileOperator {
       tempWriter.close();
 
       if (recordIndex < maxLen) {
-        Exception e = appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
-        if (e != null) {
-          return e;
-        }
+        appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
       }
 
-      return replaceFile(file, tempFile);
+      replaceFile(file, tempFile);
     } catch (IOException e) {
       LOGGER.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
-      return e;
+      throw new IOException(
+          String.format("write iginx file %s failure", file.getAbsolutePath()), e);
     }
   }
 
@@ -192,17 +192,16 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   // 直接将数据append到文件
-  private Exception appendRecordsToIginxFile(File file, List<Record> records, int begin, int end) {
+  private void appendRecordsToIginxFile(File file, List<Record> records, int begin, int end)
+      throws IOException {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
       for (int i = begin; i < end; i++) {
         writer.write(recordToString(records.get(i)));
         writer.write("\n");
       }
-      return null;
     } catch (IOException e) {
-      LOGGER.error(
-          "append records to iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
-      return e;
+      throw new IOException(
+          String.format("append records to iginx file %s failure", file.getAbsolutePath()), e);
     }
   }
 
@@ -224,25 +223,23 @@ public class DefaultFileOperator implements IFileOperator {
     }
   }
 
-  private Exception replaceFile(File file, File tempFile) {
+  private void replaceFile(File file, File tempFile) throws IOException {
     if (!tempFile.exists()) {
-      return new IOException(
+      throw new PhysicalRuntimeException(
           String.format("temporary file %s does not exist", tempFile.getAbsoluteFile()));
     }
     if (!file.exists()) {
-      return new IOException(
+      throw new PhysicalRuntimeException(
           String.format("original file %s does not exist", file.getAbsoluteFile()));
     }
     try {
       Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
-      return null;
     } catch (IOException e) {
-      LOGGER.error(
-          "replace file from {} to {} failure: {}",
-          tempFile.getAbsolutePath(),
-          file.getAbsoluteFile(),
-          e.getMessage());
-      return e;
+      throw new PhysicalRuntimeException(
+          String.format(
+              "replace file from %s to %s failure",
+              tempFile.getAbsolutePath(), file.getAbsoluteFile()),
+          e);
     }
   }
 
@@ -277,20 +274,19 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   @Override
-  public Exception delete(File file) {
+  public void delete(File file) throws IOException {
     if (!file.exists()) {
-      return new IOException(
+      throw new IOException(
           String.format("cannot delete file %s because it does not exist", file.getAbsolutePath()));
     }
     if (!file.delete()) {
-      return new IOException(String.format("cannot delete file %s", file.getAbsolutePath()));
+      throw new IOException(String.format("cannot delete file %s", file.getAbsolutePath()));
     }
-    return null;
   }
 
   // 删除对应key范围内的数据
   @Override
-  public Exception trimFile(File file, long begin, long end) {
+  public void trimFile(File file, long begin, long end) throws IOException {
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
     try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile))) {
@@ -317,10 +313,10 @@ public class DefaultFileOperator implements IFileOperator {
 
       tempWriter.close();
 
-      return replaceFile(file, tempFile);
+      replaceFile(file, tempFile);
     } catch (IOException e) {
-      LOGGER.error("trim file {} failure: {}", file.getAbsolutePath(), e.getMessage());
-      return e;
+      throw new PhysicalRuntimeException(
+          String.format("trim file %s failure", file.getAbsolutePath()), e);
     }
   }
 
