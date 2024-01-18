@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
+package cn.edu.tsinghua.iginx.sql.statement.select;
 
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
@@ -18,7 +18,7 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause.*;
+import cn.edu.tsinghua.iginx.sql.statement.select.subclause.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;

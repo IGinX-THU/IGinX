@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause;
+package cn.edu.tsinghua.iginx.sql.statement.select.subclause;
 
 import java.util.ArrayList;
 import java.util.List;

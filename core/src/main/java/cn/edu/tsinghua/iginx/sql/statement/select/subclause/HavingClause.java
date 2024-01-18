@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause;
+package cn.edu.tsinghua.iginx.sql.statement.select.subclause;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;

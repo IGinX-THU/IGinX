@@ -1,6 +1,6 @@
-package cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause;
+package cn.edu.tsinghua.iginx.sql.statement.select.subclause;
 
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement.QueryType;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement.QueryType;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;

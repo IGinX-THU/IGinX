@@ -1,10 +1,10 @@
-package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
+package cn.edu.tsinghua.iginx.sql.statement.select;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause.LimitClause;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.seslectstatementclause.OrderByClause;
+import cn.edu.tsinghua.iginx.sql.statement.select.subclause.LimitClause;
+import cn.edu.tsinghua.iginx.sql.statement.select.subclause.OrderByClause;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

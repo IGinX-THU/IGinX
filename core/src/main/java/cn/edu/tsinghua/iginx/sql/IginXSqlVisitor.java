@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.sql;
 
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
-import static cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement.markJoinCount;
+import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -126,10 +126,10 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.ShowColumnsFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.BinarySelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.CommonTableExpression;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.BinarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.CommonTableExpression;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.JobState;
