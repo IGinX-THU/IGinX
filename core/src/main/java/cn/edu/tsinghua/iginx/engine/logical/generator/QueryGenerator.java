@@ -566,25 +566,16 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.SimpleQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
     Set<String> selectedPath = new HashSet<>();
     selectStatement
         .getBaseExpressionList()
         .forEach(expression -> selectedPath.add(expression.getPathName()));
-    queryList.add(
-        new Project(
-            new OperatorSource(root),
-            new ArrayList<>(selectedPath),
-            selectStatement.getTagFilter(),
-            selectStatement.hasValueToSelectedPath()));
 
-    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-      root = OperatorUtils.joinOperatorsByTime(queryList);
-    } else {
-      root = OperatorUtils.joinOperators(queryList, ORDINAL);
-    }
-
-    return root;
+    return new Project(
+        new OperatorSource(root),
+        new ArrayList<>(selectedPath),
+        selectStatement.getTagFilter(),
+        selectStatement.hasValueToSelectedPath());
   }
 
   /**
@@ -637,6 +628,23 @@ public class QueryGenerator extends AbstractGenerator {
                       functionCallList.add(
                           new FunctionCall(functionManager.getFunction(k), params));
                     }));
+
+    if (!functionCallList.isEmpty()) {
+      switch (functionCallList.get(0).getFunction().getMappingType()) {
+        case Mapping:
+          queryList.add(new MappingTransform(new OperatorSource(finalRoot), functionCallList));
+          break;
+        case RowMapping:
+          queryList.add(new RowTransform(new OperatorSource(finalRoot), functionCallList));
+          break;
+        case SetMapping:
+          queryList.add(new SetTransform(new OperatorSource(finalRoot), functionCallList));
+          break;
+        default:
+          throw new RuntimeException(
+              "Unknown mapping type: " + functionCallList.get(0).getFunction().getMappingType());
+      }
+    }
 
     selectStatement
         .getBaseExpressionList()
