@@ -598,8 +598,7 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.LastFirstQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
-    Operator finalRoot = root;
+    List<FunctionCall> functionCallList = new ArrayList<>();
     selectStatement
         .getFuncExpressionMap()
         .forEach(
@@ -607,16 +606,11 @@ public class QueryGenerator extends AbstractGenerator {
                 v.forEach(
                     expression -> {
                       FunctionParams params = getFunctionParams(k, expression);
-                      Operator copySelect = finalRoot.copy();
-                      logger.info("function: " + k + ", wrapped path: " + v);
-                      queryList.add(
-                          new MappingTransform(
-                              new OperatorSource(copySelect),
-                              new FunctionCall(functionManager.getFunction(k), params)));
+                      functionCallList.add(
+                          new FunctionCall(functionManager.getFunction(k), params));
                     }));
-    root = OperatorUtils.unionOperators(queryList);
 
-    return root;
+    return new MappingTransform(new OperatorSource(root), functionCallList);
   }
 
   /**
@@ -631,6 +625,7 @@ public class QueryGenerator extends AbstractGenerator {
       return root;
     }
     List<Operator> queryList = new ArrayList<>();
+    List<FunctionCall> functionCallList = new ArrayList<>();
     Operator finalRoot = root;
     selectStatement
         .getFuncExpressionMap()
@@ -639,25 +634,10 @@ public class QueryGenerator extends AbstractGenerator {
                 v.forEach(
                     expression -> {
                       FunctionParams params = getFunctionParams(k, expression);
-                      Operator copySelect = finalRoot.copy();
-                      logger.info("function: " + expression.getColumnName());
-                      if (FunctionUtils.isRowToRowFunction(k)) {
-                        queryList.add(
-                            new RowTransform(
-                                new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
-                      } else if (FunctionUtils.isSetToSetFunction(k)) {
-                        queryList.add(
-                            new MappingTransform(
-                                new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
-                      } else {
-                        queryList.add(
-                            new SetTransform(
-                                new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
-                      }
+                      functionCallList.add(
+                          new FunctionCall(functionManager.getFunction(k), params));
                     }));
+
     selectStatement
         .getBaseExpressionList()
         .forEach(
@@ -690,7 +670,6 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.GroupByQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
     List<FunctionCall> functionCallList = new ArrayList<>();
     selectStatement
         .getFuncExpressionMap()
@@ -705,16 +684,9 @@ public class QueryGenerator extends AbstractGenerator {
                     });
               }
             });
-    queryList.add(
-        new GroupBy(new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
 
-    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-      root = OperatorUtils.joinOperatorsByTime(queryList);
-    } else {
-      root = OperatorUtils.joinOperators(queryList, ORDINAL);
-    }
-
-    return root;
+    return new GroupBy(
+        new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList);
   }
 
   /**

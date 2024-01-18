@@ -2307,7 +2307,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     MappingTransform mappingTransform =
         new MappingTransform(
-            EmptySource.EMPTY_SOURCE, new FunctionCall(Last.getInstance(), params));
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(new FunctionCall(Last.getInstance(), params)));
 
     RowStream stream = getExecutor().executeUnaryOperator(mappingTransform, table, null);
 

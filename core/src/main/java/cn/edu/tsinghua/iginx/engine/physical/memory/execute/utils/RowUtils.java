@@ -35,19 +35,18 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -905,5 +904,144 @@ public class RowUtils {
     }
 
     return targetRows;
+  }
+
+  public static Table pathUnionMultipleTables(List<Table> tableList) throws PhysicalException {
+    if (tableList == null || tableList.isEmpty()) {
+      throw new IllegalArgumentException("Table list cannot be null or empty");
+    }
+
+    // 检查每个表的头部是否包含键
+    boolean hasKey = tableList.get(0).getHeader().hasKey();
+    for (Table table : tableList) {
+      if (table.getHeader().hasKey() != hasKey) {
+        throw new InvalidOperatorParameterException(
+            "All tables in the union must have the same key configuration");
+      }
+    }
+
+    Set<Field> targetFieldSet = new HashSet<>();
+    for (Table table : tableList) {
+      targetFieldSet.addAll(table.getHeader().getFields());
+    }
+    List<Field> targetFields = new ArrayList<>(targetFieldSet);
+
+    Header targetHeader = hasKey ? new Header(Field.KEY, targetFields) : new Header(targetFields);
+    List<Row> rows = new ArrayList<>();
+
+    if (!hasKey) {
+      for (Table table : tableList) {
+        for (Row row : table.getRows()) {
+          rows.add(RowUtils.transform(row, targetHeader));
+        }
+      }
+    } else {
+      PriorityQueue<Pair<Row, Integer>> queue =
+          new PriorityQueue<>(Comparator.comparingLong(p -> p.k.getKey()));
+
+      // 初始化优先队列
+      for (int i = 0; i < tableList.size(); i++) {
+        if (tableList.get(i).getRowSize() > 0) {
+          queue.add(new Pair<>(tableList.get(i).getRow(0), i));
+        }
+      }
+
+      // 合并行
+      while (!queue.isEmpty()) {
+        Pair<Row, Integer> entry = queue.poll();
+        rows.add(RowUtils.transform(entry.k, targetHeader));
+
+        // 如果该表格还有更多行，将下一行加入队列
+        int nextIndex = entry.v + 1;
+        if (nextIndex < tableList.get(entry.v).getRowSize()) {
+          queue.add(new Pair<>(tableList.get(entry.v).getRow(nextIndex), entry.v));
+        }
+      }
+    }
+
+    return new Table(targetHeader, rows);
+  }
+
+  public static Table joinOrdinalMultipleTables(List<Table> tableList) throws PhysicalException {
+    if (tableList == null || tableList.isEmpty()) {
+      throw new IllegalArgumentException("Table list cannot be null or empty");
+    }
+
+    // 检查每个表的头部是否包含键
+    for (Table table : tableList) {
+      if (table.getHeader().hasKey()) {
+        throw new InvalidOperatorParameterException("All tables in the join cannot have key");
+      }
+    }
+
+    Map<Table, Integer> tableIndexMap = new HashMap<>(); // 记录每个表格在大表格中列的起始位置
+    List<Field> newFields = new ArrayList<>();
+    for (Table table : tableList) {
+      tableIndexMap.put(table, newFields.size());
+      newFields.addAll(table.getHeader().getFields());
+    }
+
+    Header newHeader = new Header(newFields);
+    List<Row> newRows = new ArrayList<>();
+
+    int maxRowCount = 0;
+    for (Table table : tableList) {
+      maxRowCount = Math.max(maxRowCount, table.getRowSize());
+    }
+
+    for (int i = 0; i < maxRowCount; i++) {
+      Object[] values = new Object[newHeader.getFieldSize()];
+      for (Table table : tableList) {
+        if (i < table.getRowSize()) {
+          System.arraycopy(
+              table.getRow(i).getValues(),
+              0,
+              values,
+              tableIndexMap.get(table),
+              table.getHeader().getFieldSize());
+        }
+      }
+      newRows.add(new Row(newHeader, values));
+    }
+
+    return new Table(newHeader, newRows);
+  }
+
+  public static Table calMappingTransform(Table table, List<FunctionCall> functionCallList)
+      throws PhysicalException {
+    List<Table> tableList = new ArrayList<>();
+    for (FunctionCall functionCall : functionCallList) {
+      FunctionParams params = functionCall.getParams();
+      MappingFunction function = (MappingFunction) functionCall.getFunction();
+      try {
+        Table functable = (Table) function.transform(table, params);
+        if (functable != null) {
+          tableList.add(functable);
+        }
+      } catch (Exception e) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
+      }
+    }
+
+    if (tableList.isEmpty()) {
+      return Table.EMPTY_TABLE;
+    }
+
+    // 如果是First/Last，用PathUnion合并表格；如果是GroupBy,用Join Ordinal合并表格
+    boolean isFirstLast = false;
+    for (FunctionCall functionCall : functionCallList) {
+      if (functionCall.getFunction().getIdentifier().equals(First.FIRST)
+          || functionCall.getFunction().getIdentifier().equals(Last.LAST)) {
+        isFirstLast = true;
+        break;
+      }
+    }
+
+    if (isFirstLast) {
+      return RowUtils.pathUnionMultipleTables(tableList);
+    } else {
+      return RowUtils.joinOrdinalMultipleTables(tableList);
+    }
   }
 }

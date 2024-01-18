@@ -441,14 +441,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeMappingTransform(MappingTransform mappingTransform, Table table)
       throws PhysicalException {
-    MappingFunction function = (MappingFunction) mappingTransform.getFunctionCall().getFunction();
-    FunctionParams params = mappingTransform.getFunctionCall().getParams();
-    try {
-      return function.transform(table, params);
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
-    }
+    List<FunctionCall> functionCallList = mappingTransform.getFunctionCallList();
+    return RowUtils.calMappingTransform(table, functionCallList);
   }
 
   private RowStream executeRename(Rename rename, Table table) throws PhysicalException {
