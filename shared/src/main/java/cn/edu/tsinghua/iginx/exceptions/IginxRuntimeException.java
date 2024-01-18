@@ -1,6 +1,4 @@
 /*
- * Copyright 2024 IGinX of Tsinghua University
- *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,21 +12,25 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.engine.physical.exception;
+package cn.edu.tsinghua.iginx.exceptions;
 
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+public class IginxRuntimeException extends RuntimeException {
+  public IginxRuntimeException() {}
 
-public class PhysicalRuntimeException extends IginxRuntimeException {
-
-  public PhysicalRuntimeException(String message) {
+  public IginxRuntimeException(String message) {
     super(message);
   }
 
-  public PhysicalRuntimeException(String message, Throwable cause) {
+  public IginxRuntimeException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public PhysicalRuntimeException(Throwable cause) {
+  public IginxRuntimeException(Throwable cause) {
     super(cause);
+  }
+
+  public IginxRuntimeException(
+      String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    super(message, cause, enableSuppression, writableStackTrace);
   }
 }

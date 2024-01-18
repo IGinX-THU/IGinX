@@ -5,6 +5,7 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -85,7 +86,7 @@ public class LocalExecutor implements Executor {
                   String.format("dir %s cannot be equal to dummy directory %s", dir, dummyDir));
             }
           } catch (IOException e) {
-            throw new RuntimeException(
+            throw new PhysicalRuntimeException(
                 String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir));
           }
         }

@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.rest.query;
 
 import static cn.edu.tsinghua.iginx.utils.TagKVUtils.*;
 
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.*;
@@ -46,7 +47,7 @@ public class QueryParser {
       Date date = df.parse(oldDateStr);
       return date.getTime() + 28800000L;
     } catch (ParseException e) {
-      throw new RuntimeException("Error occurred during parsing date", e);
+      throw new IginxRuntimeException("Error occurred during parsing date", e);
     }
   }
 
@@ -83,7 +84,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getGrafanaQuery(node);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error occurred during parsing query ", e);
+      throw new IginxRuntimeException("Error occurred during parsing query ", e);
     }
     return ret;
   }
@@ -94,7 +95,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getQuery(node);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error occurred during parsing query ", e);
+      throw new IginxRuntimeException("Error occurred during parsing query ", e);
     }
     return ret;
   }
@@ -105,7 +106,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getAnnotationQuery(node, isGrafana);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error occurred during parsing query ", e);
+      throw new IginxRuntimeException("Error occurred during parsing query ", e);
     }
     return ret;
   }

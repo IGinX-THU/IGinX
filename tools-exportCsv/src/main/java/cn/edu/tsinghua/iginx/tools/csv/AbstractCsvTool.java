@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.tools.csv;
 
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.apache.commons.cli.CommandLine;
 import org.apache.commons.cli.CommandLineParser;
@@ -97,7 +98,7 @@ public abstract class AbstractCsvTool {
         String msg = String.format("Required values for option '%s' not provided", name);
         System.out.println(msg);
         System.out.println("Use -help for more information");
-        throw new RuntimeException();
+        throw new IginxRuntimeException();
       }
       return defaultValue;
     }

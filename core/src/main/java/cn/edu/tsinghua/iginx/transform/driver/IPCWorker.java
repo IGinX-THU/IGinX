@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.transform.driver;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.ArrowReader;
@@ -67,7 +68,7 @@ public class IPCWorker extends Thread {
     } catch (SocketException ignored) {
       LOGGER.info("{} stop server socket.", this);
     } catch (IOException e) {
-      throw new RuntimeException("An error occurred while listening.", e);
+      throw new IginxRuntimeException("An error occurred while listening.", e);
     }
   }
 
@@ -86,7 +87,8 @@ public class IPCWorker extends Thread {
       reader.close();
       socket.close();
     } catch (IOException | WriteBatchException e) {
-      throw new RuntimeException(String.format("Worker pid=%d fail to process socket.", pid), e);
+      throw new IginxRuntimeException(
+          String.format("Worker pid=%d fail to process socket.", pid), e);
     }
   }
 

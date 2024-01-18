@@ -41,6 +41,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -683,7 +684,7 @@ public class RowUtils {
                             try {
                               group = removeDuplicateRows(group);
                             } catch (PhysicalException e) {
-                              throw new RuntimeException(e);
+                              throw new IginxRuntimeException(e);
                             }
                           }
                         }

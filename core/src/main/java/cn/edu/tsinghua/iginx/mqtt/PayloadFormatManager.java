@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.mqtt;
 
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;
@@ -58,7 +59,7 @@ public class PayloadFormatManager {
             | IllegalAccessException
             | NoSuchMethodException
             | InvocationTargetException e) {
-          throw new RuntimeException("Failed to create formatter instance.", e);
+          throw new IginxRuntimeException("Failed to create formatter instance.", e);
         }
       }
     }

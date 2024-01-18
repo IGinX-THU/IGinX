@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -91,7 +92,7 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
     // 根据运行时结果生成最终操作树
     Operator finalRoot = reGenerateRoot(foldedRoot, streams);
     if (!constraintManager.check(finalRoot) || !checker.check(finalRoot)) {
-      throw new RuntimeException(
+      throw new IginxRuntimeException(
           "Execute Error: can not reconstruct this folded operator to a legal logical tree.");
     }
 
@@ -102,7 +103,7 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
     if (originFollowTask instanceof CompletedFoldedPhysicalTask) {
       ((CompletedFoldedPhysicalTask) originFollowTask).setParentTask(task);
     } else {
-      throw new RuntimeException(
+      throw new IginxRuntimeException(
           "The follow task of a FoldedMemoryPhysicalTask is expected a CompletedFoldedPhysicalTask.");
     }
     setFollowerTask(null);
@@ -154,7 +155,7 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
               }
             }
           } catch (PhysicalException e) {
-            throw new RuntimeException("encounter error when execute operator in memory: ", e);
+            throw new IginxRuntimeException("encounter error when execute operator in memory: ", e);
           }
         });
 
@@ -197,7 +198,7 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
                       ((OperatorSource) unaryOperator.getSource()).getOperator(), selectedPaths)));
           return unaryOperator;
         } else {
-          throw new RuntimeException(
+          throw new IginxRuntimeException(
               "unexpected operator type when unfolding root with path: " + operator.getType());
         }
     }

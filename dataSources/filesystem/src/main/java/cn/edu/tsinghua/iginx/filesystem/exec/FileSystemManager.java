@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.filesystem.exec;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.MAX_CHAR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -160,7 +161,7 @@ public class FileSystemManager {
         }
       }
     } catch (InterruptedException e) {
-      throw new RuntimeException(
+      throw new PhysicalRuntimeException(
           String.format("interrupted while reading file %s", file.getAbsolutePath()), e);
     } finally {
       if (executorService != null) {
@@ -173,7 +174,7 @@ public class FileSystemManager {
       try {
         future.get();
       } catch (InterruptedException | ExecutionException e) {
-        throw new RuntimeException(
+        throw new PhysicalRuntimeException(
             String.format("exception thrown while reading file %s", file.getAbsolutePath()), e);
       }
     }

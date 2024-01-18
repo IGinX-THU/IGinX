@@ -88,6 +88,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -379,7 +380,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                         + ".",
                     e);
               } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new RuntimeException(ex);
+                throw new IginxRuntimeException(ex);
               }
             }
           });

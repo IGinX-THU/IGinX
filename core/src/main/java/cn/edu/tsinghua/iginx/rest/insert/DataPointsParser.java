@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.rest.insert;
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
@@ -67,7 +68,7 @@ public class DataPointsParser {
         metricList.add(getMetricObject(node));
       }
     } catch (IOException e) {
-      throw new RuntimeException("Error occurred during reading the json data ", e);
+      throw new IginxRuntimeException("Error occurred during reading the json data ", e);
     } catch (IllegalArgumentException e) {
       throw new IllegalArgumentException("Error occurred during parsing data ", e);
     }
@@ -153,7 +154,7 @@ public class DataPointsParser {
       session.openSession();
       sendMetricsData();
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during sending data ", e);
+      throw new IginxRuntimeException("Error occurred during sending data ", e);
     }
     session.closeSession();
   }
@@ -226,7 +227,7 @@ public class DataPointsParser {
           null,
           TimePrecision.NS);
     } catch (ExecutionException e) {
-      throw new RuntimeException("Error occurred during insert ", e);
+      throw new IginxRuntimeException("Error occurred during insert ", e);
     }
   }
 
@@ -254,7 +255,7 @@ public class DataPointsParser {
           null,
           TimePrecision.NS);
     } catch (ExecutionException e) {
-      throw new RuntimeException("Error occurred during insert ", e);
+      throw new IginxRuntimeException("Error occurred during insert ", e);
     }
   }
 
@@ -303,7 +304,7 @@ public class DataPointsParser {
             tagsList,
             TimePrecision.NS);
       } catch (ExecutionException e) {
-        throw new RuntimeException("Error occurred during insert ", e);
+        throw new IginxRuntimeException("Error occurred during insert ", e);
       }
     } else {
       createAnnoSequence(false, null);
@@ -340,7 +341,7 @@ public class DataPointsParser {
           insertAnno(paths, tagsList, metric.getAnno(), type.get(0));
         }
       } catch (ExecutionException e) {
-        throw new RuntimeException("Error occurred during insert ", e);
+        throw new IginxRuntimeException("Error occurred during insert ", e);
       }
     }
   }
@@ -410,7 +411,7 @@ public class DataPointsParser {
         insertAnno(paths, taglist, metric.getAnno(), type.get(0));
       }
     } catch (ExecutionException e) {
-      throw new RuntimeException("Error occurred during insert ", e);
+      throw new IginxRuntimeException("Error occurred during insert ", e);
     }
   }
 

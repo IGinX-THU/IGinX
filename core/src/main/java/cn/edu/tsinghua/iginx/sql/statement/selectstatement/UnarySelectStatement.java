@@ -16,6 +16,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
@@ -624,7 +625,7 @@ public class UnarySelectStatement extends SelectStatement {
 
   public boolean hasAttribute(String path, int endIndexOfFromPart) {
     if (endIndexOfFromPart > fromParts.size()) {
-      throw new RuntimeException("index: " + endIndexOfFromPart + " overflow");
+      throw new IginxRuntimeException("index: " + endIndexOfFromPart + " overflow");
     }
     if (path.startsWith(MarkJoin.MARK_PREFIX)) {
       return true;

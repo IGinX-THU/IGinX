@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -91,7 +92,6 @@ public class IginxClient {
 
   static String execute = "";
 
-  private static int MAX_GETDATA_NUM = 100;
   private static String timestampPrecision = "";
   private static final Set<String> legalTimeUnitSet =
       new HashSet<>(Arrays.asList("week", "day", "hour", "min", "s", "ns", "us", "ns"));
@@ -180,7 +180,7 @@ public class IginxClient {
                 "%s Required values for option '%s' not provided", IGINX_CLI_PREFIX, name);
         System.out.println(msg);
         System.out.println("Use -help for more information");
-        throw new RuntimeException();
+        throw new IginxRuntimeException("Parse Parameter error.");
       }
       return defaultValue;
     }
@@ -555,7 +555,7 @@ public class IginxClient {
       printer.flush();
       printer.close();
     } catch (IOException e) {
-      throw new RuntimeException(
+      throw new IginxRuntimeException(
           "Encounter an error when writing csv file " + path + ", because " + e.getMessage());
     }
     res.close();

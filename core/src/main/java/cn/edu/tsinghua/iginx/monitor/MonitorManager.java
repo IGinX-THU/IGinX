@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.monitor;
 
 import cn.edu.tsinghua.iginx.compaction.CompactionManager;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
@@ -49,7 +50,7 @@ public class MonitorManager implements Runnable {
         Map<FragmentMeta, Long> readHotspotMap = HotSpotMonitor.getInstance().getReadHotspotMap();
         metaManager.updateFragmentHeat(writeHotspotMap, readHotspotMap);
       } catch (Exception e) {
-        throw new RuntimeException("monitor manager error ", e);
+        throw new IginxRuntimeException("monitor manager error ", e);
       }
     }
   }

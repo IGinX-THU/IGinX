@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import java.util.function.Function;
 
 @FunctionalInterface
@@ -27,7 +28,7 @@ public interface CheckedFunction<T, R> {
       try {
         return checkedFunction.apply(t);
       } catch (Exception e) {
-        throw new RuntimeException(e);
+        throw new IginxRuntimeException(e);
       }
     };
   }

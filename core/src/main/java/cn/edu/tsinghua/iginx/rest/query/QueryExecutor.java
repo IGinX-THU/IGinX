@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.rest.query;
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.Query;
@@ -52,7 +53,7 @@ public class QueryExecutor {
       ret.addResultSet(new QueryShowColumns().doAggregate(session));
       session.closeSession();
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during opening or closing session", e);
+      throw new IginxRuntimeException("Error occurred during opening or closing session", e);
     }
     return ret;
   }
@@ -103,7 +104,7 @@ public class QueryExecutor {
       }
       session.closeSession();
     } catch (SessionException | ExecutionException e) {
-      throw new RuntimeException("Error occurred during executing", e);
+      throw new IginxRuntimeException("Error occurred during executing", e);
     }
 
     return ret;
@@ -187,7 +188,7 @@ public class QueryExecutor {
     try {
       restSession.openSession();
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during opening session", e);
+      throw new IginxRuntimeException("Error occurred during opening session", e);
     }
     for (QueryMetric metric : query.getQueryMetrics()) {
       restSession.deleteColumn(metric.getName(), metric.getTags());

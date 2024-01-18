@@ -23,6 +23,7 @@ import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageU
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
@@ -300,7 +301,7 @@ public class DefaultMetaCache implements IMetaCache {
       } else if (columnsInterval.compareTo(midColumnsInterval) > 0) {
         left = mid + 1;
       } else {
-        throw new RuntimeException("unexpected fragment");
+        throw new IginxRuntimeException("unexpected fragment");
       }
     }
     if (left == sortedFragmentMetaLists.size()) {

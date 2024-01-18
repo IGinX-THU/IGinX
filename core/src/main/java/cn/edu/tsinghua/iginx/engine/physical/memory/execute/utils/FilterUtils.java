@@ -38,6 +38,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -151,7 +152,7 @@ public class FilterUtils {
         }
         return true; // 所有子条件均满足，返回true
       } else {
-        throw new RuntimeException("Unknown op type: " + valueFilter.getOp());
+        throw new IginxRuntimeException("Unknown op type: " + valueFilter.getOp());
       }
     } else {
       Value value = row.getAsValue(path);
@@ -335,7 +336,7 @@ public class FilterUtils {
       case Bool:
         return false;
       default:
-        throw new RuntimeException("Unexpected filter type: " + filter.getType());
+        throw new IginxRuntimeException("Unexpected filter type: " + filter.getType());
     }
   }
 

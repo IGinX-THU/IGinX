@@ -15,6 +15,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
@@ -268,7 +269,7 @@ public class HeaderUtils {
       case Bool:
         break;
       default:
-        throw new RuntimeException("Unexpected filter type: " + filter.getType());
+        throw new IginxRuntimeException("Unexpected filter type: " + filter.getType());
     }
     return null;
   }

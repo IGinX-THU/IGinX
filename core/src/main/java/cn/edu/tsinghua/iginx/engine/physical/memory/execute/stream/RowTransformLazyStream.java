@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
@@ -86,7 +87,7 @@ public class RowTransformLazyStream extends UnaryLazyStream {
                         + ".",
                     e);
               } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new RuntimeException(ex);
+                throw new IginxRuntimeException(ex);
               }
             }
             if (column != null) {
