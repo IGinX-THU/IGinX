@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetStorage implements IStorage {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetStorage.class);
 
   private Executor executor;
 

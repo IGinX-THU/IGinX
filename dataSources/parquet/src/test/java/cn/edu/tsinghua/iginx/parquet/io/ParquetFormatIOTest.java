@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 @Deprecated
 public class ParquetFormatIOTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetFormatIOTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetFormatIOTest.class);
 
   protected static final Path FILE_PATH = Paths.get("./src/test/temp.parquet");
 
@@ -42,14 +42,14 @@ public class ParquetFormatIOTest {
   @Before
   public void setUp() throws Exception {
     if (new File(FILE_PATH.toString()).createNewFile()) {
-      logger.info("Create file: " + FILE_PATH.toString());
+      LOGGER.info("Create file: " + FILE_PATH.toString());
     }
   }
 
   @After
   public void tearDown() throws Exception {
     if (Files.deleteIfExists(FILE_PATH)) {
-      logger.info("Delete file: " + FILE_PATH.toString());
+      LOGGER.info("Delete file: " + FILE_PATH.toString());
     }
   }
 

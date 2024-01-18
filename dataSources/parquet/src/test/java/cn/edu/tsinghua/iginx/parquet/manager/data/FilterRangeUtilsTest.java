@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class FilterRangeUtilsTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(FilterRangeUtilsTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FilterRangeUtilsTest.class);
 
   @Test
   public void SingleRange() {
@@ -44,7 +44,7 @@ public class FilterRangeUtilsTest {
                         new KeyFilter(Op.GE, 1629965727000000000L),
                         new KeyFilter(Op.L, 1629965732001000000L)))));
 
-    logger.info("create filter: {}", filter);
+    LOGGER.info("create filter: {}", filter);
 
     RangeSet<Long> expectedResult =
         ImmutableRangeSet.of(Range.closedOpen(1629965727000000000L, 1629965732001000000L));

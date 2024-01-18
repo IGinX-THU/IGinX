@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetServer implements Runnable {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetServer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetServer.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -67,7 +67,7 @@ public class ParquetServer implements Runnable {
       serverTransport = new TServerSocket(port);
     } catch (TTransportException e) {
       if (!e.getMessage().contains("Could not create ServerSocket on address")) {
-        logger.error("Parquet service starts failure: ", e);
+        LOGGER.error("Parquet service starts failure: ", e);
       }
       return;
     }
@@ -78,7 +78,7 @@ public class ParquetServer implements Runnable {
             .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
             .protocolFactory(new TBinaryProtocol.Factory());
     server = new TThreadPoolServer(args);
-    logger.info("Parquet service starts successfully!");
+    LOGGER.info("Parquet service starts successfully!");
     server.serve();
   }
 }

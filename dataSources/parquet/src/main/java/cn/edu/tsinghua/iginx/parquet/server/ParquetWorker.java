@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetWorker implements ParquetService.Iface {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetWorker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetWorker.class);
 
   private static final Status SUCCESS = new Status(200, "success");
 
@@ -114,7 +114,7 @@ public class ParquetWorker implements ParquetService.Iface {
                 tagsList.add(tags);
               });
     } catch (PhysicalException e) {
-      logger.error("encounter error when get header from RowStream ", e);
+      LOGGER.error("encounter error when get header from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
     ParquetHeader parquetHeader = new ParquetHeader(names, types, tagsList, hasTime);
@@ -140,7 +140,7 @@ public class ParquetWorker implements ParquetService.Iface {
         parquetRows.add(parquetRow);
       }
     } catch (PhysicalException e) {
-      logger.error("encounter error when get result from RowStream ", e);
+      LOGGER.error("encounter error when get result from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
 
@@ -276,7 +276,7 @@ public class ParquetWorker implements ParquetService.Iface {
         }
       default:
         {
-          logger.error("unknown tag filter type: {}", rawTagFilter.getType());
+          LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
           return null;
         }
     }
@@ -299,7 +299,7 @@ public class ParquetWorker implements ParquetService.Iface {
       resp.setTsList(ret);
       return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getColumnsOfStorageUnit ", e);
+      LOGGER.error("encounter error when getColumnsOfStorageUnit ", e);
       return new GetColumnsOfStorageUnitResp(GET_TS_FAIL);
     }
   }
@@ -315,7 +315,7 @@ public class ParquetWorker implements ParquetService.Iface {
       resp.setEndColumn(pair.getK().getEndColumn());
       return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getBoundaryOfStorage ", e);
+      LOGGER.error("encounter error when getBoundaryOfStorage ", e);
       return new GetStorageBoundaryResp(GET_BOUNDARY_FAIL);
     }
   }
