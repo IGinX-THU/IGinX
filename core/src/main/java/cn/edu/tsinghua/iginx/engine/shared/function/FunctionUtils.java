@@ -1,10 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 
 public class FunctionUtils {
 

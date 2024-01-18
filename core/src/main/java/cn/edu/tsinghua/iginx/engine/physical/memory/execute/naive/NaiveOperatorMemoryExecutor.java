@@ -52,10 +52,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AddSchemaPrefix;
@@ -397,32 +394,49 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeSetTransform(SetTransform setTransform, Table table)
       throws PhysicalException {
-    SetMappingFunction function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
-    FunctionParams params = setTransform.getFunctionCall().getParams();
+    List<FunctionCall> functionList = setTransform.getFunctionCallList();
 
-    if (params.isDistinct()) {
-      if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-        throw new IllegalArgumentException(
-            "function " + function.getIdentifier() + " can't use DISTINCT");
+    Map<List<String>, Table> distinctMap = new HashMap<>();
+    List<Row> rows = new ArrayList<>();
+
+    for (FunctionCall functionCall : functionList) {
+      SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      FunctionParams params = functionCall.getParams();
+      Table functable = table;
+      if (setTransform.isDistinct()) {
+        // min和max无需去重
+        if (!function.getIdentifier().equals(Max.MAX)
+            && !function.getIdentifier().equals(Min.MIN)) {
+          if (distinctMap.containsKey(params.getPaths())) {
+            functable = distinctMap.get(params.getPaths());
+          } else {
+            Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
+            functable = transformToTable(executeDistinct(distinct, table));
+            distinctMap.put(params.getPaths(), functable);
+          }
+        }
       }
-      // min和max无需去重
-      if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
-        Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
-        table = transformToTable(executeDistinct(distinct, table));
+
+      try {
+        Row row = function.transform(functable, params);
+        if (row != null) {
+          rows.add(row);
+        }
+      } catch (Exception e) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+            e);
       }
     }
 
-    try {
-      Row row = function.transform(table, params);
-      if (row == null) {
-        return Table.EMPTY_TABLE;
-      }
-      Header header = row.getHeader();
-      return new Table(header, Collections.singletonList(row));
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+    if (rows.isEmpty()) {
+      return Table.EMPTY_TABLE;
     }
+
+    Row combinedRow = combineMultipleColumns(rows);
+    Header header = combinedRow.getHeader();
+
+    return new Table(header, Collections.singletonList(combinedRow));
   }
 
   private RowStream executeMappingTransform(MappingTransform mappingTransform, Table table)
