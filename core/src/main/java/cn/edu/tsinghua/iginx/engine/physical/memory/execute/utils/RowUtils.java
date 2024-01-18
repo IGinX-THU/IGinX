@@ -920,7 +920,7 @@ public class RowUtils {
       }
     }
 
-    Set<Field> targetFieldSet = new HashSet<>();
+    Set<Field> targetFieldSet = new LinkedHashSet<>();
     for (Table table : tableList) {
       targetFieldSet.addAll(table.getHeader().getFields());
     }
