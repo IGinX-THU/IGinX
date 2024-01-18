@@ -139,14 +139,9 @@ import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.*;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
@@ -403,6 +398,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       filter = ExprUtils.removeSingleFilter(filter);
       selectStatement.setFilter(filter);
       selectStatement.setHasValueFilter(true);
+      getPathsFromExpression(ctx.whereClause().orExpression(), selectStatement)
+          .forEach(selectStatement::addWherePath);
     }
     // parse with clause
     if (ctx.withClause() != null) {
@@ -1040,6 +1037,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.havingClause() != null) {
       Filter filter = parseOrExpression(ctx.havingClause().orExpression(), selectStatement, true);
       selectStatement.setHavingFilter(filter);
+      getPathsFromExpression(ctx.havingClause().orExpression(), selectStatement)
+          .forEach(selectStatement::addHavingPath);
     }
   }
 
@@ -1337,19 +1336,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Filter parseValueFilter(
       PredicateContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     String path = parsePath(ctx.path().get(0));
-    String originPath = path;
-    // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
+
     if (statement.isFromSinglePath() && !statement.isSubQuery()) {
       FromPart fromPart = statement.getFromPart(0);
       path = fromPart.getPrefix() + SQLConstant.DOT + path;
-      originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
-    }
-    if (!statement.isFreeVariable(path)) {
-      if (isHavingFilter) {
-        statement.addHavingPath(originPath);
-      } else {
-        statement.addWherePath(originPath);
-      }
     }
 
     // deal with having filter with functions like having avg(a) > 3.
@@ -1383,33 +1373,15 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private Filter parsePathFilter(
       PredicateContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
     String pathA = parsePath(ctx.path().get(0));
-    String originPathA = pathA;
     String pathB = parsePath(ctx.path().get(1));
-    String originPathB = pathB;
 
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
 
     // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
     if (statement.isFromSinglePath() && !statement.isSubQuery()) {
       FromPart fromPart = statement.getFromPart(0);
-      originPathA = fromPart.getOriginPrefix() + SQLConstant.DOT + pathA;
       pathA = fromPart.getPrefix() + SQLConstant.DOT + pathA;
-      originPathB = fromPart.getOriginPrefix() + SQLConstant.DOT + pathB;
       pathB = fromPart.getPrefix() + SQLConstant.DOT + pathB;
-    }
-    if (!statement.isFreeVariable(pathA)) {
-      if (isHavingFilter) {
-        statement.addHavingPath(originPathA);
-      } else {
-        statement.addWherePath(originPathA);
-      }
-    }
-    if (!statement.isFreeVariable(pathB)) {
-      if (isHavingFilter) {
-        statement.addHavingPath(originPathB);
-      } else {
-        statement.addWherePath(originPathB);
-      }
     }
     return new PathFilter(pathA, op, pathB);
   }
@@ -1840,5 +1812,42 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       tags.put(tagKey, tagValue);
     }
     return tags;
+  }
+
+  private List<String> getPathsFromExpression(
+      ParserRuleContext expressionContext, UnarySelectStatement statement) {
+    List<String> paths = new ArrayList<>();
+    Queue<ParserRuleContext> expressionQueue = new LinkedList<>();
+    expressionQueue.add(expressionContext);
+
+    while (!expressionQueue.isEmpty()) {
+      ParserRuleContext context = expressionQueue.poll();
+      if (context instanceof OrExpressionContext) {
+        OrExpressionContext orExpressionContext = (OrExpressionContext) context;
+        expressionQueue.addAll(orExpressionContext.andExpression());
+      } else if (context instanceof AndExpressionContext) {
+        AndExpressionContext andExpressionContext = (AndExpressionContext) context;
+        expressionQueue.addAll(andExpressionContext.predicate());
+      } else if (context instanceof PredicateContext) {
+        PredicateContext predicateContext = (PredicateContext) context;
+        if (predicateContext.path().size() >= 1 && predicateContext.path().size() <= 2) {
+          for (int i = 0; i < 2 && i < predicateContext.path().size(); i++) {
+            String path = parsePath(predicateContext.path().get(i));
+            String originPath = path;
+            // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
+            if (statement.isFromSinglePath() && !statement.isSubQuery()) {
+              FromPart fromPart = statement.getFromPart(0);
+              path = fromPart.getPrefix() + SQLConstant.DOT + path;
+              originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
+            }
+            if (!statement.isFreeVariable(path)) {
+              paths.add(originPath);
+            }
+          }
+        }
+      }
+    }
+
+    return paths;
   }
 }
