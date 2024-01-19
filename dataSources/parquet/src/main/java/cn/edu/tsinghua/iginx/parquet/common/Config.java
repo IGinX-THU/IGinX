@@ -22,13 +22,19 @@ import java.util.Optional;
 public class Config {
   private final long writeBufferSize;
   private final long writeBatchSize;
+  private final int flusherPermits;
   private final long parquetRowGroupSize;
   private final long parquetPageSize;
 
   private Config(
-      long writeBufferSize, long writeBatchSize, long parquetRowGroupSize, long parquetPageSize) {
+      long writeBufferSize,
+      long writeBatchSize,
+      int flusherPermits,
+      long parquetRowGroupSize,
+      long parquetPageSize) {
     this.writeBufferSize = writeBufferSize;
     this.writeBatchSize = writeBatchSize;
+    this.flusherPermits = flusherPermits;
     this.parquetRowGroupSize = parquetRowGroupSize;
     this.parquetPageSize = parquetPageSize;
   }
@@ -39,6 +45,10 @@ public class Config {
 
   public long getWriteBatchSize() {
     return writeBatchSize;
+  }
+
+  public int getFlusherPermits() {
+    return flusherPermits;
   }
 
   public long getParquetRowGroupSize() {
@@ -59,11 +69,13 @@ public class Config {
     public static final String DUMMY_PREFIX = "embedded_prefix";
     public static final String WRITE_BUFFER_SIZE = "write_buffer_size";
     public static final String WRITE_BATCH_SIZE = "write_batch_size";
+    public static final String FLUSHER_PERMITS = "flusher_permits";
     public static final String PARQUET_ROW_GROUP_SIZE = "parquet.row_group_size";
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
 
     private long writeBufferSize = 128 * 1024 * 1024; // BYTE
     private long writeBatchSize = 1024 * 1024; // BYTE
+    private int flusherPermits = 1;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 1024 * 1024; // BYTE
 
@@ -76,6 +88,11 @@ public class Config {
 
     public Builder setWriteBatchSize(long writeBatchSize) {
       this.writeBatchSize = writeBatchSize;
+      return this;
+    }
+
+    public Builder setFlusherPermits(int flusherPermits) {
+      this.flusherPermits = flusherPermits;
       return this;
     }
 
@@ -92,6 +109,7 @@ public class Config {
     public Builder parse(Map<String, String> properties) {
       getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
       getOptionalLong(properties, WRITE_BATCH_SIZE).ifPresent(this::setWriteBatchSize);
+      getOptionalInteger(properties, FLUSHER_PERMITS).ifPresent(this::setFlusherPermits);
       getOptionalLong(properties, PARQUET_ROW_GROUP_SIZE).ifPresent(this::setParquetRowGroupSize);
       getOptionalLong(properties, PARQUET_PAGE_SIZE).ifPresent(this::setParquetPageSize);
       return this;
@@ -99,11 +117,20 @@ public class Config {
 
     public Config build() {
       check();
-      return new Config(writeBufferSize, writeBatchSize, parquetRowGroupSize, parquetPageSize);
+      return new Config(
+          writeBufferSize, writeBatchSize, flusherPermits, parquetRowGroupSize, parquetPageSize);
     }
 
     private void check() {
       // TODO: check
+    }
+
+    private Optional<Integer> getOptionalInteger(Map<String, String> properties, String key) {
+      String value = properties.get(key);
+      if (value == null) {
+        return Optional.empty();
+      }
+      return Optional.of(Integer.parseInt(value));
     }
 
     private static Optional<Long> getOptionalLong(Map<String, String> properties, String key) {

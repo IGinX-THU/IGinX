@@ -133,6 +133,7 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
   public void close() throws Exception {
     flusher.shutdown();
     cacheSlotNumber.acquire(maxCacheNumber);
+    cacheSlotNumber.release(maxCacheNumber);
   }
 
   private static class TableEntity<K extends Comparable<K>, F, V, T> {

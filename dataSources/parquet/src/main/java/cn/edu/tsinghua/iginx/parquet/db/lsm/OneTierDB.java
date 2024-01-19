@@ -63,7 +63,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       throws IOException {
     this.config = config;
     this.readerWriter = readerWriter;
-    this.appendQueue = new AppendQueue<>(dir, readerWriter, 1);
+    this.appendQueue = new AppendQueue<>(dir, readerWriter, config.getFlusherPermits());
     reload();
   }
 
