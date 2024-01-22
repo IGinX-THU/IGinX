@@ -141,7 +141,6 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.util.*;
 import org.antlr.v4.runtime.ParserRuleContext;
-import org.antlr.v4.runtime.tree.*;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
@@ -1035,7 +1034,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       parseGroupByClause(ctx.groupByClause(), selectStatement);
     }
     if (ctx.havingClause() != null) {
-      Filter filter = parseOrExpression(ctx.havingClause().orExpression(), selectStatement, true);
+      Filter filter = parseOrExpression(ctx.havingClause().orExpression(), selectStatement);
       selectStatement.setHavingFilter(filter);
       getPathsFromExpression(ctx.havingClause().orExpression(), selectStatement)
           .forEach(selectStatement::addHavingPath);
@@ -1265,30 +1264,24 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private Filter parseOrExpression(OrExpressionContext ctx, Statement statement) {
-    return parseOrExpression(ctx, statement, false);
-  }
-
-  private Filter parseOrExpression(
-      OrExpressionContext ctx, Statement statement, boolean isHavingFilter) {
     List<Filter> children = new ArrayList<>();
     for (AndExpressionContext andCtx : ctx.andExpression()) {
-      children.add(parseAndExpression(andCtx, statement, isHavingFilter));
+      children.add(parseAndExpression(andCtx, statement));
     }
     return children.size() == 1 ? children.get(0) : new OrFilter(children);
   }
 
-  private Filter parseAndExpression(
-      AndExpressionContext ctx, Statement statement, boolean isHavingFilter) {
+  private Filter parseAndExpression(AndExpressionContext ctx, Statement statement) {
     List<Filter> children = new ArrayList<>();
     for (PredicateContext predicateCtx : ctx.predicate()) {
-      children.add(parsePredicate(predicateCtx, statement, isHavingFilter));
+      children.add(parsePredicate(predicateCtx, statement));
     }
     return children.size() == 1 ? children.get(0) : new AndFilter(children);
   }
 
-  private Filter parsePredicate(PredicateContext ctx, Statement statement, boolean isHavingFilter) {
+  private Filter parsePredicate(PredicateContext ctx, Statement statement) {
     if (ctx.orExpression() != null) {
-      Filter filter = parseOrExpression(ctx.orExpression(), statement, isHavingFilter);
+      Filter filter = parseOrExpression(ctx.orExpression(), statement);
       return ctx.OPERATOR_NOT() == null ? filter : new NotFilter(filter);
     } else if (ctx.path().isEmpty()
         && ctx.predicateWithSubquery() == null
@@ -1304,13 +1297,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
       if (ctx.predicateWithSubquery() != null) {
         return parseFilterWithSubQuery(
-            ctx.predicateWithSubquery(), (UnarySelectStatement) statement, isHavingFilter);
+            ctx.predicateWithSubquery(), (UnarySelectStatement) statement);
       } else if (ctx.expression().size() == 2) {
         return parseExprFilter(ctx, (UnarySelectStatement) statement);
       } else if (ctx.path().size() == 1) {
-        return parseValueFilter(ctx, (UnarySelectStatement) statement, isHavingFilter);
+        return parseValueFilter(ctx, (UnarySelectStatement) statement);
       } else {
-        return parsePathFilter(ctx, (UnarySelectStatement) statement, isHavingFilter);
+        return parsePathFilter(ctx, (UnarySelectStatement) statement);
       }
     }
   }
@@ -1333,8 +1326,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return new ExprFilter(expressionA, op, expressionB);
   }
 
-  private Filter parseValueFilter(
-      PredicateContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
+  private Filter parseValueFilter(PredicateContext ctx, UnarySelectStatement statement) {
     String path = parsePath(ctx.path().get(0));
 
     if (statement.isFromSinglePath() && !statement.isSubQuery()) {
@@ -1370,8 +1362,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return new ValueFilter(path, op, value);
   }
 
-  private Filter parsePathFilter(
-      PredicateContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
+  private Filter parsePathFilter(PredicateContext ctx, UnarySelectStatement statement) {
     String pathA = parsePath(ctx.path().get(0));
     String pathB = parsePath(ctx.path().get(1));
 
@@ -1387,36 +1378,23 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private Filter parseFilterWithSubQuery(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     if (ctx.EXISTS() != null) {
-      return parseExistsFilter(ctx, statement, isHavingFilter);
+      return parseExistsFilter(ctx, statement);
     } else if (ctx.IN() != null) {
-      return parseInFilter(ctx, statement, isHavingFilter);
+      return parseInFilter(ctx, statement);
     } else if (ctx.quantifier() != null) {
-      return parseQuantifierComparisonFilter(ctx, statement, isHavingFilter);
+      return parseQuantifierComparisonFilter(ctx, statement);
+    } else if (ctx.subquery().size() == 1) {
+      return parseScalarSubQueryComparisonFilter(ctx, statement);
     } else {
-      if (ctx.subquery().size() == 1) {
-        return parseScalarSubQueryComparisonFilter(ctx, statement, isHavingFilter);
-      } else {
-        return parseTwoScalarSubQueryComparisonFilter(ctx, statement, isHavingFilter);
-      }
+      return parseTwoScalarSubQueryComparisonFilter(ctx, statement);
     }
   }
 
   private Filter parseExistsFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
-    SelectStatement subStatement =
-        parseQueryClause(ctx.subquery().get(0).queryClause(), statement.getCteList(), true);
-
-    if (ctx.subquery().get(0).orderByClause() != null
-        && ctx.subquery().get(0).limitClause() != null) {
-      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
-      parseLimitClause(ctx.subquery().get(0).limitClause(), subStatement);
-    } else if (ctx.subquery().get(0).orderByClause() != null
-        ^ ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException(
-          "order by and limit should be used at the same time in where subquery");
-    }
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+    SelectStatement subStatement = buildSubStatement(ctx, statement, 0, -1);
 
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
@@ -1429,32 +1407,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-    if (isHavingFilter) {
-      statement.addHavingSubQueryPart(subQueryPart);
-    } else {
-      statement.addWhereSubQueryPart(subQueryPart);
-    }
+    statement.addSubQueryPart(ctx, subQueryPart);
     return new ValueFilter(markColumn, Op.E, new Value(true));
   }
 
-  private Filter parseInFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
-    SelectStatement subStatement =
-        parseQueryClause(ctx.subquery().get(0).queryClause(), statement.getCteList(), true);
-
-    if (ctx.subquery().get(0).orderByClause() != null
-        && ctx.subquery().get(0).limitClause() != null) {
-      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
-      parseLimitClause(ctx.subquery().get(0).limitClause(), subStatement);
-    } else if (ctx.subquery().get(0).orderByClause() != null
-        ^ ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException(
-          "order by and limit should be used at the same time in where subquery");
-    }
-    if (subStatement.getExpressions().size() != 1) {
-      throw new SQLParserException(
-          "The number of columns in sub-query doesn't equal to outer row.");
-    }
+  private Filter parseInFilter(PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+    SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
     String markColumn = MARK_PREFIX + markJoinCount;
@@ -1485,32 +1443,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-    if (isHavingFilter) {
-      statement.addHavingSubQueryPart(subQueryPart);
-    } else {
-      statement.addWhereSubQueryPart(subQueryPart);
-    }
+    statement.addSubQueryPart(ctx, subQueryPart);
     return new ValueFilter(markColumn, Op.E, new Value(true));
   }
 
   private Filter parseQuantifierComparisonFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
-    SelectStatement subStatement =
-        parseQueryClause(ctx.subquery().get(0).queryClause(), statement.getCteList(), true);
-
-    if (ctx.subquery().get(0).orderByClause() != null
-        && ctx.subquery().get(0).limitClause() != null) {
-      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
-      parseLimitClause(ctx.subquery().get(0).limitClause(), subStatement);
-    } else if (ctx.subquery().get(0).orderByClause() != null
-        ^ ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException(
-          "order by and limit should be used at the same time in where subquery");
-    }
-    if (subStatement.getExpressions().size() != 1) {
-      throw new SQLParserException(
-          "The number of columns in sub-query doesn't equal to outer row.");
-    }
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+    SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
     String markColumn = MARK_PREFIX + markJoinCount;
@@ -1553,32 +1492,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-    if (isHavingFilter) {
-      statement.addHavingSubQueryPart(subQueryPart);
-    } else {
-      statement.addWhereSubQueryPart(subQueryPart);
-    }
+    statement.addSubQueryPart(ctx, subQueryPart);
     return new ValueFilter(markColumn, Op.E, new Value(true));
   }
 
   private Filter parseScalarSubQueryComparisonFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
-    SelectStatement subStatement =
-        parseQueryClause(ctx.subquery().get(0).queryClause(), statement.getCteList(), true);
-
-    if (ctx.subquery().get(0).orderByClause() != null
-        && ctx.subquery().get(0).limitClause() != null) {
-      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
-      parseLimitClause(ctx.subquery().get(0).limitClause(), subStatement);
-    } else if (ctx.subquery().get(0).orderByClause() != null
-        ^ ctx.subquery().get(0).limitClause() != null) {
-      throw new SQLParserException(
-          "order by and limit should be used at the same time in where subquery");
-    }
-    if (subStatement.getExpressions().size() != 1) {
-      throw new SQLParserException(
-          "The number of columns in sub-query doesn't equal to outer row.");
-    }
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+    SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
 
@@ -1586,11 +1506,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter));
-    if (isHavingFilter) {
-      statement.addHavingSubQueryPart(subQueryPart);
-    } else {
-      statement.addWhereSubQueryPart(subQueryPart);
-    }
+    statement.addSubQueryPart(ctx, subQueryPart);
 
     Expression expression = subStatement.getExpressions().get(0);
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
@@ -1614,26 +1530,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private Filter parseTwoScalarSubQueryComparisonFilter(
-      PredicateWithSubqueryContext ctx, UnarySelectStatement statement, boolean isHavingFilter) {
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     List<String> paths = new ArrayList<>();
 
     for (int i = 0; i < 2; i++) {
-      SelectStatement subStatement =
-          parseQueryClause(ctx.subquery().get(i).queryClause(), statement.getCteList(), true);
-
-      if (ctx.subquery().get(0).orderByClause() != null
-          && ctx.subquery().get(0).limitClause() != null) {
-        parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
-        parseLimitClause(ctx.subquery().get(0).limitClause(), subStatement);
-      } else if (ctx.subquery().get(0).orderByClause() != null
-          ^ ctx.subquery().get(0).limitClause() != null) {
-        throw new SQLParserException(
-            "order by and limit should be used at the same time in where subquery");
-      }
-      if (subStatement.getExpressions().size() != 1) {
-        throw new SQLParserException(
-            "The number of columns in sub-query doesn't equal to outer row.");
-      }
+      SelectStatement subStatement = buildSubStatement(ctx, statement, i, 1);
       // 计算子查询的自由变量
       subStatement.initFreeVariables();
       Expression expression = subStatement.getExpressions().get(0);
@@ -1643,15 +1544,44 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
       SubQueryFromPart subQueryPart =
           new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter));
-      if (isHavingFilter) {
-        statement.addHavingSubQueryPart(subQueryPart);
-      } else {
-        statement.addWhereSubQueryPart(subQueryPart);
-      }
+      statement.addSubQueryPart(ctx, subQueryPart);
     }
 
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
     return new PathFilter(paths.get(0), op, paths.get(1));
+  }
+
+  /**
+   * 根据PredicateWithSubqueryContext构建subStatement
+   *
+   * @param ctx 子查询的上下文
+   * @param statement 外层的statement
+   * @param index 子查询的索引
+   * @param expressionSize 外层表达式的大小，用于判断子查询的列数是否正确（-1表示不判断）
+   * @return 构造好的子查询SelectStatement
+   */
+  private SelectStatement buildSubStatement(
+      PredicateWithSubqueryContext ctx,
+      UnarySelectStatement statement,
+      int index,
+      int expressionSize) {
+    SelectStatement subStatement =
+        parseQueryClause(ctx.subquery().get(index).queryClause(), statement.getCteList(), true);
+
+    if (ctx.subquery().get(0).orderByClause() != null
+        && ctx.subquery().get(0).limitClause() != null) {
+      parseOrderByClause(ctx.subquery().get(0).orderByClause(), subStatement);
+      parseLimitClause(ctx.subquery().get(0).limitClause(), subStatement);
+    } else if (ctx.subquery().get(0).orderByClause() != null
+        ^ ctx.subquery().get(0).limitClause() != null) {
+      throw new SQLParserException(
+          "order by and limit should be used at the same time in where subquery");
+    }
+    if (expressionSize >= 0 && subStatement.getExpressions().size() != expressionSize) {
+      throw new SQLParserException(
+          "The number of columns in sub-query doesn't equal to outer row.");
+    }
+    return subStatement;
   }
 
   private Map<String, String> parseExtra(StringLiteralContext ctx) {

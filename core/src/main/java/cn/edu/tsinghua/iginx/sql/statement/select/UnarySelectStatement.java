@@ -14,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
+import cn.edu.tsinghua.iginx.sql.SqlParser;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
@@ -22,6 +23,7 @@ import cn.edu.tsinghua.iginx.sql.statement.select.subclause.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
+import org.antlr.v4.runtime.ParserRuleContext;
 
 public class UnarySelectStatement extends SelectStatement {
 
@@ -653,6 +655,29 @@ public class UnarySelectStatement extends SelectStatement {
     if (hasGroupBy() && (cntArr[0] > 0 || cntArr[1] > 0)) {
       throw new SQLParserException("Group by can not use SetToSet and RowToRow functions.");
     }
+  }
+
+  /**
+   * 根据当前PredicateWithSubqueryContext的父节点情况，将SubQueryPart添加到HavingClause中或者WhereClause中
+   *
+   * @param ctx 当前的ctx节点
+   * @param subQueryPart 要添加的SubQueryPart
+   */
+  public void addSubQueryPart(ParserRuleContext ctx, SubQueryFromPart subQueryPart) {
+    ParserRuleContext parent = ctx.getParent();
+    while (parent != null) {
+      if (parent instanceof SqlParser.WhereClauseContext) {
+        this.addWhereSubQueryPart(subQueryPart);
+        return;
+      }
+      if (parent instanceof SqlParser.HavingClauseContext) {
+        this.addHavingSubQueryPart(subQueryPart);
+        return;
+      }
+      parent = parent.getParent();
+    }
+
+    throw new SQLParserException("SubQuery must be in where or having clause.");
   }
 
   public enum QueryType {
