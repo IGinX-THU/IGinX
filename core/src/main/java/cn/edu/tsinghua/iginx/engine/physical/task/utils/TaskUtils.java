@@ -1,10 +1,10 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import java.util.List;
 
 public class TaskUtils {
@@ -34,7 +34,7 @@ public class TaskUtils {
         }
         break;
       default:
-        throw new IginxRuntimeException("unknown task type: " + root.getType());
+        throw new PhysicalRuntimeException("unknown task type: " + root.getType());
     }
   }
 }

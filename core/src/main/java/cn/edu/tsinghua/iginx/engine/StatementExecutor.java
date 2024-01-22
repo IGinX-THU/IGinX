@@ -485,10 +485,7 @@ public class StatementExecutor {
       fos.flush();
     } catch (IOException e) {
       throw new IginxRuntimeException(
-          "Encounter an error when writing file "
-              + tmpCSV.getCanonicalPath()
-              + ", because "
-              + e.getMessage());
+          (String.format("Encounter an error when writing file %s", tmpCSV.getCanonicalPath())), e);
     }
 
     long count = 0;
@@ -616,12 +613,10 @@ public class StatementExecutor {
       ctx.getResult().setLoadCSVRecordNum(count);
     } catch (IOException e) {
       throw new IginxRuntimeException(
-          "Encounter an error when reading csv file "
-              + tmpCSV.getCanonicalPath()
-              + ", because "
-              + e.getMessage());
+          String.format("Encounter an error when reading csv file %s", tmpCSV.getCanonicalPath()),
+          e);
     } catch (ExecutionException | PhysicalException e) {
-      throw new IginxRuntimeException(e);
+      throw new IginxRuntimeException("Encounter an error when executing insert statement", e);
     }
 
     Files.delete(tmpCSV.toPath());

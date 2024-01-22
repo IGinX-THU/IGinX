@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
@@ -16,7 +17,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 
 public class ExprUtils {
@@ -67,7 +67,7 @@ public class ExprUtils {
   private static Value calculateFuncExprNative(Row row, FuncExpression funcExpr) {
     Function function = functionManager.getFunction(funcExpr.getFuncName());
     if (!function.getMappingType().equals(MappingType.RowMapping)) {
-      throw new IginxRuntimeException("only row mapping function can be used in expr");
+      throw new PhysicalRuntimeException("only row mapping function can be used in expr");
     }
     RowMappingFunction rowMappingFunction = (RowMappingFunction) function;
     FunctionParams params =
@@ -77,11 +77,11 @@ public class ExprUtils {
       Row ret = rowMappingFunction.transform(row, params);
       int retValueSize = ret.getValues().length;
       if (retValueSize != 1) {
-        throw new IginxRuntimeException("the func in the expr can only have one return value");
+        throw new PhysicalRuntimeException("the func in the expr can only have one return value");
       }
       return ret.getAsValue(0);
     } catch (Exception e) {
-      throw new IginxRuntimeException(e);
+      throw new PhysicalRuntimeException(e);
     }
   }
 
