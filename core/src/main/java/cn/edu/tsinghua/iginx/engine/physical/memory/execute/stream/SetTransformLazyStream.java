@@ -22,6 +22,7 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -76,9 +77,9 @@ public class SetTransformLazyStream extends UnaryLazyStream {
         function = (SetMappingFunction) functionCall.getFunction();
         FunctionParams params = functionCall.getParams();
         if (params.isDistinct()) {
-          rowList.add(function.transform(distinctStreamMap.get(params.getPaths()), params));
+          rowList.add(function.transform((Table) distinctStreamMap.get(params.getPaths()), params));
         } else {
-          rowList.add(function.transform(stream, params));
+          rowList.add(function.transform((Table) stream, params));
         }
       }
 

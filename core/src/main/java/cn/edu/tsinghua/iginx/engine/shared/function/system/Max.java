@@ -18,10 +18,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
@@ -60,7 +60,7 @@ public class Max implements SetMappingFunction {
   }
 
   @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
+  public Row transform(Table table, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
       throw new IllegalArgumentException("unexpected param type for avg.");
@@ -70,8 +70,8 @@ public class Max implements SetMappingFunction {
     Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
     List<Field> targetFields = new ArrayList<>();
     List<Integer> indices = new ArrayList<>();
-    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-      Field field = rows.getHeader().getField(i);
+    for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+      Field field = table.getHeader().getField(i);
       if (pattern.matcher(field.getFullName()).matches()) {
         String name = getIdentifier() + "(";
         String fullName = getIdentifier() + "(";
@@ -86,8 +86,7 @@ public class Max implements SetMappingFunction {
       }
     }
     Object[] targetValues = new Object[targetFields.size()];
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       Object[] values = row.getValues();
       for (int i = 0; i < indices.size(); i++) {
         Object value = values[indices.get(i)];

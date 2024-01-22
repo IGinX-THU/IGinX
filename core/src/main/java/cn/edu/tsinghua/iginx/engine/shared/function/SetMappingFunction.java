@@ -18,10 +18,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 
 public interface SetMappingFunction extends Function {
 
-  Row transform(RowStream rows, FunctionParams params) throws Exception;
+  Row transform(Table table, FunctionParams params) throws Exception;
 }

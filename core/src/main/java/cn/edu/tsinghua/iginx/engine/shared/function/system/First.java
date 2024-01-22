@@ -73,7 +73,7 @@ public class First implements MappingFunction {
   }
 
   @Override
-  public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
+  public RowStream transform(Table rows, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
       throw new IllegalArgumentException("unexpected param type for avg.");
@@ -94,8 +94,11 @@ public class First implements MappingFunction {
         indices.add(i);
       }
     }
-    while (rows.hasNext() && valueMap.size() < indices.size()) {
-      Row row = rows.next();
+
+    for (Row row : rows.getRows()) {
+      if (valueMap.size() >= indices.size()) {
+        break;
+      }
       Object[] values = row.getValues();
 
       for (int i = 0; i < values.length; i++) {
@@ -107,6 +110,7 @@ public class First implements MappingFunction {
         }
       }
     }
+
     for (Map.Entry<Integer, Pair<Long, Object>> entry : valueMap.entrySet()) {
       resultRows.add(
           new Row(

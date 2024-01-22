@@ -50,7 +50,7 @@ public class PyUDSF implements UDSF {
   }
 
   @Override
-  public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
+  public RowStream transform(Table rows, FunctionParams params) throws Exception {
     if (!CheckUtils.isLegal(params)) {
       throw new IllegalArgumentException("unexpected params for PyUDSF.");
     }
@@ -94,8 +94,7 @@ public class PyUDSF implements UDSF {
     List<List<Object>> data = new ArrayList<>();
     data.add(colNames);
     data.add(colTypes);
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : rows.getRows()) {
       List<Object> rowData = new ArrayList<>();
       rowData.add(row.getKey());
       for (Integer idx : indices) {

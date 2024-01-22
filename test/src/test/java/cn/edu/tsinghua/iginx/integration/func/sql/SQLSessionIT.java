@@ -5565,18 +5565,15 @@ public class SQLSessionIT {
     if (isScaling) return;
     String explain = "explain select max(s2), min(s1) from us.d1;";
     String expected =
-        "ResultSets:\n"
-            + "+-------------------+-------------+------------------------------------------------------------+\n"
-            + "|       Logical Tree|Operator Type|                                               Operator Info|\n"
-            + "+-------------------+-------------+------------------------------------------------------------+\n"
-            + "|Reorder            |      Reorder|                          Order: max(us.d1.s2),min(us.d1.s1)|\n"
-            + "|  +--Join          |         Join|                                             JoinBy: ordinal|\n"
-            + "|    +--SetTransform| SetTransform|Func: {Name: min, FuncType: System, MappingType: SetMapping}|\n"
-            + "|      +--Project   |      Project|      Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-            + "|    +--SetTransform| SetTransform|Func: {Name: max, FuncType: System, MappingType: SetMapping}|\n"
-            + "|      +--Project   |      Project|      Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-            + "+-------------------+-------------+------------------------------------------------------------+\n"
-            + "Total line number = 6\n";
+        "ResultSets:\n" +
+                "+-----------------+-------------+-------------------------------------------------------------------------------------------------------------------------------------------+\n" +
+                "|     Logical Tree|Operator Type|                                                                                                                              Operator Info|\n" +
+                "+-----------------+-------------+-------------------------------------------------------------------------------------------------------------------------------------------+\n" +
+                "|Reorder          |      Reorder|                                                                                                         Order: max(us.d1.s2),min(us.d1.s1)|\n" +
+                "|  +--SetTransform| SetTransform|FuncList: {Name: min, FuncType: System, MappingType: SetMapping}, {Name: max, FuncType: System, MappingType: SetMapping}, isDistinct: false|\n" +
+                "|    +--Project   |      Project|                                                                                     Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n" +
+                "+-----------------+-------------+-------------------------------------------------------------------------------------------------------------------------------------------+\n" +
+                "Total line number = 3\n";
     executor.executeAndCompare(explain, expected);
 
     explain = "explain select s1 from us.d1 where s1 > 10 and s1 < 100;";

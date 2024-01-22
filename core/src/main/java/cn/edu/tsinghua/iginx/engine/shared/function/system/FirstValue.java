@@ -18,10 +18,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
@@ -59,14 +59,14 @@ public class FirstValue implements SetMappingFunction {
   }
 
   @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
+  public Row transform(Table table, FunctionParams params) throws Exception {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
       throw new IllegalArgumentException("unexpected param type for avg.");
     }
 
     String target = pathParams.get(0);
-    List<Field> fields = rows.getHeader().getFields();
+    List<Field> fields = table.getHeader().getFields();
     Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
     List<Field> targetFields = new ArrayList<>();
     List<Integer> indices = new ArrayList<>();
@@ -80,8 +80,7 @@ public class FirstValue implements SetMappingFunction {
       }
     }
     Object[] targetValues = new Object[targetFields.size()];
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       for (int i = 0; i < indices.size(); i++) {
         Object value = row.getValue(indices.get(i));
         if (targetValues[i] != null) { // 找到第一个非空值之后，后续不再找了
