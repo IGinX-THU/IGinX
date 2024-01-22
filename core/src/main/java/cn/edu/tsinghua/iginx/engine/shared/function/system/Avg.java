@@ -22,16 +22,10 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class Avg implements SetMappingFunction {
 
@@ -62,32 +56,10 @@ public class Avg implements SetMappingFunction {
 
   @Override
   public Row transform(Table table, FunctionParams params) throws Exception {
-    List<String> pathParams = params.getPaths();
-    if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
-    }
-
-    String target = pathParams.get(0);
+    Pair<List<Field>, List<Integer>> pair = FunctionUtils.getFieldAndIndices(table, params, this);
     List<Field> fields = table.getHeader().getFields();
-
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-    List<Field> targetFields = new ArrayList<>();
-    List<Integer> indices = new ArrayList<>();
-    for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
-        String name = getIdentifier() + "(";
-        String fullName = getIdentifier() + "(";
-        if (params.isDistinct()) {
-          name += "distinct ";
-          fullName += "distinct ";
-        }
-        name += field.getName() + ")";
-        fullName += field.getFullName() + ")";
-        targetFields.add(new Field(name, fullName, DataType.DOUBLE));
-        indices.add(i);
-      }
-    }
+    List<Field> targetFields = pair.k;
+    List<Integer> indices = pair.v;
 
     for (Field field : targetFields) {
       if (!DataTypeUtils.isNumber(field.getType())) {

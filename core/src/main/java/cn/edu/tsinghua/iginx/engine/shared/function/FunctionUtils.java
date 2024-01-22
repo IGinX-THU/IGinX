@@ -1,7 +1,12 @@
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
+import java.util.regex.Pattern;
 
 public class FunctionUtils {
 
@@ -76,5 +81,38 @@ public class FunctionUtils {
     return function.getIdentifier().equals("py_udtf")
         || function.getIdentifier().equals("py_udaf")
         || function.getIdentifier().equals("py_udsf");
+  }
+
+  public static Pair<List<Field>, List<Integer>> getFieldAndIndices(
+      Table table, FunctionParams params, SetMappingFunction function) {
+    List<Field> fields = table.getHeader().getFields();
+    List<String> pathParams = params.getPaths();
+
+    if (pathParams == null || pathParams.size() != 1) {
+      throw new IllegalArgumentException(
+          String.format("unexpected param type for %s.", function.getIdentifier()));
+    }
+
+    String target = pathParams.get(0);
+
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    List<Field> targetFields = new ArrayList<>();
+    List<Integer> indices = new ArrayList<>();
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = fields.get(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
+        String name = function.getIdentifier() + "(";
+        String fullName = function.getIdentifier() + "(";
+        if (params.isDistinct()) {
+          name += "distinct ";
+          fullName += "distinct ";
+        }
+        name += field.getName() + ")";
+        fullName += field.getFullName() + ")";
+        targetFields.add(new Field(name, fullName, field.getType()));
+        indices.add(i);
+      }
+    }
+    return new Pair<>(targetFields, indices);
   }
 }
