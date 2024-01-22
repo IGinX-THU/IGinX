@@ -2,13 +2,24 @@ package cn.edu.tsinghua.iginx.engine.shared.function;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
 
 public class FunctionUtils {
+
+  private static final String PATH = "path";
+
+  private static final String VALUE = "value";
 
   private static final Set<String> sysRowToRowFunctionSet =
       new HashSet<>(Collections.singletonList("ratio"));
@@ -114,5 +125,70 @@ public class FunctionUtils {
       }
     }
     return new Pair<>(targetFields, indices);
+  }
+
+  public static RowStream firstOrLastTransform(
+      Table rows, FunctionParams params, MappingFunction function) throws Exception {
+    List<String> pathParams = params.getPaths();
+    if (pathParams == null || pathParams.size() != 1) {
+      throw new IllegalArgumentException(
+          String.format("unexpected param type for %s.", function.getIdentifier()));
+    }
+
+    String target = pathParams.get(0);
+    Header header =
+        new Header(
+            Field.KEY,
+            Arrays.asList(new Field(PATH, DataType.BINARY), new Field(VALUE, DataType.BINARY)));
+    List<Row> resultRows = new ArrayList<>();
+    Map<Integer, Pair<Long, Object>> valueMap = new HashMap<>();
+    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
+    Set<Integer> indices = new HashSet<>();
+    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
+      Field field = rows.getHeader().getField(i);
+      if (pattern.matcher(field.getFullName()).matches()) {
+        indices.add(i);
+      }
+    }
+
+    boolean isFirst = function instanceof First;
+
+    for (Row row : rows.getRows()) {
+      if (valueMap.size() >= indices.size()) {
+        break;
+      }
+      Object[] values = row.getValues();
+
+      for (int i = 0; i < values.length; i++) {
+        if (values[i] == null || !indices.contains(i)) {
+          continue;
+        }
+        if (!valueMap.containsKey(i)) {
+          valueMap.put(i, new Pair<>(row.getKey(), values[i]));
+        } else if (!isFirst) {
+          Pair<Long, Object> pair = valueMap.get(i);
+          pair.k = row.getKey();
+          pair.v = values[i];
+        }
+      }
+    }
+
+    for (Map.Entry<Integer, Pair<Long, Object>> entry : valueMap.entrySet()) {
+      resultRows.add(
+          new Row(
+              header,
+              entry.getValue().k,
+              new Object[] {
+                rows.getHeader()
+                    .getField(entry.getKey())
+                    .getFullName()
+                    .getBytes(StandardCharsets.UTF_8),
+                ValueUtils.toString(
+                        entry.getValue().v, rows.getHeader().getField(entry.getKey()).getType())
+                    .getBytes(StandardCharsets.UTF_8)
+              }));
+    }
+    resultRows.sort(ValueUtils.firstLastRowComparator());
+    return new Table(header, resultRows);
   }
 }
