@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.isWholeNumber;
+
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -7,6 +9,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -94,6 +97,20 @@ public class FunctionUtils {
         || function.getIdentifier().equals("py_udsf");
   }
 
+  static Map<String, java.util.function.Function<DataType, DataType>> functionFieldTypeMap =
+      new HashMap<>();
+
+  static {
+    functionFieldTypeMap.put("avg", (dataType) -> DataType.DOUBLE);
+    functionFieldTypeMap.put("count", (dataType) -> DataType.LONG);
+    functionFieldTypeMap.put("first_value", (dataType) -> dataType);
+    functionFieldTypeMap.put("last_value", (dataType) -> dataType);
+    functionFieldTypeMap.put("max", (dataType) -> dataType);
+    functionFieldTypeMap.put("min", (dataType) -> dataType);
+    functionFieldTypeMap.put(
+        "sum", (dataType) -> isWholeNumber(dataType) ? DataType.LONG : DataType.DOUBLE);
+  }
+
   public static Pair<List<Field>, List<Integer>> getFieldAndIndices(
       Table table, FunctionParams params, SetMappingFunction function) {
     List<Field> fields = table.getHeader().getFields();
@@ -120,7 +137,9 @@ public class FunctionUtils {
         }
         name += field.getName() + ")";
         fullName += field.getFullName() + ")";
-        targetFields.add(new Field(name, fullName, field.getType()));
+        DataType dataType =
+            functionFieldTypeMap.get(function.getIdentifier()).apply(field.getType());
+        targetFields.add(new Field(name, fullName, dataType));
         indices.add(i);
       }
     }
@@ -151,10 +170,11 @@ public class FunctionUtils {
       }
     }
 
-    boolean isFirst = function instanceof First;
+    boolean isLast = Objects.equals(function.getIdentifier(), Last.LAST);
+    boolean isFirst = Objects.equals(function.getIdentifier(), First.FIRST);
 
     for (Row row : rows.getRows()) {
-      if (valueMap.size() >= indices.size()) {
+      if (valueMap.size() >= indices.size() && isFirst) {
         break;
       }
       Object[] values = row.getValues();
@@ -165,7 +185,7 @@ public class FunctionUtils {
         }
         if (!valueMap.containsKey(i)) {
           valueMap.put(i, new Pair<>(row.getKey(), values[i]));
-        } else if (!isFirst) {
+        } else if (isLast) {
           Pair<Long, Object> pair = valueMap.get(i);
           pair.k = row.getKey();
           pair.v = values[i];
