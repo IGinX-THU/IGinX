@@ -32,7 +32,10 @@ import java.nio.file.*;
 import java.util.Iterator;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.*;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -51,7 +54,7 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
 
   private final Semaphore cacheSlotNumber = new Semaphore(0, true);
 
-  private final ExecutorService flusher = Executors.newSingleThreadExecutor();
+  private final ExecutorService flusher = Executors.newCachedThreadPool();
 
   private final ReadWriter<K, F, V, T> readWriter;
 
