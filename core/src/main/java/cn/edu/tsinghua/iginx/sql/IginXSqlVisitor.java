@@ -23,16 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
@@ -140,7 +131,7 @@ import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.util.*;
-import org.antlr.v4.runtime.ParserRuleContext;
+import java.util.stream.Collectors;
 
 public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
@@ -265,7 +256,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     ctx.path().forEach(e -> deleteStatement.addPath(parsePath(e)));
     // parse time range
     if (ctx.whereClause() != null) {
-      Filter filter = parseOrExpression(ctx.whereClause().orExpression(), deleteStatement);
+      Filter filter =
+          parseOrExpression(ctx.whereClause().orExpression(), deleteStatement).getFilter();
       deleteStatement.setKeyRangesByFilter(filter);
     } else {
       List<KeyRange> keyRanges =
@@ -393,12 +385,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
     // parse where clause
     if (ctx.whereClause() != null) {
-      Filter filter = parseOrExpression(ctx.whereClause().orExpression(), selectStatement);
-      filter = ExprUtils.removeSingleFilter(filter);
+      FilterData filterData = parseOrExpression(ctx.whereClause().orExpression(), selectStatement);
+      Filter filter = ExprUtils.removeSingleFilter(filterData.getFilter());
       selectStatement.setFilter(filter);
       selectStatement.setHasValueFilter(true);
-      getPathsFromExpression(ctx.whereClause().orExpression(), selectStatement)
-          .forEach(selectStatement::addWherePath);
+      filterData.getPathList().forEach(selectStatement::addWherePath);
+      filterData.getSubQueryFromPartList().forEach(selectStatement::addWhereSubQueryPart);
     }
     // parse with clause
     if (ctx.withClause() != null) {
@@ -601,7 +593,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         JoinType joinType = parseJoinType(joinPartContext.join());
         Filter filter = null;
         if (joinPartContext.orExpression() != null) {
-          filter = parseOrExpression(joinPartContext.orExpression(), selectStatement);
+          filter = parseOrExpression(joinPartContext.orExpression(), selectStatement).getFilter();
         }
         List<String> columns = new ArrayList<>();
         if (joinPartContext.colList() != null && !joinPartContext.colList().isEmpty()) {
@@ -1039,10 +1031,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       parseGroupByClause(ctx.groupByClause(), selectStatement);
     }
     if (ctx.havingClause() != null) {
-      Filter filter = parseOrExpression(ctx.havingClause().orExpression(), selectStatement);
-      selectStatement.setHavingFilter(filter);
-      getPathsFromExpression(ctx.havingClause().orExpression(), selectStatement)
-          .forEach(selectStatement::addHavingPath);
+      FilterData filterData = parseOrExpression(ctx.havingClause().orExpression(), selectStatement);
+      selectStatement.setHavingFilter(filterData.getFilter());
+      filterData.getPathList().forEach(selectStatement::addHavingPath);
+      filterData.getSubQueryFromPartList().forEach(selectStatement::addHavingSubQueryPart);
     }
   }
 
@@ -1268,26 +1260,29 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return new BasePreciseTagFilter(tagKVMap);
   }
 
-  private Filter parseOrExpression(OrExpressionContext ctx, Statement statement) {
-    List<Filter> children = new ArrayList<>();
+  private FilterData parseOrExpression(OrExpressionContext ctx, Statement statement) {
+    List<FilterData> children = new ArrayList<>();
     for (AndExpressionContext andCtx : ctx.andExpression()) {
       children.add(parseAndExpression(andCtx, statement));
     }
-    return children.size() == 1 ? children.get(0) : new OrFilter(children);
+    return children.size() == 1 ? children.get(0) : new FilterData(children, FilterType.Or);
   }
 
-  private Filter parseAndExpression(AndExpressionContext ctx, Statement statement) {
-    List<Filter> children = new ArrayList<>();
+  private FilterData parseAndExpression(AndExpressionContext ctx, Statement statement) {
+    List<FilterData> children = new ArrayList<>();
     for (PredicateContext predicateCtx : ctx.predicate()) {
       children.add(parsePredicate(predicateCtx, statement));
     }
-    return children.size() == 1 ? children.get(0) : new AndFilter(children);
+    return children.size() == 1 ? children.get(0) : new FilterData(children, FilterType.And);
   }
 
-  private Filter parsePredicate(PredicateContext ctx, Statement statement) {
+  private FilterData parsePredicate(PredicateContext ctx, Statement statement) {
     if (ctx.orExpression() != null) {
-      Filter filter = parseOrExpression(ctx.orExpression(), statement);
-      return ctx.OPERATOR_NOT() == null ? filter : new NotFilter(filter);
+      FilterData filterData = parseOrExpression(ctx.orExpression(), statement);
+      if (ctx.OPERATOR_NOT() != null) {
+        filterData.setFilter(new NotFilter(filterData.getFilter()));
+      }
+      return filterData;
     } else if (ctx.path().isEmpty()
         && ctx.predicateWithSubquery() == null
         && ctx.constant() != null) {
@@ -1313,25 +1308,25 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
   }
 
-  private KeyFilter parseKeyFilter(PredicateContext ctx) {
+  private FilterData parseKeyFilter(PredicateContext ctx) {
     Op op = Op.str2Op(ctx.comparisonOperator().getText());
     // deal with sub clause like 100 < key
     if (ctx.children.get(0) instanceof ConstantContext) {
       op = Op.getDirectionOpposite(op);
     }
     long time = (long) parseValue(ctx.constant());
-    return new KeyFilter(op, time);
+    return new FilterData(new KeyFilter(op, time));
   }
 
-  private ExprFilter parseExprFilter(PredicateContext ctx, UnarySelectStatement statement) {
+  private FilterData parseExprFilter(PredicateContext ctx, UnarySelectStatement statement) {
     Op op = Op.str2Op(ctx.comparisonOperator().getText());
     assert ctx.expression().size() == 2;
     Expression expressionA = parseExpression(ctx.expression().get(0), statement, false).get(0);
     Expression expressionB = parseExpression(ctx.expression().get(1), statement, false).get(0);
-    return new ExprFilter(expressionA, op, expressionB);
+    return new FilterData(new ExprFilter(expressionA, op, expressionB));
   }
 
-  private Filter parseValueFilter(PredicateContext ctx, UnarySelectStatement statement) {
+  private FilterData parseValueFilter(PredicateContext ctx, UnarySelectStatement statement) {
     String path = parsePath(ctx.path().get(0));
 
     if (statement.isFromSinglePath() && !statement.isSubQuery()) {
@@ -1364,10 +1359,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       value = new Value(parseValue(ctx.constant()));
     }
 
-    return new ValueFilter(path, op, value);
+    FilterData filterData = new FilterData(new ValueFilter(path, op, value));
+    filterData.addPaths(getPathsFromPredicate(ctx, statement));
+
+    return filterData;
   }
 
-  private Filter parsePathFilter(PredicateContext ctx, UnarySelectStatement statement) {
+  private FilterData parsePathFilter(PredicateContext ctx, UnarySelectStatement statement) {
     String pathA = parsePath(ctx.path().get(0));
     String pathB = parsePath(ctx.path().get(1));
 
@@ -1379,10 +1377,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       pathA = fromPart.getPrefix() + SQLConstant.DOT + pathA;
       pathB = fromPart.getPrefix() + SQLConstant.DOT + pathB;
     }
-    return new PathFilter(pathA, op, pathB);
+
+    FilterData filterData = new FilterData(new PathFilter(pathA, op, pathB));
+    filterData.addPaths(getPathsFromPredicate(ctx, statement));
+    return filterData;
   }
 
-  private Filter parseFilterWithSubQuery(
+  private FilterData parseFilterWithSubQuery(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     if (ctx.EXISTS() != null) {
       return parseExistsFilter(ctx, statement);
@@ -1397,7 +1398,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
   }
 
-  private Filter parseExistsFilter(
+  private FilterData parseExistsFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, -1);
 
@@ -1412,11 +1413,14 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-    statement.addSubQueryPart(ctx, subQueryPart);
-    return new ValueFilter(markColumn, Op.E, new Value(true));
+
+    FilterData filterData = new FilterData(new ValueFilter(markColumn, Op.E, new Value(true)));
+    filterData.addSubQueryFromPart(subQueryPart);
+    return filterData;
   }
 
-  private Filter parseInFilter(PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
+  private FilterData parseInFilter(
+      PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
     subStatement.initFreeVariables();
@@ -1448,11 +1452,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-    statement.addSubQueryPart(ctx, subQueryPart);
-    return new ValueFilter(markColumn, Op.E, new Value(true));
+
+    FilterData filterData = new FilterData(new ValueFilter(markColumn, Op.E, new Value(true)));
+    filterData.addSubQueryFromPart(subQueryPart);
+    return filterData;
   }
 
-  private Filter parseQuantifierComparisonFilter(
+  private FilterData parseQuantifierComparisonFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
@@ -1497,11 +1503,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
-    statement.addSubQueryPart(ctx, subQueryPart);
-    return new ValueFilter(markColumn, Op.E, new Value(true));
+
+    FilterData filterData = new FilterData(new ValueFilter(markColumn, Op.E, new Value(true)));
+    filterData.addSubQueryFromPart(subQueryPart);
+    return filterData;
   }
 
-  private Filter parseScalarSubQueryComparisonFilter(
+  private FilterData parseScalarSubQueryComparisonFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量
@@ -1511,14 +1519,17 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter));
-    statement.addSubQueryPart(ctx, subQueryPart);
+
+    FilterData filterData = new FilterData();
+    filterData.addSubQueryFromPart(subQueryPart);
 
     Expression expression = subStatement.getExpressions().get(0);
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
     if (ctx.constant() != null) {
       Value value = new Value(parseValue(ctx.constant()));
       String path = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-      return new ValueFilter(path, op, value);
+      filterData.setFilter(new ValueFilter(path, op, value));
+      return filterData;
     } else {
       String pathA = parsePath(ctx.path());
       if (statement.isFromSinglePath() && !statement.isSubQuery()) {
@@ -1530,14 +1541,15 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
 
       String pathB = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-      return new PathFilter(pathA, op, pathB);
+      filterData.setFilter(new PathFilter(pathA, op, pathB));
+      return filterData;
     }
   }
 
-  private Filter parseTwoScalarSubQueryComparisonFilter(
+  private FilterData parseTwoScalarSubQueryComparisonFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     List<String> paths = new ArrayList<>();
-
+    FilterData filterData = new FilterData();
     for (int i = 0; i < 2; i++) {
       SelectStatement subStatement = buildSubStatement(ctx, statement, i, 1);
       // 计算子查询的自由变量
@@ -1549,11 +1561,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
       SubQueryFromPart subQueryPart =
           new SubQueryFromPart(subStatement, new JoinCondition(JoinType.SingleJoin, filter));
-      statement.addSubQueryPart(ctx, subQueryPart);
+      filterData.addSubQueryFromPart(subQueryPart);
     }
 
     Op op = Op.str2Op(ctx.comparisonOperator().getText().trim().toLowerCase());
-    return new PathFilter(paths.get(0), op, paths.get(1));
+
+    filterData.setFilter(new PathFilter(paths.get(0), op, paths.get(1)));
+    return filterData;
   }
 
   /**
@@ -1749,40 +1763,92 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return tags;
   }
 
-  private List<String> getPathsFromExpression(
-      ParserRuleContext expressionContext, UnarySelectStatement statement) {
+  private List<String> getPathsFromPredicate(
+      PredicateContext predicateContext, UnarySelectStatement statement) {
     List<String> paths = new ArrayList<>();
-    Queue<ParserRuleContext> expressionQueue = new LinkedList<>();
-    expressionQueue.add(expressionContext);
+    for (int i = 0; i < 2 && i < predicateContext.path().size(); i++) {
+      String path = parsePath(predicateContext.path().get(i));
+      String originPath = path;
+      // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
+      if (statement.isFromSinglePath() && !statement.isSubQuery()) {
+        FromPart fromPart = statement.getFromPart(0);
+        path = fromPart.getPrefix() + SQLConstant.DOT + path;
+        originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
+      }
+      if (!statement.isFreeVariable(path)) {
+        paths.add(originPath);
+      }
+    }
+    return paths;
+  }
 
-    while (!expressionQueue.isEmpty()) {
-      ParserRuleContext context = expressionQueue.poll();
-      if (context instanceof OrExpressionContext) {
-        OrExpressionContext orExpressionContext = (OrExpressionContext) context;
-        expressionQueue.addAll(orExpressionContext.andExpression());
-      } else if (context instanceof AndExpressionContext) {
-        AndExpressionContext andExpressionContext = (AndExpressionContext) context;
-        expressionQueue.addAll(andExpressionContext.predicate());
-      } else if (context instanceof PredicateContext) {
-        PredicateContext predicateContext = (PredicateContext) context;
-        if (predicateContext.path().size() >= 1 && predicateContext.path().size() <= 2) {
-          for (int i = 0; i < 2 && i < predicateContext.path().size(); i++) {
-            String path = parsePath(predicateContext.path().get(i));
-            String originPath = path;
-            // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
-            if (statement.isFromSinglePath() && !statement.isSubQuery()) {
-              FromPart fromPart = statement.getFromPart(0);
-              path = fromPart.getPrefix() + SQLConstant.DOT + path;
-              originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
-            }
-            if (!statement.isFreeVariable(path)) {
-              paths.add(originPath);
-            }
-          }
-        }
+  private static class FilterData {
+    private Filter filter;
+    private List<String> pathList;
+
+    private List<SubQueryFromPart> subQueryFromPartList;
+
+    public FilterData() {
+      this.filter = null;
+      this.pathList = new ArrayList<>();
+      this.subQueryFromPartList = new ArrayList<>();
+    }
+
+    public FilterData(Filter filter) {
+      this.filter = filter;
+      this.pathList = new ArrayList<>();
+      this.subQueryFromPartList = new ArrayList<>();
+    }
+
+    public FilterData(List<FilterData> filterDataList, FilterType filterType) {
+      this.pathList = new ArrayList<>();
+      this.subQueryFromPartList = new ArrayList<>();
+      addAll(filterDataList, filterType);
+    }
+
+    public void addAll(List<FilterData> filterDataList, FilterType filterType) {
+      List<Filter> filterList =
+          filterDataList.stream().map(FilterData::getFilter).collect(Collectors.toList());
+      for (FilterData filterData : filterDataList) {
+        this.pathList.addAll(filterData.getPathList());
+        this.subQueryFromPartList.addAll(filterData.getSubQueryFromPartList());
+      }
+
+      if (filterType == FilterType.And) {
+        this.filter = new AndFilter(filterList);
+      } else if (filterType == FilterType.Or) {
+        this.filter = new OrFilter(filterList);
+      } else {
+        throw new SQLParserException("Filter must be combined by And or Or.");
       }
     }
 
-    return paths;
+    public void setFilter(Filter filter) {
+      this.filter = filter;
+    }
+
+    public void addPath(String path) {
+      this.pathList.add(path);
+    }
+
+    public void addPaths(List<String> path) {
+      this.pathList.addAll(path);
+    }
+
+    public void addSubQueryFromPart(SubQueryFromPart subQueryFromPart) {
+      this.subQueryFromPartList.add(subQueryFromPart);
+    }
+
+    public Filter getFilter() {
+      return filter;
+    }
+
+    public List<String> getPathList() {
+      return pathList;
+    }
+
+    public List<SubQueryFromPart> getSubQueryFromPartList() {
+      return subQueryFromPartList;
+    }
   }
 }
