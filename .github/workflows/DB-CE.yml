@@ -7,7 +7,6 @@ on:
 env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
-    IOTDB_FUNCTEST: SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
@@ -66,10 +65,7 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
                   fi
 
             # 第 2 阶段测试开始==========================================
@@ -84,10 +80,7 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
                   fi
 
             # 第 3 阶段测试开始==========================================
@@ -102,10 +95,7 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
                   fi
 
             # 第 4 阶段测试开始==========================================
@@ -120,10 +110,7 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
                   fi
 
             # 测试只读节点===============================================
@@ -139,10 +126,7 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
-                  if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
-                    mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
-                  else
-                    mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
                   fi
 
             - name: Show IGinX log
