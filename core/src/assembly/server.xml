@@ -36,6 +36,13 @@
             <outputDirectory>${file.separator}</outputDirectory>
         </fileSet>
         <fileSet>
+            <directory>src/main/resources</directory>
+            <includes>
+                <include>log*.properties</include>
+            </includes>
+            <outputDirectory>conf</outputDirectory>
+        </fileSet>
+        <fileSet>
             <directory>../conf/</directory>
             <outputDirectory>conf</outputDirectory>
         </fileSet>
