@@ -68,6 +68,7 @@ public class NewSessionIT {
   private static boolean isAbleToDelete = true;
 
   private static boolean dummyNoData = true;
+  private static boolean isScaling = false;
 
   private static boolean needCompareResult = true;
 
@@ -129,6 +130,7 @@ public class NewSessionIT {
       needCompareResult = false;
     }
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    isScaling = conf.isScaling();
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     if (isForSession) {
       conn =
@@ -495,6 +497,9 @@ public class NewSessionIT {
 
   @Test
   public void testDeletePaths() {
+    if (!isAbleToDelete || isScaling) {
+      return;
+    }
     // delete single path
     List<String> deleteColumns = Collections.singletonList("us.d1.s2");
     try {
