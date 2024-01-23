@@ -973,6 +973,10 @@ public class RowUtils {
       throw new IllegalArgumentException("Table list cannot be null or empty");
     }
 
+    if (tableList.size() == 1) {
+      return tableList.get(0);
+    }
+
     // 检查每个表的头部是否包含键
     for (Table table : tableList) {
       if (table.getHeader().hasKey()) {
