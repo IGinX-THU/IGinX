@@ -708,8 +708,8 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.DownSampleQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
-    Operator finalRoot = root;
+    List<FunctionCall> functionCallList = new ArrayList<>();
+
     selectStatement
         .getFuncExpressionMap()
         .forEach(
@@ -717,19 +717,16 @@ public class QueryGenerator extends AbstractGenerator {
                 v.forEach(
                     expression -> {
                       FunctionParams params = getFunctionParams(k, expression);
-                      Operator copySelect = finalRoot.copy();
-                      queryList.add(
-                          new Downsample(
-                              new OperatorSource(copySelect),
-                              selectStatement.getPrecision(),
-                              selectStatement.getSlideDistance(),
-                              new FunctionCall(functionManager.getFunction(k), params),
-                              new KeyRange(
-                                  selectStatement.getStartKey(), selectStatement.getEndKey())));
+                      functionCallList.add(
+                          new FunctionCall(functionManager.getFunction(k), params));
                     }));
-    root = OperatorUtils.joinOperatorsByTime(queryList);
 
-    return root;
+    return new Downsample(
+        new OperatorSource(root),
+        selectStatement.getPrecision(),
+        selectStatement.getSlideDistance(),
+        functionCallList,
+        new KeyRange(selectStatement.getStartKey(), selectStatement.getEndKey()));
   }
 
   /**

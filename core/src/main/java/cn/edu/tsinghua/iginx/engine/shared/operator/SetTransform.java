@@ -31,23 +31,6 @@ public class SetTransform extends AbstractUnaryOperator {
 
   private final List<FunctionCall> functionCallList;
 
-  public SetTransform(Source source, FunctionCall functionCall) {
-    super(OperatorType.SetTransform, source);
-    if (functionCall == null || functionCall.getFunction() == null) {
-      throw new IllegalArgumentException("function shouldn't be null");
-    }
-    if (functionCall.getFunction().getMappingType() != MappingType.SetMapping) {
-      throw new IllegalArgumentException("function should be set mapping function");
-    }
-    this.functionCallList = new ArrayList<>();
-    this.functionCallList.add(functionCall);
-    if (isDistinct()
-        && !isCanUseSetQuantifierFunction(functionCall.getFunction().getIdentifier())) {
-      throw new IllegalArgumentException(
-          "function " + functionCall.getFunction().getIdentifier() + " can't use DISTINCT");
-    }
-  }
-
   public SetTransform(Source source, List<FunctionCall> functionCallList) {
     super(OperatorType.SetTransform, source);
     this.functionCallList = new ArrayList<>();

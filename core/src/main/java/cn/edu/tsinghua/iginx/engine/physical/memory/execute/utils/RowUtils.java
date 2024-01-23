@@ -906,6 +906,13 @@ public class RowUtils {
     return targetRows;
   }
 
+  /**
+   * 将多个table进行PathUnion,在Last、First中使用到
+   *
+   * @param tableList table列表
+   * @return 合并后的table
+   * @throws PhysicalException Table列表为空或者Table有的有key有的没有key时，抛出异常
+   */
   public static Table pathUnionMultipleTables(List<Table> tableList) throws PhysicalException {
     if (tableList == null || tableList.isEmpty()) {
       throw new IllegalArgumentException("Table list cannot be null or empty");
@@ -936,6 +943,7 @@ public class RowUtils {
         }
       }
     } else {
+      // PriorityQueue中的Pair，k为行，v为表格在tableList中的索引（即记录该行所属的table）
       PriorityQueue<Pair<Row, Integer>> queue =
           new PriorityQueue<>(Comparator.comparingLong(p -> p.k.getKey()));
 
@@ -968,7 +976,14 @@ public class RowUtils {
     return new Table(targetHeader, rows);
   }
 
-  public static Table joinOrdinalMultipleTables(List<Table> tableList) throws PhysicalException {
+  /**
+   * 将多个table进行Join Ordinal，SetMappingTransform中用到
+   *
+   * @param tableList table列表
+   * @return 合并后的table
+   * @throws PhysicalException Table列表为空或者Table有Key时，抛出异常
+   */
+  public static Table joinMultipleTablesByOrdinal(List<Table> tableList) throws PhysicalException {
     if (tableList == null || tableList.isEmpty()) {
       throw new IllegalArgumentException("Table list cannot be null or empty");
     }
@@ -1017,6 +1032,77 @@ public class RowUtils {
     return new Table(newHeader, newRows);
   }
 
+  /**
+   * 将多个table进行Join By Key，DownSample中用到
+   *
+   * @param tableList table列表
+   * @return 合并后的table
+   * @throws PhysicalException Table列表为空或者Table不含Key时，抛出异常
+   */
+  public static Table joinMultipleTablesByKey(List<Table> tableList) throws PhysicalException {
+    if (tableList == null || tableList.isEmpty()) {
+      throw new IllegalArgumentException("Table list cannot be null or empty");
+    }
+
+    // 检查时间戳
+    for (Table table : tableList) {
+      if (!table.getHeader().hasKey()) {
+        throw new InvalidOperatorParameterException(
+            "row streams for join operator by time should have timestamp.");
+      }
+    }
+
+    // 构造表头
+    List<Field> newFields = new ArrayList<>();
+    Map<Table, Integer> tableIndexMap = new HashMap<>(); // 记录每个表格在大表格中列的起始位置
+    for (Table table : tableList) {
+      tableIndexMap.put(table, newFields.size());
+      newFields.addAll(table.getHeader().getFields());
+    }
+    Header newHeader = new Header(Field.KEY, newFields);
+    List<Row> newRows = new ArrayList<>();
+
+    // PriorityQueue中的Pair，k为行，v为所属表格
+    PriorityQueue<Pair<Row, Table>> queue =
+        new PriorityQueue<>(Comparator.comparingLong(p -> p.k.getKey()));
+
+    // 初始化优先队列，把每个表格的第一行加入队列
+    for (int i = 0; i < tableList.size(); i++) {
+      if (tableList.get(i).getRowSize() > 0) {
+        queue.add(new Pair<>(tableList.get(i).next(), tableList.get(i)));
+      }
+    }
+
+    while (!queue.isEmpty()) {
+      // 获取当前堆顶的key, 即当前最小的时间戳，不弹出
+      long curKey = queue.peek().k.getKey();
+      Object[] values = new Object[newHeader.getFieldSize()];
+      // 从堆顶开始，弹出所有时间戳相同的行，copy到新行中
+      while (!queue.isEmpty() && queue.peek().k.getKey() == curKey) {
+        Pair<Row, Table> entry = queue.poll();
+        Row row = entry.k;
+        Table table = entry.v;
+        System.arraycopy(
+            row.getValues(), 0, values, tableIndexMap.get(table), table.getHeader().getFieldSize());
+
+        // 如果该表格还有更多行，将下一行加入队列
+        if (table.hasNext()) {
+          queue.add(new Pair<>(table.next(), table));
+        }
+      }
+
+      // 将新行加入结果表
+      newRows.add(new Row(newHeader, curKey, values));
+    }
+
+    // 重置所有table的迭代器，以便下次使用
+    for (Table table : tableList) {
+      table.reset();
+    }
+
+    return new Table(newHeader, newRows);
+  }
+
   public static Table calMappingTransform(Table table, List<FunctionCall> functionCallList)
       throws PhysicalException {
     List<Table> tableList = new ArrayList<>();
@@ -1051,7 +1137,7 @@ public class RowUtils {
     if (isFirstLast) {
       return RowUtils.pathUnionMultipleTables(tableList);
     } else {
-      return RowUtils.joinOrdinalMultipleTables(tableList);
+      return RowUtils.joinMultipleTablesByOrdinal(tableList);
     }
   }
 }

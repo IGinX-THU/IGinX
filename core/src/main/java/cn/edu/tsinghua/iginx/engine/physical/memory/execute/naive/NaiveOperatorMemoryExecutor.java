@@ -281,65 +281,75 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     long slideDistance = downsample.getSlideDistance();
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
     long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
-    TreeMap<Long, List<Row>> groups = new TreeMap<>();
-    SetMappingFunction function = (SetMappingFunction) downsample.getFunctionCall().getFunction();
-    FunctionParams params = downsample.getFunctionCall().getParams();
-    if (precision == slideDistance) {
-      for (Row row : rows) {
-        long timestamp = row.getKey() - (row.getKey() - bias) % precision;
-        groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
-      }
-    } else {
-      HashMap<Long, Long> timestamps = new HashMap<>();
-      for (long i = 0; i < n; i++) {
-        timestamps.put(i, bias + i * slideDistance);
-      }
-      for (Row row : rows) {
-        long rowTimestamp = row.getKey();
+
+    List<Table> tableList = new ArrayList<>();
+    for (FunctionCall functionCall : downsample.getFunctionCallList()) {
+      SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      FunctionParams params = functionCall.getParams();
+
+      TreeMap<Long, List<Row>> groups = new TreeMap<>();
+      if (precision == slideDistance) {
+        for (Row row : rows) {
+          long timestamp = row.getKey() - (row.getKey() - bias) % precision;
+          groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+        }
+      } else {
+        HashMap<Long, Long> timestamps = new HashMap<>();
         for (long i = 0; i < n; i++) {
-          if (rowTimestamp - timestamps.get(i) >= 0
-              && rowTimestamp - timestamps.get(i) < precision) {
-            groups.compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+          timestamps.put(i, bias + i * slideDistance);
+        }
+        for (Row row : rows) {
+          long rowTimestamp = row.getKey();
+          for (long i = 0; i < n; i++) {
+            if (rowTimestamp - timestamps.get(i) >= 0
+                && rowTimestamp - timestamps.get(i) < precision) {
+              groups
+                  .compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v)
+                  .add(row);
+            }
           }
         }
       }
-    }
-    List<Pair<Long, Row>> transformedRawRows = new ArrayList<>();
-    try {
-      for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-        long time = entry.getKey();
-        List<Row> group = entry.getValue();
+      List<Pair<Long, Row>> transformedRawRows = new ArrayList<>();
+      try {
+        for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
+          long time = entry.getKey();
+          List<Row> group = entry.getValue();
 
-        if (params.isDistinct()) {
-          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-            throw new IllegalArgumentException(
-                "function " + function.getIdentifier() + " can't use DISTINCT");
+          if (params.isDistinct()) {
+            if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+              throw new IllegalArgumentException(
+                  "function " + function.getIdentifier() + " can't use DISTINCT");
+            }
+            // min和max无需去重
+            if (!function.getIdentifier().equals(Max.MAX)
+                && !function.getIdentifier().equals(Min.MIN)) {
+              group = removeDuplicateRows(group);
+            }
           }
-          // min和max无需去重
-          if (!function.getIdentifier().equals(Max.MAX)
-              && !function.getIdentifier().equals(Min.MIN)) {
-            group = removeDuplicateRows(group);
+
+          Row row = function.transform(new Table(header, group), params);
+          if (row != null) {
+            transformedRawRows.add(new Pair<>(time, row));
           }
         }
-
-        Row row = function.transform(new Table(header, group), params);
-        if (row != null) {
-          transformedRawRows.add(new Pair<>(time, row));
-        }
+      } catch (Exception e) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+            e);
       }
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+      if (transformedRawRows.size() == 0) {
+        return Table.EMPTY_TABLE;
+      }
+      Header newHeader = new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
+      List<Row> transformedRows = new ArrayList<>();
+      for (Pair<Long, Row> pair : transformedRawRows) {
+        transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
+      }
+      tableList.add(new Table(newHeader, transformedRows));
     }
-    if (transformedRawRows.size() == 0) {
-      return Table.EMPTY_TABLE;
-    }
-    Header newHeader = new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
-    List<Row> transformedRows = new ArrayList<>();
-    for (Pair<Long, Row> pair : transformedRawRows) {
-      transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
-    }
-    return new Table(newHeader, transformedRows);
+
+    return RowUtils.joinMultipleTablesByKey(tableList);
   }
 
   private RowStream executeRowTransform(RowTransform rowTransform, Table table)
