@@ -942,21 +942,27 @@ public class RowUtils {
       // 初始化优先队列
       for (int i = 0; i < tableList.size(); i++) {
         if (tableList.get(i).getRowSize() > 0) {
-          queue.add(new Pair<>(tableList.get(i).getRow(0), i));
+          queue.add(new Pair<>(tableList.get(i).next(), i));
         }
       }
 
       // 合并行
       while (!queue.isEmpty()) {
         Pair<Row, Integer> entry = queue.poll();
-        rows.add(RowUtils.transform(entry.k, targetHeader));
+        Row row = entry.k;
+        int tableIndex = entry.v;
+        rows.add(RowUtils.transform(row, targetHeader));
 
         // 如果该表格还有更多行，将下一行加入队列
-        int nextIndex = entry.v + 1;
-        if (nextIndex < tableList.get(entry.v).getRowSize()) {
-          queue.add(new Pair<>(tableList.get(entry.v).getRow(nextIndex), entry.v));
+        if (tableList.get(tableIndex).hasNext()) {
+          queue.add(new Pair<>(tableList.get(tableIndex).next(), tableIndex));
         }
       }
+    }
+
+    // 重置所有table的迭代器，以便下次使用
+    for (Table table : tableList) {
+      table.reset();
     }
 
     return new Table(targetHeader, rows);
