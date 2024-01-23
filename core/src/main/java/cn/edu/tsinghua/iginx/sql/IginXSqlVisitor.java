@@ -779,8 +779,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   @Override
   public Statement visitShowConfigStatement(ShowConfigStatementContext ctx) {
-    String configName = ctx.configName.getText();
-    configName = configName.substring(1, configName.length() - 1);
+    String configName;
+    if (ctx.configName == null) {
+      configName = "*";
+    } else {
+      configName = ctx.configName.getText();
+      configName = configName.substring(1, configName.length() - 1);
+    }
     return new ShowConfigStatement(configName);
   }
 
