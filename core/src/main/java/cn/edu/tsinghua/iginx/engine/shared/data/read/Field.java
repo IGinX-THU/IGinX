@@ -20,10 +20,8 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.TreeMap;
+import cn.edu.tsinghua.iginx.utils.TagKVUtils;
+import java.util.*;
 
 public final class Field {
 
@@ -46,41 +44,18 @@ public final class Field {
   }
 
   public Field(String name, DataType type, Map<String, String> tags) {
-    this.name = name;
-    this.type = type;
-    this.tags = tags;
-    if (this.tags == null || this.tags.isEmpty()) {
-      this.fullName = name;
-    } else {
-      StringBuilder builder = new StringBuilder();
-      builder.append(name);
-      builder.append('{');
-      TreeMap<String, String> treeMap = new TreeMap<>(tags);
-
-      int cnt = 0;
-      for (String key : treeMap.keySet()) {
-        if (cnt != 0) {
-          builder.append(',');
-        }
-        builder.append(key);
-        builder.append("=");
-        builder.append(treeMap.get(key));
-        cnt++;
-      }
-      builder.append('}');
-      this.fullName = builder.toString();
-    }
+    this(name, TagKVUtils.toFullName(name, tags), type, tags);
   }
 
   public Field(String name, String fullName, DataType type) {
     this(name, fullName, type, Collections.emptyMap());
   }
 
-  public Field(String name, String fullName, DataType type, Map<String, String> tags) {
-    this.name = name;
-    this.fullName = fullName;
-    this.type = type;
-    this.tags = tags;
+  private Field(String name, String fullName, DataType type, Map<String, String> tags) {
+    this.name = Objects.requireNonNull(name);
+    this.fullName = Objects.requireNonNull(fullName);
+    this.type = Objects.requireNonNull(type);
+    this.tags = Optional.ofNullable(tags).orElse(Collections.emptyMap());
   }
 
   public String getName() {
@@ -101,16 +76,12 @@ public final class Field {
 
   @Override
   public String toString() {
-    return "Field{"
-        + "name='"
-        + name
-        + '\''
-        + ", fullName='"
-        + fullName
-        + '\''
-        + ", type="
-        + type
-        + '}';
+    return new StringJoiner(", ", Field.class.getSimpleName() + "{", "}")
+        .add("name='" + name + "'")
+        .add("fullName='" + fullName + "'")
+        .add("tags=" + tags)
+        .add("type=" + type)
+        .toString();
   }
 
   @Override
@@ -127,29 +98,5 @@ public final class Field {
   @Override
   public int hashCode() {
     return Objects.hash(name, fullName, type, tags);
-  }
-
-  public static String toFullName(String name, Map<String, String> tags) {
-    if (tags == null || tags.isEmpty()) {
-      return name;
-    } else {
-      StringBuilder builder = new StringBuilder();
-      builder.append(name);
-      builder.append('{');
-      TreeMap<String, String> treeMap = new TreeMap<>(tags);
-
-      int cnt = 0;
-      for (String key : treeMap.keySet()) {
-        if (cnt != 0) {
-          builder.append(',');
-        }
-        builder.append(key);
-        builder.append("=");
-        builder.append(treeMap.get(key));
-        cnt++;
-      }
-      builder.append('}');
-      return builder.toString();
-    }
   }
 }

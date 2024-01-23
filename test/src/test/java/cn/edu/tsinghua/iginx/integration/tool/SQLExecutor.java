@@ -38,7 +38,7 @@ public class SQLExecutor {
     conn.closeSession();
   }
 
-  public String execute(String statement) {
+  public SessionExecuteSqlResult getSessionExecuteSqlResult(String statement) {
     if (statement.toLowerCase().startsWith("insert")) {
       LOGGER.info("Execute Insert Statement.");
     } else {
@@ -50,8 +50,8 @@ public class SQLExecutor {
       res = conn.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        LOGGER.warn(CLEAR_DATA_WARNING);
-        return "";
+        logger.warn(CLEAR_DATA_WARNING);
+        return null;
       } else {
         LOGGER.error(CLEAR_DATA_ERROR, statement, e.getMessage());
         fail();
@@ -61,9 +61,17 @@ public class SQLExecutor {
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
       LOGGER.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
       fail();
-      return "";
+      return null;
     }
 
+    return res;
+  }
+
+  public String execute(String statement) {
+    SessionExecuteSqlResult res = getSessionExecuteSqlResult(statement);
+    if (res == null) {
+      return "";
+    }
     return res.getResultInString(false, "");
   }
 
