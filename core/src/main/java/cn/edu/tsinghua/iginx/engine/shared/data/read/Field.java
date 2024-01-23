@@ -21,10 +21,7 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
-import java.util.Collections;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 public final class Field {
 
@@ -54,7 +51,7 @@ public final class Field {
     this(name, fullName, type, Collections.emptyMap());
   }
 
-  public Field(String name, String fullName, DataType type, Map<String, String> tags) {
+  private Field(String name, String fullName, DataType type, Map<String, String> tags) {
     this.name = Objects.requireNonNull(name);
     this.fullName = Objects.requireNonNull(fullName);
     this.type = Objects.requireNonNull(type);
@@ -79,16 +76,12 @@ public final class Field {
 
   @Override
   public String toString() {
-    return "Field{"
-        + "name='"
-        + name
-        + '\''
-        + ", fullName='"
-        + fullName
-        + '\''
-        + ", type="
-        + type
-        + '}';
+    return new StringJoiner(", ", Field.class.getSimpleName() + "{", "}")
+        .add("name='" + name + "'")
+        .add("fullName='" + fullName + "'")
+        .add("tags=" + tags)
+        .add("type=" + type)
+        .toString();
   }
 
   @Override
