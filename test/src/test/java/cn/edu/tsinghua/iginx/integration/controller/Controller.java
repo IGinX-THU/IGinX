@@ -140,7 +140,12 @@ public class Controller {
       medium = pathList.size();
     } else {
       logger.info("DBCE test, write history data.");
-      medium = tagsList == null || tagsList.isEmpty() ? pathList.size() / 3 : pathList.size();
+      medium =
+          tagsList == null
+                  || tagsList.isEmpty()
+                  || tagsList.stream().allMatch(map -> map.size() == 0)
+              ? pathList.size() / 3
+              : pathList.size();
     }
 
     for (int i = 0; i < pathList.size(); i++) {
@@ -224,7 +229,12 @@ public class Controller {
       medium = keyList.size();
     } else {
       logger.info("DBCE test, write history data.");
-      medium = tagsList == null || tagsList.isEmpty() ? keyList.size() / 3 : keyList.size();
+      medium =
+          tagsList == null
+                  || tagsList.isEmpty()
+                  || tagsList.stream().allMatch(map -> map.size() == 0)
+              ? keyList.size() / 3
+              : keyList.size();
     }
 
     // divide the data
