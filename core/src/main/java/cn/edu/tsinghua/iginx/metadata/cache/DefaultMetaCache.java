@@ -93,6 +93,8 @@ public class DefaultMetaCache implements IMetaCache {
   // transform task 的缓存
   private final Map<String, TransformTaskMeta> transformTaskMetaMap;
 
+  private final Map<String, StatisticMeta> statisticMetaMap;
+
   private DefaultMetaCache() {
     if (enableFragmentCacheControl) {
       long sizeOfFragment = FragmentMeta.sizeOf();
@@ -124,6 +126,8 @@ public class DefaultMetaCache implements IMetaCache {
     columnsVersionMap = new ConcurrentHashMap<>();
     // transform task 相关
     transformTaskMetaMap = new ConcurrentHashMap<>();
+    // iginx statistics 相关
+    statisticMetaMap = new ConcurrentHashMap<>();
   }
 
   public static DefaultMetaCache getInstance() {
@@ -889,6 +893,16 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public TransformTaskMeta getTransformTask(String name) {
     return transformTaskMetaMap.getOrDefault(name, null);
+  }
+
+  @Override
+  public void addOrUpdateIGinXStatistics(StatisticMeta statisticMeta) {
+    statisticMetaMap.put(statisticMeta.getIpAndPort(), statisticMeta);
+  }
+
+  @Override
+  public List<StatisticMeta> getIGinXStatistics() {
+    return new ArrayList<>(statisticMetaMap.values());
   }
 
   @Override

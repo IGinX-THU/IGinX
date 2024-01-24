@@ -34,14 +34,6 @@ import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorInfoVisitor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostExecuteProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostLogicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostParseProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PostPhysicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PreExecuteProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
-import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.Processor;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
@@ -61,7 +53,8 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.SystemStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
-import cn.edu.tsinghua.iginx.statistics.IStatisticsCollector;
+import cn.edu.tsinghua.iginx.statistics.broadcaster.StatisticsBroadcaster;
+import cn.edu.tsinghua.iginx.statistics.collector.CollectorType;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
@@ -74,7 +67,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.ArrayList;
@@ -118,14 +110,7 @@ public class StatementExecutor {
   private static final List<LogicalGenerator> insertGeneratorList = new ArrayList<>();
   private static final List<LogicalGenerator> showTSGeneratorList = new ArrayList<>();
 
-  private final List<PreParseProcessor> preParseProcessors = new ArrayList<>();
-  private final List<PostParseProcessor> postParseProcessors = new ArrayList<>();
-  private final List<PreLogicalProcessor> preLogicalProcessors = new ArrayList<>();
-  private final List<PostLogicalProcessor> postLogicalProcessors = new ArrayList<>();
-  private final List<PrePhysicalProcessor> prePhysicalProcessors = new ArrayList<>();
-  private final List<PostPhysicalProcessor> postPhysicalProcessors = new ArrayList<>();
-  private final List<PreExecuteProcessor> preExecuteProcessors = new ArrayList<>();
-  private final List<PostExecuteProcessor> postExecuteProcessors = new ArrayList<>();
+  private static StatisticsBroadcaster statisticsBroadcaster;
 
   private static class StatementExecutorHolder {
 
@@ -145,33 +130,10 @@ public class StatementExecutor {
     registerGenerator(InsertGenerator.getInstance());
     registerGenerator(ShowColumnsGenerator.getInstance());
 
-    try {
-      String statisticsCollectorClassName =
-          ConfigDescriptor.getInstance().getConfig().getStatisticsCollectorClassName();
-      if (statisticsCollectorClassName != null && !statisticsCollectorClassName.equals("")) {
-        Class<? extends IStatisticsCollector> statisticsCollectorClass =
-            StatementExecutor.class
-                .getClassLoader()
-                .loadClass(statisticsCollectorClassName)
-                .asSubclass(IStatisticsCollector.class);
-        IStatisticsCollector statisticsCollector =
-            statisticsCollectorClass.getConstructor().newInstance();
-        registerPreParseProcessor(statisticsCollector.getPreParseProcessor());
-        registerPostParseProcessor(statisticsCollector.getPostParseProcessor());
-        registerPreLogicalProcessor(statisticsCollector.getPreLogicalProcessor());
-        registerPostLogicalProcessor(statisticsCollector.getPostLogicalProcessor());
-        registerPrePhysicalProcessor(statisticsCollector.getPrePhysicalProcessor());
-        registerPostPhysicalProcessor(statisticsCollector.getPostPhysicalProcessor());
-        registerPreExecuteProcessor(statisticsCollector.getPreExecuteProcessor());
-        registerPostExecuteProcessor(statisticsCollector.getPostExecuteProcessor());
-        statisticsCollector.startBroadcasting();
-      }
-    } catch (ClassNotFoundException
-        | InstantiationException
-        | IllegalAccessException
-        | NoSuchMethodException
-        | InvocationTargetException e) {
-      logger.error("initial statistics collector error: ", e);
+    boolean enableCollectStatistics = config.isEnableCollectStatistics();
+    if (enableCollectStatistics) {
+      statisticsBroadcaster = StatisticsBroadcaster.getInstance();
+      statisticsBroadcaster.startBroadcasting();
     }
   }
 
@@ -200,73 +162,28 @@ public class StatementExecutor {
     }
   }
 
-  public void registerPreParseProcessor(PreParseProcessor processor) {
-    if (processor != null) {
-      preParseProcessors.add(processor);
-    }
-  }
-
-  public void registerPostParseProcessor(PostParseProcessor processor) {
-    if (processor != null) {
-      postParseProcessors.add(processor);
-    }
-  }
-
-  public void registerPreLogicalProcessor(PreLogicalProcessor processor) {
-    if (processor != null) {
-      preLogicalProcessors.add(processor);
-    }
-  }
-
-  public void registerPostLogicalProcessor(PostLogicalProcessor processor) {
-    if (processor != null) {
-      postLogicalProcessors.add(processor);
-    }
-  }
-
-  public void registerPrePhysicalProcessor(PrePhysicalProcessor processor) {
-    if (processor != null) {
-      prePhysicalProcessors.add(processor);
-    }
-  }
-
-  public void registerPostPhysicalProcessor(PostPhysicalProcessor processor) {
-    if (processor != null) {
-      postPhysicalProcessors.add(processor);
-    }
-  }
-
-  public void registerPreExecuteProcessor(PreExecuteProcessor processor) {
-    if (processor != null) {
-      preExecuteProcessors.add(processor);
-    }
-  }
-
-  public void registerPostExecuteProcessor(PostExecuteProcessor processor) {
-    if (processor != null) {
-      postExecuteProcessors.add(processor);
-    }
-  }
-
   public void execute(RequestContext ctx) {
     if (config.isEnableMemoryControl() && resourceManager.reject(ctx)) {
       ctx.setResult(new Result(RpcUtils.SERVICE_UNAVAILABLE));
       return;
     }
-    before(ctx, preExecuteProcessors);
+
+    before(ctx, CollectorType.OperatorInfo);
+    before(ctx, CollectorType.ExecuteStage);
     if (ctx.isFromSQL()) {
       executeSQL(ctx);
     } else {
       executeStatement(ctx);
     }
-    after(ctx, postExecuteProcessors);
+    after(ctx, CollectorType.ExecuteStage);
+    after(ctx, CollectorType.OperatorInfo);
   }
 
   public void executeSQL(RequestContext ctx) {
     try {
-      before(ctx, preParseProcessors);
+      before(ctx, CollectorType.ParseStage);
       builder.buildFromSQL(ctx);
-      after(ctx, postParseProcessors);
+      after(ctx, CollectorType.ParseStage);
       executeStatement(ctx);
     } catch (SQLParserException | ParseCancellationException e) {
       StatusCode statusCode = StatusCode.STATEMENT_PARSE_ERROR;
@@ -337,9 +254,9 @@ public class StatementExecutor {
     StatementType type = ctx.getStatement().getType();
     List<LogicalGenerator> generatorList = generatorMap.get(type);
     for (LogicalGenerator generator : generatorList) {
-      before(ctx, preLogicalProcessors);
+      before(ctx, CollectorType.LogicalStage);
       Operator root = generator.generate(ctx);
-      after(ctx, postLogicalProcessors);
+      after(ctx, CollectorType.LogicalStage);
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
         setResult(ctx, new EmptyRowStream());
@@ -354,9 +271,9 @@ public class StatementExecutor {
           }
         }
 
-        before(ctx, prePhysicalProcessors);
+        before(ctx, CollectorType.PhysicalStage);
         RowStream stream = engine.execute(ctx, root);
-        after(ctx, postPhysicalProcessors);
+        after(ctx, CollectorType.PhysicalStage);
 
         if (type == StatementType.SELECT) {
           SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
@@ -691,7 +608,9 @@ public class StatementExecutor {
     Statement statement = ctx.getStatement();
     switch (statement.getType()) {
       case INSERT:
+        before(ctx, CollectorType.WriteInfo);
         ctx.setResult(new Result(RpcUtils.SUCCESS));
+        after(ctx, CollectorType.WriteInfo);
         break;
       case DELETE:
         DeleteStatement deleteStatement = (DeleteStatement) statement;
@@ -898,20 +817,23 @@ public class StatementExecutor {
     insertStatement.setBitmaps(bitmaps);
   }
 
-  private void before(RequestContext ctx, List<? extends Processor> list) {
-    record(ctx, list);
+  private <T extends Processor> void before(RequestContext ctx, CollectorType collectorType) {
+    if (statisticsBroadcaster != null) {
+      record(ctx, statisticsBroadcaster.getPreProcessor(collectorType));
+    }
   }
 
-  private void after(RequestContext ctx, List<? extends Processor> list) {
-    record(ctx, list);
+  private <T extends Processor> void after(RequestContext ctx, CollectorType collectorType) {
+    if (statisticsBroadcaster != null) {
+      record(ctx, statisticsBroadcaster.getPostProcessor(collectorType));
+    }
   }
 
-  private void record(RequestContext ctx, List<? extends Processor> list) {
-    for (Processor processor : list) {
+  private <T extends Processor> void record(RequestContext ctx, T processor) {
+    if (processor != null) {
       Status status = processor.process(ctx);
       if (status != null) {
         ctx.setStatus(status);
-        return;
       }
     }
   }

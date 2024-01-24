@@ -124,6 +124,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private static final String STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX =
       "/statistics/fragment/heat/counter";
 
+  private static final String STATISTICS_IGINX_PREFIX = "/statistics/iginx";
+
+  private static final String STATISTICS_IGINX_LOCK_NODE = "/lock/statistics/iginx";
+
   private static final String STATISTICS_TIMESERIES_HEAT_PREFIX = "/statistics/timeseries/heat";
 
   private static final String STATISTICS_TIMESERIES_HEAT_COUNTER_PREFIX =
@@ -185,6 +189,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private TimeSeriesChangeHook timeSeriesChangeHook = null;
   private VersionChangeHook versionChangeHook = null;
   private TransformChangeHook transformChangeHook = null;
+  private IGinXStatisticsHook iginxStatisticsHook = null;
   private ReshardStatusChangeHook reshardStatusChangeHook = null;
   private ReshardCounterChangeHook reshardCounterChangeHook = null;
   private MaxActiveEndKeyStatisticsChangeHook maxActiveEndKeyStatisticsChangeHook = null;
@@ -198,6 +203,8 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   protected TreeCache versionCache;
 
   private TreeCache transformCache;
+
+  private TreeCache iginxStatisticsCache;
 
   public ZooKeeperMetaStorage() {
     client =
@@ -1605,6 +1612,111 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             "get error when release interprocess lock for " + TRANSFORM_LOCK_NODE, e);
       }
     }
+  }
+
+  @Override
+  public void registerStatisticsChangeHook(IGinXStatisticsHook hook) {
+    this.iginxStatisticsHook = hook;
+  }
+
+  @Override
+  public void updateStatistics(StatisticMeta statisticMeta) throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(this.client, STATISTICS_IGINX_LOCK_NODE);
+    try {
+      mutex.acquire();
+      String path = STATISTICS_IGINX_PREFIX + "/" + statisticMeta.getIpAndPort();
+      if (this.client.checkExists().forPath(path) == null) {
+        this.client
+            .create()
+            .creatingParentsIfNeeded()
+            .withMode(CreateMode.PERSISTENT)
+            .forPath(path, JsonUtils.toJson(statisticMeta));
+      } else {
+        this.client.setData().forPath(path, JsonUtils.toJson(statisticMeta));
+      }
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when update iginx statistics", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            "get error when release interprocess lock for " + STATISTICS_IGINX_LOCK_NODE, e);
+      }
+    }
+  }
+
+  @Override
+  public List<StatisticMeta> loadStatisticsMeta() throws MetaStorageException {
+    InterProcessMutex mutex = new InterProcessMutex(client, STATISTICS_IGINX_LOCK_NODE);
+    try {
+      mutex.acquire();
+      List<StatisticMeta> statisticMetas = new ArrayList<>();
+      if (client.checkExists().forPath(STATISTICS_IGINX_PREFIX) == null) {
+        // 当前还没有数据，创建父节点，然后不需要解析数据
+        client.create().withMode(CreateMode.PERSISTENT).forPath(STATISTICS_IGINX_PREFIX);
+      } else {
+        List<String> children = client.getChildren().forPath(STATISTICS_IGINX_PREFIX);
+        for (String childName : children) {
+          byte[] data = client.getData().forPath(STATISTICS_IGINX_PREFIX + "/" + childName);
+          StatisticMeta statisticMeta = JsonUtils.fromJson(data, StatisticMeta.class);
+          if (statisticMeta == null) {
+            logger.error(
+                "resolve data from " + STATISTICS_IGINX_PREFIX + "/" + childName + " error");
+            continue;
+          }
+          statisticMetas.add(statisticMeta);
+        }
+      }
+      registerIGinXStatisticsListener();
+      return statisticMetas;
+    } catch (Exception e) {
+      throw new MetaStorageException("get error when load iginx statistics", e);
+    } finally {
+      try {
+        mutex.release();
+      } catch (Exception e) {
+        throw new MetaStorageException(
+            "get error when release interprocess lock for " + STATISTICS_IGINX_LOCK_NODE, e);
+      }
+    }
+  }
+
+  private void registerIGinXStatisticsListener() throws Exception {
+    this.iginxStatisticsCache = new TreeCache(this.client, STATISTICS_IGINX_PREFIX);
+    TreeCacheListener listener =
+        (curatorFramework, event) -> {
+          if (iginxStatisticsHook == null) {
+            return;
+          }
+          StatisticMeta statisticMeta;
+          switch (event.getType()) {
+            case NODE_ADDED:
+            case NODE_UPDATED:
+              if (event.getData() == null
+                  || event.getData().getPath() == null
+                  || event.getData().getPath().equals(STATISTICS_IGINX_PREFIX)) {
+                return; // 前缀事件，非含数据的节点的变化，不需要处理
+              }
+              statisticMeta = JsonUtils.fromJson(event.getData().getData(), StatisticMeta.class);
+              if (statisticMeta != null) {
+                iginxStatisticsHook.onChange(statisticMeta.getIpAndPort(), statisticMeta);
+              } else {
+                logger.error("resolve iginx statistics from zookeeper error");
+              }
+              break;
+            case NODE_REMOVED:
+              String path = event.getData().getPath();
+              String[] pathParts = path.split("/");
+              String className = pathParts[pathParts.length - 1];
+              iginxStatisticsHook.onChange(className, null);
+              break;
+            default:
+              break;
+          }
+        };
+    this.iginxStatisticsCache.getListenable().addListener(listener);
+    this.iginxStatisticsCache.start();
   }
 
   @Override

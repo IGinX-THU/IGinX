@@ -82,9 +82,11 @@ public class Config {
 
   private double maxTimeseriesLoadBalanceThreshold = 2;
 
-  private String statisticsCollectorClassName = "";
+  private boolean enableCollectStatistics = false;
 
-  private int statisticsLogInterval = 5000;
+  private int statisticsLogInterval = 10000;
+
+  private boolean enableStatisticsSync = false;
 
   private boolean enableEnvParameter = false;
 
@@ -424,12 +426,12 @@ public class Config {
     this.maxTimeseriesLoadBalanceThreshold = maxTimeseriesLoadBalanceThreshold;
   }
 
-  public String getStatisticsCollectorClassName() {
-    return statisticsCollectorClassName;
+  public boolean isEnableCollectStatistics() {
+    return enableCollectStatistics;
   }
 
-  public void setStatisticsCollectorClassName(String statisticsCollectorClassName) {
-    this.statisticsCollectorClassName = statisticsCollectorClassName;
+  public void setEnableCollectStatistics(boolean enableCollectStatistics) {
+    this.enableCollectStatistics = enableCollectStatistics;
   }
 
   public int getStatisticsLogInterval() {
@@ -438,6 +440,14 @@ public class Config {
 
   public void setStatisticsLogInterval(int statisticsLogInterval) {
     this.statisticsLogInterval = statisticsLogInterval;
+  }
+
+  public boolean isEnableStatisticsSync() {
+    return enableStatisticsSync;
+  }
+
+  public void setEnableStatisticsSync(boolean enableStatisticsSync) {
+    this.enableStatisticsSync = enableStatisticsSync;
   }
 
   public boolean isEnableEnvParameter() {

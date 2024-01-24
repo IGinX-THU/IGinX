@@ -321,6 +321,16 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public void updateStatistics(StatisticMeta statisticMeta) {
+    metaManager.updateStatistics(statisticMeta);
+  }
+
+  @Override
+  public List<StatisticMeta> getStatisticsMetas() {
+    return metaManager.getStatisticsMetas();
+  }
+
+  @Override
   public void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
       throws Exception {

@@ -121,6 +121,12 @@ public interface IMetaStorage {
 
   void dropTransformTask(String name) throws MetaStorageException;
 
+  void registerStatisticsChangeHook(IGinXStatisticsHook hook);
+
+  void updateStatistics(StatisticMeta statisticMeta) throws MetaStorageException;
+
+  List<StatisticMeta> loadStatisticsMeta() throws MetaStorageException;
+
   void updateTimeseriesLoad(Map<String, Long> timeseriesLoadMap) throws Exception;
 
   Map<String, Long> loadTimeseriesHeat() throws MetaStorageException, Exception;
