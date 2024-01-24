@@ -46,6 +46,8 @@ public class Controller {
   private static final String ADD_STORAGE_ENGINE_PARQUET =
       "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"parquet\", \"has_data:true, is_read_only:true, dir:test/parquet, dummy_dir:%s, iginx_port:6888, data_prefix:%s\");";
 
+  // 将数据划分为两部分，一部分写入dummy数据库，一部分写入非dummy数据库, 0.3 为划分比例，即 30% 的数据写入 dummy 数据库
+  private static final double PARTITION_POINT = 0.3;
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   public static final Map<String, Boolean> SUPPORT_KEY =
@@ -134,6 +136,7 @@ public class Controller {
       InsertAPIType type,
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
       logger.info("skip the write history data step.");
@@ -144,7 +147,7 @@ public class Controller {
           tagsList == null
                   || tagsList.isEmpty()
                   || tagsList.stream().allMatch(map -> map.size() == 0)
-              ? pathList.size() / 3
+              ? (int) (pathList.size() * PARTITION_POINT)
               : pathList.size();
     }
 
@@ -223,6 +226,7 @@ public class Controller {
       InsertAPIType type,
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
       logger.info("skip the write history data step.");
@@ -233,7 +237,7 @@ public class Controller {
           tagsList == null
                   || tagsList.isEmpty()
                   || tagsList.stream().allMatch(map -> map.size() == 0)
-              ? keyList.size() / 3
+              ? (int) (keyList.size() * PARTITION_POINT)
               : keyList.size();
     }
 
