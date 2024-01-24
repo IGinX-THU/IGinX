@@ -69,7 +69,8 @@ public class RemoteExecutor implements Executor {
       req.setFilter(FilterTransformer.toRawFilter(filter));
     }
 
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       ProjectResp resp = client.executeProject(req);
       thriftConnPool.returnTransport(transport);
@@ -157,7 +158,8 @@ public class RemoteExecutor implements Executor {
             dataView.getRawDataType().toString());
 
     InsertReq req = new InsertReq(storageUnit, parquetRawData);
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeInsert(req);
       thriftConnPool.returnTransport(transport);
@@ -244,7 +246,8 @@ public class RemoteExecutor implements Executor {
       req.setKeyRanges(parquetKeyRanges);
     }
 
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeDelete(req);
       thriftConnPool.returnTransport(transport);
@@ -319,7 +322,8 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
       thriftConnPool.returnTransport(transport);
@@ -340,7 +344,8 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       GetStorageBoundaryResp resp = client.getBoundaryOfStorage();
       thriftConnPool.returnTransport(transport);
