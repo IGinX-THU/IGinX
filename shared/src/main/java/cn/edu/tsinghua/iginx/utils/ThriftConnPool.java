@@ -20,8 +20,6 @@ public class ThriftConnPool {
 
   private static final int MAX_WAIT_TIME = 30000;
 
-  private boolean closed = false;
-
   private final String ip;
 
   private final int port;
@@ -66,7 +64,7 @@ public class ThriftConnPool {
   }
 
   private synchronized boolean isClosed() {
-    return closed;
+    return pool.isClosed();
   }
 
   public void returnTransport(TTransport transport) {
@@ -80,7 +78,6 @@ public class ThriftConnPool {
   public void close() {
     logger.info("closing connection pool...");
     pool.close();
-    closed = true;
   }
 
   public static class TSocketFactory implements PooledObjectFactory<TTransport> {
@@ -105,33 +102,19 @@ public class ThriftConnPool {
     @Override
     public void destroyObject(PooledObject<TTransport> pooledObject) throws Exception {
       TTransport transport = pooledObject.getObject();
-      if (transport != null && transport.isOpen()) {
-        transport.close();
-      }
+      transport.close();
     }
 
     @Override
     public boolean validateObject(PooledObject<TTransport> pooledObject) {
       TTransport transport = pooledObject.getObject();
-      return transport != null && transport.isOpen();
+      return transport.isOpen();
     }
 
     @Override
-    public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {
-      TTransport transport = pooledObject.getObject();
-      if (transport == null) {
-        TTransport newTransport = new TSocket(ip, port, maxWaitTime);
-        newTransport.open();
-        pooledObject = new DefaultPooledObject<>(newTransport);
-      } else if (!transport.isOpen()) {
-        transport.open();
-      }
-    }
+    public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {}
 
     @Override
-    public void passivateObject(PooledObject<TTransport> pooledObject) throws Exception {
-      TTransport transport = pooledObject.getObject();
-      transport.close();
-    }
+    public void passivateObject(PooledObject<TTransport> pooledObject) throws Exception {}
   }
 }
