@@ -110,12 +110,19 @@ public class Downsample extends AbstractUnaryOperator {
                 + slideDistance
                 + ", TimeRange: "
                 + keyRange.toString()
-                + ", Func: ");
+                + ", FuncList(Name, FunctionType): ");
+
+    if (functionCallList == null || functionCallList.isEmpty()) {
+      return sb.toString();
+    }
+
     for (FunctionCall functionCall : functionCallList) {
-      sb.append(functionCall.toString());
+      sb.append(functionCall.getNameAndFuncTypeStr());
       sb.append(", ");
     }
-    sb.delete(sb.length() - 2, sb.length());
+    sb.append("MappingType: ");
+    sb.append(functionCallList.get(0).getFunction().getMappingType());
+
     return sb.toString();
   }
 }

@@ -62,12 +62,13 @@ public class MappingTransform extends AbstractUnaryOperator {
   @Override
   public String getInfo() {
     StringBuilder sb = new StringBuilder();
-    sb.append("FuncList: ");
+    sb.append("FuncList(Name, FuncType): ");
     for (FunctionCall functionCall : functionCallList) {
-      sb.append(functionCall.toString());
+      sb.append(functionCall.getNameAndFuncTypeStr());
       sb.append(", ");
     }
-    sb.delete(sb.length() - 2, sb.length() - 1);
+
+    sb.append("MappingType: Mapping");
 
     return sb.toString();
   }

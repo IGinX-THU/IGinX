@@ -25,6 +25,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
@@ -47,7 +48,14 @@ public class UDFIT {
 
   private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
 
+  private boolean isScaling;
+
   private static Session session;
+
+  public UDFIT() {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    this.isScaling = conf.isScaling();
+  }
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -744,6 +752,44 @@ public class UDFIT {
             + "|  3|                  3|\n"
             + "|  4|                  4|\n"
             + "+---+-------------------+\n"
+            + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testRowTransform() {
+    String insert = "INSERT INTO test(key, a, b) VALUES (1,2,3), (2,3,4) (3,4,5);";
+    execute(insert);
+
+    String query = "select cos(a), pow(b, 2) from test;";
+    SessionExecuteSqlResult ret = execute(query);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+--------------+\n"
+            + "|key|        cos(test.a)|pow(test.b, 2)|\n"
+            + "+---+-------------------+--------------+\n"
+            + "|  1|-0.4161468365471424|           9.0|\n"
+            + "|  2|-0.9899924966004454|          16.0|\n"
+            + "|  3|-0.6536436208636119|          25.0|\n"
+            + "+---+-------------------+--------------+\n"
+            + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    if (isScaling) {
+      return;
+    }
+
+    query = "explain select cos(a), pow(b, 2) from test;";
+    ret = execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
+            + "|     Logical Tree|Operator Type|                                                            Operator Info|\n"
+            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
+            + "|Reorder          |      Reorder|                                                                 Order: *|\n"
+            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
+            + "|    +--Project   |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
+            + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
             + "Total line number = 3\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }

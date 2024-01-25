@@ -86,11 +86,13 @@ public class SetTransform extends AbstractUnaryOperator {
   @Override
   public String getInfo() {
     StringBuilder sb = new StringBuilder();
-    sb.append("FuncList: ");
+    sb.append("FuncList(Name, FuncType): ");
     for (FunctionCall functionCall : functionCallList) {
-      sb.append(functionCall.toString());
+      sb.append(functionCall.getNameAndFuncTypeStr());
       sb.append(", ");
     }
+
+    sb.append("MappingType: SetMapping, ");
 
     if (isDistinct()) {
       sb.append("isDistinct: true");

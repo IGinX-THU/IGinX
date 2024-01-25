@@ -58,8 +58,16 @@ public class RowTransform extends AbstractUnaryOperator {
     return new RowTransform(source, new ArrayList<>(functionCallList));
   }
 
-  @Override
   public String getInfo() {
-    return "FuncList: " + functionCallList.toString();
+    StringBuilder sb = new StringBuilder();
+    sb.append("FuncList(Name, FuncType): ");
+    for (FunctionCall functionCall : functionCallList) {
+      sb.append(functionCall.getNameAndFuncTypeStr());
+      sb.append(", ");
+    }
+
+    sb.append("MappingType: RowMapping");
+
+    return sb.toString();
   }
 }

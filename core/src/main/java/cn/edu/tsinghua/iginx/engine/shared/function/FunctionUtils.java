@@ -11,6 +11,9 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -95,6 +98,18 @@ public class FunctionUtils {
     return function.getIdentifier().equals("py_udtf")
         || function.getIdentifier().equals("py_udaf")
         || function.getIdentifier().equals("py_udsf");
+  }
+
+  public static String getFunctionName(Function function) {
+    if (function.getIdentifier().equals("py_udtf")) {
+      return ((PyUDTF) function).getFunctionName();
+    } else if (function.getIdentifier().equals("py_udaf")) {
+      return ((PyUDAF) function).getFunctionName();
+    } else if (function.getIdentifier().equals("py_udsf")) {
+      return ((PyUDSF) function).getFunctionName();
+    } else {
+      return function.getIdentifier();
+    }
   }
 
   static Map<String, java.util.function.Function<DataType, DataType>> functionFieldTypeMap =
