@@ -50,7 +50,7 @@ public class Last implements MappingFunction {
   }
 
   @Override
-  public RowStream transform(Table rows, FunctionParams params) throws Exception {
-    return FunctionUtils.firstOrLastTransform(rows, params, this);
+  public RowStream transform(Table table, FunctionParams params) throws Exception {
+    return FunctionUtils.firstOrLastTransform(table, params, this);
   }
 }

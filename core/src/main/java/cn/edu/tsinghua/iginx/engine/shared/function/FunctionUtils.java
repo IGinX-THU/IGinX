@@ -98,7 +98,7 @@ public class FunctionUtils {
   }
 
   static Map<String, java.util.function.Function<DataType, DataType>> functionFieldTypeMap =
-      new HashMap<>();
+      new HashMap<>(); // 此Map用于存储MappingFunction的输出类型
 
   static {
     functionFieldTypeMap.put("avg", (dataType) -> DataType.DOUBLE);
@@ -111,6 +111,14 @@ public class FunctionUtils {
         "sum", (dataType) -> isWholeNumber(dataType) ? DataType.LONG : DataType.DOUBLE);
   }
 
+  /**
+   * 用于提取table中的表头字段和对应的索引
+   *
+   * @param table 输入的表
+   * @param params 函数参数
+   * @param function 函数本身，用于命名输出列
+   * @return Pair，第一个元素是输出的表头字段，第二个元素是对应的索引
+   */
   public static Pair<List<Field>, List<Integer>> getFieldAndIndices(
       Table table, FunctionParams params, SetMappingFunction function) {
     List<Field> fields = table.getHeader().getFields();
@@ -146,8 +154,16 @@ public class FunctionUtils {
     return new Pair<>(targetFields, indices);
   }
 
+  /**
+   * 提取了MappingFunction中的First和Last的公共部分, 用于计算First和Last
+   *
+   * @param table 输入的表
+   * @param params 函数参数
+   * @param function 函数本身，用于判断是First还是Last，逻辑有细微差别
+   * @return First或者Last的结果
+   */
   public static RowStream firstOrLastTransform(
-      Table rows, FunctionParams params, MappingFunction function) throws Exception {
+      Table table, FunctionParams params, MappingFunction function) {
     List<String> pathParams = params.getPaths();
     if (pathParams == null || pathParams.size() != 1) {
       throw new IllegalArgumentException(
@@ -163,8 +179,8 @@ public class FunctionUtils {
     Map<Integer, Pair<Long, Object>> valueMap = new HashMap<>();
     Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
     Set<Integer> indices = new HashSet<>();
-    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-      Field field = rows.getHeader().getField(i);
+    for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+      Field field = table.getHeader().getField(i);
       if (pattern.matcher(field.getFullName()).matches()) {
         indices.add(i);
       }
@@ -173,7 +189,7 @@ public class FunctionUtils {
     boolean isLast = Objects.equals(function.getIdentifier(), Last.LAST);
     boolean isFirst = Objects.equals(function.getIdentifier(), First.FIRST);
 
-    for (Row row : rows.getRows()) {
+    for (Row row : table.getRows()) {
       if (valueMap.size() >= indices.size() && isFirst) {
         break;
       }
@@ -199,12 +215,13 @@ public class FunctionUtils {
               header,
               entry.getValue().k,
               new Object[] {
-                rows.getHeader()
+                table
+                    .getHeader()
                     .getField(entry.getKey())
                     .getFullName()
                     .getBytes(StandardCharsets.UTF_8),
                 ValueUtils.toString(
-                        entry.getValue().v, rows.getHeader().getField(entry.getKey()).getType())
+                        entry.getValue().v, table.getHeader().getField(entry.getKey()).getType())
                     .getBytes(StandardCharsets.UTF_8)
               }));
     }

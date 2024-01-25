@@ -1103,12 +1103,27 @@ public class RowUtils {
     return new Table(newHeader, newRows);
   }
 
+  /**
+   * 计算多个MappingTransform的结果
+   *
+   * @param table 输入表
+   * @param functionCallList MappingTransform的FunctionCall列表
+   * @return 计算结果输出表格
+   * @throws PhysicalException 当FunctionCall列表中有非MappingTransform时，抛出异常；当执行MappingTransform时出错时，抛出异常
+   */
   public static Table calMappingTransform(Table table, List<FunctionCall> functionCallList)
       throws PhysicalException {
     List<Table> tableList = new ArrayList<>();
     for (FunctionCall functionCall : functionCallList) {
       FunctionParams params = functionCall.getParams();
+      if (!(functionCall.getFunction() instanceof MappingFunction)) {
+        throw new PhysicalTaskExecuteFailureException(
+            "function: "
+                + functionCall.getFunction().getIdentifier()
+                + " is not a mapping function");
+      }
       MappingFunction function = (MappingFunction) functionCall.getFunction();
+
       try {
         Table functable = (Table) function.transform(table, params);
         if (functable != null) {
