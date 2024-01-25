@@ -50,8 +50,8 @@ public class RemoteExecutor implements Executor {
 
   private final ThriftConnPool thriftConnPool;
 
-  public RemoteExecutor(String ip, int port) throws TTransportException {
-    this.thriftConnPool = new ThriftConnPool(ip, port);
+  public RemoteExecutor(String ip, int port, Map<String, String> extraParams) throws TTransportException {
+    this.thriftConnPool = new ThriftConnPool(ip, port, extraParams);
   }
 
   @Override

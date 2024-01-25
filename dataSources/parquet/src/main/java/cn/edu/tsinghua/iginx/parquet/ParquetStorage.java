@@ -85,7 +85,7 @@ public class ParquetStorage implements IStorage {
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
     try {
-      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
+      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort(), meta.getExtraParams());
     } catch (TTransportException e) {
       throw new StorageInitializationException(
           "encounter error when init RemoteStorage " + e.getMessage());
