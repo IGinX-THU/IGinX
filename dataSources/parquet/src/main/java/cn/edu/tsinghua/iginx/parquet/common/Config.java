@@ -75,7 +75,7 @@ public class Config {
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private long writeBatchSize = 1024 * 1024; // BYTE
-    private int flusherPermits = 2;
+    private int flusherPermits = 1;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
 
