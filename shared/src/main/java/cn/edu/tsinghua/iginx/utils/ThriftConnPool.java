@@ -17,30 +17,31 @@ public class ThriftConnPool {
 
   private static final int DEFAULT_MAX_SIZE = 100;
 
-  private static final int MAX_WAIT_TIME = 30000;
+  private static final int DEFAULT_MAX_WAIT_TIME = 30000;
 
-  private static final long IDLE_TIMEOUT = 10L * 60L * 1000L;
+  private static final long DEFAULT_IDLE_TIMEOUT = 10L * 60L * 1000L;
 
   private final GenericObjectPool<TTransport> pool;
-
-  public ThriftConnPool(String ip, int port) {
-    this(ip, port, DEFAULT_MAX_SIZE, MAX_WAIT_TIME);
-  }
 
   public ThriftConnPool(String ip, int port, Map<String, String> extraParams) {
     this(
         ip,
         port,
-        DEFAULT_MAX_SIZE,
         Integer.parseInt(
-            extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))));
+            extraParams.getOrDefault("thrift_pool_max_size", String.valueOf(DEFAULT_MAX_SIZE))),
+        Integer.parseInt(
+            extraParams.getOrDefault("thrift_timeout", String.valueOf(DEFAULT_MAX_WAIT_TIME))),
+        Long.parseLong(
+            extraParams.getOrDefault(
+                "thrift_pool_min_evictable_idle_time_millis",
+                String.valueOf(DEFAULT_IDLE_TIMEOUT))));
   }
 
-  public ThriftConnPool(String ip, int port, int maxSize, int maxWaitTime) {
+  public ThriftConnPool(String ip, int port, int maxSize, int maxWaitTime, long idleTimeout) {
 
     GenericObjectPoolConfig<TTransport> poolConfig = new GenericObjectPoolConfig<>();
     poolConfig.setMaxTotal(maxSize);
-    poolConfig.setMinEvictableIdleDuration(Duration.ofMillis(IDLE_TIMEOUT)); // 设置空闲连接的超时时间
+    poolConfig.setMinEvictableIdleDuration(Duration.ofMillis(idleTimeout)); // 设置空闲连接的超时时间
 
     TSocketFactory socketFactory = new TSocketFactory(ip, port, maxWaitTime);
     pool = new GenericObjectPool<>(socketFactory, poolConfig);
