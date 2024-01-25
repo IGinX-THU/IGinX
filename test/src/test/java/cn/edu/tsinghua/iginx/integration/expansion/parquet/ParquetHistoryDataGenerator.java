@@ -195,7 +195,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     if (file.exists() && file.isFile()) {
       file.delete();
     } else {
-      logger.error("delete {}/{} error: does not exist or is not a file.", dir, filename);
+      logger.warn("delete {}/{} error: does not exist or is not a file.", dir, filename);
     }
 
     // delete the normal IT data
@@ -205,7 +205,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       Files.walkFileTree(parquetPath, new DeleteFileVisitor());
     } catch (IOException e) {
-      logger.error("delete {} error: {}.", dir, e.getMessage());
+      logger.warn("delete {} error: {}.", dir, e.getMessage());
     }
   }
 
