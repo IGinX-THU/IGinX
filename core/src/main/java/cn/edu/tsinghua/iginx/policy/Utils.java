@@ -7,8 +7,8 @@ import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import java.util.*;
 
 public class Utils {
