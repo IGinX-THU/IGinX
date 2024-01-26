@@ -135,7 +135,8 @@ public abstract class BaseCapacityExpansionIT {
     if (IS_PARQUET_OR_FILE_SYSTEM) {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
-      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
+      // 测试会添加初始数据，所以hasData=true
+      addStorageEngine(port, true, isReadOnly, dataPrefix, schemaPrefix);
     }
   }
 
@@ -572,7 +573,7 @@ public abstract class BaseCapacityExpansionIT {
       QueryDataSet res = session.executeQuery(statement);
       if ((res.getWarningMsg() == null || res.getWarningMsg().isEmpty())
           && !res.getWarningMsg().contains("The query results contain overlapped keys.")
-          && SUPPORT_KEY.get(type.name().toLowerCase())) {
+          && SUPPORT_KEY.get(type.name())) {
         logger.error("未抛出重叠key的警告");
         fail();
       }
@@ -580,7 +581,7 @@ public abstract class BaseCapacityExpansionIT {
       clearData();
 
       res = session.executeQuery(statement);
-      if (res.getWarningMsg() != null && SUPPORT_KEY.get(type.name().toLowerCase())) {
+      if (res.getWarningMsg() != null && SUPPORT_KEY.get(type.name())) {
         logger.error("不应抛出重叠key的警告");
         fail();
       }
@@ -625,7 +626,9 @@ public abstract class BaseCapacityExpansionIT {
             scriptPath,
             String.valueOf(port),
             String.valueOf(iginxPort),
-            "test/" + PORT_TO_ROOT.get(port),
+            hasData
+                ? "test/" + PORT_TO_ROOT.get(port)
+                : "test/" + INIT_PATH_LIST.get(0).replace(".", "/"),
             "test/iginx_" + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),

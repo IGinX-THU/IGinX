@@ -26,6 +26,8 @@ public class SQLExecutor {
 
   private final MultiConnection conn;
 
+  private boolean needCompareResult = true;
+
   public SQLExecutor(MultiConnection session) {
     this.conn = session;
   }
@@ -36,6 +38,10 @@ public class SQLExecutor {
 
   public void close() throws SessionException {
     conn.closeSession();
+  }
+
+  public void setNeedCompareResult(boolean needCompareResult) {
+    this.needCompareResult = needCompareResult;
   }
 
   public SessionExecuteSqlResult getSessionExecuteSqlResult(String statement) {
@@ -77,6 +83,9 @@ public class SQLExecutor {
 
   public void executeAndCompare(String statement, String expectedOutput) {
     String actualOutput = execute(statement);
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(expectedOutput, actualOutput);
   }
 
@@ -146,6 +155,9 @@ public class SQLExecutor {
       fail();
     }
 
+    if (!needCompareResult) {
+      return;
+    }
     if (!failedList.isEmpty()) {
       failedList.forEach(
           failed -> {
