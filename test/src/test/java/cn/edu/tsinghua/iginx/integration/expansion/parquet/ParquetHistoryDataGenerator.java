@@ -7,9 +7,8 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -26,6 +25,10 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char PARQUET_SEPARATOR = '*';
 
+  public static final String IT_DATA_DIR = "IT_data";
+
+  public static final String IT_DATA_FILENAME = "data.parquet";
+
   public ParquetHistoryDataGenerator() {}
 
   private static Connection getConnection() {
@@ -37,9 +40,14 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port,
+      String dir,
+      String filename,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     if (!PARQUET_PARAMS.containsKey(port)) {
       logger.error("writing to unknown port {}.", port);
       return;
@@ -61,8 +69,6 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       return;
     }
 
-    String dir = "test" + System.getProperty("file.separator") + PARQUET_PARAMS.get(port).get(0);
-    String filename = PARQUET_PARAMS.get(port).get(1);
     Path dirPath = Paths.get("../" + dir);
     if (Files.notExists(dirPath)) {
       try {
@@ -102,7 +108,12 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       StringBuilder typeListStr = new StringBuilder();
       StringBuilder insertStr;
       for (Pair<String, String> p : columnList) {
-        typeListStr.append("\"").append(p.k).append("\" ").append(p.v).append(", ");
+        typeListStr
+            .append("\"")
+            .append(p.k)
+            .append("\" ")
+            .append(toParquetDataType(p.v))
+            .append(", ");
       }
 
       stmt.execute(
@@ -112,11 +123,24 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       // insert value
       insertStr = new StringBuilder();
+      boolean hasKeys = !keyList.isEmpty();
       int keyCnt = 0;
-      for (List<Object> values : valuesList) {
+      for (int index = 0; index < valuesList.size(); index++) {
+        List<Object> values = valuesList.get(index);
+        if (hasKeys) {
+          keyCnt = Math.toIntExact(keyList.get(index));
+        }
         insertStr.append("(").append(keyCnt).append(", ");
         for (int i = 0; i < columnCount; i++) {
-          insertStr.append(values.get(i)).append(", ");
+          if (dataTypeList.get(i) == DataType.BINARY) {
+            insertStr
+                .append("'")
+                .append(new String((byte[]) values.get(i)))
+                .append("'")
+                .append(", ");
+          } else {
+            insertStr.append(values.get(i)).append(", ");
+          }
         }
         insertStr = new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
         insertStr.append("), ");
@@ -139,6 +163,24 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   @Override
+  public void writeHistoryData(
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
+    String dir = "test" + System.getProperty("file.separator") + PARQUET_PARAMS.get(port).get(0);
+    String filename = PARQUET_PARAMS.get(port).get(1);
+    writeHistoryData(port, dir, filename, pathList, dataTypeList, keyList, valuesList);
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
+  }
+
+  @Override
   public void clearHistoryDataForGivenPort(int port) {
     if (!PARQUET_PARAMS.containsKey(port)) {
       logger.error("delete from unknown port {}.", port);
@@ -153,7 +195,49 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     if (file.exists() && file.isFile()) {
       file.delete();
     } else {
-      logger.error("delete {}/{} error: does not exist or is not a file.", dir, filename);
+      logger.warn("delete {}/{} error: does not exist or is not a file.", dir, filename);
+    }
+
+    // delete the normal IT data
+    dir = IT_DATA_DIR + System.getProperty("file.separator");
+    parquetPath = Paths.get("../" + dir);
+
+    try {
+      Files.walkFileTree(parquetPath, new DeleteFileVisitor());
+    } catch (IOException e) {
+      logger.warn("delete {} error: {}.", dir, e.getMessage());
+    }
+  }
+
+  public static String toParquetDataType(String dataType) {
+    switch (dataType) {
+      case "BOOLEAN":
+        return "BOOLEAN";
+      case "INTEGER":
+        return "INTEGER";
+      case "LONG":
+        return "BIGINT";
+      case "FLOAT":
+        return "FLOAT";
+      case "DOUBLE":
+        return "DOUBLE";
+      case "BINARY":
+      default:
+        return "VARCHAR";
+    }
+  }
+
+  static class DeleteFileVisitor extends SimpleFileVisitor<Path> {
+    @Override
+    public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+      Files.delete(file);
+      return FileVisitResult.CONTINUE;
+    }
+
+    @Override
+    public FileVisitResult postVisitDirectory(Path dir, IOException exc) throws IOException {
+      Files.delete(dir);
+      return FileVisitResult.CONTINUE;
     }
   }
 }
