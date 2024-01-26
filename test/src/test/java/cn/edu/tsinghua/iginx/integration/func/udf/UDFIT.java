@@ -51,7 +51,7 @@ public class UDFIT {
 
   private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
 
-  private boolean isScaling;
+  private static boolean isScaling;
 
   private static Session session;
 
@@ -62,7 +62,7 @@ public class UDFIT {
   @BeforeClass
   public static void setUp() throws SessionException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    this.isScaling = conf.isScaling();
+    isScaling = conf.isScaling();
     if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
       needCompareResult = false;
     }
