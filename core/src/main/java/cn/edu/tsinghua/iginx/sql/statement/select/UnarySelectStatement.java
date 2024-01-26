@@ -1,14 +1,11 @@
-package cn.edu.tsinghua.iginx.sql.statement.selectstatement;
+package cn.edu.tsinghua.iginx.sql.statement.select;
 
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
-import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
-import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
-import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
+import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -21,45 +18,18 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
+import cn.edu.tsinghua.iginx.sql.statement.select.subclause.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public class UnarySelectStatement extends SelectStatement {
-  private QueryType queryType;
 
-  private boolean hasFunc;
-  private boolean isDistinct = false;
-  private boolean hasJoinParts = false;
-  private boolean hasValueFilter;
-  private boolean hasDownsample;
-  private boolean hasGroupBy;
-  private boolean hasValueToSelectedPath = false;
-
-  private final List<Expression> expressions;
-  private final Map<String, List<FuncExpression>> funcExpressionMap;
-  private final List<BaseExpression> baseExpressionList;
-  private final Set<FuncType> funcTypeSet;
-  private final Set<String> pathSet;
-  private final List<SubQueryFromPart> selectSubQueryParts;
-  private List<FromPart> fromParts;
-  private final List<SubQueryFromPart> whereSubQueryParts;
-  private final List<String> groupByPaths;
-  private final List<SubQueryFromPart> havingSubQueryParts;
-  private Filter filter;
-  private Filter havingFilter;
-  private TagFilter tagFilter;
-  private long precision;
-  private long startKey;
-  private long endKey;
-  private long slideDistance;
+  private final SelectClause selectClause;
+  private final FromClause fromClause;
+  private final WhereClause whereClause;
+  private final GroupByClause groupByClause;
+  private final HavingClause havingClause;
 
   public UnarySelectStatement() {
     this(false);
@@ -68,44 +38,26 @@ public class UnarySelectStatement extends SelectStatement {
   public UnarySelectStatement(boolean isSubQuery) {
     super(isSubQuery);
     this.selectStatementType = SelectStatementType.UNARY;
-    this.queryType = QueryType.Unknown;
-    this.expressions = new ArrayList<>();
-    this.funcExpressionMap = new HashMap<>();
-    this.baseExpressionList = new ArrayList<>();
-    this.funcTypeSet = new HashSet<>();
-    this.pathSet = new HashSet<>();
-    this.selectSubQueryParts = new ArrayList<>();
-    this.fromParts = new ArrayList<>();
-    this.whereSubQueryParts = new ArrayList<>();
-    this.groupByPaths = new ArrayList<>();
-    this.havingSubQueryParts = new ArrayList<>();
+
+    this.selectClause = new SelectClause();
+    this.fromClause = new FromClause();
+    this.whereClause = new WhereClause();
+    this.groupByClause = new GroupByClause();
+    this.havingClause = new HavingClause();
   }
 
   // simple query
   public UnarySelectStatement(List<String> paths, long startKey, long endKey) {
-    super(false);
-    this.selectStatementType = SelectStatementType.UNARY;
-    this.queryType = QueryType.SimpleQuery;
+    this(false);
 
-    this.pathSet = new HashSet<>();
-    this.expressions = new ArrayList<>();
-    this.funcExpressionMap = new HashMap<>();
-    this.baseExpressionList = new ArrayList<>();
-    this.selectSubQueryParts = new ArrayList<>();
-    this.fromParts = new ArrayList<>();
-    this.whereSubQueryParts = new ArrayList<>();
-    this.groupByPaths = new ArrayList<>();
-    this.havingSubQueryParts = new ArrayList<>();
-    this.funcTypeSet = new HashSet<>();
+    setQueryType(QueryType.SimpleQuery);
 
     paths.forEach(
         path -> {
           BaseExpression baseExpression = new BaseExpression(path);
-          expressions.add(baseExpression);
-          setSelectedPaths(baseExpression);
+          addSelectClauseExpression(baseExpression);
+          addSelectPath(path);
         });
-    this.hasFunc = false;
-    this.hasGroupBy = false;
 
     this.setFromSession(startKey, endKey);
   }
@@ -113,35 +65,23 @@ public class UnarySelectStatement extends SelectStatement {
   // aggregate query
   public UnarySelectStatement(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType) {
-    super(false);
-    this.selectStatementType = SelectStatementType.UNARY;
-    if (aggregateType == AggregateType.LAST || aggregateType == AggregateType.FIRST) {
-      this.queryType = QueryType.LastFirstQuery;
-    } else {
-      this.queryType = QueryType.AggregateQuery;
-    }
+    this(false);
 
-    this.pathSet = new HashSet<>();
-    this.expressions = new ArrayList<>();
-    this.funcExpressionMap = new HashMap<>();
-    this.baseExpressionList = new ArrayList<>();
-    this.selectSubQueryParts = new ArrayList<>();
-    this.fromParts = new ArrayList<>();
-    this.whereSubQueryParts = new ArrayList<>();
-    this.groupByPaths = new ArrayList<>();
-    this.havingSubQueryParts = new ArrayList<>();
-    this.funcTypeSet = new HashSet<>();
+    if (aggregateType == AggregateType.LAST || aggregateType == AggregateType.FIRST) {
+      setQueryType(QueryType.LastFirstQuery);
+    } else {
+      setQueryType(QueryType.AggregateQuery);
+    }
 
     String func = aggregateType.toString().toLowerCase();
     paths.forEach(
         path -> {
           FuncExpression funcExpression = new FuncExpression(func, Collections.singletonList(path));
-          expressions.add(funcExpression);
+          addSelectClauseExpression(funcExpression);
           setSelectedFuncsAndExpression(func, funcExpression);
         });
 
-    this.hasFunc = true;
-    this.hasGroupBy = false;
+    setHasFunc(true);
 
     this.setFromSession(startKey, endKey);
   }
@@ -160,37 +100,24 @@ public class UnarySelectStatement extends SelectStatement {
       AggregateType aggregateType,
       long precision,
       long slideDistance) {
-    super(false);
-    this.selectStatementType = SelectStatementType.UNARY;
-    this.queryType = QueryType.DownSampleQuery;
-
-    this.pathSet = new HashSet<>();
-    this.expressions = new ArrayList<>();
-    this.funcExpressionMap = new HashMap<>();
-    this.baseExpressionList = new ArrayList<>();
-    this.selectSubQueryParts = new ArrayList<>();
-    this.fromParts = new ArrayList<>();
-    this.whereSubQueryParts = new ArrayList<>();
-    this.groupByPaths = new ArrayList<>();
-    this.havingSubQueryParts = new ArrayList<>();
-    this.funcTypeSet = new HashSet<>();
+    this(false);
+    setQueryType(QueryType.DownSampleQuery);
 
     String func = aggregateType.toString().toLowerCase();
     paths.forEach(
         path -> {
           FuncExpression funcExpression = new FuncExpression(func, Collections.singletonList(path));
-          expressions.add(funcExpression);
+          addSelectClauseExpression(funcExpression);
           setSelectedFuncsAndExpression(func, funcExpression);
         });
 
-    this.hasFunc = true;
-    this.hasGroupBy = false;
+    setHasFunc(true);
 
-    this.precision = precision;
-    this.slideDistance = slideDistance;
-    this.startKey = startKey;
-    this.endKey = endKey;
-    this.hasDownsample = true;
+    setPrecision(precision);
+    setSlideDistance(slideDistance);
+    setStartKey(startKey);
+    setEndKey(endKey);
+    this.setHasDownsample(true);
 
     this.setFromSession(startKey, endKey);
   }
@@ -199,131 +126,108 @@ public class UnarySelectStatement extends SelectStatement {
     this.statementType = StatementType.SELECT;
     this.selectStatementType = SelectStatementType.UNARY;
 
-    this.ascending = true;
-    this.limit = Integer.MAX_VALUE;
-    this.offset = 0;
+    this.setAscending(true);
+    this.setLimit(Integer.MAX_VALUE);
+    this.setOffset(0);
 
-    this.filter =
+    setFilter(
         new AndFilter(
             new ArrayList<>(
-                Arrays.asList(new KeyFilter(Op.GE, startKey), new KeyFilter(Op.L, endKey))));
-    this.hasValueFilter = true;
-  }
-
-  public static FuncType str2FuncType(String identifier) {
-    switch (identifier.toLowerCase()) {
-      case "first_value":
-        return FuncType.FirstValue;
-      case "last_value":
-        return FuncType.LastValue;
-      case "first":
-        return FuncType.First;
-      case "last":
-        return FuncType.Last;
-      case "min":
-        return FuncType.Min;
-      case "max":
-        return FuncType.Max;
-      case "avg":
-        return FuncType.Avg;
-      case "count":
-        return FuncType.Count;
-      case "sum":
-        return FuncType.Sum;
-      case "ratio":
-        return FuncType.Ratio;
-      case "": // no func
-        return null;
-      default:
-        if (FunctionUtils.isRowToRowFunction(identifier)) {
-          return FuncType.Udtf;
-        } else if (FunctionUtils.isSetToRowFunction(identifier)) {
-          return FuncType.Udaf;
-        } else if (FunctionUtils.isSetToSetFunction(identifier)) {
-          return FuncType.Udsf;
-        }
-        throw new SQLParserException(String.format("Unregister UDF function: %s.", identifier));
-    }
+                Arrays.asList(new KeyFilter(Op.GE, startKey), new KeyFilter(Op.L, endKey)))));
+    setHasValueFilter(true);
   }
 
   public boolean hasFunc() {
-    return hasFunc;
+    return selectClause.hasFunc();
   }
 
   public void setHasFunc(boolean hasFunc) {
-    this.hasFunc = hasFunc;
+    selectClause.setHasFunc(hasFunc);
   }
 
   public boolean isDistinct() {
-    return isDistinct;
+    return selectClause.isDistinct();
   }
 
   public void setDistinct(boolean distinct) {
-    isDistinct = distinct;
+    selectClause.setDistinct(distinct);
   }
 
   public boolean hasValueFilter() {
-    return hasValueFilter;
+    return whereClause.hasValueFilter();
   }
 
   public void setHasValueFilter(boolean hasValueFilter) {
-    this.hasValueFilter = hasValueFilter;
+    whereClause.setHasValueFilter(hasValueFilter);
   }
 
   public boolean hasDownsample() {
-    return hasDownsample;
+    return groupByClause.hasDownsample();
   }
 
   public void setHasDownsample(boolean hasDownsample) {
-    this.hasDownsample = hasDownsample;
+    this.groupByClause.setHasDownsample(hasDownsample);
   }
 
   public boolean hasGroupBy() {
-    return hasGroupBy;
+    return groupByClause.hasGroupBy();
   }
 
   public void setHasGroupBy(boolean hasGroupBy) {
-    this.hasGroupBy = hasGroupBy;
+    this.groupByClause.setHasGroupBy(hasGroupBy);
   }
 
   public boolean hasJoinParts() {
-    return hasJoinParts;
+    return fromClause.hasJoinParts();
   }
 
   public void setHasJoinParts(boolean hasJoinParts) {
-    this.hasJoinParts = hasJoinParts;
+    fromClause.setHasJoinParts(hasJoinParts);
   }
 
   public boolean hasValueToSelectedPath() {
-    return hasValueToSelectedPath;
+    return selectClause.hasValueToSelectedPath();
   }
 
   public void setHasValueToSelectedPath(boolean hasValueToSelectedPath) {
-    this.hasValueToSelectedPath = hasValueToSelectedPath;
+    selectClause.setHasValueToSelectedPath(hasValueToSelectedPath);
   }
 
   public Map<String, List<FuncExpression>> getFuncExpressionMap() {
-    return funcExpressionMap;
+    return selectClause.getFuncExpressionMap();
   }
 
+  public void addFuncExpressionMap(String func, List<FuncExpression> expressions) {
+    selectClause.addFuncExpressionMap(func, expressions);
+  }
+
+  /**
+   * 获取ExpressionList中获取所有的BaseExpression，包括嵌套的BaseExpression
+   *
+   * @return BaseExpression列表
+   */
   public List<BaseExpression> getBaseExpressionList() {
-    return baseExpressionList;
-  }
-
-  public void addBaseExpression(BaseExpression baseExpression) {
-    this.baseExpressionList.add(baseExpression);
-  }
-
-  public void setSelectedPaths(BaseExpression baseExpression) {
-    this.setSelectedPaths(baseExpression, true);
-  }
-
-  public void setSelectedPaths(BaseExpression baseExpression, boolean addToPathSet) {
-    this.baseExpressionList.add(baseExpression);
-
-    if (addToPathSet) {
-      this.pathSet.add(baseExpression.getPathName());
+    List<BaseExpression> baseExpressionList = new ArrayList<>();
+    Queue<Expression> queue = new LinkedList<>(getExpressions());
+    while (!queue.isEmpty()) {
+      Expression expression = queue.poll();
+      switch (expression.getType()) {
+        case Base:
+          baseExpressionList.add((BaseExpression) expression);
+          break;
+        case Unary:
+          queue.add(((UnaryExpression) expression).getExpression());
+          break;
+        case Bracket:
+          queue.add(((BracketExpression) expression).getExpression());
+          break;
+        case Binary:
+          queue.add(((BinaryExpression) expression).getLeftExpression());
+          queue.add(((BinaryExpression) expression).getRightExpression());
+          break;
+      }
     }
+    return baseExpressionList;
   }
 
   public void setSelectedFuncsAndExpression(String func, FuncExpression expression) {
@@ -334,197 +238,218 @@ public class UnarySelectStatement extends SelectStatement {
       String func, FuncExpression expression, boolean addToPathSet) {
     func = func.trim();
 
-    List<FuncExpression> expressions = this.funcExpressionMap.get(func);
+    List<FuncExpression> expressions = getFuncExpressionMap().get(func);
     if (expressions == null) {
       expressions = new ArrayList<>();
       expressions.add(expression);
-      this.funcExpressionMap.put(func, expressions);
+      addFuncExpressionMap(func, expressions);
     } else {
       expressions.add(expression);
     }
 
     if (addToPathSet) {
-      this.pathSet.addAll(expression.getColumns());
-    }
-
-    FuncType type = str2FuncType(func);
-    if (type != null) {
-      this.funcTypeSet.add(type);
+      this.selectClause.addAllPath(expression.getColumns());
     }
   }
 
   public Set<FuncType> getFuncTypeSet() {
-    return funcTypeSet;
+    return selectClause.getFuncTypeSet();
+  }
+
+  public boolean containsFuncType(FuncType funcType) {
+    return selectClause.getFuncTypeSet().contains(funcType);
   }
 
   @Override
   public Set<String> getPathSet() {
+    Set<String> pathSet = new HashSet<>();
+    pathSet.addAll(selectClause.getPathSet());
+    pathSet.addAll(whereClause.getPathSet());
+    pathSet.addAll(groupByClause.getPathSet());
+    pathSet.addAll(havingClause.getPathSet());
     return pathSet;
   }
 
-  public void setPathSet(String path) {
-    this.pathSet.add(path);
+  public void addSelectPath(String path) {
+    selectClause.addPath(path);
+  }
+
+  public void addGroupByPath(String path) {
+    groupByClause.addPath(path);
+  }
+
+  public void addWherePath(String path) {
+    whereClause.addPath(path);
+  }
+
+  public void addHavingPath(String path) {
+    havingClause.addPath(path);
   }
 
   public List<SubQueryFromPart> getSelectSubQueryParts() {
-    return selectSubQueryParts;
+    return selectClause.getSelectSubQueryParts();
   }
 
   public void addSelectSubQueryPart(SubQueryFromPart selectSubQueryPart) {
-    this.selectSubQueryParts.add(selectSubQueryPart);
+    selectClause.addSelectSubQueryPart(selectSubQueryPart);
   }
 
   public List<FromPart> getFromParts() {
-    return fromParts;
+    return fromClause.getFromParts();
   }
 
   public FromPart getFromPart(int index) {
-    return fromParts.get(index);
+    return fromClause.getFromParts().get(index);
   }
 
   public void setFromParts(List<FromPart> fromParts) {
-    this.fromParts = fromParts;
+    fromClause.setFromParts(fromParts);
   }
 
   public void addFromPart(FromPart fromPart) {
-    this.fromParts.add(fromPart);
+    fromClause.addFromPart(fromPart);
   }
 
   public List<SubQueryFromPart> getWhereSubQueryParts() {
-    return whereSubQueryParts;
+    return whereClause.getWhereSubQueryParts();
   }
 
   public void addWhereSubQueryPart(SubQueryFromPart whereSubQueryPart) {
-    this.whereSubQueryParts.add(whereSubQueryPart);
+    whereClause.addWhereSubQueryPart(whereSubQueryPart);
   }
 
   public void setGroupByPath(String path) {
-    this.groupByPaths.add(path);
+    this.groupByClause.addGroupByPath(path);
   }
 
   public List<SubQueryFromPart> getHavingSubQueryParts() {
-    return havingSubQueryParts;
+    return havingClause.getHavingSubQueryParts();
   }
 
   public void addHavingSubQueryPart(SubQueryFromPart havingSubQueryPart) {
-    this.havingSubQueryParts.add(havingSubQueryPart);
+    this.havingClause.addHavingSubQueryPart(havingSubQueryPart);
   }
 
   public List<String> getGroupByPaths() {
-    return groupByPaths;
+    return groupByClause.getGroupByPaths();
   }
 
   public void setOrderByPath(String orderByPath) {
-    this.orderByPaths.add(orderByPath);
+    this.orderByClause.setOrderByPaths(orderByPath);
   }
 
   public Filter getFilter() {
-    return filter;
+    return whereClause.getFilter();
   }
 
   public void setFilter(Filter filter) {
-    this.filter = filter;
+    this.whereClause.setFilter(filter);
   }
 
   public TagFilter getTagFilter() {
-    return tagFilter;
+    return whereClause.getTagFilter();
   }
 
   public void setTagFilter(TagFilter tagFilter) {
-    this.tagFilter = tagFilter;
+    whereClause.setTagFilter(tagFilter);
   }
 
   public Filter getHavingFilter() {
-    return havingFilter;
+    return havingClause.getHavingFilter();
   }
 
   public void setHavingFilter(Filter havingFilter) {
-    this.havingFilter = havingFilter;
+    this.havingClause.setHavingFilter(havingFilter);
   }
 
   public long getStartKey() {
-    return startKey;
+    return whereClause.getStartKey();
   }
 
   public void setStartKey(long startKey) {
-    this.startKey = startKey;
+    whereClause.setStartKey(startKey);
   }
 
   public long getEndKey() {
-    return endKey;
+    return whereClause.getEndKey();
   }
 
   public void setEndKey(long endKey) {
-    this.endKey = endKey;
+    whereClause.setEndKey(endKey);
   }
 
   public long getPrecision() {
-    return precision;
+    return groupByClause.getPrecision();
   }
 
   public void setPrecision(long precision) {
-    this.precision = precision;
+    this.groupByClause.setPrecision(precision);
   }
 
   public long getSlideDistance() {
-    return slideDistance;
+    return groupByClause.getSlideDistance();
   }
 
   public void setSlideDistance(long slideDistance) {
-    this.slideDistance = slideDistance;
+    this.groupByClause.setSlideDistance(slideDistance);
   }
 
   public QueryType getQueryType() {
-    return queryType;
+    return groupByClause.getQueryType();
   }
 
-  public void checkQueryType(QueryType queryType) {
-    this.queryType = queryType;
+  public void setQueryType(QueryType queryType) {
+    groupByClause.setQueryType(queryType);
   }
 
   @Override
   public List<Expression> getExpressions() {
+    List<Expression> expressions = new ArrayList<>();
+    expressions.addAll(selectClause.getExpressions());
     return expressions;
   }
 
-  public void setExpression(Expression expression) {
-    expressions.add(expression);
+  public void addSelectClauseExpression(Expression expression) {
+    selectClause.addExpression(expression);
   }
 
   public Map<String, String> getSelectAliasMap() {
     Map<String, String> aliasMap = new HashMap<>();
-    this.expressions.forEach(
-        expression -> {
-          if (expression.hasAlias()) {
-            aliasMap.put(expression.getColumnName(), expression.getAlias());
-          }
-        });
+    getExpressions()
+        .forEach(
+            expression -> {
+              if (expression.hasAlias()) {
+                aliasMap.put(expression.getColumnName(), expression.getAlias());
+              }
+            });
     return aliasMap;
   }
 
   @Override
   public Map<String, String> getSubQueryAliasMap(String alias) {
     Map<String, String> aliasMap = new HashMap<>();
-    expressions.forEach(
-        expression -> {
-          if (expression.hasAlias()) {
-            aliasMap.put(expression.getAlias(), alias + DOT + expression.getAlias());
-          } else {
-            if (expression.getType().equals(Expression.ExpressionType.Binary)
-                || expression.getType().equals(Expression.ExpressionType.Unary)) {
-              aliasMap.put(
-                  expression.getColumnName(),
-                  alias + DOT + L_PARENTHESES + expression.getColumnName() + R_PARENTHESES);
-            } else {
-              aliasMap.put(expression.getColumnName(), alias + DOT + expression.getColumnName());
-            }
-          }
-        });
+    getExpressions()
+        .forEach(
+            expression -> {
+              if (expression.hasAlias()) {
+                aliasMap.put(expression.getAlias(), alias + DOT + expression.getAlias());
+              } else {
+                if (expression.getType().equals(Expression.ExpressionType.Binary)
+                    || expression.getType().equals(Expression.ExpressionType.Unary)) {
+                  aliasMap.put(
+                      expression.getColumnName(),
+                      alias + DOT + L_PARENTHESES + expression.getColumnName() + R_PARENTHESES);
+                } else {
+                  aliasMap.put(
+                      expression.getColumnName(), alias + DOT + expression.getColumnName());
+                }
+              }
+            });
     return aliasMap;
   }
 
   public boolean needRowTransform() {
-    for (Expression expression : expressions) {
+    for (Expression expression : getExpressions()) {
       if (!expression.getType().equals(Expression.ExpressionType.Base)
           && !expression.getType().equals(Expression.ExpressionType.Function)
           && !expression.getType().equals(Expression.ExpressionType.FromValue)) {
@@ -537,18 +462,20 @@ public class UnarySelectStatement extends SelectStatement {
   @Override
   public List<String> calculatePrefixSet() {
     Set<String> prefixSet = new HashSet<>();
-    fromParts.forEach(
-        fromPart -> {
-          prefixSet.addAll(fromPart.getPatterns());
-        });
-    expressions.forEach(
-        expression -> {
-          if (expression.hasAlias()) {
-            prefixSet.add(expression.getAlias());
-          } else if (!expression.getType().equals(Expression.ExpressionType.Base)) {
-            prefixSet.add(expression.getColumnName());
-          }
-        });
+    getFromParts()
+        .forEach(
+            fromPart -> {
+              prefixSet.addAll(fromPart.getPatterns());
+            });
+    getExpressions()
+        .forEach(
+            expression -> {
+              if (expression.hasAlias()) {
+                prefixSet.add(expression.getAlias());
+              } else if (!expression.getType().equals(Expression.ExpressionType.Base)) {
+                prefixSet.add(expression.getColumnName());
+              }
+            });
     return new ArrayList<>(prefixSet);
   }
 
@@ -558,16 +485,16 @@ public class UnarySelectStatement extends SelectStatement {
       return;
     }
     Set<String> set = new HashSet<>();
-    for (FromPart fromPart : fromParts) {
+    for (FromPart fromPart : getFromParts()) {
       set.addAll(fromPart.getFreeVariables());
     }
-    for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
+    for (SubQueryFromPart whereSubQueryPart : getWhereSubQueryParts()) {
       set.addAll(whereSubQueryPart.getSubQuery().getFreeVariables());
     }
-    for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
+    for (SubQueryFromPart havingSubQueryPart : getHavingSubQueryParts()) {
       set.addAll(havingSubQueryPart.getSubQuery().getFreeVariables());
     }
-    for (SubQueryFromPart selectSubQueryPart : selectSubQueryParts) {
+    for (SubQueryFromPart selectSubQueryPart : getSelectSubQueryParts()) {
       set.addAll(selectSubQueryPart.getSubQuery().getFreeVariables());
     }
     List<String> toBeRemove = new ArrayList<>();
@@ -580,7 +507,7 @@ public class UnarySelectStatement extends SelectStatement {
     toBeRemove.forEach(set::remove);
 
     toBeRemove.clear();
-    set.addAll(FilterUtils.getAllPathsFromFilter(filter));
+    set.addAll(FilterUtils.getAllPathsFromFilter(getFilter()));
     set.forEach(
         variable -> {
           if (hasAttributeInWhereSubQuery(variable)) {
@@ -592,7 +519,7 @@ public class UnarySelectStatement extends SelectStatement {
     toBeRemove.forEach(set::remove);
 
     toBeRemove.clear();
-    set.addAll(FilterUtils.getAllPathsFromFilter(havingFilter));
+    set.addAll(FilterUtils.getAllPathsFromFilter(getHavingFilter()));
     set.forEach(
         variable -> {
           if (hasAttributeInHavingSubQuery(variable)) {
@@ -606,7 +533,7 @@ public class UnarySelectStatement extends SelectStatement {
     toBeRemove.clear();
     set.forEach(
         variable -> {
-          for (Expression expression : expressions) {
+          for (Expression expression : getExpressions()) {
             if (!expression.getType().equals(Expression.ExpressionType.Base)
                 && variable.equals(expression.getColumnName())) {
               toBeRemove.add(variable);
@@ -619,18 +546,18 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public boolean isFreeVariable(String path) {
-    return !hasAttribute(path, fromParts.size());
+    return !hasAttribute(path, getFromParts().size());
   }
 
   public boolean hasAttribute(String path, int endIndexOfFromPart) {
-    if (endIndexOfFromPart > fromParts.size()) {
+    if (endIndexOfFromPart > getFromParts().size()) {
       throw new RuntimeException("index: " + endIndexOfFromPart + " overflow");
     }
     if (path.startsWith(MarkJoin.MARK_PREFIX)) {
       return true;
     }
     for (int i = 0; i < endIndexOfFromPart; i++) {
-      for (String pattern : fromParts.get(i).getPatterns()) {
+      for (String pattern : getFromParts().get(i).getPatterns()) {
         if (StringUtils.match(path, pattern)) {
           return true;
         }
@@ -643,7 +570,7 @@ public class UnarySelectStatement extends SelectStatement {
     if (path.startsWith(MarkJoin.MARK_PREFIX)) {
       return true;
     }
-    for (SubQueryFromPart whereSubQueryPart : whereSubQueryParts) {
+    for (SubQueryFromPart whereSubQueryPart : getWhereSubQueryParts()) {
       for (String pattern : whereSubQueryPart.getPatterns()) {
         if (StringUtils.match(path, pattern)) {
           return true;
@@ -657,7 +584,7 @@ public class UnarySelectStatement extends SelectStatement {
     if (path.startsWith(MarkJoin.MARK_PREFIX)) {
       return true;
     }
-    for (SubQueryFromPart havingSubQueryPart : havingSubQueryParts) {
+    for (SubQueryFromPart havingSubQueryPart : getHavingSubQueryParts()) {
       for (String pattern : havingSubQueryPart.getPatterns()) {
         if (StringUtils.match(path, pattern)) {
           return true;
@@ -668,38 +595,38 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   public boolean isFromSinglePath() {
-    return !hasJoinParts
-        && !fromParts.isEmpty()
-        && (fromParts.get(0).getType().equals(FromPartType.Path)
-            || fromParts.get(0).getType().equals(FromPartType.Cte));
+    return !hasJoinParts()
+        && !getFromParts().isEmpty()
+        && (getFromParts().get(0).getType().equals(FromPartType.Path)
+            || getFromParts().get(0).getType().equals(FromPartType.Cte));
   }
 
   public void checkQueryType() {
-    if (hasGroupBy) {
-      this.queryType = QueryType.GroupByQuery;
-    } else if (hasFunc) {
-      if (hasDownsample) {
-        this.queryType = QueryType.DownSampleQuery;
+    if (hasGroupBy()) {
+      setQueryType(QueryType.GroupByQuery);
+    } else if (hasFunc()) {
+      if (hasDownsample()) {
+        setQueryType(QueryType.DownSampleQuery);
       } else {
-        this.queryType = QueryType.AggregateQuery;
+        setQueryType(QueryType.AggregateQuery);
       }
     } else {
-      if (hasDownsample) {
+      if (hasDownsample()) {
         throw new SQLParserException(
             "Downsample clause cannot be used without aggregate function.");
       } else {
-        this.queryType = QueryType.SimpleQuery;
+        setQueryType(QueryType.SimpleQuery);
       }
     }
-    if (queryType == QueryType.AggregateQuery) {
-      if (funcTypeSet.contains(FuncType.First) || funcTypeSet.contains(FuncType.Last)) {
-        this.queryType = QueryType.LastFirstQuery;
+    if (getQueryType() == QueryType.AggregateQuery) {
+      if (containsFuncType(FuncType.First) || containsFuncType(FuncType.Last)) {
+        setQueryType(QueryType.LastFirstQuery);
       }
     }
 
     // calculate func type count
     int[] cntArr = new int[3];
-    for (FuncType type : funcTypeSet) {
+    for (FuncType type : getFuncTypeSet()) {
       if (FuncType.isRow2RowFunc(type)) {
         cntArr[0]++;
       } else if (FuncType.isSet2SetFunc(type)) {
@@ -719,11 +646,11 @@ public class UnarySelectStatement extends SelectStatement {
           "SetToSet/SetToRow/RowToRow functions can not be mixed in aggregate query.");
     }
     // SetToSet SetToRow functions and non-function modified path can not be mixed.
-    if (typeCnt == 1 && !hasGroupBy && cntArr[0] == 0 && !baseExpressionList.isEmpty()) {
+    if (typeCnt == 1 && !hasGroupBy() && cntArr[0] == 0 && !getBaseExpressionList().isEmpty()) {
       throw new SQLParserException(
           "SetToSet/SetToRow functions and non-function modified path can not be mixed.");
     }
-    if (hasGroupBy && (cntArr[0] > 0 || cntArr[1] > 0)) {
+    if (hasGroupBy() && (cntArr[0] > 0 || cntArr[1] > 0)) {
       throw new SQLParserException("Group by can not use SetToSet and RowToRow functions.");
     }
   }
