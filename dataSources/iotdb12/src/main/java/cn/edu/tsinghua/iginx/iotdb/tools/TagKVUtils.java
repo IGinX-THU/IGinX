@@ -42,7 +42,7 @@ public class TagKVUtils {
   public static final String tagSuffix = Config.tagSuffix;
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
-    if (!fullName.contains(tagPrefix) && !fullName.contains(tagSuffix)) {
+    if (!fullName.contains(tagPrefix)) {
       return new Pair<>(fullName, null);
     }
 

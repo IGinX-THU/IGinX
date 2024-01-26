@@ -349,7 +349,11 @@ public class DUManager {
         Object value = rs.getObject(column.getPhysicalPath());
         if (value != null) {
           if (column.getType() == DataType.BINARY) {
-            column.putData(time, parseStringByDataType((String) value, DataType.BINARY));
+            if (isDummyStorageUnit) {
+              column.putData(time, ((String) value).getBytes());
+            } else {
+              column.putData(time, parseStringByDataType((String) value, DataType.BINARY));
+            }
           } else {
             column.putData(time, value);
           }
