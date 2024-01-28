@@ -17,6 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
+import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
@@ -27,6 +28,10 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Iterator;
@@ -35,11 +40,9 @@ import java.util.TreeMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.annotation.Nonnull;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 class AppendQueue<K extends Comparable<K>, F, V, T>
     implements Iterable<Table<K, F, V, T>>, AutoCloseable {
@@ -50,29 +53,28 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
 
   private final SequenceGenerator seqGen = new SequenceGenerator();
 
-  private final int maxCacheNumber;
-
-  private final Semaphore cacheSlotNumber = new Semaphore(0, true);
-
   private final ExecutorService flusher = Executors.newCachedThreadPool();
 
-  private final ReadWriter<K, F, V, T> readWriter;
+  private final ReadWriteLock cleanLock = new ReentrantReadWriteLock(true);
+
+  private final StorageProperties props;
 
   private final Path dir;
 
-  public AppendQueue(Path dir, ReadWriter<K, F, V, T> readWriter, int maxCacheNumber)
+  private final ReadWriter<K, F, V, T> readWriter;
+
+  public AppendQueue(StorageProperties props, Path dir, ReadWriter<K, F, V, T> readWriter)
       throws IOException {
+    this.props = props;
     this.dir = dir;
     this.readWriter = readWriter;
-    this.maxCacheNumber = maxCacheNumber;
-    this.cacheSlotNumber.release(this.maxCacheNumber);
     reload();
     removeTempFiles();
   }
 
   private void removeTempFiles() throws IOException {
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -90,20 +92,24 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
     sortedTablePaths.keySet().stream().limit(1).forEach(seqGen::reset);
   }
 
-  public void offer(Table<K, F, V, T> table) throws InterruptedException {
-    cacheSlotNumber.acquire();
+  public void offer(Table<K, F, V, T> table) {
+    props.getFlusherPermits().acquireUninterruptibly();
 
     Path tablePath =
         dir.resolve(String.format("%d%s", seqGen.next(), Constants.SUFFIX_FILE_PARQUET));
     TableEntity<K, F, V, T> entity = new TableEntity<>(tablePath, table, readWriter);
     flusher.submit(
         () -> {
+          cleanLock.readLock().lock();
           try {
+            LOGGER.trace("start to flush");
             entity.flush();
           } catch (Throwable e) {
             LOGGER.error("failed to flush {}", tablePath, e);
           } finally {
-            cacheSlotNumber.release();
+            cleanLock.readLock().unlock();
+            props.getFlusherPermits().release();
+            LOGGER.trace("unlock clean lock and released flusher permit");
           }
         });
 
@@ -117,8 +123,8 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
   }
 
   public void clear() throws StorageException {
+    cleanLock.writeLock().lock();
     try {
-      cacheSlotNumber.acquire(maxCacheNumber);
       LOGGER.info("clearing data of {}", dir);
       queue.clear();
       seqGen.reset();
@@ -126,17 +132,15 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
       Files.deleteIfExists(dir);
     } catch (NoSuchFileException ignored) {
       LOGGER.debug("delete not existed dir named {} ", dir, ignored);
-    } catch (InterruptedException | IOException e) {
+    } catch (IOException e) {
       throw new StorageException(e);
     } finally {
-      cacheSlotNumber.release(maxCacheNumber);
+      cleanLock.writeLock().unlock();
     }
   }
 
   public void close() throws Exception {
     flusher.shutdown();
-    cacheSlotNumber.acquire(maxCacheNumber);
-    cacheSlotNumber.release(maxCacheNumber);
   }
 
   private static class TableEntity<K extends Comparable<K>, F, V, T> {
@@ -178,7 +182,7 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
   private SortedMap<Long, Path> getSortedTablePaths() throws IOException {
     TreeMap<Long, Path> sortedFiles = new TreeMap<>();
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_PARQUET))) {
+             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
         long sequence = Long.parseLong(fileName.substring(0, fileName.indexOf('.')));

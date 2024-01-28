@@ -30,7 +30,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.common.Config;
+import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
@@ -67,19 +67,19 @@ public class LocalExecutor implements Executor {
 
   private final Manager dummyManager;
 
-  private final Config config;
+  private final StorageProperties storageProperties;
 
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   public LocalExecutor(
-      Config config,
+      StorageProperties storageProperties,
       boolean hasData,
       boolean readOnly,
       String dataDir,
       String dummyDir,
       String dirPrefix)
       throws StorageInitializationException {
-    this.config = config;
+    this.storageProperties = storageProperties;
 
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
@@ -90,7 +90,7 @@ public class LocalExecutor implements Executor {
       } else {
         embeddedPrefix = dirPrefix;
       }
-      dummyManager = new DummyManager(Paths.get(dummyDir), this.config, embeddedPrefix);
+      dummyManager = new DummyManager(Paths.get(dummyDir), this.storageProperties, embeddedPrefix);
     } else {
       dummyManager = new EmptyManager();
     }
@@ -201,7 +201,7 @@ public class LocalExecutor implements Executor {
             throw new IsClosedException("executor is closed: " + dataDir);
           }
           try {
-            return new DataManager(config, dataDir.resolve(s));
+            return new DataManager(storageProperties, dataDir.resolve(s));
           } catch (IOException e) {
             throw new RuntimeException(e);
           }

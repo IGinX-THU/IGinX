@@ -16,6 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
@@ -223,6 +224,8 @@ class DataViewWrapper {
     private class ColumnScanner implements Scanner<Long, Object> {
       private final int fieldIndex;
 
+      private final BitmapView bitmapView;
+
       private int keyIndex = -1;
 
       private int valueIndex = -1;
@@ -233,6 +236,7 @@ class DataViewWrapper {
 
       public ColumnScanner(int fieldIndex) {
         this.fieldIndex = fieldIndex;
+        this.bitmapView = dataView.getBitmapView(fieldIndex);
       }
 
       @Nonnull
@@ -262,7 +266,7 @@ class DataViewWrapper {
             value = null;
             return false;
           }
-        } while (!dataView.getBitmapView(fieldIndex).get(keyIndex));
+        } while (!bitmapView.get(keyIndex));
         valueIndex++;
 
         key = dataView.getKey(keyIndex);

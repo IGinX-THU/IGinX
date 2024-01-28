@@ -18,23 +18,24 @@ package cn.edu.tsinghua.iginx.parquet.common;
 
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.Semaphore;
 
-public class Config {
+public class StorageProperties {
   private final long writeBufferSize;
   private final long writeBatchSize;
-  private final int flusherPermits;
+  private final Semaphore flusherPermits;
   private final long parquetRowGroupSize;
   private final long parquetPageSize;
 
-  private Config(
+  private StorageProperties(
       long writeBufferSize,
       long writeBatchSize,
-      int flusherPermits,
+      int flusherPermitsNumber,
       long parquetRowGroupSize,
       long parquetPageSize) {
     this.writeBufferSize = writeBufferSize;
     this.writeBatchSize = writeBatchSize;
-    this.flusherPermits = flusherPermits;
+    this.flusherPermits = new Semaphore(flusherPermitsNumber,true);
     this.parquetRowGroupSize = parquetRowGroupSize;
     this.parquetPageSize = parquetPageSize;
   }
@@ -47,7 +48,7 @@ public class Config {
     return writeBatchSize;
   }
 
-  public int getFlusherPermits() {
+  public Semaphore getFlusherPermits() {
     return flusherPermits;
   }
 
@@ -64,9 +65,6 @@ public class Config {
   }
 
   public static class Builder {
-    public static final String DATA_DIR = "dir";
-    public static final String DUMMY_DIR = "dummy_dir";
-    public static final String DUMMY_PREFIX = "embedded_prefix";
     public static final String WRITE_BUFFER_SIZE = "write_buffer_size";
     public static final String WRITE_BATCH_SIZE = "write_batch_size";
     public static final String FLUSHER_PERMITS = "flusher_permits";
@@ -75,7 +73,7 @@ public class Config {
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private long writeBatchSize = 1024 * 1024; // BYTE
-    private int flusherPermits = 1;
+    private int flusherPermits = 16;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
 
@@ -115,9 +113,9 @@ public class Config {
       return this;
     }
 
-    public Config build() {
+    public StorageProperties build() {
       check();
-      return new Config(
+      return new StorageProperties(
           writeBufferSize, writeBatchSize, flusherPermits, parquetRowGroupSize, parquetPageSize);
     }
 

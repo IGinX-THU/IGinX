@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.common.Config;
+import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.TypeConflictedException;
@@ -39,7 +39,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
+import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import javax.annotation.Nonnull;
 import org.slf4j.Logger;
@@ -53,17 +55,18 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final RangeSet<K> ranges = TreeRangeSet.create();
   private final ConcurrentHashMap<F, T> schema = new ConcurrentHashMap<>();
   private final ReadWriteLock deletedLock = new ReentrantReadWriteLock(true);
+  private final Lock commitLock = new ReentrantLock(true);
   private final LongAdder inserted = new LongAdder();
   private final AppendQueue<K, F, V, T> appendQueue;
   private final ReadWriter<K, F, V, T> readerWriter;
 
-  private final Config config;
+  private final StorageProperties props;
 
-  public OneTierDB(Config config, Path dir, ReadWriter<K, F, V, T> readerWriter)
+  public OneTierDB(StorageProperties props, Path dir, ReadWriter<K, F, V, T> readerWriter)
       throws IOException {
-    this.config = config;
+    this.props = props;
     this.readerWriter = readerWriter;
-    this.appendQueue = new AppendQueue<>(dir, readerWriter, config.getFlusherPermits());
+    this.appendQueue = new AppendQueue<>(props,dir, readerWriter);
     reload();
   }
 
@@ -156,7 +159,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   public void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema)
       throws StorageException {
     try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, config.getWriteBatchSize())) {
+        new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         checkBufferSize();
         deletedLock.readLock().lock();
@@ -175,7 +178,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   public void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema)
       throws StorageException {
     try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, config.getWriteBatchSize())) {
+        new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         checkBufferSize();
         deletedLock.readLock().lock();
@@ -200,18 +203,21 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     }
   }
 
-  private void checkBufferSize() {
-    if (inserted.sum() < config.getWriteBufferSize()) {
+  private void checkBufferSize() throws StorageException {
+    if (inserted.sum() < props.getWriteBufferSize()) {
       return;
     }
 
-    synchronized (inserted) {
-      if (inserted.sum() < config.getWriteBufferSize()) {
+    commitLock.lock();
+    try {
+      if (inserted.sum() < props.getWriteBufferSize()) {
         return;
       }
       LOGGER.info(
-          "flushing is triggered when write buffer reaching {}", config.getWriteBufferSize());
+          "flushing is triggered when write buffer reaching {}", props.getWriteBufferSize());
       commitMemoryTable();
+    } finally {
+      commitLock.unlock();
     }
   }
 
@@ -230,8 +236,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       this.writtenBuffer = new DataBuffer<>();
       this.writtenDeleted = new RangeTombstone<>();
       this.inserted.reset();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     } finally {
       deletedLock.writeLock().unlock();
     }
@@ -301,13 +305,15 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
 
   @Override
   public void close() throws Exception {
-    LOGGER.info("flushing is triggered when closing");
+    commitLock.lock();
     deletedLock.writeLock().lock();
     try {
+      LOGGER.info("flushing is triggered when closing");
       commitMemoryTable();
       appendQueue.close();
     } finally {
       deletedLock.writeLock().unlock();
+      commitLock.unlock();
     }
   }
 }

@@ -25,7 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.common.Config;
+import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
 import cn.edu.tsinghua.iginx.parquet.common.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
@@ -61,13 +61,13 @@ public class DataManager implements Manager {
 
   private final Database<Long, String, DataType, Object> db;
 
-  private final Config config;
+  private final StorageProperties storageProperties;
 
-  public DataManager(Config config, Path dir) throws IOException {
-    this.config = config;
+  public DataManager(StorageProperties storageProperties, Path dir) throws IOException {
+    this.storageProperties = storageProperties;
     this.db =
         new OneTierDB<>(
-            config,
+            storageProperties,
             dir,
             new ReadWriter<Long, String, Object, DataType>() {
               @Override
@@ -144,8 +144,8 @@ public class DataManager implements Manager {
 
     IParquetWriter.Builder builder = IParquetWriter.builder(path, parquetSchema);
 
-    builder.withRowGroupSize(config.getParquetRowGroupSize());
-    builder.withPageSize((int) config.getParquetPageSize());
+    builder.withRowGroupSize(storageProperties.getParquetRowGroupSize());
+    builder.withPageSize((int) storageProperties.getParquetPageSize());
 
     for (Map.Entry<String, String> entry : extra.entrySet()) {
       builder.withExtraMetaData(entry.getKey(), entry.getValue());
