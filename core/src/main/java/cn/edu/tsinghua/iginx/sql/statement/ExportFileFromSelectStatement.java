@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.sql.statement;
 
 import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 
 public class ExportFileFromSelectStatement extends DataStatement {
 

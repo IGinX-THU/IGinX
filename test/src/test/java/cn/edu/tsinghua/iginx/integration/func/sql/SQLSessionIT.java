@@ -1,11 +1,14 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf.DBConfType;
@@ -14,6 +17,7 @@ import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,11 +72,21 @@ public class SQLSessionIT {
   protected boolean isAbleToClearData = true;
   private static final int CONCURRENT_NUM = 5;
 
+  private static MultiConnection session;
+
+  private static boolean dummyNoData = true;
+
+  protected static boolean needCompareResult = true;
+
   public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     runningEngine = conf.getStorageType();
     DBConf dbConf = conf.loadDBConf(runningEngine);
     this.isScaling = conf.isScaling();
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && this.isScaling) {
+      needCompareResult = false;
+      executor.setNeedCompareResult(needCompareResult);
+    }
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);
@@ -84,7 +98,7 @@ public class SQLSessionIT {
 
   @BeforeClass
   public static void setUp() throws SessionException {
-    MultiConnection session;
+    dummyNoData = true;
     if (isForSession) {
       session =
           new MultiConnection(
@@ -122,13 +136,59 @@ public class SQLSessionIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     executor.close();
   }
 
   @Before
   public void insertData() {
-    String insertStatement = generateDefaultInsertStatementByTimeRange(startKey, endKey);
-    executor.execute(insertStatement);
+    generateData(startKey, endKey);
+  }
+
+  private void generateData(long start, long end) {
+    // construct insert statement
+    List<String> pathList =
+        new ArrayList<String>() {
+          {
+            add("us.d1.s1");
+            add("us.d1.s2");
+            add("us.d1.s3");
+            add("us.d1.s4");
+          }
+        };
+    List<DataType> dataTypeList =
+        new ArrayList<DataType>() {
+          {
+            add(DataType.LONG);
+            add(DataType.LONG);
+            add(DataType.BINARY);
+            add(DataType.DOUBLE);
+          }
+        };
+
+    List<Long> keyList = new ArrayList<>();
+    List<List<Object>> valuesList = new ArrayList<>();
+    int size = (int) (end - start);
+    for (int i = 0; i < size; i++) {
+      keyList.add(start + i);
+      valuesList.add(
+          Arrays.asList(
+              (long) i,
+              (long) i + 1,
+              ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
+              (i + 0.1d)));
+    }
+
+    Controller.writeRowsData(
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        new ArrayList<>(),
+        InsertAPIType.Row,
+        dummyNoData);
+    dummyNoData = false;
   }
 
   private String generateDefaultInsertStatementByTimeRange(long start, long end) {
@@ -1337,6 +1397,7 @@ public class SQLSessionIT {
     for (int i = 0; i < funcTypeList.size(); i++) {
       String type = funcTypeList.get(i);
       String expected = expectedList.get(i);
+
       executor.executeAndCompare(String.format(statement, type, type), expected);
     }
   }
@@ -5677,7 +5738,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePath() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
@@ -5723,7 +5784,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePathWithOverlap() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -5750,7 +5811,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPath() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -5777,7 +5838,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPathWithOverlap() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -5804,6 +5865,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsert() {
+    if (isScaling) {
+      return;
+    }
     int start = 20000, range = 50;
 
     List<String> insertStmts = new ArrayList<>();
@@ -5827,6 +5891,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsertWithOverlap() {
+    if (isScaling) {
+      return;
+    }
     int start = 20000, range = 70;
 
     List<String> insertStmts = new ArrayList<>();

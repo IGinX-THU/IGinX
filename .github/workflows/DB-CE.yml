@@ -8,14 +8,13 @@ env:
     VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
     IOTDB_FUNCTEST: SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT
-
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}
     cancel-in-progress: true
 
 jobs:
     DB-CE:
-        timeout-minutes: 90
+        timeout-minutes: 120
         strategy:
             fail-fast: false
             matrix:
@@ -66,6 +65,16 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriHasDataExpHasData Normal IT
+              shell: bash
+              run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
                   else
@@ -84,6 +93,16 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriNoDataExpNoData Normal IT
+              shell: bash
+              run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
                   else
@@ -102,6 +121,16 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriHasDataExpNoData Normal IT
+              shell: bash
+              run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
                   else
@@ -120,6 +149,16 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriNoDataExpHasData Normal IT
+              shell: bash
+              run: |
                   if [ "${{ matrix.DB-name }}" == "IoTDB12" ]; then
                     mvn test -q -Dtest=${IOTDB_FUNCTEST} -DfailIfNoTests=false -P-format
                   else

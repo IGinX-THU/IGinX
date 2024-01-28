@@ -5,7 +5,7 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.CommonTableExpression;
+import cn.edu.tsinghua.iginx.sql.statement.select.CommonTableExpression;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;

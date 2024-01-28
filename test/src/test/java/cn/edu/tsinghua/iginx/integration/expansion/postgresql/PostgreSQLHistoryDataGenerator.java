@@ -17,13 +17,13 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
+  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
 
   private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
 
   private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE %s;";
+  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\";";
 
   private static final String USERNAME = "postgres";
 
@@ -52,9 +52,14 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
+    Connection connection = null;
     try {
-      Connection connection = connect(port, true, null);
+      connection = connect(port, true, null);
       if (connection == null) {
         logger.error("cannot connect to 127.0.0.1:{}!", port);
         return;
@@ -78,8 +83,10 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           databaseToTablesToColumnIndexes.entrySet()) {
         String databaseName = entry.getKey();
         Statement stmt = connection.createStatement();
+        String createDatabaseSql = String.format(CREATE_DATABASE_STATEMENT, databaseName);
         try {
-          stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
+          logger.info("create database with stmt: {}", createDatabaseSql);
+          stmt.execute(createDatabaseSql);
         } catch (SQLException e) {
           logger.info("database {} exists!", databaseName);
         }
@@ -109,7 +116,11 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           for (List<Object> values : valuesList) {
             insertStr.append("(");
             for (Integer index : item.getValue()) {
-              insertStr.append(values.get(index));
+              if (dataTypeList.get(index) == DataType.BINARY) {
+                insertStr.append("'").append(new String((byte[]) values.get(index))).append("'");
+              } else {
+                insertStr.append(values.get(index));
+              }
               insertStr.append(", ");
             }
             insertStr = new StringBuilder(insertStr.substring(0, insertStr.length() - 2));
@@ -130,13 +141,28 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     } catch (RuntimeException | SQLException e) {
       logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
       e.printStackTrace();
+    } finally {
+      try {
+        if (connection != null) {
+          connection.close();
+        }
+      } catch (SQLException e) {
+        logger.error("close connection failure: {}", e.getMessage());
+      }
     }
   }
 
   @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
+  }
+
+  @Override
   public void clearHistoryDataForGivenPort(int port) {
+    Connection conn = null;
     try {
-      Connection conn = connect(port, true, null);
+      conn = connect(port, true, null);
       Statement stmt = conn.createStatement();
       ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
       Statement dropDatabaseStatement = conn.createStatement();
@@ -159,6 +185,14 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       logger.info("clear data on 127.0.0.1:{} success!", port);
     } catch (SQLException e) {
       logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+    } finally {
+      try {
+        if (conn != null) {
+          conn.close();
+        }
+      } catch (SQLException e) {
+        logger.error("close connection failure: {}", e.getMessage());
+      }
     }
   }
 
