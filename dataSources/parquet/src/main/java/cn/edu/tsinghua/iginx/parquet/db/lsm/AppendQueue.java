@@ -16,14 +16,15 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
-import cn.edu.tsinghua.iginx.parquet.common.Constants;
-import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
-import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.utils.Constants;
+import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.FileTable;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.SequenceGenerator;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 import com.google.common.io.MoreFiles;

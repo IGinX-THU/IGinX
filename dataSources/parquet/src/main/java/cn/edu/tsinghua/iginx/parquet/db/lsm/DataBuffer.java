@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
-import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.ColumnUnionRowScanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.IteratorScanner;

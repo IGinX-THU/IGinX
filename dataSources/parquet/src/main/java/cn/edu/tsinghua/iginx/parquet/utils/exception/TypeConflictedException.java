@@ -14,24 +14,29 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.common.exception;
+package cn.edu.tsinghua.iginx.parquet.utils.exception;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+public class TypeConflictedException extends SchemaException {
+  private final String field;
+  private final String type;
+  private final String oldType;
 
-public class UnsupportedFilterException extends StorageException {
-  private final Filter filter;
-
-  public UnsupportedFilterException(Filter filter) {
-    super(String.format("unsupported filter %s", filter.toString()));
-    this.filter = filter;
+  public TypeConflictedException(String field, String type, String oldType) {
+    super(String.format("can't insert %s value into %s column at %s", type, oldType, field));
+    this.field = field;
+    this.type = type;
+    this.oldType = oldType;
   }
 
-  public UnsupportedFilterException(String message, Filter filter) {
-    super(message);
-    this.filter = filter;
+  public String getField() {
+    return field;
   }
 
-  public Filter getFilter() {
-    return filter;
+  public String getType() {
+    return type;
+  }
+
+  public String getOldType() {
+    return oldType;
   }
 }

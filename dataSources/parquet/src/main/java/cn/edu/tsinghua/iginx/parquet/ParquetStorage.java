@@ -33,7 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
-import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
