@@ -28,10 +28,6 @@ import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.Iterator;
@@ -43,6 +39,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class AppendQueue<K extends Comparable<K>, F, V, T>
     implements Iterable<Table<K, F, V, T>>, AutoCloseable {
@@ -74,7 +73,7 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
 
   private void removeTempFiles() throws IOException {
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -182,7 +181,7 @@ class AppendQueue<K extends Comparable<K>, F, V, T>
   private SortedMap<Long, Path> getSortedTablePaths() throws IOException {
     TreeMap<Long, Path> sortedFiles = new TreeMap<>();
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
         long sequence = Long.parseLong(fileName.substring(0, fileName.indexOf('.')));

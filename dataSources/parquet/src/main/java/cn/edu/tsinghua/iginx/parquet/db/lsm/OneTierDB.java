@@ -17,8 +17,8 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.common.Constants;
+import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.common.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
@@ -66,7 +66,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       throws IOException {
     this.props = props;
     this.readerWriter = readerWriter;
-    this.appendQueue = new AppendQueue<>(props,dir, readerWriter);
+    this.appendQueue = new AppendQueue<>(props, dir, readerWriter);
     reload();
   }
 

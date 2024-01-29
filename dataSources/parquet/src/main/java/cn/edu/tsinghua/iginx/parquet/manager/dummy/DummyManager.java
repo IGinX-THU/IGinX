@@ -49,7 +49,8 @@ public class DummyManager implements Manager {
 
   private final String prefix;
 
-  public DummyManager(@NotNull Path dummyDir, StorageProperties storageProperties, @NotNull String prefix) {
+  public DummyManager(
+      @NotNull Path dummyDir, StorageProperties storageProperties, @NotNull String prefix) {
     this.dir = dummyDir;
     this.prefix = prefix;
   }
