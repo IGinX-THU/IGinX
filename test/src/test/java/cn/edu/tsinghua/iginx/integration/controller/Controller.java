@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.integration.controller;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.oriPort;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
 import static org.junit.Assert.fail;
 
@@ -48,6 +49,12 @@ public class Controller {
 
   // 将数据划分为两部分，一部分写入dummy数据库，一部分写入非dummy数据库, 0.3 为划分比例，即 30% 的数据写入 dummy 数据库
   private static final double PARTITION_POINT = 0.3;
+  // 向 dummy 分片写入的初始化序列，用来初始化 dummy 分片的原数据空间范围
+  public static final String DUMMY_INIT_PATH_BEGIN = "b.b.b";
+  public static final String DUMMY_INIT_PATH_END =
+      "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
+  private static final String EXP_HAS_DATA_STRING = "ExpHasData";
+  private static final String ORI_HAS_DATA_STRING = "OriHasData";
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   public static final Map<String, Boolean> SUPPORT_KEY =
@@ -71,6 +78,11 @@ public class Controller {
                   .getEnumValue(DBConf.DBConfType.isSupportDiffTypeHistoryData));
         }
       };
+
+  public static final Boolean IS_EXP_DUMMY =
+      testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+  public static final Boolean IS_ORI_DUMMY =
+      testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
 
   public static void clearAllData(Session session) {
     clearAllData(new MultiConnection(session));
@@ -144,9 +156,10 @@ public class Controller {
     } else {
       logger.info("DBCE test, write history data.");
       medium =
-          tagsList == null
-                  || tagsList.isEmpty()
-                  || tagsList.stream().allMatch(map -> map.size() == 0)
+          (tagsList == null
+                      || tagsList.isEmpty()
+                      || tagsList.stream().allMatch(map -> map.size() == 0))
+                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (pathList.size() * PARTITION_POINT)
               : pathList.size();
     }
@@ -173,6 +186,7 @@ public class Controller {
         if (!needWriteHistoryData) {
           break;
         }
+        int port = IS_EXP_DUMMY ? expPort : oriPort;
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
         BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
         if (generator == null) {
@@ -188,7 +202,7 @@ public class Controller {
                   + System.getProperty("file.separator")
                   + tableName;
           parquetGenerator.writeHistoryData(
-              expPort,
+              port,
               dir,
               ParquetHistoryDataGenerator.IT_DATA_FILENAME,
               Collections.singletonList(pathList.get(i)),
@@ -206,7 +220,7 @@ public class Controller {
           }
         } else {
           generator.writeHistoryData(
-              expPort,
+              port,
               Collections.singletonList(pathList.get(i)),
               Collections.singletonList(dataTypeList.get(i)),
               keyList.get(i),
@@ -234,9 +248,10 @@ public class Controller {
     } else {
       logger.info("DBCE test, write history data.");
       medium =
-          tagsList == null
-                  || tagsList.isEmpty()
-                  || tagsList.stream().allMatch(map -> map.size() == 0)
+          (tagsList == null
+                      || tagsList.isEmpty()
+                      || tagsList.stream().allMatch(map -> map.size() == 0))
+                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (keyList.size() * PARTITION_POINT)
               : keyList.size();
     }
@@ -281,6 +296,7 @@ public class Controller {
     }
 
     if (lowerKeyList != null && !lowerKeyList.isEmpty() && needWriteHistoryData) {
+      int port = IS_EXP_DUMMY ? expPort : oriPort;
       BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
       if (generator == null) {
         logger.error("write data fail, caused by generator is null");
@@ -295,7 +311,7 @@ public class Controller {
                 + System.getProperty("file.separator")
                 + tableName;
         parquetGenerator.writeHistoryData(
-            expPort,
+            port,
             dir,
             ParquetHistoryDataGenerator.IT_DATA_FILENAME,
             pathList,
@@ -312,7 +328,7 @@ public class Controller {
           }
         }
       } else {
-        generator.writeHistoryData(expPort, pathList, dataTypeList, lowerKeyList, lowerValuesList);
+        generator.writeHistoryData(port, pathList, dataTypeList, lowerKeyList, lowerValuesList);
       }
     }
   }

@@ -12,7 +12,7 @@ public abstract class BaseHistoryDataGenerator {
 
   @Test
   public void oriHasDataExpHasData() {
-    writeInitDataToExp();
+    writeInitDataToDummy(expPort);
     writeHistoryDataToOri();
     writeHistoryDataToExp();
     writeHistoryDataToReadOnly();
@@ -21,26 +21,23 @@ public abstract class BaseHistoryDataGenerator {
 
   @Test
   public void oriHasDataExpNoData() {
-    writeInitDataToExp();
+    writeInitDataToDummy(oriPort);
     writeHistoryDataToOri();
   }
 
   @Test
   public void oriNoDataExpHasData() {
-    writeInitDataToExp();
+    writeInitDataToDummy(expPort);
     writeHistoryDataToExp();
   }
 
   @Test
-  public void oriNoDataExpNoData() {
-    writeInitDataToExp();
-  }
+  public void oriNoDataExpNoData() {}
 
   public void writeSpecialHistoryData() {}
 
-  public void writeInitDataToExp() {
-    writeHistoryData(
-        expPort, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_KEYS_LIST, INIT_VALUES_LIST);
+  public void writeInitDataToDummy(int port) {
+    writeHistoryData(port, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_KEYS_LIST, INIT_VALUES_LIST);
   }
 
   public void writeHistoryDataToOri() {

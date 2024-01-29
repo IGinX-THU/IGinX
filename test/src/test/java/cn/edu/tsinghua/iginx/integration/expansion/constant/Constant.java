@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.constant;
 
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
 import java.util.Collections;
@@ -24,9 +25,7 @@ public class Constant {
 
   // path
   public static final List<String> INIT_PATH_LIST =
-      Arrays.asList(
-          "b.b.b",
-          "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+      Arrays.asList(Controller.DUMMY_INIT_PATH_BEGIN, Controller.DUMMY_INIT_PATH_END);
 
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");

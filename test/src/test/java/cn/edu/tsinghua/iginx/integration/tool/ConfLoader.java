@@ -30,6 +30,8 @@ public class ConfLoader {
 
   private static final String IS_SCALING = "./src/test/resources/isScaling.txt";
 
+  private static final String DBCE_TEST_WAY = "./src/test/resources/dbce-test-way.txt";
+
   private static List<String> storageEngines = new ArrayList<>();
 
   private Map<StorageEngineType, List<String>> taskMap = new HashMap<>();
@@ -54,6 +56,12 @@ public class ConfLoader {
     String isScaling = FileReader.convertToString(IS_SCALING);
     logInfo("isScaling: {}", isScaling);
     return Boolean.parseBoolean(isScaling == null ? "false" : isScaling);
+  }
+
+  public String getDBCETestWay() {
+    String dbceTestWay = FileReader.convertToString(DBCE_TEST_WAY);
+    logInfo("dbceTestWay: {}", dbceTestWay);
+    return dbceTestWay;
   }
 
   public ConfLoader(String confPath) {
