@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.common.exception;
+package cn.edu.tsinghua.iginx.parquet.utils.exception;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 

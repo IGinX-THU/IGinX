@@ -17,10 +17,10 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
-import cn.edu.tsinghua.iginx.parquet.common.Constants;
-import cn.edu.tsinghua.iginx.parquet.common.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.common.exception.TypeConflictedException;
+import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.utils.Constants;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.ConcatScanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.RangeTombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.SerializeUtils;
 import com.google.common.collect.Iterators;
 import com.google.common.collect.Range;

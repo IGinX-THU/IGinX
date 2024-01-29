@@ -14,11 +14,24 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.common.exception;
+package cn.edu.tsinghua.iginx.parquet.utils.exception;
 
-public class SchemaException extends StorageException {
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 
-  public SchemaException(String message) {
+public class UnsupportedFilterException extends StorageException {
+  private final Filter filter;
+
+  public UnsupportedFilterException(Filter filter) {
+    super(String.format("unsupported filter %s", filter.toString()));
+    this.filter = filter;
+  }
+
+  public UnsupportedFilterException(String message, Filter filter) {
     super(message);
+    this.filter = filter;
+  }
+
+  public Filter getFilter() {
+    return filter;
   }
 }

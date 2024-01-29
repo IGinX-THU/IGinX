@@ -14,23 +14,11 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm;
+package cn.edu.tsinghua.iginx.parquet.utils.cache;
 
-import java.util.concurrent.atomic.AtomicLong;
+import java.io.Flushable;
 
-public class SequenceGenerator {
+public interface Cacheable extends Flushable {
+  long getWeight();
 
-  private final AtomicLong current = new AtomicLong();
-
-  public long next() {
-    return current.incrementAndGet();
-  }
-
-  public void reset() {
-    reset(new AtomicLong().get());
-  }
-
-  public void reset(long last) {
-    current.set(last);
-  }
 }

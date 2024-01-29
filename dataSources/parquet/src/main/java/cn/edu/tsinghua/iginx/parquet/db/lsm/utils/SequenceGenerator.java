@@ -14,20 +14,23 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.utils;
 
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
-import javax.annotation.Nonnull;
+import java.util.concurrent.atomic.AtomicLong;
 
-public interface Scanner<K, V> extends AutoCloseable {
-  @Nonnull
-  K key();
+public class SequenceGenerator {
 
-  @Nonnull
-  V value();
+  private final AtomicLong current = new AtomicLong();
 
-  boolean iterate() throws StorageException;
+  public long next() {
+    return current.incrementAndGet();
+  }
 
-  @Override
-  void close() throws StorageException;
+  public void reset() {
+    reset(new AtomicLong().get());
+  }
+
+  public void reset(long last) {
+    current.set(last);
+  }
 }

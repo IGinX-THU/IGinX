@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.utils;
 
+import cn.edu.tsinghua.iginx.parquet.db.lsm.DataBuffer;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import java.util.*;

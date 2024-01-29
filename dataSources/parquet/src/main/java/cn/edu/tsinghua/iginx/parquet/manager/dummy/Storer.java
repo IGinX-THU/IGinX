@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
-import cn.edu.tsinghua.iginx.parquet.common.Constants;
+import cn.edu.tsinghua.iginx.parquet.utils.Constants;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.thrift.DataType;

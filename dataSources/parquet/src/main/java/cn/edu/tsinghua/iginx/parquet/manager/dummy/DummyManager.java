@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
-import static cn.edu.tsinghua.iginx.parquet.common.Constants.SUFFIX_FILE_PARQUET;
+import static cn.edu.tsinghua.iginx.parquet.utils.Constants.SUFFIX_FILE_PARQUET;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -26,7 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-import cn.edu.tsinghua.iginx.parquet.common.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
