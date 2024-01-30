@@ -20,7 +20,7 @@ def list_to_df(data):
 
 class UDF(ABC):
     def __init__(self):
-        pass
+        self._udf_type = None
 
     @property
     @abstractmethod
@@ -30,6 +30,14 @@ class UDF(ABC):
         TODO: 是否可以让IGInX传递这个信息
         """
         pass
+
+    @property
+    def udf_type(self):
+        return self._udf_type
+
+    @udf_type.setter
+    def udf_type(self, value):
+        self._udf_type = value
 
     @abstractmethod
     def udf_process(self, data, args, kwargs):

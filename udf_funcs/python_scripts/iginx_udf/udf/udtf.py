@@ -7,6 +7,11 @@ class UDTF(UDF, ABC):
     """
     参数列举模式
     """
+
+    def __init__(self):
+        super().__init__()
+        self._udf_type = "UDTF"
+
     def build_df_with_header(self, paths, types, with_key=False):
         # udtf 返回的数据不应该带key, 默认使用原来的列名加函数名前缀，类型不变
         colNames = []
@@ -29,6 +34,11 @@ class UDTFinDF(UDF, ABC):
     """
     使用dataframe模式
     """
+
+    def __init__(self):
+        super().__init__()
+        self._udf_type = "UDTF"
+
     def build_df_with_header(self, paths, types, with_key=False):
         # 用户直接返回dataframe，这个函数应当不需要
         pass

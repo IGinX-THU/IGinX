@@ -8,6 +8,10 @@ class UDAF(UDF, ABC):
     参数列举模式
     """
 
+    def __init__(self):
+        super().__init__()
+        self._udf_type = "UDAF"
+
     @property
     @abstractmethod
     def status(self):
@@ -49,6 +53,10 @@ class UDAFinDF(UDF, ABC):
     """
     使用dataframe模式
     """
+
+    def __init__(self):
+        super().__init__()
+        self._udf_type = "UDAF"
 
     def build_df_with_header(self, paths, types, with_key=False):
         # 用户直接返回dataframe，这个函数应当不需要
