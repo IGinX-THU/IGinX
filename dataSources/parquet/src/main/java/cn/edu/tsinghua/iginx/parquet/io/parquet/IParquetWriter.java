@@ -16,9 +16,9 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.utils.Constants;
 import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;

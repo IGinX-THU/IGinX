@@ -18,8 +18,8 @@ package cn.edu.tsinghua.iginx.parquet.db.common.utils;
 
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.RangeTombstone;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.SerializeUtils;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.SerializeUtils;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
 import cn.edu.tsinghua.iginx.parquet.manager.data.LongFormat;
 import cn.edu.tsinghua.iginx.parquet.manager.data.StringFormat;
 import com.google.common.collect.ImmutableRangeSet;
@@ -33,7 +33,7 @@ public class SerializeUtilsTest {
 
   @Test
   public void testSimpleTombstone() {
-    RangeTombstone<Long, String> rb = new RangeTombstone<>();
+    Tombstone<Long, String> rb = new Tombstone<>();
 
     rb.delete(ImmutableRangeSet.of(Range.openClosed(1000L, 10000L)));
     rb.delete(Collections.singleton("full"), ImmutableRangeSet.of(Range.all()));
@@ -46,7 +46,7 @@ public class SerializeUtilsTest {
     rb.delete(Collections.singleton("test2"), ImmutableRangeSet.of(Range.atLeast(10L)));
 
     String str = SerializeUtils.serialize(rb, new LongFormat(), new StringFormat());
-    RangeTombstone<Long, String> des =
+    Tombstone<Long, String> des =
         SerializeUtils.deserializeRangeTombstone(str, new LongFormat(), new StringFormat());
 
     assertEquals(rb, des);
@@ -54,10 +54,10 @@ public class SerializeUtilsTest {
 
   @Test
   public void testEmptyTombstone() {
-    RangeTombstone<Long, String> rb = new RangeTombstone<>();
+    Tombstone<Long, String> rb = new Tombstone<>();
 
     String str = SerializeUtils.serialize(rb, new LongFormat(), new StringFormat());
-    RangeTombstone<Long, String> des =
+    Tombstone<Long, String> des =
         SerializeUtils.deserializeRangeTombstone(str, new LongFormat(), new StringFormat());
 
     assertEquals(rb, des);

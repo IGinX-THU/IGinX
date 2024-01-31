@@ -20,5 +20,4 @@ import java.io.Flushable;
 
 public interface Cacheable extends Flushable {
   long getWeight();
-
 }

@@ -26,7 +26,7 @@
         <module>dataSources/redis</module>
         <module>dataSources/mongodb</module>
         <module>example</module>
-        <module>test</module>
+        <!--        <module>test</module>-->
         <module>zeppelin-interpreter</module>
         <module>tools-exportCsv</module>
     </modules>

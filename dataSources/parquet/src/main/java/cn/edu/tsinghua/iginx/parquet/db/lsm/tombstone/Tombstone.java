@@ -14,16 +14,15 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm.utils;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.DataBuffer;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.DataBuffer;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import java.util.*;
 import javax.annotation.Nonnull;
 
-public class RangeTombstone<K extends Comparable<K>, F> {
-
+public class Tombstone<K extends Comparable<K>, F> {
   private final Map<F, RangeSet<K>> deletedRanges = new HashMap<>();
 
   private final Set<F> deletedColumns = new HashSet<>();
@@ -59,7 +58,7 @@ public class RangeTombstone<K extends Comparable<K>, F> {
     }
   }
 
-  public void delete(RangeTombstone<K, F> tombstone) {
+  public void delete(Tombstone<K, F> tombstone) {
     delete(tombstone.getDeletedRows());
     delete(tombstone.getDeletedColumns());
     tombstone
@@ -72,19 +71,19 @@ public class RangeTombstone<K extends Comparable<K>, F> {
   }
 
   public static <F, K extends Comparable<K>> void playback(
-      RangeTombstone<K, F> tombstone, RangeSet<K> flushedRangeSet) {
+      Tombstone<K, F> tombstone, RangeSet<K> flushedRangeSet) {
     flushedRangeSet.removeAll(tombstone.getDeletedRows());
   }
 
   public static <K extends Comparable<K>, F, T> void playback(
-      RangeTombstone<K, F> tombstone, Map<F, T> types) {
+      Tombstone<K, F> tombstone, Map<F, T> types) {
     for (F field : tombstone.getDeletedColumns()) {
       types.remove(field);
     }
   }
 
   public static <K extends Comparable<K>, F, V> void playback(
-      RangeTombstone<K, F> tombstone, DataBuffer<K, F, V> buffer) {
+      Tombstone<K, F> tombstone, DataBuffer<K, F, V> buffer) {
     for (F field : tombstone.getDeletedColumns()) {
       buffer.remove(Collections.singleton(field));
     }
@@ -112,7 +111,7 @@ public class RangeTombstone<K extends Comparable<K>, F> {
   public boolean equals(Object o) {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
-    RangeTombstone<?, ?> that = (RangeTombstone<?, ?>) o;
+    Tombstone<?, ?> that = (Tombstone<?, ?>) o;
     return Objects.equals(deletedRanges, that.deletedRanges)
         && Objects.equals(deletedColumns, that.deletedColumns)
         && Objects.equals(deletedRows, that.deletedRows);
@@ -125,7 +124,7 @@ public class RangeTombstone<K extends Comparable<K>, F> {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", RangeTombstone.class.getSimpleName() + "{", "}")
+    return new StringJoiner(", ", Tombstone.class.getSimpleName() + "{", "}")
         .add("deletedRanges=" + deletedRanges)
         .toString();
   }

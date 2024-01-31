@@ -24,6 +24,8 @@ public final class Constants {
 
   public static final String SUFFIX_FILE_PARQUET = ".parquet";
 
+  public static final String SUFFIX_FILE_TOMBSTONE = ".tombstone";
+
   public static final String SUFFIX_FILE_TEMP = ".tmp";
 
   public static final String CMD_DELETE = "DELETE";
@@ -46,4 +48,6 @@ public final class Constants {
   public static final long SEQUENCE_START = 0;
 
   public static final String STORAGE_UNIT_NAME = "storageUnit";
+  public static final String DIR_NAME_TOMBSTONE = "tombstones";
+  public static final String DIR_NAME_TABLE = "tables";
 }

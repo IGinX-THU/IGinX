@@ -19,45 +19,47 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import com.google.common.collect.Range;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
+import com.google.common.collect.RangeSet;
 import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Map;
 import java.util.Set;
+import java.util.StringJoiner;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileTable<K extends Comparable<K>, F, V, T> implements Table<K, F, V, T> {
+public class FileTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileTable.class);
-  private final Path path;
+  private final String tableName;
 
-  private final ReadWriter<K, F, V, T> readWriter;
+  private final ReadWriter<K, F, T, V> readWriter;
 
-  public FileTable(Path path, ReadWriter<K, F, V, T> readWriter) {
-    this.path = path;
+  public FileTable(String tableName, ReadWriter<K, F, T, V> readWriter) {
+    this.tableName = tableName;
     this.readWriter = readWriter;
   }
 
   @Override
   @Nonnull
-  public TableMeta<F, T> getMeta() throws IOException {
-    Map.Entry<Map<F, T>, Map<String, String>> meta = readWriter.readMeta(path);
-    return new TableMeta<>(meta.getKey(), meta.getValue());
+  public TableMeta<K, F, T, V> getMeta() throws IOException {
+    return readWriter.readMeta(tableName);
   }
 
   @Override
   @Nonnull
   public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull Range<K> range, @Nullable Filter predicate)
+      @Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges, @Nullable Filter predicate)
       throws IOException {
-    LOGGER.debug("read {} where {} & {} from {}", fields, range, predicate, path);
-    return readWriter.scanData(path, fields, range, predicate);
+    LOGGER.debug("read {} where {} & {} from {}", fields, ranges, predicate, tableName);
+    return readWriter.scanData(tableName, fields, ranges, predicate);
   }
 
   @Override
   public String toString() {
-    return "FileTable{" + "path=" + path + '}';
+    return new StringJoiner(", ", FileTable.class.getSimpleName() + "[", "]")
+        .add("tableName='" + tableName + "'")
+        .add("readWriter=" + readWriter)
+        .toString();
   }
 }

@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm.utils;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone;
 
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
+import cn.edu.tsinghua.iginx.parquet.utils.Constants;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
@@ -36,7 +36,7 @@ public class SerializeUtils {
   private static final String RANGE_INCLUSIVE_NAME = "inclusive";
 
   public static <K extends Comparable<K>, F> String serialize(
-      RangeTombstone<K, F> o, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
+      Tombstone<K, F> o, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
     JsonObjectBuilder rootBuilder = Json.createObjectBuilder();
 
     for (F f : o.getDeletedColumns()) {
@@ -93,29 +93,29 @@ public class SerializeUtils {
     return builder;
   }
 
-  public static <K extends Comparable<K>, F> RangeTombstone<K, F> deserializeRangeTombstone(
+  public static <K extends Comparable<K>, F> Tombstone<K, F> deserializeRangeTombstone(
       String s, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
     StringReader sr = new StringReader(s);
     JsonReader reader = Json.createReader(sr);
     JsonObject object = reader.readObject();
-    RangeTombstone<K, F> rangeTombstone = new RangeTombstone<>();
+    Tombstone<K, F> tombstone = new Tombstone<>();
 
     for (Map.Entry<String, JsonValue> entry : object.entrySet()) {
       String fieldStr = entry.getKey();
       F field = fieldFormat.parse(fieldStr);
       JsonValue value = entry.getValue();
       if (value.getValueType() == JsonValue.ValueType.NULL) {
-        rangeTombstone.delete(Collections.singleton(field));
+        tombstone.delete(Collections.singleton(field));
         continue;
       }
       RangeSet<K> rangeSet = jsonParseRangeSet((JsonArray) value, keyFormat);
       if (field.equals(ALL_FIELD_NAME)) {
-        rangeTombstone.delete(rangeSet);
+        tombstone.delete(rangeSet);
         continue;
       }
-      rangeTombstone.delete(Collections.singleton(field), rangeSet);
+      tombstone.delete(Collections.singleton(field), rangeSet);
     }
-    return rangeTombstone;
+    return tombstone;
   }
 
   private static <K extends Comparable<K>> RangeSet<K> jsonParseRangeSet(

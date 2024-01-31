@@ -16,23 +16,21 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
-import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 
-public class TableMeta<F, T> {
-  private final Map<F, T> schema;
+public class SequenceGenerator {
 
-  private final Map<String, String> extra;
+  private final AtomicLong current = new AtomicLong();
 
-  public TableMeta(Map<F, T> schema, Map<String, String> extra) {
-    this.schema = schema;
-    this.extra = extra;
+  public long next() {
+    return current.incrementAndGet();
   }
 
-  public Map<F, T> getSchema() {
-    return schema;
+  public void reset() {
+    reset(new AtomicLong().get());
   }
 
-  public Map<String, String> getExtra() {
-    return extra;
+  public void reset(long last) {
+    current.set(last);
   }
 }

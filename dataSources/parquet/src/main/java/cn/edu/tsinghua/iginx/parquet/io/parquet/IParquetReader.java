@@ -17,16 +17,20 @@
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.parquet.utils.Constants;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import org.apache.parquet.column.statistics.LongStatistics;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
+import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.LocalInputFile;
@@ -35,6 +39,8 @@ import org.apache.parquet.local.ParquetFileReader;
 import org.apache.parquet.local.ParquetReadOptions;
 import org.apache.parquet.local.ParquetRecordReader;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,6 +93,37 @@ public class IParquetReader implements AutoCloseable {
 
   public long getRowCount() {
     return metadata.getBlocks().stream().mapToLong(BlockMetaData::getRowCount).sum();
+  }
+
+  public Range<Long> getRange() {
+    MessageType schema = metadata.getFileMetaData().getSchema();
+    if (schema.containsPath(new String[] {Constants.KEY_FIELD_NAME})) {
+      Type type = schema.getType(Constants.KEY_FIELD_NAME);
+      if (type.isPrimitive()) {
+        PrimitiveType primitiveType = type.asPrimitiveType();
+        if (primitiveType.getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.INT64) {
+          return getKeyRange();
+        }
+      }
+    }
+    return Range.closedOpen(0L, getRowCount());
+  }
+
+  private Range<Long> getKeyRange() {
+    long min = Long.MAX_VALUE;
+    long max = Long.MIN_VALUE;
+
+    for (BlockMetaData block : metadata.getBlocks()) {
+      for (ColumnChunkMetaData column : block.getColumns()) {
+        if (column.getPath().toDotString().equals(Constants.KEY_FIELD_NAME)) {
+          LongStatistics statistics = (LongStatistics) column.getStatistics();
+          min = Math.min(min, statistics.genericGetMin());
+          max = Math.max(max, statistics.genericGetMax());
+        }
+      }
+    }
+
+    return Range.closed(min, max);
   }
 
   public static class Builder {

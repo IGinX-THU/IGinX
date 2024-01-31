@@ -16,8 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet.db;
 
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import com.google.common.collect.RangeSet;
 import java.util.Map;
 import java.util.Set;
@@ -34,5 +34,5 @@ public interface Database<K extends Comparable<K>, F, T, V> extends ImmutableDat
 
   void delete(RangeSet<K> ranges) throws StorageException;
 
-  void delete() throws StorageException;
+  void clear() throws StorageException;
 }

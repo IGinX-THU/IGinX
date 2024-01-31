@@ -5,11 +5,11 @@ import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Loader;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Table;
+import cn.edu.tsinghua.iginx.parquet.utils.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;

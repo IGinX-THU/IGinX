@@ -19,9 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.utils.cache;
 import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
@@ -33,8 +30,9 @@ public class CachePool {
     this.cache = CacheBuilder.newBuilder().build();
   }
 
-  public Cacheable get(String name, Callable<? extends Cacheable> loader) throws ExecutionException {
-    return cache.get(name,loader);
+  public Cacheable get(String name, Callable<? extends Cacheable> loader)
+      throws ExecutionException {
+    return cache.get(name, loader);
   }
 
   public void refresh(String name, Cacheable cacheable) {
@@ -44,5 +42,4 @@ public class CachePool {
   public void invalidate(String name) {
     cache.invalidate(name);
   }
-
 }

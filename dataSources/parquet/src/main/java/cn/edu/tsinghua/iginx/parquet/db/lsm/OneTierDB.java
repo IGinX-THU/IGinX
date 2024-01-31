@@ -17,76 +17,54 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.BatchPlaneScanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.ConcatScanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableMeta;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.RangeTombstone;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.utils.SerializeUtils;
-import com.google.common.collect.Iterators;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.index.TableIndex;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.BatchPlaneScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.*;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
+import cn.edu.tsinghua.iginx.parquet.utils.Constants;
+import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
-
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
-  private DataBuffer<K, F, V> writtenBuffer = new DataBuffer<>();
-  private RangeTombstone<K, F> writtenDeleted = new RangeTombstone<>();
-  private final RangeSet<K> ranges = TreeRangeSet.create();
-  private final ConcurrentHashMap<F, T> schema = new ConcurrentHashMap<>();
-  private final ReadWriteLock deletedLock = new ReentrantReadWriteLock(true);
-  private final Lock commitLock = new ReentrantLock(true);
-  private final LongAdder inserted = new LongAdder();
-  private final AppendQueue<K, F, V, T> appendQueue;
-  private final ReadWriter<K, F, V, T> readerWriter;
-
   private final StorageProperties props;
+  private final TableStorage<K, F, T, V> tableStorage;
+  private final TombstoneStorage<K, F> tombstoneStorage;
+  private final TableIndex<K, F, T, V> tableIndex;
 
-  public OneTierDB(StorageProperties props, Path dir, ReadWriter<K, F, V, T> readerWriter)
+  private DataBuffer<K, F, V> writeBuffer = new DataBuffer<>();
+  private final LongAdder inserted = new LongAdder();
+  private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
+  private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
+  private final ReadWriter<K, F, T, V> readerWriter;
+
+  public OneTierDB(StorageProperties props, Path dir, ReadWriter<K, F, T, V> readerWriter)
       throws IOException {
     this.props = props;
     this.readerWriter = readerWriter;
-    this.appendQueue = new AppendQueue<>(props,dir, readerWriter);
-    reload();
-  }
-
-  private void reload() throws IOException {
-    Iterator<Table<K, F, V, T>> iterator = appendQueue.iterator();
-    if (!iterator.hasNext()) {
-      return;
-    }
-
-    Table<K, F, V, T> lastTable = Iterators.getLast(iterator);
-    TableMeta<F, T> meta = lastTable.getMeta();
-    schema.putAll(meta.getSchema());
-    String keyRangeStr = meta.getExtra().get(Constants.KEY_RANGE_NAME);
-    if (keyRangeStr == null) {
-      throw new RuntimeException("key range is not found in file of " + lastTable);
-    }
-    RangeSet<K> ranges =
-        SerializeUtils.deserializeRangeSet(keyRangeStr, readerWriter.getKeyFormat());
-    this.ranges.addAll(ranges);
+    this.tableStorage = new TableStorage<>(props, readerWriter);
+    this.tombstoneStorage =
+        new TombstoneStorage<>(
+            dir.resolve(Constants.DIR_NAME_TOMBSTONE),
+            readerWriter.getKeyFormat(),
+            readerWriter.getFieldFormat());
+    this.tableIndex = new TableIndex<>(tableStorage, tombstoneStorage);
   }
 
   @Override
@@ -94,113 +72,106 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       throws StorageException {
     DataBuffer<K, F, V> readBuffer = new DataBuffer<>();
 
+    commitLock.readLock().lock();
+    deleteLock.readLock().lock();
     try {
-      for (Table<K, F, V, T> table : appendQueue) {
-        TableMeta<F, T> meta = table.getMeta();
-        Map<String, String> extra = meta.getExtra();
-        String rangeTombstoneStr = extra.get(Constants.TOMBSTONE_NAME);
-        if (rangeTombstoneStr == null) {
-          throw new RuntimeException("tombstone is not found in file of " + table);
+      Set<String> tables = tableIndex.find(fields, ranges);
+      List<String> sortedTableNames = new ArrayList<>(tables);
+      sortedTableNames.sort(Comparator.reverseOrder());
+      for (String tableName : sortedTableNames) {
+        Table<K, F, T, V> table = tableStorage.get(tableName);
+        Tombstone<K, F> tombstone = tombstoneStorage.get(tableName);
+        try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, ranges)) {
+          readBuffer.putRows(scanner);
         }
-        RangeTombstone<K, F> rangeTombstone =
-            SerializeUtils.deserializeRangeTombstone(
-                rangeTombstoneStr, readerWriter.getKeyFormat(), readerWriter.getFieldFormat());
-        RangeTombstone.playback(rangeTombstone, readBuffer);
-        for (Range<K> range : ranges.asRanges()) {
-          try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, range)) {
-            readBuffer.putRows(scanner);
-          }
-        }
+        Tombstone.playback(tombstone, readBuffer);
+      }
+
+      for (Range<K> range : ranges.asRanges()) {
+        readBuffer.putRows(writeBuffer.scanRows(fields, range));
       }
     } catch (IOException | StorageException e) {
       throw new RuntimeException(e);
-    }
-
-    deletedLock.readLock().lock();
-    try {
-      RangeTombstone.playback(writtenDeleted, readBuffer);
-      for (Range<K> range : ranges.asRanges()) {
-        readBuffer.putRows(writtenBuffer.scanRows(fields, range));
-      }
     } finally {
-      deletedLock.readLock().unlock();
+      deleteLock.readLock().unlock();
+      commitLock.readLock().unlock();
     }
 
-    List<Scanner<K, Scanner<F, V>>> scanners = new ArrayList<>();
-    for (Range<K> range : ranges.asRanges()) {
-      scanners.add(readBuffer.scanRows(fields, range));
-    }
-    return new ConcatScanner<>(scanners.iterator());
+    return readBuffer.scanRows(fields, Range.all());
   }
 
   @Override
   public Optional<Range<K>> range() throws StorageException {
-    deletedLock.readLock().lock();
+    commitLock.readLock().lock();
+    deleteLock.readLock().lock();
     try {
-      RangeSet<K> rangeSet = TreeRangeSet.create(ranges.asRanges());
-      RangeTombstone.playback(writtenDeleted, rangeSet);
-      writtenBuffer.range().ifPresent(rangeSet::add);
-
+      ImmutableRangeSet.Builder<K> builder = ImmutableRangeSet.builder();
+      for (Range<K> range : tableIndex.ranges().values()) {
+        builder.add(range);
+      }
+      for (Range<K> range : writeBuffer.ranges().values()) {
+        builder.add(range);
+      }
+      ImmutableRangeSet<K> rangeSet = builder.build();
       if (rangeSet.isEmpty()) {
         return Optional.empty();
       } else {
         return Optional.of(rangeSet.span());
       }
     } finally {
-      deletedLock.readLock().unlock();
+      deleteLock.readLock().unlock();
+      commitLock.readLock().unlock();
     }
   }
 
   @Override
   public Map<F, T> schema() throws StorageException {
-    return Collections.unmodifiableMap(schema);
+    return tableIndex.getType();
   }
 
   @Override
   public void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema)
       throws StorageException {
-    try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
-      while (batchScanner.iterate()) {
-        checkBufferSize();
-        deletedLock.readLock().lock();
-        try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
-          checkSchema(schema);
-          writtenBuffer.putRows(batch);
-          inserted.add(batchScanner.key());
-        } finally {
-          deletedLock.readLock().unlock();
+    commitLock.readLock().lock();
+    deleteLock.readLock().lock();
+    try {
+      tableIndex.declareFields(schema);
+      try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
+          new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
+        while (batchScanner.iterate()) {
+          checkBufferSize();
+          try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
+            writeBuffer.putRows(batch);
+            inserted.add(batchScanner.key());
+          }
         }
       }
+    } finally {
+      deleteLock.readLock().unlock();
+      commitLock.readLock().unlock();
     }
   }
 
   @Override
   public void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema)
       throws StorageException {
-    try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
-      while (batchScanner.iterate()) {
-        checkBufferSize();
-        deletedLock.readLock().lock();
-        try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
-          checkSchema(schema);
-          writtenBuffer.putColumns(batch);
-          inserted.add(batchScanner.key());
-        } finally {
-          deletedLock.readLock().unlock();
+    commitLock.readLock().lock();
+    deleteLock.readLock().lock();
+    try {
+      tableIndex.declareFields(schema);
+      try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
+          new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
+        while (batchScanner.iterate()) {
+          checkBufferSize();
+          try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
+            writeBuffer.putColumns(batch);
+            inserted.add(batchScanner.key());
+          }
         }
       }
-    }
-  }
-
-  private void checkSchema(Map<F, T> schema) throws StorageException {
-    for (Map.Entry<F, T> entry : schema.entrySet()) {
-      T old = this.schema.putIfAbsent(entry.getKey(), entry.getValue());
-      if (old != null && !old.equals(entry.getValue())) {
-        throw new TypeConflictedException(
-            entry.getKey().toString(), entry.getValue().toString(), old.toString());
-      }
+    } finally {
+      deleteLock.readLock().unlock();
+      commitLock.readLock().unlock();
     }
   }
 
@@ -208,113 +179,120 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     if (inserted.sum() < props.getWriteBufferSize()) {
       return;
     }
-
-    commitLock.lock();
-    try {
+    synchronized (inserted) {
       if (inserted.sum() < props.getWriteBufferSize()) {
         return;
       }
-      LOGGER.info(
-          "flushing is triggered when write buffer reaching {}", props.getWriteBufferSize());
-      commitMemoryTable();
-    } finally {
-      commitLock.unlock();
-    }
-  }
-
-  private void commitMemoryTable() {
-    deletedLock.writeLock().lock();
-    try {
-      Map<String, String> extra = getExtra(writtenDeleted, ranges);
-      MemoryTable<K, F, V, T> flushedTable = new MemoryTable<>(writtenBuffer, schema, extra);
-      appendQueue.offer(flushedTable);
-
-      RangeTombstone.playback(writtenDeleted, ranges);
-      this.writtenBuffer.range().ifPresent(ranges::add);
-      if (!ranges.isEmpty()) {
-        ranges.add(ranges.span());
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
+            "flushing is triggered when write buffer {} reaching {}",
+            inserted.sum(),
+            props.getWriteBufferSize());
       }
-      this.writtenBuffer = new DataBuffer<>();
-      this.writtenDeleted = new RangeTombstone<>();
-      this.inserted.reset();
-    } finally {
-      deletedLock.writeLock().unlock();
+      commitMemoryTable();
+      inserted.reset();
     }
   }
 
-  @Nonnull
-  private Map<String, String> getExtra(
-      RangeTombstone<K, F> flushedDeleted, RangeSet<K> flushedRangeSet) {
-    Map<String, String> extra = new HashMap<>();
-    extra.put(
-        Constants.TOMBSTONE_NAME,
-        SerializeUtils.serialize(
-            flushedDeleted, readerWriter.getKeyFormat(), readerWriter.getFieldFormat()));
-    extra.put(
-        Constants.KEY_RANGE_NAME,
-        SerializeUtils.serialize(flushedRangeSet, readerWriter.getKeyFormat()));
-    return extra;
+  private void commitMemoryTable() throws StorageException {
+    commitLock.writeLock().lock();
+    deleteLock.writeLock().lock();
+    try {
+      Map<F, T> types =
+          tableIndex.getType(
+              writeBuffer.fields(),
+              f -> {
+                throw new NotIntegrityException("field " + f + " is not found in schema");
+              });
+      MemoryTable<K, F, T, V> table = new MemoryTable<>(writeBuffer, types);
+      String name = tableStorage.flush(table);
+      tableIndex.addTable(name, table.getMeta());
+      this.writeBuffer = new DataBuffer<>();
+    } finally {
+      deleteLock.writeLock().unlock();
+      commitLock.writeLock().unlock();
+    }
   }
 
   @Override
   public void delete(Set<F> fields, RangeSet<K> ranges) throws StorageException {
-    deletedLock.writeLock().lock();
+    commitLock.readLock().lock();
+    deleteLock.writeLock().lock();
     try {
-      writtenBuffer.remove(fields, ranges);
-      writtenDeleted.delete(fields, ranges);
+      writeBuffer.remove(fields, ranges);
+      Set<String> tables = tableIndex.find(fields, ranges);
+      tombstoneStorage.delete(
+          tables,
+          tombstone -> {
+            tombstone.delete(fields, ranges);
+          });
+      tableIndex.delete(fields, ranges);
     } finally {
-      deletedLock.writeLock().unlock();
+      deleteLock.writeLock().unlock();
+      commitLock.readLock().unlock();
     }
   }
 
   @Override
   public void delete(Set<F> fields) throws StorageException {
-    deletedLock.writeLock().lock();
+    commitLock.readLock().lock();
+    deleteLock.writeLock().lock();
     try {
-      schema.keySet().removeAll(fields);
-      writtenBuffer.remove(fields);
-      writtenDeleted.delete(fields);
+      writeBuffer.remove(fields);
+      Set<String> tables = tableIndex.find(fields);
+      tombstoneStorage.delete(
+          tables,
+          tombstone -> {
+            tombstone.delete(fields);
+          });
+      tableIndex.delete(fields);
     } finally {
-      deletedLock.writeLock().unlock();
+      deleteLock.writeLock().unlock();
+      commitLock.readLock().unlock();
     }
   }
 
   @Override
   public void delete(RangeSet<K> ranges) throws StorageException {
-    deletedLock.writeLock().lock();
+    commitLock.readLock().lock();
+    deleteLock.writeLock().lock();
     try {
-      writtenBuffer.remove(ranges);
-      writtenDeleted.delete(ranges);
+      writeBuffer.remove(ranges);
+      Set<String> tables = tableIndex.find(ranges);
+      tombstoneStorage.delete(
+          tables,
+          tombstone -> {
+            tombstone.delete(ranges);
+          });
+      tableIndex.delete(ranges);
     } finally {
-      deletedLock.writeLock().unlock();
+      deleteLock.writeLock().unlock();
+      commitLock.readLock().unlock();
     }
   }
 
   @Override
-  public void delete() throws StorageException {
-    deletedLock.writeLock().lock();
+  public void clear() throws StorageException {
+    commitLock.readLock().lock();
+    deleteLock.writeLock().lock();
     try {
-      appendQueue.clear();
-      writtenBuffer.remove();
-      writtenDeleted.reset();
-      schema.clear();
-      ranges.clear();
+      tableStorage.clear();
+      tombstoneStorage.clear();
+      tableIndex.clear();
+      writeBuffer.clear();
+      inserted.reset();
     } finally {
-      deletedLock.writeLock().unlock();
+      deleteLock.writeLock().unlock();
+      commitLock.readLock().unlock();
     }
   }
 
   @Override
   public void close() throws Exception {
-    commitLock.lock();
-    deletedLock.writeLock().lock();
-    try {
-      LOGGER.info("flushing is triggered when closing");
-      commitMemoryTable();
-      appendQueue.close();
-    } finally {
-      deletedLock.writeLock().unlock();
-      commitLock.unlock();
-    }
+    LOGGER.info("flushing is triggered when closing");
+    commitMemoryTable();
+    tableStorage.close();
+    tombstoneStorage.close();
+    tableIndex.close();
   }
 }

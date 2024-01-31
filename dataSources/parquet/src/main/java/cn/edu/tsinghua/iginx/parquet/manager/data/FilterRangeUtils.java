@@ -18,6 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import com.google.common.collect.*;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -122,5 +123,22 @@ class FilterRangeUtils {
     } else { // lFilter == null && rFilter == null
       return new BoolFilter(true);
     }
+  }
+
+  public static Filter filterOf(RangeSet<Long> rangeSet) {
+    if (rangeSet.isEmpty()) {
+      return new BoolFilter(false);
+    } else if (rangeSet.encloses(Range.all())) {
+      return new BoolFilter(true);
+    } else if (rangeSet.asRanges().size() == 1) {
+      return filterOf(rangeSet.asRanges().iterator().next());
+    }
+
+    List<Filter> subRangeFilters = new ArrayList<>();
+    for (Range<Long> range : rangeSet.asRanges()) {
+      Filter filter = filterOf(range);
+      subRangeFilters.add(filter);
+    }
+    return new OrFilter(subRangeFilters);
   }
 }

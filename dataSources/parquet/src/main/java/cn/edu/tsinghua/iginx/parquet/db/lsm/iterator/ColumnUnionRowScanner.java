@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm.scanner;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.iterator;
 
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NoSuchElementException;

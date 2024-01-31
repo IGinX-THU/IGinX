@@ -17,22 +17,23 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.Map;
 import java.util.Set;
 
-public interface ReadWriter<K extends Comparable<K>, F, V, T> {
+public interface ReadWriter<K extends Comparable<K>, F, T, V> {
 
-  void flush(
-      Path path, Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema, Map<String, String> extra)
-      throws IOException;
+  void flush(String name, Scanner<K, Scanner<F, V>> scanner, Map<F, T> types) throws IOException;
 
-  Map.Entry<Map<F, T>, Map<String, String>> readMeta(Path path) throws IOException;
+  TableMeta<K, F, T, V> readMeta(String name) throws IOException;
 
-  Scanner<K, Scanner<F, V>> scanData(Path path, Set<F> fields, Range<K> range, Filter predicate)
-      throws IOException;
+  Scanner<K, Scanner<F, V>> scanData(
+      String name, Set<F> fields, RangeSet<K> ranges, Filter predicate) throws IOException;
+
+  Iterable<String> tableNames() throws IOException;
+
+  void clear() throws IOException;
 
   ObjectFormat<K> getKeyFormat();
 

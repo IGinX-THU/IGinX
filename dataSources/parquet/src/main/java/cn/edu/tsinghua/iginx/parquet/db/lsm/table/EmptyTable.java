@@ -18,15 +18,15 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.EmptyScanner;
-import com.google.common.collect.Range;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.EmptyScanner;
+import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class EmptyTable<K extends Comparable<K>, F, V, T> implements Table<K, F, V, T> {
+public class EmptyTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
   private static final EmptyTable<?, ?, ?, ?> EMPTY = new EmptyTable<>();
 
   @SuppressWarnings("unchecked")
@@ -36,14 +36,14 @@ public class EmptyTable<K extends Comparable<K>, F, V, T> implements Table<K, F,
 
   @Nonnull
   @Override
-  public TableMeta<F, T> getMeta() {
-    return new TableMeta<>(new HashMap<>(), new HashMap<>());
+  public MemoryTableMeta<K, F, T, V> getMeta() {
+    return new MemoryTableMeta<>(new HashMap<>(), new HashMap<>());
   }
 
   @Nonnull
   @Override
   public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull Range<K> range, @Nullable Filter predicate)
+      @Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges, @Nullable Filter predicate)
       throws IOException {
     return EmptyScanner.getInstance();
   }

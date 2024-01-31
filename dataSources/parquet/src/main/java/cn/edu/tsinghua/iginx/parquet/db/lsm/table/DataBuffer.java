@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.ColumnUnionRowScanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.scanner.IteratorScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.ColumnUnionRowScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.IteratorScanner;
+import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -93,7 +93,7 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
     }
   }
 
-  public void remove() {
+  public void clear() {
     data.clear();
   }
 
@@ -120,28 +120,17 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
   }
 
   @Nonnull
-  public Optional<Range<K>> range() {
-    K min =
-        data.values().stream()
-            .filter(Objects::nonNull)
-            .map(NavigableMap::firstEntry)
-            .filter(Objects::nonNull)
-            .map(Map.Entry::getKey)
-            .min(Comparator.naturalOrder())
-            .orElse(null);
-
-    K max =
-        data.values().stream()
-            .filter(Objects::nonNull)
-            .map(NavigableMap::lastEntry)
-            .filter(Objects::nonNull)
-            .map(Map.Entry::getKey)
-            .max(Comparator.naturalOrder())
-            .orElse(null);
-    if (min == null || max == null) {
-      return Optional.empty();
+  public Map<F, Range<K>> ranges() {
+    Map<F, Range<K>> ranges = new HashMap<>();
+    for (Map.Entry<F, NavigableMap<K, V>> entry : data.entrySet()) {
+      NavigableMap<K, V> column = entry.getValue();
+      Optional<K> min = column.keySet().stream().min(Comparator.naturalOrder());
+      Optional<K> max = column.keySet().stream().max(Comparator.naturalOrder());
+      if (min.isPresent() && max.isPresent()) {
+        ranges.put(entry.getKey(), Range.closed(min.get(), max.get()));
+      }
     }
-    return Optional.of(Range.closed(min, max));
+    return ranges;
   }
 
   @Nonnull

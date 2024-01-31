@@ -14,23 +14,26 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm.utils;
+package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
-import java.util.concurrent.atomic.AtomicLong;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
+import com.google.common.collect.Range;
+import java.util.Map;
 
-public class SequenceGenerator {
+public class MemoryTableMeta<K extends Comparable<K>, F, T, V> implements TableMeta<K, F, T, V> {
+  private final Map<F, T> schema;
+  private final Map<F, Range<K>> ranges;
 
-  private final AtomicLong current = new AtomicLong();
-
-  public long next() {
-    return current.incrementAndGet();
+  public MemoryTableMeta(Map<F, T> schema, Map<F, Range<K>> ranges) {
+    this.schema = schema;
+    this.ranges = ranges;
   }
 
-  public void reset() {
-    reset(new AtomicLong().get());
+  public Map<F, T> getSchema() {
+    return schema;
   }
 
-  public void reset(long last) {
-    current.set(last);
+  public Map<F, Range<K>> getRanges() {
+    return ranges;
   }
 }
