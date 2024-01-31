@@ -79,11 +79,6 @@ public class Controller {
         }
       };
 
-  public static final Boolean IS_EXP_DUMMY =
-      testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-  public static final Boolean IS_ORI_DUMMY =
-      testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
-
   public static void clearAllData(Session session) {
     clearAllData(new MultiConnection(session));
   }
@@ -155,6 +150,8 @@ public class Controller {
       medium = pathList.size();
     } else {
       logger.info("DBCE test, write history data.");
+      Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
                       || tagsList.isEmpty()
@@ -186,6 +183,7 @@ public class Controller {
         if (!needWriteHistoryData) {
           break;
         }
+        Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
         int port = IS_EXP_DUMMY ? expPort : oriPort;
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
         BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
@@ -247,6 +245,8 @@ public class Controller {
       medium = keyList.size();
     } else {
       logger.info("DBCE test, write history data.");
+      Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
                       || tagsList.isEmpty()
@@ -296,6 +296,7 @@ public class Controller {
     }
 
     if (lowerKeyList != null && !lowerKeyList.isEmpty() && needWriteHistoryData) {
+      Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
       int port = IS_EXP_DUMMY ? expPort : oriPort;
       BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
       if (generator == null) {
