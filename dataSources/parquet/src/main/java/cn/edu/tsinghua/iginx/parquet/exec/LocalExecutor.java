@@ -34,9 +34,10 @@ import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
-import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.IsClosedException;
+import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.Shared;
+import cn.edu.tsinghua.iginx.parquet.shared.Shared;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Iterables;
@@ -67,19 +68,19 @@ public class LocalExecutor implements Executor {
 
   private final Manager dummyManager;
 
-  private final StorageProperties storageProperties;
+  private final Shared shared;
 
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   public LocalExecutor(
-      StorageProperties storageProperties,
+      Shared shared,
       boolean hasData,
       boolean readOnly,
       String dataDir,
       String dummyDir,
       String dirPrefix)
       throws StorageInitializationException {
-    this.storageProperties = storageProperties;
+    this.shared = shared;
 
     testValidAndInit(hasData, readOnly, dataDir, dummyDir);
 
@@ -90,7 +91,7 @@ public class LocalExecutor implements Executor {
       } else {
         embeddedPrefix = dirPrefix;
       }
-      dummyManager = new DummyManager(Paths.get(dummyDir), this.storageProperties, embeddedPrefix);
+      dummyManager = new DummyManager(Paths.get(dummyDir), embeddedPrefix);
     } else {
       dummyManager = new EmptyManager();
     }
@@ -201,7 +202,7 @@ public class LocalExecutor implements Executor {
             throw new IsClosedException("executor is closed: " + dataDir);
           }
           try {
-            return new DataManager(storageProperties, dataDir.resolve(s));
+            return new DataManager(shared, dataDir.resolve(s));
           } catch (IOException e) {
             throw new RuntimeException(e);
           }

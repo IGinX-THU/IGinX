@@ -19,7 +19,7 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.UnsupportedFilterException;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.UnsupportedFilterException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;

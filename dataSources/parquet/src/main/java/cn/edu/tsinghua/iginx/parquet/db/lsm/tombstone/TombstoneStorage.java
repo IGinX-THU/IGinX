@@ -1,88 +1,92 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.NotIntegrityException;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageRuntimeException;
-import com.google.common.io.MoreFiles;
-import com.google.common.io.RecursiveDeleteOption;
+import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
+import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.Shared;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.*;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
-import java.util.HashMap;
-import java.util.Map;
+import java.nio.file.*;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
 
 public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
-  private static final Logger LOGGER = org.slf4j.LoggerFactory.getLogger(TombstoneStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TombstoneStorage.class);
+  private final Shared shared;
   private final Path dir;
-  private final Map<String, Tombstone<K, F>> tombstones = new HashMap<>();
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
 
   private final ObjectFormat<K> keyFormat;
   private final ObjectFormat<F> fieldFormat;
 
-  public TombstoneStorage(Path dir, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
+  public TombstoneStorage(Shared shared, Path dir, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
+    this.shared = shared;
     this.dir = dir;
     this.keyFormat = keyFormat;
     this.fieldFormat = fieldFormat;
-    reload();
   }
 
-  private void reload() {
-    try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
-      for (Path path : stream) {
-        String fileName = path.getFileName().toString();
-        String tableName =
-            fileName.substring(0, fileName.length() - Constants.SUFFIX_FILE_TOMBSTONE.length());
-        Tombstone<K, F> tombstone = load(path);
-        tombstones.put(tableName, tombstone);
-      }
-    } catch (IOException e) {
-      throw new StorageRuntimeException(e);
-    }
-  }
-
+  @SuppressWarnings("unchecked")
   public Tombstone<K, F> get(String tableName) {
+    String fileName = getFileName(tableName);
     lock.readLock().lock();
     try {
-      return tombstones.get(tableName);
+      CachePool.Cacheable cacheable = shared.getCachePool().asMap().computeIfAbsent(fileName, this::loadCache);
+      if (!(cacheable instanceof CachedTombstone)) {
+        throw new StorageRuntimeException("unexpected cacheable type: " + cacheable.getClass());
+      }
+      return ((CachedTombstone<K, F>) cacheable).getTombstone();
     } finally {
       lock.readLock().unlock();
     }
   }
 
+  @SuppressWarnings("unchecked")
   public void delete(Set<String> tables, Consumer<Tombstone<K, F>> action) {
-    lock.writeLock().lock();
+    lock.readLock().lock();
     try {
-      for (String table : tables) {
-        Tombstone<K, F> tombstone = tombstones.get(table);
-        if (tombstone == null) {
-          throw new NotIntegrityException("table " + table + " not exists");
-        }
-        action.accept(tombstone);
-        flush(table, tombstone);
+      for (String tableName : tables) {
+        String fileName = getFileName(tableName);
+        shared.getCachePool().asMap().compute(fileName, (k, v) -> {
+          Tombstone<K, F> tombstone;
+          if (v == null) {
+            tombstone = new Tombstone<>();
+          } else {
+            if (!(v instanceof CachedTombstone)) {
+              throw new StorageRuntimeException("unexpected cacheable type: " + v.getClass());
+            }
+            tombstone = ((CachedTombstone<K, F>) v).getTombstone().copy();
+          }
+          action.accept(tombstone);
+          return flushCache(k, tombstone);
+        });
       }
-    } catch (IOException e) {
-      throw new StorageRuntimeException(e);
     } finally {
-      lock.writeLock().unlock();
+      lock.readLock().unlock();
     }
   }
 
   public void clear() {
     lock.writeLock().lock();
     try {
-      MoreFiles.deleteDirectoryContents(dir, RecursiveDeleteOption.ALLOW_INSECURE);
+      try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
+        for (Path path : stream) {
+          Files.deleteIfExists(path);
+          String fileName = path.getFileName().toString();
+          shared.getCachePool().asMap().remove(fileName);
+        }
+      }
       Files.deleteIfExists(dir);
+    } catch (NotDirectoryException e) {
+      LOGGER.trace("Not a directory to clear: {}", dir);
+    } catch (DirectoryNotEmptyException e) {
+      LOGGER.warn("directory not empty to clear: {}", dir);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     } finally {
@@ -90,8 +94,11 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     }
   }
 
-  private void flush(String table, Tombstone<K, F> tombstone) throws IOException {
-    String fileName = table + Constants.SUFFIX_FILE_TOMBSTONE;
+  private String getFileName(String tableName) {
+    return tableName + Constants.SUFFIX_FILE_TOMBSTONE;
+  }
+
+  private CachedTombstone<K, F> flushCache(String fileName, Tombstone<K, F> tombstone) {
     String tempFileName = fileName + Constants.SUFFIX_FILE_TEMP;
     Path path = dir.resolve(fileName);
     Path tempPath = dir.resolve(tempFileName);
@@ -99,23 +106,60 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     String json = SerializeUtils.serialize(tombstone, keyFormat, fieldFormat);
 
     LOGGER.debug("flush tombstone to temp file: {}", tempPath);
-    try (FileWriter fw = new FileWriter(tempPath.toFile());
-        BufferedWriter bw = new BufferedWriter(fw)) {
-      bw.write(json);
+    try {
+      Files.createDirectories(dir);
+      try (FileWriter fw = new FileWriter(tempPath.toFile());
+           BufferedWriter bw = new BufferedWriter(fw)) {
+        bw.write(json);
+      }
+      LOGGER.debug("rename temp file to file: {}", path);
+      Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
     }
-    LOGGER.debug("rename temp file to file: {}", path);
-    Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
+    return new CachedTombstone<>(tombstone, json.length() + fileName.length());
   }
 
-  private Tombstone<K, F> load(Path path) throws IOException {
+  private CachedTombstone<K, F> loadCache(String fileName) {
+    Path path = dir.resolve(fileName);
     try (FileReader fr = new FileReader(path.toFile());
-        BufferedReader br = new BufferedReader(fr)) {
+         BufferedReader br = new BufferedReader(fr)) {
       String json = br.lines().collect(Collectors.joining());
-      return SerializeUtils.deserializeRangeTombstone(json, keyFormat, fieldFormat);
+      Tombstone<K, F> tombstone = SerializeUtils.deserializeRangeTombstone(json, keyFormat, fieldFormat);
+      return new CachedTombstone<>(tombstone, json.length() + fileName.length());
+    } catch (FileNotFoundException e) {
+      return new CachedTombstone<>(fileName.length());
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
     }
   }
 
   public void close() {
     // do nothing
+  }
+
+  public static class CachedTombstone<K extends Comparable<K>, F> implements CachePool.Cacheable {
+
+    private final Tombstone<K, F> tombstone;
+
+    private final int weight;
+
+    public CachedTombstone(Tombstone<K, F> tombstone, int size) {
+      this.tombstone = tombstone;
+      this.weight = size + 32;
+    }
+
+    public CachedTombstone(int length) {
+      this(null, length);
+    }
+
+    public Tombstone<K, F> getTombstone() {
+      return tombstone == null ? new Tombstone<>() : tombstone;
+    }
+
+    @Override
+    public int getWeight() {
+      return weight;
+    }
   }
 }

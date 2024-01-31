@@ -14,11 +14,21 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.utils.exception;
+package cn.edu.tsinghua.iginx.parquet.shared.exception;
 
-public class SchemaException extends StorageException {
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 
-  public SchemaException(String message) {
+public class StorageException extends PhysicalException {
+
+  public StorageException(Throwable cause) {
+    super(cause);
+  }
+
+  public StorageException(String message) {
     super(message);
+  }
+
+  public StorageException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

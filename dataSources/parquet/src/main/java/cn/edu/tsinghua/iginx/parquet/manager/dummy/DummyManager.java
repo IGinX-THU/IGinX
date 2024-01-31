@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
-import static cn.edu.tsinghua.iginx.parquet.utils.Constants.SUFFIX_FILE_PARQUET;
+import static cn.edu.tsinghua.iginx.parquet.shared.Constants.SUFFIX_FILE_PARQUET;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -27,7 +27,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
-import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.shared.StorageProperties;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
@@ -50,7 +50,7 @@ public class DummyManager implements Manager {
   private final String prefix;
 
   public DummyManager(
-      @NotNull Path dummyDir, StorageProperties storageProperties, @NotNull String prefix) {
+      @NotNull Path dummyDir, @NotNull String prefix) {
     this.dir = dummyDir;
     this.prefix = prefix;
   }

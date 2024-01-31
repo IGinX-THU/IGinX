@@ -19,15 +19,26 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.DataBuffer;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
-import java.util.*;
+
 import javax.annotation.Nonnull;
+import java.util.*;
 
 public class Tombstone<K extends Comparable<K>, F> {
-  private final Map<F, RangeSet<K>> deletedRanges = new HashMap<>();
+  private final Map<F, RangeSet<K>> deletedRanges;
 
-  private final Set<F> deletedColumns = new HashSet<>();
+  private final Set<F> deletedColumns;
 
-  private final RangeSet<K> deletedRows = TreeRangeSet.create();
+  private final RangeSet<K> deletedRows;
+
+  public Tombstone() {
+    this(new HashMap<>(), new HashSet<>(), TreeRangeSet.create());
+  }
+
+  private Tombstone(Map<F, RangeSet<K>> deletedRanges, Set<F> deletedColumns, RangeSet<K> deletedRows) {
+    this.deletedRanges = deletedRanges;
+    this.deletedColumns = deletedColumns;
+    this.deletedRows = deletedRows;
+  }
 
   public void delete(@Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges) {
     RangeSet<K> validRanges = TreeRangeSet.create(ranges);
@@ -95,6 +106,10 @@ public class Tombstone<K extends Comparable<K>, F> {
     }
   }
 
+  public Tombstone<K, F> copy() {
+    return new Tombstone<>(new HashMap<>(deletedRanges), new HashSet<>(deletedColumns), TreeRangeSet.create(deletedRows));
+  }
+
   public Map<F, RangeSet<K>> getDeletedRanges() {
     return deletedRanges;
   }
@@ -105,6 +120,10 @@ public class Tombstone<K extends Comparable<K>, F> {
 
   public RangeSet<K> getDeletedRows() {
     return deletedRows;
+  }
+
+  public boolean isEmpty() {
+    return deletedRanges.isEmpty() && deletedColumns.isEmpty() && deletedRows.isEmpty();
   }
 
   @Override

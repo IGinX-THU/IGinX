@@ -14,26 +14,24 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
+package cn.edu.tsinghua.iginx.parquet.shared.exception;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
-import com.google.common.collect.Range;
-import java.util.Map;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 
-public class MemoryTableMeta<K extends Comparable<K>, F, T, V> implements TableMeta<K, F, T, V> {
-  private final Map<F, T> schema;
-  private final Map<F, Range<K>> ranges;
+public class UnsupportedFilterException extends StorageException {
+  private final Filter filter;
 
-  public MemoryTableMeta(Map<F, T> schema, Map<F, Range<K>> ranges) {
-    this.schema = schema;
-    this.ranges = ranges;
+  public UnsupportedFilterException(Filter filter) {
+    super(String.format("unsupported filter %s", filter.toString()));
+    this.filter = filter;
   }
 
-  public Map<F, T> getSchema() {
-    return schema;
+  public UnsupportedFilterException(String message, Filter filter) {
+    super(message);
+    this.filter = filter;
   }
 
-  public Map<F, Range<K>> getRanges() {
-    return ranges;
+  public Filter getFilter() {
+    return filter;
   }
 }

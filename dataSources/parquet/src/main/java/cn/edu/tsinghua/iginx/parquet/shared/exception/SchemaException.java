@@ -14,23 +14,11 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
+package cn.edu.tsinghua.iginx.parquet.shared.exception;
 
-import java.util.concurrent.atomic.AtomicLong;
+public class SchemaException extends StorageException {
 
-public class SequenceGenerator {
-
-  private final AtomicLong current = new AtomicLong();
-
-  public long next() {
-    return current.incrementAndGet();
-  }
-
-  public void reset() {
-    reset(new AtomicLong().get());
-  }
-
-  public void reset(long last) {
-    current.set(last);
+  public SchemaException(String message) {
+    super(message);
   }
 }

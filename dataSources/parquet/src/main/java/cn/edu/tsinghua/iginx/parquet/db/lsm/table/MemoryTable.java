@@ -18,39 +18,42 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.ConcatScanner;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import java.io.IOException;
-import java.util.*;
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.util.*;
 
 public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
   private static final Logger LOGGER = LoggerFactory.getLogger(MemoryTable.class);
 
   private final DataBuffer<K, F, V> buffer;
-  private final Map<F, T> schema;
+  private final TableMeta<K, F, T, V> meta;
 
   public MemoryTable(DataBuffer<K, F, V> buffer, Map<F, T> types) {
     this.buffer = Objects.requireNonNull(buffer);
-    this.schema = Objects.requireNonNull(types);
+    Objects.requireNonNull(types);
+    this.meta = new MemoryTableMeta<>(types, buffer.ranges());
   }
 
   @Override
   public String toString() {
     return new StringJoiner(", ", MemoryTable.class.getSimpleName() + "[", "]")
-        .add("schema=" + schema)
-        .add("buffer=" + buffer.ranges())
+        .add("buffer=" + buffer)
+        .add("meta=" + meta)
         .toString();
   }
 
   @Nonnull
   @Override
-  public MemoryTableMeta<K, F, T, V> getMeta() {
-    return new MemoryTableMeta<>(schema, buffer.ranges());
+  public TableMeta<K, F, T, V> getMeta() {
+    return meta;
   }
 
   @Nonnull
@@ -66,5 +69,31 @@ public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F
       scanners.add(buffer.scanRows(fields, range));
     }
     return new ConcatScanner<>(scanners.iterator());
+  }
+
+  public static class MemoryTableMeta<K extends Comparable<K>, F, T, V> implements TableMeta<K, F, T, V> {
+    private final Map<F, T> schema;
+    private final Map<F, Range<K>> ranges;
+
+    public MemoryTableMeta(Map<F, T> schema, Map<F, Range<K>> ranges) {
+      this.schema = schema;
+      this.ranges = ranges;
+    }
+
+    public Map<F, T> getSchema() {
+      return schema;
+    }
+
+    public Map<F, Range<K>> getRanges() {
+      return ranges;
+    }
+
+    @Override
+    public String toString() {
+      return new StringJoiner(", ", MemoryTableMeta.class.getSimpleName() + "[", "]")
+          .add("schema=" + schema)
+          .add("ranges=" + ranges)
+          .toString();
+    }
   }
 }

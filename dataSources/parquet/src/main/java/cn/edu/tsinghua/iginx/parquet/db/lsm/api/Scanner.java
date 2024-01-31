@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import javax.annotation.Nonnull;
 
 public interface Scanner<K, V> extends AutoCloseable {

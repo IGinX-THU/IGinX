@@ -14,11 +14,29 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.utils.exception;
+package cn.edu.tsinghua.iginx.parquet.shared.exception;
 
-public class IsClosedException extends RuntimeException {
+public class TypeConflictedException extends SchemaException {
+  private final String field;
+  private final String type;
+  private final String oldType;
 
-  public IsClosedException(String message) {
-    super(message);
+  public TypeConflictedException(String field, String type, String oldType) {
+    super(String.format("can't insert %s value into %s column at %s", type, oldType, field));
+    this.field = field;
+    this.type = type;
+    this.oldType = oldType;
+  }
+
+  public String getField() {
+    return field;
+  }
+
+  public String getType() {
+    return type;
+  }
+
+  public String getOldType() {
+    return oldType;
   }
 }

@@ -9,7 +9,7 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Loader;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Table;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;

@@ -14,24 +14,18 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.utils.exception;
+package cn.edu.tsinghua.iginx.parquet.shared.exception;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-
-public class UnsupportedFilterException extends StorageException {
-  private final Filter filter;
-
-  public UnsupportedFilterException(Filter filter) {
-    super(String.format("unsupported filter %s", filter.toString()));
-    this.filter = filter;
-  }
-
-  public UnsupportedFilterException(String message, Filter filter) {
+public class NotIntegrityException extends StorageRuntimeException {
+  public NotIntegrityException(String message) {
     super(message);
-    this.filter = filter;
   }
 
-  public Filter getFilter() {
-    return filter;
+  public NotIntegrityException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public NotIntegrityException(Throwable cause) {
+    super(cause);
   }
 }

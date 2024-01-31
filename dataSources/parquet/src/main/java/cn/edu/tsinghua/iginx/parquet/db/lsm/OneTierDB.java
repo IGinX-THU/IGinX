@@ -22,28 +22,32 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.index.TableIndex;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.BatchPlaneScanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.*;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.DataBuffer;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
-import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.NotIntegrityException;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.Shared;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
-  private final StorageProperties props;
+  private final Shared shared;
   private final TableStorage<K, F, T, V> tableStorage;
   private final TombstoneStorage<K, F> tombstoneStorage;
   private final TableIndex<K, F, T, V> tableIndex;
@@ -52,15 +56,14 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final LongAdder inserted = new LongAdder();
   private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
-  private final ReadWriter<K, F, T, V> readerWriter;
 
-  public OneTierDB(StorageProperties props, Path dir, ReadWriter<K, F, T, V> readerWriter)
+  public OneTierDB(Shared shared, Path dir, ReadWriter<K, F, T, V> readerWriter)
       throws IOException {
-    this.props = props;
-    this.readerWriter = readerWriter;
-    this.tableStorage = new TableStorage<>(props, readerWriter);
+    this.shared = shared;
+    this.tableStorage = new TableStorage<>(shared, readerWriter);
     this.tombstoneStorage =
         new TombstoneStorage<>(
+            shared,
             dir.resolve(Constants.DIR_NAME_TOMBSTONE),
             readerWriter.getKeyFormat(),
             readerWriter.getFieldFormat());
@@ -137,7 +140,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       tableIndex.declareFields(schema);
       try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
-          new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
+               new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
         while (batchScanner.iterate()) {
           checkBufferSize();
           try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
@@ -160,7 +163,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       tableIndex.declareFields(schema);
       try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
-          new BatchPlaneScanner<>(scanner, props.getWriteBatchSize())) {
+               new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
         while (batchScanner.iterate()) {
           checkBufferSize();
           try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
@@ -176,18 +179,18 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   private void checkBufferSize() throws StorageException {
-    if (inserted.sum() < props.getWriteBufferSize()) {
+    if (inserted.sum() < shared.getStorageProperties().getWriteBufferSize()) {
       return;
     }
     synchronized (inserted) {
-      if (inserted.sum() < props.getWriteBufferSize()) {
+      if (inserted.sum() < shared.getStorageProperties().getWriteBufferSize()) {
         return;
       }
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug(
             "flushing is triggered when write buffer {} reaching {}",
             inserted.sum(),
-            props.getWriteBufferSize());
+            shared.getStorageProperties().getWriteBufferSize());
       }
       commitMemoryTable();
       inserted.reset();

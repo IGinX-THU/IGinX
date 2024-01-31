@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.utils;
+package cn.edu.tsinghua.iginx.parquet.shared;
 
 public final class Constants {
 

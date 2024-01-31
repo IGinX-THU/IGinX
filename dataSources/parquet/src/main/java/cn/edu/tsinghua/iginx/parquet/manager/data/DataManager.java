@@ -29,10 +29,11 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.OneTierDB;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
-import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.InvalidFieldNameException;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.Shared;
+import cn.edu.tsinghua.iginx.parquet.shared.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.InvalidFieldNameException;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.BoundType;
@@ -49,14 +50,14 @@ public class DataManager implements Manager {
 
   private final Database<Long, String, DataType, Object> db;
 
-  private final StorageProperties storageProperties;
+  private final Shared shared;
 
-  public DataManager(StorageProperties storageProperties, Path dir) throws IOException {
-    this.storageProperties = storageProperties;
+  public DataManager(Shared shared, Path dir) throws IOException {
+    this.shared = shared;
     Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
     ReadWriter<Long, String, DataType, Object> readWriter =
-        new ParquetReadWriter(storageProperties, dataDir);
-    this.db = new OneTierDB<>(storageProperties, dir, readWriter);
+        new ParquetReadWriter(shared, dataDir);
+    this.db = new OneTierDB<>(shared, dir, readWriter);
   }
 
   @Override

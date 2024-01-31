@@ -12,40 +12,41 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.ParquetMeta;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
-import cn.edu.tsinghua.iginx.parquet.utils.Constants;
-import cn.edu.tsinghua.iginx.parquet.utils.StorageProperties;
-import cn.edu.tsinghua.iginx.parquet.utils.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.Shared;
+import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
-import javax.annotation.Nonnull;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
+
 public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Object> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ParquetReadWriter.class);
 
-  private final StorageProperties storageProperties;
+  private final Shared shared;
 
   private final Path dir;
 
-  public ParquetReadWriter(StorageProperties storageProperties, Path dir) {
-    this.storageProperties = storageProperties;
+  public ParquetReadWriter(Shared shared, Path dir) {
+    this.shared = shared;
     this.dir = dir;
     cleanTempFiles();
   }
 
   private void cleanTempFiles() {
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -75,8 +76,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
     IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema);
 
-    builder.withRowGroupSize(storageProperties.getParquetRowGroupSize());
-    builder.withPageSize((int) storageProperties.getParquetPageSize());
+    builder.withRowGroupSize(shared.getStorageProperties().getParquetRowGroupSize());
+    builder.withPageSize((int) shared.getStorageProperties().getParquetPageSize());
 
     LOGGER.debug("flushing into {}", tempPath);
     Files.createDirectories(path.getParent());
@@ -90,6 +91,9 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     }
 
     LOGGER.info("rename temp file to {}", path);
+    if (Files.exists(path)) {
+      LOGGER.warn("file {} already exists, will be replaced", path);
+    }
     Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
   }
 
@@ -150,7 +154,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   public Iterable<String> tableNames() throws IOException {
     List<String> names = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
         String tableName =

@@ -14,29 +14,20 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.utils.exception;
+package cn.edu.tsinghua.iginx.parquet.shared.exception;
 
-public class TypeConflictedException extends SchemaException {
-  private final String field;
-  private final String type;
-  private final String oldType;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 
-  public TypeConflictedException(String field, String type, String oldType) {
-    super(String.format("can't insert %s value into %s column at %s", type, oldType, field));
-    this.field = field;
-    this.type = type;
-    this.oldType = oldType;
+public class StorageRuntimeException extends PhysicalRuntimeException {
+  public StorageRuntimeException(String message) {
+    super(message);
   }
 
-  public String getField() {
-    return field;
+  public StorageRuntimeException(String message, Throwable cause) {
+    super(message, cause);
   }
 
-  public String getType() {
-    return type;
-  }
-
-  public String getOldType() {
-    return oldType;
+  public StorageRuntimeException(Throwable cause) {
+    super(cause);
   }
 }

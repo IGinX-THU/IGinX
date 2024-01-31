@@ -36,8 +36,8 @@ public class EmptyTable<K extends Comparable<K>, F, T, V> implements Table<K, F,
 
   @Nonnull
   @Override
-  public MemoryTableMeta<K, F, T, V> getMeta() {
-    return new MemoryTableMeta<>(new HashMap<>(), new HashMap<>());
+  public MemoryTable.MemoryTableMeta<K, F, T, V> getMeta() {
+    return new MemoryTable.MemoryTableMeta<>(new HashMap<>(), new HashMap<>());
   }
 
   @Nonnull
