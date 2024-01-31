@@ -136,7 +136,7 @@ public abstract class BaseCapacityExpansionIT {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
       // 测试会添加初始数据，所以hasData=true
-      addStorageEngine(port, true, isReadOnly, dataPrefix, schemaPrefix);
+      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
     }
   }
 
