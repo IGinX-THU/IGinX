@@ -33,7 +33,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
-
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +40,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -70,9 +68,9 @@ public class DummyManager implements Manager {
         pathsInFile =
             new Loader(path)
                 .getHeader().stream()
-                .map(Field::getName)
-                .map(s -> prefix + "." + s)
-                .collect(Collectors.toSet());
+                    .map(Field::getName)
+                    .map(s -> prefix + "." + s)
+                    .collect(Collectors.toSet());
       } catch (IOException e) {
         throw new PhysicalException("failed to load schema from " + path + " : " + e);
       }
@@ -117,7 +115,7 @@ public class DummyManager implements Manager {
         } else {
           if (StringUtils.match(pair.getK(), pattern)
               && cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils.match(
-              pair.getV(), tagFilter)) {
+                  pair.getV(), tagFilter)) {
             ret.add(path);
             break;
           }
