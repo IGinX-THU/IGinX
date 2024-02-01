@@ -35,6 +35,7 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -189,6 +190,9 @@ public class DummyManager implements Manager {
           .filter(path -> path.toString().endsWith(SUFFIX_FILE_PARQUET))
           .filter(Files::isRegularFile)
           .collect(Collectors.toList());
+    } catch (NoSuchFileException e) {
+      LOGGER.warn("no parquet file in {}", dir);
+      return Collections.emptyList();
     } catch (IOException e) {
       throw new PhysicalException("failed to list parquet file in " + dir + ": " + e, e);
     }
