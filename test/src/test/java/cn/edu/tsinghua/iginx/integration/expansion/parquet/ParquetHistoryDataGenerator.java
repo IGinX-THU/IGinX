@@ -51,7 +51,11 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
     }
 
-    assert pathList.size() == dataTypeList.size() && pathList.size() == valuesList.size();
+    assert pathList.size() == dataTypeList.size()
+        : "pathList.size() = " + pathList.size() + ", dataTypeList.size() = " + dataTypeList.size();
+    assert keyList.size() == valuesList.size()
+        : "keyList.size() = " + keyList.size() + ", valuesList.size() = " + valuesList.size();
+
     Table table = new Table();
     for (int fieldIndex = 0; fieldIndex < pathList.size(); fieldIndex++) {
       String originalColumnName = pathList.get(fieldIndex);
@@ -63,6 +67,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     for (int i = 0; i < valuesList.size(); i++) {
       long key = keyList.get(i);
       List<Object> rowData = valuesList.get(i);
+      assert rowData.size() == pathList.size()
+          : "rowData.size() = " + rowData.size() + ", pathList.size() = " + pathList.size();
       for (int fieldIndex = 0; fieldIndex < pathList.size(); fieldIndex++) {
         table.put(fieldIndex, key, rowData.get(fieldIndex));
       }
@@ -111,7 +117,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     if (file.exists() && file.isFile()) {
       file.delete();
     } else {
-      LOGGER.error("delete {}/{} error: does not exist or is not a file.", dir, filename);
+      LOGGER.warn("delete {}/{} error: does not exist or is not a file.", dir, filename);
     }
 
     // delete the normal IT data
@@ -121,7 +127,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       Files.walkFileTree(parquetPath, new DeleteFileVisitor());
     } catch (IOException e) {
-      LOGGER.warn("delete {} error", dir, e);
+      LOGGER.warn("delete {} error: {}", dir, e.toString());
     }
   }
 
