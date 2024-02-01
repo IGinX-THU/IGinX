@@ -44,6 +44,8 @@ import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+
 public class IParquetReader implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
 
@@ -66,10 +68,6 @@ public class IParquetReader implements AutoCloseable {
 
   public MessageType getSchema() {
     return schema;
-  }
-
-  public Map<String, String> getExtra() {
-    return Collections.unmodifiableMap(metadata.getFileMetaData().getKeyValueMetaData());
   }
 
   public IRecord read() throws IOException {
@@ -123,7 +121,15 @@ public class IParquetReader implements AutoCloseable {
       }
     }
 
+    if(min == Long.MAX_VALUE || max == Long.MIN_VALUE) {
+      return Range.closedOpen(0L, 0L);
+    }
+
     return Range.closed(min, max);
+  }
+
+  public ParquetMetadata getMeta() {
+    return metadata;
   }
 
   public static class Builder {
@@ -144,6 +150,15 @@ public class IParquetReader implements AutoCloseable {
         footer = ParquetFileReader.readFooter(localInputfile, options, in);
       }
 
+      return build(footer, options);
+    }
+
+    public IParquetReader build(ParquetMetadata footer) throws IOException {
+      return build(footer, optionsBuilder.build());
+    }
+
+    @Nonnull
+    private IParquetReader build(ParquetMetadata footer, ParquetReadOptions options) throws IOException {
       MessageType schema = footer.getFileMetaData().getSchema();
       MessageType requestedSchema;
       if (fields == null) {

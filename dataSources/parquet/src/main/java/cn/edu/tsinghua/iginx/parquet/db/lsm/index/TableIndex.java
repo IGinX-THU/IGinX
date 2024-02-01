@@ -9,13 +9,14 @@ import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.TypeConflictedException;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableIndex.class);
@@ -28,6 +29,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     try {
       for (String tableName : tableStorage.tableNames()) {
         TableMeta<K, F, T, V> meta = tableStorage.get(tableName).getMeta();
+        declareFields(meta.getSchema());
         addTable(tableName, meta);
         Tombstone<K, F> tombstone = tombstoneStorage.get(tableName);
         delete(tombstone.getDeletedColumns());
@@ -36,7 +38,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
           delete(Collections.singleton(entry.getKey()), entry.getValue());
         }
       }
-    } catch (IOException e) {
+    } catch (IOException | TypeConflictedException e) {
       throw new StorageRuntimeException(e);
     }
   }

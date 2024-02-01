@@ -30,6 +30,21 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     this.dir = dir;
     this.keyFormat = keyFormat;
     this.fieldFormat = fieldFormat;
+    cleanTempFiles();
+  }
+
+  private void cleanTempFiles() {
+    try (DirectoryStream<Path> stream =
+             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+      for (Path path : stream) {
+        LOGGER.info("remove temp file {}", path);
+        Files.deleteIfExists(path);
+      }
+    } catch (NoSuchFileException ignored) {
+      LOGGER.debug("no dir named {}", dir);
+    } catch (IOException e) {
+      LOGGER.error("failed to clean temp files", e);
+    }
   }
 
   @SuppressWarnings("unchecked")
@@ -78,12 +93,12 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
       try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
-          String fileName = path.getFileName().toString();
+          String fileName = path.toString();
           shared.getCachePool().asMap().remove(fileName);
         }
       }
       Files.deleteIfExists(dir);
-    } catch (NotDirectoryException e) {
+    } catch (NoSuchFileException e) {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {
       LOGGER.warn("directory not empty to clear: {}", dir);
@@ -95,13 +110,13 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   }
 
   private String getFileName(String tableName) {
-    return tableName + Constants.SUFFIX_FILE_TOMBSTONE;
+    return dir.resolve(tableName + Constants.SUFFIX_FILE_TOMBSTONE).toString();
   }
 
   private CachedTombstone<K, F> flushCache(String fileName, Tombstone<K, F> tombstone) {
     String tempFileName = fileName + Constants.SUFFIX_FILE_TEMP;
-    Path path = dir.resolve(fileName);
-    Path tempPath = dir.resolve(tempFileName);
+    Path path = Paths.get(fileName);
+    Path tempPath = Paths.get(tempFileName);
 
     String json = SerializeUtils.serialize(tombstone, keyFormat, fieldFormat);
 
@@ -121,8 +136,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   }
 
   private CachedTombstone<K, F> loadCache(String fileName) {
-    Path path = dir.resolve(fileName);
-    try (FileReader fr = new FileReader(path.toFile());
+    try (FileReader fr = new FileReader(Paths.get(fileName).toFile());
          BufferedReader br = new BufferedReader(fr)) {
       String json = br.lines().collect(Collectors.joining());
       Tombstone<K, F> tombstone = SerializeUtils.deserializeRangeTombstone(json, keyFormat, fieldFormat);

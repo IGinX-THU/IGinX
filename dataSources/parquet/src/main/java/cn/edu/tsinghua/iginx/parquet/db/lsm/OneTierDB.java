@@ -80,7 +80,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       Set<String> tables = tableIndex.find(fields, ranges);
       List<String> sortedTableNames = new ArrayList<>(tables);
-      sortedTableNames.sort(Comparator.reverseOrder());
+      sortedTableNames.sort(Comparator.naturalOrder());
       for (String tableName : sortedTableNames) {
         Table<K, F, T, V> table = tableStorage.get(tableName);
         Tombstone<K, F> tombstone = tombstoneStorage.get(tableName);
@@ -135,6 +135,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   @Override
   public void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema)
       throws StorageException {
+    checkBufferSize();
     commitLock.readLock().lock();
     deleteLock.readLock().lock();
     try {
@@ -142,7 +143,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
                new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
         while (batchScanner.iterate()) {
-          checkBufferSize();
           try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
             writeBuffer.putRows(batch);
             inserted.add(batchScanner.key());
@@ -158,6 +158,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   @Override
   public void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema)
       throws StorageException {
+    checkBufferSize();
     commitLock.readLock().lock();
     deleteLock.readLock().lock();
     try {
@@ -165,7 +166,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
                new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
         while (batchScanner.iterate()) {
-          checkBufferSize();
           try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
             writeBuffer.putColumns(batch);
             inserted.add(batchScanner.key());

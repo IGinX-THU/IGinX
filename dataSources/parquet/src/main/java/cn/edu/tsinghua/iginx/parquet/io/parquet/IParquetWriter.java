@@ -19,10 +19,7 @@ package cn.edu.tsinghua.iginx.parquet.io.parquet;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
+import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.LocalOutputFile;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.local.ParquetFileWriter;
@@ -31,12 +28,20 @@ import org.apache.parquet.local.ParquetWriteOptions;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.TypeUtil;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+
 public class IParquetWriter implements AutoCloseable {
 
   private final ParquetRecordWriter<IRecord> internalWriter;
 
-  IParquetWriter(ParquetRecordWriter<IRecord> internalWriter) {
+  private final ParquetFileWriter fileWriter;
+
+  IParquetWriter(ParquetRecordWriter<IRecord> internalWriter, ParquetFileWriter fileWriter) {
     this.internalWriter = internalWriter;
+    this.fileWriter = fileWriter;
   }
 
   public static Builder builder(Path path, MessageType schema) {
@@ -50,6 +55,15 @@ public class IParquetWriter implements AutoCloseable {
   @Override
   public void close() throws Exception {
     internalWriter.close();
+  }
+
+  public ParquetMetadata flush() throws IOException {
+    try {
+      internalWriter.close();
+      return fileWriter.getFooter();
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
   }
 
   public static class Builder {
@@ -74,7 +88,7 @@ public class IParquetWriter implements AutoCloseable {
       ParquetRecordWriter<IRecord> recordWriter =
           new ParquetRecordWriter<>(
               fileWriter, new IRecordDematerializer(schema), schema, extraMetaData, options);
-      return new IParquetWriter(recordWriter);
+      return new IParquetWriter(recordWriter, fileWriter);
     }
 
     public Builder withExtraMetaData(String key, String value) {

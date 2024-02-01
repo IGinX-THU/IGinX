@@ -124,10 +124,12 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
     Map<F, Range<K>> ranges = new HashMap<>();
     for (Map.Entry<F, NavigableMap<K, V>> entry : data.entrySet()) {
       NavigableMap<K, V> column = entry.getValue();
-      Optional<K> min = column.keySet().stream().min(Comparator.naturalOrder());
-      Optional<K> max = column.keySet().stream().max(Comparator.naturalOrder());
-      if (min.isPresent() && max.isPresent()) {
-        ranges.put(entry.getKey(), Range.closed(min.get(), max.get()));
+
+      Map.Entry<K,V> firstEntry = column.firstEntry();
+      Map.Entry<K,V> lastEntry = column.lastEntry();
+
+      if (firstEntry!= null && lastEntry != null) {
+        ranges.put(entry.getKey(), Range.closed(firstEntry.getKey(), lastEntry.getKey()));
       }
     }
     return ranges;

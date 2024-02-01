@@ -61,13 +61,22 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   private void reload() throws IOException {
     Iterable<String> tableNames = readWriter.tableNames();
     String last = StreamSupport.stream(tableNames.spliterator(), false).max(Comparator.naturalOrder()).orElse("0");
-    seqGen.reset(Long.parseLong(last));
+    seqGen.reset(getSeq(last));
+  }
+
+  static long getSeq(String tableName) {
+    return Long.parseLong(tableName, 10);
+  }
+
+  static String getTableName(long seq) {
+    return String.format("%019d", seq);
   }
 
   public String flush(Table<K, F, T, V> table) {
     lock.writeLock().lock();
     try {
-      String tableName = String.valueOf(seqGen.next());
+      String tableName = getTableName(seqGen.next());
+      LOGGER.debug("waiting for flusher permit to flush {}", tableName);
       shared.getFlusherPermits().acquireUninterruptibly();
       memTables.put(tableName, table);
       flusher.submit(
@@ -78,7 +87,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
               TableMeta<K, F, T, V> meta = table.getMeta();
               try (Scanner<K, Scanner<F, V>> scanner =
                        table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
-                readWriter.flush(tableName, scanner, meta.getSchema());
+                readWriter.flush(tableName, meta, scanner);
               }
               memTables.remove(tableName);
             } catch (Throwable e) {
