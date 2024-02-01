@@ -36,6 +36,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<DataType> dataTypeList,
       List<Long> keyList,
       List<List<Object>> valuesList) {
+    LOGGER.info("start writing data, dir:{}, filename:{}.", dir, filename);
+
     if (!PARQUET_PARAMS.containsKey(port)) {
       LOGGER.error("writing to unknown port {}.", port);
       return;
