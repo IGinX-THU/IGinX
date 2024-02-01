@@ -77,8 +77,9 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     Path parquetPath = Paths.get("../" + dir, filename);
     try {
       new Storer(parquetPath).flush(table);
-      LOGGER.info("write data to {}", parquetPath.toAbsolutePath());
+      LOGGER.info("write data to {}", parquetPath);
     } catch (Exception e) {
+      LOGGER.error("write data to {} error: ", parquetPath, e);
       throw new RuntimeException(e);
     }
   }
