@@ -29,13 +29,13 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.OneTierDB;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
+import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.Shared;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
@@ -140,25 +140,7 @@ public class DataManager implements Manager {
   @Override
   public KeyInterval getKeyInterval() throws PhysicalException {
     Optional<Range<Long>> optionalRange = db.range();
-    if (!optionalRange.isPresent()) {
-      return new KeyInterval(0, 0);
-    }
-
-    long begin = 0, end = Long.MAX_VALUE;
-    Range<Long> span = optionalRange.get();
-    if (span.hasLowerBound()) {
-      begin = span.lowerEndpoint();
-      if (span.lowerBoundType() == BoundType.OPEN) {
-        begin += 1;
-      }
-    }
-    if (span.hasUpperBound()) {
-      end = span.upperEndpoint();
-      if (span.upperBoundType() == BoundType.OPEN) {
-        end -= 1;
-      }
-    }
-    return new KeyInterval(begin, end);
+    return optionalRange.map(RangeUtils::toKeyInterval).orElseGet(() -> new KeyInterval(0, 0));
   }
 
   @Override

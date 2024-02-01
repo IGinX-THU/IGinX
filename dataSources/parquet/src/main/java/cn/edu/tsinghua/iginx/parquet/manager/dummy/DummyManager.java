@@ -27,9 +27,12 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
+import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
+import com.google.common.collect.ImmutableRangeSet;
+import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -153,18 +156,21 @@ public class DummyManager implements Manager {
 
   @Override
   public KeyInterval getKeyInterval() throws PhysicalException {
-    long max = 0;
+    ImmutableRangeSet.Builder<Long> builder = ImmutableRangeSet.builder();
     for (Path path : getFilePaths()) {
       try {
-        long count = new Loader(path).getRowCount();
-        if (count > max) {
-          max = count;
-        }
-      } catch (IOException e) {
-        throw new PhysicalException("failed to get row count from " + path + ": " + e);
+        Range<Long> range = new Loader(path).getRange();
+        builder.add(range);
+      } catch (Exception e) {
+        throw new PhysicalException("failed to get range from " + path + ": " + e, e);
       }
     }
-    return new KeyInterval(0, max);
+    ImmutableRangeSet<Long> rangeSet = builder.build();
+    if (rangeSet.isEmpty()) {
+      return new KeyInterval(0, 0);
+    }
+    Range<Long> span = rangeSet.span();
+    return RangeUtils.toKeyInterval(span);
   }
 
   @Override

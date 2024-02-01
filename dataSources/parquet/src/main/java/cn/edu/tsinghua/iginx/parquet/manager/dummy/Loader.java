@@ -20,6 +20,7 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.ParquetMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
@@ -41,14 +42,10 @@ public class Loader {
     return path;
   }
 
-  public long getRowCount() throws IOException {
+  public Range<Long> getRange() throws Exception {
     IParquetReader.Builder builder = IParquetReader.builder(path);
     try (IParquetReader reader = builder.build()) {
-      return reader.getRowCount();
-    } catch (IOException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new IOException("unexpected reader error!", e);
+      return reader.getRange();
     }
   }
 

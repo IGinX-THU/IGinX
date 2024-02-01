@@ -126,8 +126,10 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     try {
       Files.walkFileTree(parquetPath, new DeleteFileVisitor());
+    } catch (NoSuchFileException e) {
+      LOGGER.warn("no such file or directory: {}", dir);
     } catch (IOException e) {
-      LOGGER.warn("delete {} error: {}", dir, e.toString());
+      LOGGER.warn("delete {} error: ", dir, e);
     }
   }
 
