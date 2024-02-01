@@ -22,13 +22,12 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.ConcatScanner;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
   private static final Logger LOGGER = LoggerFactory.getLogger(MemoryTable.class);
@@ -71,7 +70,8 @@ public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F
     return new ConcatScanner<>(scanners.iterator());
   }
 
-  public static class MemoryTableMeta<K extends Comparable<K>, F, T, V> implements TableMeta<K, F, T, V> {
+  public static class MemoryTableMeta<K extends Comparable<K>, F, T, V>
+      implements TableMeta<K, F, T, V> {
     private final Map<F, T> schema;
     private final Map<F, Range<K>> ranges;
 

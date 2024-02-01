@@ -125,10 +125,10 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
     for (Map.Entry<F, NavigableMap<K, V>> entry : data.entrySet()) {
       NavigableMap<K, V> column = entry.getValue();
 
-      Map.Entry<K,V> firstEntry = column.firstEntry();
-      Map.Entry<K,V> lastEntry = column.lastEntry();
+      Map.Entry<K, V> firstEntry = column.firstEntry();
+      Map.Entry<K, V> lastEntry = column.lastEntry();
 
-      if (firstEntry!= null && lastEntry != null) {
+      if (firstEntry != null && lastEntry != null) {
         ranges.put(entry.getKey(), Range.closed(firstEntry.getKey(), lastEntry.getKey()));
       }
     }

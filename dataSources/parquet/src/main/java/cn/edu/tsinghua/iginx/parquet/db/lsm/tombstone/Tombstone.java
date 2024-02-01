@@ -19,9 +19,8 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.DataBuffer;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
-
-import javax.annotation.Nonnull;
 import java.util.*;
+import javax.annotation.Nonnull;
 
 public class Tombstone<K extends Comparable<K>, F> {
   private final Map<F, RangeSet<K>> deletedRanges;
@@ -34,7 +33,8 @@ public class Tombstone<K extends Comparable<K>, F> {
     this(new HashMap<>(), new HashSet<>(), TreeRangeSet.create());
   }
 
-  private Tombstone(Map<F, RangeSet<K>> deletedRanges, Set<F> deletedColumns, RangeSet<K> deletedRows) {
+  private Tombstone(
+      Map<F, RangeSet<K>> deletedRanges, Set<F> deletedColumns, RangeSet<K> deletedRows) {
     this.deletedRanges = deletedRanges;
     this.deletedColumns = deletedColumns;
     this.deletedRows = deletedRows;
@@ -107,7 +107,10 @@ public class Tombstone<K extends Comparable<K>, F> {
   }
 
   public Tombstone<K, F> copy() {
-    return new Tombstone<>(new HashMap<>(deletedRanges), new HashSet<>(deletedColumns), TreeRangeSet.create(deletedRows));
+    return new Tombstone<>(
+        new HashMap<>(deletedRanges),
+        new HashSet<>(deletedColumns),
+        TreeRangeSet.create(deletedRows));
   }
 
   public Map<F, RangeSet<K>> getDeletedRanges() {

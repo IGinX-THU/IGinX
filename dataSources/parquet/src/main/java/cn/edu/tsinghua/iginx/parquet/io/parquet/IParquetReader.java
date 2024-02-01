@@ -22,10 +22,9 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Collections;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import javax.annotation.Nonnull;
 import org.apache.parquet.column.statistics.LongStatistics;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
@@ -43,8 +42,6 @@ import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
 
 public class IParquetReader implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
@@ -121,7 +118,7 @@ public class IParquetReader implements AutoCloseable {
       }
     }
 
-    if(min == Long.MAX_VALUE || max == Long.MIN_VALUE) {
+    if (min == Long.MAX_VALUE || max == Long.MIN_VALUE) {
       return Range.closedOpen(0L, 0L);
     }
 
@@ -158,7 +155,8 @@ public class IParquetReader implements AutoCloseable {
     }
 
     @Nonnull
-    private IParquetReader build(ParquetMetadata footer, ParquetReadOptions options) throws IOException {
+    private IParquetReader build(ParquetMetadata footer, ParquetReadOptions options)
+        throws IOException {
       MessageType schema = footer.getFileMetaData().getSchema();
       MessageType requestedSchema;
       if (fields == null) {

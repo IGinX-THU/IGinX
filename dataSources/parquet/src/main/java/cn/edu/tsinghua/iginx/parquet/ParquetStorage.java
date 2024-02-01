@@ -76,7 +76,12 @@ public class ParquetStorage implements IStorage {
     String dirPrefix = extraParams.get("embedded_prefix");
 
     StorageProperties storageProperties = StorageProperties.builder().parse(extraParams).build();
-    LOGGER.info("storage of {} dir: data_dir={}, dummy_dir={}, dir_prefix={}", meta, dataDir, dummyDir, dirPrefix);
+    LOGGER.info(
+        "storage of {} dir: data_dir={}, dummy_dir={}, dir_prefix={}",
+        meta,
+        dataDir,
+        dummyDir,
+        dirPrefix);
     LOGGER.info("storage of {} properties: {}", meta, storageProperties);
 
     Shared shared = Shared.of(storageProperties);

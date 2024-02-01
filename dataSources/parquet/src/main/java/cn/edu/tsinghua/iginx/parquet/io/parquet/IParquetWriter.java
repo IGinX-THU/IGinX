@@ -19,6 +19,10 @@ package cn.edu.tsinghua.iginx.parquet.io.parquet;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.LocalOutputFile;
 import org.apache.parquet.io.OutputFile;
@@ -27,11 +31,6 @@ import org.apache.parquet.local.ParquetRecordWriter;
 import org.apache.parquet.local.ParquetWriteOptions;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.TypeUtil;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 
 public class IParquetWriter implements AutoCloseable {
 

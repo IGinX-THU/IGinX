@@ -20,16 +20,15 @@ import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
+import javax.annotation.Nonnull;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
 
 public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Object> {
 
@@ -47,7 +46,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   private void cleanTempFiles() {
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -61,7 +60,9 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   @Override
   public void flush(
-      String tableName, TableMeta<Long, String, DataType, Object> meta, Scanner<Long, Scanner<String, Object>> scanner)
+      String tableName,
+      TableMeta<Long, String, DataType, Object> meta,
+      Scanner<Long, Scanner<String, Object>> scanner)
       throws IOException {
     Path path = getPath(tableName);
     Path tempPath = dir.resolve(tableName + Constants.SUFFIX_FILE_TEMP);
@@ -80,7 +81,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         writer.write(record);
       }
       ParquetMetadata parquetMeta = writer.flush();
-      ParquetTableMeta tableMeta = new ParquetTableMeta(meta.getSchema(), meta.getRanges(), parquetMeta);
+      ParquetTableMeta tableMeta =
+          new ParquetTableMeta(meta.getSchema(), meta.getRanges(), parquetMeta);
       setParquetTableMeta(path.toString(), tableMeta);
     } catch (Exception e) {
       throw new IOException("failed to write " + path, e);
@@ -119,7 +121,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   @Nonnull
   private ParquetTableMeta getParquetTableMeta(String fileName) {
-    CachePool.Cacheable cacheable = shared.getCachePool().asMap().computeIfAbsent(fileName, this::doReadMeta);
+    CachePool.Cacheable cacheable =
+        shared.getCachePool().asMap().computeIfAbsent(fileName, this::doReadMeta);
     if (!(cacheable instanceof TableMeta)) {
       throw new StorageRuntimeException("invalid cacheable type: " + cacheable.getClass());
     }
@@ -181,12 +184,11 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     return new ParquetScanner(reader);
   }
 
-
   @Override
   public Iterable<String> tableNames() throws IOException {
     List<String> names = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
         String tableName = getTableName(fileName);
@@ -211,7 +213,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   public void clear() throws IOException {
     LOGGER.info("clearing data of {}", dir);
     try {
-      try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+      try (DirectoryStream<Path> stream =
+          Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
           String fileName = path.toString();
@@ -303,13 +306,15 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     }
   }
 
-  private static class ParquetTableMeta implements TableMeta<Long, String, DataType, Object>, CachePool.Cacheable {
+  private static class ParquetTableMeta
+      implements TableMeta<Long, String, DataType, Object>, CachePool.Cacheable {
     private final Map<String, DataType> schemaDst;
     private final Map<String, Range<Long>> rangeMap;
     private final ParquetMetadata meta;
     private final int weight;
 
-    public ParquetTableMeta(Map<String, DataType> schemaDst, Map<String, Range<Long>> rangeMap, ParquetMetadata meta) {
+    public ParquetTableMeta(
+        Map<String, DataType> schemaDst, Map<String, Range<Long>> rangeMap, ParquetMetadata meta) {
       this.schemaDst = schemaDst;
       this.rangeMap = rangeMap;
       this.meta = meta;

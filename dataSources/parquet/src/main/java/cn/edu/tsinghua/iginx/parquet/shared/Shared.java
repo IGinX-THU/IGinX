@@ -25,7 +25,8 @@ public class Shared {
 
   private final CachePool cachePool;
 
-  public Shared(StorageProperties storageProperties, Semaphore flusherPermits, CachePool cachePool) {
+  public Shared(
+      StorageProperties storageProperties, Semaphore flusherPermits, CachePool cachePool) {
     this.storageProperties = storageProperties;
     this.flusherPermits = flusherPermits;
     this.cachePool = cachePool;
@@ -36,7 +37,6 @@ public class Shared {
     CachePool cachePool = new CachePool(storageProperties);
     return new Shared(storageProperties, flusherPermits, cachePool);
   }
-
 
   public StorageProperties getStorageProperties() {
     return storageProperties;

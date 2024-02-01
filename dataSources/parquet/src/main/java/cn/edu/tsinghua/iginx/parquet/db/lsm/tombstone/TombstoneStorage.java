@@ -5,9 +5,6 @@ import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.Shared;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.nio.file.*;
 import java.util.Set;
@@ -15,6 +12,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TombstoneStorage.class);
@@ -25,7 +24,8 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   private final ObjectFormat<K> keyFormat;
   private final ObjectFormat<F> fieldFormat;
 
-  public TombstoneStorage(Shared shared, Path dir, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
+  public TombstoneStorage(
+      Shared shared, Path dir, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
     this.shared = shared;
     this.dir = dir;
     this.keyFormat = keyFormat;
@@ -35,7 +35,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
 
   private void cleanTempFiles() {
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -52,7 +52,8 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     String fileName = getFileName(tableName);
     lock.readLock().lock();
     try {
-      CachePool.Cacheable cacheable = shared.getCachePool().asMap().computeIfAbsent(fileName, this::loadCache);
+      CachePool.Cacheable cacheable =
+          shared.getCachePool().asMap().computeIfAbsent(fileName, this::loadCache);
       if (!(cacheable instanceof CachedTombstone)) {
         throw new StorageRuntimeException("unexpected cacheable type: " + cacheable.getClass());
       }
@@ -68,19 +69,25 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     try {
       for (String tableName : tables) {
         String fileName = getFileName(tableName);
-        shared.getCachePool().asMap().compute(fileName, (k, v) -> {
-          Tombstone<K, F> tombstone;
-          if (v == null) {
-            tombstone = new Tombstone<>();
-          } else {
-            if (!(v instanceof CachedTombstone)) {
-              throw new StorageRuntimeException("unexpected cacheable type: " + v.getClass());
-            }
-            tombstone = ((CachedTombstone<K, F>) v).getTombstone().copy();
-          }
-          action.accept(tombstone);
-          return flushCache(k, tombstone);
-        });
+        shared
+            .getCachePool()
+            .asMap()
+            .compute(
+                fileName,
+                (k, v) -> {
+                  Tombstone<K, F> tombstone;
+                  if (v == null) {
+                    tombstone = new Tombstone<>();
+                  } else {
+                    if (!(v instanceof CachedTombstone)) {
+                      throw new StorageRuntimeException(
+                          "unexpected cacheable type: " + v.getClass());
+                    }
+                    tombstone = ((CachedTombstone<K, F>) v).getTombstone().copy();
+                  }
+                  action.accept(tombstone);
+                  return flushCache(k, tombstone);
+                });
       }
     } finally {
       lock.readLock().unlock();
@@ -90,7 +97,8 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   public void clear() {
     lock.writeLock().lock();
     try {
-      try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
+      try (DirectoryStream<Path> stream =
+          Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
           String fileName = path.toString();
@@ -124,7 +132,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     try {
       Files.createDirectories(dir);
       try (FileWriter fw = new FileWriter(tempPath.toFile());
-           BufferedWriter bw = new BufferedWriter(fw)) {
+          BufferedWriter bw = new BufferedWriter(fw)) {
         bw.write(json);
       }
       LOGGER.debug("rename temp file to file: {}", path);
@@ -137,9 +145,10 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
 
   private CachedTombstone<K, F> loadCache(String fileName) {
     try (FileReader fr = new FileReader(Paths.get(fileName).toFile());
-         BufferedReader br = new BufferedReader(fr)) {
+        BufferedReader br = new BufferedReader(fr)) {
       String json = br.lines().collect(Collectors.joining());
-      Tombstone<K, F> tombstone = SerializeUtils.deserializeRangeTombstone(json, keyFormat, fieldFormat);
+      Tombstone<K, F> tombstone =
+          SerializeUtils.deserializeRangeTombstone(json, keyFormat, fieldFormat);
       return new CachedTombstone<>(tombstone, json.length() + fileName.length());
     } catch (FileNotFoundException e) {
       return new CachedTombstone<>(fileName.length());

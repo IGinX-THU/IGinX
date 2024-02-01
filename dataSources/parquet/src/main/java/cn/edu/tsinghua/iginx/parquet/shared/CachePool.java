@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.shared;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
-
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 
@@ -32,8 +31,9 @@ public class CachePool {
     cacheBuilder.weigher((String name, Cacheable cacheable) -> cacheable.getWeight());
     cacheBuilder.maximumWeight(prop.getCacheCapacity());
     prop.getCacheTimeout().ifPresent(cacheBuilder::expireAfterAccess);
-    cacheBuilder.scheduler(Scheduler.forScheduledExecutorService(Executors.newSingleThreadScheduledExecutor()));
-    if(prop.getCacheSoftValues()) {
+    cacheBuilder.scheduler(
+        Scheduler.forScheduledExecutorService(Executors.newSingleThreadScheduledExecutor()));
+    if (prop.getCacheSoftValues()) {
       cacheBuilder.softValues();
     }
     this.cache = cacheBuilder.build();

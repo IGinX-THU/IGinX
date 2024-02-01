@@ -23,9 +23,6 @@ import cn.edu.tsinghua.iginx.parquet.shared.Shared;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.concurrent.ConcurrentHashMap;
@@ -36,6 +33,8 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.StreamSupport;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class.getName());
@@ -60,7 +59,10 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   private void reload() throws IOException {
     Iterable<String> tableNames = readWriter.tableNames();
-    String last = StreamSupport.stream(tableNames.spliterator(), false).max(Comparator.naturalOrder()).orElse("0");
+    String last =
+        StreamSupport.stream(tableNames.spliterator(), false)
+            .max(Comparator.naturalOrder())
+            .orElse("0");
     seqGen.reset(getSeq(last));
   }
 
@@ -86,7 +88,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
               LOGGER.trace("start to flush");
               TableMeta<K, F, T, V> meta = table.getMeta();
               try (Scanner<K, Scanner<F, V>> scanner =
-                       table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
+                  table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
                 readWriter.flush(tableName, meta, scanner);
               }
               memTables.remove(tableName);

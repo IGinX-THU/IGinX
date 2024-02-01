@@ -23,31 +23,38 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class ParseUtils {
-  private ParseUtils() {
-  }
+  private ParseUtils() {}
 
   @SafeVarargs
-  public static Optional<Integer> getOptionalInteger(Map<String, String> properties, String key, Consumer<Integer>... checkers) {
+  public static Optional<Integer> getOptionalInteger(
+      Map<String, String> properties, String key, Consumer<Integer>... checkers) {
     return getOptional(properties, key, Integer::parseInt, checkers);
   }
 
   @SafeVarargs
-  public static Optional<Long> getOptionalLong(Map<String, String> properties, String key, Consumer<Long>... checkers) {
+  public static Optional<Long> getOptionalLong(
+      Map<String, String> properties, String key, Consumer<Long>... checkers) {
     return getOptional(properties, key, Long::parseLong, checkers);
   }
 
   @SafeVarargs
-  public static Optional<Duration> getOptionalDuration(Map<String, String> properties, String key, Consumer<Duration>... checkers) {
+  public static Optional<Duration> getOptionalDuration(
+      Map<String, String> properties, String key, Consumer<Duration>... checkers) {
     return getOptional(properties, key, Duration::parse, checkers);
   }
 
   @SafeVarargs
-  public static Optional<Boolean> getOptionalBoolean(Map<String, String> properties, String key, Consumer<Boolean>... checkers) {
+  public static Optional<Boolean> getOptionalBoolean(
+      Map<String, String> properties, String key, Consumer<Boolean>... checkers) {
     return getOptional(properties, key, Boolean::parseBoolean, checkers);
   }
 
   @SafeVarargs
-  private static <V> Optional<V> getOptional(Map<String, String> properties, String key, Function<String, V> parser, Consumer<V>... checkers) {
+  private static <V> Optional<V> getOptional(
+      Map<String, String> properties,
+      String key,
+      Function<String, V> parser,
+      Consumer<V>... checkers) {
     String value = properties.get(key);
     if (value == null) {
       return Optional.empty();

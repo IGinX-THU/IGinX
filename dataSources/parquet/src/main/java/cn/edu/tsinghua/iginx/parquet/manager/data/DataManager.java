@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.StorageProperties;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -40,7 +39,6 @@ import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
 import org.slf4j.Logger;
@@ -56,8 +54,7 @@ public class DataManager implements Manager {
   public DataManager(Shared shared, Path dir) throws IOException {
     this.shared = shared;
     Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
-    ReadWriter<Long, String, DataType, Object> readWriter =
-        new ParquetReadWriter(shared, dataDir);
+    ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dataDir);
     this.db = new OneTierDB<>(shared, dir, readWriter);
   }
 

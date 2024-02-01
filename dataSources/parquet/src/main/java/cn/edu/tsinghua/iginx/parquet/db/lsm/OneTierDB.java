@@ -35,15 +35,14 @@ import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
@@ -141,7 +140,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       tableIndex.declareFields(schema);
       try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
-               new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+          new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
         while (batchScanner.iterate()) {
           try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
             writeBuffer.putRows(batch);
@@ -164,7 +163,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       tableIndex.declareFields(schema);
       try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
-               new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+          new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
         while (batchScanner.iterate()) {
           try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
             writeBuffer.putColumns(batch);
