@@ -14,13 +14,13 @@ public class RangeUtils {
     if (span.hasLowerBound()) {
       begin = span.lowerEndpoint();
       if (span.lowerBoundType() == BoundType.OPEN) {
-        begin += 1;
+        begin = Math.max(begin, begin + 1);
       }
     }
     if (span.hasUpperBound()) {
       end = span.upperEndpoint();
-      if (span.upperBoundType() == BoundType.OPEN) {
-        end -= 1;
+      if (span.upperBoundType() == BoundType.CLOSED) {
+        end = Math.max(end, end + 1);
       }
     }
     return new KeyInterval(begin, end);
