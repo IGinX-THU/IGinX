@@ -27,7 +27,7 @@ public class ConfLoader {
 
   private static final String DB_HISTORY_DATA_GEN_CLASS_NAME = "%s_data_gen_class";
 
-  private static final String DB_PORT_MAP = "%s_data_gen_class";
+  private static final String DB_PORT_MAP = "%s_port";
 
   private static final String RUNNING_STORAGE = "./src/test/resources/DBName.txt";
 
@@ -141,7 +141,7 @@ public class ConfLoader {
     // dbce port map
     String portMap = properties.getProperty(String.format(DB_PORT_MAP, storageEngine));
     logInfo("the db port map of {} is : {}", storageEngine, portMap);
-    String[] ports = confs.split(",");
+    String[] ports = portMap.split(",");
     for (int i = 0; i < ports.length; i++) {
       String port = ports[i];
       int portNum = Integer.parseInt(port);
