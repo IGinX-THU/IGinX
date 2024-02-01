@@ -9,6 +9,7 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -143,6 +144,9 @@ public class Controller {
       InsertAPIType type,
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
@@ -238,6 +242,9 @@ public class Controller {
       InsertAPIType type,
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {

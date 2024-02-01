@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.FileReader;
 import java.io.IOException;
@@ -25,6 +26,8 @@ public class ConfLoader {
   private static final String DB_CLASS_NAME = "%s_class";
 
   private static final String DB_HISTORY_DATA_GEN_CLASS_NAME = "%s_data_gen_class";
+
+  private static final String DB_PORT_MAP = "%s_data_gen_class";
 
   private static final String RUNNING_STORAGE = "./src/test/resources/DBName.txt";
 
@@ -134,6 +137,26 @@ public class ConfLoader {
     dbConf.setClassName(properties.getProperty(String.format(DB_CLASS_NAME, storageEngine)));
     dbConf.setHistoryDataGenClassName(
         properties.getProperty(String.format(DB_HISTORY_DATA_GEN_CLASS_NAME, storageEngine)));
+
+    // dbce port map
+    String portMap = properties.getProperty(String.format(DB_PORT_MAP, storageEngine));
+    logInfo("the db port map of {} is : {}", storageEngine, portMap);
+    String[] ports = confs.split(",");
+    for (int i = 0; i < ports.length; i++) {
+      String port = ports[i];
+      int portNum = Integer.parseInt(port);
+      switch (i) {
+        case 0:
+          dbConf.setDbcePortMap(Constant.ORI_PORT_NAME, portNum);
+          break;
+        case 1:
+          dbConf.setDbcePortMap(Constant.EXP_PORT_NAME, portNum);
+          break;
+        case 2:
+          dbConf.setDbcePortMap(Constant.READ_ONLY_PORT_NAME, portNum);
+          break;
+      }
+    }
     return dbConf;
   }
 

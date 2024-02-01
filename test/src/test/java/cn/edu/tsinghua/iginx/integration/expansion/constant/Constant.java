@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 public class Constant {
+  public static final String ORI_PORT_NAME = "ori_port";
+  public static final String EXP_PORT_NAME = "exp_port";
+  public static final String READ_ONLY_PORT_NAME = "read_only_port";
 
   // port
   public static int oriPort = 6667;

@@ -18,6 +18,9 @@ public final class DBConf {
 
   private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
 
+  // for dbce port map
+  public static final Map<String, Integer> DBCE_PORT_MAP = new HashMap<>();
+
   private String storageEngineMockConf = null;
 
   private String className = null;
@@ -84,5 +87,13 @@ public final class DBConf {
 
   public void setHistoryDataGenClassName(String historyDataGenClassName) {
     this.historyDataGenClassName = historyDataGenClassName;
+  }
+
+  public void setDbcePortMap(String portName, int port) {
+    DBCE_PORT_MAP.put(portName, port);
+  }
+
+  public Map<String, Integer> getDBCEPortMap() {
+    return DBCE_PORT_MAP;
   }
 }
