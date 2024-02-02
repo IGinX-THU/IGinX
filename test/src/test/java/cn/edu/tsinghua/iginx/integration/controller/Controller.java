@@ -55,7 +55,7 @@ public class Controller {
   public static final String DUMMY_INIT_PATH_END =
       "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
   private static final String EXP_HAS_DATA_STRING = "ExpHasData";
-  private static final String ORI_HAS_DATA_STRING = "OriHasData";
+  private static final String ORI_HAS_DATA_STRING = "oriHasData";
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   public static final Map<String, Boolean> SUPPORT_KEY =
