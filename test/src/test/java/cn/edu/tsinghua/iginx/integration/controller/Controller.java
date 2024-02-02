@@ -187,8 +187,16 @@ public class Controller {
         if (!needWriteHistoryData) {
           break;
         }
+        // 需要对4种情况做区分的情况
         Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-        int port = IS_EXP_DUMMY ? expPort : oriPort;
+        Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+        int port;
+        // 如果是has,has情况，则dummy数据的一半写入ori数据库，另一半写入exp数据库
+        if (i < (1 + 1 / PARTITION_POINT) / 2 * medium) {
+          port = IS_EXP_DUMMY ? expPort : oriPort;
+        } else {
+          port = IS_ORI_DUMMY ? oriPort : expPort;
+        }
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
         BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
         if (generator == null) {
@@ -229,6 +237,49 @@ public class Controller {
               rowValues);
         }
       }
+    }
+  }
+
+  public static <T> void writeRowsDataToDummy(
+      T session,
+      List<String> pathList,
+      List<Long> keyList,
+      List<DataType> dataTypeList,
+      List<List<Object>> valuesList,
+      int port) {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
+    if (generator == null) {
+      logger.error("write data fail, caused by generator is null");
+      return;
+    }
+    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
+      ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
+      String path = pathList.get(0);
+      String tableName = path.substring(0, path.indexOf("."));
+      String dir =
+          ParquetHistoryDataGenerator.IT_DATA_DIR
+              + System.getProperty("file.separator")
+              + tableName;
+      parquetGenerator.writeHistoryData(
+          port,
+          dir,
+          ParquetHistoryDataGenerator.IT_DATA_FILENAME,
+          pathList,
+          dataTypeList,
+          keyList,
+          valuesList);
+      try {
+        addEmbeddedStorageEngine(
+            session, String.format(ADD_STORAGE_ENGINE_PARQUET, dir, tableName));
+      } catch (SessionException | ExecutionException e) {
+        if (!e.getMessage().contains("repeatedly add storage engine")) {
+          logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
+          fail();
+        }
+      }
+    } else {
+      generator.writeHistoryData(port, pathList, dataTypeList, keyList, valuesList);
     }
   }
 
@@ -303,40 +354,32 @@ public class Controller {
     }
 
     if (lowerKeyList != null && !lowerKeyList.isEmpty() && needWriteHistoryData) {
+      // 需要对4种情况做区分的情况
       Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-      int port = IS_EXP_DUMMY ? expPort : oriPort;
-      BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
-      if (generator == null) {
-        logger.error("write data fail, caused by generator is null");
-        return;
-      }
-      if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
-        ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
-        String path = pathList.get(0);
-        String tableName = path.substring(0, path.indexOf("."));
-        String dir =
-            ParquetHistoryDataGenerator.IT_DATA_DIR
-                + System.getProperty("file.separator")
-                + tableName;
-        parquetGenerator.writeHistoryData(
-            port,
-            dir,
-            ParquetHistoryDataGenerator.IT_DATA_FILENAME,
-            pathList,
-            dataTypeList,
-            lowerKeyList,
-            lowerValuesList);
-        try {
-          addEmbeddedStorageEngine(
-              session, String.format(ADD_STORAGE_ENGINE_PARQUET, dir, tableName));
-        } catch (SessionException | ExecutionException e) {
-          if (!e.getMessage().contains("repeatedly add storage engine")) {
-            logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
-            fail();
-          }
-        }
+      Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+      int port;
+      if (IS_EXP_DUMMY && IS_ORI_DUMMY) {
+        // divide the data
+        List<Long> upperDummyKeyList = null;
+        List<Long> lowerDummyKeyList = null;
+        List<List<Object>> upperDummyValuesList = null;
+        List<List<Object>> lowerDummyValuesList = null;
+        int half = lowerKeyList.size() / 2;
+        // 划分数据区间
+        upperDummyKeyList = lowerKeyList.subList(0, half); // 上半部分，包括索引为 0 到 half-1 的元素
+        lowerDummyKeyList =
+            lowerKeyList.subList(
+                half, lowerKeyList.size()); // 下半部分，包括索引为 half 到 lowerKeyList.size()-1 的元素
+        upperDummyValuesList = lowerValuesList.subList(0, half);
+        lowerDummyValuesList = lowerValuesList.subList(half, lowerKeyList.size());
+        writeRowsDataToDummy(
+            session, pathList, upperDummyKeyList, dataTypeList, upperDummyValuesList, oriPort);
+        writeRowsDataToDummy(
+            session, pathList, lowerDummyKeyList, dataTypeList, lowerDummyValuesList, expPort);
       } else {
-        generator.writeHistoryData(port, pathList, dataTypeList, lowerKeyList, lowerValuesList);
+        // 如果是has,has情况，则dummy数据的一半写入ori数据库，另一半写入exp数据库
+        port = IS_EXP_DUMMY ? expPort : oriPort;
+        writeRowsDataToDummy(session, pathList, lowerKeyList, dataTypeList, lowerValuesList, port);
       }
     }
   }
