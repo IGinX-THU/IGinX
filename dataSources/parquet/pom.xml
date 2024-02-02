@@ -35,6 +35,22 @@
                     <groupId>org.slf4j</groupId>
                     <artifactId>*</artifactId>
                 </exclusion>
+                <exclusion>
+                    <groupId>org.xerial.snappy</groupId>
+                    <artifactId>snappy-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.luben</groupId>
+                    <artifactId>zstd-jni</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-pool</groupId>
+                    <artifactId>commons-pool</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.apache.parquet</groupId>
+                    <artifactId>parquet-jackson</artifactId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
@@ -68,6 +84,7 @@
                         <configuration>
                             <outputDirectory>../../core/target/iginx-core-${project.version}/driver/parquet/</outputDirectory>
                             <excludeScope>provided</excludeScope>
+                            <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>
