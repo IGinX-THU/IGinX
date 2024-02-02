@@ -47,10 +47,6 @@
                     <groupId>commons-pool</groupId>
                     <artifactId>commons-pool</artifactId>
                 </exclusion>
-                <exclusion>
-                    <groupId>org.apache.parquet</groupId>
-                    <artifactId>parquet-jackson</artifactId>
-                </exclusion>
             </exclusions>
         </dependency>
         <dependency>
