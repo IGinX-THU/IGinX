@@ -69,6 +69,8 @@ public class FunctionManager {
 
   private static final String PY_SUFFIX = ".py";
 
+  private static final String IGINX_ROOT_MODULE = "udf_funcs.iginx_udf";
+
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
@@ -193,6 +195,7 @@ public class FunctionManager {
     BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
     for (int i = 0; i < INTERPRETER_NUM; i++) {
       PythonInterpreter interpreter = new PythonInterpreter(config);
+      interpreter.exec(String.format("import %s", IGINX_ROOT_MODULE));
       interpreter.exec(String.format("import %s", moduleName));
       interpreter.exec(String.format("t = %s.%s()", moduleName, className));
       queue.add(interpreter);

@@ -1,6 +1,9 @@
 package cn.edu.tsinghua.iginx.engine.shared.expr;
 
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
+import cn.edu.tsinghua.iginx.utils.Pair;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -9,56 +12,83 @@ import java.util.Map;
 public class FuncExpression implements Expression {
 
   private final String funcName;
-  private final List<String> columns;
-  private final List<Object> args;
-  private final Map<String, Object> kvargs;
+  private final FunctionParams params;
   private final boolean isDistinct;
   private final boolean isPyUDF;
   private String alias;
 
+  public static final int COLUMN_ARG_TYPE = 0;
+  public static final int POS_ARG_TYPE = 1;
+
   public FuncExpression(String funcName, List<String> columns) {
-    this(funcName, columns, new ArrayList<>(), new HashMap<>(), "", false);
+    this(funcName, getArgListFromColumns(columns), new HashMap<>(), "", false);
   }
 
   public FuncExpression(
       String funcName,
-      List<String> columns,
-      List<Object> args,
+      List<Pair<Integer, Object>> args,
       Map<String, Object> kvargs,
       boolean isDistinct) {
-    this(funcName, columns, args, kvargs, "", isDistinct);
+    this(funcName, args, kvargs, "", isDistinct);
   }
 
   public FuncExpression(
       String funcName,
-      List<String> columns,
-      List<Object> args,
+      List<Pair<Integer, Object>> args,
       Map<String, Object> kvargs,
       String alias,
       boolean isDistinct) {
     this.funcName = funcName;
-    this.columns = columns;
-    this.args = args;
-    this.kvargs = kvargs;
+    this.params = new FunctionParams(args, kvargs);
     this.alias = alias;
     this.isDistinct = isDistinct;
     this.isPyUDF = FunctionUtils.isPyUDF(funcName);
+  }
+
+  public static List<Pair<Integer, Object>> getArgListFromColumns(List<String> columns) {
+    List<Pair<Integer, Object>> list = new ArrayList<>();
+    for (String column : columns) {
+      list.add(new Pair<>(COLUMN_ARG_TYPE, column));
+    }
+    return list;
   }
 
   public String getFuncName() {
     return funcName;
   }
 
+
+  /**
+   * 获取位置参数中所有列名
+   * @return 一个参数列表
+   */
   public List<String> getColumns() {
-    return columns;
+    return params.getPaths();
   }
 
-  public List<Object> getArgs() {
-    return args;
+  /**
+   * 获取位置参数中所有常量参数
+   * @return 一个参数列表
+   */
+  public List<Object> getConPosArgs() {
+    return params.getConPosArgs();
   }
 
+
+  /**
+   * 获取所有kv参数
+   * @return 一个参数列表
+   */
   public Map<String, Object> getKvargs() {
-    return kvargs;
+    return params.getKwargs();
+  }
+
+  /**
+   * 获取所有位置参数，包括列名和常量
+   * @return 一个参数列表，Pair.k指示参数类型（列名或常量），Pair.v指示值（列名或常量的值）
+   */
+  public List<Pair<Integer, Object>> getPosArgs() {
+    return params.getPosArgs();
   }
 
   public boolean isDistinct() {
@@ -76,7 +106,7 @@ public class FuncExpression implements Expression {
     if (isDistinct) {
       columnName += "distinct ";
     }
-    return columnName + String.join(", ", columns) + ")";
+    return columnName + String.join(", ", getColumns()) + ")";
   }
 
   @Override

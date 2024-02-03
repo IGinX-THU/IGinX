@@ -23,7 +23,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 import pemja.core.PythonInterpreter;
 
-public class PyUDAF implements UDAF {
+public class PyUDAF extends PyUDF implements UDAF {
 
   private static final String PY_UDAF = "py_udaf";
 
@@ -106,11 +106,11 @@ public class PyUDAF implements UDAF {
       data.add(rowData);
     }
 
-    List<Object> args = params.getArgs();
+    List<List<Object>> posArgs = getPyPosParams(params.getPosArgs());
     Map<String, Object> kvargs = params.getKwargs();
 
     List<List<Object>> res =
-        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
+        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, posArgs, kvargs);
 
     if (res == null || res.size() < 3) {
       return Row.EMPTY_ROW;

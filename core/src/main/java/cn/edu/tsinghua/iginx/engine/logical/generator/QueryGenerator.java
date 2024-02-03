@@ -768,7 +768,7 @@ public class QueryGenerator extends AbstractGenerator {
                     return false;
                   }
                   FuncExpression funcExpression = ((FuncExpression) expression);
-                  return !funcExpression.getArgs().isEmpty()
+                  return !funcExpression.getConPosArgs().isEmpty()
                       || !funcExpression.getKvargs().isEmpty();
                 });
 
@@ -1058,10 +1058,9 @@ public class QueryGenerator extends AbstractGenerator {
   private static FunctionParams getFunctionParams(String functionName, FuncExpression expression) {
     return FunctionUtils.isCanUseSetQuantifierFunction(functionName)
         ? new FunctionParams(
-            expression.getColumns(),
-            expression.getArgs(),
+            expression.getPosArgs(),
             expression.getKvargs(),
             expression.isDistinct())
-        : new FunctionParams(expression.getColumns(), expression.getArgs(), expression.getKvargs());
+        : new FunctionParams(expression.getPosArgs(), expression.getKvargs());
   }
 }

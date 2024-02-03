@@ -1,6 +1,60 @@
 import pandas as pd
 
 
+def list_to_df(data):
+    """
+    将IGinX传来的二维列表转换为dataframe类数据
+    :param data: 二维列表，第一行列名，第二行类型，第三行开始为数据
+    :return: 构建的dataframe类数据
+    """
+    key_list = []
+    value_list = []
+    paths = data[0][1:]
+    types = data[1][1:]
+    for row in data[2:]:
+        key_list.append(row[0])
+        value_list.append(row[1:])
+    return DataFrame(paths, types, key_list, value_list, True)
+
+
+def list_to_PandasDF(data):
+    """
+    将IGinX传来的二维列表转换为Pandas.Dataframe类数据
+    :param data: 二维列表，第一行列名，第二行类型，第三行开始为数据
+    :return: 构建的dataframe
+    """
+    return pd.DataFrame(data[2:], columns=data[0])
+
+
+def pandasDF_to_list(df):
+    """
+    将一个pandas.dataframe转为二维列表传回给IGinX
+    TODO：在大数据量情况下性能表现可能不佳
+    :param df: 待转换的dataframe数据
+    :return 二维列表，第一行列名，第二行类型，第三行开始为数据
+    """
+    column_types = df.dtypes
+    col_name = [column_name for column_name, data_type in column_types.items()]
+    col_type = [map_to_strings(data_type) for column_name, data_type in column_types.items()]
+    resList = [col_name, col_type]
+    for index, row in df.iterrows():
+        resList.append([value for column_name, value in row.items()])
+    return resList
+
+
+def map_to_strings(data_type):
+    type_mapping = {
+        'int32': 'INTEGER',
+        'int64': 'LONG',
+        'float32': 'FLOAT',
+        'float64': 'DOUBLE',
+        'object': 'BINARY',
+        'bool': 'Boolean',
+    }
+    mapped_type = type_mapping.get(str(data_type), 'Unknown')
+    return mapped_type
+
+
 class DataFrame:
     def __init__(self, paths, types, keys=None, values_list=None, has_key=False):
         if keys is None:
@@ -117,50 +171,3 @@ class DataFrame:
                     value += str(self._values[i][j]) + "\t"
             value += "\n"
         return value
-
-
-class Column:
-    def __init__(self, path, col_type, value_list=None):
-        if isinstance(path, str):
-            self._path = path
-        else:
-            raise TypeError("Error: Column path should be string.")
-
-        if isinstance(col_type, str):
-            self._type = col_type
-        else:
-            raise TypeError("Error: Column type should be string.")
-
-        if value_list is None:
-            self._value = []
-        elif isinstance(value_list, list):
-            self._value = value_list
-        else:
-            raise TypeError("Error: Column value should be null or list.")
-
-    def set_value(self, value_list):
-        if isinstance(value_list, list):
-            self._value = value_list
-        else:
-            raise TypeError("Error: Column value should be list to set.")
-
-    def get_value(self):
-        return self._value
-
-    def set_path(self, path):
-        if isinstance(path, list):
-            self._path = path
-        else:
-            raise TypeError("Column path should be string.")
-
-    def get_path(self):
-        return self._path
-
-    def set_type(self, col_type):
-        if isinstance(col_type, list):
-            self._type = col_type
-        else:
-            raise TypeError("Column type should be string.")
-
-    def get_type(self):
-        return self._type

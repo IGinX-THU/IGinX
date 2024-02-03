@@ -21,7 +21,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 import pemja.core.PythonInterpreter;
 
-public class PyUDSF implements UDSF {
+public class PyUDSF extends PyUDF implements UDSF {
 
   private static final String PY_UDSF = "py_udsf";
 
@@ -104,11 +104,11 @@ public class PyUDSF implements UDSF {
       data.add(rowData);
     }
 
-    List<Object> args = params.getArgs();
+    List<List<Object>> posArgs = getPyPosParams(params.getPosArgs());
     Map<String, Object> kvargs = params.getKwargs();
 
     List<List<Object>> res =
-        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
+        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, posArgs, kvargs);
 
     if (res == null || res.size() < 3) {
       return Table.EMPTY_TABLE;

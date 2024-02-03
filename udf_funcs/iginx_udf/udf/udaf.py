@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
-from udf import UDF, list_to_df
-from ..utils.dataframe import DataFrame
+from .udf import UDF, get_column_index, get_constants
+from ..utils.dataframe import DataFrame, list_to_df, pandasDF_to_list
 
 
 class UDAF(UDF, ABC):
@@ -10,7 +10,14 @@ class UDAF(UDF, ABC):
 
     def __init__(self):
         super().__init__()
-        self._udf_type = "UDAF"
+        self._key = None
+
+    @property
+    def udf_type(self):
+        return "UDAF"
+
+    def get_key(self):
+        return self._key
 
     @property
     @abstractmethod
@@ -27,19 +34,25 @@ class UDAF(UDF, ABC):
         colTypes = ["LONG"] if with_key else []
         for name in paths:
             colNames.append(self.udf_name + "(" + name + ")")
-        return DataFrame(colNames, colTypes.extend(types), has_key=with_key)
+        return colNames, colTypes.extend(types), with_key
 
-    # TODO: 目前这样的写法仍然做不到列参数与常量参数混合
-    def udf_process(self, data, args, kwargs):
-        df = self.build_df_with_header(data[0][1:], data[1][1:])
+    def transform(self, data, pos_args, kwargs):
+        colNames, types, with_key = self.build_df_with_header(data[0][1:], data[1][1:])
+        df = DataFrame(colNames, types, has_key=with_key)
+        index_list = get_column_index(data[0][1:], pos_args)
+        args = [self.status]
+        args.extend([val for arg_type, val in pos_args])
         # 分解每行参数
         for row in data[2:]:
-            row.extend(args)
-            self.transform(self.status, *row, **kwargs)
-        return df.insert(*self.status)
+            self._key = row[0]
+            for i in range(1, len(row)):
+                args[index_list[i]] = row[i]
+            self.eval(*args, **kwargs)
+        df.insert(*self.status)
+        return df.to_list()
 
     @abstractmethod
-    def transform(self, status, *args, **kwargs):
+    def eval(self, status, *args, **kwargs):
         """
         用户UDAF需要重写这个方法来进行处理操作，使用动态参数是为了匹配不同参数数量的重写函数
         status参数为UDAF特有的累计值参数
@@ -54,16 +67,16 @@ class UDAFinDF(UDF, ABC):
     使用dataframe模式
     """
 
-    def __init__(self):
-        super().__init__()
-        self._udf_type = "UDAF"
+    @property
+    def udf_type(self):
+        return "UDAF"
 
     def build_df_with_header(self, paths, types, with_key=False):
         # 用户直接返回dataframe，这个函数应当不需要
         pass
 
-    def udf_process(self, data, args, kwargs):
+    def transform(self, data, pos_args, kwargs):
         df = list_to_df(data)
         # 直接作为完整的dataframe进行处理，返回值为dataframe
-        res = self.transform(df, *args, **kwargs)
-        return res.to_list()
+        res = self.eval(df.to_pandas_df(), *get_constants(pos_args), **kwargs)
+        return pandasDF_to_list(res)

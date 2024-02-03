@@ -71,7 +71,7 @@ public class ExprUtils {
     RowMappingFunction rowMappingFunction = (RowMappingFunction) function;
     FunctionParams params =
         new FunctionParams(
-            funcExpr.getColumns(), funcExpr.getArgs(), funcExpr.getKvargs(), funcExpr.isDistinct());
+            funcExpr.getPosArgs(), funcExpr.getKvargs(), funcExpr.isDistinct());
     try {
       Row ret = rowMappingFunction.transform(row, params);
       int retValueSize = ret.getValues().length;
