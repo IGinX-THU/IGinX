@@ -18,32 +18,37 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 public class SetTransformLazyStream extends UnaryLazyStream {
 
-  private final SetTransform setTransform;
-
-  private final SetMappingFunction function;
-
-  private final FunctionParams params;
+  private final List<FunctionCall> functionCallList;
 
   private Row nextRow;
 
+  private Map<List<String>, RowStream> distinctStreamMap; // 用于存储distinct处理过的stream，其中null指向原始stream
+
   private boolean hasConsumed = false;
 
-  public SetTransformLazyStream(SetTransform setTransform, RowStream stream) {
-    super(stream);
-    this.setTransform = setTransform;
-    this.function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
-    this.params = setTransform.getFunctionCall().getParams();
+  public SetTransformLazyStream(
+      SetTransform setTransform, Map<List<String>, RowStream> distinctStreamMap) {
+    super(distinctStreamMap.get(null));
+    this.distinctStreamMap = distinctStreamMap;
+    this.functionCallList = setTransform.getFunctionCallList();
   }
 
   @Override
@@ -65,12 +70,30 @@ public class SetTransformLazyStream extends UnaryLazyStream {
   }
 
   private Row calculate() throws PhysicalException {
+    SetMappingFunction function = null;
+    List<Row> rowList = new ArrayList<>();
     try {
-      return function.transform(stream, params);
+      for (FunctionCall functionCall : functionCallList) {
+        function = (SetMappingFunction) functionCall.getFunction();
+        FunctionParams params = functionCall.getParams();
+        if (params.isDistinct()) {
+          rowList.add(function.transform((Table) distinctStreamMap.get(params.getPaths()), params));
+        } else {
+          rowList.add(function.transform((Table) stream, params));
+        }
+      }
+
     } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+      if (function != null) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+            e);
+      } else {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute set mapping function.", e);
+      }
     }
+    return combineMultipleColumns(rowList);
   }
 
   @Override

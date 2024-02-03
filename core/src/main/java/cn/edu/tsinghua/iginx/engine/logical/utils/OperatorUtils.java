@@ -282,7 +282,7 @@ public class OperatorUtils {
             new GroupBy(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
                 correlatedVariables,
-                Collections.singletonList(setTransform.getFunctionCall()));
+                setTransform.getFunctionCallList());
         break;
       case GroupBy:
         GroupBy groupBy = (GroupBy) operatorB;
