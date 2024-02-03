@@ -2257,7 +2257,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             EmptySource.EMPTY_SOURCE,
             3,
             3,
-            new FunctionCall(Avg.getInstance(), params),
+            Collections.singletonList(new FunctionCall(Avg.getInstance(), params)),
             new KeyRange(0, 11));
     RowStream stream = getExecutor().executeUnaryOperator(downsample, table, null);
 
@@ -2293,7 +2293,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
             EmptySource.EMPTY_SOURCE,
             3,
             3,
-            new FunctionCall(Max.getInstance(), params),
+            Collections.singletonList(new FunctionCall(Max.getInstance(), params)),
             new KeyRange(0, 11));
     getExecutor().executeUnaryOperator(downsample, table, null);
     fail();
@@ -2307,7 +2307,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
 
     MappingTransform mappingTransform =
         new MappingTransform(
-            EmptySource.EMPTY_SOURCE, new FunctionCall(Last.getInstance(), params));
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(new FunctionCall(Last.getInstance(), params)));
 
     RowStream stream = getExecutor().executeUnaryOperator(mappingTransform, table, null);
 
@@ -2336,7 +2337,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
 
     SetTransform setTransform =
-        new SetTransform(EmptySource.EMPTY_SOURCE, new FunctionCall(Avg.getInstance(), params));
+        new SetTransform(
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(new FunctionCall(Avg.getInstance(), params)));
 
     RowStream stream = getExecutor().executeUnaryOperator(setTransform, table, null);
 

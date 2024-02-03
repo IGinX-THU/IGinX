@@ -50,7 +50,7 @@ public class PyUDSF implements UDSF {
   }
 
   @Override
-  public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
+  public RowStream transform(Table table, FunctionParams params) throws Exception {
     if (!CheckUtils.isLegal(params)) {
       throw new IllegalArgumentException("unexpected params for PyUDSF.");
     }
@@ -66,8 +66,8 @@ public class PyUDSF implements UDSF {
     for (String target : paths) {
       if (StringUtils.isPattern(target)) {
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
-        for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-          Field field = rows.getHeader().getField(i);
+        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+          Field field = table.getHeader().getField(i);
           if (pattern.matcher(field.getName()).matches()) {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
@@ -75,8 +75,8 @@ public class PyUDSF implements UDSF {
           }
         }
       } else {
-        for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-          Field field = rows.getHeader().getField(i);
+        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+          Field field = table.getHeader().getField(i);
           if (target.equals(field.getName())) {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
@@ -94,8 +94,7 @@ public class PyUDSF implements UDSF {
     List<List<Object>> data = new ArrayList<>();
     data.add(colNames);
     data.add(colTypes);
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       List<Object> rowData = new ArrayList<>();
       rowData.add(row.getKey());
       for (Integer idx : indices) {
