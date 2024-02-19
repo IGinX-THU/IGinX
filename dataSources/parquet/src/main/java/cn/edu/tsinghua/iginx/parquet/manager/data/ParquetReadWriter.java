@@ -10,7 +10,6 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.ParquetMeta;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
@@ -27,6 +26,7 @@ import javax.annotation.Nonnull;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
+import org.ehcache.sizeof.SizeOf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -142,7 +142,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
           continue;
         }
-        DataType iginxType = ParquetMeta.toIginxType(type.asPrimitiveType());
+        DataType iginxType = IParquetReader.toIginxType(type.asPrimitiveType());
         schemaDst.put(type.getName(), iginxType);
       }
 
@@ -321,7 +321,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       this.meta = meta;
       int schemaWeight = schemaDst.toString().length();
       int rangeWeight = rangeMap.toString().length();
-      int metaWeight = ParquetMetadata.toJSON(meta).length();
+      int metaWeight = (int) SizeOf.newInstance().deepSizeOf(meta);
       this.weight = schemaWeight + rangeWeight + metaWeight;
     }
 

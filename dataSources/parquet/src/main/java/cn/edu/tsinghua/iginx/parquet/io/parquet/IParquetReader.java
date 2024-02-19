@@ -17,7 +17,10 @@
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.format.parquet.ParquetReadOptions;
+import cn.edu.tsinghua.iginx.format.parquet.ParquetRecordReader;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -28,15 +31,13 @@ import javax.annotation.Nonnull;
 import org.apache.parquet.column.statistics.LongStatistics;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
+import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.LocalInputFile;
 import org.apache.parquet.io.SeekableInputStream;
-import org.apache.parquet.local.ParquetFileReader;
-import org.apache.parquet.local.ParquetReadOptions;
-import org.apache.parquet.local.ParquetRecordReader;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
@@ -170,7 +171,7 @@ public class IParquetReader implements AutoCloseable {
         return new IParquetReader(null, requestedSchema, footer);
       }
 
-      ParquetFileReader reader = new ParquetFileReader(localInputfile, footer, options);
+      ParquetFileReader reader = new ParquetFileReader(localInputfile, options);
       reader.setRequestedSchema(requestedSchema);
       ParquetRecordReader<IRecord> internalReader =
           new ParquetRecordReader<>(new IRecordMaterializer(requestedSchema), reader, options);
@@ -191,6 +192,29 @@ public class IParquetReader implements AutoCloseable {
         skip = !filterPredicate.v;
       }
       return this;
+    }
+  }
+
+  public static DataType toIginxType(PrimitiveType primitiveType) {
+    if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
+      return DataType.BINARY;
+    }
+    switch (primitiveType.getPrimitiveTypeName()) {
+      case BOOLEAN:
+        return DataType.BOOLEAN;
+      case INT32:
+        return DataType.INTEGER;
+      case INT64:
+        return DataType.LONG;
+      case FLOAT:
+        return DataType.FLOAT;
+      case DOUBLE:
+        return DataType.DOUBLE;
+      case BINARY:
+        return DataType.BINARY;
+      default:
+        throw new RuntimeException(
+            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
     }
   }
 }
