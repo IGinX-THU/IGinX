@@ -1,4 +1,11 @@
-from udf_funcs.iginx_udf import UDTF
+from iginx_udf import UDTF
+
+
+def to_str(obj):
+    if isinstance(obj, bytes):
+        return str(obj, encoding='utf-8')
+    else:
+        return str(obj)
 
 
 class ArgTest(UDTF):
@@ -7,12 +14,13 @@ class ArgTest(UDTF):
         return "arg_test"
 
     def build_df_with_header(self, paths, types, with_key=False):
-        return ["arg_test"], ["BINARY"], False
+        s = ', '.join(paths)
+        return [f"arg_test({s})"], ["BINARY"], False
 
-    def eval(self, a, b, c="cccc"):
-        string = "[" + str(a) + str(b) + str(c) + "]"
+    def eval(self, a, b, c="default"):
+        string = "[" + to_str(a) + to_str(b) + to_str(c) + "]"
         print(string)
-        return string,
+        return string
 
 # from udf_funcs.iginx_udf import *
 #
@@ -24,7 +32,9 @@ class ArgTest(UDTF):
 # test.udf_process(data,pos_args,kwargs)
 
 # insert into test(key,a) values(0,1),(1,2);
+# insert into test(key,a,b) values(0,1,2),(1,2,3);
 # REGISTER UDTF PYTHON TASK "ArgTest" IN "E:\\IGinX_Lab\\local\\IGinX\\udf_funcs\\python_scripts\\udf_arg_test.py" AS "arg_test";
+# REGISTER UDTF PYTHON TASK "ArgTest" IN "udf_funcs\\python_scripts\\udf_arg_test.py" AS "arg_test";
 # REGISTER UDTF PYTHON TASK "ArgTest" IN "udf_funcs\\python_scripts\\udf_arg_test_new.py" AS "arg_test_new";
 
 # select arg_test(a,2,c="we") from test;
@@ -32,6 +42,7 @@ class ArgTest(UDTF):
 # select arg_test(a,"do") from test;
 # select arg_test(2,a) from test;
 # select arg_test("do",a) from test;
+# select arg_test(a,b) from test;
 
 # select arg_test_new(a,2,c="we") from test;
 # select arg_test_new(a,2) from test;

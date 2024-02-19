@@ -69,7 +69,7 @@ public class FunctionManager {
 
   private static final String PY_SUFFIX = ".py";
 
-  private static final String IGINX_ROOT_MODULE = "udf_funcs.iginx_udf";
+  private static final String IGINX_ROOT_MODULE = "iginx_udf";
 
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");

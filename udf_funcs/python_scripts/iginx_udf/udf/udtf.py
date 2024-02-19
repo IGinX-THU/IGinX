@@ -36,8 +36,12 @@ class UDTF(UDF, ABC):
             self._key = row[0]
             for i in range(1, len(row)):
                 args[index_list[i-1]] = row[i]
-            value = list(self.eval(*args, **kwargs))
+            value = self.eval(*args, **kwargs)
+            if not isinstance(value, list):
+                value = [value]
+            print("1111111111")
             print(value)
+            print("222222")
             df.insert(*value)
         return df.to_list()
 
