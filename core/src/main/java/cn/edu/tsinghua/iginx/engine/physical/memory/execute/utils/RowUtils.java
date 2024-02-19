@@ -35,19 +35,18 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutionException;
@@ -905,5 +904,255 @@ public class RowUtils {
     }
 
     return targetRows;
+  }
+
+  /**
+   * 将多个table进行PathUnion,在Last、First中使用到
+   *
+   * @param tableList table列表
+   * @return 合并后的table
+   * @throws PhysicalException Table列表为空或者Table有的有key有的没有key时，抛出异常
+   */
+  public static Table pathUnionMultipleTables(List<Table> tableList) throws PhysicalException {
+    if (tableList == null || tableList.isEmpty()) {
+      throw new IllegalArgumentException("Table list cannot be null or empty");
+    }
+
+    // 检查每个表的头部是否包含键
+    boolean hasKey = tableList.get(0).getHeader().hasKey();
+    for (Table table : tableList) {
+      if (table.getHeader().hasKey() != hasKey) {
+        throw new InvalidOperatorParameterException(
+            "All tables in the union must have the same key configuration");
+      }
+    }
+
+    Set<Field> targetFieldSet = new LinkedHashSet<>();
+    for (Table table : tableList) {
+      targetFieldSet.addAll(table.getHeader().getFields());
+    }
+    List<Field> targetFields = new ArrayList<>(targetFieldSet);
+
+    Header targetHeader = hasKey ? new Header(Field.KEY, targetFields) : new Header(targetFields);
+    List<Row> rows = new ArrayList<>();
+
+    if (!hasKey) {
+      for (Table table : tableList) {
+        for (Row row : table.getRows()) {
+          rows.add(RowUtils.transform(row, targetHeader));
+        }
+      }
+    } else {
+      // PriorityQueue中的Pair，k为行，v为表格在tableList中的索引（即记录该行所属的table）
+      PriorityQueue<Pair<Row, Integer>> queue =
+          new PriorityQueue<>(Comparator.comparingLong(p -> p.k.getKey()));
+
+      // 初始化优先队列
+      for (int i = 0; i < tableList.size(); i++) {
+        if (tableList.get(i).getRowSize() > 0) {
+          queue.add(new Pair<>(tableList.get(i).next(), i));
+        }
+      }
+
+      // 合并行
+      while (!queue.isEmpty()) {
+        Pair<Row, Integer> entry = queue.poll();
+        Row row = entry.k;
+        int tableIndex = entry.v;
+        rows.add(RowUtils.transform(row, targetHeader));
+
+        // 如果该表格还有更多行，将下一行加入队列
+        if (tableList.get(tableIndex).hasNext()) {
+          queue.add(new Pair<>(tableList.get(tableIndex).next(), tableIndex));
+        }
+      }
+    }
+
+    // 重置所有table的迭代器，以便下次使用
+    for (Table table : tableList) {
+      table.reset();
+    }
+
+    return new Table(targetHeader, rows);
+  }
+
+  /**
+   * 将多个table进行Join Ordinal，SetMappingTransform中用到
+   *
+   * @param tableList table列表
+   * @return 合并后的table
+   * @throws PhysicalException Table列表为空或者Table有Key时，抛出异常
+   */
+  public static Table joinMultipleTablesByOrdinal(List<Table> tableList) throws PhysicalException {
+    if (tableList == null || tableList.isEmpty()) {
+      throw new IllegalArgumentException("Table list cannot be null or empty");
+    }
+
+    if (tableList.size() == 1) {
+      return tableList.get(0);
+    }
+
+    // 检查每个表的头部是否包含键
+    for (Table table : tableList) {
+      if (table.getHeader().hasKey()) {
+        throw new InvalidOperatorParameterException("All tables in the join cannot have key");
+      }
+    }
+
+    Map<Table, Integer> tableIndexMap = new HashMap<>(); // 记录每个表格在大表格中列的起始位置
+    List<Field> newFields = new ArrayList<>();
+    for (Table table : tableList) {
+      tableIndexMap.put(table, newFields.size());
+      newFields.addAll(table.getHeader().getFields());
+    }
+
+    Header newHeader = new Header(newFields);
+    List<Row> newRows = new ArrayList<>();
+
+    int maxRowCount = 0;
+    for (Table table : tableList) {
+      maxRowCount = Math.max(maxRowCount, table.getRowSize());
+    }
+
+    for (int i = 0; i < maxRowCount; i++) {
+      Object[] values = new Object[newHeader.getFieldSize()];
+      for (Table table : tableList) {
+        if (i < table.getRowSize()) {
+          System.arraycopy(
+              table.getRow(i).getValues(),
+              0,
+              values,
+              tableIndexMap.get(table),
+              table.getHeader().getFieldSize());
+        }
+      }
+      newRows.add(new Row(newHeader, values));
+    }
+
+    return new Table(newHeader, newRows);
+  }
+
+  /**
+   * 将多个table进行Join By Key，DownSample中用到
+   *
+   * @param tableList table列表
+   * @return 合并后的table
+   * @throws PhysicalException Table列表为空或者Table不含Key时，抛出异常
+   */
+  public static Table joinMultipleTablesByKey(List<Table> tableList) throws PhysicalException {
+    if (tableList == null || tableList.isEmpty()) {
+      throw new IllegalArgumentException("Table list cannot be null or empty");
+    }
+
+    // 检查时间戳
+    for (Table table : tableList) {
+      if (!table.getHeader().hasKey()) {
+        throw new InvalidOperatorParameterException(
+            "row streams for join operator by time should have timestamp.");
+      }
+    }
+
+    // 构造表头
+    List<Field> newFields = new ArrayList<>();
+    Map<Table, Integer> tableIndexMap = new HashMap<>(); // 记录每个表格在大表格中列的起始位置
+    for (Table table : tableList) {
+      tableIndexMap.put(table, newFields.size());
+      newFields.addAll(table.getHeader().getFields());
+    }
+    Header newHeader = new Header(Field.KEY, newFields);
+    List<Row> newRows = new ArrayList<>();
+
+    // PriorityQueue中的Pair，k为行，v为所属表格
+    PriorityQueue<Pair<Row, Table>> queue =
+        new PriorityQueue<>(Comparator.comparingLong(p -> p.k.getKey()));
+
+    // 初始化优先队列，把每个表格的第一行加入队列
+    for (int i = 0; i < tableList.size(); i++) {
+      if (tableList.get(i).getRowSize() > 0) {
+        queue.add(new Pair<>(tableList.get(i).next(), tableList.get(i)));
+      }
+    }
+
+    while (!queue.isEmpty()) {
+      // 获取当前堆顶的key, 即当前最小的时间戳，不弹出
+      long curKey = queue.peek().k.getKey();
+      Object[] values = new Object[newHeader.getFieldSize()];
+      // 从堆顶开始，弹出所有时间戳相同的行，copy到新行中
+      while (!queue.isEmpty() && queue.peek().k.getKey() == curKey) {
+        Pair<Row, Table> entry = queue.poll();
+        Row row = entry.k;
+        Table table = entry.v;
+        System.arraycopy(
+            row.getValues(), 0, values, tableIndexMap.get(table), table.getHeader().getFieldSize());
+
+        // 如果该表格还有更多行，将下一行加入队列
+        if (table.hasNext()) {
+          queue.add(new Pair<>(table.next(), table));
+        }
+      }
+
+      // 将新行加入结果表
+      newRows.add(new Row(newHeader, curKey, values));
+    }
+
+    // 重置所有table的迭代器，以便下次使用
+    for (Table table : tableList) {
+      table.reset();
+    }
+
+    return new Table(newHeader, newRows);
+  }
+
+  /**
+   * 计算多个MappingTransform的结果
+   *
+   * @param table 输入表
+   * @param functionCallList MappingTransform的FunctionCall列表
+   * @return 计算结果输出表格
+   * @throws PhysicalException 当FunctionCall列表中有非MappingTransform时，抛出异常；当执行MappingTransform时出错时，抛出异常
+   */
+  public static Table calMappingTransform(Table table, List<FunctionCall> functionCallList)
+      throws PhysicalException {
+    List<Table> tableList = new ArrayList<>();
+    for (FunctionCall functionCall : functionCallList) {
+      FunctionParams params = functionCall.getParams();
+      if (!(functionCall.getFunction() instanceof MappingFunction)) {
+        throw new PhysicalTaskExecuteFailureException(
+            "function: "
+                + functionCall.getFunction().getIdentifier()
+                + " is not a mapping function");
+      }
+      MappingFunction function = (MappingFunction) functionCall.getFunction();
+
+      try {
+        Table functable = (Table) function.transform(table, params);
+        if (functable != null) {
+          tableList.add(functable);
+        }
+      } catch (Exception e) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
+      }
+    }
+
+    if (tableList.isEmpty()) {
+      return Table.EMPTY_TABLE;
+    }
+
+    // 如果是First/Last，用PathUnion合并表格；如果是GroupBy,用Join Ordinal合并表格
+    boolean isFirstLast = false;
+    for (FunctionCall functionCall : functionCallList) {
+      if (functionCall.getFunction().getIdentifier().equals(First.FIRST)
+          || functionCall.getFunction().getIdentifier().equals(Last.LAST)) {
+        isFirstLast = true;
+        break;
+      }
+    }
+
+    if (isFirstLast) {
+      return RowUtils.pathUnionMultipleTables(tableList);
+    } else {
+      return RowUtils.joinMultipleTablesByOrdinal(tableList);
+    }
   }
 }

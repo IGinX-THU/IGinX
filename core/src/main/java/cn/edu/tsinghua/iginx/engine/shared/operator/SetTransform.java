@@ -24,51 +24,82 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SetTransform extends AbstractUnaryOperator {
 
-  private final FunctionCall functionCall;
+  private final List<FunctionCall> functionCallList;
 
-  public SetTransform(Source source, FunctionCall functionCall) {
+  public SetTransform(Source source, List<FunctionCall> functionCallList) {
     super(OperatorType.SetTransform, source);
-    if (functionCall == null || functionCall.getFunction() == null) {
-      throw new IllegalArgumentException("function shouldn't be null");
+    this.functionCallList = new ArrayList<>();
+
+    if (functionCallList == null) {
+      throw new IllegalArgumentException("functionCallList shouldn't be null or empty");
     }
-    if (functionCall.getFunction().getMappingType() != MappingType.SetMapping) {
-      throw new IllegalArgumentException("function should be set mapping function");
-    }
-    this.functionCall = functionCall;
-    if (isDistinct()
-        && !isCanUseSetQuantifierFunction(functionCall.getFunction().getIdentifier())) {
-      throw new IllegalArgumentException(
-          "function " + functionCall.getFunction().getIdentifier() + " can't use DISTINCT");
+
+    for (FunctionCall functionCall : functionCallList) {
+      if (functionCall.getParams().isDistinct()
+          != functionCallList.get(0).getParams().isDistinct()) {
+        throw new IllegalArgumentException(
+            "functionCallList should have the same distinct property");
+      }
+
+      if (functionCall == null || functionCall.getFunction() == null) {
+        throw new IllegalArgumentException("function shouldn't be null");
+      }
+      if (functionCall.getFunction().getMappingType() != MappingType.SetMapping) {
+        throw new IllegalArgumentException("function should be set mapping function");
+      }
+      this.functionCallList.add(functionCall);
+      if (isDistinct()
+          && !isCanUseSetQuantifierFunction(functionCall.getFunction().getIdentifier())) {
+        throw new IllegalArgumentException(
+            "function " + functionCall.getFunction().getIdentifier() + " can't use DISTINCT");
+      }
     }
   }
 
-  public FunctionCall getFunctionCall() {
-    return functionCall;
+  public List<FunctionCall> getFunctionCallList() {
+    return functionCallList;
   }
 
   public boolean isDistinct() {
-    return functionCall.getParams().isDistinct();
+    // 所有的functionCall的distinct属性都相同，所以只需要看第一个就可以了
+    if (functionCallList.size() > 0) {
+      return functionCallList.get(0).getParams().isDistinct();
+    }
+    return false;
   }
 
   @Override
   public Operator copy() {
-    return new SetTransform(getSource().copy(), functionCall.copy());
+    return new SetTransform(getSource().copy(), new ArrayList<>(functionCallList));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new SetTransform(source, functionCall.copy());
+    return new SetTransform(source, new ArrayList<>(functionCallList));
   }
 
   @Override
   public String getInfo() {
-    if (isDistinct()) {
-      return "Func: " + functionCall.toString() + ", isDistinct: true";
-    } else {
-      return "Func: " + functionCall.toString();
+    StringBuilder sb = new StringBuilder();
+    sb.append("FuncList(Name, FuncType): ");
+    for (FunctionCall functionCall : functionCallList) {
+      sb.append(functionCall.getNameAndFuncTypeStr());
+      sb.append(", ");
     }
+
+    sb.append("MappingType: SetMapping, ");
+
+    if (isDistinct()) {
+      sb.append("isDistinct: true");
+    } else {
+      sb.append("isDistinct: false");
+    }
+
+    return sb.toString();
   }
 }

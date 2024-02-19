@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecut
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
@@ -58,6 +59,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
@@ -194,21 +198,29 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSetTransform(SetTransform setTransform, RowStream stream) {
-    SetMappingFunction function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
-    FunctionParams params = setTransform.getFunctionCall().getParams();
-    if (params.isDistinct()) {
-      if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-        throw new IllegalArgumentException(
-            "function " + function.getIdentifier() + " can't use DISTINCT");
-      }
-      // min和max无需去重
-      if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
-        Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
-        stream = executeDistinct(distinct, stream);
+    List<FunctionCall> functionCallList = setTransform.getFunctionCallList();
+    Map<List<String>, RowStream> distinctStreamMap = new HashMap<>();
+    distinctStreamMap.put(null, stream);
+
+    // 如果有distinct,构造不同function对应的stream的Map
+    for (FunctionCall functionCall : functionCallList) {
+      FunctionParams params = functionCall.getParams();
+      SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      if (params.isDistinct()) {
+        if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+          throw new IllegalArgumentException(
+              "function " + function.getIdentifier() + " can't use DISTINCT");
+        }
+        // min和max无需去重
+        if (!function.getIdentifier().equals(Max.MAX)
+            && !function.getIdentifier().equals(Min.MIN)) {
+          Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
+          distinctStreamMap.put(params.getPaths(), executeDistinct(distinct, stream));
+        }
       }
     }
 
-    return new SetTransformLazyStream(setTransform, stream);
+    return new SetTransformLazyStream(setTransform, distinctStreamMap);
   }
 
   private RowStream executeMappingTransform(MappingTransform mappingTransform, RowStream stream) {

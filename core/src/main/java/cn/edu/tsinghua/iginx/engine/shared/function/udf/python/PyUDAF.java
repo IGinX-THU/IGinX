@@ -3,10 +3,10 @@ package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
@@ -52,7 +52,7 @@ public class PyUDAF extends PyUDF implements UDAF {
   }
 
   @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
+  public Row transform(Table table, FunctionParams params) throws Exception {
     if (!CheckUtils.isLegal(params)) {
       throw new IllegalArgumentException("unexpected params for PyUDAF.");
     }
@@ -68,8 +68,8 @@ public class PyUDAF extends PyUDF implements UDAF {
     for (String target : paths) {
       if (StringUtils.isPattern(target)) {
         Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
-        for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-          Field field = rows.getHeader().getField(i);
+        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+          Field field = table.getHeader().getField(i);
           if (pattern.matcher(field.getName()).matches()) {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
@@ -77,8 +77,8 @@ public class PyUDAF extends PyUDF implements UDAF {
           }
         }
       } else {
-        for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-          Field field = rows.getHeader().getField(i);
+        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+          Field field = table.getHeader().getField(i);
           if (target.equals(field.getName())) {
             colNames.add(field.getName());
             colTypes.add(field.getType().toString());
@@ -96,8 +96,7 @@ public class PyUDAF extends PyUDF implements UDAF {
     List<List<Object>> data = new ArrayList<>();
     data.add(colNames);
     data.add(colTypes);
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       List<Object> rowData = new ArrayList<>();
       rowData.add(row.getKey());
       for (Integer idx : indices) {
