@@ -1,10 +1,14 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf.DBConfType;
@@ -13,10 +17,14 @@ import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -61,14 +69,26 @@ public class SQLSessionIT {
 
   private final long endKey = 15000L;
 
+  private boolean isFilterPushDown;
+
   protected boolean isAbleToClearData = true;
   private static final int CONCURRENT_NUM = 5;
+
+  private static MultiConnection session;
+
+  private static boolean dummyNoData = true;
+
+  protected static boolean needCompareResult = true;
 
   public SQLSessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     runningEngine = conf.getStorageType();
     DBConf dbConf = conf.loadDBConf(runningEngine);
     this.isScaling = conf.isScaling();
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && this.isScaling) {
+      needCompareResult = false;
+      executor.setNeedCompareResult(needCompareResult);
+    }
     this.isAbleToClearData = dbConf.getEnumValue(DBConf.DBConfType.isAbleToClearData);
     this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
     this.isAbleToShowColumns = dbConf.getEnumValue(DBConf.DBConfType.isAbleToShowColumns);
@@ -76,11 +96,14 @@ public class SQLSessionIT {
     this.isSupportNumericalPath = dbConf.getEnumValue(DBConfType.isSupportNumericalPath);
     this.isSupportSpecialCharacterPath =
         dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
+
+    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
+    this.isFilterPushDown = queryOptimizer.contains("filter_push_down");
   }
 
   @BeforeClass
   public static void setUp() throws SessionException {
-    MultiConnection session;
+    dummyNoData = true;
     if (isForSession) {
       session =
           new MultiConnection(
@@ -118,13 +141,59 @@ public class SQLSessionIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     executor.close();
   }
 
   @Before
   public void insertData() {
-    String insertStatement = generateDefaultInsertStatementByTimeRange(startKey, endKey);
-    executor.execute(insertStatement);
+    generateData(startKey, endKey);
+  }
+
+  private void generateData(long start, long end) {
+    // construct insert statement
+    List<String> pathList =
+        new ArrayList<String>() {
+          {
+            add("us.d1.s1");
+            add("us.d1.s2");
+            add("us.d1.s3");
+            add("us.d1.s4");
+          }
+        };
+    List<DataType> dataTypeList =
+        new ArrayList<DataType>() {
+          {
+            add(DataType.LONG);
+            add(DataType.LONG);
+            add(DataType.BINARY);
+            add(DataType.DOUBLE);
+          }
+        };
+
+    List<Long> keyList = new ArrayList<>();
+    List<List<Object>> valuesList = new ArrayList<>();
+    int size = (int) (end - start);
+    for (int i = 0; i < size; i++) {
+      keyList.add(start + i);
+      valuesList.add(
+          Arrays.asList(
+              (long) i,
+              (long) i + 1,
+              ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
+              (i + 0.1d)));
+    }
+
+    Controller.writeRowsData(
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        new ArrayList<>(),
+        InsertAPIType.Row,
+        dummyNoData);
+    dummyNoData = false;
   }
 
   private String generateDefaultInsertStatementByTimeRange(long start, long end) {
@@ -1333,6 +1402,7 @@ public class SQLSessionIT {
     for (int i = 0; i < funcTypeList.size(); i++) {
       String type = funcTypeList.get(i);
       String expected = expectedList.get(i);
+
       executor.executeAndCompare(String.format(statement, type, type), expected);
     }
   }
@@ -1461,6 +1531,27 @@ public class SQLSessionIT {
       String expected = expectedList.get(i);
       executor.executeAndCompare(String.format(statement, type, type), expected);
     }
+
+    if (isScaling || isFilterPushDown) {
+      return;
+    }
+
+    statement =
+        "explain SELECT avg(s1), count(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000) STEP 50);";
+    String expected =
+        "ResultSets:\n"
+            + "+------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|      Logical Tree|Operator Type|                                                                                                                                 Operator Info|\n"
+            + "+------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder           |      Reorder|                                                                                                          Order: avg(us.d1.s1),count(us.d1.s4)|\n"
+            + "|  +--Downsample   |   Downsample|Precision: 100, SlideDistance: 50, TimeRange: [1, 1000), FuncList(Name, FunctionType): (avg, System), (count, System), MappingType: SetMapping|\n"
+            + "|    +--Select     |       Select|                                                                                                              Filter: (key >= 1 && key < 1000)|\n"
+            + "|      +--Join     |         Join|                                                                                                                                   JoinBy: key|\n"
+            + "|        +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s4, Target DU: unit0000000000|\n"
+            + "|        +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s4, Target DU: unit0000000001|\n"
+            + "+------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test
@@ -2166,6 +2257,52 @@ public class SQLSessionIT {
             + "|          3|   3.1|\n"
             + "|          2|   5.1|\n"
             + "+-----------+------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select max(a), avg(b) from test group by c order by c;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------+-----------+\n"
+            + "|max(test.a)|avg(test.b)|\n"
+            + "+-----------+-----------+\n"
+            + "|          2|        2.0|\n"
+            + "|          3|        2.5|\n"
+            + "|          3|        2.0|\n"
+            + "|          2|        2.0|\n"
+            + "+-----------+-----------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------+-----------+------+------+------+\n"
+            + "|avg(test.a)|sum(test.b)|test.c|test.b|test.d|\n"
+            + "+-----------+-----------+------+------+------+\n"
+            + "|        2.0|          2|   1.1|     2|  val5|\n"
+            + "|        3.0|          2|   2.1|     2|  val2|\n"
+            + "|        1.0|          3|   2.1|     3|  val2|\n"
+            + "|        2.0|          4|   3.1|     2|  val1|\n"
+            + "|        2.0|          2|   5.1|     2|  val3|\n"
+            + "+-----------+-----------+------+------+------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    if (isScaling || isFilterPushDown) {
+      return;
+    }
+    query = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
+    expected =
+        "ResultSets:\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                                                    Operator Info|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                              Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
+            + "|  +--Sort       |         Sort|                                                                      SortBy: test.c,test.b,test.d, SortType: ASC|\n"
+            + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping|\n"
+            + "|      +--Project|      Project|                                                 Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
   }
@@ -5562,17 +5699,14 @@ public class SQLSessionIT {
     String explain = "explain select max(s2), min(s1) from us.d1;";
     String expected =
         "ResultSets:\n"
-            + "+-------------------+-------------+------------------------------------------------------------+\n"
-            + "|       Logical Tree|Operator Type|                                               Operator Info|\n"
-            + "+-------------------+-------------+------------------------------------------------------------+\n"
-            + "|Reorder            |      Reorder|                          Order: max(us.d1.s2),min(us.d1.s1)|\n"
-            + "|  +--Join          |         Join|                                             JoinBy: ordinal|\n"
-            + "|    +--SetTransform| SetTransform|Func: {Name: min, FuncType: System, MappingType: SetMapping}|\n"
-            + "|      +--Project   |      Project|      Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-            + "|    +--SetTransform| SetTransform|Func: {Name: max, FuncType: System, MappingType: SetMapping}|\n"
-            + "|      +--Project   |      Project|      Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-            + "+-------------------+-------------+------------------------------------------------------------+\n"
-            + "Total line number = 6\n";
+            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
+            + "|     Logical Tree|Operator Type|                                                                                     Operator Info|\n"
+            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder          |      Reorder|                                                                Order: max(us.d1.s2),min(us.d1.s1)|\n"
+            + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (min, System), (max, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|    +--Project   |      Project|                                            Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+            + "+-----------------+-------------+--------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 3\n";
     executor.executeAndCompare(explain, expected);
 
     explain = "explain select s1 from us.d1 where s1 > 10 and s1 < 100;";
@@ -5673,7 +5807,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePath() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM us.d1.s1 WHERE key >= %d AND key < %d;";
@@ -5719,7 +5853,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteSinglePathWithOverlap() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -5746,7 +5880,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPath() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -5773,7 +5907,7 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentDeleteMultiPathWithOverlap() {
-    if (!isAbleToDelete) {
+    if (!isAbleToDelete || isScaling) {
       return;
     }
     String deleteFormat = "DELETE FROM * WHERE key >= %d AND key < %d;";
@@ -5800,6 +5934,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsert() {
+    if (isScaling) {
+      return;
+    }
     int start = 20000, range = 50;
 
     List<String> insertStmts = new ArrayList<>();
@@ -5823,6 +5960,9 @@ public class SQLSessionIT {
 
   @Test
   public void testConcurrentInsertWithOverlap() {
+    if (isScaling) {
+      return;
+    }
     int start = 20000, range = 70;
 
     List<String> insertStmts = new ArrayList<>();
@@ -5958,6 +6098,125 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testShowConfig() {
+    String statement = "show config \"memoryTaskThreadPoolSize\";";
+    String expected =
+        "Config Info:\n"
+            + "+------------------------+-----------+\n"
+            + "|              ConfigName|ConfigValue|\n"
+            + "+------------------------+-----------+\n"
+            + "|memoryTaskThreadPoolSize|        200|\n"
+            + "+------------------------+-----------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "show config \"enableEnvParameter\";";
+    expected =
+        "Config Info:\n"
+            + "+------------------+-----------+\n"
+            + "|        ConfigName|ConfigValue|\n"
+            + "+------------------+-----------+\n"
+            + "|enableEnvParameter|      false|\n"
+            + "+------------------+-----------+\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "show config;";
+    Map<String, String> configs = executor.getSessionExecuteSqlResult(statement).getConfigs();
+    Set<String> expectedConfigNames =
+        new HashSet<>(
+            Arrays.asList(
+                "cachedTimeseriesProb",
+                "parallelFilterThreshold",
+                "memoryTaskThreadPoolSize",
+                "statisticsCollectorClassName",
+                "systemMemoryThreshold",
+                "streamParallelGroupByWorkerNum",
+                "password",
+                "constraintChecker",
+                "mqttHost",
+                "fragmentCompactionReadRatioThreshold",
+                "migrationPolicyClassName",
+                "metaStorage",
+                "tagPrefix",
+                "ip",
+                "enableRestService",
+                "parallelGroupByPoolNum",
+                "enablePushDown",
+                "loadBalanceCheckInterval",
+                "parallelApplyFuncGroupsThreshold",
+                "timePrecision",
+                "useStreamExecutor",
+                "parallelGroupByRowsThreshold",
+                "enableMonitor",
+                "databaseClassNames",
+                "mqttPort",
+                "clients",
+                "defaultUDFDir",
+                "ruleBasedOptimizer",
+                "instancesNumPerClient",
+                "physicalOptimizer",
+                "maxAsyncRetryTimes",
+                "enableInstantCompaction",
+                "maxCachedPhysicalTaskPerStorage",
+                "restIp",
+                "physicalTaskThreadPoolSizePerStorage",
+                "disorderMargin",
+                "enableEnvParameter",
+                "syncExecuteThreadPool",
+                "policyClassName",
+                "fragmentCacheThreshold",
+                "fragmentPerEngine",
+                "enableStorageGroupValueLimit",
+                "zookeeperConnectionString",
+                "minThriftWorkerThreadNum",
+                "udfList",
+                "migrationBatchSize",
+                "maxTimeseriesLoadBalanceThreshold",
+                "mqttMaxMessageSize",
+                "reshardFragmentTimeMargin",
+                "storageGroupValueLimit",
+                "replicaNum",
+                "enableMetaCacheControl",
+                "fragmentCompactionReadThreshold",
+                "storageEngineList",
+                "batchSizeImportCsv",
+                "restPort",
+                "asyncRestThreadPool",
+                "fragmentCompactionWriteThreshold",
+                "expectedStorageUnitNum",
+                "maxThriftWrokerThreadNum",
+                "isUTTestEnv",
+                "tagSuffix",
+                "port",
+                "asyncExecuteThreadPool",
+                "needInitBasicUDFFunctions",
+                "retryWait",
+                "reAllocatePeriod",
+                "pythonCMD",
+                "historicalPrefixList",
+                "transformMaxRetryTimes",
+                "transformTaskThreadPoolSize",
+                "enableFragmentCompaction",
+                "maxReshardFragmentsNum",
+                "statisticsLogInterval",
+                "enableMemoryControl",
+                "retryCount",
+                "tagNameAnnotation",
+                "etcdEndpoints",
+                "mqttPayloadFormatter",
+                "queryOptimizer",
+                "systemCpuThreshold",
+                "enableMQTT",
+                "mqttHandlerPoolSize",
+                "heapMemoryThreshold",
+                "systemResourceMetrics",
+                "maxTimeseriesLength",
+                "batchSize",
+                "parallelGroupByPoolSize",
+                "username"));
+    assertEquals(expectedConfigNames, configs.keySet());
+  }
+
+  @Test
   public void testModifyRules() {
     String statement, expected;
     statement = "show rules;";
@@ -6034,8 +6293,7 @@ public class SQLSessionIT {
 
   @Test
   public void testFilterPushDownExplain() {
-    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
-    if (!queryOptimizer.contains("filter_push_down")) {
+    if (!isFilterPushDown) {
       logger.info(
           "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
       return;
@@ -6290,8 +6548,7 @@ public class SQLSessionIT {
       return;
     }
 
-    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
-    if (queryOptimizer.contains("filter_push_down")) {
+    if (isFilterPushDown) {
       logger.info(
           "Skip SQLSessionIT.testFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
       return;
@@ -6356,19 +6613,19 @@ public class SQLSessionIT {
             new Pair<>(
                 "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
                 "ResultSets:\n"
-                    + "+------------------------+-------------+-----------------------------------------------------------------------------------------+\n"
-                    + "|            Logical Tree|Operator Type|                                                                            Operator Info|\n"
-                    + "+------------------------+-------------+-----------------------------------------------------------------------------------------+\n"
-                    + "|Reorder                 |      Reorder|                                                                           Order: avg(bb)|\n"
-                    + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FunctionCallList: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|    +--Select           |       Select|                                                                          Filter: key > 2|\n"
-                    + "|      +--Rename         |       Rename|                                                    AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
-                    + "|        +--Reorder      |      Reorder|                                                                   Order: us.d2.a,us.d2.b|\n"
-                    + "|          +--Project    |      Project|                                                                Patterns: us.d2.a,us.d2.b|\n"
-                    + "|            +--PathUnion|    PathUnion|                                                                                         |\n"
-                    + "|              +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000002|\n"
-                    + "|              +--Project|      Project|                                     Patterns: us.d2.a,us.d2.b, Target DU: unit0000000003|\n"
-                    + "+------------------------+-------------+-----------------------------------------------------------------------------------------+\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
+                    + "|            Logical Tree|Operator Type|                                                                    Operator Info|\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
+                    + "|Reorder                 |      Reorder|                                                                   Order: avg(bb)|\n"
+                    + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FuncList(Name, FuncType): (avg, System), MappingType: SetMapping|\n"
+                    + "|    +--Select           |       Select|                                                                  Filter: key > 2|\n"
+                    + "|      +--Rename         |       Rename|                                            AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
+                    + "|        +--Reorder      |      Reorder|                                                           Order: us.d2.a,us.d2.b|\n"
+                    + "|          +--Project    |      Project|                                                        Patterns: us.d2.a,us.d2.b|\n"
+                    + "|            +--PathUnion|    PathUnion|                                                                                 |\n"
+                    + "|              +--Project|      Project|                             Patterns: us.d2.a,us.d2.b, Target DU: unit0000000002|\n"
+                    + "|              +--Project|      Project|                             Patterns: us.d2.a,us.d2.b, Target DU: unit0000000003|\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
                     + "Total line number = 9\n"));
 
     // 这里的测例是filter_fragment能处理的节点，开关会导致变化
@@ -6382,23 +6639,19 @@ public class SQLSessionIT {
                     + ")\n"
                     + "OVER (RANGE 20 IN [1000, 1100));",
                 "ResultSets:\n"
-                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
-                    + "|              Logical Tree|Operator Type|                                                                                                            Operator Info|\n"
-                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
-                    + "|Reorder                   |      Reorder|                                                                                                          Order: count(*)|\n"
-                    + "|  +--Downsample           |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|    +--Select             |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|      +--Rename           |       Rename|                                                                AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1)|\n"
-                    + "|        +--Reorder        |      Reorder|                                                                                       Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
-                    + "|          +--Join         |         Join|                                                                                                              JoinBy: key|\n"
-                    + "|            +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|              +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-                    + "|            +--Downsample |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|              +--Select   |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|                +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-                    + "+--------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
-                    + "Total line number = 12\n"),
+                    + "+------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|            Logical Tree|Operator Type|                                                                                                                                 Operator Info|\n"
+                    + "+------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                 |      Reorder|                                                                                                                               Order: count(*)|\n"
+                    + "|  +--Downsample         |   Downsample|             Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (count, System), MappingType: SetMapping|\n"
+                    + "|    +--Select           |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|      +--Rename         |       Rename|                                                                                     AliasMap: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
+                    + "|        +--Reorder      |      Reorder|                                                                                                            Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
+                    + "|          +--Downsample |   Downsample|Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (avg, System), (sum, System), MappingType: SetMapping|\n"
+                    + "|            +--Select   |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "+------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 8\n"),
             new Pair<>(
                 "EXPLAIN SELECT d1.* FROM us where key < 10;",
                 "ResultSets:\n"
@@ -6445,27 +6698,21 @@ public class SQLSessionIT {
                     + ")\n"
                     + "OVER (RANGE 20 IN [1000, 1100));",
                 "ResultSets:\n"
-                    + "+----------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
-                    + "|                Logical Tree|Operator Type|                                                                                                            Operator Info|\n"
-                    + "+----------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
-                    + "|Reorder                     |      Reorder|                                                                                                          Order: count(*)|\n"
-                    + "|  +--Downsample             |   Downsample|Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), Func: {Name: count, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|    +--Select               |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|      +--Rename             |       Rename|                                                                AliasMap: (sum(us.d1.s2), sum_s2),(avg(us.d1.s1), avg_s1)|\n"
-                    + "|        +--Reorder          |      Reorder|                                                                                       Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
-                    + "|          +--Join           |         Join|                                                                                                              JoinBy: key|\n"
-                    + "|            +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: avg, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|              +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|                +--PathUnion|    PathUnion|                                                                                                                         |\n"
-                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
-                    + "|            +--Downsample   |   Downsample|  Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), Func: {Name: sum, FuncType: System, MappingType: SetMapping}|\n"
-                    + "|              +--Select     |       Select|                                                                                      Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|                +--PathUnion|    PathUnion|                                                                                                                         |\n"
-                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
-                    + "|                  +--Project|      Project|                                                                   Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
-                    + "+----------------------------+-------------+-------------------------------------------------------------------------------------------------------------------------+\n"
-                    + "Total line number = 16\n"),
+                    + "+--------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|              Logical Tree|Operator Type|                                                                                                                                 Operator Info|\n"
+                    + "+--------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                   |      Reorder|                                                                                                                               Order: count(*)|\n"
+                    + "|  +--Downsample           |   Downsample|             Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (count, System), MappingType: SetMapping|\n"
+                    + "|    +--Select             |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|      +--Rename           |       Rename|                                                                                     AliasMap: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
+                    + "|        +--Reorder        |      Reorder|                                                                                                            Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
+                    + "|          +--Downsample   |   Downsample|Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (avg, System), (sum, System), MappingType: SetMapping|\n"
+                    + "|            +--Select     |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
+                    + "|              +--PathUnion|    PathUnion|                                                                                                                                              |\n"
+                    + "|                +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+                    + "|                +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000001|\n"
+                    + "+--------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 10\n"),
             new Pair<>(
                 "EXPLAIN SELECT d1.* FROM us;",
                 "ResultSets:\n"
@@ -6530,5 +6777,90 @@ public class SQLSessionIT {
             + "+---+--------+--------+--------+\n"
             + "Total line number = 2\n";
     executor.executeAndCompare(query, expect);
+  }
+
+  @Test
+  public void testSetMappingTransform() {
+    String query = "SELECT max(s1), min(s2) from us.d1;";
+    String expect =
+        "ResultSets:\n"
+            + "+-------------+-------------+\n"
+            + "|max(us.d1.s1)|min(us.d1.s2)|\n"
+            + "+-------------+-------------+\n"
+            + "|        14999|            1|\n"
+            + "+-------------+-------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expect);
+
+    query = "SELECT count(s1), avg(s2) from us.d1;";
+    expect =
+        "ResultSets:\n"
+            + "+---------------+-------------+\n"
+            + "|count(us.d1.s1)|avg(us.d1.s2)|\n"
+            + "+---------------+-------------+\n"
+            + "|          15000|       7500.5|\n"
+            + "+---------------+-------------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expect);
+
+    if (!isScaling) {
+      query = "explain SELECT count(s1), avg(s2) from us.d1;";
+      expect =
+          "ResultSets:\n"
+              + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+              + "|     Logical Tree|Operator Type|                                                                                       Operator Info|\n"
+              + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+              + "|Reorder          |      Reorder|                                                                Order: count(us.d1.s1),avg(us.d1.s2)|\n"
+              + "|  +--SetTransform| SetTransform|FuncList(Name, FuncType): (avg, System), (count, System), MappingType: SetMapping, isDistinct: false|\n"
+              + "|    +--Project   |      Project|                                              Patterns: us.d1.s1,us.d1.s2, Target DU: unit0000000000|\n"
+              + "+-----------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+              + "Total line number = 3\n";
+      executor.executeAndCompare(query, expect);
+    }
+  }
+
+  @Test
+  public void testMappingTransform() {
+    String query = "SELECT first(s1), last(s2) from us.d1;";
+    String expect =
+        "ResultSets:\n"
+            + "+-----+--------+-----+\n"
+            + "|  key|    path|value|\n"
+            + "+-----+--------+-----+\n"
+            + "|    0|us.d1.s1|    0|\n"
+            + "|14999|us.d1.s2|15000|\n"
+            + "+-----+--------+-----+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expect);
+
+    query = "SELECT first(s1), last(s2), last(s4) from us.d1;";
+    expect =
+        "ResultSets:\n"
+            + "+-----+--------+-------+\n"
+            + "|  key|    path|  value|\n"
+            + "+-----+--------+-------+\n"
+            + "|    0|us.d1.s1|      0|\n"
+            + "|14999|us.d1.s2|  15000|\n"
+            + "|14999|us.d1.s4|14999.1|\n"
+            + "+-----+--------+-------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expect);
+
+    if (!isScaling) {
+      query = "explain SELECT first(s1), last(s2), first(s3), last(s4) from us.d1;";
+      expect =
+          "ResultSets:\n"
+              + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+              + "|         Logical Tree|   Operator Type|                                                                                                   Operator Info|\n"
+              + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+              + "|Reorder              |         Reorder|                                                                                               Order: path,value|\n"
+              + "|  +--MappingTransform|MappingTransform|FuncList(Name, FuncType): (last, System), (last, System), (first, System), (first, System), MappingType: Mapping|\n"
+              + "|    +--Join          |            Join|                                                                                                     JoinBy: key|\n"
+              + "|      +--Project     |         Project|                                        Patterns: us.d1.s1,us.d1.s2,us.d1.s3,us.d1.s4, Target DU: unit0000000000|\n"
+              + "|      +--Project     |         Project|                                        Patterns: us.d1.s1,us.d1.s2,us.d1.s3,us.d1.s4, Target DU: unit0000000001|\n"
+              + "+---------------------+----------------+----------------------------------------------------------------------------------------------------------------+\n"
+              + "Total line number = 5\n";
+      executor.executeAndCompare(query, expect);
+    }
   }
 }

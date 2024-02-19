@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import cn.edu.tsinghua.iginx.metadata.entity.*;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -12,14 +11,18 @@ public final class DBConf {
     isAbleToShowColumns,
     isSupportChinesePath,
     isSupportNumericalPath,
-    isSupportSpecialCharacterPath
+    isSupportSpecialCharacterPath,
+    isSupportKey,
+    isSupportDiffTypeHistoryData
   }
 
   private static final Map<DBConfType, Boolean> DB_CONF_TYPE_MAP = new HashMap<>();
 
-  private String StorageEngineMockConf = null;
+  private String storageEngineMockConf = null;
 
-  private String ClassName = null;
+  private String className = null;
+
+  private String historyDataGenClassName = null;
 
   static {
     // initial default value
@@ -42,6 +45,10 @@ public final class DBConf {
         return DBConfType.isSupportNumericalPath;
       case "isSupportSpecialCharacterPath":
         return DBConfType.isSupportSpecialCharacterPath;
+      case "isSupportKey":
+        return DBConfType.isSupportKey;
+      case "isSupportDiffTypeHistoryData":
+        return DBConfType.isSupportDiffTypeHistoryData;
       default:
         throw new IllegalArgumentException("Invalid DBConfType value provided");
     }
@@ -56,18 +63,26 @@ public final class DBConf {
   }
 
   public String getStorageEngineMockConf() {
-    return StorageEngineMockConf;
+    return storageEngineMockConf;
   }
 
   public void setStorageEngineMockConf(String storageEngineMockConf) {
-    StorageEngineMockConf = storageEngineMockConf;
+    this.storageEngineMockConf = storageEngineMockConf;
   }
 
   public String getClassName() {
-    return ClassName;
+    return className;
   }
 
   public void setClassName(String className) {
-    ClassName = className;
+    this.className = className;
+  }
+
+  public String getHistoryDataGenClassName() {
+    return historyDataGenClassName;
+  }
+
+  public void setHistoryDataGenClassName(String historyDataGenClassName) {
+    this.historyDataGenClassName = historyDataGenClassName;
   }
 }

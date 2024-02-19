@@ -66,7 +66,7 @@ public final class Column {
                     new Row(
                         header,
                         new Object[] {
-                          Field.toFullName(e.path, e.tags).getBytes(),
+                          TagKVUtils.toFullName(e.path, e.tags).getBytes(),
                           e.dataType.toString().getBytes()
                         }))
             .collect(Collectors.toList());

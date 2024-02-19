@@ -26,6 +26,8 @@ public class SQLExecutor {
 
   private final MultiConnection conn;
 
+  private boolean needCompareResult = true;
+
   public SQLExecutor(MultiConnection session) {
     this.conn = session;
   }
@@ -38,7 +40,11 @@ public class SQLExecutor {
     conn.closeSession();
   }
 
-  public String execute(String statement) {
+  public void setNeedCompareResult(boolean needCompareResult) {
+    this.needCompareResult = needCompareResult;
+  }
+
+  public SessionExecuteSqlResult getSessionExecuteSqlResult(String statement) {
     if (statement.toLowerCase().startsWith("insert")) {
       logger.info("Execute Insert Statement.");
     } else {
@@ -51,7 +57,7 @@ public class SQLExecutor {
     } catch (SessionException | ExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
-        return "";
+        return null;
       } else {
         logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
         fail();
@@ -61,14 +67,25 @@ public class SQLExecutor {
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
       logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
       fail();
-      return "";
+      return null;
     }
 
+    return res;
+  }
+
+  public String execute(String statement) {
+    SessionExecuteSqlResult res = getSessionExecuteSqlResult(statement);
+    if (res == null) {
+      return "";
+    }
     return res.getResultInString(false, "");
   }
 
   public void executeAndCompare(String statement, String expectedOutput) {
     String actualOutput = execute(statement);
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(expectedOutput, actualOutput);
   }
 
@@ -138,6 +155,9 @@ public class SQLExecutor {
       fail();
     }
 
+    if (!needCompareResult) {
+      return;
+    }
     if (!failedList.isEmpty()) {
       failedList.forEach(
           failed -> {
