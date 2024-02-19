@@ -107,8 +107,8 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.UdfArgContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.UdfPosArgContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.UdfKwargContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.UdfPosArgContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
@@ -970,7 +970,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       Object child = udfArgContext.children.get(i);
       if (child instanceof PathContext) {
         // column name
-        posArgs.add(new Pair<>(FuncExpression.COLUMN_ARG_TYPE, fromPath + parsePath((PathContext) child)));
+        posArgs.add(
+            new Pair<>(FuncExpression.COLUMN_ARG_TYPE, fromPath + parsePath((PathContext) child)));
       } else if (child instanceof UdfPosArgContext) {
         // positional constant
         Object val = parseValue(((UdfPosArgContext) child).value);
@@ -983,7 +984,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
         kvargs.put(key, val);
       }
     }
-
 
     FuncExpression expression = new FuncExpression(funcName, posArgs, kvargs, isDistinct);
     selectStatement.setSelectedFuncsAndExpression(funcName, expression);

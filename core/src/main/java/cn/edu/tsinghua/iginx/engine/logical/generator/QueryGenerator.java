@@ -1035,9 +1035,7 @@ public class QueryGenerator extends AbstractGenerator {
   private static FunctionParams getFunctionParams(String functionName, FuncExpression expression) {
     return FunctionUtils.isCanUseSetQuantifierFunction(functionName)
         ? new FunctionParams(
-            expression.getPosArgs(),
-            expression.getKvargs(),
-            expression.isDistinct())
+            expression.getPosArgs(), expression.getKvargs(), expression.isDistinct())
         : new FunctionParams(expression.getPosArgs(), expression.getKvargs());
   }
 }

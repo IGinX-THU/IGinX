@@ -14,7 +14,7 @@ def list_to_df(data):
     for row in data[2:]:
         key_list.append(row[0])
         value_list.append(row[1:])
-    return DataFrame(paths, types, key_list, value_list, True)
+    return DataFrame(paths, types, key_list, value_list, True).to_pandas_df()
 
 
 def list_to_PandasDF(data):

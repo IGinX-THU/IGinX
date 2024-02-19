@@ -1,6 +1,6 @@
 from abc import ABC
 from .udf import UDF, get_column_index, get_constants
-from ..utils.dataframe import DataFrame, list_to_df
+from ..utils.dataframe import DataFrame, list_to_df, pandasDF_to_list
 
 
 class UDTF(UDF, ABC):
@@ -63,4 +63,4 @@ class UDTFinDF(UDF, ABC):
         df = list_to_df(data)
         # 直接作为完整的dataframe进行处理，返回值为dataframe
         res = self.eval(df, *get_constants(pos_args), **kwargs)
-        return res.to_list()
+        return pandasDF_to_list(res)

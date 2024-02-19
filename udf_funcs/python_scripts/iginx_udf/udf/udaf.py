@@ -8,10 +8,6 @@ class UDAF(UDF, ABC):
     参数列举模式
     """
 
-    def __init__(self):
-        super().__init__()
-        self._key = None
-
     @property
     def udf_type(self):
         return "UDAF"
@@ -47,19 +43,20 @@ class UDAF(UDF, ABC):
             self._key = row[0]
             for i in range(1, len(row)):
                 args[index_list[i]] = row[i]
+            args.insert(0, self.status)
             self.eval(*args, **kwargs)
         df.insert(*self.status)
         return df.to_list()
 
-    @abstractmethod
-    def eval(self, status, *args, **kwargs):
-        """
-        用户UDAF需要重写这个方法来进行处理操作，使用动态参数是为了匹配不同参数数量的重写函数
-        status参数为UDAF特有的累计值参数
-        :param status: 父类管理的累计值参数
-        :param args: 位置参数
-        :param kwargs: kv参数
-        """
+    # @abstractmethod
+    # def eval(self, status, *args, **kwargs):
+    #     """
+    #     用户UDAF需要重写这个方法来进行处理操作，使用动态参数是为了匹配不同参数数量的重写函数
+    #     status参数为UDAF特有的累计值参数
+    #     :param status: 父类管理的累计值参数
+    #     :param args: 位置参数
+    #     :param kwargs: kv参数
+    #     """
 
 
 class UDAFinDF(UDF, ABC):

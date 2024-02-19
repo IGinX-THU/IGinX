@@ -22,7 +22,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.regex.Pattern;
 import pemja.core.PythonInterpreter;
 
-public class PyUDTF extends PyUDF implements UDTF{
+public class PyUDTF extends PyUDF implements UDTF {
 
   private static final String PY_UDTF = "py_udtf";
 
@@ -101,7 +101,7 @@ public class PyUDTF extends PyUDF implements UDTF{
     Map<String, Object> kvargs = params.getKwargs();
 
     List<List<Object>> res =
-            (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, posArgs, kvargs);
+        (List<List<Object>>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, posArgs, kvargs);
 
     if (res == null || res.size() < 3) {
       return Row.EMPTY_ROW;

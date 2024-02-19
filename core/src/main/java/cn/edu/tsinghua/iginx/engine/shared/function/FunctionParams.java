@@ -3,14 +3,12 @@ package cn.edu.tsinghua.iginx.engine.shared.function;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 public class FunctionParams {
-
 
   private final List<Pair<Integer, Object>> posArgs;
 
@@ -33,7 +31,7 @@ public class FunctionParams {
   }
 
   public FunctionParams(
-    List<Pair<Integer, Object>> posArgs, Map<String, Object> kwargs, boolean isDistinct) {
+      List<Pair<Integer, Object>> posArgs, Map<String, Object> kwargs, boolean isDistinct) {
     this(posArgs, kwargs, null, isDistinct);
   }
 
@@ -60,6 +58,7 @@ public class FunctionParams {
 
   /**
    * 获取位置参数中所有常量参数
+   *
    * @return 一个参数列表
    */
   public List<Object> getConPosArgs() {
@@ -74,6 +73,7 @@ public class FunctionParams {
 
   /**
    * 获取所有位置参数，包括列名和常量
+   *
    * @return 一个参数列表，Pair.k指示参数类型（列名或常量），Pair.v指示值（列名或常量的值）
    */
   public List<Pair<Integer, Object>> getPosArgs() {

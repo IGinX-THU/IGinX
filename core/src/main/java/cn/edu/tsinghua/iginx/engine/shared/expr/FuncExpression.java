@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,9 +56,9 @@ public class FuncExpression implements Expression {
     return funcName;
   }
 
-
   /**
    * 获取位置参数中所有列名
+   *
    * @return 一个参数列表
    */
   public List<String> getColumns() {
@@ -68,15 +67,16 @@ public class FuncExpression implements Expression {
 
   /**
    * 获取位置参数中所有常量参数
+   *
    * @return 一个参数列表
    */
   public List<Object> getConPosArgs() {
     return params.getConPosArgs();
   }
 
-
   /**
    * 获取所有kv参数
+   *
    * @return 一个参数列表
    */
   public Map<String, Object> getKvargs() {
@@ -85,6 +85,7 @@ public class FuncExpression implements Expression {
 
   /**
    * 获取所有位置参数，包括列名和常量
+   *
    * @return 一个参数列表，Pair.k指示参数类型（列名或常量），Pair.v指示值（列名或常量的值）
    */
   public List<Pair<Integer, Object>> getPosArgs() {
