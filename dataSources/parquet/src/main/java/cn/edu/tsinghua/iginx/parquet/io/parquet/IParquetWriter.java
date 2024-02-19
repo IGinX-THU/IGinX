@@ -23,9 +23,12 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.Map;
+import org.apache.parquet.compression.CompressionCodecFactory;
+import org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.LocalOutputFile;
 import org.apache.parquet.io.OutputFile;
+import org.apache.parquet.local.CodecFactory;
 import org.apache.parquet.local.ParquetFileWriter;
 import org.apache.parquet.local.ParquetRecordWriter;
 import org.apache.parquet.local.ParquetWriteOptions;
@@ -102,6 +105,15 @@ public class IParquetWriter implements AutoCloseable {
 
     public Builder withPageSize(int pageSize) {
       optionsBuilder.withPageSize(pageSize);
+      return this;
+    }
+
+    public Builder withCompressionCodec(String name) {
+      CompressionCodecName codecName = CompressionCodecName.fromConf(name);
+      CompressionCodecFactory.BytesInputCompressor compressor =
+          (new CodecFactory()).getCompressor(codecName);
+
+      optionsBuilder.withCompressor(compressor);
       return this;
     }
   }

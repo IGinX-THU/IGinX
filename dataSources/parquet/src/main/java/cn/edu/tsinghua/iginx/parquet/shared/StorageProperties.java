@@ -31,6 +31,7 @@ public class StorageProperties {
   private final boolean cacheSoftValues;
   private final long parquetRowGroupSize;
   private final long parquetPageSize;
+  private final String parquetCompressionCodecName;
 
   /**
    * Construct a StorageProperties
@@ -43,6 +44,7 @@ public class StorageProperties {
    * @param cacheSoftValues whether to enable soft values of cache
    * @param parquetRowGroupSize the size of parquet row group, bytes
    * @param parquetPageSize the size of parquet page, bytes
+   * @param parquetCompressionCodecName the parquet compression codec name
    */
   private StorageProperties(
       long writeBufferSize,
@@ -52,7 +54,8 @@ public class StorageProperties {
       Duration cacheTimeout,
       Boolean cacheSoftValues,
       long parquetRowGroupSize,
-      long parquetPageSize) {
+      long parquetPageSize,
+      String parquetCompressionCodecName) {
     this.writeBufferSize = writeBufferSize;
     this.writeBatchSize = writeBatchSize;
     this.flusherPermits = flusherPermits;
@@ -61,6 +64,7 @@ public class StorageProperties {
     this.cacheSoftValues = cacheSoftValues;
     this.parquetRowGroupSize = parquetRowGroupSize;
     this.parquetPageSize = parquetPageSize;
+    this.parquetCompressionCodecName = parquetCompressionCodecName;
   }
 
   /**
@@ -137,6 +141,15 @@ public class StorageProperties {
   }
 
   /**
+   * Get the parquet compression codec name
+   *
+   * @return the parquet compression codec name
+   */
+  public String getParquetCompressionCodecName() {
+    return parquetCompressionCodecName;
+  }
+
+  /**
    * Get a builder of StorageProperties
    *
    * @return a builder of StorageProperties
@@ -156,6 +169,7 @@ public class StorageProperties {
         .add("flusherPermits=" + flusherPermits)
         .add("parquetRowGroupSize=" + parquetRowGroupSize)
         .add("parquetPageSize=" + parquetPageSize)
+        .add("parquetCompressionCodecName=" + parquetCompressionCodecName)
         .toString();
   }
 
@@ -177,6 +191,8 @@ public class StorageProperties {
     public static final String PARQUET_ROW_GROUP_SIZE = "parquet.row_group_size";
     /** The property key of parquet page size */
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
+    /** The property key of parquet compression codec name */
+    public static final String PARQUET_COMPRESSION_CODEC_NAME = "parquet.compression_codec_name";
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private long writeBatchSize = 1024 * 1024; // BYTE
@@ -187,6 +203,7 @@ public class StorageProperties {
     private int flusherPermits = 16;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
+    private String parquetCompressionCodecName = "UNCOMPRESSED";
 
     private Builder() {}
 
@@ -197,6 +214,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setWriteBufferSize(long writeBufferSize) {
+      ParseUtils.checkPositive(writeBufferSize);
       this.writeBufferSize = writeBufferSize;
       return this;
     }
@@ -208,6 +226,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setWriteBatchSize(long writeBatchSize) {
+      ParseUtils.checkPositive(writeBatchSize);
       this.writeBatchSize = writeBatchSize;
       return this;
     }
@@ -219,6 +238,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setCacheCapacity(long cacheCapacity) {
+      ParseUtils.checkNonNegative(cacheCapacity);
       this.cacheCapacity = cacheCapacity;
       return this;
     }
@@ -230,6 +250,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setCacheTimeout(Duration cacheTimeout) {
+      ParseUtils.checkPositive(cacheTimeout);
       this.cacheTimeout = cacheTimeout;
       return this;
     }
@@ -252,6 +273,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setFlusherPermits(int flusherPermits) {
+      ParseUtils.checkPositive(flusherPermits);
       this.flusherPermits = flusherPermits;
       return this;
     }
@@ -263,6 +285,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setParquetRowGroupSize(long parquetRowGroupSize) {
+      ParseUtils.checkPositive(parquetRowGroupSize);
       this.parquetRowGroupSize = parquetRowGroupSize;
       return this;
     }
@@ -274,7 +297,23 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setParquetPageSize(long parquetPageSize) {
+      ParseUtils.checkPositive(parquetPageSize);
       this.parquetPageSize = parquetPageSize;
+      return this;
+    }
+
+    /**
+     * Set the parquet compression codec name
+     *
+     * @param parquetCompressionCodecName the parquet compression codec name
+     *     <p>Supported values: "UNCOMPRESSED", "SNAPPY", "GZIP", "LZO", "BROTLI", "LZ4", "ZSTD",
+     *     "LZ4_RAW"
+     * @return this builder
+     */
+    public Builder setParquetCompressionCodecName(String parquetCompressionCodecName) {
+      ParseUtils.in("UNCOMPRESSED", "SNAPPY", "GZIP", "LZO", "BROTLI", "LZ4", "ZSTD", "LZ4_RAW")
+          .accept(parquetCompressionCodecName);
+      this.parquetCompressionCodecName = parquetCompressionCodecName;
       return this;
     }
 
@@ -282,36 +321,30 @@ public class StorageProperties {
      * Parse properties to set the properties of StorageProperties
      *
      * @param properties the properties to be parsed
-     *     <p>"write_buffer_size": the size of write buffer,bytes, long, optional, default 100MB
-     *     <p>"write_batch_size": the size of write batch, bytes, long, optional, default 1MB
-     *     <p>"flusher_permits": the number of flusher permits, int, optional, default 16
-     *     <p>"cache.capacity": the capacity of cache, bytes, long, optional, default 1GB
-     *     <p>"cache.timeout": the expiry timeout of cache, iso-8601 duration format, optional,
-     *     default Infinity
-     *     <p>"cache.soft_values": whether to enable soft values of cache, boolean, optional,
-     *     default false
-     *     <p>"parquet.row_group_size": the size of parquet row group, bytes, long, optional,
-     *     default 128MB
-     *     <p>"parquet.page_size": the size of parquet page, bytes, long, optional, default 8KB
+     *     <p>"write_buffer_size": the size of write buffer,bytes, long
+     *     <p>"write_batch_size": the size of write batch, bytes, long
+     *     <p>"flusher_permits": the number of flusher permits, int
+     *     <p>"cache.capacity": the capacity of cache, bytes, long
+     *     <p>"cache.timeout": the expiry timeout of cache, iso-8601 duration
+     *     <p>"cache.soft_values": whether to enable soft values of cache, boolean
+     *     <p>"parquet.row_group_size": the size of parquet row group, bytes, long
+     *     <p>"parquet.page_size": the size of parquet page, bytes, long
+     *     <p>"parquet.compression_codec_name": the parquet compression codec name, string
      * @return this builder
      */
     public Builder parse(Map<String, String> properties) {
-      ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE, ParseUtils::checkPositive)
-          .ifPresent(this::setWriteBufferSize);
-      ParseUtils.getOptionalLong(properties, WRITE_BATCH_SIZE, ParseUtils::checkPositive)
-          .ifPresent(this::setWriteBatchSize);
-      ParseUtils.getOptionalInteger(properties, FLUSHER_PERMITS, ParseUtils::checkPositive)
-          .ifPresent(this::setFlusherPermits);
-      ParseUtils.getOptionalLong(properties, CACHE_CAPACITY, ParseUtils::checkNonNegative)
-          .ifPresent(this::setCacheCapacity);
-      ParseUtils.getOptionalDuration(properties, CACHE_TIMEOUT, ParseUtils::checkPositive)
-          .ifPresent(this::setCacheTimeout);
+      ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
+      ParseUtils.getOptionalLong(properties, WRITE_BATCH_SIZE).ifPresent(this::setWriteBatchSize);
+      ParseUtils.getOptionalInteger(properties, FLUSHER_PERMITS).ifPresent(this::setFlusherPermits);
+      ParseUtils.getOptionalLong(properties, CACHE_CAPACITY).ifPresent(this::setCacheCapacity);
+      ParseUtils.getOptionalDuration(properties, CACHE_TIMEOUT).ifPresent(this::setCacheTimeout);
       ParseUtils.getOptionalBoolean(properties, CACHE_SOFT_VALUES)
           .ifPresent(this::setCacheSoftValues);
-      ParseUtils.getOptionalLong(properties, PARQUET_ROW_GROUP_SIZE, ParseUtils::checkPositive)
+      ParseUtils.getOptionalLong(properties, PARQUET_ROW_GROUP_SIZE)
           .ifPresent(this::setParquetRowGroupSize);
-      ParseUtils.getOptionalLong(properties, PARQUET_PAGE_SIZE, ParseUtils::checkPositive)
-          .ifPresent(this::setParquetPageSize);
+      ParseUtils.getOptionalLong(properties, PARQUET_PAGE_SIZE).ifPresent(this::setParquetPageSize);
+      ParseUtils.getOptionalString(properties, PARQUET_COMPRESSION_CODEC_NAME)
+          .ifPresent(this::setParquetCompressionCodecName);
       return this;
     }
 
@@ -329,7 +362,8 @@ public class StorageProperties {
           cacheTimeout,
           cacheSoftValues,
           parquetRowGroupSize,
-          parquetPageSize);
+          parquetPageSize,
+          parquetCompressionCodecName);
     }
   }
 }
