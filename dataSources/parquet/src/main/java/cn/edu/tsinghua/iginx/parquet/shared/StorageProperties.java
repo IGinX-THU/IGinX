@@ -192,7 +192,7 @@ public class StorageProperties {
     /** The property key of parquet page size */
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
     /** The property key of parquet compression codec name */
-    public static final String PARQUET_COMPRESSION_CODEC_NAME = "parquet.compression_codec_name";
+    public static final String PARQUET_COMPRESSION_CODEC_NAME = "parquet.compression.codec";
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private long writeBatchSize = 1024 * 1024; // BYTE
