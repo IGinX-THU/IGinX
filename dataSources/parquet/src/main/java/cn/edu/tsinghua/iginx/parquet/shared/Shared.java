@@ -33,7 +33,7 @@ public class Shared {
   }
 
   public static Shared of(StorageProperties storageProperties) {
-    Semaphore flusherPermits = new Semaphore(storageProperties.getFlusherPermits(), true);
+    Semaphore flusherPermits = new Semaphore(storageProperties.getCompactPermits(), true);
     CachePool cachePool = new CachePool(storageProperties);
     return new Shared(storageProperties, flusherPermits, cachePool);
   }

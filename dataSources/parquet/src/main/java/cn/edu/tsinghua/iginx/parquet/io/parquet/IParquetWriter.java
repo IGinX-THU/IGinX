@@ -23,8 +23,6 @@ import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import org.apache.parquet.compression.CompressionCodecFactory;
 import org.apache.parquet.hadoop.CodecFactory;
 import org.apache.parquet.hadoop.ParquetFileWriter;
@@ -54,18 +52,18 @@ public class IParquetWriter implements AutoCloseable {
     internalWriter.write(record);
   }
 
+  public void setExtraMetaData(String key, String value) {
+    internalWriter.setExtraMetaData(key, value);
+  }
+
   @Override
   public void close() throws Exception {
     internalWriter.close();
   }
 
   public ParquetMetadata flush() throws IOException {
-    try {
-      internalWriter.close();
-      return fileWriter.getFooter();
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
+    internalWriter.close();
+    return fileWriter.getFooter();
   }
 
   public static class Builder {
@@ -76,8 +74,6 @@ public class IParquetWriter implements AutoCloseable {
 
     private final MessageType schema;
 
-    private final Map<String, String> extraMetaData = new HashMap<>();
-
     public Builder(OutputFile outputFile, MessageType schema) {
       this.outputFile = outputFile;
       this.schema = schema;
@@ -87,15 +83,9 @@ public class IParquetWriter implements AutoCloseable {
       ParquetWriteOptions options = optionsBuilder.build();
       TypeUtil.checkValidWriteSchema(schema);
       ParquetFileWriter fileWriter = new ParquetFileWriter(outputFile, options);
-      // TODO: get extra meta from RecordDematerializer
       ParquetRecordWriter<IRecord> recordWriter =
           new ParquetRecordWriter<>(fileWriter, new IRecordDematerializer(schema), options);
       return new IParquetWriter(recordWriter, fileWriter);
-    }
-
-    public Builder withExtraMetaData(String key, String value) {
-      extraMetaData.put(key, value);
-      return this;
     }
 
     public Builder withRowGroupSize(long rowGroupSize) {
@@ -108,11 +98,11 @@ public class IParquetWriter implements AutoCloseable {
       return this;
     }
 
-    public Builder withCompressionCodec(String name) {
-      // TODO: set codec config
+    public Builder withCompressor(String name, int zstdLevel, int zstdWorkers) {
       CompressionCodecName codecName = CompressionCodecName.fromConf(name);
       CompressionCodecFactory.BytesInputCompressor compressor =
-          (new CodecFactory()).getCompressor(codecName);
+          (new CodecFactory(CodecFactory.DEFAULT_LZ4_SEGMENT_SIZE, zstdLevel, zstdWorkers))
+              .getCompressor(codecName);
 
       optionsBuilder.withCompressor(compressor);
       return this;

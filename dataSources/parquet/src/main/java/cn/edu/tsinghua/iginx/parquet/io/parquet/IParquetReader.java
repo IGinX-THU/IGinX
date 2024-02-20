@@ -31,6 +31,7 @@ import javax.annotation.Nonnull;
 import org.apache.parquet.column.statistics.LongStatistics;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
+import org.apache.parquet.hadoop.CodecFactory;
 import org.apache.parquet.hadoop.ParquetFileReader;
 import org.apache.parquet.hadoop.metadata.BlockMetaData;
 import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
@@ -191,6 +192,13 @@ public class IParquetReader implements AutoCloseable {
       } else {
         skip = !filterPredicate.v;
       }
+      return this;
+    }
+
+    public Builder withCodecFactory(int lz4BufferSize) {
+      optionsBuilder.withCodecFactory(
+          new CodecFactory(
+              lz4BufferSize, CodecFactory.DEFAULT_ZSTD_LEVEL, CodecFactory.DEFAULT_ZSTD_WORKERS));
       return this;
     }
   }

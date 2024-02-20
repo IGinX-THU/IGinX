@@ -74,7 +74,10 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema);
     builder.withRowGroupSize(shared.getStorageProperties().getParquetRowGroupSize());
     builder.withPageSize((int) shared.getStorageProperties().getParquetPageSize());
-    builder.withCompressionCodec(shared.getStorageProperties().getParquetCompressionCodecName());
+    builder.withCompressor(
+        shared.getStorageProperties().getParquetCompression(),
+        shared.getStorageProperties().getZstdLevel(),
+        shared.getStorageProperties().getZstdWorkers());
 
     try (IParquetWriter writer = builder.build()) {
       while (scanner.iterate()) {
