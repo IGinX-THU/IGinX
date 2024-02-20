@@ -44,6 +44,12 @@
             <groupId>org.ehcache</groupId>
             <artifactId>sizeof</artifactId>
             <version>0.4.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.glassfish</groupId>
