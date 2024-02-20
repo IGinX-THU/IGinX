@@ -155,4 +155,9 @@ public class StringUtils {
     }
     return Objects.equals(str1, str2);
   }
+
+  public static boolean allPathMatched(List<String> paths) {
+    Pattern pattern = Pattern.compile("[*]+(.[*]+)*");
+    return paths.stream().anyMatch(s -> pattern.matcher(s).matches());
+  }
 }

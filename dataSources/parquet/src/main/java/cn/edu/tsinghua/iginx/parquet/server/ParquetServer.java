@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 IGinX of Tsinghua University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cn.edu.tsinghua.iginx.parquet.server;
 
 import cn.edu.tsinghua.iginx.conf.Config;
@@ -15,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetServer implements Runnable {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetServer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetServer.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -51,7 +67,7 @@ public class ParquetServer implements Runnable {
       serverTransport = new TServerSocket(port);
     } catch (TTransportException e) {
       if (!e.getMessage().contains("Could not create ServerSocket on address")) {
-        logger.error("Parquet service starts failure: {}", e.getMessage());
+        LOGGER.error("Parquet service starts failure: ", e);
       }
       return;
     }
@@ -62,7 +78,7 @@ public class ParquetServer implements Runnable {
             .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
             .protocolFactory(new TBinaryProtocol.Factory());
     server = new TThreadPoolServer(args);
-    logger.info("Parquet service starts successfully!");
+    LOGGER.info("Parquet service starts successfully!");
     server.serve();
   }
 }
