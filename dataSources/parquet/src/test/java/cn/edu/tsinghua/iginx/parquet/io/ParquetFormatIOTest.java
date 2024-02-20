@@ -65,8 +65,8 @@ public class ParquetFormatIOTest {
       table.declareColumn(names[i], types[i]);
     }
     Random rand = new Random(seed);
-    long key = seed;
     for (int i = 0; i < num; i++) {
+      long key = Math.abs(rand.nextLong());
       for (int j = 0; j < table.getHeader().size(); j++) {
         if (rand.nextDouble() > filled) {
           continue;
@@ -98,7 +98,6 @@ public class ParquetFormatIOTest {
         }
         table.put(j, key, value);
       }
-      key += seed;
     }
     return table;
   }
@@ -190,7 +189,7 @@ public class ParquetFormatIOTest {
   public void testWriteReadLargeInMemoryTableWithFilter() throws Exception {
     Table memTable =
         createInMemoryTable(
-            new String[] {"s1", "s2", Constants.KEY_FIELD_NAME, "s4", "s5", "s6"},
+            new String[] {"s1", "s2", "s3", "s4", "s5", "s6"},
             new DataType[] {
               DataType.BOOLEAN,
               DataType.INTEGER,
