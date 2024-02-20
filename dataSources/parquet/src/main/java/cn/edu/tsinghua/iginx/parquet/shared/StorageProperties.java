@@ -306,12 +306,11 @@ public class StorageProperties {
      * Set the parquet compression codec name
      *
      * @param parquetCompressionCodecName the parquet compression codec name
-     *     <p>Supported values: "UNCOMPRESSED", "SNAPPY", "GZIP", "LZO", "BROTLI", "LZ4", "ZSTD",
-     *     "LZ4_RAW"
+     *     <p>Supported values: "UNCOMPRESSED", "SNAPPY", "GZIP", "LZO", "ZSTD", "LZ4_RAW"
      * @return this builder
      */
     public Builder setParquetCompressionCodecName(String parquetCompressionCodecName) {
-      ParseUtils.in("UNCOMPRESSED", "SNAPPY", "GZIP", "LZO", "BROTLI", "LZ4", "ZSTD", "LZ4_RAW")
+      ParseUtils.in("UNCOMPRESSED", "SNAPPY", "GZIP", "LZO", "ZSTD", "LZ4_RAW")
           .accept(parquetCompressionCodecName);
       this.parquetCompressionCodecName = parquetCompressionCodecName;
       return this;
