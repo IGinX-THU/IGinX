@@ -76,7 +76,6 @@
                         <configuration>
                             <outputDirectory>../../core/target/iginx-core-${project.version}/driver/parquet/</outputDirectory>
                             <excludeScope>provided</excludeScope>
-                            <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>

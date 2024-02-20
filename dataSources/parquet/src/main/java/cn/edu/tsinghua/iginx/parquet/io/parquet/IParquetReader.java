@@ -171,7 +171,7 @@ public class IParquetReader implements AutoCloseable {
         return new IParquetReader(null, requestedSchema, footer);
       }
 
-      ParquetFileReader reader = new ParquetFileReader(localInputfile, options);
+      ParquetFileReader reader = new ParquetFileReader(localInputfile, footer, options);
       reader.setRequestedSchema(requestedSchema);
       ParquetRecordReader<IRecord> internalReader =
           new ParquetRecordReader<>(new IRecordMaterializer(requestedSchema), reader, options);

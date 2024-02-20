@@ -60,8 +60,12 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public ParquetMetadata flush() throws IOException {
-    internalWriter.close();
-    return fileWriter.getFooter();
+    try {
+      internalWriter.close();
+      return fileWriter.getFooter();
+    } catch (InterruptedException e) {
+      throw new IOException(e);
+    }
   }
 
   public static class Builder {
@@ -83,6 +87,7 @@ public class IParquetWriter implements AutoCloseable {
       ParquetWriteOptions options = optionsBuilder.build();
       TypeUtil.checkValidWriteSchema(schema);
       ParquetFileWriter fileWriter = new ParquetFileWriter(outputFile, options);
+      // TODO: get extra meta from RecordDematerializer
       ParquetRecordWriter<IRecord> recordWriter =
           new ParquetRecordWriter<>(fileWriter, new IRecordDematerializer(schema), options);
       return new IParquetWriter(recordWriter, fileWriter);
@@ -104,6 +109,7 @@ public class IParquetWriter implements AutoCloseable {
     }
 
     public Builder withCompressionCodec(String name) {
+      // TODO: set codec config
       CompressionCodecName codecName = CompressionCodecName.fromConf(name);
       CompressionCodecFactory.BytesInputCompressor compressor =
           (new CodecFactory()).getCompressor(codecName);
