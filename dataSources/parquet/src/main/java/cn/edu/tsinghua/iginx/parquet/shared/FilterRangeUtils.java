@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.manager.data;
+package cn.edu.tsinghua.iginx.parquet.shared;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import com.google.common.collect.*;
@@ -22,7 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-class FilterRangeUtils {
+public class FilterRangeUtils {
   private FilterRangeUtils() {}
 
   public static RangeSet<Long> rangeSetOf(Filter filter) {

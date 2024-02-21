@@ -13,6 +13,7 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.shared.Shared;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;

@@ -31,6 +31,7 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.shared.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.shared.Shared;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
