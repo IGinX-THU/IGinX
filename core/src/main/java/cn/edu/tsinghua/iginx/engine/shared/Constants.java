@@ -29,4 +29,6 @@ public class Constants {
 
   public static final String UDF_CLASS = "t";
   public static final String UDF_FUNC = "transform";
+  public static final String GET_TYPE_METHOD = "get_type";
+  public static final String SET_NAME_METHOD = "set_udf_name";
 }

@@ -1,6 +1,6 @@
 from abc import ABC
 from .udf import UDF, get_constants
-from ..utils.dataframe import list_to_PandasDF
+from ..utils.dataframe import list_to_PandasDF, pandasDF_to_list
 
 
 class UDSF(UDF, ABC):
@@ -12,7 +12,7 @@ class UDSF(UDF, ABC):
     def udf_type(self):
         return "UDAF"
 
-    def build_df_with_header(self, paths, types, with_key=False):
+    def build_header(self, paths, types):
         # 用户直接返回dataframe，这个函数应当不需要
         pass
 
@@ -20,4 +20,4 @@ class UDSF(UDF, ABC):
         df = list_to_PandasDF(data)
         # 直接作为完整的dataframe进行处理，返回值为dataframe
         res = self.eval(df, *get_constants(pos_args), **kwargs)
-        return res.to_list()
+        return pandasDF_to_list(res)

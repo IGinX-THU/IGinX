@@ -30,16 +30,28 @@ def get_constants(pos_args):
 
 class UDF(ABC):
     def __init__(self):
-        pass
+        self._udf_name = None
 
     @property
-    @abstractmethod
+    # @abstractmethod
     def udf_name(self):
-        """
-        用户需要指定udf在sql中的名字以构建返回dataframe
-        TODO: 是否可以让IGInX传递这个信息
-        """
-        pass
+        # """
+        # 用户需要指定udf在sql中的名字以构建返回dataframe
+        # TODO: 是否可以让IGInX传递这个信息
+        # """
+        # pass
+        return self._udf_name
+
+    @udf_name.setter
+    def udf_name(self, udf_name):
+        self._udf_name = udf_name
+
+    def set_udf_name(self, name):
+        assert isinstance(name, str)
+        self._udf_name = name
+
+    def get_udf_name(self):
+        return self._udf_name
 
     @property
     @abstractmethod
@@ -47,6 +59,9 @@ class UDF(ABC):
         """
         三个子类分别实现，返回udf类型
         """
+
+    def get_type(self):
+        return self.udf_type
 
     @abstractmethod
     def transform(self, data, pos_args, kwargs):
@@ -60,13 +75,12 @@ class UDF(ABC):
         """
 
     @abstractmethod
-    def build_df_with_header(self, paths, types, with_key):
+    def build_header(self, paths, types):
         """
         按原本的header构建UDF返回的dataframe，
         paths表示列名，types表示列类型，with_key指明是否需要带key列
         :param paths: 原本的列名列表，字符串列表，不带key
         :param types: 原本的列数据类型列表，字符串列表，不带key
-        :param with_key: 是否要带列名，boolean
         """
 
     @abstractmethod

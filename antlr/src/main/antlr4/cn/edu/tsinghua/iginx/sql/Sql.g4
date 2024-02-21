@@ -379,6 +379,7 @@ udfType
    | UDTF
    | UDSF
    | TRANSFORM
+   | UNKNOWN
    ;
 
 jobStatus

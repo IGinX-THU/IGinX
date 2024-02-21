@@ -127,7 +127,8 @@ enum UDFType {
     UDAF,
     UDTF,
     UDSF,
-    TRANSFORM
+    TRANSFORM,
+    UNKNOWN
 }
 
 enum TimePrecision {

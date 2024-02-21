@@ -55,6 +55,8 @@ import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
 import pemja.core.PythonInterpreterConfig;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+
 public class FunctionManager {
 
   private static final int INTERPRETER_NUM = 5;
@@ -191,6 +193,9 @@ public class FunctionManager {
     String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
     String className = taskMeta.getClassName();
 
+    UDFType type = UDFType.UNKNOWN;
+    String udfType = "UNKNOWN";
+
     // init the python udf
     BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
     for (int i = 0; i < INTERPRETER_NUM; i++) {
@@ -198,18 +203,37 @@ public class FunctionManager {
       interpreter.exec(String.format("import %s", IGINX_ROOT_MODULE));
       interpreter.exec(String.format("import %s", moduleName));
       interpreter.exec(String.format("t = %s.%s()", moduleName, className));
+
+      if (i == 0) {
+        // get udf type
+        udfType = (String) interpreter.invokeMethod(UDF_CLASS, GET_TYPE_METHOD);
+        switch (udfType) {
+          case "UDTF":
+            type = UDFType.UDTF;
+            break;
+          case "UDAF":
+            type = UDFType.UDAF;
+            break;
+          case "UDSF":
+            type = UDFType.UDSF;
+            break;
+          default:
+        }
+      }
+      // tell udf its name in sql
+      interpreter.invokeMethod(UDF_CLASS, SET_NAME_METHOD, identifier);
       queue.add(interpreter);
     }
 
-    if (taskMeta.getType().equals(UDFType.UDAF)) {
+    if (type == UDFType.UDAF) {
       PyUDAF udaf = new PyUDAF(queue, identifier);
       functions.put(identifier, udaf);
       return udaf;
-    } else if (taskMeta.getType().equals(UDFType.UDTF)) {
+    } else if (type == UDFType.UDTF) {
       PyUDTF udtf = new PyUDTF(queue, identifier);
       functions.put(identifier, udtf);
       return udtf;
-    } else if (taskMeta.getType().equals(UDFType.UDSF)) {
+    } else if (type == UDFType.UDSF) {
       PyUDSF udsf = new PyUDSF(queue, identifier);
       functions.put(identifier, udsf);
       return udsf;
@@ -218,7 +242,7 @@ public class FunctionManager {
         queue.poll().close();
       }
       throw new IllegalArgumentException(
-          String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
+          String.format("UDF %s registered in type %s", identifier, udfType));
     }
   }
 
