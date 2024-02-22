@@ -228,14 +228,17 @@ public class FunctionManager {
     if (type == UDFType.UDAF) {
       PyUDAF udaf = new PyUDAF(queue, identifier);
       functions.put(identifier, udaf);
+      taskMeta.setType(type);
       return udaf;
     } else if (type == UDFType.UDTF) {
       PyUDTF udtf = new PyUDTF(queue, identifier);
       functions.put(identifier, udtf);
+      taskMeta.setType(type);
       return udtf;
     } else if (type == UDFType.UDSF) {
       PyUDSF udsf = new PyUDSF(queue, identifier);
       functions.put(identifier, udsf);
+      taskMeta.setType(type);
       return udsf;
     } else {
       while (!queue.isEmpty()) {

@@ -375,11 +375,8 @@ path
    ;
 
 udfType
-   : UDAF
-   | UDTF
-   | UDSF
+   : UDF
    | TRANSFORM
-   | UNKNOWN
    ;
 
 jobStatus
@@ -722,16 +719,8 @@ AS
    : A S
    ;
 
-UDAF
-   : U D A F
-   ;
-
-UDTF
-   : U D T F
-   ;
-
-UDSF
-   : U D S F
+UDF
+   : U D F
    ;
 
 WITH

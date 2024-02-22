@@ -25,21 +25,21 @@ def list_to_PandasDF(data):
     """
     return pd.DataFrame(data[2:], columns=data[0])
 
-
+# TODO：在大数据量情况下性能表现可能不佳，使用df.to_numpy().tolist()效率会提高，但转换为numpy会导致所有数据被转换为相同的数据类型，
+#       例如，同时具有整数和浮点数的df中，所有整数会被转为浮点数
 def pandasDF_to_list(df):
     """
     将一个pandas.dataframe转为二维列表传回给IGinX
-    TODO：在大数据量情况下性能表现可能不佳
     :param df: 待转换的dataframe数据
     :return 二维列表，第一行列名，第二行类型，第三行开始为数据
     """
     column_types = df.dtypes
     col_name = [column_name for column_name, data_type in column_types.items()]
     col_type = [map_to_strings(data_type) for column_name, data_type in column_types.items()]
-    resList = [col_name, col_type]
-    for index, row in df.iterrows():
-        resList.append([value for column_name, value in row.items()])
-    return resList
+    res_list = [col_name, col_type]
+    val_list = list(map(list, df.itertuples(index=False)))
+    res_list.extend(val_list)
+    return res_list
 
 
 def map_to_strings(data_type):
@@ -49,7 +49,7 @@ def map_to_strings(data_type):
         'float32': 'FLOAT',
         'float64': 'DOUBLE',
         'object': 'BINARY',
-        'bool': 'Boolean',
+        'bool': 'BOOLEAN',
     }
     mapped_type = type_mapping.get(str(data_type), 'Unknown')
     return mapped_type

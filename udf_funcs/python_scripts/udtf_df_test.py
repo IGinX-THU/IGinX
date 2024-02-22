@@ -23,7 +23,6 @@ class UDTFinDFTest(UDTFinDF):
             for value in row:
                 s += to_str(value)
             s += to_str(val1) + to_str(val2)
-            print(s)
             res_list.append(s)
         cols = ', '.join(data.columns.tolist())
         col = f"udtf_df_test({cols})"
@@ -43,7 +42,7 @@ test.transform(data,pos_args,kwargs)
 
 insert into test(key,a) values(0,1),(1,2);
 insert into test(key,a,b) values(0,1,2),(1,2,3),(2,3,4);
-REGISTER UDTF PYTHON TASK "UDTFinDFTest" IN "udf_funcs\\python_scripts\\udtf_df_test.py" AS "udtf_df_test";
+REGISTER UDF PYTHON TASK "UDTFinDFTest" IN "udf_funcs\\python_scripts\\udtf_df_test.py" AS "udtf_df_test";
 
 select udtf_df_test(a,b) from test;
 select udtf_df_test(b,a) from test;
