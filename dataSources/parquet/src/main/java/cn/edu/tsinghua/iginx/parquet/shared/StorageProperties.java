@@ -344,7 +344,6 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setZstdLevel(int level) {
-      ParseUtils.checkPositive(level);
       this.zstdLevel = level;
       return this;
     }
