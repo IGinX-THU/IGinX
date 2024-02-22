@@ -36,7 +36,7 @@ class UDAF(UDF, ABC):
 
     def transform(self, data, pos_args, kwargs):
         colNames, types = self.build_header(data[0][1:], data[1][1:])
-        df = DataFrame(colNames, types, has_key=(colNames[0] == 'key'))
+        df = DataFrame(colNames, types, has_key=False)
         index_list = get_column_index(data[0][1:], pos_args)
         args = [val for arg_type, val in pos_args]
         # 分解每行参数

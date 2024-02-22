@@ -3,10 +3,6 @@ from iginx_udf import UDAFinDF
 
 
 class UDAFinDFTest(UDAFinDF):
-    @property
-    def udf_name(self):
-        return "udaf_df_test"
-
     def eval(self, data, weight_a=1, weight_b=1):
         # 使用itertuples遍历DataFrame的每一行
         data = data.drop(columns=['key'])

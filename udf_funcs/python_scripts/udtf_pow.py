@@ -2,10 +2,6 @@ from iginx_udf import UDTFinDF
 
 
 class UDFPow(UDTFinDF):
-  @property
-  def udf_name(self):
-    return "pow"
-
   def eval(self, data, n=1):
     data = data.drop(columns=['key'])
     df_squared = data.applymap(lambda x: float(x ** n))

@@ -10,7 +10,7 @@ class UDSF(UDF, ABC):
 
     @property
     def udf_type(self):
-        return "UDAF"
+        return "UDSF"
 
     def build_header(self, paths, types):
         # 用户直接返回dataframe，这个函数应当不需要

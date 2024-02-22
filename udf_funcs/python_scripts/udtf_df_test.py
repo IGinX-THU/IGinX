@@ -53,3 +53,4 @@ select udtf_df_test(a,b,val1="test1") from test;
 select udtf_df_test(a,b,val2="test2") from test;
 select udtf_df_test(a,b,val1="test1",val2="test2") from test;
 """
+

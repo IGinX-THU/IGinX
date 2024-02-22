@@ -11,20 +11,12 @@ def to_str(obj):
 class UDTFTest(UDTF):
     def build_header(self, paths, types):
         s = ', '.join(paths)
-        return [f"arg_test({s})"], ["BINARY"], False
+        return [f"{self.udf_name}({s})"], ["BINARY"], False
 
     def eval(self, a, b, c="default"):
         string = "[" + to_str(a) + to_str(b) + to_str(c) + "]"
         print(string)
         return string
-
-
-class UDTFTestSec(UDTF):
-    def __init__(self):
-        self.udf_name = "test"
-
-    def eval(self, a, b=1):
-        return a + b
 
 
 """

@@ -2,10 +2,6 @@ from iginx_udf import UDAF
 
 
 class UDAFTest(UDAF):
-    @property
-    def udf_name(self):
-        return "udaf_test"
-
     def init_status(self):
         return 0
 
