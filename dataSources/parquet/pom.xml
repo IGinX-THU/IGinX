@@ -25,11 +25,47 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>0.5.1</version>
+            <groupId>cn.edu.tsinghua.iginx</groupId>
+            <artifactId>parquet-file</artifactId>
+            <version>0.0.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>org.xerial.snappy</groupId>
+                    <artifactId>snappy-java</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.github.luben</groupId>
+                    <artifactId>zstd-jni</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>commons-pool</groupId>
+                    <artifactId>commons-pool</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>2.9.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
+            <version>1.1.4</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>parquet-file</id>
+            <name>IGinX GitHub repository</name>
+            <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
@@ -47,6 +83,7 @@
                         <configuration>
                             <outputDirectory>../../core/target/iginx-core-${project.version}/driver/parquet/</outputDirectory>
                             <excludeScope>provided</excludeScope>
+                            <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>
