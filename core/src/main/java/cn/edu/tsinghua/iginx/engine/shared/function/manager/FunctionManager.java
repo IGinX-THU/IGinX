@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
@@ -54,8 +56,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
 import pemja.core.PythonInterpreterConfig;
-
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 
 public class FunctionManager {
 
