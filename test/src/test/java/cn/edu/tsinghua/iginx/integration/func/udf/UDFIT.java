@@ -837,259 +837,261 @@ public class UDFIT {
 
   @Test
   public void testListUDTF() {
-    String insert = "insert into udf_test(key,long_a, long_b, dou_a, dou_b, bool_a, bool_b, str_a, str_b) " +
-            "values(0,1,2,1.0,2.0,TRUE,TRUE,'text_a1','text_b1')," +
-            "(1,2,3,2.0,3.0,FALSE,TRUE,'text_a2','text_b2')," +
-            "(2,3,4,3.0,4.0,TRUE,FALSE,'text_a3','text_b3')," +
-            "(3,4,5,4.0,5.0,FALSE,FALSE,'text_a4','text_b4')," +
-            "(4,5,6,5.0,6.0,TRUE,FALSE,'text_a5','text_b5');";
+    String insert =
+        "insert into udf_test(key,long_a, long_b, dou_a, dou_b, bool_a, bool_b, str_a, str_b) "
+            + "values(0,1,2,1.0,2.0,TRUE,TRUE,'text_a1','text_b1'),"
+            + "(1,2,3,2.0,3.0,FALSE,TRUE,'text_a2','text_b2'),"
+            + "(2,3,4,3.0,4.0,TRUE,FALSE,'text_a3','text_b3'),"
+            + "(3,4,5,4.0,5.0,FALSE,FALSE,'text_a4','text_b4'),"
+            + "(4,5,6,5.0,6.0,TRUE,FALSE,'text_a5','text_b5');";
     execute(insert);
 
     String query = "select concat(long_a, dou_b) from udf_test;";
     SessionExecuteSqlResult ret = execute(query);
     String expected =
-            "ResultSets:\n" +
-                    "+---+---------------------------------------+\n" +
-                    "|key|concat(udf_test.long_a, udf_test.dou_b)|\n" +
-                    "+---+---------------------------------------+\n" +
-                    "|  0|          {--12.0[default1][default2--}|\n" +
-                    "|  1|          {--23.0[default1][default2--}|\n" +
-                    "|  2|          {--34.0[default1][default2--}|\n" +
-                    "|  3|          {--45.0[default1][default2--}|\n" +
-                    "|  4|          {--56.0[default1][default2--}|\n" +
-                    "+---+---------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+---------------------------------------+\n"
+            + "|key|concat(udf_test.long_a, udf_test.dou_b)|\n"
+            + "+---+---------------------------------------+\n"
+            + "|  0|          {--12.0[default1][default2--}|\n"
+            + "|  1|          {--23.0[default1][default2--}|\n"
+            + "|  2|          {--34.0[default1][default2--}|\n"
+            + "|  3|          {--45.0[default1][default2--}|\n"
+            + "|  4|          {--56.0[default1][default2--}|\n"
+            + "+---+---------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select concat(bool_a, str_b) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---+---------------------------------------+\n" +
-                    "|key|concat(udf_test.bool_a, udf_test.str_b)|\n" +
-                    "+---+---------------------------------------+\n" +
-                    "|  0|   {--Truetext_b1[default1][default2--}|\n" +
-                    "|  1|  {--Falsetext_b2[default1][default2--}|\n" +
-                    "|  2|   {--Truetext_b3[default1][default2--}|\n" +
-                    "|  3|  {--Falsetext_b4[default1][default2--}|\n" +
-                    "|  4|   {--Truetext_b5[default1][default2--}|\n" +
-                    "+---+---------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+---------------------------------------+\n"
+            + "|key|concat(udf_test.bool_a, udf_test.str_b)|\n"
+            + "+---+---------------------------------------+\n"
+            + "|  0|   {--Truetext_b1[default1][default2--}|\n"
+            + "|  1|  {--Falsetext_b2[default1][default2--}|\n"
+            + "|  2|   {--Truetext_b3[default1][default2--}|\n"
+            + "|  3|  {--Falsetext_b4[default1][default2--}|\n"
+            + "|  4|   {--Truetext_b5[default1][default2--}|\n"
+            + "+---+---------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select concat(long_a, long_b, \"[str_1]\") from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|key|concat(udf_test.long_a, udf_test.long_b)|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|  0|                {--12[str_1][default2--}|\n" +
-                    "|  1|                {--23[str_1][default2--}|\n" +
-                    "|  2|                {--34[str_1][default2--}|\n" +
-                    "|  3|                {--45[str_1][default2--}|\n" +
-                    "|  4|                {--56[str_1][default2--}|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+----------------------------------------+\n"
+            + "|key|concat(udf_test.long_a, udf_test.long_b)|\n"
+            + "+---+----------------------------------------+\n"
+            + "|  0|                {--12[str_1][default2--}|\n"
+            + "|  1|                {--23[str_1][default2--}|\n"
+            + "|  2|                {--34[str_1][default2--}|\n"
+            + "|  3|                {--45[str_1][default2--}|\n"
+            + "|  4|                {--56[str_1][default2--}|\n"
+            + "+---+----------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select concat(long_a, long_b, \"[str_1]\", \"[str_2]\") from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|key|concat(udf_test.long_a, udf_test.long_b)|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|  0|                  {--12[str_1][str_2]--}|\n" +
-                    "|  1|                  {--23[str_1][str_2]--}|\n" +
-                    "|  2|                  {--34[str_1][str_2]--}|\n" +
-                    "|  3|                  {--45[str_1][str_2]--}|\n" +
-                    "|  4|                  {--56[str_1][str_2]--}|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+----------------------------------------+\n"
+            + "|key|concat(udf_test.long_a, udf_test.long_b)|\n"
+            + "+---+----------------------------------------+\n"
+            + "|  0|                  {--12[str_1][str_2]--}|\n"
+            + "|  1|                  {--23[str_1][str_2]--}|\n"
+            + "|  2|                  {--34[str_1][str_2]--}|\n"
+            + "|  3|                  {--45[str_1][str_2]--}|\n"
+            + "|  4|                  {--56[str_1][str_2]--}|\n"
+            + "+---+----------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select concat(long_a, long_b, c=\"[str_1]\", d=\"[str_2]\") from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|key|concat(udf_test.long_a, udf_test.long_b)|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|  0|                  {--12[str_1][str_2]--}|\n" +
-                    "|  1|                  {--23[str_1][str_2]--}|\n" +
-                    "|  2|                  {--34[str_1][str_2]--}|\n" +
-                    "|  3|                  {--45[str_1][str_2]--}|\n" +
-                    "|  4|                  {--56[str_1][str_2]--}|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+----------------------------------------+\n"
+            + "|key|concat(udf_test.long_a, udf_test.long_b)|\n"
+            + "+---+----------------------------------------+\n"
+            + "|  0|                  {--12[str_1][str_2]--}|\n"
+            + "|  1|                  {--23[str_1][str_2]--}|\n"
+            + "|  2|                  {--34[str_1][str_2]--}|\n"
+            + "|  3|                  {--45[str_1][str_2]--}|\n"
+            + "|  4|                  {--56[str_1][str_2]--}|\n"
+            + "+---+----------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select concat(long_a, long_b, d=\"[str_2]\") from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|key|concat(udf_test.long_a, udf_test.long_b)|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "|  0|               {--12[default1][str_2]--}|\n" +
-                    "|  1|               {--23[default1][str_2]--}|\n" +
-                    "|  2|               {--34[default1][str_2]--}|\n" +
-                    "|  3|               {--45[default1][str_2]--}|\n" +
-                    "|  4|               {--56[default1][str_2]--}|\n" +
-                    "+---+----------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+----------------------------------------+\n"
+            + "|key|concat(udf_test.long_a, udf_test.long_b)|\n"
+            + "+---+----------------------------------------+\n"
+            + "|  0|               {--12[default1][str_2]--}|\n"
+            + "|  1|               {--23[default1][str_2]--}|\n"
+            + "|  2|               {--34[default1][str_2]--}|\n"
+            + "|  3|               {--45[default1][str_2]--}|\n"
+            + "|  4|               {--56[default1][str_2]--}|\n"
+            + "+---+----------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select concat(str_a, \"[str_3]\", d=\"[str_2]\") from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---+-------------------------------------+\n" +
-                    "|key|               concat(udf_test.str_a)|\n" +
-                    "+---+-------------------------------------+\n" +
-                    "|  0|{--text_a1[str_3][default1][str_2]--}|\n" +
-                    "|  1|{--text_a2[str_3][default1][str_2]--}|\n" +
-                    "|  2|{--text_a3[str_3][default1][str_2]--}|\n" +
-                    "|  3|{--text_a4[str_3][default1][str_2]--}|\n" +
-                    "|  4|{--text_a5[str_3][default1][str_2]--}|\n" +
-                    "+---+-------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+-------------------------------------+\n"
+            + "|key|               concat(udf_test.str_a)|\n"
+            + "+---+-------------------------------------+\n"
+            + "|  0|{--text_a1[str_3][default1][str_2]--}|\n"
+            + "|  1|{--text_a2[str_3][default1][str_2]--}|\n"
+            + "|  2|{--text_a3[str_3][default1][str_2]--}|\n"
+            + "|  3|{--text_a4[str_3][default1][str_2]--}|\n"
+            + "|  4|{--text_a5[str_3][default1][str_2]--}|\n"
+            + "+---+-------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select concat(\"[str_3]\", str_a, d=\"[str_2]\") from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---+-------------------------------------+\n" +
-                    "|key|               concat(udf_test.str_a)|\n" +
-                    "+---+-------------------------------------+\n" +
-                    "|  0|{--[str_3]text_a1[default1][str_2]--}|\n" +
-                    "|  1|{--[str_3]text_a2[default1][str_2]--}|\n" +
-                    "|  2|{--[str_3]text_a3[default1][str_2]--}|\n" +
-                    "|  3|{--[str_3]text_a4[default1][str_2]--}|\n" +
-                    "|  4|{--[str_3]text_a5[default1][str_2]--}|\n" +
-                    "+---+-------------------------------------+\n" +
-                    "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+-------------------------------------+\n"
+            + "|key|               concat(udf_test.str_a)|\n"
+            + "+---+-------------------------------------+\n"
+            + "|  0|{--[str_3]text_a1[default1][str_2]--}|\n"
+            + "|  1|{--[str_3]text_a2[default1][str_2]--}|\n"
+            + "|  2|{--[str_3]text_a3[default1][str_2]--}|\n"
+            + "|  3|{--[str_3]text_a4[default1][str_2]--}|\n"
+            + "|  4|{--[str_3]text_a5[default1][str_2]--}|\n"
+            + "+---+-------------------------------------+\n"
+            + "Total line number = 5\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
   @Test
   public void testListUDAF() {
-    String insert = "insert into udf_test(key,long_a, long_b, dou_a, dou_b, bool_a, bool_b, str_a, str_b) " +
-            "values(0,1,2,1.0,2.0,TRUE,TRUE,'text_a1','text_b1')," +
-            "(1,2,3,2.0,3.0,FALSE,TRUE,'text_a2','text_b2')," +
-            "(2,3,4,3.0,4.0,TRUE,FALSE,'text_a3','text_b3')," +
-            "(3,4,5,4.0,5.0,FALSE,FALSE,'text_a4','text_b4')," +
-            "(4,5,6,5.0,6.0,TRUE,FALSE,'text_a5','text_b5');";
+    String insert =
+        "insert into udf_test(key,long_a, long_b, dou_a, dou_b, bool_a, bool_b, str_a, str_b) "
+            + "values(0,1,2,1.0,2.0,TRUE,TRUE,'text_a1','text_b1'),"
+            + "(1,2,3,2.0,3.0,FALSE,TRUE,'text_a2','text_b2'),"
+            + "(2,3,4,3.0,4.0,TRUE,FALSE,'text_a3','text_b3'),"
+            + "(3,4,5,4.0,5.0,FALSE,FALSE,'text_a4','text_b4'),"
+            + "(4,5,6,5.0,6.0,TRUE,FALSE,'text_a5','text_b5');";
     execute(insert);
 
     String query = "select udf_avg_with_arg(long_a) from udf_test;";
     SessionExecuteSqlResult ret = execute(query);
     String expected =
-            "ResultSets:\n" +
-                    "+---------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a)|\n" +
-                    "+---------------------------------+\n" +
-                    "|                             11.0|\n" +
-                    "+---------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+---------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a)|\n"
+            + "+---------------------------------+\n"
+            + "|                             11.0|\n"
+            + "+---------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(dou_b) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+--------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.dou_b)|\n" +
-                    "+--------------------------------+\n" +
-                    "|                            13.0|\n" +
-                    "+--------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+--------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.dou_b)|\n"
+            + "+--------------------------------+\n"
+            + "|                            13.0|\n"
+            + "+--------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(long_a, 5) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a)|\n" +
-                    "+---------------------------------+\n" +
-                    "|                             20.0|\n" +
-                    "+---------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+---------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a)|\n"
+            + "+---------------------------------+\n"
+            + "|                             20.0|\n"
+            + "+---------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(long_a, 5, 0) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a)|\n" +
-                    "+---------------------------------+\n" +
-                    "|                             15.0|\n" +
-                    "+---------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+---------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a)|\n"
+            + "+---------------------------------+\n"
+            + "|                             15.0|\n"
+            + "+---------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(long_a, add_val=4, mul_val=3) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a)|\n" +
-                    "+---------------------------------+\n" +
-                    "|                             13.0|\n" +
-                    "+---------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+---------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a)|\n"
+            + "+---------------------------------+\n"
+            + "|                             13.0|\n"
+            + "+---------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(long_a, add_val=4) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+---------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a)|\n" +
-                    "+---------------------------------+\n" +
-                    "|                             10.0|\n" +
-                    "+---------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+---------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a)|\n"
+            + "+---------------------------------+\n"
+            + "|                             10.0|\n"
+            + "+---------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(long_a, long_b, add_val=0) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+--------------------------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a, udf_test.long_b)|\n" +
-                    "+--------------------------------------------------+\n" +
-                    "|                                              14.0|\n" +
-                    "+--------------------------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+--------------------------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a, udf_test.long_b)|\n"
+            + "+--------------------------------------------------+\n"
+            + "|                                              14.0|\n"
+            + "+--------------------------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(long_a, 1, long_b) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+--------------------------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a, udf_test.long_b)|\n" +
-                    "+--------------------------------------------------+\n" +
-                    "|                                               7.0|\n" +
-                    "+--------------------------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+--------------------------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a, udf_test.long_b)|\n"
+            + "+--------------------------------------------------+\n"
+            + "|                                               7.0|\n"
+            + "+--------------------------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "select udf_avg_with_arg(long_a, long_b, dou_a) from udf_test;";
     ret = execute(query);
     expected =
-            "ResultSets:\n" +
-                    "+------------------------------------------------------------------+\n" +
-                    "|udf_avg_with_arg(udf_test.long_a, udf_test.long_b, udf_test.dou_a)|\n" +
-                    "+------------------------------------------------------------------+\n" +
-                    "|                                                              17.0|\n" +
-                    "+------------------------------------------------------------------+\n" +
-                    "Total line number = 1\n";
+        "ResultSets:\n"
+            + "+------------------------------------------------------------------+\n"
+            + "|udf_avg_with_arg(udf_test.long_a, udf_test.long_b, udf_test.dou_a)|\n"
+            + "+------------------------------------------------------------------+\n"
+            + "|                                                              17.0|\n"
+            + "+------------------------------------------------------------------+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 }
