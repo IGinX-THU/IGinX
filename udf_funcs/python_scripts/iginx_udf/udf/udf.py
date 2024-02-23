@@ -88,8 +88,6 @@ class UDF(ABC):
         """
         用户UDF需要重写这个方法来进行处理操作，使用动态参数是为了匹配不同参数数量的重写函数
         TODO: 或许这里需要进行参数个数的限制（大概只能通过写若干个定死长度的transform函数实现）
-        :param args: 位置参数
-        :param kwargs: kv参数
         """
 
 

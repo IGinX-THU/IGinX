@@ -28,9 +28,7 @@ class UDTF(UDF, ABC):
 
     def transform(self, data, pos_args, kwargs):
         colNames, types = self.build_header(data[0][1:], data[1][1:])
-        print(colNames, types)
         df = DataFrame(colNames, types, has_key=False)
-        print(df)
         index_list = get_column_index(data[0][1:], pos_args)
         args = [val for arg_type, val in pos_args]
         # 分解每行参数
@@ -41,7 +39,6 @@ class UDTF(UDF, ABC):
             value = self.eval(*args, **kwargs)
             if not isinstance(value, list):
                 value = [value]
-            print(value)
             df.insert(*value)
         return df.to_list()
 

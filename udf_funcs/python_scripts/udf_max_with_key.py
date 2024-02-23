@@ -8,7 +8,6 @@ class UDFMaxWithKey(UDAF):
     def build_header(self, paths, types):
         col = f"{self.udf_name}({paths[0]})"
         type = types[0]
-        print(col, type)
         return ['key', col], ['LONG', type]
 
     def eval(self, status, data):

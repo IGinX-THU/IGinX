@@ -34,6 +34,15 @@ class UDAF(UDF, ABC):
             colNames.append(self.udf_name + "(" + name + ")")
         return colNames, colTypes.extend(types)
 
+
+    def final_func(self, status):
+        """
+        最终函数，对status进行最终处理
+        :param status:
+        :return:
+        """
+        return status
+
     def transform(self, data, pos_args, kwargs):
         colNames, types = self.build_header(data[0][1:], data[1][1:])
         df = DataFrame(colNames, types, has_key=False)
@@ -45,10 +54,12 @@ class UDAF(UDF, ABC):
             for i in range(1, len(row)):
                 args[index_list[i-1]] = row[i]
             self.status = self.eval(self.status, *args, **kwargs)
-        if isinstance(self.status, list):
-            df.insert(*self.status)
+        res = self.final_func(self.status)
+        self.status = self.init_status()
+        if isinstance(res, list):
+            df.insert(*res)
         else:
-            df.insert(self.status)
+            df.insert(res)
         return df.to_list()
 
 
