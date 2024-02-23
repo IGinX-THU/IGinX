@@ -13,6 +13,6 @@ class Concat(UDTF):
         s = ', '.join(paths)
         return [f"{self.udf_name}({s})"], ["BINARY"]
 
-    def eval(self, a, b, c="[default1]", d="[default2"):
+    def eval(self, a, b='', c="[default1]", d="[default2]"):
         string = "{--" + to_str(a) + to_str(b) + to_str(c) + to_str(d) + "--}"
         return string
