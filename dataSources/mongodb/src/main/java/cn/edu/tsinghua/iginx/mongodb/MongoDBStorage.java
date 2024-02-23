@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.mongodb.dummy.DummyQuery;
+import cn.edu.tsinghua.iginx.mongodb.dummy.SchemaSample;
 import cn.edu.tsinghua.iginx.mongodb.entity.ColumnQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.mongodb.entity.JoinQuery;
@@ -61,13 +62,21 @@ public class MongoDBStorage implements IStorage {
   private static final int SESSION_POOL_MAX_SIZE = 200;
   public static final String VALUE_FIELD = "v";
   public static final String[] SYSTEM_DBS = new String[] {"admin", "config", "local"};
+  public static final String SCHEMA_SAMPLE_SIZE = "schema.sample.size";
+  public static final String SCHEMA_SAMPLE_SIZE_DEFAULT = "1000";
 
   private final MongoClient client;
+
+  private final int schemaSampleSize;
 
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(StorageEngineType.mongodb)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
+
+    String sampleSize =
+        meta.getExtraParams().getOrDefault(SCHEMA_SAMPLE_SIZE, SCHEMA_SAMPLE_SIZE_DEFAULT);
+    this.schemaSampleSize = Integer.parseInt(sampleSize);
 
     try {
       this.client = connect(meta.getIp(), meta.getPort());
@@ -275,7 +284,8 @@ public class MongoDBStorage implements IStorage {
   public List<Column> getColumns() {
     List<Column> columns = new ArrayList<>();
     for (String dbName : getDatabaseNames(this.client)) {
-      for (String collectionName : this.client.getDatabase(dbName).listCollectionNames()) {
+      MongoDatabase db = this.client.getDatabase(dbName);
+      for (String collectionName : db.listCollectionNames()) {
         try {
           if (dbName.startsWith("unit")) {
             Field field = NameUtils.parseCollectionName(collectionName);
@@ -284,6 +294,17 @@ public class MongoDBStorage implements IStorage {
           }
         } catch (Exception ignored) {
         }
+
+        if (schemaSampleSize > 0) {
+          MongoCollection<BsonDocument> collection =
+              db.getCollection(collectionName, BsonDocument.class);
+          Map<String, DataType> sampleSchema = new SchemaSample(schemaSampleSize).query(collection);
+          for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
+            columns.add(new Column(entry.getKey(), entry.getValue(), null, false));
+          }
+          continue;
+        }
+
         String namespace = dbName + "." + collectionName;
         columns.add(new Column(namespace + ".*", DataType.BINARY, null, true));
       }
