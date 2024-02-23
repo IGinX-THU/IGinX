@@ -468,7 +468,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
+      logger.error("execute query data failed.", e);
       fail();
     }
 

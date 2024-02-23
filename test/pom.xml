@@ -70,9 +70,9 @@
             <version>6.8.0</version>
         </dependency>
         <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>0.5.1</version>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>parquet</artifactId>
+            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>io.etcd</groupId>
