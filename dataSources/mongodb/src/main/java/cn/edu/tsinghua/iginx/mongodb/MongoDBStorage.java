@@ -300,7 +300,7 @@ public class MongoDBStorage implements IStorage {
               db.getCollection(collectionName, BsonDocument.class);
           Map<String, DataType> sampleSchema = new SchemaSample(schemaSampleSize).query(collection);
           for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
-            columns.add(new Column(entry.getKey(), entry.getValue(), null, false));
+            columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
           }
           continue;
         }
