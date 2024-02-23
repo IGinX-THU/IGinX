@@ -16,23 +16,21 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
 
+import java.lang.ref.SoftReference;
 import java.nio.ByteBuffer;
 
-public interface BufferPool<Buffer> {
+class FixedSoftRecyclePool extends AbstractFixedRecyclePool<SoftReference<ByteBuffer>> {
+  public FixedSoftRecyclePool(BufferPool<ByteBuffer> subPool, int recycleSize) {
+    super(subPool, recycleSize);
+  }
 
-  /**
-   * Fetch a buffer from the pool.
-   *
-   * @param capacity the desired size of the buffer
-   * @return a heap buffer with size at least the `capacity` and arrayOffset of 0
-   */
-  Buffer allocate(int capacity);
+  @Override
+  protected SoftReference<ByteBuffer> reference(ByteBuffer buffer) {
+    return new SoftReference<>(buffer);
+  }
 
-  /**
-   * Return a buffer to the pool.
-   *
-   * @param buffer the buffer to return
-   */
-  default void release(Buffer buffer) {
+  @Override
+  protected ByteBuffer deReference(SoftReference<ByteBuffer> reference) {
+    return reference.get();
   }
 }

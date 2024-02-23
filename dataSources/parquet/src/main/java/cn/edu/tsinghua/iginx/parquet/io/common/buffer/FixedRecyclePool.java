@@ -19,20 +19,18 @@ package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
 import java.nio.ByteBuffer;
 import java.util.function.IntFunction;
 
-public class NoPool implements BufferPool {
-
-  private final IntFunction<ByteBuffer> factory;
-
-  public NoPool(IntFunction<ByteBuffer> factory) {
-    this.factory = factory;
+class FixedRecyclePool extends AbstractFixedRecyclePool<ByteBuffer> {
+  public FixedRecyclePool(BufferPool<ByteBuffer> subPool, int recycleSize) {
+    super(subPool, recycleSize);
   }
 
   @Override
-  public ByteBuffer allocate(int capacity) {
-    return factory.apply(capacity);
+  protected ByteBuffer reference(ByteBuffer buffer) {
+    return buffer;
   }
 
   @Override
-  public void release(ByteBuffer buffer) {
+  protected ByteBuffer deReference(ByteBuffer reference) {
+    return reference;
   }
 }

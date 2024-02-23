@@ -16,23 +16,9 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
 
-import java.nio.ByteBuffer;
+import java.util.Map;
 
-public interface BufferPool<Buffer> {
+public interface ConfigurableBufferPool extends BufferPool {
 
-  /**
-   * Fetch a buffer from the pool.
-   *
-   * @param capacity the desired size of the buffer
-   * @return a heap buffer with size at least the `capacity` and arrayOffset of 0
-   */
-  Buffer allocate(int capacity);
-
-  /**
-   * Return a buffer to the pool.
-   *
-   * @param buffer the buffer to return
-   */
-  default void release(Buffer buffer) {
-  }
+  void configure(Map<String, String> config);
 }
