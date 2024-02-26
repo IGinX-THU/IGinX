@@ -18,6 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Prefetch;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.index.TableIndex;
@@ -28,6 +29,7 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
+import cn.edu.tsinghua.iginx.parquet.manager.data.NoPrefetch;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
@@ -41,6 +43,7 @@ import java.util.*;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.LongFunction;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,13 +53,15 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final TableStorage<K, F, T, V> tableStorage;
   private final TombstoneStorage<K, F> tombstoneStorage;
   private final TableIndex<K, F, T, V> tableIndex;
+  private final Prefetch prefetch = new NoPrefetch();
 
   private DataBuffer<K, F, V> writeBuffer = new DataBuffer<>();
   private final LongAdder inserted = new LongAdder();
   private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
 
-  public OneTierDB(StorageShared shared, Path dir, ReadWriter<K, F, T, V> readerWriter)
+  public OneTierDB(
+      StorageShared shared, Path dir, ReadWriter<K, F, T, V> readerWriter, NoPrefetch noPrefetch)
       throws IOException {
     this.shared = shared;
     this.tableStorage = new TableStorage<>(shared, readerWriter);
@@ -70,6 +75,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
+  @SuppressWarnings("unchecked")
   public Scanner<K, Scanner<F, V>> query(Set<F> fields, RangeSet<K> ranges, Filter filter)
       throws StorageException {
     DataBuffer<K, F, V> readBuffer = new DataBuffer<>();
@@ -80,9 +86,15 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       Set<String> tables = tableIndex.find(fields, ranges);
       List<String> sortedTableNames = new ArrayList<>(tables);
       sortedTableNames.sort(Comparator.naturalOrder());
-      for (String tableName : sortedTableNames) {
-        Table<K, F, T, V> table = tableStorage.get(tableName);
-        Tombstone<K, F> tombstone = tombstoneStorage.get(tableName);
+
+      QueriedTableSequence<K, F, T, V> sequence =
+          new QueriedTableSequence<>(shared, sortedTableNames, tableStorage, tombstoneStorage);
+      LongFunction<Object> fetcher = prefetch.prefetch(sequence);
+      for (int i = 0; i < sequence.count(); i++) {
+        QueriedTableSequence<K, F, T, V>.Entry entry =
+            (QueriedTableSequence<K, F, T, V>.Entry) fetcher.apply(i);
+        Table<K, F, T, V> table = entry.getTable();
+        Tombstone<K, F> tombstone = entry.getTombstone();
         try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, ranges)) {
           readBuffer.putRows(scanner);
         }

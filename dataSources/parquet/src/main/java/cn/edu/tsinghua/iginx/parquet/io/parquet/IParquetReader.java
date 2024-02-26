@@ -28,6 +28,7 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
+import org.apache.parquet.bytes.ByteBufferAllocator;
 import org.apache.parquet.column.statistics.LongStatistics;
 import org.apache.parquet.filter2.compat.FilterCompat;
 import org.apache.parquet.filter2.predicate.FilterPredicate;
@@ -199,6 +200,11 @@ public class IParquetReader implements AutoCloseable {
       optionsBuilder.withCodecFactory(
           new CodecFactory(
               lz4BufferSize, CodecFactory.DEFAULT_ZSTD_LEVEL, CodecFactory.DEFAULT_ZSTD_WORKERS));
+      return this;
+    }
+
+    public Builder withBufferAllocator(ByteBufferAllocator bufferAllocator) {
+      optionsBuilder.withAllocator(bufferAllocator);
       return this;
     }
   }

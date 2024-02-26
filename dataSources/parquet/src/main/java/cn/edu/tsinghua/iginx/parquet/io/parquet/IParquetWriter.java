@@ -21,8 +21,10 @@ import cn.edu.tsinghua.iginx.format.parquet.ParquetWriteOptions;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
+import org.apache.parquet.bytes.ByteBufferAllocator;
 import org.apache.parquet.compression.CompressionCodecFactory;
 import org.apache.parquet.hadoop.CodecFactory;
 import org.apache.parquet.hadoop.ParquetFileWriter;
@@ -31,6 +33,8 @@ import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.LocalOutputFile;
 import org.apache.parquet.io.OutputFile;
 import org.apache.parquet.schema.MessageType;
+import org.apache.parquet.schema.PrimitiveType;
+import org.apache.parquet.schema.Type;
 import org.apache.parquet.schema.TypeUtil;
 
 public class IParquetWriter implements AutoCloseable {
@@ -46,6 +50,26 @@ public class IParquetWriter implements AutoCloseable {
 
   public static Builder builder(Path path, MessageType schema) {
     return new Builder(new LocalOutputFile(path), schema);
+  }
+
+  public static PrimitiveType getParquetType(
+      String name, DataType type, Type.Repetition repetition) {
+    switch (type) {
+      case BOOLEAN:
+        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.BOOLEAN, name);
+      case INTEGER:
+        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.INT32, name);
+      case LONG:
+        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.INT64, name);
+      case FLOAT:
+        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.FLOAT, name);
+      case DOUBLE:
+        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.DOUBLE, name);
+      case BINARY:
+        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.BINARY, name);
+      default:
+        throw new RuntimeException("Unsupported data type: " + type);
+    }
   }
 
   public void write(IRecord record) throws IOException {
@@ -94,7 +118,7 @@ public class IParquetWriter implements AutoCloseable {
     }
 
     public Builder withPageSize(int pageSize) {
-      optionsBuilder.withPageSize(pageSize);
+      optionsBuilder.asParquetPropertiesBuilder().withPageSize(pageSize);
       return this;
     }
 
@@ -105,6 +129,11 @@ public class IParquetWriter implements AutoCloseable {
               .getCompressor(codecName);
 
       optionsBuilder.withCompressor(compressor);
+      return this;
+    }
+
+    public Builder withBufferAllocator(ByteBufferAllocator bufferAllocator) {
+      optionsBuilder.asParquetPropertiesBuilder().withAllocator(bufferAllocator);
       return this;
     }
   }

@@ -8,10 +8,10 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
-import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.buffer.BufferPool;
 import cn.edu.tsinghua.iginx.parquet.util.cache.CachePool;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
@@ -19,9 +19,11 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
 import javax.annotation.Nonnull;
+import org.apache.parquet.bytes.ByteBufferAllocator;
 import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.Type;
@@ -35,10 +37,13 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   private final StorageShared shared;
 
+  private final ByteBufferAllocator bufferAllocator;
+
   private final Path dir;
 
   public ParquetReadWriter(StorageShared shared, Path dir) {
     this.shared = shared;
+    this.bufferAllocator = new BufferAllocatorWrapper(shared.getBufferPool());
     this.dir = dir;
     cleanTempFiles();
   }
@@ -77,6 +82,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         shared.getStorageProperties().getParquetCompression(),
         shared.getStorageProperties().getZstdLevel(),
         shared.getStorageProperties().getZstdWorkers());
+    builder.withBufferAllocator(bufferAllocator);
 
     try (IParquetWriter writer = builder.build()) {
       while (scanner.iterate()) {
@@ -102,11 +108,12 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   private static MessageType getMessageType(Map<String, DataType> schema) {
     List<Type> fields = new ArrayList<>();
     fields.add(
-        Storer.getParquetType(Constants.KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
+        IParquetWriter.getParquetType(
+            Constants.KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
     for (Map.Entry<String, DataType> entry : schema.entrySet()) {
       String name = entry.getKey();
       DataType type = entry.getValue();
-      fields.add(Storer.getParquetType(name, type, Type.Repetition.OPTIONAL));
+      fields.add(IParquetWriter.getParquetType(name, type, Type.Repetition.OPTIONAL));
     }
     MessageType parquetSchema = new MessageType(Constants.RECORD_FIELD_NAME, fields);
     return parquetSchema;
@@ -136,7 +143,9 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   private ParquetTableMeta doReadMeta(String fileName) {
     Path path = Paths.get(fileName);
 
-    try (IParquetReader reader = IParquetReader.builder(path).build()) {
+    IParquetReader.Builder builder = IParquetReader.builder(path);
+
+    try (IParquetReader reader = builder.build()) {
       Map<String, DataType> schemaDst = new HashMap<>();
       MessageType parquetSchema = reader.getSchema();
       for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
@@ -180,6 +189,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     IParquetReader.Builder builder = IParquetReader.builder(path);
     builder.project(fields);
     builder.filter(unionFilter);
+    builder.withBufferAllocator(bufferAllocator);
 
     ParquetTableMeta parquetTableMeta = getParquetTableMeta(path.toString());
     IParquetReader reader = builder.build(parquetTableMeta.getMeta());
@@ -344,6 +354,44 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     @Override
     public int getWeight() {
       return weight;
+    }
+
+    @Override
+    public String toString() {
+      return "ParquetTableMeta{"
+          + "schemaDst="
+          + schemaDst
+          + ", rangeMap="
+          + rangeMap
+          + ", meta="
+          + meta
+          + ", weight="
+          + weight
+          + '}';
+    }
+  }
+
+  private static class BufferAllocatorWrapper implements ByteBufferAllocator {
+
+    private final BufferPool bufferPool;
+
+    private BufferAllocatorWrapper(BufferPool bufferPool) {
+      this.bufferPool = bufferPool;
+    }
+
+    @Override
+    public ByteBuffer allocate(int size) {
+      return bufferPool.allocate(size);
+    }
+
+    @Override
+    public void release(ByteBuffer b) {
+      bufferPool.release(b);
+    }
+
+    @Override
+    public boolean isDirect() {
+      return false;
     }
   }
 }

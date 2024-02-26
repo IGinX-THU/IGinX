@@ -56,7 +56,7 @@ public class DataManager implements Manager {
     this.shared = shared;
     Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
     ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dataDir);
-    this.db = new OneTierDB<>(shared, dir, readWriter);
+    this.db = new OneTierDB<>(shared, dir, readWriter, new NoPrefetch());
   }
 
   @Override

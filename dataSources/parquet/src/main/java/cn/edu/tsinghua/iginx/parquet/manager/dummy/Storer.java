@@ -25,7 +25,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;
 
 @Deprecated
@@ -38,26 +37,6 @@ public class Storer {
   }
 
   public static final String KEY_FIELD_NAME = Constants.KEY_FIELD_NAME;
-
-  public static PrimitiveType getParquetType(
-      String name, DataType type, Type.Repetition repetition) {
-    switch (type) {
-      case BOOLEAN:
-        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.BOOLEAN, name);
-      case INTEGER:
-        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.INT32, name);
-      case LONG:
-        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.INT64, name);
-      case FLOAT:
-        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.FLOAT, name);
-      case DOUBLE:
-        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.DOUBLE, name);
-      case BINARY:
-        return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.BINARY, name);
-      default:
-        throw new RuntimeException("Unsupported data type: " + type);
-    }
-  }
 
   public void flush(Table memTable) throws IOException {
     MessageType schema = getMessageTypeStartWithKey("test", memTable.getHeader());
@@ -90,9 +69,12 @@ public class Storer {
 
   public static MessageType getMessageTypeStartWithKey(String name, List<Field> header) {
     List<Type> fields = new ArrayList<>();
-    fields.add(getParquetType(KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
+    fields.add(
+        IParquetWriter.getParquetType(KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
     for (Field field : header) {
-      fields.add(getParquetType(field.getName(), field.getType(), Type.Repetition.OPTIONAL));
+      fields.add(
+          IParquetWriter.getParquetType(
+              field.getName(), field.getType(), Type.Repetition.OPTIONAL));
     }
     return new MessageType(name, fields);
   }
