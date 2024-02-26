@@ -14,11 +14,12 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
+package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
-import java.util.Map;
+public class HeapPoolTest extends BufferPoolTest {
 
-public interface ConfigurableBufferPool extends BufferPool {
-
-  void configure(Map<String, String> config);
+  @Override
+  protected BufferPool getBufferPool() {
+    return new HeapPool();
+  }
 }

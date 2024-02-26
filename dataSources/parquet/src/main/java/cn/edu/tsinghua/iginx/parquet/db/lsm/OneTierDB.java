@@ -28,10 +28,10 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.NotIntegrityException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 
 public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
-  private final Shared shared;
+  private final StorageShared shared;
   private final TableStorage<K, F, T, V> tableStorage;
   private final TombstoneStorage<K, F> tombstoneStorage;
   private final TableIndex<K, F, T, V> tableIndex;
@@ -56,7 +56,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
 
-  public OneTierDB(Shared shared, Path dir, ReadWriter<K, F, T, V> readerWriter)
+  public OneTierDB(StorageShared shared, Path dir, ReadWriter<K, F, T, V> readerWriter)
       throws IOException {
     this.shared = shared;
     this.tableStorage = new TableStorage<>(shared, readerWriter);

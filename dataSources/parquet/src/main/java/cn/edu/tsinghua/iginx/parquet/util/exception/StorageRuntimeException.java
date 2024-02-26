@@ -14,23 +14,20 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-import java.nio.ByteBuffer;
-import java.util.function.IntFunction;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 
-class FixedRecyclePool extends AbstractFixedRecyclePool<ByteBuffer> {
-  public FixedRecyclePool(BufferPool<ByteBuffer> subPool, int recycleSize) {
-    super(subPool, recycleSize);
+public class StorageRuntimeException extends PhysicalRuntimeException {
+  public StorageRuntimeException(String message) {
+    super(message);
   }
 
-  @Override
-  protected ByteBuffer reference(ByteBuffer buffer) {
-    return buffer;
+  public StorageRuntimeException(String message, Throwable cause) {
+    super(message, cause);
   }
 
-  @Override
-  protected ByteBuffer deReference(ByteBuffer reference) {
-    return reference;
+  public StorageRuntimeException(Throwable cause) {
+    super(cause);
   }
 }

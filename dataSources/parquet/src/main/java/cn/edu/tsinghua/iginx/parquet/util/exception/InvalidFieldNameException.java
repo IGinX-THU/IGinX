@@ -14,21 +14,25 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+public class InvalidFieldNameException extends SchemaException {
 
-public class StorageException extends PhysicalException {
+  private final String fieldName;
 
-  public StorageException(Throwable cause) {
-    super(cause);
+  private final String reason;
+
+  public InvalidFieldNameException(String fieldName, String reason) {
+    super(String.format("invalid field name %s, because: ", fieldName, reason));
+    this.fieldName = fieldName;
+    this.reason = reason;
   }
 
-  public StorageException(String message) {
-    super(message);
+  public String getFieldName() {
+    return fieldName;
   }
 
-  public StorageException(String message, Throwable cause) {
-    super(message, cause);
+  public String getReason() {
+    return reason;
   }
 }

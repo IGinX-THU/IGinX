@@ -1,10 +1,10 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
-import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.cache.CachePool;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import java.io.*;
 import java.nio.file.*;
 import java.util.Set;
@@ -17,15 +17,18 @@ import org.slf4j.LoggerFactory;
 
 public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TombstoneStorage.class);
-  private final Shared shared;
+  private final StorageShared shared;
   private final Path dir;
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
 
-  private final ObjectFormat<K> keyFormat;
-  private final ObjectFormat<F> fieldFormat;
+  private final ReadWriter.ObjectFormat<K> keyFormat;
+  private final ReadWriter.ObjectFormat<F> fieldFormat;
 
   public TombstoneStorage(
-      Shared shared, Path dir, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
+      StorageShared shared,
+      Path dir,
+      ReadWriter.ObjectFormat<K> keyFormat,
+      ReadWriter.ObjectFormat<F> fieldFormat) {
     this.shared = shared;
     this.dir = dir;
     this.keyFormat = keyFormat;

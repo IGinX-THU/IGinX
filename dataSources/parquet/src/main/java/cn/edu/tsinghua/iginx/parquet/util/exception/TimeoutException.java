@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-public class TieredPool implements BufferPool {
-
+public class TimeoutException extends StorageException {
+  public TimeoutException(String message) {
+    super(message);
+  }
 }

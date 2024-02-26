@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared;
+package cn.edu.tsinghua.iginx.parquet.util.cache;
 
+import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;

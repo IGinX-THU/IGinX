@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.*;
 import javax.annotation.Nonnull;
 

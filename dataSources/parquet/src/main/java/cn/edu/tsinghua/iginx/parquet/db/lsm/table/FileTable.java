@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Set;
@@ -42,7 +41,7 @@ public class FileTable<K extends Comparable<K>, F, T, V> implements Table<K, F, 
 
   @Override
   @Nonnull
-  public TableMeta<K, F, T, V> getMeta() throws IOException {
+  public ReadWriter.TableMeta<K, F, T, V> getMeta() throws IOException {
     return readWriter.readMeta(tableName);
   }
 

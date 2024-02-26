@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared;
+package cn.edu.tsinghua.iginx.parquet.util;
 
 import java.time.Duration;
 import java.util.Map;

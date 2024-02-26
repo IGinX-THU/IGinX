@@ -14,20 +14,18 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
-
-public class StorageRuntimeException extends PhysicalRuntimeException {
-  public StorageRuntimeException(String message) {
+public class NotIntegrityException extends StorageRuntimeException {
+  public NotIntegrityException(String message) {
     super(message);
   }
 
-  public StorageRuntimeException(String message, Throwable cause) {
+  public NotIntegrityException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public StorageRuntimeException(Throwable cause) {
+  public NotIntegrityException(Throwable cause) {
     super(cause);
   }
 }

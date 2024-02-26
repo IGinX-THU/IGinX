@@ -14,25 +14,11 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-public class InvalidFieldNameException extends SchemaException {
+public class IsClosedException extends RuntimeException {
 
-  private final String fieldName;
-
-  private final String reason;
-
-  public InvalidFieldNameException(String fieldName, String reason) {
-    super(String.format("invalid field name %s, because: ", fieldName, reason));
-    this.fieldName = fieldName;
-    this.reason = reason;
-  }
-
-  public String getFieldName() {
-    return fieldName;
-  }
-
-  public String getReason() {
-    return reason;
+  public IsClosedException(String message) {
+    super(message);
   }
 }

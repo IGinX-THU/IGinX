@@ -16,8 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
@@ -36,7 +36,9 @@ public class SerializeUtils {
   private static final String RANGE_INCLUSIVE_NAME = "inclusive";
 
   public static <K extends Comparable<K>, F> String serialize(
-      Tombstone<K, F> o, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
+      Tombstone<K, F> o,
+      ReadWriter.ObjectFormat<K> keyFormat,
+      ReadWriter.ObjectFormat<F> fieldFormat) {
     JsonObjectBuilder rootBuilder = Json.createObjectBuilder();
 
     for (F f : o.getDeletedColumns()) {
@@ -61,7 +63,7 @@ public class SerializeUtils {
   }
 
   private static <K extends Comparable<K>> JsonArrayBuilder jsonBuild(
-      Iterable<Range<K>> ranges, ObjectFormat<K> format) {
+      Iterable<Range<K>> ranges, ReadWriter.ObjectFormat<K> format) {
     JsonArrayBuilder builder = Json.createArrayBuilder();
     for (Range<K> range : ranges) {
       JsonObjectBuilder rangeBuilder = jsonBuild(range, format);
@@ -71,7 +73,7 @@ public class SerializeUtils {
   }
 
   private static <K extends Comparable<K>> JsonObjectBuilder jsonBuild(
-      Range<K> range, ObjectFormat<K> format) {
+      Range<K> range, ReadWriter.ObjectFormat<K> format) {
     JsonObjectBuilder rangeBuilder = Json.createObjectBuilder();
     if (range.hasUpperBound()) {
       JsonObjectBuilder upperBuilder =
@@ -86,7 +88,8 @@ public class SerializeUtils {
     return rangeBuilder;
   }
 
-  private static <K> JsonObjectBuilder jsonBuild(K bound, BoundType type, ObjectFormat<K> format) {
+  private static <K> JsonObjectBuilder jsonBuild(
+      K bound, BoundType type, ReadWriter.ObjectFormat<K> format) {
     JsonObjectBuilder builder = Json.createObjectBuilder();
     builder.add(RANGE_BOUND_NAME, format.format(bound));
     builder.add(RANGE_INCLUSIVE_NAME, type == BoundType.CLOSED);
@@ -94,7 +97,7 @@ public class SerializeUtils {
   }
 
   public static <K extends Comparable<K>, F> Tombstone<K, F> deserializeRangeTombstone(
-      String s, ObjectFormat<K> keyFormat, ObjectFormat<F> fieldFormat) {
+      String s, ReadWriter.ObjectFormat<K> keyFormat, ReadWriter.ObjectFormat<F> fieldFormat) {
     StringReader sr = new StringReader(s);
     JsonReader reader = Json.createReader(sr);
     JsonObject object = reader.readObject();
@@ -119,7 +122,7 @@ public class SerializeUtils {
   }
 
   private static <K extends Comparable<K>> RangeSet<K> jsonParseRangeSet(
-      JsonArray array, ObjectFormat<K> format) {
+      JsonArray array, ReadWriter.ObjectFormat<K> format) {
     ImmutableRangeSet.Builder<K> builder = ImmutableRangeSet.builder();
     for (JsonValue value : array) {
       Range<K> range = jsonParseRange((JsonObject) value, format);
@@ -129,7 +132,7 @@ public class SerializeUtils {
   }
 
   private static <K extends Comparable<K>> Range<K> jsonParseRange(
-      JsonObject o, ObjectFormat<K> format) {
+      JsonObject o, ReadWriter.ObjectFormat<K> format) {
     JsonObject upper = o.getJsonObject(RANGE_UPPER_NAME);
     JsonObject lower = o.getJsonObject(RANGE_LOWER_NAME);
     if (upper == null && lower == null) {
@@ -156,14 +159,14 @@ public class SerializeUtils {
   }
 
   public static <K extends Comparable<K>> String serialize(
-      RangeSet<K> keyRange, ObjectFormat<K> format) {
+      RangeSet<K> keyRange, ReadWriter.ObjectFormat<K> format) {
     JsonArrayBuilder rangeBuilder = jsonBuild(keyRange.asRanges(), format);
     JsonArray array = rangeBuilder.build();
     return array.toString();
   }
 
   public static <K extends Comparable<K>> RangeSet<K> deserializeRangeSet(
-      String s, ObjectFormat<K> format) {
+      String s, ReadWriter.ObjectFormat<K> format) {
     StringReader sr = new StringReader(s);
     JsonReader reader = Json.createReader(sr);
     JsonArray array = reader.readArray();

@@ -18,9 +18,8 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -47,11 +46,11 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   private final ExecutorService flusher = Executors.newCachedThreadPool();
 
-  private final Shared shared;
+  private final StorageShared shared;
 
   private final ReadWriter<K, F, T, V> readWriter;
 
-  public TableStorage(Shared shared, ReadWriter<K, F, T, V> readWriter) throws IOException {
+  public TableStorage(StorageShared shared, ReadWriter<K, F, T, V> readWriter) throws IOException {
     this.shared = shared;
     this.readWriter = readWriter;
     reload();
@@ -86,7 +85,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
             cleanLock.readLock().lock();
             try {
               LOGGER.trace("start to flush");
-              TableMeta<K, F, T, V> meta = table.getMeta();
+              ReadWriter.TableMeta<K, F, T, V> meta = table.getMeta();
               try (Scanner<K, Scanner<F, V>> scanner =
                   table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
                 readWriter.flush(tableName, meta, scanner);

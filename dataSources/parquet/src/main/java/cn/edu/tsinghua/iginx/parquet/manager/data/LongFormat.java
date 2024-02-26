@@ -16,9 +16,9 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 
-public class LongFormat implements ObjectFormat<Long> {
+public class LongFormat implements ReadWriter.ObjectFormat<Long> {
   @Override
   public String format(Long value) {
     return value.toString();

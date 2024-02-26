@@ -14,10 +14,21 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-public class TimeoutException extends StorageException {
-  public TimeoutException(String message) {
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+
+public class StorageException extends PhysicalException {
+
+  public StorageException(Throwable cause) {
+    super(cause);
+  }
+
+  public StorageException(String message) {
     super(message);
+  }
+
+  public StorageException(String message, Throwable cause) {
+    super(message, cause);
   }
 }

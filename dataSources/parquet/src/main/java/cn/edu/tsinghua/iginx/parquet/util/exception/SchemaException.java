@@ -14,25 +14,11 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-import java.nio.ByteBuffer;
+public class SchemaException extends StorageException {
 
-public interface BufferPool<Buffer> {
-
-  /**
-   * Fetch a buffer from the pool.
-   *
-   * @param capacity the desired size of the buffer
-   * @return a heap buffer with size at least the `capacity` and arrayOffset of 0
-   */
-  Buffer allocate(int capacity);
-
-  /**
-   * Return a buffer to the pool.
-   *
-   * @param buffer the buffer to return
-   */
-  default void release(Buffer buffer) {
+  public SchemaException(String message) {
+    super(message);
   }
 }

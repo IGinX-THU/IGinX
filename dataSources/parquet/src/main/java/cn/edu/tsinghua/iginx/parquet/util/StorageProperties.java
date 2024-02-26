@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared;
+package cn.edu.tsinghua.iginx.parquet.util;
 
 import java.time.Duration;
 import java.util.Map;
@@ -29,6 +29,9 @@ public class StorageProperties {
   private final long cacheCapacity;
   private final Duration cacheTimeout;
   private final boolean cacheSoftValues;
+  private final boolean poolBufferRecycleEnable;
+  private final int poolBufferRecycleAlign;
+  private final int poolBufferRecycleLimit;
   private final long parquetRowGroupSize;
   private final long parquetPageSize;
   private final String parquetCompression;
@@ -43,6 +46,9 @@ public class StorageProperties {
       long cacheCapacity,
       Duration cacheTimeout,
       boolean cacheSoftValues,
+      boolean poolBufferRecycleEnable,
+      int poolBufferRecycleAlign,
+      int poolBufferRecycleLimit,
       long parquetRowGroupSize,
       long parquetPageSize,
       String parquetCompression,
@@ -55,6 +61,9 @@ public class StorageProperties {
     this.cacheCapacity = cacheCapacity;
     this.cacheTimeout = cacheTimeout;
     this.cacheSoftValues = cacheSoftValues;
+    this.poolBufferRecycleEnable = poolBufferRecycleEnable;
+    this.poolBufferRecycleAlign = poolBufferRecycleAlign;
+    this.poolBufferRecycleLimit = poolBufferRecycleLimit;
     this.parquetRowGroupSize = parquetRowGroupSize;
     this.parquetPageSize = parquetPageSize;
     this.parquetCompression = parquetCompression;
@@ -116,6 +125,33 @@ public class StorageProperties {
    */
   public boolean getCacheSoftValues() {
     return cacheSoftValues;
+  }
+
+  /**
+   * Get whether to enable pool buffer recycle
+   *
+   * @return whether to enable pool buffer recycle
+   */
+  public boolean getPoolBufferRecycleEnable() {
+    return poolBufferRecycleEnable;
+  }
+
+  /**
+   * Get the pool buffer recycle align
+   *
+   * @return the pool buffer recycle align
+   */
+  public int getPoolBufferRecycleAlign() {
+    return poolBufferRecycleAlign;
+  }
+
+  /**
+   * Get the pool buffer recycle limit
+   *
+   * @return the pool buffer recycle limit
+   */
+  public int getPoolBufferRecycleLimit() {
+    return poolBufferRecycleLimit;
   }
 
   /**
@@ -190,6 +226,9 @@ public class StorageProperties {
         .add("cacheCapacity=" + cacheCapacity)
         .add("cacheTimeout=" + cacheTimeout)
         .add("cacheSoftValues=" + cacheSoftValues)
+        .add("poolBufferRecycleEnable=" + poolBufferRecycleEnable)
+        .add("poolBufferRecycleAlign=" + poolBufferRecycleAlign)
+        .add("poolBufferRecycleLimit=" + poolBufferRecycleLimit)
         .add("parquetRowGroupSize=" + parquetRowGroupSize)
         .add("parquetPageSize=" + parquetPageSize)
         .add("parquetCompression='" + parquetCompression + "'")
@@ -207,6 +246,9 @@ public class StorageProperties {
     public static final String CACHE_CAPACITY = "cache.capacity";
     public static final String CACHE_TIMEOUT = "cache.timeout";
     public static final String CACHE_VALUE_SOFT = "cache.value.soft";
+    public static final String POOL_BUFFER_RECYCLE_ENABLE = "pool.buffer.recycle.enable";
+    public static final String POOL_BUFFER_RECYCLE_ALIGN = "pool.buffer.recycle.align";
+    public static final String POOL_BUFFER_RECYCLE_LIMIT = "pool.buffer.recycle.limit";
     public static final String PARQUET_BLOCK_SIZE = "parquet.block.size";
     public static final String PARQUET_PAGE_SIZE = "parquet.page.size";
     public static final String PARQUET_COMPRESSOR = "parquet.compression";
@@ -214,12 +256,17 @@ public class StorageProperties {
     public static final String ZSTD_WORKERS = "zstd.workers";
     public static final String PARQUET_LZ4_BUFFER_SIZE = "parquet.lz4.buffer.size";
 
+    private static final int UNINITIALIZED_INT = -1;
+
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private long writeBatchSize = 1024 * 1024; // BYTE
+    private int compactPermits = 16;
     private long cacheCapacity = 1024 * 1024 * 1024; // BYTE
     private Duration cacheTimeout = null;
     private boolean cacheSoftValues = false;
-    private int compactPermits = 16;
+    private boolean poolBufferRecycleEnable = true;
+    private int poolBufferRecycleAlign = UNINITIALIZED_INT;
+    private int poolBufferRecycleLimit = UNINITIALIZED_INT;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
     private String parquetCompression = "UNCOMPRESSED";
@@ -291,12 +338,45 @@ public class StorageProperties {
     /**
      * Set the number of flusher permits
      *
-     * @param flusherPermits the number of flusher permits
+     * @param compactPermits the number of flusher permits
      * @return this builder
      */
-    public Builder setFlusherPermits(int flusherPermits) {
-      ParseUtils.checkPositive(flusherPermits);
-      this.compactPermits = flusherPermits;
+    public Builder setCompactPermits(int compactPermits) {
+      ParseUtils.checkPositive(compactPermits);
+      this.compactPermits = compactPermits;
+      return this;
+    }
+
+    /**
+     * Set the pool buffer recycle enable
+     *
+     * @param poolBufferRecycleEnable the pool buffer recycle enable
+     * @return this builder
+     */
+    public Builder setPoolBufferRecycleEnable(boolean poolBufferRecycleEnable) {
+      this.poolBufferRecycleEnable = poolBufferRecycleEnable;
+      return this;
+    }
+
+    /**
+     * Set the pool buffer recycle align
+     *
+     * @param poolBufferRecycleAlign the pool buffer recycle align
+     * @return this builder
+     */
+    public Builder setPoolBufferRecycleAlign(int poolBufferRecycleAlign) {
+      this.poolBufferRecycleAlign = poolBufferRecycleAlign;
+      return this;
+    }
+
+    /**
+     * Set the pool buffer recycle limit
+     *
+     * @param poolBufferRecycleLimit the pool buffer recycle limit
+     * @return this builder
+     */
+    public Builder setPoolBufferRecycleLimit(int poolBufferRecycleLimit) {
+      this.poolBufferRecycleLimit = poolBufferRecycleLimit;
       return this;
     }
 
@@ -384,6 +464,9 @@ public class StorageProperties {
      *       <li>cache.capacity: the capacity of cache, bytes
      *       <li>cache.timeout: the expiry timeout of cache, iso8601 duration
      *       <li>cache.value.soft: whether to enable soft values of cache
+     *       <li>pool.buffer.recycle.enable: the pool buffer recycle enable
+     *       <li>pool.buffer.recycle.align: the pool buffer recycle align
+     *       <li>pool.buffer.recycle.limit: the pool buffer recycle limit
      *       <li>parquet.block.size: the size of parquet row group, bytes
      *       <li>parquet.page.size: the size of parquet page, bytes
      *       <li>parquet.compression: the parquet compression codec name
@@ -397,11 +480,17 @@ public class StorageProperties {
     public Builder parse(Map<String, String> properties) {
       ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
       ParseUtils.getOptionalLong(properties, WRITE_BATCH_SIZE).ifPresent(this::setWriteBatchSize);
-      ParseUtils.getOptionalInteger(properties, COMPACT_PERMITS).ifPresent(this::setFlusherPermits);
+      ParseUtils.getOptionalInteger(properties, COMPACT_PERMITS).ifPresent(this::setCompactPermits);
       ParseUtils.getOptionalLong(properties, CACHE_CAPACITY).ifPresent(this::setCacheCapacity);
       ParseUtils.getOptionalDuration(properties, CACHE_TIMEOUT).ifPresent(this::setCacheTimeout);
       ParseUtils.getOptionalBoolean(properties, CACHE_VALUE_SOFT)
           .ifPresent(this::setCacheSoftValues);
+      ParseUtils.getOptionalBoolean(properties, POOL_BUFFER_RECYCLE_ENABLE)
+          .ifPresent(this::setPoolBufferRecycleEnable);
+      ParseUtils.getOptionalInteger(properties, POOL_BUFFER_RECYCLE_ALIGN)
+          .ifPresent(this::setPoolBufferRecycleAlign);
+      ParseUtils.getOptionalInteger(properties, POOL_BUFFER_RECYCLE_LIMIT)
+          .ifPresent(this::setPoolBufferRecycleLimit);
       ParseUtils.getOptionalLong(properties, PARQUET_BLOCK_SIZE)
           .ifPresent(this::setParquetRowGroupSize);
       ParseUtils.getOptionalLong(properties, PARQUET_PAGE_SIZE).ifPresent(this::setParquetPageSize);
@@ -420,6 +509,12 @@ public class StorageProperties {
      * @return a StorageProperties
      */
     public StorageProperties build() {
+      if (poolBufferRecycleAlign == UNINITIALIZED_INT) {
+        poolBufferRecycleAlign = (int) parquetPageSize;
+      }
+      if (poolBufferRecycleLimit == UNINITIALIZED_INT) {
+        poolBufferRecycleLimit = (int) parquetRowGroupSize;
+      }
       return new StorageProperties(
           writeBufferSize,
           writeBatchSize,
@@ -427,6 +522,9 @@ public class StorageProperties {
           cacheCapacity,
           cacheTimeout,
           cacheSoftValues,
+          poolBufferRecycleEnable,
+          poolBufferRecycleAlign,
+          poolBufferRecycleLimit,
           parquetRowGroupSize,
           parquetPageSize,
           parquetCompression,

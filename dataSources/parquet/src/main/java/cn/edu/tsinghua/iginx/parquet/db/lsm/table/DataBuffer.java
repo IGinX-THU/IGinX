@@ -19,7 +19,7 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.ColumnUnionRowScanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.IteratorScanner;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;

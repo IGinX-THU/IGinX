@@ -1,12 +1,12 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.index;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.NotIntegrityException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.TypeConflictedException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
@@ -27,7 +27,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
       TableStorage<K, F, T, V> tableStorage, TombstoneStorage<K, F> tombstoneStorage) {
     try {
       for (String tableName : tableStorage.tableNames()) {
-        TableMeta<K, F, T, V> meta = tableStorage.get(tableName).getMeta();
+        ReadWriter.TableMeta<K, F, T, V> meta = tableStorage.get(tableName).getMeta();
         declareFields(meta.getSchema());
         addTable(tableName, meta);
         Tombstone<K, F> tombstone = tombstoneStorage.get(tableName);
@@ -191,7 +191,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     return result;
   }
 
-  public void addTable(String name, TableMeta<K, F, T, V> meta) {
+  public void addTable(String name, ReadWriter.TableMeta<K, F, T, V> meta) {
     lock.readLock().lock();
     try {
       Map<F, T> types = meta.getSchema();

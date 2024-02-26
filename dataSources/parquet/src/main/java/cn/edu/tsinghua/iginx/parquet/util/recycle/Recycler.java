@@ -14,18 +14,12 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.recycle;
 
-public class NotIntegrityException extends StorageRuntimeException {
-  public NotIntegrityException(String message) {
-    super(message);
-  }
+public interface Recycler<T> {
+  T get();
 
-  public NotIntegrityException(String message, Throwable cause) {
-    super(message, cause);
-  }
+  void recycle(T object);
 
-  public NotIntegrityException(Throwable cause) {
-    super(cause);
-  }
+  void clear();
 }

@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
-public class SchemaException extends StorageException {
+import java.nio.ByteBuffer;
 
-  public SchemaException(String message) {
-    super(message);
+public class HeapPool implements BufferPool {
+  @Override
+  public ByteBuffer allocate(int capacity) {
+    if (capacity <= 0) throw new IllegalArgumentException("capacity must be non-negative");
+
+    return ByteBuffer.allocate(capacity);
   }
+
+  @Override
+  public void release(ByteBuffer byteBuffer) {}
 }

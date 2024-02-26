@@ -14,28 +14,38 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared;
+package cn.edu.tsinghua.iginx.parquet.util;
 
+import cn.edu.tsinghua.iginx.parquet.util.buffer.BufferPool;
+import cn.edu.tsinghua.iginx.parquet.util.buffer.BufferPools;
+import cn.edu.tsinghua.iginx.parquet.util.cache.CachePool;
 import java.util.concurrent.Semaphore;
 
-public class Shared {
+public class StorageShared {
   private final StorageProperties storageProperties;
 
   private final Semaphore flusherPermits;
 
   private final CachePool cachePool;
 
-  public Shared(
-      StorageProperties storageProperties, Semaphore flusherPermits, CachePool cachePool) {
+  private final BufferPool bufferPool;
+
+  public StorageShared(
+      StorageProperties storageProperties,
+      Semaphore flusherPermits,
+      CachePool cachePool,
+      BufferPool bufferPool) {
     this.storageProperties = storageProperties;
     this.flusherPermits = flusherPermits;
     this.cachePool = cachePool;
+    this.bufferPool = bufferPool;
   }
 
-  public static Shared of(StorageProperties storageProperties) {
+  public static StorageShared of(StorageProperties storageProperties) {
     Semaphore flusherPermits = new Semaphore(storageProperties.getCompactPermits(), true);
     CachePool cachePool = new CachePool(storageProperties);
-    return new Shared(storageProperties, flusherPermits, cachePool);
+    BufferPool bufferPool = BufferPools.from(storageProperties);
+    return new StorageShared(storageProperties, flusherPermits, cachePool, bufferPool);
   }
 
   public StorageProperties getStorageProperties() {
@@ -48,5 +58,9 @@ public class Shared {
 
   public CachePool getCachePool() {
     return cachePool;
+  }
+
+  public BufferPool getBufferPool() {
+    return bufferPool;
   }
 }

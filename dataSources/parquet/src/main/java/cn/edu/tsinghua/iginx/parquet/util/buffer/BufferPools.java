@@ -14,23 +14,28 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
+package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
-import java.lang.ref.SoftReference;
-import java.nio.ByteBuffer;
+import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
 
-class FixedSoftRecyclePool extends AbstractFixedRecyclePool<SoftReference<ByteBuffer>> {
-  public FixedSoftRecyclePool(BufferPool<ByteBuffer> subPool, int recycleSize) {
-    super(subPool, recycleSize);
+public class BufferPools {
+  private BufferPools() {}
+
+  enum PoolType {
+    ON_HEAP,
+    OFF_HEAP,
+    CUSTOM,
   }
 
-  @Override
-  protected SoftReference<ByteBuffer> reference(ByteBuffer buffer) {
-    return new SoftReference<>(buffer);
-  }
-
-  @Override
-  protected ByteBuffer deReference(SoftReference<ByteBuffer> reference) {
-    return reference.get();
+  public static BufferPool from(StorageProperties storageProperties) {
+    BufferPool bufferPool = new HeapPool();
+    if (storageProperties.getPoolBufferRecycleEnable()) {
+      bufferPool =
+          new RecyclePool(
+              bufferPool,
+              storageProperties.getPoolBufferRecycleAlign(),
+              storageProperties.getPoolBufferRecycleLimit());
+    }
+    return bufferPool;
   }
 }

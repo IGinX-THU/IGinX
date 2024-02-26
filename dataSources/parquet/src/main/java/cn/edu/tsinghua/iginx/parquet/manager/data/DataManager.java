@@ -30,11 +30,11 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.FilterRangeUtils;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.InvalidFieldNameException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.FilterRangeUtils;
+import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.InvalidFieldNameException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Range;
@@ -50,9 +50,9 @@ public class DataManager implements Manager {
 
   private final Database<Long, String, DataType, Object> db;
 
-  private final Shared shared;
+  private final StorageShared shared;
 
-  public DataManager(Shared shared, Path dir) throws IOException {
+  public DataManager(StorageShared shared, Path dir) throws IOException {
     this.shared = shared;
     Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
     ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dataDir);

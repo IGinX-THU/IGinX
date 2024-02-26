@@ -14,12 +14,24 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
+package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-import java.util.concurrent.ConcurrentSkipListMap;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 
-public class SortedPool implements BufferPool {
+public class UnsupportedFilterException extends StorageException {
+  private final Filter filter;
 
-  private final ConcurrentSkipListMap<Integer, FixedSoftPool> pool = new ConcurrentSkipListMap<>();
+  public UnsupportedFilterException(Filter filter) {
+    super(String.format("unsupported filter %s", filter.toString()));
+    this.filter = filter;
+  }
 
+  public UnsupportedFilterException(String message, Filter filter) {
+    super(message);
+    this.filter = filter;
+  }
+
+  public Filter getFilter() {
+    return filter;
+  }
 }

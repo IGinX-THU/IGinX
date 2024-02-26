@@ -14,11 +14,24 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
-public class IsClosedException extends RuntimeException {
+import java.nio.ByteBuffer;
 
-  public IsClosedException(String message) {
-    super(message);
-  }
+public interface BufferPool {
+
+  /**
+   * Fetch a buffer from the pool.
+   *
+   * @param capacity the desired size of the buffer
+   * @return a heap buffer with size at least the `capacity` and arrayOffset of 0
+   */
+  ByteBuffer allocate(int capacity);
+
+  /**
+   * Return a buffer to the pool.
+   *
+   * @param buffer the buffer to return
+   */
+  void release(ByteBuffer buffer);
 }

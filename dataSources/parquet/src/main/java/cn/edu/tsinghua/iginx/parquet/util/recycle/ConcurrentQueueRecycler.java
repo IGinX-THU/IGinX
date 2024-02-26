@@ -14,24 +14,28 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared.exception;
+package cn.edu.tsinghua.iginx.parquet.util.recycle;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
-public class UnsupportedFilterException extends StorageException {
-  private final Filter filter;
+public class ConcurrentQueueRecycler<T> implements Recycler<T> {
 
-  public UnsupportedFilterException(Filter filter) {
-    super(String.format("unsupported filter %s", filter.toString()));
-    this.filter = filter;
+  private final ConcurrentLinkedQueue<T> queue = new ConcurrentLinkedQueue<>();
+
+  @Override
+  public T get() {
+    return queue.poll();
   }
 
-  public UnsupportedFilterException(String message, Filter filter) {
-    super(message);
-    this.filter = filter;
+  @Override
+  public void recycle(T object) {
+    if (object != null) {
+      queue.add(object);
+    }
   }
 
-  public Filter getFilter() {
-    return filter;
+  @Override
+  public void clear() {
+    queue.clear();
   }
 }

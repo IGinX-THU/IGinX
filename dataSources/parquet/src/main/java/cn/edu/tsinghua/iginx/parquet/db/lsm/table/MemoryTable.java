@@ -17,8 +17,8 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.ConcatScanner;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -33,7 +33,7 @@ public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F
   private static final Logger LOGGER = LoggerFactory.getLogger(MemoryTable.class);
 
   private final DataBuffer<K, F, V> buffer;
-  private final TableMeta<K, F, T, V> meta;
+  private final ReadWriter.TableMeta<K, F, T, V> meta;
 
   public MemoryTable(DataBuffer<K, F, V> buffer, Map<F, T> types) {
     this.buffer = Objects.requireNonNull(buffer);
@@ -51,7 +51,7 @@ public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F
 
   @Nonnull
   @Override
-  public TableMeta<K, F, T, V> getMeta() {
+  public ReadWriter.TableMeta<K, F, T, V> getMeta() {
     return meta;
   }
 
@@ -71,7 +71,7 @@ public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F
   }
 
   public static class MemoryTableMeta<K extends Comparable<K>, F, T, V>
-      implements TableMeta<K, F, T, V> {
+      implements ReadWriter.TableMeta<K, F, T, V> {
     private final Map<F, T> schema;
     private final Map<F, Range<K>> ranges;
 

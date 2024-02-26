@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.shared;
+package cn.edu.tsinghua.iginx.parquet.util;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import com.google.common.collect.*;

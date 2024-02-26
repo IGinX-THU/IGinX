@@ -14,7 +14,15 @@
  * limitations under the License.
  */
 
-package cn.edu.tsinghua.iginx.parquet.io.common.buffer;
+package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-public class RecyclePool extends BasePool {
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Prefetch;
+import java.util.function.LongFunction;
+
+public class NoPrefetch implements Prefetch {
+
+  @Override
+  public LongFunction<Object> prefetch(Prefetchable prefetchable) {
+    return prefetchable::fetch;
+  }
 }

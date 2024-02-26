@@ -34,9 +34,9 @@ import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.IsClosedException;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Iterables;
@@ -67,12 +67,12 @@ public class LocalExecutor implements Executor {
 
   private final Manager dummyManager;
 
-  private final Shared shared;
+  private final StorageShared shared;
 
   private final AtomicBoolean isClosed = new AtomicBoolean(false);
 
   public LocalExecutor(
-      Shared shared,
+      StorageShared shared,
       boolean hasData,
       boolean readOnly,
       String dataDir,

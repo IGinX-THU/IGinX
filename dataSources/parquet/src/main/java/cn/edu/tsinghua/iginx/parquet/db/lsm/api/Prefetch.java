@@ -16,9 +16,18 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
-public interface ObjectFormat<V> {
+import java.util.concurrent.Executor;
+import java.util.function.LongFunction;
 
-  String format(V value);
+public interface Prefetch {
 
-  V parse(String source);
+  interface Prefetchable extends Executor, AutoCloseable {
+    long count();
+
+    long estimateCost(long id);
+
+    Object fetch(long id);
+  }
+
+  LongFunction<Object> prefetch(Prefetchable prefetchable);
 }

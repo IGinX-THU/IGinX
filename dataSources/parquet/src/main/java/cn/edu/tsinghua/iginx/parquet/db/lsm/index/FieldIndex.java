@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.index;
 
-import cn.edu.tsinghua.iginx.parquet.shared.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;

@@ -2,21 +2,19 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.IteratorScanner;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
-import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.FilterRangeUtils;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.FilterRangeUtils;
+import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.cache.CachePool;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -35,11 +33,11 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ParquetReadWriter.class);
 
-  private final Shared shared;
+  private final StorageShared shared;
 
   private final Path dir;
 
-  public ParquetReadWriter(Shared shared, Path dir) {
+  public ParquetReadWriter(StorageShared shared, Path dir) {
     this.shared = shared;
     this.dir = dir;
     cleanTempFiles();
