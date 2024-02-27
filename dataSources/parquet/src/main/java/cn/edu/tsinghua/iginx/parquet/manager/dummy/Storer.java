@@ -24,8 +24,8 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 @Deprecated
 public class Storer {

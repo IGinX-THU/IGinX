@@ -23,13 +23,13 @@ import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
 import javax.annotation.Nonnull;
-import org.apache.parquet.bytes.ByteBufferAllocator;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
 import org.ehcache.sizeof.SizeOf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Object> {
 

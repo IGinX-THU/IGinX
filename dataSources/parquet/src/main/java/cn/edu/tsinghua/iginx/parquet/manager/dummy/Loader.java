@@ -23,11 +23,11 @@ import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import org.apache.parquet.io.InvalidRecordException;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
+import shaded.iginx.org.apache.parquet.io.InvalidRecordException;
+import shaded.iginx.org.apache.parquet.schema.GroupType;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 @Deprecated
 public class Loader {

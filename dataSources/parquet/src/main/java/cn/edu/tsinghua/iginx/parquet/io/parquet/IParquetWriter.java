@@ -16,26 +16,27 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.format.parquet.ParquetRecordWriter;
-import cn.edu.tsinghua.iginx.format.parquet.ParquetWriteOptions;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
-import org.apache.parquet.bytes.ByteBufferAllocator;
-import org.apache.parquet.compression.CompressionCodecFactory;
-import org.apache.parquet.hadoop.CodecFactory;
-import org.apache.parquet.hadoop.ParquetFileWriter;
-import org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.io.LocalOutputFile;
-import org.apache.parquet.io.OutputFile;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
-import org.apache.parquet.schema.TypeUtil;
+import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
+import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
+import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
+import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
+import shaded.iginx.org.apache.parquet.hadoop.CodecFactory;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetFileWriter;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordWriter;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import shaded.iginx.org.apache.parquet.io.LocalOutputFile;
+import shaded.iginx.org.apache.parquet.io.OutputFile;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
+import shaded.iginx.org.apache.parquet.schema.Type;
+import shaded.iginx.org.apache.parquet.schema.TypeUtil;
 
 public class IParquetWriter implements AutoCloseable {
 
@@ -49,7 +50,8 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public static Builder builder(Path path, MessageType schema) {
-    return new Builder(new LocalOutputFile(path), schema);
+    return new Builder(
+        new LocalOutputFile(path, new HeapByteBufferAllocator(), Integer.MAX_VALUE), schema);
   }
 
   public static PrimitiveType getParquetType(

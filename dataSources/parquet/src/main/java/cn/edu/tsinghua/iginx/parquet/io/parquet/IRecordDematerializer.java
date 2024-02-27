@@ -16,14 +16,14 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.format.parquet.api.RecordDematerializer;
 import java.util.Map;
-import org.apache.parquet.io.api.Binary;
-import org.apache.parquet.io.api.RecordConsumer;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
+import shaded.iginx.org.apache.parquet.io.api.Binary;
+import shaded.iginx.org.apache.parquet.io.api.RecordConsumer;
+import shaded.iginx.org.apache.parquet.io.api.RecordDematerializer;
+import shaded.iginx.org.apache.parquet.schema.GroupType;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 class IRecordDematerializer extends RecordDematerializer<IRecord> {
 
