@@ -8,7 +8,7 @@ def to_str(obj):
         return str(obj)
 
 
-class Concat(UDTF):
+class UDFConcat(UDTF):
     def build_header(self, paths, types):
         s = ', '.join(paths)
         return [f"{self.udf_name}({s})"], ["BINARY"]

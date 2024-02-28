@@ -1,8 +1,11 @@
 package cn.edu.tsinghua.iginx.integration.other;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
+import java.util.List;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -21,6 +24,8 @@ public class UDFPathIT {
   private static final String defaultTestUser = "root";
   private static final String defaultTestPass = "root";
 
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+
   @BeforeClass
   public static void setUp() throws SessionException {
     session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
@@ -37,5 +42,11 @@ public class UDFPathIT {
     String statement = "show register python task;";
     String expectedRes = SQLTestTools.execute(session, statement);
     assert expectedRes.contains("Register task infos:");
+    List<String> udfList = config.getUdfList();
+    // result should contain all udfs registered in config file
+    for (String udf : udfList) {
+      String[] udfInfo = udf.split(",");
+      assert expectedRes.contains(udfInfo[1]);
+    }
   }
 }

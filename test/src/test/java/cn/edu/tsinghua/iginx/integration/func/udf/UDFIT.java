@@ -546,35 +546,35 @@ public class UDFIT {
             + "Total line number = 6\n";
     compareResult(expected, ret.getResultInString(false, ""));
 
-    query = "SELECT columnExpand(*) FROM (SELECT a FROM test);";
+    query = "SELECT column_expand(*) FROM (SELECT a FROM test);";
     ret = execute(query);
     expected =
         "ResultSets:\n"
-            + "+---+--------------------+------------------------+----------------------+\n"
-            + "|key|columnExpand(test.a)|columnExpand(test.a+1.5)|columnExpand(test.a*2)|\n"
-            + "+---+--------------------+------------------------+----------------------+\n"
-            + "|  1|                   2|                     3.5|                     4|\n"
-            + "|  2|                   3|                     4.5|                     6|\n"
-            + "|  3|                   4|                     5.5|                     8|\n"
-            + "|  4|                   9|                    10.5|                    18|\n"
-            + "|  5|                   3|                     4.5|                     6|\n"
-            + "|  6|                   6|                     7.5|                    12|\n"
-            + "+---+--------------------+------------------------+----------------------+\n"
+            + "+---+---------------------+-------------------------+-----------------------+\n"
+            + "|key|column_expand(test.a)|column_expand(test.a+1.5)|column_expand(test.a*2)|\n"
+            + "+---+---------------------+-------------------------+-----------------------+\n"
+            + "|  1|                    2|                      3.5|                      4|\n"
+            + "|  2|                    3|                      4.5|                      6|\n"
+            + "|  3|                    4|                      5.5|                      8|\n"
+            + "|  4|                    9|                     10.5|                     18|\n"
+            + "|  5|                    3|                      4.5|                      6|\n"
+            + "|  6|                    6|                      7.5|                     12|\n"
+            + "+---+---------------------+-------------------------+-----------------------+\n"
             + "Total line number = 6\n";
     compareResult(expected, ret.getResultInString(false, ""));
 
     query =
-        "SELECT `columnExpand(test.a+1.5)` FROM (SELECT columnExpand(*) FROM (SELECT a FROM test)) WHERE `columnExpand(test.a+1.5)` < 5;";
+        "SELECT `column_expand(test.a+1.5)` FROM (SELECT column_expand(*) FROM (SELECT a FROM test)) WHERE `column_expand(test.a+1.5)` < 5;";
     ret = execute(query);
     expected =
         "ResultSets:\n"
-            + "+---+------------------------+\n"
-            + "|key|columnExpand(test.a+1.5)|\n"
-            + "+---+------------------------+\n"
-            + "|  1|                     3.5|\n"
-            + "|  2|                     4.5|\n"
-            + "|  5|                     4.5|\n"
-            + "+---+------------------------+\n"
+            + "+---+-------------------------+\n"
+            + "|key|column_expand(test.a+1.5)|\n"
+            + "+---+-------------------------+\n"
+            + "|  1|                      3.5|\n"
+            + "|  2|                      4.5|\n"
+            + "|  5|                      4.5|\n"
+            + "+---+-------------------------+\n"
             + "Total line number = 3\n";
     compareResult(expected, ret.getResultInString(false, ""));
   }

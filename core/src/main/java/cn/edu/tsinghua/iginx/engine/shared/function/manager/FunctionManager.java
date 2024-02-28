@@ -225,17 +225,17 @@ public class FunctionManager {
       queue.add(interpreter);
     }
 
-    if (type == UDFType.UDAF) {
+    if (type.equals(UDFType.UDAF)) {
       PyUDAF udaf = new PyUDAF(queue, identifier);
       functions.put(identifier, udaf);
       taskMeta.setType(type);
       return udaf;
-    } else if (type == UDFType.UDTF) {
+    } else if (type.equals(UDFType.UDTF)) {
       PyUDTF udtf = new PyUDTF(queue, identifier);
       functions.put(identifier, udtf);
       taskMeta.setType(type);
       return udtf;
-    } else if (type == UDFType.UDSF) {
+    } else if (type.equals(UDFType.UDSF)) {
       PyUDSF udsf = new PyUDSF(queue, identifier);
       functions.put(identifier, udsf);
       taskMeta.setType(type);
