@@ -78,10 +78,6 @@ public class IParquetWriter implements AutoCloseable {
     internalWriter.write(record);
   }
 
-  public void setExtraMetaData(String key, String value) {
-    internalWriter.setExtraMetaData(key, value);
-  }
-
   @Override
   public void close() throws Exception {
     internalWriter.close();
