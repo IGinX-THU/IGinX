@@ -18,6 +18,9 @@ import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class ExprUtils {
 
   private static final FunctionManager functionManager = FunctionManager.getInstance();
@@ -218,6 +221,30 @@ public class ExprUtils {
         return new Value(left.getDoubleV() % right.getDoubleV());
       default:
         return null;
+    }
+  }
+
+  public static List<String> getPathFromExpr(Expression expr){
+    switch (expr.getType()){
+      case Constant:
+        return new ArrayList<>();
+      case Base:
+        List<String> ret = new ArrayList<>();
+        ret.add(expr.getColumnName());
+        return ret;
+      case Function:
+        return ((FuncExpression) expr).getColumns();
+      case Bracket:
+        return getPathFromExpr(((BracketExpression) expr).getExpression());
+      case Unary:
+        return getPathFromExpr(((UnaryExpression) expr).getExpression());
+      case Binary:
+        List<String> left = getPathFromExpr(((BinaryExpression) expr).getLeftExpression());
+        List<String> right = getPathFromExpr(((BinaryExpression) expr).getRightExpression());
+        left.addAll(right);
+        return left;
+      default:
+        throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
     }
   }
 }
