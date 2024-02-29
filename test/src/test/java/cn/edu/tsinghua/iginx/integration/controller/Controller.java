@@ -1,8 +1,9 @@
 package cn.edu.tsinghua.iginx.integration.controller;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.oriPort;
+import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator.IT_DATA_FILENAME;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
 import static org.junit.Assert.fail;
 
@@ -57,6 +58,7 @@ public class Controller {
   private static final String EXP_HAS_DATA_STRING = "ExpHasData";
   private static final String ORI_HAS_DATA_STRING = "oriHasData";
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
+  private static int PARQUET_INDEX = 0;
 
   public static final Map<String, Boolean> SUPPORT_KEY =
       new HashMap<String, Boolean>() {
@@ -208,13 +210,21 @@ public class Controller {
           String path = pathList.get(i);
           String tableName = path.substring(0, path.indexOf("."));
           String dir =
-              ParquetHistoryDataGenerator.IT_DATA_DIR
+              DBCE_PARQUET_FS_TEST_DIR
                   + System.getProperty("file.separator")
                   + tableName;
           parquetGenerator.writeHistoryData(
               port,
               dir,
-              ParquetHistoryDataGenerator.IT_DATA_FILENAME,
+              String.format(IT_DATA_FILENAME, 0),
+              INIT_PATH_LIST,
+              INIT_DATA_TYPE_LIST,
+              INIT_KEYS_LIST,
+              INIT_VALUES_LIST);
+          parquetGenerator.writeHistoryData(
+              port,
+              dir,
+              String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
               Collections.singletonList(pathList.get(i)),
               Collections.singletonList(dataTypeList.get(i)),
               keyList.get(i),
@@ -258,13 +268,22 @@ public class Controller {
       String path = pathList.get(0);
       String tableName = path.substring(0, path.indexOf("."));
       String dir =
-          ParquetHistoryDataGenerator.IT_DATA_DIR
+          DBCE_PARQUET_FS_TEST_DIR
               + System.getProperty("file.separator")
               + tableName;
       parquetGenerator.writeHistoryData(
           port,
           dir,
-          ParquetHistoryDataGenerator.IT_DATA_FILENAME,
+          String.format(IT_DATA_FILENAME, 0),
+          INIT_PATH_LIST,
+          INIT_DATA_TYPE_LIST,
+          INIT_KEYS_LIST,
+          INIT_VALUES_LIST);
+      logger.info("write");
+      parquetGenerator.writeHistoryData(
+          port,
+          dir,
+          String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
           pathList,
           dataTypeList,
           keyList,
