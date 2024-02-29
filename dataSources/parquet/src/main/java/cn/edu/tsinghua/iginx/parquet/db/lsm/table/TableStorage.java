@@ -42,7 +42,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   private final SequenceGenerator seqGen = new SequenceGenerator();
 
-  private final ExecutorService flusher = Executors.newCachedThreadPool();
+  private final ExecutorService flusher = Executors.newCachedThreadPool(createThreadFactory());
 
   private final StorageShared shared;
 
