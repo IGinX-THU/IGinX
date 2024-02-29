@@ -22,12 +22,10 @@ import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -54,6 +52,12 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     this.shared = shared;
     this.readWriter = readWriter;
     reload();
+  }
+
+  private static ThreadFactory createThreadFactory() {
+    ThreadFactoryBuilder builder = new ThreadFactoryBuilder();
+    builder.setNameFormat("ParquetFlusher-%d");
+    return builder.build();
   }
 
   private void reload() throws IOException {
