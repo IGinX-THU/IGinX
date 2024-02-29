@@ -192,7 +192,7 @@ public class StoragePhysicalTaskExecutor {
                                               "unsupported physical task"));
                               }
                             } catch (Exception e) {
-                              logger.error("execute task error: " + e);
+                              logger.error("execute task error: ", e);
                               result = new TaskExecuteResult(new PhysicalException(e));
                             }
                             try {
