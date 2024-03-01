@@ -16,42 +16,36 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
+import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
+import cn.edu.tsinghua.iginx.format.parquet.api.RecordDematerializer;
+import cn.edu.tsinghua.iginx.format.parquet.codec.DefaultCodecFactory;
+import cn.edu.tsinghua.iginx.format.parquet.io.LocalOutputFile;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
 import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
-import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
 import shaded.iginx.org.apache.parquet.hadoop.CodecFactory;
-import shaded.iginx.org.apache.parquet.hadoop.ParquetFileWriter;
-import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordWriter;
+import shaded.iginx.org.apache.parquet.hadoop.ExportedParquetRecordWriter;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
-import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import shaded.iginx.org.apache.parquet.io.LocalOutputFile;
 import shaded.iginx.org.apache.parquet.io.OutputFile;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
-import shaded.iginx.org.apache.parquet.schema.TypeUtil;
 
-public class IParquetWriter implements Closeable {
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
 
-  private final ParquetRecordWriter<IRecord> internalWriter;
+public class IParquetWriter extends ParquetWriter<IRecord> {
 
-  private final ParquetFileWriter fileWriter;
-
-  IParquetWriter(ParquetRecordWriter<IRecord> internalWriter, ParquetFileWriter fileWriter) {
-    this.internalWriter = internalWriter;
-    this.fileWriter = fileWriter;
+  private IParquetWriter(ExportedParquetRecordWriter<IRecord> internalWriter) {
+    super(internalWriter);
   }
 
-  public static Builder builder(Path path, MessageType schema) {
+  public static Builder builder(Path path, MessageType schema, ByteBufferAllocator fileBufferAllocator) {
     return new Builder(
-        new LocalOutputFile(path, new HeapByteBufferAllocator(), Integer.MAX_VALUE), schema);
+        new LocalOutputFile(path, fileBufferAllocator, Integer.MAX_VALUE), schema);
   }
 
   public static PrimitiveType getParquetType(
@@ -74,23 +68,7 @@ public class IParquetWriter implements Closeable {
     }
   }
 
-  public void write(IRecord record) throws IOException {
-    internalWriter.write(record);
-  }
-
-  @Override
-  public void close() throws IOException {
-    internalWriter.close();
-  }
-
-  public ParquetMetadata flush() throws IOException {
-    internalWriter.close();
-    return fileWriter.getFooter();
-  }
-
-  public static class Builder {
-
-    private final ParquetWriteOptions.Builder optionsBuilder = ParquetWriteOptions.builder();
+  public static class Builder extends ParquetWriter.Builder<IRecord, IParquetWriter, Builder> {
 
     private final OutputFile outputFile;
 
@@ -101,38 +79,30 @@ public class IParquetWriter implements Closeable {
       this.schema = schema;
     }
 
+    @Override
+    protected Builder self() {
+      return this;
+    }
+
+    @Override
+    protected RecordDematerializer<IRecord> dematerializer() throws IOException {
+      return new IRecordDematerializer(schema);
+    }
+
+    @Override
     public IParquetWriter build() throws IOException {
-      ParquetWriteOptions options = optionsBuilder.build();
-      TypeUtil.checkValidWriteSchema(schema);
-      ParquetFileWriter fileWriter = new ParquetFileWriter(outputFile, options);
-      ParquetRecordWriter<IRecord> recordWriter =
-          new ParquetRecordWriter<>(fileWriter, new IRecordDematerializer(schema), options);
-      return new IParquetWriter(recordWriter, fileWriter);
+      ExportedParquetRecordWriter<IRecord> internalWriter = build(outputFile, schema, Collections.emptyMap());
+      return new IParquetWriter(internalWriter);
     }
 
-    public Builder withRowGroupSize(long rowGroupSize) {
-      optionsBuilder.withRowGroupSize(rowGroupSize);
-      return this;
-    }
-
-    public Builder withPageSize(int pageSize) {
-      optionsBuilder.asParquetPropertiesBuilder().withPageSize(pageSize);
-      return this;
-    }
-
-    public Builder withCompressor(String name, int zstdLevel, int zstdWorkers) {
+    public Builder withCodec(String name) {
       CompressionCodecName codecName = CompressionCodecName.fromConf(name);
-      CompressionCodecFactory.BytesInputCompressor compressor =
-          (new CodecFactory(CodecFactory.DEFAULT_LZ4_SEGMENT_SIZE, zstdLevel, zstdWorkers))
-              .getCompressor(codecName);
-
-      optionsBuilder.withCompressor(compressor);
-      return this;
+      return super.withCodec(codecName);
     }
 
-    public Builder withBufferAllocator(ByteBufferAllocator bufferAllocator) {
-      optionsBuilder.asParquetPropertiesBuilder().withAllocator(bufferAllocator);
-      return this;
+    public Builder withCodecFactory(ByteBufferAllocator compressAllocator, int zstdLevel, int zstdWorkers) {
+      CompressionCodecFactory codecFactory = new DefaultCodecFactory(compressAllocator, DefaultCodecFactory.DEFAULT_LZ4_SEGMENT_SIZE, zstdLevel, zstdWorkers);
+      return super.withCodecFactory(codecFactory);
     }
   }
 

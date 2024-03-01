@@ -17,48 +17,47 @@
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.format.parquet.ParquetReader;
+import cn.edu.tsinghua.iginx.format.parquet.codec.DefaultCodecFactory;
+import cn.edu.tsinghua.iginx.format.parquet.io.LocalInputFile;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Objects;
-import java.util.Set;
-import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import shaded.iginx.org.apache.parquet.ParquetReadOptions;
 import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.column.statistics.LongStatistics;
+import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
 import shaded.iginx.org.apache.parquet.filter2.compat.FilterCompat;
 import shaded.iginx.org.apache.parquet.filter2.predicate.FilterPredicate;
 import shaded.iginx.org.apache.parquet.hadoop.CodecFactory;
-import shaded.iginx.org.apache.parquet.hadoop.ParquetFileReader;
-import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordReader;
+import shaded.iginx.org.apache.parquet.hadoop.ExportedParquetRecordReader;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.BlockMetaData;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.io.InputFile;
-import shaded.iginx.org.apache.parquet.io.LocalInputFile;
-import shaded.iginx.org.apache.parquet.io.SeekableInputStream;
+import shaded.iginx.org.apache.parquet.io.api.RecordMaterializer;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 
-public class IParquetReader implements Closeable {
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+
+public class IParquetReader extends ParquetReader<IRecord> {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
 
-  private final ParquetRecordReader<IRecord> internalReader;
   private final MessageType schema;
   private final ParquetMetadata metadata;
 
-  private long count = 0;
-
   private IParquetReader(
-      ParquetRecordReader<IRecord> internalReader, MessageType schema, ParquetMetadata metadata) {
-    this.internalReader = internalReader;
+      ExportedParquetRecordReader<IRecord> internalReader, MessageType schema, ParquetMetadata metadata) {
+    super(internalReader);
     this.schema = schema;
     this.metadata = metadata;
   }
@@ -71,32 +70,13 @@ public class IParquetReader implements Closeable {
     return schema;
   }
 
-  public IRecord read() throws IOException {
-    if (internalReader == null) {
-      return null;
-    }
-    if (!internalReader.nextKeyValue()) {
-      return null;
-    }
-    count++;
-    return internalReader.getCurrentValue();
-  }
-
-  @Override
-  public void close() throws IOException {
-    if (internalReader != null) {
-      internalReader.close();
-    }
-    LOGGER.debug("read {} records", count);
-  }
-
   public long getRowCount() {
     return metadata.getBlocks().stream().mapToLong(BlockMetaData::getRowCount).sum();
   }
 
   public Range<Long> getRange() {
     MessageType schema = metadata.getFileMetaData().getSchema();
-    if (schema.containsPath(new String[] {Constants.KEY_FIELD_NAME})) {
+    if (schema.containsPath(new String[]{Constants.KEY_FIELD_NAME})) {
       Type type = schema.getType(Constants.KEY_FIELD_NAME);
       if (type.isPrimitive()) {
         PrimitiveType primitiveType = type.asPrimitiveType();
@@ -133,55 +113,46 @@ public class IParquetReader implements Closeable {
     return metadata;
   }
 
-  public static class Builder {
+  public static class Builder extends ParquetReader.Builder<IRecord, IParquetReader, Builder> {
 
-    private final ParquetReadOptions.Builder optionsBuilder = ParquetReadOptions.builder();
     private final InputFile localInputfile;
-    private boolean skip = false;
     private Set<String> fields;
+    private MessageType requestedSchema;
 
     public Builder(LocalInputFile localInputFile) {
       this.localInputfile = localInputFile;
     }
 
+    @Override
+    protected Builder self() {
+      return this;
+    }
+
+    @Override
+    protected RecordMaterializer<IRecord> materializer(MessageType messageType, Map<String, String> map) {
+      this.requestedSchema = messageType;
+      return new IRecordMaterializer(messageType);
+    }
+
+    @Override
     public IParquetReader build() throws IOException {
-      ParquetReadOptions options = optionsBuilder.build();
-      ParquetMetadata footer;
-      try (SeekableInputStream in = localInputfile.newStream()) {
-        footer = ParquetFileReader.readFooter(localInputfile, options, in);
-      }
-
-      return build(footer, options);
+      ParquetMetadata footer = readFooter(localInputfile);
+      return build(footer);
     }
 
-    public IParquetReader build(ParquetMetadata footer) throws IOException {
-      return build(footer, optionsBuilder.build());
-    }
-
-    @Nonnull
-    private IParquetReader build(ParquetMetadata footer, ParquetReadOptions options)
+    public IParquetReader build(ParquetMetadata footer)
         throws IOException {
-      MessageType schema = footer.getFileMetaData().getSchema();
-      MessageType requestedSchema;
+      ExportedParquetRecordReader<IRecord> internalReader = build(localInputfile, footer);
+      return new IParquetReader(internalReader, requestedSchema, footer);
+    }
+
+    public Builder project(Set<String> fields) {
       if (fields == null) {
         requestedSchema = schema;
       } else {
         requestedSchema = ProjectUtils.projectMessageType(schema, fields);
         LOGGER.debug("project schema with {} as {}", fields, requestedSchema);
       }
-
-      if (skip) {
-        return new IParquetReader(null, requestedSchema, footer);
-      }
-
-      ParquetFileReader reader = new ParquetFileReader(localInputfile, footer, options);
-      reader.setRequestedSchema(requestedSchema);
-      ParquetRecordReader<IRecord> internalReader =
-          new ParquetRecordReader<>(new IRecordMaterializer(requestedSchema), reader, options);
-      return new IParquetReader(internalReader, requestedSchema, footer);
-    }
-
-    public Builder project(Set<String> fields) {
       this.fields = Objects.requireNonNull(fields);
       return this;
     }
@@ -197,17 +168,11 @@ public class IParquetReader implements Closeable {
       return this;
     }
 
-    public Builder withCodecFactory(int lz4BufferSize) {
-      optionsBuilder.withCodecFactory(
-          new CodecFactory(
-              lz4BufferSize, CodecFactory.DEFAULT_ZSTD_LEVEL, CodecFactory.DEFAULT_ZSTD_WORKERS));
+    public Builder withCodecFactory(ByteBufferAllocator byteBufferAllocator,int lz4BufferSize) {
+      super.withCodecFactory(new DefaultCodecFactory(byteBufferAllocator, lz4BufferSize, DefaultCodecFactory.DEFAULT_ZSTD_LEVEL, DefaultCodecFactory.DEFAULT_ZSTD_WORKERS));
       return this;
     }
 
-    public Builder withBufferAllocator(ByteBufferAllocator bufferAllocator) {
-      optionsBuilder.withAllocator(bufferAllocator);
-      return this;
-    }
   }
 
   public static DataType toIginxType(PrimitiveType primitiveType) {
