@@ -3,15 +3,37 @@ package cn.edu.tsinghua.iginx.integration.client;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
+import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
+import cn.edu.tsinghua.iginx.session.Session;
 import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class ExportFileIT {
+
+  protected static SQLExecutor executor;
+
+  @BeforeClass
+  public static void setUp() throws SessionException {
+    MultiConnection session = new MultiConnection(new Session("127.0.0.1", 6888, "root", "root"));
+    executor = new SQLExecutor(session);
+    executor.open();
+  }
+
+  @AfterClass
+  public static void tearDown() throws SessionException {
+    String clearData = "CLEAR DATA;";
+    executor.execute(clearData);
+    executor.close();
+  }
 
   @Test
   public void checkExportByteStream() {
