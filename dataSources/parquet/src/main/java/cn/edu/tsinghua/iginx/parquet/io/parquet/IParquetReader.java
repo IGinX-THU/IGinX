@@ -21,33 +21,30 @@ import cn.edu.tsinghua.iginx.format.parquet.ParquetReader;
 import cn.edu.tsinghua.iginx.format.parquet.codec.DefaultCodecFactory;
 import cn.edu.tsinghua.iginx.format.parquet.io.LocalInputFile;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.column.statistics.LongStatistics;
-import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
 import shaded.iginx.org.apache.parquet.filter2.compat.FilterCompat;
 import shaded.iginx.org.apache.parquet.filter2.predicate.FilterPredicate;
-import shaded.iginx.org.apache.parquet.hadoop.CodecFactory;
 import shaded.iginx.org.apache.parquet.hadoop.ExportedParquetRecordReader;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.BlockMetaData;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
-import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.io.InputFile;
 import shaded.iginx.org.apache.parquet.io.api.RecordMaterializer;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
 
 public class IParquetReader extends ParquetReader<IRecord> {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
@@ -56,7 +53,9 @@ public class IParquetReader extends ParquetReader<IRecord> {
   private final ParquetMetadata metadata;
 
   private IParquetReader(
-      ExportedParquetRecordReader<IRecord> internalReader, MessageType schema, ParquetMetadata metadata) {
+      ExportedParquetRecordReader<IRecord> internalReader,
+      MessageType schema,
+      ParquetMetadata metadata) {
     super(internalReader);
     this.schema = schema;
     this.metadata = metadata;
@@ -76,7 +75,7 @@ public class IParquetReader extends ParquetReader<IRecord> {
 
   public Range<Long> getRange() {
     MessageType schema = metadata.getFileMetaData().getSchema();
-    if (schema.containsPath(new String[]{Constants.KEY_FIELD_NAME})) {
+    if (schema.containsPath(new String[] {Constants.KEY_FIELD_NAME})) {
       Type type = schema.getType(Constants.KEY_FIELD_NAME);
       if (type.isPrimitive()) {
         PrimitiveType primitiveType = type.asPrimitiveType();
@@ -129,7 +128,8 @@ public class IParquetReader extends ParquetReader<IRecord> {
     }
 
     @Override
-    protected RecordMaterializer<IRecord> materializer(MessageType messageType, Map<String, String> map) {
+    protected RecordMaterializer<IRecord> materializer(
+        MessageType messageType, Map<String, String> map) {
       this.requestedSchema = messageType;
       return new IRecordMaterializer(messageType);
     }
@@ -140,39 +140,37 @@ public class IParquetReader extends ParquetReader<IRecord> {
       return build(footer);
     }
 
-    public IParquetReader build(ParquetMetadata footer)
-        throws IOException {
+    public IParquetReader build(ParquetMetadata footer) throws IOException {
       ExportedParquetRecordReader<IRecord> internalReader = build(localInputfile, footer);
       return new IParquetReader(internalReader, requestedSchema, footer);
     }
 
     public Builder project(Set<String> fields) {
-      if (fields == null) {
-        requestedSchema = schema;
-      } else {
-        requestedSchema = ProjectUtils.projectMessageType(schema, fields);
-        LOGGER.debug("project schema with {} as {}", fields, requestedSchema);
-      }
-      this.fields = Objects.requireNonNull(fields);
-      return this;
+      return super.withSchemaConverter(schema -> ProjectUtils.projectMessageType(schema, fields));
     }
 
     public Builder filter(Filter filter) {
       Pair<FilterPredicate, Boolean> filterPredicate =
           FilterUtils.toFilterPredicate(Objects.requireNonNull(filter));
       if (filterPredicate.k != null) {
-        optionsBuilder.withRecordFilter(FilterCompat.get(filterPredicate.k));
+        return super.withFilter(FilterCompat.get(filterPredicate.k));
       } else {
-        skip = !filterPredicate.v;
+        if (!filterPredicate.v) {
+          throw new StorageRuntimeException("Filter is False. No data will be read.");
+        }
       }
       return this;
     }
 
-    public Builder withCodecFactory(ByteBufferAllocator byteBufferAllocator,int lz4BufferSize) {
-      super.withCodecFactory(new DefaultCodecFactory(byteBufferAllocator, lz4BufferSize, DefaultCodecFactory.DEFAULT_ZSTD_LEVEL, DefaultCodecFactory.DEFAULT_ZSTD_WORKERS));
+    public Builder withCodecFactory(ByteBufferAllocator byteBufferAllocator, int lz4BufferSize) {
+      super.withCodecFactory(
+          new DefaultCodecFactory(
+              byteBufferAllocator,
+              lz4BufferSize,
+              DefaultCodecFactory.DEFAULT_ZSTD_LEVEL,
+              DefaultCodecFactory.DEFAULT_ZSTD_WORKERS));
       return this;
     }
-
   }
 
   public static DataType toIginxType(PrimitiveType primitiveType) {

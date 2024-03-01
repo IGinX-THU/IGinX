@@ -24,8 +24,8 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
+import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
-import shaded.iginx.org.apache.parquet.hadoop.CodecFactory;
 import shaded.iginx.org.apache.parquet.hadoop.ExportedParquetRecordWriter;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import shaded.iginx.org.apache.parquet.io.OutputFile;
@@ -43,9 +43,14 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
     super(internalWriter);
   }
 
-  public static Builder builder(Path path, MessageType schema, ByteBufferAllocator fileBufferAllocator) {
-    return new Builder(
-        new LocalOutputFile(path, fileBufferAllocator, Integer.MAX_VALUE), schema);
+  public static Builder builder(
+      Path path, MessageType schema, ByteBufferAllocator fileBufferAllocator) {
+    return new Builder(new LocalOutputFile(path, fileBufferAllocator, Integer.MAX_VALUE), schema);
+  }
+
+  public static Builder builder(
+      Path path, MessageType schema) {
+    return builder(path, schema, new HeapByteBufferAllocator());
   }
 
   public static PrimitiveType getParquetType(
@@ -91,7 +96,8 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
 
     @Override
     public IParquetWriter build() throws IOException {
-      ExportedParquetRecordWriter<IRecord> internalWriter = build(outputFile, schema, Collections.emptyMap());
+      ExportedParquetRecordWriter<IRecord> internalWriter =
+          build(outputFile, schema, Collections.emptyMap());
       return new IParquetWriter(internalWriter);
     }
 
@@ -100,8 +106,14 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
       return super.withCodec(codecName);
     }
 
-    public Builder withCodecFactory(ByteBufferAllocator compressAllocator, int zstdLevel, int zstdWorkers) {
-      CompressionCodecFactory codecFactory = new DefaultCodecFactory(compressAllocator, DefaultCodecFactory.DEFAULT_LZ4_SEGMENT_SIZE, zstdLevel, zstdWorkers);
+    public Builder withCodecFactory(
+        ByteBufferAllocator compressAllocator, int zstdLevel, int zstdWorkers) {
+      CompressionCodecFactory codecFactory =
+          new DefaultCodecFactory(
+              compressAllocator,
+              DefaultCodecFactory.DEFAULT_LZ4_SEGMENT_SIZE,
+              zstdLevel,
+              zstdWorkers);
       return super.withCodecFactory(codecFactory);
     }
   }

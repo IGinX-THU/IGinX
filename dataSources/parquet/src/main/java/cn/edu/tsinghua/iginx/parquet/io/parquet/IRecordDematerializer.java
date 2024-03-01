@@ -16,10 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import java.util.Collections;
-import java.util.Map;
-
 import cn.edu.tsinghua.iginx.format.parquet.api.RecordDematerializer;
+import java.util.Map;
 import shaded.iginx.org.apache.parquet.io.api.Binary;
 import shaded.iginx.org.apache.parquet.io.api.RecordConsumer;
 import shaded.iginx.org.apache.parquet.schema.GroupType;
