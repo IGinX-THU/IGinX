@@ -23,6 +23,9 @@ import cn.edu.tsinghua.iginx.format.parquet.io.LocalOutputFile;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
 import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
@@ -32,10 +35,6 @@ import shaded.iginx.org.apache.parquet.io.OutputFile;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
 
 public class IParquetWriter extends ParquetWriter<IRecord> {
 
@@ -48,8 +47,7 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
     return new Builder(new LocalOutputFile(path, fileBufferAllocator, Integer.MAX_VALUE), schema);
   }
 
-  public static Builder builder(
-      Path path, MessageType schema) {
+  public static Builder builder(Path path, MessageType schema) {
     return builder(path, schema, new HeapByteBufferAllocator());
   }
 
