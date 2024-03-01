@@ -30,7 +30,7 @@ public class RuleCollection {
     addRule(RemoveNotRule.getInstance());
     addRule(FilterFragmentRule.getInstance());
     addRule(ColumnPruningRule.getInstance());
-    addRule(FragmentEliminationRule.getInstance());
+    addRule(FragmentPruning.getInstance());
     setRulesByConfig();
   }
 

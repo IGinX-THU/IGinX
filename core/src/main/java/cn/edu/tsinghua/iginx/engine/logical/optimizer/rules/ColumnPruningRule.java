@@ -92,7 +92,7 @@ public class ColumnPruningRule extends Rule {
         } else {
           ArrayList<String> patterns = new ArrayList<>(columns);
           Collections.sort(patterns);
-          project.setPatterns(new ArrayList<>(patterns));
+          project.setPatterns(patterns);
           if (tagFilter == null) {
             tagFilter = project.getTagFilter();
           } else if (!Objects.equals(tagFilter.toString(), project.getTagFilter().toString())) {

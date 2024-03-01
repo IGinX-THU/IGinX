@@ -38,11 +38,7 @@ public class Project extends AbstractUnaryOperator {
     if (patterns == null) {
       throw new IllegalArgumentException("patterns shouldn't be null");
     }
-    if (patterns instanceof ArrayList) {
-      this.patterns = patterns;
-    } else {
-      this.patterns = new ArrayList<>(patterns);
-    }
+    this.patterns = new ArrayList<>(patterns);
     this.tagFilter = tagFilter;
     this.needSelectedPath = needSelectedPath;
     this.remainKey = remainKey;

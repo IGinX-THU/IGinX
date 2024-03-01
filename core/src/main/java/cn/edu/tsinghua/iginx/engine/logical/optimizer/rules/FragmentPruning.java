@@ -2,33 +2,32 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
-import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 
-public class FragmentEliminationRule extends Rule{
+public class FragmentPruning extends Rule{
     /*
         该规则是根据Project的Pattern来判断是否需要Fragment，与列裁剪规则有关，
         列裁剪规则裁剪了Project-Fragment中不需要的列，可能导致该Fragment不再需要
      */
 
     private static final class InstanceHolder {
-        private static final FragmentEliminationRule instance = new FragmentEliminationRule();
+        private static final FragmentPruning instance = new FragmentPruning();
     }
 
-    public static FragmentEliminationRule getInstance() {
+    public static FragmentPruning getInstance() {
         return InstanceHolder.instance;
     }
 
-    protected FragmentEliminationRule() {
+    protected FragmentPruning() {
         /*
          * we want to match the topology like:
          *          Project
@@ -51,21 +50,19 @@ public class FragmentEliminationRule extends Rule{
         Project project = (Project) call.getMatchedRoot();
         FragmentSource fragmentSource = (FragmentSource) project.getSource();
 
-        boolean needElimination = false;
         List<String> patterns = project.getPatterns();
-        if(patterns.isEmpty()){
-            needElimination = true;
-        }
 
         ColumnsInterval columnsInterval = fragmentSource.getFragment().getColumnsInterval();
+        List<String> validPatterns = new ArrayList<>();
         for(String pattern: patterns){
-            if(!columnsInterval.isContain(pattern)){
-                needElimination = true;
-                break;
+            if(columnsInterval.isContain(pattern)){
+                validPatterns.add(pattern);
             }
         }
 
-        if(needElimination){
+        project.setPatterns(validPatterns);
+
+        if(validPatterns.size() == 0){
             eliminateFragment(call);
         }
     }
@@ -79,6 +76,9 @@ public class FragmentEliminationRule extends Rule{
         Map<Operator, Operator> parentIndexMap = call.getParentIndexMap();
         Operator curOp = parentIndexMap.get(call.getMatchedRoot());
         Operator lastOp = call.getMatchedRoot();
+        if(curOp == null){
+            return;
+        }
         while(!OperatorType.isBinaryOperator(curOp.getType())){
             lastOp = curOp;
             curOp = parentIndexMap.get(curOp);
@@ -99,7 +99,7 @@ public class FragmentEliminationRule extends Rule{
                 ((UnaryOperator)parent).setSource(savedSource);
             }
             else if(OperatorType.isBinaryOperator(parent.getType())){
-                if(((BinaryOperator)parent).getSourceA() == curOp){
+                if(((OperatorSource)((BinaryOperator)parent).getSourceA()).getOperator() == curOp){
                     ((BinaryOperator)parent).setSourceA(savedSource);
                 }
                 else{
