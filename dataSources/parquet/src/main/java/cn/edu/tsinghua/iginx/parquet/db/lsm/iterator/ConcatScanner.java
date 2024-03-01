@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import java.io.IOException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
@@ -51,7 +51,7 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
   }
 
   @Override
-  public boolean iterate() throws StorageException {
+  public boolean iterate() throws IOException {
     if (currentScanner != null && currentScanner.iterate()) {
       return true;
     }
@@ -66,7 +66,7 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
   }
 
   @Override
-  public void close() throws StorageException {
+  public void close() throws IOException {
     while (scannerIterator.hasNext()) {
       scannerIterator.next().close();
     }

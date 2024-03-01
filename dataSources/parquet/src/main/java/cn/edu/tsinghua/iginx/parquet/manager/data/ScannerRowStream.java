@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -71,15 +72,19 @@ class ScannerRowStream implements RowStream {
   @Override
   public boolean hasNext() throws PhysicalException {
     if (nextRow == null) {
-      if (scanner.iterate()) {
-        long key = scanner.key();
-        Object[] values = new Object[indexes.size()];
-        while (scanner.value().iterate()) {
-          Integer index = indexes.get(scanner.value().key());
-          assert index != null;
-          values[index] = scanner.value().value();
+      try {
+        if (scanner.iterate()) {
+          long key = scanner.key();
+          Object[] values = new Object[indexes.size()];
+          while (scanner.value().iterate()) {
+            Integer index = indexes.get(scanner.value().key());
+            assert index != null;
+            values[index] = scanner.value().value();
+          }
+          nextRow = new Row(header, key, values);
         }
-        nextRow = new Row(header, key, values);
+      } catch (IOException e) {
+        throw new PhysicalException(e);
       }
     }
     return nextRow != null;

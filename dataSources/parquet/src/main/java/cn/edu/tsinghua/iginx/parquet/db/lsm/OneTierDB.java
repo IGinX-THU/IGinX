@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -104,8 +105,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       for (Range<K> range : ranges.asRanges()) {
         readBuffer.putRows(writeBuffer.scanRows(fields, range));
       }
-    } catch (IOException | StorageException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
     } finally {
       deleteLock.readLock().unlock();
       commitLock.readLock().unlock();
@@ -159,6 +160,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
             inserted.add(batchScanner.key());
           }
         }
+      } catch (IOException e) {
+        throw new StorageRuntimeException(e);
       }
     } finally {
       deleteLock.readLock().unlock();
@@ -182,6 +185,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
             inserted.add(batchScanner.key());
           }
         }
+      } catch (IOException e) {
+        throw new StorageRuntimeException(e);
       }
     } finally {
       deleteLock.readLock().unlock();

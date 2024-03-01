@@ -17,7 +17,6 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
 
@@ -43,10 +42,10 @@ public class EmptyScanner<K, V> implements Scanner<K, V> {
   }
 
   @Override
-  public boolean iterate() throws StorageException {
+  public boolean iterate() {
     return false;
   }
 
   @Override
-  public void close() throws StorageException {}
+  public void close() {}
 }

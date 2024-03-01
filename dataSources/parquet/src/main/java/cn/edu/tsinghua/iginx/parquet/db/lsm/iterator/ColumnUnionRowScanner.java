@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import java.io.IOException;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -39,7 +39,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     this.scanners = scanners;
   }
 
-  private void init() throws StorageException {
+  private void init() throws IOException {
     this.queue = new PriorityQueue<>(Comparator.comparing(l -> l.getValue().key()));
     for (Map.Entry<F, Scanner<K, V>> entry : scanners.entrySet()) {
       if (entry.getValue().iterate()) {
@@ -68,7 +68,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
   }
 
   @Override
-  public boolean iterate() throws StorageException {
+  public boolean iterate() throws IOException {
     if (queue == null) {
       init();
     }
@@ -85,7 +85,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
   }
 
   @Override
-  public void close() throws StorageException {
+  public void close() throws IOException {
     Map.Entry<F, Scanner<K, V>> entry;
     while ((entry = queue.poll()) != null) {
       entry.getValue().close();
@@ -115,7 +115,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     }
 
     @Override
-    public boolean iterate() throws StorageException {
+    public boolean iterate() throws IOException {
       if (queue.isEmpty()) {
         return false;
       }
@@ -138,7 +138,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     }
 
     @Override
-    public void close() throws StorageException {
+    public void close() throws IOException {
       boolean hasNext;
       do {
         hasNext = iterate();

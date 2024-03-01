@@ -19,10 +19,10 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
+import java.io.IOException;
 import java.util.*;
 import javax.annotation.Nonnull;
 
@@ -101,7 +101,7 @@ class DataViewWrapper {
     }
 
     @Override
-    public boolean iterate() throws StorageException {
+    public boolean iterate() throws IOException {
       keyIndex++;
       if (keyIndex >= dataView.getKeySize()) {
         key = null;
@@ -115,7 +115,7 @@ class DataViewWrapper {
     }
 
     @Override
-    public void close() throws StorageException {}
+    public void close() {}
 
     private class RowScanner implements Scanner<String, Object> {
 
@@ -206,7 +206,7 @@ class DataViewWrapper {
     }
 
     @Override
-    public boolean iterate() throws StorageException {
+    public boolean iterate() throws IOException {
       fieldIndex++;
       if (fieldIndex >= dataView.getPathNum()) {
         fieldName = null;
@@ -219,7 +219,7 @@ class DataViewWrapper {
     }
 
     @Override
-    public void close() throws StorageException {}
+    public void close() {}
 
     private class ColumnScanner implements Scanner<Long, Object> {
       private final int fieldIndex;

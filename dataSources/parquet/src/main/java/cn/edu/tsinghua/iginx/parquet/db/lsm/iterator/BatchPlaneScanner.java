@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import java.io.IOException;
 import java.util.NoSuchElementException;
 import javax.annotation.Nonnull;
 
@@ -52,7 +52,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
   }
 
   @Override
-  public boolean iterate() throws StorageException {
+  public boolean iterate() {
     if (planeScanned) {
       return false;
     }
@@ -77,7 +77,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
     }
 
     @Override
-    public boolean iterate() throws StorageException {
+    public boolean iterate() throws IOException {
       if (currentBatchSize >= maxBatchSize) {
         return false;
       }
@@ -112,7 +112,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
       }
 
       @Override
-      public boolean iterate() throws StorageException {
+      public boolean iterate() throws IOException {
         if (currentBatchSize >= maxBatchSize) {
           lineScanned = false;
           return false;
@@ -131,7 +131,7 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
   }
 
   @Override
-  public void close() throws StorageException {
+  public void close() throws IOException {
     planeScanner.close();
   }
 }

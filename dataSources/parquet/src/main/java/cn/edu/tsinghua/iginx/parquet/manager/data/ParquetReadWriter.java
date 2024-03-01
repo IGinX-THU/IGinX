@@ -11,13 +11,18 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import cn.edu.tsinghua.iginx.parquet.util.buffer.ArenaPool;
 import cn.edu.tsinghua.iginx.parquet.util.buffer.BufferPool;
 import cn.edu.tsinghua.iginx.parquet.util.cache.CachePool;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.file.*;
+import java.util.*;
+import javax.annotation.Nonnull;
 import org.ehcache.sizeof.SizeOf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -26,32 +31,23 @@ import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 
-import javax.annotation.Nonnull;
-import java.io.IOException;
-import java.nio.ByteBuffer;
-import java.nio.file.*;
-import java.util.*;
-
 public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Object> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ParquetReadWriter.class);
 
   private final StorageShared shared;
 
-  private final ByteBufferAllocator bufferAllocator;
-
   private final Path dir;
 
   public ParquetReadWriter(StorageShared shared, Path dir) {
     this.shared = shared;
-    this.bufferAllocator = new BufferAllocatorWrapper(shared.getBufferPool());
     this.dir = dir;
     cleanTempFiles();
   }
 
   private void cleanTempFiles() {
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -83,19 +79,16 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         shared.getStorageProperties().getParquetCompression(),
         shared.getStorageProperties().getZstdLevel(),
         shared.getStorageProperties().getZstdWorkers());
-    builder.withBufferAllocator(bufferAllocator);
 
-    try (IParquetWriter writer = builder.build()) {
-      while (scanner.iterate()) {
-        IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
-        writer.write(record);
+    try (ArenaPool arenaPool = new ArenaPool(shared.getBufferPool())) {
+      ByteBufferAllocator allocator = new BufferAllocatorWrapper(arenaPool);
+      builder.withBufferAllocator(allocator);
+      try (IParquetWriter writer = builder.build()) {
+        while (scanner.iterate()) {
+          IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
+          writer.write(record);
+        }
       }
-      ParquetMetadata parquetMeta = writer.flush();
-      ParquetTableMeta tableMeta =
-          new ParquetTableMeta(meta.getSchema(), meta.getRanges(), parquetMeta);
-      setParquetTableMeta(path.toString(), tableMeta);
-    } catch (Exception e) {
-      throw new IOException("failed to write " + path, e);
     }
 
     LOGGER.info("rename temp file to {}", path);
@@ -126,10 +119,6 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     return getParquetTableMeta(path.toString());
   }
 
-  private void setParquetTableMeta(String fileName, ParquetTableMeta tableMeta) {
-    shared.getCachePool().asMap().put(fileName, tableMeta);
-  }
-
   @Nonnull
   private ParquetTableMeta getParquetTableMeta(String fileName) {
     CachePool.Cacheable cacheable =
@@ -146,32 +135,40 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     Path path = Paths.get(fileName);
 
     IParquetReader.Builder builder = IParquetReader.builder(path);
-
-    try (IParquetReader reader = builder.build()) {
-      Map<String, DataType> schemaDst = new HashMap<>();
-      MessageType parquetSchema = reader.getSchema();
-      for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
-        Type type = parquetSchema.getType(i);
-        if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
-          continue;
-        }
-        DataType iginxType = IParquetReader.toIginxType(type.asPrimitiveType());
-        schemaDst.put(type.getName(), iginxType);
+    try (ArenaPool arenaPool = new ArenaPool(shared.getBufferPool())) {
+      ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(arenaPool);
+      builder.withBufferAllocator(bufferAllocator);
+      try (IParquetReader reader = builder.build()) {
+        return getParquetTableMeta(reader);
       }
-
-      Range<Long> ranges = reader.getRange();
-
-      Map<String, Range<Long>> rangeMap = new HashMap<>();
-      for (String field : schemaDst.keySet()) {
-        rangeMap.put(field, ranges);
-      }
-
-      ParquetMetadata meta = reader.getMeta();
-
-      return new ParquetTableMeta(schemaDst, rangeMap, meta);
-    } catch (Exception e) {
+    } catch (IOException e) {
       throw new StorageRuntimeException(e);
     }
+  }
+
+  @Nonnull
+  private static ParquetTableMeta getParquetTableMeta(IParquetReader reader) {
+    Map<String, DataType> schemaDst = new HashMap<>();
+    MessageType parquetSchema = reader.getSchema();
+    for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
+      Type type = parquetSchema.getType(i);
+      if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
+        continue;
+      }
+      DataType iginxType = IParquetReader.toIginxType(type.asPrimitiveType());
+      schemaDst.put(type.getName(), iginxType);
+    }
+
+    Range<Long> ranges = reader.getRange();
+
+    Map<String, Range<Long>> rangeMap = new HashMap<>();
+    for (String field : schemaDst.keySet()) {
+      rangeMap.put(field, ranges);
+    }
+
+    ParquetMetadata meta = reader.getMeta();
+
+    return new ParquetTableMeta(schemaDst, rangeMap, meta);
   }
 
   @Override
@@ -191,19 +188,21 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     IParquetReader.Builder builder = IParquetReader.builder(path);
     builder.project(fields);
     builder.filter(unionFilter);
+    ArenaPool arenaPool = new ArenaPool(shared.getBufferPool());
+    ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(arenaPool);
     builder.withBufferAllocator(bufferAllocator);
 
     ParquetTableMeta parquetTableMeta = getParquetTableMeta(path.toString());
     IParquetReader reader = builder.build(parquetTableMeta.getMeta());
 
-    return new ParquetScanner(reader);
+    return new ParquetScanner(reader, arenaPool);
   }
 
   @Override
   public Iterable<String> tableNames() throws IOException {
     List<String> names = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
         String tableName = getTableName(fileName);
@@ -229,7 +228,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     LOGGER.info("clearing data of {}", dir);
     try {
       try (DirectoryStream<Path> stream =
-               Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+          Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
           String fileName = path.toString();
@@ -261,8 +260,11 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     private Long key;
     private Scanner<String, Object> rowScanner;
 
-    public ParquetScanner(IParquetReader reader) {
+    private final ArenaPool arenaPool;
+
+    public ParquetScanner(IParquetReader reader, ArenaPool arenaPool) {
       this.reader = reader;
+      this.arenaPool = arenaPool;
     }
 
     @Nonnull
@@ -284,40 +286,33 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     }
 
     @Override
-    public boolean iterate() throws StorageException {
-      try {
-        IRecord record = reader.read();
-        if (record == null) {
-          key = null;
-          rowScanner = null;
-          return false;
-        }
-        Map<String, Object> map = new HashMap<>();
-        MessageType parquetSchema = reader.getSchema();
-        int keyIndex = parquetSchema.getFieldIndex(Constants.KEY_FIELD_NAME);
-        for (Map.Entry<Integer, Object> entry : record) {
-          int index = entry.getKey();
-          Object value = entry.getValue();
-          if (index == keyIndex) {
-            key = (Long) value;
-          } else {
-            map.put(parquetSchema.getType(index).getName(), value);
-          }
-        }
-        rowScanner = new IteratorScanner<>(map.entrySet().iterator());
-        return true;
-      } catch (Exception e) {
-        throw new StorageException("failed to read", e);
+    public boolean iterate() throws IOException {
+      IRecord record = reader.read();
+      if (record == null) {
+        key = null;
+        rowScanner = null;
+        return false;
       }
+      Map<String, Object> map = new HashMap<>();
+      MessageType parquetSchema = reader.getSchema();
+      int keyIndex = parquetSchema.getFieldIndex(Constants.KEY_FIELD_NAME);
+      for (Map.Entry<Integer, Object> entry : record) {
+        int index = entry.getKey();
+        Object value = entry.getValue();
+        if (index == keyIndex) {
+          key = (Long) value;
+        } else {
+          map.put(parquetSchema.getType(index).getName(), value);
+        }
+      }
+      rowScanner = new IteratorScanner<>(map.entrySet().iterator());
+      return true;
     }
 
     @Override
-    public void close() throws StorageException {
-      try {
-        reader.close();
-      } catch (Exception e) {
-        throw new StorageException("failed to close", e);
-      }
+    public void close() throws IOException {
+      reader.close();
+      arenaPool.close();
     }
   }
 

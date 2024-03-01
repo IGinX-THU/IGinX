@@ -16,6 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
+import java.util.Collections;
 import java.util.Map;
 import shaded.iginx.org.apache.parquet.io.api.Binary;
 import shaded.iginx.org.apache.parquet.io.api.RecordConsumer;
@@ -52,6 +53,11 @@ class IRecordDematerializer extends RecordDematerializer<IRecord> {
   @Override
   public MessageType getSchema() {
     return schema;
+  }
+
+  @Override
+  public Map<String, String> getExtraMetaData() {
+    return Collections.emptyMap();
   }
 
   private void addGroup(GroupType groupType, IRecord record) {

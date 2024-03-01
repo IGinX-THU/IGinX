@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.BoundType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -36,7 +37,7 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
 
   private final Map<F, NavigableMap<K, V>> data = new ConcurrentHashMap<>();
 
-  public void putRows(Scanner<K, Scanner<F, V>> scanner) throws StorageException {
+  public void putRows(Scanner<K, Scanner<F, V>> scanner) throws IOException {
     while (scanner.iterate()) {
       K key = scanner.key();
       try (Scanner<F, V> row = scanner.value()) {
@@ -46,13 +47,11 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
           NavigableMap<K, V> column = data.computeIfAbsent(field, COLUMN_FACTORY);
           column.put(key, value);
         }
-      } catch (Exception e) {
-        throw new StorageException(e);
       }
     }
   }
 
-  public void putColumns(Scanner<F, Scanner<K, V>> scanner) throws StorageException {
+  public void putColumns(Scanner<F, Scanner<K, V>> scanner) throws IOException {
     while (scanner.iterate()) {
       F field = scanner.key();
       try (Scanner<K, V> column = scanner.value()) {

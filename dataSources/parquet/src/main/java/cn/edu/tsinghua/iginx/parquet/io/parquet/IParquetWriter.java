@@ -18,8 +18,8 @@ package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
@@ -38,7 +38,7 @@ import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 import shaded.iginx.org.apache.parquet.schema.TypeUtil;
 
-public class IParquetWriter implements AutoCloseable {
+public class IParquetWriter implements Closeable {
 
   private final ParquetRecordWriter<IRecord> internalWriter;
 
@@ -79,7 +79,7 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() throws IOException {
     internalWriter.close();
   }
 
@@ -137,7 +137,7 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public static IRecord getRecord(MessageType schema, Long key, Scanner<String, Object> value)
-      throws StorageException {
+      throws IOException {
     IRecord record = new IRecord();
     record.add(schema.getFieldIndex(Constants.KEY_FIELD_NAME), key);
     while (value.iterate()) {

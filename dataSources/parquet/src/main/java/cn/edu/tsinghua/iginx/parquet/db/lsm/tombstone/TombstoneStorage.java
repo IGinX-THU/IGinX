@@ -5,9 +5,6 @@ import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
 import cn.edu.tsinghua.iginx.parquet.util.cache.CachePool;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.*;
 import java.nio.file.*;
 import java.util.Set;
@@ -15,6 +12,8 @@ import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TombstoneStorage.class);
@@ -39,7 +38,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
 
   private void cleanTempFiles() {
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -102,7 +101,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     lock.writeLock().lock();
     try {
       try (DirectoryStream<Path> stream =
-               Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
+          Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
           String fileName = path.toString();
@@ -137,7 +136,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     try {
       Files.createDirectories(dir);
       try (FileWriter fw = new FileWriter(tempPath.toFile());
-           BufferedWriter bw = new BufferedWriter(fw)) {
+          BufferedWriter bw = new BufferedWriter(fw)) {
         bw.write(json);
       }
       LOGGER.debug("rename temp file to file: {}", path);
@@ -151,7 +150,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
   private CachedTombstone<K, F> loadCache(Object key) {
     String fileName = (String) key;
     try (FileReader fr = new FileReader(Paths.get(fileName).toFile());
-         BufferedReader br = new BufferedReader(fr)) {
+        BufferedReader br = new BufferedReader(fr)) {
       String json = br.lines().collect(Collectors.joining());
       Tombstone<K, F> tombstone =
           SerializeUtils.deserializeRangeTombstone(json, keyFormat, fieldFormat);

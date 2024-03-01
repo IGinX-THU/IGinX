@@ -16,18 +16,16 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import java.io.Closeable;
+import java.io.IOException;
 import javax.annotation.Nonnull;
 
-public interface Scanner<K, V> extends AutoCloseable {
+public interface Scanner<K, V> extends Closeable {
   @Nonnull
   K key();
 
   @Nonnull
   V value();
 
-  boolean iterate() throws StorageException;
-
-  @Override
-  void close() throws StorageException;
+  boolean iterate() throws IOException;
 }

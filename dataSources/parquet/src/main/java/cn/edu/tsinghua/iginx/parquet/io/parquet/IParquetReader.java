@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
@@ -46,7 +47,7 @@ import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 
-public class IParquetReader implements AutoCloseable {
+public class IParquetReader implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
 
   private final ParquetRecordReader<IRecord> internalReader;
@@ -82,7 +83,7 @@ public class IParquetReader implements AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() throws IOException {
     if (internalReader != null) {
       internalReader.close();
     }
