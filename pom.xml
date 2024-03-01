@@ -27,7 +27,6 @@
         <module>dataSources/mongodb</module>
         <module>example</module>
         <module>test</module>
-        <module>zeppelin-interpreter</module>
     </modules>
 
     <distributionManagement>
