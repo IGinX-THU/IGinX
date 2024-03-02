@@ -24,6 +24,7 @@ import java.util.StringJoiner;
 /** The properties of storage engine */
 public class StorageProperties {
   private final long writeBufferSize;
+  private final Duration writeBufferTimeout;
   private final long writeBatchSize;
   private final int flusherPermits;
   private final long cacheCapacity;
@@ -45,7 +46,7 @@ public class StorageProperties {
    * @param parquetPageSize the size of parquet page, bytes
    */
   private StorageProperties(
-      long writeBufferSize,
+      long writeBufferSize, Duration writeBufferTimeout,
       long writeBatchSize,
       int flusherPermits,
       long cacheCapacity,
@@ -54,6 +55,7 @@ public class StorageProperties {
       long parquetRowGroupSize,
       long parquetPageSize) {
     this.writeBufferSize = writeBufferSize;
+    this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
     this.flusherPermits = flusherPermits;
     this.cacheCapacity = cacheCapacity;
@@ -70,6 +72,15 @@ public class StorageProperties {
    */
   public long getWriteBufferSize() {
     return writeBufferSize;
+  }
+
+  /**
+   * Get the timeout of write buffer to flush
+   *
+   * @return the timeout of write buffer to flush
+   */
+  public Duration getWriteBufferTimeout() {
+    return writeBufferTimeout;
   }
 
   /**
@@ -149,6 +160,7 @@ public class StorageProperties {
   public String toString() {
     return new StringJoiner(", ", StorageProperties.class.getSimpleName() + "[", "]")
         .add("writeBufferSize=" + writeBufferSize)
+        .add("writeBufferTimeout=" + writeBufferTimeout)
         .add("writeBatchSize=" + writeBatchSize)
         .add("cacheCapacity=" + cacheCapacity)
         .add("cacheTimeout=" + cacheTimeout)
@@ -163,6 +175,8 @@ public class StorageProperties {
   public static class Builder {
     /** The property key of write buffer size */
     public static final String WRITE_BUFFER_SIZE = "write_buffer_size";
+    /** The property key of write buffer timeout to flush */
+    public static final String WRITE_BUFFER_TIMEOUT = "write.buffer.timeout";
     /** The property key of write batch size */
     public static final String WRITE_BATCH_SIZE = "write_batch_size";
     /** The property key of flusher permits */
@@ -179,8 +193,8 @@ public class StorageProperties {
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
+    private Duration writeBufferTimeout = Duration.ofSeconds(1);
     private long writeBatchSize = 1024 * 1024; // BYTE
-
     private long cacheCapacity = 1024 * 1024 * 1024; // BYTE
     private Duration cacheTimeout = null;
     private boolean cacheSoftValues = false;
@@ -198,6 +212,18 @@ public class StorageProperties {
      */
     public Builder setWriteBufferSize(long writeBufferSize) {
       this.writeBufferSize = writeBufferSize;
+      return this;
+    }
+
+    /**
+     * Set the timeout of write buffer to flush
+     *
+     * @param writeBufferTimeout the timeout of write buffer to flush
+     * @return this builder
+     */
+    public Builder setWriteBufferTimeout(Duration writeBufferTimeout) {
+      ParseUtils.checkPositive(cacheTimeout);
+      this.writeBufferTimeout = writeBufferTimeout;
       return this;
     }
 
@@ -283,11 +309,11 @@ public class StorageProperties {
      *
      * @param properties the properties to be parsed
      *     <p>"write_buffer_size": the size of write buffer,bytes, long, optional, default 100MB
+     *     <p>"write.buffer.timeout": the timeout of write buffer to flush, iso-8601, optional, default 1s
      *     <p>"write_batch_size": the size of write batch, bytes, long, optional, default 1MB
      *     <p>"flusher_permits": the number of flusher permits, int, optional, default 16
      *     <p>"cache.capacity": the capacity of cache, bytes, long, optional, default 1GB
-     *     <p>"cache.timeout": the expiry timeout of cache, iso-8601 duration format, optional,
-     *     default Infinity
+     *     <p>"cache.timeout": the expiry timeout of cache, iso-8601, optional, default Infinity
      *     <p>"cache.soft_values": whether to enable soft values of cache, boolean, optional,
      *     default false
      *     <p>"parquet.row_group_size": the size of parquet row group, bytes, long, optional,
@@ -298,6 +324,8 @@ public class StorageProperties {
     public Builder parse(Map<String, String> properties) {
       ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE, ParseUtils::checkPositive)
           .ifPresent(this::setWriteBufferSize);
+      ParseUtils.getOptionalDuration(properties, WRITE_BUFFER_TIMEOUT)
+          .ifPresent(this::setWriteBufferTimeout);
       ParseUtils.getOptionalLong(properties, WRITE_BATCH_SIZE, ParseUtils::checkPositive)
           .ifPresent(this::setWriteBatchSize);
       ParseUtils.getOptionalInteger(properties, FLUSHER_PERMITS, ParseUtils::checkPositive)
@@ -323,6 +351,7 @@ public class StorageProperties {
     public StorageProperties build() {
       return new StorageProperties(
           writeBufferSize,
+          writeBufferTimeout,
           writeBatchSize,
           flusherPermits,
           cacheCapacity,
