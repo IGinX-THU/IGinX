@@ -63,6 +63,19 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     }
   }
 
+  public void removeTable(String name) {
+    lock.writeLock().lock();
+    try {
+      String fileName = getFileName(name);
+      shared.getCachePool().asMap().remove(fileName);
+      Files.deleteIfExists(Paths.get(fileName));
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
+    } finally {
+      lock.writeLock().unlock();
+    }
+  }
+
   @SuppressWarnings("unchecked")
   public void delete(Set<String> tables, Consumer<Tombstone<K, F>> action) {
     lock.readLock().lock();

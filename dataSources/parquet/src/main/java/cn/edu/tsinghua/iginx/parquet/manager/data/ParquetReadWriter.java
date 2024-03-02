@@ -200,6 +200,17 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     return names;
   }
 
+  @Override
+  public void remove(String name) {
+    Path path = getPath(name);
+    try {
+      Files.deleteIfExists(path);
+      shared.getCachePool().asMap().remove(path.toString());
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
+    }
+  }
+
   private Path getPath(String name) {
     Path path = dir.resolve(name + Constants.SUFFIX_FILE_PARQUET);
     return path;

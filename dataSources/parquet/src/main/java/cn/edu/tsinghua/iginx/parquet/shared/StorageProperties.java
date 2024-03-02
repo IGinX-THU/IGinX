@@ -46,7 +46,8 @@ public class StorageProperties {
    * @param parquetPageSize the size of parquet page, bytes
    */
   private StorageProperties(
-      long writeBufferSize, Duration writeBufferTimeout,
+      long writeBufferSize,
+      Duration writeBufferTimeout,
       long writeBatchSize,
       int flusherPermits,
       long cacheCapacity,
@@ -309,7 +310,8 @@ public class StorageProperties {
      *
      * @param properties the properties to be parsed
      *     <p>"write_buffer_size": the size of write buffer,bytes, long, optional, default 100MB
-     *     <p>"write.buffer.timeout": the timeout of write buffer to flush, iso-8601, optional, default 1s
+     *     <p>"write.buffer.timeout": the timeout of write buffer to flush, iso-8601, optional,
+     *     default 1s
      *     <p>"write_batch_size": the size of write batch, bytes, long, optional, default 1MB
      *     <p>"flusher_permits": the number of flusher permits, int, optional, default 16
      *     <p>"cache.capacity": the capacity of cache, bytes, long, optional, default 1GB

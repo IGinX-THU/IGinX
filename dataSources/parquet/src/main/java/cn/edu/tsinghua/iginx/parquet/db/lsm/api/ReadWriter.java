@@ -33,6 +33,8 @@ public interface ReadWriter<K extends Comparable<K>, F, T, V> {
 
   Iterable<String> tableNames() throws IOException;
 
+  void remove(String name);
+
   void clear() throws IOException;
 
   ObjectFormat<K> getKeyFormat();

@@ -33,6 +33,15 @@ public class FieldIndex<K extends Comparable<K>, F, T, V> {
     }
   }
 
+  public void removeTable(String name) {
+    lock.writeLock().lock();
+    try {
+      this.tableRange.remove(name);
+    } finally {
+      lock.writeLock().unlock();
+    }
+  }
+
   public Set<String> find(RangeSet<K> ranges) {
     Set<String> result = new HashSet<>();
     lock.readLock().lock();

@@ -36,6 +36,8 @@ import java.util.stream.StreamSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO: merge TableStorage, TableIndex and TombstoneStorage to control concurrent access to the
+// storage
 public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class.getName());
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
@@ -74,7 +76,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     return String.format("%019d", seq);
   }
 
-  public String flush(Table<K, F, T, V> table) {
+  public String flush(Table<K, F, T, V> table, Runnable afterFlush) {
     lock.writeLock().lock();
     try {
       String tableName = getTableName(seqGen.next());
@@ -92,6 +94,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
                 readWriter.flush(tableName, meta, scanner);
               }
               memTables.remove(tableName);
+              afterFlush.run();
             } catch (Throwable e) {
               LOGGER.error("failed to flush {}", tableName, e);
             } finally {
@@ -101,6 +104,16 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
             }
           });
       return tableName;
+    } finally {
+      lock.writeLock().unlock();
+    }
+  }
+
+  public void remove(String name) {
+    lock.writeLock().lock();
+    try {
+      memTables.remove(name);
+      readWriter.remove(name);
     } finally {
       lock.writeLock().unlock();
     }

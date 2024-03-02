@@ -220,6 +220,17 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     }
   }
 
+  public void removeTable(String name) {
+    lock.readLock().lock();
+    try {
+      for (FieldIndex<K, F, T, V> fieldIndex : indexes.values()) {
+        fieldIndex.removeTable(name);
+      }
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
   public void delete(Set<F> fields, RangeSet<K> ranges) {
     lock.readLock().lock();
     try {
