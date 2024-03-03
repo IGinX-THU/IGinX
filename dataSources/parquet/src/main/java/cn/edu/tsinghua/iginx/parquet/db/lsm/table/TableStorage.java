@@ -17,19 +17,21 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.SequenceGenerator;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
+import cn.edu.tsinghua.iginx.parquet.util.Shared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
 import java.util.Comparator;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.StreamSupport;
@@ -42,15 +44,13 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class.getName());
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock cleanLock = new ReentrantReadWriteLock(true);
-
-  private final ConcurrentMap<String, Table<K, F, T, V>> memTables = new ConcurrentHashMap<>();
-
   private final SequenceGenerator seqGen = new SequenceGenerator();
 
   private final ExecutorService flusher = Executors.newCachedThreadPool();
 
+  private final Map<String, MemoryTable<K, F, T, V>> memTables = new HashMap<>();
+  private final Map<String, AreaSet<K, F>> memTombstones = new HashMap<>();
   private final Shared shared;
-
   private final ReadWriter<K, F, T, V> readWriter;
 
   public TableStorage(Shared shared, ReadWriter<K, F, T, V> readWriter) throws IOException {
@@ -76,7 +76,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     return String.format("%019d", seq);
   }
 
-  public String flush(Table<K, F, T, V> table, Runnable afterFlush) {
+  public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush) {
     lock.writeLock().lock();
     try {
       String tableName = getTableName(seqGen.next());
@@ -93,7 +93,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
                   table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
                 readWriter.flush(tableName, meta, scanner);
               }
-              memTables.remove(tableName);
+              commitMemoryTable(tableName);
               afterFlush.run();
             } catch (Throwable e) {
               LOGGER.error("failed to flush {}", tableName, e);
@@ -109,11 +109,26 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     }
   }
 
+  private void commitMemoryTable(String name) throws IOException {
+    lock.writeLock().lock();
+    try {
+      if (memTables.remove(name) != null) {
+        AreaSet<K, F> tombstone = memTombstones.remove(name);
+        if (tombstone != null) {
+          readWriter.delete(name, tombstone);
+        }
+      }
+    } finally {
+      lock.writeLock().unlock();
+    }
+  }
+
   public void remove(String name) {
     lock.writeLock().lock();
     try {
       memTables.remove(name);
-      readWriter.remove(name);
+      memTombstones.remove(name);
+      readWriter.delete(name);
     } finally {
       lock.writeLock().unlock();
     }
@@ -121,27 +136,50 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   public void clear() throws StorageException {
     cleanLock.writeLock().lock();
+    lock.writeLock().lock();
     try {
       memTables.clear();
+      memTombstones.clear();
       readWriter.clear();
       seqGen.reset();
     } catch (IOException e) {
       throw new StorageException(e);
     } finally {
+      lock.writeLock().unlock();
       cleanLock.writeLock().unlock();
     }
   }
 
-  public Table<K, F, T, V> get(String tableName) {
+  public Table<K, F, T, V> get(String tableName) throws IOException {
     lock.readLock().lock();
     try {
-      Table<K, F, T, V> table = memTables.get(tableName);
+      MemoryTable<K, F, T, V> table = memTables.get(tableName);
       if (table != null) {
-        return table;
+        AreaSet<K, F> tombstone = memTombstones.get(tableName);
+        if (tombstone == null) {
+          return table;
+        }
+        return new DeletedTable<>(table, tombstone);
       }
       return new FileTable<>(tableName, readWriter);
     } finally {
       lock.readLock().unlock();
+    }
+  }
+
+  public void delete(Set<String> tables, AreaSet<K, F> areas) throws IOException {
+    lock.writeLock().lock();
+    try {
+      for (String tableName : tables) {
+        MemoryTable<K, F, T, V> table = memTables.get(tableName);
+        if (table != null) {
+          memTombstones.computeIfAbsent(tableName, k -> new AreaSet<>()).addAll(areas);
+        } else {
+          readWriter.delete(tableName, areas);
+        }
+      }
+    } finally {
+      lock.writeLock().unlock();
     }
   }
 
@@ -152,22 +190,5 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   @Override
   public void close() {
     flusher.shutdown();
-  }
-
-  private static class SequenceGenerator {
-
-    private final AtomicLong current = new AtomicLong();
-
-    public long next() {
-      return current.incrementAndGet();
-    }
-
-    public void reset() {
-      reset(new AtomicLong().get());
-    }
-
-    public void reset(long last) {
-      current.set(last);
-    }
   }
 }

@@ -27,13 +27,14 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.OneTierDB;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.InvalidFieldNameException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.Shared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.InvalidFieldNameException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Range;
@@ -109,20 +110,25 @@ public class DataManager implements Manager {
       }
     }
 
+    AreaSet<Long, String> areas = new AreaSet<>();
     if (StringUtils.allPathMatched(paths) && tagFilter == null) {
       if (rangeSet.isEmpty()) {
         db.clear();
       } else {
-        db.delete(rangeSet);
+        areas.add(rangeSet);
       }
     } else {
       Map<String, DataType> schemaMatchedTags = ProjectUtils.project(db.schema(), tagFilter);
       Set<String> fields = ProjectUtils.project(schemaMatchedTags, paths).keySet();
       if (rangeSet.isEmpty()) {
-        db.delete(fields);
+        areas.add(fields);
       } else {
-        db.delete(fields, rangeSet);
+        areas.add(fields, rangeSet);
       }
+    }
+
+    if (!areas.isEmpty()) {
+      db.delete(areas);
     }
   }
 

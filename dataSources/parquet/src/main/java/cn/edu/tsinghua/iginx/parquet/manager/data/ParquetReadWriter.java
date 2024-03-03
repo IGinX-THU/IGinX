@@ -2,21 +2,23 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.IteratorScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.DeletedTableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.AreaFilterScanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.IteratorScanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.ParquetMeta;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
-import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.util.CachePool;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.Shared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -38,9 +40,12 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   private final Path dir;
 
+  private final TombstoneStorage tombstoneStorage;
+
   public ParquetReadWriter(Shared shared, Path dir) {
     this.shared = shared;
     this.dir = dir;
+    this.tombstoneStorage = new TombstoneStorage(shared, dir.resolve(Constants.DIR_NAME_TOMBSTONE));
     cleanTempFiles();
   }
 
@@ -112,7 +117,12 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   @Override
   public TableMeta<Long, String, DataType, Object> readMeta(String tableName) {
     Path path = getPath(tableName);
-    return getParquetTableMeta(path.toString());
+    ParquetTableMeta tableMeta = getParquetTableMeta(path.toString());
+    AreaSet<Long, String> tombstone = tombstoneStorage.get(tableName);
+    if (tombstone == null || tombstone.isEmpty()) {
+      return tableMeta;
+    }
+    return new DeletedTableMeta(tableMeta, tombstone);
   }
 
   private void setParquetTableMeta(String fileName, ParquetTableMeta tableMeta) {
@@ -181,7 +191,30 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     ParquetTableMeta parquetTableMeta = getParquetTableMeta(path.toString());
     IParquetReader reader = builder.build(parquetTableMeta.getMeta());
 
-    return new ParquetScanner(reader);
+    Scanner<Long, Scanner<String, Object>> scanner = new ParquetScanner(reader);
+
+    AreaSet<Long, String> tombstone = tombstoneStorage.get(name);
+    if (tombstone == null || tombstone.isEmpty()) {
+      return scanner;
+    }
+    return new AreaFilterScanner<>(scanner, tombstone);
+  }
+
+  @Override
+  public void delete(String name, AreaSet<Long, String> areas) throws IOException {
+    tombstoneStorage.delete(Collections.singleton(name), oldAreas -> oldAreas.addAll(areas));
+  }
+
+  @Override
+  public void delete(String name) {
+    Path path = getPath(name);
+    try {
+      Files.deleteIfExists(path);
+      shared.getCachePool().asMap().remove(path.toString());
+      tombstoneStorage.removeTable(name);
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
+    }
   }
 
   @Override
@@ -198,17 +231,6 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       LOGGER.info("no dir named {}", dir);
     }
     return names;
-  }
-
-  @Override
-  public void remove(String name) {
-    Path path = getPath(name);
-    try {
-      Files.deleteIfExists(path);
-      shared.getCachePool().asMap().remove(path.toString());
-    } catch (IOException e) {
-      throw new StorageRuntimeException(e);
-    }
   }
 
   private Path getPath(String name) {
@@ -233,6 +255,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         }
       }
       Files.deleteIfExists(dir);
+      tombstoneStorage.clear();
     } catch (NoSuchFileException e) {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {
@@ -240,16 +263,6 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     }
-  }
-
-  @Override
-  public ObjectFormat<Long> getKeyFormat() {
-    return new LongFormat();
-  }
-
-  @Override
-  public ObjectFormat<String> getFieldFormat() {
-    return new StringFormat();
   }
 
   private static class ParquetScanner implements Scanner<Long, Scanner<String, Object>> {

@@ -19,19 +19,18 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.index.TableIndex;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.BatchPlaneScanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.DataBuffer;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableIndex;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.NotIntegrityException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.BatchPlaneScanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
+import cn.edu.tsinghua.iginx.parquet.util.Shared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -39,7 +38,10 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Lock;
@@ -53,7 +55,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
   private final Shared shared;
   private final TableStorage<K, F, T, V> tableStorage;
-  private final TombstoneStorage<K, F> tombstoneStorage;
   private final TableIndex<K, F, T, V> tableIndex;
 
   private DataBuffer<K, F, V> writeBuffer = new DataBuffer<>();
@@ -71,13 +72,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       throws IOException {
     this.shared = shared;
     this.tableStorage = new TableStorage<>(shared, readerWriter);
-    this.tombstoneStorage =
-        new TombstoneStorage<>(
-            shared,
-            dir.resolve(Constants.DIR_NAME_TOMBSTONE),
-            readerWriter.getKeyFormat(),
-            readerWriter.getFieldFormat());
-    this.tableIndex = new TableIndex<>(tableStorage, tombstoneStorage);
+    this.tableIndex = new TableIndex<>(tableStorage);
 
     ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("OneTierDB-%d").build();
     this.scheduler = Executors.newSingleThreadScheduledExecutor(threadFactory);
@@ -95,16 +90,16 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     deleteLock.readLock().lock();
     storageLock.readLock().lock();
     try {
-      Set<String> tables = tableIndex.find(fields, ranges);
+      AreaSet<K, F> areas = new AreaSet<>();
+      areas.add(fields, ranges);
+      Set<String> tables = tableIndex.find(areas);
       List<String> sortedTableNames = new ArrayList<>(tables);
       sortedTableNames.sort(Comparator.naturalOrder());
       for (String tableName : sortedTableNames) {
         Table<K, F, T, V> table = tableStorage.get(tableName);
-        Tombstone<K, F> tombstone = tombstoneStorage.get(tableName);
         try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, ranges)) {
           readBuffer.putRows(scanner);
         }
-        Tombstone.playback(tombstone, readBuffer);
       }
 
       for (Range<K> range : ranges.asRanges()) {
@@ -266,7 +261,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
               try {
                 tableIndex.removeTable(toDelete);
                 tableStorage.remove(toDelete);
-                tombstoneStorage.removeTable(toDelete);
               } catch (Throwable e) {
                 LOGGER.error("failed to delete table {}", toDelete, e);
               } finally {
@@ -292,61 +286,17 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
-  public void delete(Set<F> fields, RangeSet<K> ranges) throws StorageException {
+  public void delete(AreaSet<K, F> areas) throws StorageException {
     commitLock.readLock().lock();
     deleteLock.writeLock().lock();
     storageLock.readLock().lock();
     try {
-      writeBuffer.remove(fields, ranges);
-      Set<String> tables = tableIndex.find(fields, ranges);
-      tombstoneStorage.delete(
-          tables,
-          tombstone -> {
-            tombstone.delete(fields, ranges);
-          });
-      tableIndex.delete(fields, ranges);
-    } finally {
-      storageLock.readLock().unlock();
-      deleteLock.writeLock().unlock();
-      commitLock.readLock().unlock();
-    }
-  }
-
-  @Override
-  public void delete(Set<F> fields) throws StorageException {
-    commitLock.readLock().lock();
-    deleteLock.writeLock().lock();
-    storageLock.readLock().lock();
-    try {
-      writeBuffer.remove(fields);
-      Set<String> tables = tableIndex.find(fields);
-      tombstoneStorage.delete(
-          tables,
-          tombstone -> {
-            tombstone.delete(fields);
-          });
-      tableIndex.delete(fields);
-    } finally {
-      storageLock.readLock().unlock();
-      deleteLock.writeLock().unlock();
-      commitLock.readLock().unlock();
-    }
-  }
-
-  @Override
-  public void delete(RangeSet<K> ranges) throws StorageException {
-    commitLock.readLock().lock();
-    deleteLock.writeLock().lock();
-    storageLock.readLock().lock();
-    try {
-      writeBuffer.remove(ranges);
-      Set<String> tables = tableIndex.find(ranges);
-      tombstoneStorage.delete(
-          tables,
-          tombstone -> {
-            tombstone.delete(ranges);
-          });
-      tableIndex.delete(ranges);
+      writeBuffer.remove(areas);
+      Set<String> tables = tableIndex.find(areas);
+      tableStorage.delete(tables, areas);
+      tableIndex.delete(areas);
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
     } finally {
       storageLock.readLock().unlock();
       deleteLock.writeLock().unlock();
@@ -361,7 +311,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     storageLock.writeLock().lock();
     try {
       tableStorage.clear();
-      tombstoneStorage.clear();
       tableIndex.clear();
       writeBuffer.clear();
       bufferDirtiedTime.set(Long.MAX_VALUE);
@@ -379,7 +328,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     scheduler.shutdown();
     commitMemoryTable(true);
     tableStorage.close();
-    tombstoneStorage.close();
     tableIndex.close();
   }
 }

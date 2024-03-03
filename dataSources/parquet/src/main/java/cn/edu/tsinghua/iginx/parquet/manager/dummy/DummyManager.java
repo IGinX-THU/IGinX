@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
-import static cn.edu.tsinghua.iginx.parquet.shared.Constants.SUFFIX_FILE_PARQUET;
+import static cn.edu.tsinghua.iginx.parquet.util.Constants.SUFFIX_FILE_PARQUET;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
