@@ -99,10 +99,13 @@ public class TombstoneStorage implements Closeable {
                 fileName,
                 (Long, v) -> {
                   AreaSet<Long, String> areas = new AreaSet<>();
-                  if (!(v instanceof CachedTombstone)) {
-                    throw new StorageRuntimeException("unexpected cacheable type: " + v.getClass());
+                  if (v != null) {
+                    if (!(v instanceof CachedTombstone)) {
+                      throw new StorageRuntimeException(
+                          "unexpected cacheable type: " + v.getClass());
+                    }
+                    areas.addAll(((CachedTombstone<Long, String>) v).getTombstone());
                   }
-                  areas.addAll(((CachedTombstone<Long, String>) v).getTombstone());
                   action.accept(areas);
                   return flushCache(Long, areas);
                 });
