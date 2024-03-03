@@ -252,22 +252,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
                 throw new NotIntegrityException("field " + f + " is not found in schema");
               });
 
-      Runnable afterFlush = () -> {};
-      if (previousTableName != null) {
-        String toDelete = previousTableName;
-        afterFlush =
-            () -> {
-              storageLock.writeLock().lock();
-              try {
-                tableIndex.removeTable(toDelete);
-                tableStorage.remove(toDelete);
-              } catch (Throwable e) {
-                LOGGER.error("failed to delete table {}", toDelete, e);
-              } finally {
-                storageLock.writeLock().unlock();
-              }
-            };
-      }
+      Runnable afterFlush = getRunnable();
 
       MemoryTable<K, F, T, V> table = new MemoryTable<>(writeBuffer, types);
       String committedTableName = tableStorage.flush(table, afterFlush);
@@ -283,6 +268,26 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       deleteLock.readLock().unlock();
       commitLock.writeLock().unlock();
     }
+  }
+
+  private Runnable getRunnable() {
+    Runnable afterFlush = () -> {};
+    if (previousTableName != null) {
+      String toDelete = previousTableName;
+      afterFlush =
+          () -> {
+            storageLock.writeLock().lock();
+            try {
+              tableIndex.removeTable(toDelete);
+              tableStorage.remove(toDelete);
+            } catch (Throwable e) {
+              LOGGER.error("failed to delete table {}", toDelete, e);
+            } finally {
+              storageLock.writeLock().unlock();
+            }
+          };
+    }
+    return afterFlush;
   }
 
   @Override

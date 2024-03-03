@@ -30,6 +30,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -48,7 +49,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   private final ExecutorService flusher = Executors.newCachedThreadPool();
 
-  private final Map<String, MemoryTable<K, F, T, V>> memTables = new HashMap<>();
+  private final Map<String, MemoryTable<K, F, T, V>> memTables = new ConcurrentHashMap<>();
   private final Map<String, AreaSet<K, F>> memTombstones = new HashMap<>();
   private final Shared shared;
   private final ReadWriter<K, F, T, V> readWriter;
@@ -88,12 +89,19 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
             cleanLock.readLock().lock();
             try {
               LOGGER.trace("start to flush");
-              TableMeta<K, F, T, V> meta = table.getMeta();
-              try (Scanner<K, Scanner<F, V>> scanner =
-                  table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
-                readWriter.flush(tableName, meta, scanner);
+
+              synchronized (table) {
+                if (memTables.containsKey(tableName)) {
+                  LOGGER.trace("flushing {}", tableName);
+                  TableMeta<K, F, T, V> meta = table.getMeta();
+                  try (Scanner<K, Scanner<F, V>> scanner =
+                      table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
+                    readWriter.flush(tableName, meta, scanner);
+                  }
+                  commitMemoryTable(tableName);
+                }
               }
-              commitMemoryTable(tableName);
+
               afterFlush.run();
             } catch (Throwable e) {
               LOGGER.error("failed to flush {}", tableName, e);
@@ -124,10 +132,20 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   }
 
   public void remove(String name) {
+    Object table = memTables.get(name);
+    if (table != null) {
+      synchronized (table) {
+        lock.writeLock().lock();
+        try {
+          memTables.remove(name);
+          memTombstones.remove(name);
+        } finally {
+          lock.writeLock().unlock();
+        }
+      }
+    }
     lock.writeLock().lock();
     try {
-      memTables.remove(name);
-      memTombstones.remove(name);
       readWriter.delete(name);
     } finally {
       lock.writeLock().unlock();
