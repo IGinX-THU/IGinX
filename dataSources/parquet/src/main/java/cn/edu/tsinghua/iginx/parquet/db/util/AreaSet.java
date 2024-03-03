@@ -118,8 +118,10 @@ public class AreaSet<K extends Comparable<K>, F> {
 
   @Override
   public String toString() {
-    return new StringJoiner(", ", AreaSet.class.getSimpleName() + "{", "}")
+    return new StringJoiner(", ", AreaSet.class.getSimpleName() + "[", "]")
         .add("deletedRanges=" + deletedRanges)
+        .add("deletedColumns=" + deletedColumns)
+        .add("deletedRows=" + deletedRows)
         .toString();
   }
 }

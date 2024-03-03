@@ -63,7 +63,9 @@ public class AreaFilterScanner<K extends Comparable<K>, F, V> implements Scanner
   }
 
   @Override
-  public void close() throws StorageException {}
+  public void close() throws StorageException {
+    scanner.close();
+  }
 
   private boolean excludeKey(K key) {
     if (areas.getKeys().contains(key)) {

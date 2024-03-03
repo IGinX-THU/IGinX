@@ -36,9 +36,11 @@ import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.*;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ThreadFactory;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Lock;
@@ -64,14 +66,17 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final ReadWriteLock storageLock = new ReentrantReadWriteLock(true);
 
   private final ScheduledExecutorService scheduler;
+  private final String name;
 
-  public OneTierDB(Shared shared, Path dir, ReadWriter<K, F, T, V> readerWriter)
+  public OneTierDB(String name, Shared shared, ReadWriter<K, F, T, V> readerWriter)
       throws IOException {
+    this.name = name;
     this.shared = shared;
     this.tableStorage = new TableStorage<>(shared, readerWriter);
     this.tableIndex = new TableIndex<>(tableStorage);
 
-    ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("OneTierDB-%d").build();
+    ThreadFactory threadFactory =
+        new ThreadFactoryBuilder().setNameFormat("OneTierDB-" + name + "-%d").build();
     this.scheduler = Executors.newSingleThreadScheduledExecutor(threadFactory);
     long interval = shared.getStorageProperties().getWriteBufferTimeout().toMillis();
     this.scheduler.scheduleWithFixedDelay(
@@ -239,8 +244,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   private synchronized void commitMemoryTable(boolean timeout) {
-    CyclicBarrier barrier = new CyclicBarrier(2);
-
     commitLock.writeLock().lock();
     deleteLock.readLock().lock();
     try {
@@ -252,21 +255,11 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
               });
 
       Runnable afterFlush = getRunnable();
-      if (timeout) {
-        Runnable oldAfterFlush = afterFlush;
-        afterFlush =
-            () -> {
-              oldAfterFlush.run();
-              try {
-                barrier.await();
-              } catch (InterruptedException | BrokenBarrierException e) {
-                throw new RuntimeException(e);
-              }
-            };
-      }
 
       MemoryTable<K, F, T, V> table = new MemoryTable<>(writeBuffer, types);
       String committedTableName = tableStorage.flush(table, afterFlush);
+
+      LOGGER.info("submit to flushed table {}, with timeout={}", committedTableName, timeout);
       tableIndex.addTable(committedTableName, table.getMeta());
       this.bufferDirtiedTime.set(Long.MAX_VALUE);
       previousTableName = committedTableName;
@@ -278,13 +271,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     } finally {
       deleteLock.readLock().unlock();
       commitLock.writeLock().unlock();
-    }
-    if (timeout) {
-      try {
-        barrier.await();
-      } catch (InterruptedException | BrokenBarrierException e) {
-        throw new RuntimeException(e);
-      }
     }
   }
 
@@ -314,6 +300,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     deleteLock.writeLock().lock();
     storageLock.readLock().lock();
     try {
+      LOGGER.info("start to delete {} in {}", areas, name);
       writeBuffer.remove(areas);
       Set<String> tables = tableIndex.find(areas);
       tableStorage.delete(tables, areas);
@@ -333,6 +320,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     deleteLock.writeLock().lock();
     storageLock.writeLock().lock();
     try {
+      LOGGER.debug("start to clear {}", name);
       tableStorage.clear();
       tableIndex.clear();
       writeBuffer.clear();
