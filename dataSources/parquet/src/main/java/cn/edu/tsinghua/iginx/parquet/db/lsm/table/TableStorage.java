@@ -90,7 +90,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
             try {
               LOGGER.trace("start to flush");
 
-              synchronized (table) {
+              synchronized (tableName) {
                 if (memTables.containsKey(tableName)) {
                   LOGGER.trace("flushing {}", tableName);
                   TableMeta<K, F, T, V> meta = table.getMeta();
@@ -132,23 +132,15 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   }
 
   public void remove(String name) {
-    Object table = memTables.get(name);
-    if (table != null) {
-      synchronized (table) {
-        lock.writeLock().lock();
-        try {
-          memTables.remove(name);
-          memTombstones.remove(name);
-        } finally {
-          lock.writeLock().unlock();
-        }
+    synchronized (name) {
+      lock.writeLock().lock();
+      try {
+        memTables.remove(name);
+        memTombstones.remove(name);
+        readWriter.delete(name);
+      } finally {
+        lock.writeLock().unlock();
       }
-    }
-    lock.writeLock().lock();
-    try {
-      readWriter.delete(name);
-    } finally {
-      lock.writeLock().unlock();
     }
   }
 

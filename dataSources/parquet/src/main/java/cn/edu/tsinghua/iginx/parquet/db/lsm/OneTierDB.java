@@ -38,10 +38,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ThreadFactory;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Lock;
@@ -77,7 +74,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     ThreadFactory threadFactory = new ThreadFactoryBuilder().setNameFormat("OneTierDB-%d").build();
     this.scheduler = Executors.newSingleThreadScheduledExecutor(threadFactory);
     long interval = shared.getStorageProperties().getWriteBufferTimeout().toMillis();
-    this.scheduler.scheduleAtFixedRate(
+    this.scheduler.scheduleWithFixedDelay(
         this::scheduleTask, interval, interval, TimeUnit.MILLISECONDS);
   }
 
@@ -216,7 +213,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
             bufferInsertedSize.sum(),
             shared.getStorageProperties().getWriteBufferSize());
       }
-      commitMemoryTable(true);
+      commitMemoryTable(false);
     } finally {
       checkLock.unlock();
     }
@@ -235,13 +232,15 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
             interval,
             shared.getStorageProperties().getWriteBufferTimeout());
       }
-      commitMemoryTable(false);
+      commitMemoryTable(true);
     } finally {
       checkLock.unlock();
     }
   }
 
-  private synchronized void commitMemoryTable(boolean switchBuffer) {
+  private synchronized void commitMemoryTable(boolean timeout) {
+    CyclicBarrier barrier = new CyclicBarrier(2);
+
     commitLock.writeLock().lock();
     deleteLock.readLock().lock();
     try {
@@ -253,13 +252,25 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
               });
 
       Runnable afterFlush = getRunnable();
+      if (timeout) {
+        Runnable oldAfterFlush = afterFlush;
+        afterFlush =
+            () -> {
+              oldAfterFlush.run();
+              try {
+                barrier.await();
+              } catch (InterruptedException | BrokenBarrierException e) {
+                throw new RuntimeException(e);
+              }
+            };
+      }
 
       MemoryTable<K, F, T, V> table = new MemoryTable<>(writeBuffer, types);
       String committedTableName = tableStorage.flush(table, afterFlush);
       tableIndex.addTable(committedTableName, table.getMeta());
       this.bufferDirtiedTime.set(Long.MAX_VALUE);
       previousTableName = committedTableName;
-      if (switchBuffer) {
+      if (!timeout) {
         this.writeBuffer = new DataBuffer<>();
         bufferInsertedSize.reset();
         previousTableName = null;
@@ -267,6 +278,13 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     } finally {
       deleteLock.readLock().unlock();
       commitLock.writeLock().unlock();
+    }
+    if (timeout) {
+      try {
+        barrier.await();
+      } catch (InterruptedException | BrokenBarrierException e) {
+        throw new RuntimeException(e);
+      }
     }
   }
 
@@ -331,7 +349,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   public void close() throws Exception {
     LOGGER.info("flushing is triggered when closing");
     scheduler.shutdown();
-    commitMemoryTable(true);
+    commitMemoryTable(false);
     tableStorage.close();
     tableIndex.close();
   }
