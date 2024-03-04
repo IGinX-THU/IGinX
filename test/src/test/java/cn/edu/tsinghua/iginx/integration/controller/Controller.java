@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration.controller;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator.IT_DATA_DIR;
 import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator.IT_DATA_FILENAME;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
 import static org.junit.Assert.fail;
@@ -212,11 +213,13 @@ public class Controller {
           String dir =
               DBCE_PARQUET_FS_TEST_DIR
                   + System.getProperty("file.separator")
+                  + IT_DATA_DIR
+                  + System.getProperty("file.separator")
                   + tableName;
           parquetGenerator.writeHistoryData(
               port,
               dir,
-              String.format(IT_DATA_FILENAME, 0),
+              String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
               INIT_PATH_LIST,
               INIT_DATA_TYPE_LIST,
               INIT_KEYS_LIST,
@@ -270,11 +273,13 @@ public class Controller {
       String dir =
           DBCE_PARQUET_FS_TEST_DIR
               + System.getProperty("file.separator")
+              + IT_DATA_DIR
+              + System.getProperty("file.separator")
               + tableName;
       parquetGenerator.writeHistoryData(
           port,
           dir,
-          String.format(IT_DATA_FILENAME, 0),
+          String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
           INIT_PATH_LIST,
           INIT_DATA_TYPE_LIST,
           INIT_KEYS_LIST,
