@@ -17,7 +17,7 @@ public class Utils {
     List<String> retVal = Collections.emptyList();
     switch (statement.getType()) {
       case SELECT:
-        retVal =  new ArrayList<>(((SelectStatement) statement).getPathSet());
+        retVal = new ArrayList<>(((SelectStatement) statement).getPathSet());
         break;
       case DELETE:
         retVal = ((DeleteStatement) statement).getPaths();
@@ -29,8 +29,7 @@ public class Utils {
         // TODO: case label. should we return empty list for other statements?
         break;
     }
-    if(!retVal.isEmpty())
-      Collections.sort(retVal);
+    if (!retVal.isEmpty()) Collections.sort(retVal);
     return retVal;
   }
 
@@ -66,7 +65,8 @@ public class Utils {
       case INSERT:
         InsertStatement insertStatement = (InsertStatement) statement;
         List<Long> keys = insertStatement.getKeys();
-        return new KeyInterval(Collections.min(keys), Collections.min(keys));//interval should require coparison
+        return new KeyInterval(
+            Collections.min(keys), Collections.min(keys)); // interval should require coparison
       case SELECT:
         UnarySelectStatement selectStatement = (UnarySelectStatement) statement;
         return new KeyInterval(selectStatement.getStartKey(), selectStatement.getEndKey());
