@@ -34,13 +34,13 @@ public class Except extends AbstractBinaryOperator {
   }
 
   public void setLeftOrder(List<String> leftOrder) {
-      this.leftOrder.clear();
-      this.leftOrder.addAll(leftOrder);
+    this.leftOrder.clear();
+    this.leftOrder.addAll(leftOrder);
   }
 
   public void setRightOrder(List<String> rightOrder) {
-      this.rightOrder.clear();
-      this.rightOrder.addAll(rightOrder);
+    this.rightOrder.clear();
+    this.rightOrder.addAll(rightOrder);
   }
 
   public boolean isDistinct() {

@@ -17,7 +17,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -224,8 +223,8 @@ public class ExprUtils {
     }
   }
 
-  public static List<String> getPathFromExpr(Expression expr){
-    switch (expr.getType()){
+  public static List<String> getPathFromExpr(Expression expr) {
+    switch (expr.getType()) {
       case Constant:
         return new ArrayList<>();
       case Base:
