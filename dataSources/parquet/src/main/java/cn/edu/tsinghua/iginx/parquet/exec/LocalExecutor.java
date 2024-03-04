@@ -42,10 +42,9 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -60,6 +59,8 @@ public class LocalExecutor implements Executor {
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalExecutor.class);
 
   public Path dataDir;
+
+  private FileLock fileLock;
 
   public Path dummyDir;
 
@@ -142,6 +143,7 @@ public class LocalExecutor implements Executor {
       }
       this.dataDir = Paths.get(data_dir);
       createDir(data_dir);
+      this.fileLock = lockFile(dataDir, Constants.LOCK_FILE_NAME);
     }
 
     if (has_data && !read_only) {
@@ -157,6 +159,21 @@ public class LocalExecutor implements Executor {
             String.format(
                 "Error reading dummy dir path %s and dir path %s: %s", dummy_dir, data_dir, e));
       }
+    }
+  }
+
+  private FileLock lockFile(Path dataDir, String lockFileName)
+      throws StorageInitializationException {
+    Path path = dataDir.resolve(lockFileName);
+    try {
+      if (!Files.exists(path)) {
+        Files.createDirectories(path.getParent());
+        Files.createFile(path);
+      }
+      FileChannel channel = FileChannel.open(path, StandardOpenOption.APPEND);
+      return channel.lock();
+    } catch (IOException e) {
+      throw new StorageInitializationException(String.format("lock file %s error: " + e, path));
     }
   }
 
@@ -311,6 +328,16 @@ public class LocalExecutor implements Executor {
     }
 
     isClosed.set(true);
+
+    if (fileLock != null) {
+      try {
+        fileLock.release();
+        fileLock.channel().close();
+        fileLock = null;
+      } catch (IOException e) {
+        LOGGER.error("fail to release lock file", e);
+      }
+    }
 
     managers.forEach(
         1,
