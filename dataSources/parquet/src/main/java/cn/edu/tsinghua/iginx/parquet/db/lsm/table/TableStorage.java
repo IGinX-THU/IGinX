@@ -86,13 +86,14 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
       memTables.put(tableName, table);
       flusher.submit(
           () -> {
+            LOGGER.debug("task to flush {} started", tableName);
             cleanLock.readLock().lock();
             try {
               LOGGER.trace("start to flush");
 
               synchronized (tableName) {
                 if (memTables.containsKey(tableName)) {
-                  LOGGER.trace("flushing {}", tableName);
+                  LOGGER.debug("flushing {}", tableName);
                   TableMeta<K, F, T, V> meta = table.getMeta();
                   try (Scanner<K, Scanner<F, V>> scanner =
                       table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
@@ -101,7 +102,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
                   commitMemoryTable(tableName);
                 }
               }
-
+              LOGGER.debug("flushed {}, start to run afterFlush hook", tableName);
               afterFlush.run();
             } catch (Throwable e) {
               LOGGER.error("failed to flush {}", tableName, e);
@@ -110,6 +111,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
               shared.getFlusherPermits().release();
               LOGGER.trace("unlock clean lock and released flusher permit");
             }
+            LOGGER.debug("task to flush {} end", tableName);
           });
       return tableName;
     } finally {
