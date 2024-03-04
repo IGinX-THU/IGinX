@@ -288,7 +288,7 @@ public class IginxClient {
     if (trimedStatement.equals(EXIT_COMMAND) || trimedStatement.equals(QUIT_COMMAND)) {
       return OperationResult.STOP;
     }
-
+    long startTime = System.currentTimeMillis();
     if (isQuery(trimedStatement)) {
       processSqlWithStream(statement);
     } else if (isLoadDataFromCsv(trimedStatement)) {
@@ -300,6 +300,8 @@ public class IginxClient {
     } else {
       processSql(statement);
     }
+    long endTime = System.currentTimeMillis();
+    System.out.printf("Time cost: %d ms\n", endTime - startTime);
     return OperationResult.DO_NOTHING;
   }
 
