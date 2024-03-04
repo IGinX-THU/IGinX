@@ -45,6 +45,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
 import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -174,7 +175,13 @@ public class LocalExecutor implements Executor {
         Files.createFile(path);
       }
       FileChannel channel = FileChannel.open(path, StandardOpenOption.APPEND);
-      return channel.lock();
+      FileLock lock = channel.tryLock();
+      if (lock == null) {
+        throw new StorageInitializationException(String.format("lock file %s error: another program holds an overlapping lock", path));
+      }
+      return lock;
+    } catch (OverlappingFileLockException e) {
+      throw new StorageInitializationException(String.format("lock file %s error: this jvm holds an overlapping lock", path));
     } catch (IOException e) {
       throw new StorageInitializationException(String.format("lock file %s error: " + e, path));
     }
