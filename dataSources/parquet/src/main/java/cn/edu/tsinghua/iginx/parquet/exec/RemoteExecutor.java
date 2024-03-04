@@ -357,7 +357,8 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix) throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
+      throws PhysicalException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));

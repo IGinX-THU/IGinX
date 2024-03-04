@@ -78,7 +78,7 @@ public class StorageManager {
         storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
-        if (!isEmbeddedStorageEngine(engine)) {
+        if (!engine.equals(StorageEngineType.filesystem)) {
           needRelease = true;
         }
       }

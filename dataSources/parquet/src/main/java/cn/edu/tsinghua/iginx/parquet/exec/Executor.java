@@ -44,7 +44,8 @@ public interface Executor {
 
   List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException;
 
-  Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix) throws PhysicalException;
+  Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
+      throws PhysicalException;
 
   void close() throws PhysicalException;
 }
