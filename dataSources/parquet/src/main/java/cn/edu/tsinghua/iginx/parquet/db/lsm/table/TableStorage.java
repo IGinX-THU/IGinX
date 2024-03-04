@@ -24,7 +24,6 @@ import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
-import cn.edu.tsinghua.iginx.parquet.util.exception.TimeoutException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -48,7 +47,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   private final ExecutorService flusher = Executors.newCachedThreadPool();
 
-  private final Map<String, MemoryTable<K, F, T, V>> memTables = new ConcurrentHashMap<>();
+  private final Map<String, MemoryTable<K, F, T, V>> memTables = new HashMap<>();
   private final Map<String, AreaSet<K, F>> memTombstones = new HashMap<>();
   private final Shared shared;
   private final ReadWriter<K, F, T, V> readWriter;
@@ -94,19 +93,16 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
           () -> {
             LOGGER.debug("task to flush {} started", tableName);
             try {
-              LOGGER.trace("start to flush");
 
-              if (memTables.containsKey(tableName)) {
-                LOGGER.debug("flushing {}", tableName);
-                TableMeta<K, F, T, V> meta = table.getMeta();
-                try (Scanner<K, Scanner<F, V>> scanner =
-                    table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
-                  readWriter.flush(tableName, meta, scanner);
-                }
-                commitMemoryTable(tableName);
+              TableMeta<K, F, T, V> meta = table.getMeta();
+              try (Scanner<K, Scanner<F, V>> scanner =
+                  table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
+                readWriter.flush(tableName, meta, scanner);
               }
+              commitMemoryTable(tableName);
 
               LOGGER.debug("flushed {}, start to run afterFlush hook", tableName);
+
               afterFlush.run();
             } catch (Throwable e) {
               LOGGER.error("failed to flush {}", tableName, e);
@@ -153,10 +149,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   }
 
   public void clear() throws StorageException, InterruptedException {
-    if (!localFlusherPermits.tryAcquire(localFlusherPermitsTotal, 1, TimeUnit.MINUTES)) {
-      throw new TimeoutException(
-          String.format("try to clear the storage timeout: %s %s", 1, TimeUnit.MINUTES));
-    }
+    localFlusherPermits.acquire(localFlusherPermitsTotal);
     lock.writeLock().lock();
     try {
       memTables.clear();
