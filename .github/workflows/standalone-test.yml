@@ -70,7 +70,7 @@ jobs:
               run: |
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
 
-            - name: set client test context
+            - name: restart iginx zk
               uses: ./.github/actions/context
               with:
                   work-name: restart-iginx-zk
@@ -92,6 +92,11 @@ jobs:
                       mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
                       mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
                   fi
+
+            - name: restart iginx zk
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-zk
 
             - name: set client test context
               uses: ./.github/actions/context
