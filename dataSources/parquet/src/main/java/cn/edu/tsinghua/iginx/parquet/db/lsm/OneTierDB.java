@@ -320,7 +320,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   public void clear() throws StorageException {
     commitLock.readLock().lock();
     deleteLock.writeLock().lock();
-    storageLock.writeLock().lock();
     try {
       LOGGER.debug("start to clear {}", name);
       tableStorage.clear();
@@ -331,7 +330,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     } catch (InterruptedException e) {
       throw new StorageRuntimeException(e);
     } finally {
-      storageLock.writeLock().unlock();
       deleteLock.writeLock().unlock();
       commitLock.readLock().unlock();
     }
