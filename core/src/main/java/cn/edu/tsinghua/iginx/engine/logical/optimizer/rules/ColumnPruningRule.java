@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
@@ -15,6 +16,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
+
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -68,12 +72,9 @@ public class ColumnPruningRule extends Rule {
         newColumnList = FilterUtils.getAllPathsFromFilter(filter);
       } else if (operator.getType() == OperatorType.Reorder) {
         Reorder reorder = (Reorder) operator;
-        if (columns.isEmpty()) {
+        if (columns.isEmpty() ||(hasWildCard(columns) && checkCoverage(reorder.getPatterns(), columns))) {
+          columns.clear();
           columns.addAll(reorder.getPatterns());
-        } else if (hasWildCard(columns)) {
-          if (checkCoverage(reorder.getPatterns(), columns)){
-
-          }
         } else {
           ArrayList<String> patterns = new ArrayList<>(columns);
           Collections.sort(patterns);
@@ -81,15 +82,11 @@ public class ColumnPruningRule extends Rule {
         }
       } else if (operator.getType() == OperatorType.Project) {
         Project project = (Project) operator;
-        if (columns.isEmpty()) {
-          columns.addAll(project.getPatterns());
-          tagFilter = project.getTagFilter();
-        } else if (hasWildCard(columns)) {
-          // 要考虑cover情况
+        if (columns.isEmpty() || hasWildCard(columns) && checkCoverage(columns,project.getPatterns())) {
           columns.clear();
           columns.addAll(project.getPatterns());
           tagFilter = project.getTagFilter();
-        } else {
+        }else {
           ArrayList<String> patterns = new ArrayList<>(columns);
           Collections.sort(patterns);
           project.setPatterns(patterns);
@@ -190,110 +187,125 @@ public class ColumnPruningRule extends Rule {
 
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
       // 下面是处理BinaryOperator的情况，其中只有Join操作符需要处理
-      String PrefixA = null, PrefixB = null;
-      Filter filter = null;
-      boolean isNaturalJoin = false;
-      Set<OperatorType> processedTypes =
-          new HashSet<>(
-              Arrays.asList(
-                  OperatorType.InnerJoin,
-                  OperatorType.OuterJoin,
-                  OperatorType.CrossJoin,
-                  OperatorType.MarkJoin));
 
-      if (operator.getType() == OperatorType.InnerJoin) {
-        InnerJoin innerJoin = (InnerJoin) operator;
-        PrefixA = innerJoin.getPrefixA();
-        PrefixB = innerJoin.getPrefixB();
-        filter = innerJoin.getFilter();
-        isNaturalJoin = innerJoin.isNaturalJoin();
-      } else if (operator.getType() == OperatorType.OuterJoin) {
-        OuterJoin outerJoin = (OuterJoin) operator;
-        PrefixA = outerJoin.getPrefixA();
-        PrefixB = outerJoin.getPrefixB();
-        filter = outerJoin.getFilter();
-        isNaturalJoin = outerJoin.isNaturalJoin();
-      } else if (operator.getType() == OperatorType.CrossJoin) {
-        CrossJoin crossJoin = (CrossJoin) operator;
-        PrefixA = crossJoin.getPrefixA();
-        PrefixB = crossJoin.getPrefixB();
-      } else if(operator.getType() == OperatorType.SingleJoin){
-        // SingleJoin不带有信息，不做处理
-        return;
-      }
-      else if (operator.getType() == OperatorType.MarkJoin) {
-        // MarkJoin暂不处理
-        return;
-      }
+      Set<String> leftColumns = new HashSet<>();
+      Set<String> rightColumns = new HashSet<>();
+      if(OperatorType.isJoinOperator(operator.getType())) {
+        String PrefixA = null, PrefixB = null;
+        Filter filter = null;
+        boolean isNaturalJoin = false;
 
-      if (isNaturalJoin) {
-        // NaturalJoin可能会用到所有的列，因此我们直接返回，不继续优化
-        return;
-      }
+        if (operator.getType() == OperatorType.InnerJoin) {
+          InnerJoin innerJoin = (InnerJoin) operator;
+          PrefixA = innerJoin.getPrefixA();
+          PrefixB = innerJoin.getPrefixB();
+          filter = innerJoin.getFilter();
+          isNaturalJoin = innerJoin.isNaturalJoin();
+        } else if (operator.getType() == OperatorType.OuterJoin) {
+          OuterJoin outerJoin = (OuterJoin) operator;
+          PrefixA = outerJoin.getPrefixA();
+          PrefixB = outerJoin.getPrefixB();
+          filter = outerJoin.getFilter();
+          isNaturalJoin = outerJoin.isNaturalJoin();
+        } else if (operator.getType() == OperatorType.CrossJoin) {
+          CrossJoin crossJoin = (CrossJoin) operator;
+          PrefixA = crossJoin.getPrefixA();
+          PrefixB = crossJoin.getPrefixB();
+        } else if (operator.getType() == OperatorType.SingleJoin) {
+          // SingleJoin不带有信息，不做处理
+          return;
+        } else if (operator.getType() == OperatorType.MarkJoin) {
+          // MarkJoin暂不处理
+          return;
+        }
 
-      if (filter != null) {
-        columns.addAll(FilterUtils.getAllPathsFromFilter(filter));
-      }
+        if (isNaturalJoin) {
+          // NaturalJoin可能会用到所有的列，因此我们直接返回，不继续优化
+          return;
+        }
 
-      // 将columns中的列名分成以PrefixA和PrefixB开头的两部分
-      Set<String> prefixAColumns = new HashSet<>();
-      Set<String> prefixBColumns = new HashSet<>();
-      if (PrefixA != null && PrefixB != null) {
-        for (String column : columns) {
-          if (column.contains("*")) {
+        if (filter != null) {
+          columns.addAll(FilterUtils.getAllPathsFromFilter(filter));
+        }
+
+        // 将columns中的列名分成以PrefixA和PrefixB开头的两部分
+
+        if (PrefixA != null && PrefixB != null) {
+          for (String column : columns) {
+            if (column.contains("*")) {
             /*
             如果现有的列中包含通配符*，这个通配符会受到当前Join算子的限制，不再能下推，再推下去会导致取的列过多
             例如最顶上Project的test.*，但是JOIN算子左右两侧是test.a.*和test.b.*，这是的test.*实际上取的列是test.a.*和test.b.*的并集
-            但如果将test.*下推到JOIN算子后，会取到test.a.*和test.b.*之外的列，因此我们丢弃所有列，用Join算子的左右两个表覆盖
+            但如果将test.*下推到JOIN算子后，会取到test.a.*和test.b.*之外的列，因此我们丢弃所有列，让子树重新计算
             */
-            prefixAColumns.clear();
-            prefixBColumns.clear();
-            prefixAColumns.add(PrefixA + ".*");
-            prefixBColumns.add(PrefixB + ".*");
-            break;
+              leftColumns.clear();
+              rightColumns.clear();
+              break;
+            }
+
+            if (column.startsWith(PrefixA + ".")) {
+              leftColumns.add(column);
+            } else if (column.startsWith(PrefixB + ".")) {
+              rightColumns.add(column);
+            } else {
+              // 如果没有匹配的话，可能是连续JOIN的情况，即SELECT t1.*, t2.*, t3.* FROM t1 JOIN t2 JOIN t3;(这里省略了ON条件）
+              // 目前看来第一个InnerJoin只有t1、t2的信息，t3的InnerJoin放在左子树(PrefixA)中
+              leftColumns.add(column);
+            }
+          }
+        }
+
+        // 如果不存在Filter，这几个Join算子会执行笛卡尔积，在上面分Columns时可能会出现其中一侧的Columns为空的情况
+        // 此时我们将空的一侧的Columns设置为PRIFIX.*
+//        if (filter == null && PrefixA != null && PrefixB != null) {
+//          if (leftColumns.isEmpty()) {
+//            leftColumns.add(PrefixA + ".*");
+//          }
+//          if (rightColumns.isEmpty()) {
+//            rightColumns.add(PrefixB + ".*");
+//          }
+//        }
+
+//        if (leftColumns.isEmpty() || rightColumns.isEmpty()) {
+//          leftColumns = columns;
+//          rightColumns.addAll(columns);
+//        }
+      }
+      else if (OperatorType.isSetOperator(operator.getType())){
+        Pair<List<String>, List<String>> orderPair = getSetOperatorOrder(operator);
+        List<String> leftOrder = orderPair.getK(), rightOrder = orderPair.getV();
+        if(hasPatternOperator(visitedOperators)) {
+          // SetOperator要求左右两侧的列数相同，我们只对左侧进行列裁剪，然后右侧相应减少对应的列（有顺序要求）
+          // 如果左侧将要替换的columns和右侧order有*的话，我们无法确定具体*对应的列数，不能进行列裁剪，直接return
+          if (hasWildCard(columns) || hasWildCard(rightOrder)) {
+            return;
           }
 
-          if (column.startsWith(PrefixA + ".")) {
-            prefixAColumns.add(column);
-          } else if (column.startsWith(PrefixB + ".")) {
-            prefixBColumns.add(column);
-          } else {
-            // 如果没有匹配的话，可能是连续JOIN的情况，即SELECT t1.*, t2.*, t3.* FROM t1 JOIN t2 JOIN t3;(这里省略了ON条件）
-            // 目前看来第一个InnerJoin只有t1、t2的信息，t3的InnerJoin放在左子树(PrefixA)中
-            prefixAColumns.add(column);
+          List<String> newLeftOrder = getOrderListFromColumns(columns, leftOrder);
+          List<String> newRightOrder = new ArrayList<>();
+          // 去除右侧，索引超出左侧的列
+          for (int i = 0; i < newLeftOrder.size(); i++) {
+            newRightOrder.add(rightOrder.get(i));
           }
+          setSetOperatorOrder(operator, newLeftOrder, newRightOrder);
+          leftColumns.addAll(newLeftOrder);
+          rightColumns.addAll(newRightOrder);
+        }else{
+          leftColumns.addAll(leftOrder);
+          rightColumns.addAll(rightOrder);
         }
-      } else if (processedTypes.contains(operator.getType())) {
-        // 在没有Prefix的情况下，缺少信息，无法继续优化
-        return;
-      }
-
-      // 如果不存在Filter，这几个Join算子会执行笛卡尔积，在上面分Columns时可能会出现其中一侧的Columns为空的情况
-      // 此时我们将空的一侧的Columns设置为PRIFIX.*
-      if (filter == null && PrefixA != null && PrefixB != null) {
-        if (prefixAColumns.isEmpty()) {
-          prefixAColumns.add(PrefixA + ".*");
-        }
-        if (prefixBColumns.isEmpty()) {
-          prefixBColumns.add(PrefixB + ".*");
-        }
-      }
-
-      if (prefixAColumns.isEmpty() || prefixBColumns.isEmpty()) {
-        prefixAColumns = columns;
-        prefixBColumns.addAll(columns);
       }
 
       // 递归处理下一个节点
       visitedOperators.add(operator);
       collectColumns(
           ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator(),
-          prefixAColumns,
+          leftColumns,
           tagFilter,
           visitedOperators);
       collectColumns(
           ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
-          prefixBColumns,
+          rightColumns,
           tagFilter,
           new ArrayList<>(visitedOperators));
     }
@@ -320,6 +332,15 @@ public class ColumnPruningRule extends Rule {
         String functionStr = functionCall.getParams().getExpr().getColumnName();
         columns.remove(functionStr);
         columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpr()));
+      } else if(FunctionUtils.isPyUDF(functionName)){
+        // UDF结果列括号内可以随意命名，因此我们识别columns中所有开头为UDF的列，不识别括号内的内容
+        String prefix = functionName + "(";
+        for (String column : columns) {
+          if (column.startsWith(prefix)) {
+            columns.remove(column);
+            columns.addAll(paths);
+          }
+        }
       } else {
         String functionStr = functionName + "(" + String.join(", ", paths) + ")";
         if (functionCall.getParams().isDistinct()) {
@@ -411,7 +432,7 @@ public class ColumnPruningRule extends Rule {
    * @param columns 列列表
    * @return 是否有通配符
    */
-  private static boolean hasWildCard(Set<String> columns) {
+  private static boolean hasWildCard(Collection<String> columns) {
     for (String column : columns) {
       if (column.contains(Constants.ALL_PATH)) {
         return true;
@@ -420,5 +441,86 @@ public class ColumnPruningRule extends Rule {
     return false;
   }
 
+
+  static final Set<OperatorType> patternOperators = new HashSet<>(Arrays.asList(
+          OperatorType.Project,
+          OperatorType.GroupBy,
+          OperatorType.Downsample,
+          OperatorType.SetTransform,
+          OperatorType.RowTransform,
+          OperatorType.MappingTransform
+  ));
+
+  /**
+   * 检查父节点（递归）中是否含有能决定Pattern的操作符：Project、GroupBy、DownSample、Set/Row/MappingTransform
+   * @param visitedOperators 已经访问过的操作符
+   * @return 是否含有能决定Pattern的操作符
+   */
+  private static boolean hasPatternOperator(List<Operator> visitedOperators){
+    for (Operator operator : visitedOperators) {
+      if (patternOperators.contains(operator.getType())) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * 裁剪order中的列，如果order中的列在columns中，保留，如果带*，则找到columns中能匹配的列，并按字典序排序
+   * @param columns 列列表
+   * @param order SetOperator中提取的order列表
+   * @return 裁剪后的order列表
+   */
+  private static List<String> getOrderListFromColumns(Set<String> columns, List<String> order){
+    List<String> result = new ArrayList<>();
+    for (String orderColumn : order) {
+      if (columns.contains(orderColumn)) {
+        result.add(orderColumn);
+      } else if (orderColumn.contains("*")) {
+        List<String> columnsList = new ArrayList<>(columns);
+        for(String column : columns){
+          if (StringUtils.match(column, orderColumn)) {
+            columnsList.add(column);
+          }
+        }
+        Collections.sort(columnsList);
+        result.addAll(columnsList);
+      }
+    }
+    return result;
+  }
+
+  private static void setSetOperatorOrder(Operator operator, List<String> leftOrder, List<String> rightOrder){
+    if(operator.getType() == OperatorType.Union){
+      Union union = (Union) operator;
+      union.setLeftOrder(leftOrder);
+      union.setRightOrder(rightOrder);
+    }else if(operator.getType() == OperatorType.Intersect){
+      Intersect intersect = (Intersect) operator;
+      intersect.setLeftOrder(leftOrder);
+      intersect.setRightOrder(rightOrder);
+    }else if(operator.getType() == OperatorType.Except){
+      Except except = (Except) operator;
+      except.setLeftOrder(leftOrder);
+      except.setRightOrder(rightOrder);
+    }else{
+      throw new IllegalArgumentException("Operator is not a SetOperator");
+    }
+  }
+
+  private static Pair<List<String>, List<String>> getSetOperatorOrder(Operator operator){
+    if(operator.getType() == OperatorType.Union){
+      Union union = (Union) operator;
+      return new Pair<>(union.getLeftOrder(), union.getRightOrder());
+    }else if(operator.getType() == OperatorType.Intersect){
+      Intersect intersect = (Intersect) operator;
+      return new Pair<>(intersect.getLeftOrder(), intersect.getRightOrder());
+    }else if(operator.getType() == OperatorType.Except){
+      Except except = (Except) operator;
+      return new Pair<>(except.getLeftOrder(), except.getRightOrder());
+    }else{
+      throw new IllegalArgumentException("Operator is not a SetOperator");
+    }
+  }
 
 }
