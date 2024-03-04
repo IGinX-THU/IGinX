@@ -40,6 +40,7 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Iterables;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -50,6 +51,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -285,7 +288,7 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix) throws PhysicalException {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (Manager manager : getAllManagers()) {
@@ -299,6 +302,9 @@ public class LocalExecutor implements Executor {
       if (interval.getEndKey() > end) {
         end = interval.getEndKey();
       }
+    }
+    if (dataPrefix != null) {
+      paths = paths.stream().filter(path -> path.startsWith(dataPrefix)).collect(Collectors.toList());
     }
     paths.sort(String::compareTo);
     if (paths.isEmpty()) {

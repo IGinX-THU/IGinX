@@ -181,7 +181,7 @@ public class ParquetStorage implements IStorage {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
-    return executor.getBoundaryOfStorage();
+    return executor.getBoundaryOfStorage(prefix);
   }
 
   @Override

@@ -115,7 +115,7 @@ public class StorageManager {
       logger.error("load class {} for engine {} failure: {}", driver, engine, e);
       return false;
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}: {}", engine, e);
+      logger.error("unexpected error when process engine {}: ", engine, e);
       return false;
     }
     return true;
