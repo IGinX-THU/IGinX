@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.parquet.db.util.SequenceGenerator;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -30,9 +31,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.StreamSupport;
@@ -44,7 +43,6 @@ import org.slf4j.LoggerFactory;
 public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class.getName());
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
-  private final ReadWriteLock cleanLock = new ReentrantReadWriteLock(true);
   private final SequenceGenerator seqGen = new SequenceGenerator();
 
   private final ExecutorService flusher = Executors.newCachedThreadPool();
@@ -54,9 +52,14 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   private final Shared shared;
   private final ReadWriter<K, F, T, V> readWriter;
 
+  private final int localFlusherPermitsTotal;
+  private final Semaphore localFlusherPermits;
+
   public TableStorage(Shared shared, ReadWriter<K, F, T, V> readWriter) throws IOException {
     this.shared = shared;
     this.readWriter = readWriter;
+    this.localFlusherPermitsTotal = shared.getFlusherPermits().availablePermits();
+    this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal);
     reload();
   }
 
@@ -77,37 +80,37 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     return String.format("%019d", seq);
   }
 
-  public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush) {
+  public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush)
+      throws InterruptedException {
     lock.writeLock().lock();
     try {
       String tableName = getTableName(seqGen.next());
       LOGGER.debug("waiting for flusher permit to flush {}", tableName);
-      shared.getFlusherPermits().acquireUninterruptibly();
+      shared.getFlusherPermits().acquire();
+      localFlusherPermits.acquire();
       memTables.put(tableName, table);
       flusher.submit(
           () -> {
             LOGGER.debug("task to flush {} started", tableName);
-            cleanLock.readLock().lock();
             try {
               LOGGER.trace("start to flush");
 
-              synchronized (tableName) {
-                if (memTables.containsKey(tableName)) {
-                  LOGGER.debug("flushing {}", tableName);
-                  TableMeta<K, F, T, V> meta = table.getMeta();
-                  try (Scanner<K, Scanner<F, V>> scanner =
-                      table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
-                    readWriter.flush(tableName, meta, scanner);
-                  }
-                  commitMemoryTable(tableName);
+              if (memTables.containsKey(tableName)) {
+                LOGGER.debug("flushing {}", tableName);
+                TableMeta<K, F, T, V> meta = table.getMeta();
+                try (Scanner<K, Scanner<F, V>> scanner =
+                    table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
+                  readWriter.flush(tableName, meta, scanner);
                 }
+                commitMemoryTable(tableName);
               }
+
               LOGGER.debug("flushed {}, start to run afterFlush hook", tableName);
               afterFlush.run();
             } catch (Throwable e) {
               LOGGER.error("failed to flush {}", tableName, e);
             } finally {
-              cleanLock.readLock().unlock();
+              localFlusherPermits.release();
               shared.getFlusherPermits().release();
               LOGGER.trace("unlock clean lock and released flusher permit");
             }
@@ -127,6 +130,8 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
         if (tombstone != null) {
           readWriter.delete(name, tombstone);
         }
+      } else {
+        readWriter.delete(name);
       }
     } finally {
       lock.writeLock().unlock();
@@ -134,20 +139,22 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   }
 
   public void remove(String name) {
-    synchronized (name) {
-      lock.writeLock().lock();
-      try {
-        memTables.remove(name);
+    lock.writeLock().lock();
+    try {
+      if (memTables.remove(name) != null) {
         memTombstones.remove(name);
+      } else {
         readWriter.delete(name);
-      } finally {
-        lock.writeLock().unlock();
       }
+    } finally {
+      lock.writeLock().unlock();
     }
   }
 
-  public void clear() throws StorageException {
-    cleanLock.writeLock().lock();
+  public void clear() throws StorageException, InterruptedException {
+    if (!localFlusherPermits.tryAcquire(localFlusherPermitsTotal, 1, TimeUnit.MINUTES)) {
+      throw new StorageRuntimeException("Failed to acquire all local flusher permits");
+    }
     lock.writeLock().lock();
     try {
       memTables.clear();
@@ -155,10 +162,10 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
       readWriter.clear();
       seqGen.reset();
     } catch (IOException e) {
-      throw new StorageException(e);
+      throw new StorageRuntimeException(e);
     } finally {
+      localFlusherPermits.release(localFlusherPermitsTotal);
       lock.writeLock().unlock();
-      cleanLock.writeLock().unlock();
     }
   }
 

@@ -268,6 +268,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
         bufferInsertedSize.reset();
         previousTableName = null;
       }
+    } catch (InterruptedException e) {
+      throw new StorageRuntimeException(e);
     } finally {
       deleteLock.readLock().unlock();
       commitLock.writeLock().unlock();
@@ -326,6 +328,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       writeBuffer.clear();
       bufferDirtiedTime.set(Long.MAX_VALUE);
       bufferInsertedSize.reset();
+    } catch (InterruptedException e) {
+      throw new StorageRuntimeException(e);
     } finally {
       storageLock.writeLock().unlock();
       deleteLock.writeLock().unlock();
