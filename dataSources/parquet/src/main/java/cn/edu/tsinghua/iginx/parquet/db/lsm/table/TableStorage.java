@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.TimeoutException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -153,7 +154,8 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   public void clear() throws StorageException, InterruptedException {
     if (!localFlusherPermits.tryAcquire(localFlusherPermitsTotal, 1, TimeUnit.MINUTES)) {
-      throw new StorageRuntimeException("Failed to acquire all local flusher permits");
+      throw new TimeoutException(
+          String.format("try to clear the storage timeout: %s %s", 1, TimeUnit.MINUTES));
     }
     lock.writeLock().lock();
     try {
