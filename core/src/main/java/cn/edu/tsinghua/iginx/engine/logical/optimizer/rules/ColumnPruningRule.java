@@ -111,7 +111,11 @@ public class ColumnPruningRule extends Rule {
         functionCallList = downsample.getFunctionCallList();
       } else if (operator.getType() == OperatorType.Sort) {
         Sort sort = (Sort) operator;
-        newColumnList = sort.getSortByCols();
+        for(String column: sort.getSortByCols()){
+          if(!column.equalsIgnoreCase(Constants.KEY)){
+            columns.add(column);
+          }
+        }
       } else if (operator.getType() == OperatorType.AddSchemaPrefix) {
         String prefix = ((AddSchemaPrefix) operator).getSchemaPrefix();
         if (prefix != null) {
@@ -320,6 +324,12 @@ public class ColumnPruningRule extends Rule {
     for (FunctionCall functionCall : functionCallList) {
       String functionName = functionCall.getFunction().getIdentifier();
       List<String> paths = functionCall.getParams().getPaths();
+      boolean isPyUDF;
+      try {
+        isPyUDF = FunctionUtils.isPyUDF(functionName);
+      } catch (Exception e) {
+        isPyUDF = false;
+      }
 
       if (functionName.equals(First.FIRST) || functionName.equals(Last.LAST)) {
         // First和Last的结果列是path和value
@@ -330,7 +340,7 @@ public class ColumnPruningRule extends Rule {
         String functionStr = functionCall.getParams().getExpr().getColumnName();
         columns.remove(functionStr);
         columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpr()));
-      } else if (FunctionUtils.isPyUDF(functionName)) {
+      } else if (isPyUDF) {
         // UDF结果列括号内可以随意命名，因此我们识别columns中所有开头为UDF的列，不识别括号内的内容
         String prefix = functionName + "(";
         for (String column : columns) {
@@ -419,7 +429,7 @@ public class ColumnPruningRule extends Rule {
           renamedPatterns.add(p);
           matched = true;
           break;
-        } else if (newPattern.contains(".*")
+        } else if (pattern.contains(".*")
             && newPattern.matches(StringUtils.reformatPath(pattern))) {
           renamedPatterns.add(entry.getKey());
           matched = true;

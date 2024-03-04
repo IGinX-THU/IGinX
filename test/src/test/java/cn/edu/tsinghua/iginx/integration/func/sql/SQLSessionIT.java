@@ -1547,8 +1547,8 @@ public class SQLSessionIT {
             + "|  +--Downsample   |   Downsample|Precision: 100, SlideDistance: 50, TimeRange: [1, 1000), FuncList(Name, FunctionType): (avg, System), (count, System), MappingType: SetMapping|\n"
             + "|    +--Select     |       Select|                                                                                                              Filter: (key >= 1 && key < 1000)|\n"
             + "|      +--Join     |         Join|                                                                                                                                   JoinBy: key|\n"
-            + "|        +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s4, Target DU: unit0000000000|\n"
-            + "|        +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s4, Target DU: unit0000000001|\n"
+            + "|        +--Project|      Project|                                                                                                 Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+            + "|        +--Project|      Project|                                                                                                 Patterns: us.d1.s4, Target DU: unit0000000001|\n"
             + "+------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
@@ -6559,6 +6559,9 @@ public class SQLSessionIT {
       return;
     }
 
+    String closeRule = "SET RULES FragmentEliminationRule=OFF, ColumnPruningRule=OFF;";
+    executor.execute(closeRule);
+
     String insert =
         "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
     executor.execute(insert);
@@ -6752,7 +6755,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 开启filter_fragment
-    statement = "SET RULES FilterFragmentRule=ON;";
+    statement = "SET RULES FilterFragmentRule=ON, FragmentEliminationRule=ON, ColumnPruningRule=ON;";
     executor.execute(statement);
   }
 
