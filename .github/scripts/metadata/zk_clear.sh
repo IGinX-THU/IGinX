@@ -28,12 +28,12 @@ sh -c "ls zookeeper"
 
 sh -c "rm -rf zookeeper/data"
 
+sh -c "rm -rf zookeeper/logs"
+
 sh -c "ls zookeeper"
 
 sh -c "echo mmmmmmmmmmmmmmmmmmmmmmmmmmm"
 
 sh -c "mkdir zookeeper/data"
-
-sh -c "rm -rf zookeeper/logs"
 
 sh -c "mkdir zookeeper/logs"
