@@ -22,7 +22,15 @@ fi
 
 sh -c "sleep 2"
 
+sh -c "echo mmmmmmmmmmmmmmmmmmmmmmmmmmm"
+
+sh -c "ls zookeeper"
+
 sh -c "rm -rf zookeeper/data"
+
+sh -c "ls zookeeper"
+
+sh -c "echo mmmmmmmmmmmmmmmmmmmmmmmmmmm"
 
 sh -c "mkdir zookeeper/data"
 
