@@ -133,3 +133,16 @@ runs:
                   echo "$RUNNER_OS is not supported"
                   exit 1
               fi
+        - name: Change Log conf
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/^rootLogger[.]level=.*$/rootLogger.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/^rootLogger[.]level=.*$/rootLogger.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/^rootLogger[.]level=.*$/rootLogger.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi

@@ -17,6 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.format.parquet.ParquetReadOptions;
 import cn.edu.tsinghua.iginx.format.parquet.ParquetRecordReader;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
@@ -39,6 +40,9 @@ import org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import org.apache.parquet.io.InputFile;
 import org.apache.parquet.io.LocalInputFile;
 import org.apache.parquet.io.SeekableInputStream;
+import org.apache.parquet.local.ParquetFileReader;
+import org.apache.parquet.local.ParquetReadOptions;
+import org.apache.parquet.local.ParquetRecordReader;
 import org.apache.parquet.schema.MessageType;
 import org.apache.parquet.schema.PrimitiveType;
 import org.apache.parquet.schema.Type;

@@ -34,23 +34,24 @@ import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.IsClosedException;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.Shared;
+import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.channels.FileChannel;
+import java.nio.channels.FileLock;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -60,6 +61,8 @@ public class LocalExecutor implements Executor {
   private static final Logger LOGGER = LoggerFactory.getLogger(LocalExecutor.class);
 
   public Path dataDir;
+
+  private FileLock fileLock;
 
   public Path dummyDir;
 
@@ -142,6 +145,7 @@ public class LocalExecutor implements Executor {
       }
       this.dataDir = Paths.get(data_dir);
       createDir(data_dir);
+      this.fileLock = lockFile(dataDir, Constants.LOCK_FILE_NAME);
     }
 
     if (has_data && !read_only) {
@@ -157,6 +161,29 @@ public class LocalExecutor implements Executor {
             String.format(
                 "Error reading dummy dir path %s and dir path %s: %s", dummy_dir, data_dir, e));
       }
+    }
+  }
+
+  private FileLock lockFile(Path dataDir, String lockFileName)
+      throws StorageInitializationException {
+    Path path = dataDir.resolve(lockFileName);
+    try {
+      if (!Files.exists(path)) {
+        Files.createDirectories(path.getParent());
+        Files.createFile(path);
+      }
+      FileChannel channel = FileChannel.open(path, StandardOpenOption.APPEND);
+      FileLock lock = channel.tryLock();
+      if (lock == null) {
+        throw new StorageInitializationException(
+            String.format("lock file %s error: another program holds an overlapping lock", path));
+      }
+      return lock;
+    } catch (OverlappingFileLockException e) {
+      throw new StorageInitializationException(
+          String.format("lock file %s error: this jvm holds an overlapping lock", path));
+    } catch (IOException e) {
+      throw new StorageInitializationException(String.format("lock file %s error: " + e, path));
     }
   }
 
@@ -192,6 +219,9 @@ public class LocalExecutor implements Executor {
   private Manager getOrCreateManager(String storageUnit) throws PhysicalException {
     if (dataDir == null) {
       throw new PhysicalException("data dir not provided");
+    }
+    if (storageUnit.startsWith("dummy")) {
+      throw new PhysicalException("dummy storage unit not allowed");
     }
 
     return managers.computeIfAbsent(
@@ -268,7 +298,8 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage() throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
+      throws PhysicalException {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (Manager manager : getAllManagers()) {
@@ -282,6 +313,10 @@ public class LocalExecutor implements Executor {
       if (interval.getEndKey() > end) {
         end = interval.getEndKey();
       }
+    }
+    if (dataPrefix != null) {
+      paths =
+          paths.stream().filter(path -> path.startsWith(dataPrefix)).collect(Collectors.toList());
     }
     paths.sort(String::compareTo);
     if (paths.isEmpty()) {
@@ -311,6 +346,16 @@ public class LocalExecutor implements Executor {
     }
 
     isClosed.set(true);
+
+    if (fileLock != null) {
+      try {
+        fileLock.release();
+        fileLock.channel().close();
+        fileLock = null;
+      } catch (IOException e) {
+        LOGGER.error("fail to release lock file", e);
+      }
+    }
 
     managers.forEach(
         1,
