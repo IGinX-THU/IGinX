@@ -223,7 +223,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
   }
 
   public void delete(AreaSet<K, F> areas) {
-    lock.readLock().lock();
+    lock.writeLock().lock();
     try {
       indexes.keySet().removeAll(areas.getFields());
       for (FieldIndex<K, F, T, V> fieldIndex : indexes.values()) {
@@ -236,7 +236,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
         }
       }
     } finally {
-      lock.readLock().unlock();
+      lock.writeLock().unlock();
     }
   }
 
