@@ -72,7 +72,7 @@ public class ColumnPruningRule extends Rule {
       } else if (operator.getType() == OperatorType.Reorder) {
         Reorder reorder = (Reorder) operator;
         if (columns.isEmpty()
-            || (hasWildCard(columns) && checkCoverage(reorder.getPatterns(), columns))) {
+            || (hasWildCard(columns) && checkCoverage(columns, reorder.getPatterns()))) {
           columns.clear();
           columns.addAll(reorder.getPatterns());
         } else {
@@ -214,8 +214,10 @@ public class ColumnPruningRule extends Rule {
           // SingleJoin不带有信息，不做处理
           return;
         } else if (operator.getType() == OperatorType.MarkJoin) {
-          // MarkJoin暂不处理
-          return;
+          // 在columns中找到&mark的列，删除，这是由于MarkFilter引入的列，不用于后续计算
+          columns.removeIf(column -> column.startsWith(MarkJoin.MARK_PREFIX));
+          // MarkJoin的左侧是普通子树，右侧是关联子查询子树，我们只处理左侧，裁剪右侧的列会导致语义变化
+          leftColumns.addAll(columns);
         }
 
         if (isNaturalJoin) {
@@ -228,7 +230,6 @@ public class ColumnPruningRule extends Rule {
         }
 
         // 将columns中的列名分成以PrefixA和PrefixB开头的两部分
-
         if (PrefixA != null && PrefixB != null) {
           for (String column : columns) {
             if (column.contains("*")) {
@@ -261,17 +262,6 @@ public class ColumnPruningRule extends Rule {
           rightColumns.addAll(getNewColumns(rightColumns, extraJoinPath));
           return;
         }
-
-        // 如果不存在Filter，这几个Join算子会执行笛卡尔积，在上面分Columns时可能会出现其中一侧的Columns为空的情况
-        // 此时我们将空的一侧的Columns设置为PRIFIX.*
-        //        if (filter == null && PrefixA != null && PrefixB != null) {
-        //          if (leftColumns.isEmpty()) {
-        //            leftColumns.add(PrefixA + ".*");
-        //          }
-        //          if (rightColumns.isEmpty()) {
-        //            rightColumns.add(PrefixB + ".*");
-        //          }
-        //        }
 
       } else if (OperatorType.isSetOperator(operator.getType())) {
         Pair<List<String>, List<String>> orderPair = getSetOperatorOrder(operator);
