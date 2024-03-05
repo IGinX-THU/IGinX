@@ -18,10 +18,8 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
-import com.google.common.collect.BoundType;
-import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
+import com.google.common.collect.*;
+
 import java.io.StringReader;
 import java.util.Collections;
 import java.util.Map;
@@ -119,12 +117,12 @@ public class SerializeUtils {
 
   private static <K extends Comparable<K>> RangeSet<K> jsonParseRangeSet(
       JsonArray array, ObjectFormat<K> format) {
-    ImmutableRangeSet.Builder<K> builder = ImmutableRangeSet.builder();
+    TreeRangeSet<K> rangeSet = TreeRangeSet.create();
     for (JsonValue value : array) {
       Range<K> range = jsonParseRange((JsonObject) value, format);
-      builder.add(range);
+      rangeSet.add(range);
     }
-    return builder.build();
+    return ImmutableRangeSet.copyOf(rangeSet);
   }
 
   private static <K extends Comparable<K>> Range<K> jsonParseRange(

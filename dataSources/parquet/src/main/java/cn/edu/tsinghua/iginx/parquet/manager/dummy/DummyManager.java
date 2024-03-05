@@ -41,6 +41,8 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
+
+import com.google.common.collect.TreeRangeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -157,16 +159,17 @@ public class DummyManager implements Manager {
 
   @Override
   public KeyInterval getKeyInterval() throws PhysicalException {
-    ImmutableRangeSet.Builder<Long> builder = ImmutableRangeSet.builder();
+    TreeRangeSet<Long> rangeSet = TreeRangeSet.create();
+
     for (Path path : getFilePaths()) {
       try {
         Range<Long> range = new Loader(path).getRange();
-        builder.add(range);
+        rangeSet.add(range);
       } catch (Exception e) {
         throw new PhysicalException("failed to get range from " + path + ": " + e, e);
       }
     }
-    ImmutableRangeSet<Long> rangeSet = builder.build();
+
     if (rangeSet.isEmpty()) {
       return new KeyInterval(0, 0);
     }

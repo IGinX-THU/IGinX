@@ -29,6 +29,8 @@ import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+
+import com.google.common.collect.TreeRangeSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -335,16 +337,16 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     }
 
     public RangeSet<K> ranges() {
-      ImmutableRangeSet.Builder<K> builder = ImmutableRangeSet.builder();
+      TreeRangeSet<K> rangeSet = TreeRangeSet.create();
       lock.readLock().lock();
       try {
         for (Range<K> range : tableRange.values()) {
-          builder.add(range);
+          rangeSet.add(range);
         }
       } finally {
         lock.readLock().unlock();
       }
-      return builder.build();
+      return ImmutableRangeSet.copyOf(rangeSet);
     }
   }
 }

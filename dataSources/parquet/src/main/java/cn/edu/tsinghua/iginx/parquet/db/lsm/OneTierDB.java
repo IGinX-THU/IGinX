@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.util.*;
@@ -124,14 +125,13 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     deleteLock.readLock().lock();
     storageLock.readLock().lock();
     try {
-      ImmutableRangeSet.Builder<K> builder = ImmutableRangeSet.builder();
+      TreeRangeSet<K> rangeSet = TreeRangeSet.create();
       for (Range<K> range : tableIndex.ranges().values()) {
-        builder.add(range);
+        rangeSet.add(range);
       }
       for (Range<K> range : writeBuffer.ranges().values()) {
-        builder.add(range);
+        rangeSet.add(range);
       }
-      ImmutableRangeSet<K> rangeSet = builder.build();
       if (rangeSet.isEmpty()) {
         return Optional.empty();
       } else {
