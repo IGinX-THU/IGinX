@@ -235,7 +235,8 @@ public class ColumnPruningRule extends Rule {
             || operator.getType() == OperatorType.SingleJoin) {
           List<String> rightPatterns =
               getPatternFromOperatorChildren(
-                  ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator());
+                  ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
+                  new ArrayList<>());
           leftColumns.addAll(getNewColumns(rightPatterns, columns));
         }
 
@@ -443,8 +444,52 @@ public class ColumnPruningRule extends Rule {
           renamedPatterns.add(p);
           matched = true;
           break;
+        } else if (newPattern.equals(pattern)) {
+          renamedPatterns.add(entry.getKey());
+          matched = true;
+          break;
         } else if (pattern.contains(".*")
             && newPattern.matches(StringUtils.reformatPath(pattern))) {
+          renamedPatterns.add(entry.getKey());
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) { // 如果没有匹配的规则，添加原始模式
+        renamedPatterns.add(pattern);
+      }
+    }
+    return renamedPatterns;
+  }
+
+  /**
+   * 正向重命名模式列表中的pattern，将key中的pattern替换为value中的pattern
+   *
+   * @param aliasMap 重命名规则, key为旧模式，value为新模式
+   * @param patterns 要重命名的模式列表
+   * @return
+   */
+  private static List<String> renamePattern(Map<String, String> aliasMap, List<String> patterns) {
+    List<String> renamedPatterns = new ArrayList<>();
+    for (String pattern : patterns) {
+      boolean matched = false;
+      for (Map.Entry<String, String> entry : aliasMap.entrySet()) {
+        String oldPattern = entry.getKey().replace("*", "(.*)");
+        String newPattern = entry.getValue().replace("*", "$1");
+        if (pattern.matches(oldPattern)) {
+          if (newPattern.contains("$1") && !oldPattern.contains("*")) {
+            newPattern = newPattern.replace("$1", "*");
+          }
+          String p = pattern.replaceAll(oldPattern, newPattern);
+          renamedPatterns.add(p);
+          matched = true;
+          break;
+        } else if (pattern.equals(oldPattern)) {
+          renamedPatterns.add(entry.getValue());
+          matched = true;
+          break;
+        } else if (pattern.contains(".*")
+            && oldPattern.matches(StringUtils.reformatPath(pattern))) {
           renamedPatterns.add(entry.getKey());
           matched = true;
           break;
@@ -557,23 +602,44 @@ public class ColumnPruningRule extends Rule {
     }
   }
 
-  private static List<String> getPatternFromOperatorChildren(Operator operator) {
+  private static List<String> getPatternFromOperatorChildren(
+      Operator operator, List<Operator> visitedOperators) {
+    List<String> patterns = new ArrayList<>();
     if (operator.getType() == OperatorType.Project) {
-      return ((Project) operator).getPatterns();
+      patterns.addAll(((Project) operator).getPatterns());
     } else if (operator.getType() == OperatorType.Reorder) {
-      return ((Reorder) operator).getPatterns();
+      patterns.addAll(((Reorder) operator).getPatterns());
     } else if (OperatorType.isHasFunction(operator.getType())) {
-      return FunctionUtils.getFunctionsFullPath(operator);
-    } else if (OperatorType.isUnaryOperator(operator.getType())) {
+      patterns.addAll(FunctionUtils.getFunctionsFullPath(operator));
+    }
+
+    if (!patterns.isEmpty()) {
+      // 向上找Rename操作符，进行重命名
+      for (int i = visitedOperators.size() - 1; i >= 0; i--) {
+        Operator visitedOperator = visitedOperators.get(i);
+        if (visitedOperator.getType() == OperatorType.Rename) {
+          Rename rename = (Rename) visitedOperator;
+          Map<String, String> aliasMap = rename.getAliasMap();
+          patterns = renamePattern(aliasMap, patterns);
+        }
+      }
+      return patterns;
+    }
+
+    visitedOperators.add(operator);
+    if (OperatorType.isUnaryOperator(operator.getType())) {
       return getPatternFromOperatorChildren(
-          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator());
+          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator(),
+          visitedOperators);
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
       List<String> leftPatterns =
           getPatternFromOperatorChildren(
-              ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator());
+              ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator(),
+              visitedOperators);
       List<String> rightPatterns =
           getPatternFromOperatorChildren(
-              ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator());
+              ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
+              new ArrayList<>(visitedOperators));
       leftPatterns.addAll(rightPatterns);
       return leftPatterns;
     } else {
