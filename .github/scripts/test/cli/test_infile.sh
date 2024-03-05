@@ -10,7 +10,7 @@ bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
 
 bash -c "echo '$COMMAND' | xargs -0 -t -i ${SCRIPT_COMMAND}"
 
-MCOMMAND='ls /fragment'
+MCOMMAND="'ls //fragment '"
 
 MSCRIPT_COMMAND="bash zookeeper/bin/zkCli.sh -e '{}'"
 

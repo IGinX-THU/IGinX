@@ -6,6 +6,6 @@ COMMAND='LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/csv/t
 
 bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMAND'"
 
-MCOMMAND='ls /fragment'
+MCOMMAND="'ls //fragment '"
 
-bach -c "bash zookeeper/bin/zkCli.cmd -e '$MCOMMAND'"
+bash -c "bash zookeeper/bin/zkCli.cmd -e '$MCOMMAND'"

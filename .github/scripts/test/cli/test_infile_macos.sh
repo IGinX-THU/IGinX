@@ -8,5 +8,5 @@ sh -c "echo 'LOAD DATA FROM INFILE "'"test/src/test/resources/fileReadAndWrite/c
 
 sh -c "chmod +x zookeeper/bin/zkCli.sh"
 
-sh -c "echo 'ls /fragment' | xargs -0 -t -I F sh zookeeper/bin/zkCli.sh -e 'F'"
+sh -c "echo '"'"ls //fragment"'"' | xargs -0 -t -I F sh zookeeper/bin/zkCli.sh -e 'F'"
 
