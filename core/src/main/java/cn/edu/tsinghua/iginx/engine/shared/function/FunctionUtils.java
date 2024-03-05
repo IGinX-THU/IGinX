@@ -14,6 +14,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -243,4 +245,30 @@ public class FunctionUtils {
     resultRows.sort(ValueUtils.firstLastRowComparator());
     return new Table(header, resultRows);
   }
+
+  public static List<String> getFunctionsFullPath(List<FunctionCall> functionCalls) {
+    List<String> ret = new ArrayList<>();
+    for (FunctionCall functionCall : functionCalls) {
+      List<String> path = functionCall.getParams().getPaths();
+      String functionName = getFunctionName(functionCall.getFunction());
+      ret.add(functionName + "(" + String.join(",", path) + ")");
+    }
+    return ret;
+  }
+
+    public static List<String> getFunctionsFullPath(Operator operator) {
+       if(operator.getType() == OperatorType.Downsample) {
+           return getFunctionsFullPath(((Downsample) operator).getFunctionCallList());
+       } else if(operator.getType() == OperatorType.GroupBy) {
+           return getFunctionsFullPath(((GroupBy) operator).getFunctionCallList());
+       } else if(operator.getType() == OperatorType.SetTransform) {
+           return getFunctionsFullPath(((SetTransform) operator).getFunctionCallList());
+       } else if (operator.getType() == OperatorType.MappingTransform) {
+           return getFunctionsFullPath(((MappingTransform) operator).getFunctionCallList());
+       } else if (operator.getType() == OperatorType.RowTransform) {
+           return getFunctionsFullPath(((RowTransform) operator).getFunctionCallList());
+       } else {
+           return new ArrayList<>();
+       }
+    }
 }
