@@ -2,8 +2,7 @@ package cn.edu.tsinghua.iginx.integration.func.sql;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.exceptions.SessionException;
@@ -6216,80 +6215,50 @@ public class SQLSessionIT {
     assertEquals(expectedConfigNames, configs.keySet());
   }
 
-  //  @Test
-  //  public void testModifyRules() {
-  //    String statement, expected;
-  //    statement = "show rules;";
-  //
-  //    String ruleBasedOptimizer = executor.execute("SHOW CONFIG \"ruleBasedOptimizer\";");
-  //    logger.info("testModifyRules: " + ruleBasedOptimizer);
-  //    // 2种情况不测试Config设置Rule的效果：
-  //    // 1. 本地环境下FilterFragmentRule默认是开启的，不测试
-  //    // 2. SessionPool测试在Session测试后，此时FilterFragmentRule已经被开启，不测试
-  //    if (ruleBasedOptimizer.contains("FilterFragmentRule=on") || isForSessionPool) {
-  //      expected =
-  //          "Current Rules Info:\n"
-  //              + "+------------------+------+\n"
-  //              + "|          RuleName|Status|\n"
-  //              + "+------------------+------+\n"
-  //              + "|     RemoveNotRule|    ON|\n"
-  //              + "|FilterFragmentRule|    ON|\n"
-  //              + "+------------------+------+\n";
-  //    } else {
-  //      expected =
-  //          "Current Rules Info:\n"
-  //              + "+------------------+------+\n"
-  //              + "|          RuleName|Status|\n"
-  //              + "+------------------+------+\n"
-  //              + "|     RemoveNotRule|    ON|\n"
-  //              + "|FilterFragmentRule|   OFF|\n"
-  //              + "+------------------+------+\n";
-  //    }
-  //
-  //    executor.executeAndCompare(statement, expected);
-  //
-  //    statement = "set rules FilterFragmentRule=on;";
-  //    executor.execute(statement);
-  //
-  //    statement = "show rules;";
-  //    expected =
-  //        "Current Rules Info:\n"
-  //            + "+------------------+------+\n"
-  //            + "|          RuleName|Status|\n"
-  //            + "+------------------+------+\n"
-  //            + "|     RemoveNotRule|    ON|\n"
-  //            + "|FilterFragmentRule|    ON|\n"
-  //            + "+------------------+------+\n";
-  //    executor.executeAndCompare(statement, expected);
-  //
-  //    statement = "set rules FilterFragmentRule=off, RemoveNotRule=off;";
-  //    executor.execute(statement);
-  //
-  //    statement = "show rules;";
-  //    expected =
-  //        "Current Rules Info:\n"
-  //            + "+------------------+------+\n"
-  //            + "|          RuleName|Status|\n"
-  //            + "+------------------+------+\n"
-  //            + "|     RemoveNotRule|   OFF|\n"
-  //            + "|FilterFragmentRule|   OFF|\n"
-  //            + "+------------------+------+\n";
-  //    executor.executeAndCompare(statement, expected);
-  //
-  //    statement = "set rules FilterFragmentRule=on, RemoveNotRule=on;";
-  //    executor.execute(statement);
-  //
-  //    statement = "show rules;";
-  //    expected =
-  //        "Current Rules Info:\n"
-  //            + "+------------------+------+\n"
-  //            + "|          RuleName|Status|\n"
-  //            + "+------------------+------+\n"
-  //            + "|     RemoveNotRule|    ON|\n"
-  //            + "|FilterFragmentRule|    ON|\n"
-  //            + "+------------------+------+\n";
-  //    executor.executeAndCompare(statement, expected);
-  //  }
+  @Test
+  public void testModifyRules() {
+    String statement, expected;
+    statement = "show rules;";
+
+    String ruleBasedOptimizer = executor.execute("SHOW CONFIG \"ruleBasedOptimizer\";");
+    logger.info("testModifyRules: " + ruleBasedOptimizer);
+    // 2种情况不测试Config设置Rule的效果：
+    // 1. 本地环境下FilterFragmentRule默认是开启的，不测试
+    // 2. SessionPool测试在Session测试后，此时FilterFragmentRule已经被开启，不测试
+    if (ruleBasedOptimizer.contains("FilterFragmentRule=on") || isForSessionPool) {
+      expected = "FilterFragmentRule|    ON";
+
+    } else {
+      expected = "FilterFragmentRule|   OFF";
+    }
+
+    assertTrue(executor.execute(statement).contains(expected));
+
+    statement = "set rules FilterFragmentRule=on;";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected = "FilterFragmentRule|    ON";
+    assertTrue(executor.execute(statement).contains(expected));
+
+    statement = "set rules FilterFragmentRule=off, RemoveNotRule=off;";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    String expected1 = "RemoveNotRule|   OFF";
+    String expected2 = "FilterFragmentRule|   OFF";
+    String result = executor.execute(statement);
+    assertTrue(result.contains(expected1) && result.contains(expected2));
+
+    statement = "set rules FilterFragmentRule=on, RemoveNotRule=on;";
+    executor.execute(statement);
+
+    statement = "show rules;";
+    expected1 = "RemoveNotRule|    ON";
+    expected2 = "FilterFragmentRule|    ON";
+    result = executor.execute(statement);
+    assertTrue(result.contains(expected1) && result.contains(expected2));
+  }
 
   @Test
   public void testFilterPushDownExplain() {
@@ -6875,15 +6844,17 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void QuerySpeedTest() {
-    // 插入数据
-    StringBuilder insert = new StringBuilder("INSERT INTO test(key, a.d, b.h) VALUES (1, 1, 1);");
-    //    executor.execute(insert.toString());
+  public void testColumnPruning() {
+    if (isFilterPushDown || isScaling) {
+      logger.info(
+          "Skip SQLSessionIT.testColumnPruning because scaling test or filter push down test");
+      return;
+    }
 
-    insert =
+    StringBuilder insert =
         new StringBuilder(
             "INSERT INTO test(key, a.a, a.b, a.c, a.d, a.e, b.f, b.g, b.h, b.i, b.j, b.k) VALUES ");
-    int rows = 100000;
+    int rows = 100;
     for (int i = 0; i < rows; i++) {
       insert
           .append("(")
@@ -6918,51 +6889,225 @@ public class SQLSessionIT {
     insert.append(";");
     executor.execute(insert.toString());
 
-    // 查询语句
-    String sql1 = "SELECT test.a.a FROM (SELECT * FROM test);";
-    String sql2 = "SELECT test.a.a FROM test.a INNER JOIN test.b ON test.a.b = test.b.k;";
-    String sql3 = "SELECT test.a.a, test.a.e, test.b.k FROM (SELECT * FROM test);";
+    String closeRule = "SET RULES ColumnPruningRule=OFF, FragmentEliminationRule=OFF;";
+    executor.execute(closeRule);
 
-    List<String> sqls = new ArrayList<>();
-    sqls.add(sql1);
-    sqls.add(sql2);
-    sqls.add(sql3);
+    String sql1 = "explain SELECT s1 FROM (SELECT * FROM us.d1);";
+    String sql2 = "explain SELECT test.a.a FROM test.a INNER JOIN us.d1 ON test.a.b = us.d1.s1;";
+    String sql3 = "explain SELECT test.a.a, test.a.e, test.b.k FROM (SELECT * FROM test);";
+    String sql4 =
+        "explain SELECT test.a.a, (SELECT AVG(b) FROM test.a) FROM (SELECT * FROM test.a);";
+    String sql5 =
+        "explain select test.a.a, test.a.b from (select * from test.a UNION select f,g,h,i,j  from test.b);";
+    String sql6 =
+        "explain select test.a.a, test.a.b from \n"
+            + "(select a,b,c,d from test.a WHERE test.a.a < 50000 INTERSECT select f,g,h,i from test.b WHERE test.b.f > 30000);";
 
-    int repeats = 20;
+    String expect1 =
+        "ResultSets:\n"
+            + "+----------------------+-------------+--------------------------------------------+\n"
+            + "|          Logical Tree|Operator Type|                               Operator Info|\n"
+            + "+----------------------+-------------+--------------------------------------------+\n"
+            + "|Reorder               |      Reorder|                                   Order: s1|\n"
+            + "|  +--Project          |      Project|                                Patterns: s1|\n"
+            + "|    +--Reorder        |      Reorder|                              Order: us.d1.*|\n"
+            + "|      +--Project      |      Project|                           Patterns: us.d1.*|\n"
+            + "|        +--Join       |         Join|                                 JoinBy: key|\n"
+            + "|          +--Join     |         Join|                                 JoinBy: key|\n"
+            + "|            +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000000|\n"
+            + "|            +--Project|      Project|Patterns: us.d1.*, Target DU: unit0000000001|\n"
+            + "|          +--Project  |      Project|Patterns: us.d1.*, Target DU: unit0000000002|\n"
+            + "+----------------------+-------------+--------------------------------------------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(sql1, expect1);
 
-    //    // 优化前
-    //    String statement = "SET RULES ColumnPruningRule=OFF, FragmentEliminationRule=OFF;";
-    //    executor.execute(statement);
-    //
-    //    List<Integer> beforeTimes = new ArrayList<>();
-    //    List<Integer> afterTimes = new ArrayList<>();
-    //
-    //    for(String sql : sqls){
-    //      long start = System.currentTimeMillis();
-    //      for(int i = 0; i < repeats; i++){
-    //          executor.execute(sql);
-    //      }
-    //      long end = System.currentTimeMillis();
-    //      beforeTimes.add((int)((end - start)/repeats));
-    //    }
-    //
-    //    // 优化后
-    //    statement = "SET RULES ColumnPruningRule=ON, FragmentEliminationRule=ON;";
-    //    executor.execute(statement);
-    //
-    //    for(String sql : sqls){
-    //      long start = System.currentTimeMillis();
-    //      for(int i = 0; i < repeats; i++){
-    //          executor.execute(sql);
-    //      }
-    //      long end = System.currentTimeMillis();
-    //      afterTimes.add((int)((end - start)/repeats));
-    //    }
-    //
-    //    for(int i = 0; i < sqls.size(); i++){
-    //      System.out.println("sql: " + sqls.get(i) + " 优化前时间: " + beforeTimes.get(i) + "ms 优化后时间:
-    // " + afterTimes.get(i) + "ms");
-    //    }
+    String expect2 =
+        "ResultSets:\n"
+            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|        Logical Tree|Operator Type|                                                                  Operator Info|\n"
+            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|Reorder             |      Reorder|                                                                Order: test.a.a|\n"
+            + "|  +--Project        |      Project|                                                             Patterns: test.a.a|\n"
+            + "|    +--InnerJoin    |    InnerJoin|PrefixA: test.a, PrefixB: us.d1, IsNatural: false, Filter: test.a.b == us.d1.s1|\n"
+            + "|      +--Project    |      Project|                                  Patterns: test.a.*, Target DU: unit0000000002|\n"
+            + "|      +--Join       |         Join|                                                                    JoinBy: key|\n"
+            + "|        +--Join     |         Join|                                                                    JoinBy: key|\n"
+            + "|          +--Project|      Project|                                   Patterns: us.d1.*, Target DU: unit0000000000|\n"
+            + "|          +--Project|      Project|                                   Patterns: us.d1.*, Target DU: unit0000000001|\n"
+            + "|        +--Project  |      Project|                                   Patterns: us.d1.*, Target DU: unit0000000002|\n"
+            + "+--------------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(sql2, expect2);
 
+    String expect3 =
+        "ResultSets:\n"
+            + "+------------------+-------------+-------------------------------------------+\n"
+            + "|      Logical Tree|Operator Type|                              Operator Info|\n"
+            + "+------------------+-------------+-------------------------------------------+\n"
+            + "|Reorder           |      Reorder|          Order: test.a.a,test.a.e,test.b.k|\n"
+            + "|  +--Project      |      Project|       Patterns: test.b.k,test.a.e,test.a.a|\n"
+            + "|    +--Reorder    |      Reorder|                              Order: test.*|\n"
+            + "|      +--Project  |      Project|                           Patterns: test.*|\n"
+            + "|        +--Project|      Project|Patterns: test.*, Target DU: unit0000000002|\n"
+            + "+------------------+-------------+-------------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(sql3, expect3);
+
+    String expect4 =
+        "ResultSets:\n"
+            + "+-----------------------+-------------+-----------------------------------------------------------------------------------+\n"
+            + "|           Logical Tree|Operator Type|                                                                      Operator Info|\n"
+            + "+-----------------------+-------------+-----------------------------------------------------------------------------------+\n"
+            + "|Reorder                |      Reorder|                                                      Order: test.a.a,avg(test.a.b)|\n"
+            + "|  +--Project           |      Project|                                                   Patterns: avg(test.a.b),test.a.a|\n"
+            + "|    +--SingleJoin      |   SingleJoin|                                                                       Filter: True|\n"
+            + "|      +--Reorder       |      Reorder|                                                                    Order: test.a.*|\n"
+            + "|        +--Project     |      Project|                                                                 Patterns: test.a.*|\n"
+            + "|          +--Project   |      Project|                                      Patterns: test.a.*, Target DU: unit0000000002|\n"
+            + "|      +--Reorder       |      Reorder|                                                               Order: avg(test.a.b)|\n"
+            + "|        +--SetTransform| SetTransform|FuncList(Name, FuncType): (avg, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|          +--Project   |      Project|                                      Patterns: test.a.b, Target DU: unit0000000002|\n"
+            + "+-----------------------+-------------+-----------------------------------------------------------------------------------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(sql4, expect4);
+
+    String expect5 =
+        "ResultSets:\n"
+            + "+--------------------+-------------+-----------------------------------------------------------------------------------------------+\n"
+            + "|        Logical Tree|Operator Type|                                                                                  Operator Info|\n"
+            + "+--------------------+-------------+-----------------------------------------------------------------------------------------------+\n"
+            + "|Reorder             |      Reorder|                                                                       Order: test.a.a,test.a.b|\n"
+            + "|  +--Project        |      Project|                                                                    Patterns: test.a.a,test.a.b|\n"
+            + "|    +--Union        |        Union|LeftOrder: test.a.*, RightOrder: test.b.f,test.b.g,test.b.h,test.b.i,test.b.j, isDistinct: true|\n"
+            + "|      +--Reorder    |      Reorder|                                                                                Order: test.a.*|\n"
+            + "|        +--Project  |      Project|                                                                             Patterns: test.a.*|\n"
+            + "|          +--Project|      Project|                                                  Patterns: test.a.*, Target DU: unit0000000002|\n"
+            + "|      +--Reorder    |      Reorder|                                            Order: test.b.f,test.b.g,test.b.h,test.b.i,test.b.j|\n"
+            + "|        +--Project  |      Project|                                         Patterns: test.b.h,test.b.i,test.b.j,test.b.f,test.b.g|\n"
+            + "|          +--Project|      Project|              Patterns: test.b.f,test.b.g,test.b.h,test.b.i,test.b.j, Target DU: unit0000000002|\n"
+            + "+--------------------+-------------+-----------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(sql5, expect5);
+
+    String expect6 =
+        "ResultSets:\n"
+            + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
+            + "|          Logical Tree|Operator Type|                                                                                                    Operator Info|\n"
+            + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder               |      Reorder|                                                                                         Order: test.a.a,test.a.b|\n"
+            + "|  +--Project          |      Project|                                                                                      Patterns: test.a.a,test.a.b|\n"
+            + "|    +--Intersect      |    Intersect|LeftOrder: test.a.a,test.a.b,test.a.c,test.a.d, RightOrder: test.b.f,test.b.g,test.b.h,test.b.i, isDistinct: true|\n"
+            + "|      +--Reorder      |      Reorder|                                                                       Order: test.a.a,test.a.b,test.a.c,test.a.d|\n"
+            + "|        +--Project    |      Project|                                                                    Patterns: test.a.a,test.a.b,test.a.c,test.a.d|\n"
+            + "|          +--Select   |       Select|                                                                                         Filter: test.a.a < 50000|\n"
+            + "|            +--Project|      Project|                                         Patterns: test.a.a,test.a.b,test.a.c,test.a.d, Target DU: unit0000000002|\n"
+            + "|      +--Reorder      |      Reorder|                                                                       Order: test.b.f,test.b.g,test.b.h,test.b.i|\n"
+            + "|        +--Project    |      Project|                                                                    Patterns: test.b.h,test.b.i,test.b.f,test.b.g|\n"
+            + "|          +--Select   |       Select|                                                                                         Filter: test.b.f > 30000|\n"
+            + "|            +--Project|      Project|                                         Patterns: test.b.f,test.b.g,test.b.h,test.b.i, Target DU: unit0000000002|\n"
+            + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
+            + "Total line number = 11\n";
+    executor.executeAndCompare(sql6, expect6);
+
+    String openRule = "SET RULES ColumnPruningRule=ON, FragmentEliminationRule=ON;";
+    executor.execute(openRule);
+
+    expect1 =
+        "ResultSets:\n"
+            + "+------------------+-------------+---------------------------------------+\n"
+            + "|      Logical Tree|Operator Type|                          Operator Info|\n"
+            + "+------------------+-------------+---------------------------------------+\n"
+            + "|Reorder           |      Reorder|                              Order: s1|\n"
+            + "|  +--Project      |      Project|                           Patterns: s1|\n"
+            + "|    +--Reorder    |      Reorder|                              Order: s1|\n"
+            + "|      +--Project  |      Project|                           Patterns: s1|\n"
+            + "|        +--Project|      Project|Patterns: s1, Target DU: unit0000000002|\n"
+            + "+------------------+-------------+---------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(sql1, expect1);
+
+    expect2 =
+        "ResultSets:\n"
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                  Operator Info|\n"
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                                Order: test.a.a|\n"
+            + "|  +--Project    |      Project|                                                             Patterns: test.a.a|\n"
+            + "|    +--InnerJoin|    InnerJoin|PrefixA: test.a, PrefixB: us.d1, IsNatural: false, Filter: test.a.b == us.d1.s1|\n"
+            + "|      +--Project|      Project|                         Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|      +--Project|      Project|                                  Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+            + "+----------------+-------------+-------------------------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(sql2, expect2);
+
+    expect3 =
+        "ResultSets:\n"
+            + "+------------------+-------------+---------------------------------------------------------------+\n"
+            + "|      Logical Tree|Operator Type|                                                  Operator Info|\n"
+            + "+------------------+-------------+---------------------------------------------------------------+\n"
+            + "|Reorder           |      Reorder|                              Order: test.a.a,test.a.e,test.b.k|\n"
+            + "|  +--Project      |      Project|                           Patterns: test.a.a,test.a.e,test.b.k|\n"
+            + "|    +--Reorder    |      Reorder|                              Order: test.a.a,test.a.e,test.b.k|\n"
+            + "|      +--Project  |      Project|                           Patterns: test.a.a,test.a.e,test.b.k|\n"
+            + "|        +--Project|      Project|Patterns: test.a.a,test.a.e,test.b.k, Target DU: unit0000000002|\n"
+            + "+------------------+-------------+---------------------------------------------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(sql3, expect3);
+
+    expect4 =
+        "ResultSets:\n"
+            + "+-----------------------+-------------+-----------------------------------------------------------------------------------+\n"
+            + "|           Logical Tree|Operator Type|                                                                      Operator Info|\n"
+            + "+-----------------------+-------------+-----------------------------------------------------------------------------------+\n"
+            + "|Reorder                |      Reorder|                                                      Order: test.a.a,avg(test.a.b)|\n"
+            + "|  +--Project           |      Project|                                                   Patterns: avg(test.a.b),test.a.a|\n"
+            + "|    +--SingleJoin      |   SingleJoin|                                                                       Filter: True|\n"
+            + "|      +--Reorder       |      Reorder|                                                                    Order: test.a.a|\n"
+            + "|        +--Project     |      Project|                                                                 Patterns: test.a.a|\n"
+            + "|          +--Project   |      Project|                                      Patterns: test.a.a, Target DU: unit0000000002|\n"
+            + "|      +--Reorder       |      Reorder|                                                               Order: avg(test.a.b)|\n"
+            + "|        +--SetTransform| SetTransform|FuncList(Name, FuncType): (avg, System), MappingType: SetMapping, isDistinct: false|\n"
+            + "|          +--Project   |      Project|                                      Patterns: test.a.b, Target DU: unit0000000002|\n"
+            + "+-----------------------+-------------+-----------------------------------------------------------------------------------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(sql4, expect4);
+
+    expect5 =
+        "ResultSets:\n"
+            + "+--------------------+-------------+-----------------------------------------------------------------------------+\n"
+            + "|        Logical Tree|Operator Type|                                                                Operator Info|\n"
+            + "+--------------------+-------------+-----------------------------------------------------------------------------+\n"
+            + "|Reorder             |      Reorder|                                                     Order: test.a.a,test.a.b|\n"
+            + "|  +--Project        |      Project|                                                  Patterns: test.a.a,test.a.b|\n"
+            + "|    +--Union        |        Union|LeftOrder: test.a.a,test.a.b, RightOrder: test.b.f,test.b.g, isDistinct: true|\n"
+            + "|      +--Reorder    |      Reorder|                                                     Order: test.a.a,test.a.b|\n"
+            + "|        +--Project  |      Project|                                                  Patterns: test.a.a,test.a.b|\n"
+            + "|          +--Project|      Project|                       Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|      +--Reorder    |      Reorder|                                                     Order: test.b.f,test.b.g|\n"
+            + "|        +--Project  |      Project|                                                  Patterns: test.b.f,test.b.g|\n"
+            + "|          +--Project|      Project|                       Patterns: test.b.f,test.b.g, Target DU: unit0000000002|\n"
+            + "+--------------------+-------------+-----------------------------------------------------------------------------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(sql5, expect5);
+
+    expect6 =
+        "ResultSets:\n"
+            + "+----------------------+-------------+-----------------------------------------------------------------------------+\n"
+            + "|          Logical Tree|Operator Type|                                                                Operator Info|\n"
+            + "+----------------------+-------------+-----------------------------------------------------------------------------+\n"
+            + "|Reorder               |      Reorder|                                                     Order: test.a.a,test.a.b|\n"
+            + "|  +--Project          |      Project|                                                  Patterns: test.a.a,test.a.b|\n"
+            + "|    +--Intersect      |    Intersect|LeftOrder: test.a.a,test.a.b, RightOrder: test.b.f,test.b.g, isDistinct: true|\n"
+            + "|      +--Reorder      |      Reorder|                                                     Order: test.a.a,test.a.b|\n"
+            + "|        +--Project    |      Project|                                                  Patterns: test.a.a,test.a.b|\n"
+            + "|          +--Select   |       Select|                                                     Filter: test.a.a < 50000|\n"
+            + "|            +--Project|      Project|                       Patterns: test.a.a,test.a.b, Target DU: unit0000000002|\n"
+            + "|      +--Reorder      |      Reorder|                                                     Order: test.b.f,test.b.g|\n"
+            + "|        +--Project    |      Project|                                                  Patterns: test.b.f,test.b.g|\n"
+            + "|          +--Select   |       Select|                                                     Filter: test.b.f > 30000|\n"
+            + "|            +--Project|      Project|                       Patterns: test.b.f,test.b.g, Target DU: unit0000000002|\n"
+            + "+----------------------+-------------+-----------------------------------------------------------------------------+\n"
+            + "Total line number = 11\n";
+    executor.executeAndCompare(sql6, expect6);
   }
 }

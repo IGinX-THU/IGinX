@@ -18,8 +18,6 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import cn.hutool.core.lang.func.Func;
-
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -62,7 +60,7 @@ public class ColumnPruningRule extends Rule {
       Set<String> columns,
       TagFilter tagFilter,
       List<Operator> visitedOperators) {
-      if (OperatorType.isUnaryOperator(operator.getType())) {
+    if (OperatorType.isUnaryOperator(operator.getType())) {
       List<String> newColumnList = null;
       List<FunctionCall> functionCallList = null;
 
@@ -219,7 +217,7 @@ public class ColumnPruningRule extends Rule {
           // MarkJoin的左侧是普通子树，右侧是WHERE关联子查询子树，我们只处理左侧，裁剪右侧的列会导致语义变化
           filter = markJoin.getFilter();
         } else if (operator.getType() == OperatorType.SingleJoin) {
-          SingleJoin singleJoin = (SingleJoin)operator;
+          SingleJoin singleJoin = (SingleJoin) operator;
           filter = singleJoin.getFilter();
         }
 
@@ -233,16 +231,20 @@ public class ColumnPruningRule extends Rule {
         }
 
         // 如果是MarkJoin或SingleJoin,要把columns中右侧的列去掉
-        if(operator.getType()==OperatorType.MarkJoin || operator.getType()==OperatorType.SingleJoin){
-          List<String> rightPatterns = getPatternFromOperatorChildren(((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator());
+        if (operator.getType() == OperatorType.MarkJoin
+            || operator.getType() == OperatorType.SingleJoin) {
+          List<String> rightPatterns =
+              getPatternFromOperatorChildren(
+                  ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator());
           leftColumns.addAll(getNewColumns(rightPatterns, columns));
         }
 
         // 将columns中的列名分成以PrefixA和PrefixB开头的两部分
         if (PrefixA != null && PrefixB != null) {
           for (String column : columns) {
-            if (column.contains("*") && (!covers(PrefixA + ".*", column) && covers(column, PrefixA + ".*"))
-                && (!covers(PrefixB + ".*", column) && covers(column, PrefixB + ".*"))){
+            if (column.contains("*")
+                && (!covers(PrefixA + ".*", column) && covers(column, PrefixA + ".*"))
+                && (!covers(PrefixB + ".*", column) && covers(column, PrefixB + ".*"))) {
               /*
               如果现有的列中包含通配符*，这个通配符会受到当前Join算子的限制，不再能下推，再推下去会导致取的列过多
               例如最顶上Project的test.*，但是JOIN算子左右两侧是test.a.*和test.b.*，这是的test.*实际上取的列是test.a.*和test.b.*的并集
@@ -254,8 +256,8 @@ public class ColumnPruningRule extends Rule {
               rightColumns.add(PrefixB + ".*");
 
               // 以及不在左右Prefix的列要加入左子树中
-              for(String c:columns){
-                if(!c.startsWith(PrefixA+".") && !c.startsWith(PrefixB+"."))
+              for (String c : columns) {
+                if (!c.startsWith(PrefixA + ".") && !c.startsWith(PrefixB + "."))
                   leftColumns.add(c);
               }
               break;
@@ -263,7 +265,7 @@ public class ColumnPruningRule extends Rule {
 
             if (covers(PrefixA + ".*", column) || covers(column, PrefixA + ".*")) {
               leftColumns.add(column);
-            } else if (covers(PrefixB+".*", column) || covers(column, PrefixB + ".*")) {
+            } else if (covers(PrefixB + ".*", column) || covers(column, PrefixB + ".*")) {
               rightColumns.add(column);
             } else {
               // 如果没有匹配的话，可能是连续JOIN的情况，即SELECT t1.*, t2.*, t3.* FROM t1 JOIN t2 JOIN t3;(这里省略了ON条件）
@@ -508,7 +510,7 @@ public class ColumnPruningRule extends Rule {
       if (columns.contains(orderColumn)) {
         result.add(orderColumn);
       } else if (orderColumn.contains("*")) {
-        List<String> columnsList = new ArrayList<>(columns);
+        List<String> columnsList = new ArrayList<>();
         for (String column : columns) {
           if (StringUtils.match(column, orderColumn)) {
             columnsList.add(column);
@@ -560,18 +562,18 @@ public class ColumnPruningRule extends Rule {
       return ((Project) operator).getPatterns();
     } else if (operator.getType() == OperatorType.Reorder) {
       return ((Reorder) operator).getPatterns();
-    } else if(OperatorType.isHasFunction(operator.getType())){
+    } else if (OperatorType.isHasFunction(operator.getType())) {
       return FunctionUtils.getFunctionsFullPath(operator);
-    }else if (OperatorType.isUnaryOperator(operator.getType())) {
+    } else if (OperatorType.isUnaryOperator(operator.getType())) {
       return getPatternFromOperatorChildren(
-              ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator());
-    }else if (OperatorType.isBinaryOperator(operator.getType())) {
+          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator());
+    } else if (OperatorType.isBinaryOperator(operator.getType())) {
       List<String> leftPatterns =
-              getPatternFromOperatorChildren(
-                      ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator());
+          getPatternFromOperatorChildren(
+              ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator());
       List<String> rightPatterns =
-              getPatternFromOperatorChildren(
-                      ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator());
+          getPatternFromOperatorChildren(
+              ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator());
       leftPatterns.addAll(rightPatterns);
       return leftPatterns;
     } else {
@@ -581,11 +583,13 @@ public class ColumnPruningRule extends Rule {
 
   /**
    * 去除newColumnsList中被columns覆盖的列，并返回
+   *
    * @param columns
    * @param newColumnList
    * @return 去除了被覆盖的列后的列列表
    */
-  private static Set<String> getNewColumns(Collection<String> columns, Collection<String> newColumnList) {
+  private static Set<String> getNewColumns(
+      Collection<String> columns, Collection<String> newColumnList) {
     // 检测newColumnList中的列是否有被原columns覆盖的列
     Set<String> removeCoveredColumnList = new HashSet<>(); // 去除了被覆盖的列后的列列表
     for (String newColumn : newColumnList) {

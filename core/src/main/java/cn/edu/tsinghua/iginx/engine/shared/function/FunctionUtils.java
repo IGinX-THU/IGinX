@@ -256,19 +256,19 @@ public class FunctionUtils {
     return ret;
   }
 
-    public static List<String> getFunctionsFullPath(Operator operator) {
-       if(operator.getType() == OperatorType.Downsample) {
-           return getFunctionsFullPath(((Downsample) operator).getFunctionCallList());
-       } else if(operator.getType() == OperatorType.GroupBy) {
-           return getFunctionsFullPath(((GroupBy) operator).getFunctionCallList());
-       } else if(operator.getType() == OperatorType.SetTransform) {
-           return getFunctionsFullPath(((SetTransform) operator).getFunctionCallList());
-       } else if (operator.getType() == OperatorType.MappingTransform) {
-           return getFunctionsFullPath(((MappingTransform) operator).getFunctionCallList());
-       } else if (operator.getType() == OperatorType.RowTransform) {
-           return getFunctionsFullPath(((RowTransform) operator).getFunctionCallList());
-       } else {
-           return new ArrayList<>();
-       }
+  public static List<String> getFunctionsFullPath(Operator operator) {
+    if (operator.getType() == OperatorType.Downsample) {
+      return getFunctionsFullPath(((Downsample) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.GroupBy) {
+      return getFunctionsFullPath(((GroupBy) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.SetTransform) {
+      return getFunctionsFullPath(((SetTransform) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.MappingTransform) {
+      return getFunctionsFullPath(((MappingTransform) operator).getFunctionCallList());
+    } else if (operator.getType() == OperatorType.RowTransform) {
+      return getFunctionsFullPath(((RowTransform) operator).getFunctionCallList());
+    } else {
+      return new ArrayList<>();
     }
+  }
 }

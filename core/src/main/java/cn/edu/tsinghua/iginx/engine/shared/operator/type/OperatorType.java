@@ -116,6 +116,10 @@ public enum OperatorType {
   }
 
   public static boolean isHasFunction(OperatorType op) {
-    return op == GroupBy || op == Downsample || op == RowTransform || op == SetTransform || op == MappingTransform;
+    return op == GroupBy
+        || op == Downsample
+        || op == RowTransform
+        || op == SetTransform
+        || op == MappingTransform;
   }
 }
