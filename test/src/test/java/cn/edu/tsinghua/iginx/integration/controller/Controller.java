@@ -49,7 +49,8 @@ public class Controller {
 
   private static final String ADD_STORAGE_ENGINE_PARQUET =
       "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"parquet\", \"has_data:true, is_read_only:true, dir:test/parquet, dummy_dir:%s, iginx_port:6888, data_prefix:%s\");";
-
+  // 记录在一个IT中写入dummy数据的路径
+  private static Set<String> parquet_dir = new HashSet<>();
   // 将数据划分为两部分，一部分写入dummy数据库，一部分写入非dummy数据库, 0.3 为划分比例，即 30% 的数据写入 dummy 数据库
   private static final double PARTITION_POINT = 0.3;
   // 向 dummy 分片写入的初始化序列，用来初始化 dummy 分片的原数据空间范围
@@ -220,27 +221,11 @@ public class Controller {
               port,
               dir,
               String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
-              INIT_PATH_LIST,
-              INIT_DATA_TYPE_LIST,
-              INIT_KEYS_LIST,
-              INIT_VALUES_LIST);
-          parquetGenerator.writeHistoryData(
-              port,
-              dir,
-              String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
               Collections.singletonList(pathList.get(i)),
               Collections.singletonList(dataTypeList.get(i)),
               keyList.get(i),
               rowValues);
-          try {
-            addEmbeddedStorageEngine(
-                session, String.format(ADD_STORAGE_ENGINE_PARQUET, dir, tableName));
-          } catch (SessionException | ExecutionException e) {
-            if (!e.getMessage().contains("unexpected repeated add")) {
-              logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
-              fail();
-            }
-          }
+          parquet_dir.add(dir);
         } else {
           generator.writeHistoryData(
               port,
@@ -280,28 +265,11 @@ public class Controller {
           port,
           dir,
           String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
-          INIT_PATH_LIST,
-          INIT_DATA_TYPE_LIST,
-          INIT_KEYS_LIST,
-          INIT_VALUES_LIST);
-      logger.info("write");
-      parquetGenerator.writeHistoryData(
-          port,
-          dir,
-          String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
           pathList,
           dataTypeList,
           keyList,
           valuesList);
-      try {
-        addEmbeddedStorageEngine(
-            session, String.format(ADD_STORAGE_ENGINE_PARQUET, dir, tableName));
-      } catch (SessionException | ExecutionException e) {
-        if (!e.getMessage().contains("repeatedly add storage engine")) {
-          logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
-          fail();
-        }
-      }
+      parquet_dir.add(dir);
     } else {
       generator.writeHistoryData(port, pathList, dataTypeList, keyList, valuesList);
     }
@@ -404,6 +372,26 @@ public class Controller {
         // 如果是has,has情况，则dummy数据的一半写入ori数据库，另一半写入exp数据库
         port = IS_EXP_DUMMY ? expPort : oriPort;
         writeRowsDataToDummy(session, pathList, lowerKeyList, dataTypeList, lowerValuesList, port);
+      }
+    }
+  }
+
+  // 处理IT在每个写入数据后先关操作
+  public static <T> void after(T session) {
+    // 处理parquet扩容操作
+    for (String dir : parquet_dir) {
+      try {
+        addEmbeddedStorageEngine(
+            session,
+            String.format(
+                ADD_STORAGE_ENGINE_PARQUET,
+                dir,
+                dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
+      } catch (SessionException | ExecutionException e) {
+        if (!e.getMessage().contains("repeatedly add storage engine")) {
+          logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
+          fail();
+        }
       }
     }
   }
