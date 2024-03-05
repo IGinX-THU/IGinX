@@ -220,6 +220,9 @@ public class LocalExecutor implements Executor {
     if (dataDir == null) {
       throw new PhysicalException("data dir not provided");
     }
+    if(storageUnit.startsWith("dummy")) {
+      throw new PhysicalException("dummy storage unit not allowed");
+    }
 
     return managers.computeIfAbsent(
         storageUnit,
