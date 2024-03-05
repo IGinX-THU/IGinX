@@ -6303,6 +6303,9 @@ public class SQLSessionIT {
         "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
     executor.execute(insert);
 
+    String closeRule = "SET RULES FragmentEliminationRule=OFF, ColumnPruningRule=OFF;";
+    executor.execute(closeRule);
+
     StringBuilder builder = new StringBuilder();
     builder.append("INSERT INTO us.d2(key, s1) VALUES ");
     int size = (int) (endKey - startKey);
@@ -6537,6 +6540,9 @@ public class SQLSessionIT {
                     + "Total line number = 13\n"));
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+
+    String openRule = "SET RULES FragmentEliminationRule=ON, ColumnPruningRule=ON;";
+    executor.execute(openRule);
   }
 
   @Test
@@ -6755,7 +6761,8 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 开启filter_fragment
-    statement = "SET RULES FilterFragmentRule=ON, FragmentEliminationRule=ON, ColumnPruningRule=ON;";
+    statement =
+        "SET RULES FilterFragmentRule=ON, FragmentEliminationRule=ON, ColumnPruningRule=ON;";
     executor.execute(statement);
   }
 

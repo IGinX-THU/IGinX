@@ -111,8 +111,8 @@ public class ColumnPruningRule extends Rule {
         functionCallList = downsample.getFunctionCallList();
       } else if (operator.getType() == OperatorType.Sort) {
         Sort sort = (Sort) operator;
-        for(String column: sort.getSortByCols()){
-          if(!column.equalsIgnoreCase(Constants.KEY)){
+        for (String column : sort.getSortByCols()) {
+          if (!column.equalsIgnoreCase(Constants.KEY)) {
             columns.add(column);
           }
         }
@@ -322,7 +322,7 @@ public class ColumnPruningRule extends Rule {
   private void changeColumnsFromFunctionCallList(
       List<FunctionCall> functionCallList, Set<String> columns) {
     for (FunctionCall functionCall : functionCallList) {
-      String functionName = functionCall.getFunction().getIdentifier();
+      String functionName = FunctionUtils.getFunctionName(functionCall.getFunction());
       List<String> paths = functionCall.getParams().getPaths();
       boolean isPyUDF;
       try {
@@ -343,12 +343,16 @@ public class ColumnPruningRule extends Rule {
       } else if (isPyUDF) {
         // UDF结果列括号内可以随意命名，因此我们识别columns中所有开头为UDF的列，不识别括号内的内容
         String prefix = functionName + "(";
+        Set<String> newColumns = new HashSet<>();
         for (String column : columns) {
           if (column.startsWith(prefix)) {
-            columns.remove(column);
-            columns.addAll(paths);
+            newColumns.addAll(paths);
+          } else {
+            newColumns.add(column);
           }
         }
+        columns.clear();
+        columns.addAll(newColumns);
       } else {
         String functionStr = functionName + "(" + String.join(", ", paths) + ")";
         if (functionCall.getParams().isDistinct()) {
