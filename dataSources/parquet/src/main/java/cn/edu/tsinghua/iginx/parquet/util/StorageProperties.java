@@ -330,12 +330,12 @@ public class StorageProperties {
     /**
      * Set the number of flusher permits
      *
-     * @param flusherPermits the number of flusher permits
+     * @param compactorPermits the number of flusher permits
      * @return this builder
      */
-    public Builder setFlusherPermits(int flusherPermits) {
-      ParseUtils.checkPositive(flusherPermits);
-      this.compactPermits = flusherPermits;
+    public Builder setCompactorPermits(int compactorPermits) {
+      ParseUtils.checkPositive(compactorPermits);
+      this.compactPermits = compactorPermits;
       return this;
     }
 
@@ -419,6 +419,7 @@ public class StorageProperties {
      *     <p>Supported keys:
      *     <ul>
      *       <li>write.buffer.size: the size of write buffer, bytes
+     *       <li>write.buffer.timeout: the timeout of write buffer to flush, iso-8601
      *       <li>write.batch.size: the size of write batch, bytes
      *       <li>compact.permits: the number of flusher permits
      *       <li>cache.capacity: the capacity of cache, bytes
@@ -432,18 +433,6 @@ public class StorageProperties {
      *       <li>zstd.workers: the zstd workers number
      *     </ul>
      *
-     *     <p>"write_buffer_size": the size of write buffer,bytes, long, optional, default 100MB
-     *     <p>"write.buffer.timeout": the timeout of write buffer to flush, iso-8601, optional,
-     *     default 1s
-     *     <p>"write_batch_size": the size of write batch, bytes, long, optional, default 1MB
-     *     <p>"flusher_permits": the number of flusher permits, int, optional, default 16
-     *     <p>"cache.capacity": the capacity of cache, bytes, long, optional, default 1GB
-     *     <p>"cache.timeout": the expiry timeout of cache, iso-8601, optional, default Infinity
-     *     <p>"cache.soft_values": whether to enable soft values of cache, boolean, optional,
-     *     default false
-     *     <p>"parquet.row_group_size": the size of parquet row group, bytes, long, optional,
-     *     default 128MB
-     *     <p>"parquet.page_size": the size of parquet page, bytes, long, optional, default 8KB
      * @return this builder
      */
     public Builder parse(Map<String, String> properties) {
@@ -451,7 +440,8 @@ public class StorageProperties {
       ParseUtils.getOptionalDuration(properties, WRITE_BUFFER_TIMEOUT)
           .ifPresent(this::setWriteBufferTimeout);
       ParseUtils.getOptionalLong(properties, WRITE_BATCH_SIZE).ifPresent(this::setWriteBatchSize);
-      ParseUtils.getOptionalInteger(properties, COMPACT_PERMITS).ifPresent(this::setFlusherPermits);
+      ParseUtils.getOptionalInteger(properties, COMPACT_PERMITS)
+          .ifPresent(this::setCompactorPermits);
       ParseUtils.getOptionalLong(properties, CACHE_CAPACITY).ifPresent(this::setCacheCapacity);
       ParseUtils.getOptionalDuration(properties, CACHE_TIMEOUT).ifPresent(this::setCacheTimeout);
       ParseUtils.getOptionalBoolean(properties, CACHE_VALUE_SOFT)

@@ -16,11 +16,11 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
+import cn.edu.tsinghua.iginx.format.parquet.ParquetRecordWriter;
+import cn.edu.tsinghua.iginx.format.parquet.ParquetWriteOptions;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
-import cn.edu.tsinghua.iginx.format.parquet.ParquetRecordWriter;
-import cn.edu.tsinghua.iginx.format.parquet.ParquetWriteOptions;
 import java.io.IOException;
 import java.nio.file.Path;
 import org.apache.parquet.compression.CompressionCodecFactory;
