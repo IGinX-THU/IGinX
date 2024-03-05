@@ -121,7 +121,11 @@ public class ColumnPruningRule extends Rule {
         if (prefix != null) {
           Set<String> newColumns = new HashSet<>();
           for (String column : columns) {
-            newColumns.add(prefix + "." + column);
+            if (column.startsWith(prefix + ".")) {
+              newColumns.add(column.substring(prefix.length() + 1));
+            } else {
+              newColumns.add(column);
+            }
           }
           columns = newColumns;
         }
@@ -269,10 +273,6 @@ public class ColumnPruningRule extends Rule {
         //          }
         //        }
 
-        //        if (leftColumns.isEmpty() || rightColumns.isEmpty()) {
-        //          leftColumns = columns;
-        //          rightColumns.addAll(columns);
-        //        }
       } else if (OperatorType.isSetOperator(operator.getType())) {
         Pair<List<String>, List<String>> orderPair = getSetOperatorOrder(operator);
         List<String> leftOrder = orderPair.getK(), rightOrder = orderPair.getV();
@@ -296,6 +296,9 @@ public class ColumnPruningRule extends Rule {
           leftColumns.addAll(leftOrder);
           rightColumns.addAll(rightOrder);
         }
+      } else {
+        leftColumns.addAll(columns);
+        rightColumns.addAll(columns);
       }
 
       // 递归处理下一个节点

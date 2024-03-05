@@ -211,4 +211,11 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
     }
     return s1.compareTo(s2);
   }
+
+  public boolean isContainWithoutPrefix(String columnName) {
+    return (startColumn == null
+            || (columnName != null && StringUtils.compare(columnName, startColumn, true) >= 0))
+        && (endColumn == null
+            || (columnName != null && StringUtils.compare(columnName, endColumn, false) < 0));
+  }
 }

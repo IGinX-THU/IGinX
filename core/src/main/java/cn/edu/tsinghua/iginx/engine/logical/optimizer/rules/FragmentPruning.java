@@ -52,7 +52,7 @@ public class FragmentPruning extends Rule {
     ColumnsInterval columnsInterval = fragmentSource.getFragment().getColumnsInterval();
     List<String> validPatterns = new ArrayList<>();
     for (String pattern : patterns) {
-      if (columnsInterval.isContain(pattern)) {
+      if (columnsInterval.isContainWithoutPrefix(pattern)) {
         validPatterns.add(pattern);
       }
     }
