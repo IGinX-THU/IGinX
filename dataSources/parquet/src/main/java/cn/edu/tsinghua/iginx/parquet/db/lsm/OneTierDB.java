@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
-import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
