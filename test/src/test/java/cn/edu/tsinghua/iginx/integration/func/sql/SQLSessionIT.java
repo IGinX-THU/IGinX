@@ -1546,8 +1546,8 @@ public class SQLSessionIT {
             + "|  +--Downsample   |   Downsample|Precision: 100, SlideDistance: 50, TimeRange: [1, 1000), FuncList(Name, FunctionType): (avg, System), (count, System), MappingType: SetMapping|\n"
             + "|    +--Select     |       Select|                                                                                                              Filter: (key >= 1 && key < 1000)|\n"
             + "|      +--Join     |         Join|                                                                                                                                   JoinBy: key|\n"
-            + "|        +--Project|      Project|                                                                                                 Patterns: us.d1.s1, Target DU: unit0000000000|\n"
-            + "|        +--Project|      Project|                                                                                                 Patterns: us.d1.s4, Target DU: unit0000000001|\n"
+            + "|        +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s4, Target DU: unit0000000000|\n"
+            + "|        +--Project|      Project|                                                                                        Patterns: us.d1.s1,us.d1.s4, Target DU: unit0000000001|\n"
             + "+------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
