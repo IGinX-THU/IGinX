@@ -86,7 +86,7 @@ public class StorageManager {
     } catch (ClassNotFoundException e) {
       logger.error("load class {} for engine {} failure: {}", driver, engine, e);
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}: {}", engine, e);
+      logger.error("unexpected error when process engine {}:", engine, e);
     } finally {
       try {
         if (needRelease) {
