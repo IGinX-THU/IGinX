@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 
 public class InsertFromSelectStatement extends DataStatement {
 

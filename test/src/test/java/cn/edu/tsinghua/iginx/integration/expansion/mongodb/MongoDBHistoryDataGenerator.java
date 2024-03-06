@@ -35,7 +35,11 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     try (MongoClient client = connect(port)) {
       for (int i = 0; i < pathList.size(); i++) {
         String[] nodes = pathList.get(i).split("\\.");
@@ -62,6 +66,12 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
     }
     LOGGER.info("write data to 127.0.0.1:{} success!", port);
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
   }
 
   @Override

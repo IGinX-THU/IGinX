@@ -18,18 +18,13 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class FirstValue implements SetMappingFunction {
 
@@ -59,29 +54,13 @@ public class FirstValue implements SetMappingFunction {
   }
 
   @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
-    List<String> pathParams = params.getPaths();
-    if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
-    }
+  public Row transform(Table table, FunctionParams params) throws Exception {
+    Pair<List<Field>, List<Integer>> pair = FunctionUtils.getFieldAndIndices(table, params, this);
+    List<Field> targetFields = pair.k;
+    List<Integer> indices = pair.v;
 
-    String target = pathParams.get(0);
-    List<Field> fields = rows.getHeader().getFields();
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-    List<Field> targetFields = new ArrayList<>();
-    List<Integer> indices = new ArrayList<>();
-    for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
-        String name = getIdentifier() + "(" + field.getName() + ")";
-        String fullName = getIdentifier() + "(" + field.getFullName() + ")";
-        targetFields.add(new Field(name, fullName, field.getType()));
-        indices.add(i);
-      }
-    }
     Object[] targetValues = new Object[targetFields.size()];
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       for (int i = 0; i < indices.size(); i++) {
         Object value = row.getValue(indices.get(i));
         if (targetValues[i] != null) { // 找到第一个非空值之后，后续不再找了

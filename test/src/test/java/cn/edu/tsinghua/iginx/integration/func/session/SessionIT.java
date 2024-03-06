@@ -50,6 +50,8 @@ public class SessionIT extends BaseSessionIT {
   protected Map<String, String> extraParams;
   protected Boolean ifNeedCapExp = false;
 
+  private static boolean needCompareResult = true;
+
   // params for downSample
   private static final long PRECISION = 123L;
   // params for datatype test

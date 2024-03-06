@@ -43,7 +43,7 @@ public class SessionExecuteSqlResult {
   private long jobId;
   private JobState jobState;
   private List<Long> jobIdList;
-  private String configValue;
+  private Map<String, String> configs;
   private String loadCsvPath;
   private List<Long> sessionIDs;
 
@@ -102,7 +102,7 @@ public class SessionExecuteSqlResult {
         this.jobIdList = resp.getJobIdList();
         break;
       case ShowConfig:
-        this.configValue = resp.getConfigValue();
+        this.configs = resp.getConfigs();
         break;
       case LoadCsv:
         this.loadCsvPath = resp.getLoadCsvPath();
@@ -182,6 +182,8 @@ public class SessionExecuteSqlResult {
         return buildShowEligibleJobResult();
       case ShowSessionID:
         return buildShowSessionIDResult();
+      case ShowConfig:
+        return buildShowConfigResult();
       case ShowRules:
         return buildShowRulesResult();
       case GetReplicaNum:
@@ -192,8 +194,6 @@ public class SessionExecuteSqlResult {
         return "job id: " + jobId;
       case ShowJobStatus:
         return "Job status: " + jobState;
-      case ShowConfig:
-        return "config value: " + configValue + "\n";
       default:
         return "No data to print." + "\n";
     }
@@ -381,6 +381,21 @@ public class SessionExecuteSqlResult {
     return builder.toString();
   }
 
+  private String buildShowConfigResult() {
+    StringBuilder builder = new StringBuilder();
+    if (configs != null) {
+      builder.append("Config Info:").append("\n");
+      List<List<String>> cache = new ArrayList<>();
+      cache.add(new ArrayList<>(Arrays.asList("ConfigName", "ConfigValue")));
+      configs.forEach(
+          (name, value) -> {
+            cache.add(new ArrayList<>(Arrays.asList(name, value)));
+          });
+      builder.append(FormatUtils.formatResult(cache));
+    }
+    return builder.toString();
+  }
+
   private String buildShowRulesResult() {
     StringBuilder builder = new StringBuilder();
     if (rules != null) {
@@ -554,5 +569,9 @@ public class SessionExecuteSqlResult {
 
   public List<Long> getSessionIDs() {
     return sessionIDs;
+  }
+
+  public Map<String, String> getConfigs() {
+    return configs;
   }
 }

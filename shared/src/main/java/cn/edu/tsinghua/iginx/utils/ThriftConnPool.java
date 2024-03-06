@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.utils;
 
+import java.time.Duration;
 import java.util.Map;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.PooledObjectFactory;
@@ -14,21 +15,13 @@ import org.slf4j.LoggerFactory;
 public class ThriftConnPool {
   private static final Logger LOGGER = LoggerFactory.getLogger(ThriftConnPool.class);
 
-  private final int maxSize;
-
   private static final int DEFAULT_MAX_SIZE = 100;
 
   private static final int MAX_WAIT_TIME = 30000;
 
-  private boolean closed = false;
+  private static final long IDLE_TIMEOUT = 10L * 60L * 1000L;
 
-  private final String ip;
-
-  private final int port;
-
-  private GenericObjectPool<TTransport> pool;
-
-  private final long idleTimeout = 60 * 10000L;
+  private final GenericObjectPool<TTransport> pool;
 
   public ThriftConnPool(String ip, int port) {
     this(ip, port, DEFAULT_MAX_SIZE, MAX_WAIT_TIME);
@@ -44,13 +37,10 @@ public class ThriftConnPool {
   }
 
   public ThriftConnPool(String ip, int port, int maxSize, int maxWaitTime) {
-    this.ip = ip;
-    this.port = port;
-    this.maxSize = maxSize;
 
     GenericObjectPoolConfig<TTransport> poolConfig = new GenericObjectPoolConfig<>();
     poolConfig.setMaxTotal(maxSize);
-    poolConfig.setMinEvictableIdleTimeMillis(idleTimeout); // 设置空闲连接的超时时间
+    poolConfig.setMinEvictableIdleDuration(Duration.ofMillis(IDLE_TIMEOUT)); // 设置空闲连接的超时时间
 
     TSocketFactory socketFactory = new TSocketFactory(ip, port, maxWaitTime);
     pool = new GenericObjectPool<>(socketFactory, poolConfig);
@@ -66,7 +56,7 @@ public class ThriftConnPool {
   }
 
   private synchronized boolean isClosed() {
-    return closed;
+    return pool.isClosed();
   }
 
   public void returnTransport(TTransport transport) {
@@ -80,7 +70,6 @@ public class ThriftConnPool {
   public void close() {
     LOGGER.info("closing connection pool...");
     pool.close();
-    closed = true;
   }
 
   public static class TSocketFactory implements PooledObjectFactory<TTransport> {
@@ -105,33 +94,19 @@ public class ThriftConnPool {
     @Override
     public void destroyObject(PooledObject<TTransport> pooledObject) throws Exception {
       TTransport transport = pooledObject.getObject();
-      if (transport != null && transport.isOpen()) {
-        transport.close();
-      }
+      transport.close();
     }
 
     @Override
     public boolean validateObject(PooledObject<TTransport> pooledObject) {
       TTransport transport = pooledObject.getObject();
-      return transport != null && transport.isOpen();
+      return transport.isOpen();
     }
 
     @Override
-    public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {
-      TTransport transport = pooledObject.getObject();
-      if (transport == null) {
-        TTransport newTransport = new TSocket(ip, port, maxWaitTime);
-        newTransport.open();
-        pooledObject = new DefaultPooledObject<>(newTransport);
-      } else if (!transport.isOpen()) {
-        transport.open();
-      }
-    }
+    public void activateObject(PooledObject<TTransport> pooledObject) throws Exception {}
 
     @Override
-    public void passivateObject(PooledObject<TTransport> pooledObject) throws Exception {
-      TTransport transport = pooledObject.getObject();
-      transport.close();
-    }
+    public void passivateObject(PooledObject<TTransport> pooledObject) throws Exception {}
   }
 }

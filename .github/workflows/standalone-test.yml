@@ -93,6 +93,11 @@ jobs:
                       mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
                   fi
 
+            - name: Stop IGinX and ZK, Clear ZK Data, then Start Them
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-zk
+
             - name: set client test context
               uses: ./.github/actions/context
               with:

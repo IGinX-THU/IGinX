@@ -7,6 +7,8 @@ import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.lang.reflect.Field;
+import java.util.HashMap;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,12 +29,23 @@ public class ShowConfigStatement extends SystemStatement {
   public void execute(RequestContext ctx) throws ExecutionException {
     Class<Config> clazz = Config.class;
     try {
-      Field field = clazz.getDeclaredField(configName);
-      field.setAccessible(true);
-      Object configValue = field.get(config);
+      Map<String, String> configs = new HashMap<>();
+      if (configName.equals("*")) {
+        Field[] fields = clazz.getDeclaredFields();
+        for (Field field : fields) {
+          field.setAccessible(true);
+          Object configValue = field.get(config);
+          configs.put(field.getName(), String.valueOf(configValue));
+        }
+      } else {
+        Field field = clazz.getDeclaredField(configName);
+        field.setAccessible(true);
+        Object configValue = field.get(config);
+        configs.put(configName, String.valueOf(configValue));
+      }
 
       Result result = new Result(RpcUtils.SUCCESS);
-      result.setConfigValue(String.valueOf(configValue));
+      result.setConfigs(configs);
       ctx.setResult(result);
     } catch (NoSuchFieldException e) {
       String errMsg = String.format("no such field, field=%s", configName);

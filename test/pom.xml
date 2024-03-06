@@ -70,9 +70,15 @@
             <version>6.8.0</version>
         </dependency>
         <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>0.5.1</version>
+            <groupId>cn.edu.tsinghua.iginx</groupId>
+            <artifactId>parquet-file</artifactId>
+            <version>0.0.2</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>io.etcd</groupId>
@@ -102,6 +108,14 @@
             <version>3.12.12</version>
         </dependency>
     </dependencies>
+
+    <repositories>
+        <repository>
+            <id>parquet-file</id>
+            <name>IGinX GitHub repository</name>
+            <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
+        </repository>
+    </repositories>
 
     <build>
         <plugins>
