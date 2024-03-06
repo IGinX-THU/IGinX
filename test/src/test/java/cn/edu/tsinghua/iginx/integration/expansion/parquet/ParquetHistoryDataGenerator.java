@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PARQUET_PARAMS;
+import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
 import cn.edu.tsinghua.iginx.format.parquet.example.ExampleParquetWriter;
@@ -33,9 +34,10 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char IGINX_SEPARATOR = '.';
 
+  // 所有的IT测试产生的数据都会在IGinX/test/IT_DATA_DIR目录下
   public static final String IT_DATA_DIR = "IT_data";
 
-  public static final String IT_DATA_FILENAME = "data.parquet";
+  public static final String IT_DATA_FILENAME = "data%s.parquet";
 
   public ParquetHistoryDataGenerator() {}
 
@@ -47,7 +49,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<DataType> dataTypeList,
       List<Long> keyList,
       List<List<Object>> valuesList) {
-    LOGGER.info("start writing data, dir:{}, filename:{}.", dir, filename);
+    LOGGER.info(
+        "start writing data, dir:{}, filename:{}.", new File(dir).getAbsolutePath(), filename);
 
     if (!PARQUET_PARAMS.containsKey(port)) {
       LOGGER.error("writing to unknown port {}.", port);
@@ -59,7 +62,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       try {
         Files.createDirectories(dirPath);
       } catch (IOException e) {
-        LOGGER.error("can't create data file path {} because {}", dir, e.getMessage());
+        LOGGER.error("can't create data file path {}.", new File(dir).getAbsolutePath());
         return;
       }
     }
@@ -87,7 +90,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       flushRows(columnNames, dataTypeList, sortedKeyList, sortedValuesList, parquetPath);
     } catch (IOException e) {
-      LOGGER.error("write data to {} error", parquetPath);
+      LOGGER.error("write data to {} error", new File(parquetPath.toString()).getAbsolutePath());
       throw new RuntimeException(e);
     }
 
@@ -95,7 +98,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<Path> paths = Files.list(Paths.get("../" + dir)).collect(Collectors.toList());
       LOGGER.info("directory contains {}", paths);
     } catch (IOException e) {
-      LOGGER.error("write data to {} error", parquetPath);
+      LOGGER.error("write data to {} error", new File(parquetPath.toString()).getAbsolutePath());
       throw new RuntimeException(e);
     }
   }
@@ -107,7 +110,10 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<DataType> dataTypeList,
       List<Long> keyList,
       List<List<Object>> valuesList) {
-    String dir = "test" + System.getProperty("file.separator") + PARQUET_PARAMS.get(port).get(0);
+    String dir =
+        DBCE_PARQUET_FS_TEST_DIR
+            + System.getProperty("file.separator")
+            + PARQUET_PARAMS.get(port).get(0);
     String filename = PARQUET_PARAMS.get(port).get(1);
     writeHistoryData(port, dir, filename, pathList, dataTypeList, keyList, valuesList);
   }
@@ -127,7 +133,10 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
       return;
     }
 
-    String dir = "test" + System.getProperty("file.separator") + PARQUET_PARAMS.get(port).get(0);
+    String dir =
+        DBCE_PARQUET_FS_TEST_DIR
+            + System.getProperty("file.separator")
+            + PARQUET_PARAMS.get(port).get(0);
     String filename = PARQUET_PARAMS.get(port).get(1);
     Path parquetPath = Paths.get("../" + dir, filename);
     File file = new File(parquetPath.toString());
@@ -135,19 +144,21 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     if (file.exists() && file.isFile()) {
       file.delete();
     } else {
-      LOGGER.warn("delete {}/{} error: does not exist or is not a file.", dir, filename);
+      LOGGER.warn(
+          "delete {}/{} error: does not exist or is not a file.", dir, file.getAbsoluteFile());
     }
 
     // delete the normal IT data
-    dir = IT_DATA_DIR + System.getProperty("file.separator");
+    dir = DBCE_PARQUET_FS_TEST_DIR + System.getProperty("file.separator") + IT_DATA_DIR;
     parquetPath = Paths.get("../" + dir);
 
     try {
       Files.walkFileTree(parquetPath, new DeleteFileVisitor());
     } catch (NoSuchFileException e) {
-      LOGGER.warn("no such file or directory: {}", dir);
+      LOGGER.warn(
+          "no such file or directory: {}", new File(parquetPath.toString()).getAbsoluteFile());
     } catch (IOException e) {
-      LOGGER.warn("delete {} error: ", dir, e);
+      LOGGER.warn("delete {} error: ", new File(parquetPath.toString()).getAbsoluteFile(), e);
     }
   }
 

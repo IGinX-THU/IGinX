@@ -2,9 +2,12 @@ package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.mongodb;
 
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -13,9 +16,11 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   public MongoDBCapacityExpansionIT() {
     super(mongodb, null);
-    Constant.oriPort = 27017;
-    Constant.expPort = 27018;
-    Constant.readOnlyPort = 27019;
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
+    Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
   }
 
   @Override

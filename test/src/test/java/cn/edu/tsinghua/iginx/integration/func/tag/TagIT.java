@@ -231,6 +231,7 @@ public class TagIT {
         tagList6,
         InsertAPIType.Row,
         false);
+    Controller.after(session);
   }
 
   @After

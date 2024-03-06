@@ -104,6 +104,7 @@ public class RestIT {
         InsertAPIType.Column,
         isDummyHasInitialData);
     isDummyHasInitialData = false;
+    Controller.after(session);
   }
 
   @After

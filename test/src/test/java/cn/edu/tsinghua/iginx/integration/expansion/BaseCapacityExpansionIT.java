@@ -44,6 +44,8 @@ public abstract class BaseCapacityExpansionIT {
 
   private final String READ_ONLY_SCHEMA_PREFIX = null;
 
+  public static final String DBCE_PARQUET_FS_TEST_DIR = "test";
+
   public BaseCapacityExpansionIT(StorageEngineType type, String extraParams) {
     this.type = type;
     this.extraParams = extraParams;
@@ -68,9 +70,9 @@ public abstract class BaseCapacityExpansionIT {
         statement.append("/");
       }
       if (IS_PARQUET_OR_FILE_SYSTEM) {
-        statement.append(", dummy_dir:test/");
+        statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", dir:test/iginx_");
+        statement.append(String.format(", dir:%s/iginx_", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(", iginx_port:" + oriPortIginx);
       }
@@ -136,7 +138,7 @@ public abstract class BaseCapacityExpansionIT {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
       // 测试会添加初始数据，所以hasData=true
-      addStorageEngine(port, true, isReadOnly, dataPrefix, schemaPrefix);
+      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
     }
   }
 
@@ -627,9 +629,9 @@ public abstract class BaseCapacityExpansionIT {
             String.valueOf(port),
             String.valueOf(iginxPort),
             hasData
-                ? "test/" + PORT_TO_ROOT.get(port)
-                : "test/" + INIT_PATH_LIST.get(0).replace(".", "/"),
-            "test/iginx_" + PORT_TO_ROOT.get(port),
+                ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
+                : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
+            DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
             "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties");
