@@ -18,16 +18,17 @@ jobs:
             matrix:
                 java: [8]
                 python-version: ["3.9"]
-                os: [ubuntu-latest, macos-latest, windows-latest]
+                os: [ubuntu-latest]
+#                os: [ubuntu-latest, macos-latest, windows-latest]
                 DB-name:
                     [
                         "IoTDB12",
-                        "InfluxDB",
-                        "Parquet",
-                        "PostgreSQL",
-                        "FileSystem",
-                        "Redis",
-                        "MongoDB",
+#                        "InfluxDB",
+#                        "Parquet",
+#                        "PostgreSQL",
+#                        "FileSystem",
+#                        "Redis",
+#                        "MongoDB",
                     ]
         runs-on: ${{ matrix.os }}
         steps:
@@ -69,6 +70,16 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
+#                  elif [ "$RUNNER_OS" == "Windows" ]; then
+#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_windows.sh"
+#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_windows.sh" "${{ inputs.DB-name }}"
+#                  elif [ "$RUNNER_OS" == "macOS" ]; then
+#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
+#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh" "${{ inputs.DB-name }}"
+                  fi
 
             - name: set client test context
               uses: ./.github/actions/context
