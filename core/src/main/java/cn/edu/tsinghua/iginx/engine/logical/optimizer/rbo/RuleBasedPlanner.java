@@ -98,6 +98,7 @@ public class RuleBasedPlanner implements Planner {
           rule.onMatch(ruleCall);
           matchCount++;
           updateIndex();
+          break;
         }
       }
       if (!hasMatched) {

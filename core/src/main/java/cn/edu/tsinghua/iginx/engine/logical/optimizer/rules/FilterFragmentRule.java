@@ -99,7 +99,39 @@ public class FilterFragmentRule extends Rule {
           }
         });
 
-    return res[0];
+    List<String> pathList = OperatorUtils.findPathList(selectOperator);
+    List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(selectOperator.getFilter());
+    if (keyRanges.isEmpty() || pathList.isEmpty()) {
+      return false;
+    }
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
+
+    final boolean[] hasInvalidFragment = {false};
+    selectChild.accept(
+        new OperatorVisitor() {
+          @Override
+          public void visit(UnaryOperator unaryOperator) {
+            if (unaryOperator instanceof Project
+                && unaryOperator.getSource() instanceof FragmentSource) {
+              FragmentMeta fragmentMeta =
+                  ((FragmentSource) unaryOperator.getSource()).getFragment();
+              hasInvalidFragment[0] =
+                  hasInvalidFragment[0]
+                      && fragmentMeta.isValid()
+                      && !hasTimeRangeOverlap(fragmentMeta, keyRanges)
+                      && !fragmentMeta.getColumnsInterval().isIntersect(columnsInterval);
+            }
+          }
+
+          @Override
+          public void visit(BinaryOperator binaryOperator) {}
+
+          @Override
+          public void visit(MultipleOperator multipleOperator) {}
+        });
+
+    return res[0] && hasInvalidFragment[0];
   }
 
   @Override
