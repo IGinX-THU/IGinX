@@ -12,35 +12,43 @@ public abstract class BaseHistoryDataGenerator {
 
   @Test
   public void oriHasDataExpHasData() {
-    writeInitDataToExp();
+    // 向扩容节点写入边界数据，以指定分片范围
+    writeInitDataToDummy(expPort);
+    // 向原始节点写入边界数据，以指定分片范围
+    writeInitDataToDummy(oriPort);
+    // 向原始节点写入历史数据
     writeHistoryDataToOri();
+    // 向扩容节点写入历史数据
     writeHistoryDataToExp();
+    // 向只读节点写入历史数据
     writeHistoryDataToReadOnly();
+    // 某些数据库有特殊历史数据写入需要，则实现
     writeSpecialHistoryData();
   }
 
   @Test
   public void oriHasDataExpNoData() {
-    writeInitDataToExp();
+    // 向原始节点写入边界数据，以指定分片范围
+    writeInitDataToDummy(oriPort);
+    // 向原始节点写入历史数据
     writeHistoryDataToOri();
   }
 
   @Test
   public void oriNoDataExpHasData() {
-    writeInitDataToExp();
+    // 向扩容节点写入边界数据，以指定分片范围
+    writeInitDataToDummy(expPort);
+    // 向扩容节点写入历史数据
     writeHistoryDataToExp();
   }
 
   @Test
-  public void oriNoDataExpNoData() {
-    writeInitDataToExp();
-  }
+  public void oriNoDataExpNoData() {}
 
   public void writeSpecialHistoryData() {}
 
-  public void writeInitDataToExp() {
-    writeHistoryData(
-        expPort, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_KEYS_LIST, INIT_VALUES_LIST);
+  public void writeInitDataToDummy(int port) {
+    writeHistoryData(port, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_KEYS_LIST, INIT_VALUES_LIST);
   }
 
   public void writeHistoryDataToOri() {

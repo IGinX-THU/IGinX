@@ -120,6 +120,7 @@ public class UDFIT {
         InsertAPIType.Row,
         dummyNoData);
     dummyNoData = false;
+    Controller.after(session);
   }
 
   @After

@@ -147,6 +147,7 @@ public class SQLSessionIT {
   @Before
   public void insertData() {
     generateData(startKey, endKey);
+    Controller.after(session);
   }
 
   private void generateData(long start, long end) {

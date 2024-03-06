@@ -31,6 +31,12 @@ runs:
           run: |
               cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
 
+        - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
+          name: save config for FileSystem and Parquet
+          shell: bash
+          run: |
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
+
         - name: Set if-CapExp
           shell: bash
           run: |
@@ -40,6 +46,7 @@ runs:
           name: Change has_data
           shell: bash
           run: |
+              echo "${{ inputs.Test-Way }}" > ${GITHUB_WORKSPACE}/test/src/test/resources/dbce-test-way.txt 
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
                   sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
