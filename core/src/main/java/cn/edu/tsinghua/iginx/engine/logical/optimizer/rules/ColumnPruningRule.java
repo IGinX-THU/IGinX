@@ -50,7 +50,8 @@ public class ColumnPruningRule extends Rule {
   @Override
   public void onMatch(RuleCall call) {
     /*
-     大致优化思路是，对于Project操作符，向上查找所有父节点，统计父节点所需的列，然后将Project操作符中不需要的列去掉
+     大致优化思路是，自顶向下地遍历树，对于每个节点，我们都会收集它的列，然后递归地处理它的子节点。
+     对于不同的节点，我们会进行根据列收集进行裁剪或将列加入收集中。
     */
     collectColumns(call.getMatchedRoot(), new HashSet<>(), null, new ArrayList<>());
   }

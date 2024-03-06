@@ -26,26 +26,26 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FilterFragmentRule extends Rule {
+public class FragmentPruningByFilterRule extends Rule {
   private static final class InstanceHolder {
-    static final FilterFragmentRule INSTANCE = new FilterFragmentRule();
+    static final FragmentPruningByFilterRule INSTANCE = new FragmentPruningByFilterRule();
   }
 
-  public static FilterFragmentRule getInstance() {
-    return FilterFragmentRule.InstanceHolder.INSTANCE;
+  public static FragmentPruningByFilterRule getInstance() {
+    return FragmentPruningByFilterRule.InstanceHolder.INSTANCE;
   }
 
-  protected FilterFragmentRule() {
+  protected FragmentPruningByFilterRule() {
     /*
      * we want to match the topology like:
      *          Select
      *            |
      *           Any
      */
-    super("FilterFragmentRule", operand(Select.class, any()));
+    super("FragmentPruningByFilterRule", operand(Select.class, any()));
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(FilterFragmentRule.class);
+  private static final Logger logger = LoggerFactory.getLogger(FragmentPruningByFilterRule.class);
 
   private static final IMetaManager metaManager = MetaManagerWrapper.getInstance();
 
