@@ -47,8 +47,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
@@ -321,27 +319,7 @@ public class IginxClient {
     return sql.startsWith("set time unit in");
   }
 
-  // 将相对路径转为相对client的绝对路径
   private static void processPythonRegister(String sql) {
-//    Pattern pattern = Pattern.compile("\"([^\"]*)\"");
-//    Matcher matcher = pattern.matcher(sql);
-//
-//    if (!matcher.find()) {
-//      System.out.println("Error: python class name should be surrounded by DOUBLE-QUOTES");
-//    }
-//
-//    if (matcher.find()) {
-//      // 提取python文件路径
-//      String filePathStr = matcher.group(1);
-//
-//      File filePath = new File(filePathStr);
-//      if (!filePath.isAbsolute()) {
-//        sql = sql.replace(filePathStr, filePath.getAbsolutePath());
-//      }
-//      processSql(sql);
-//    } else {
-//      System.out.println("Error: python file path should be surrounded by DOUBLE-QUOTES");
-//    }
     try {
       SessionExecuteSqlResult res = session.executePythonRegister(sql);
       String parseErrorMsg = res.getParseErrorMsg();
@@ -354,10 +332,9 @@ public class IginxClient {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       System.out.println(
-              "Execute Error: encounter error(s) when executing sql statement, "
-                      + "see server log for more details.");
+          "Execute Error: encounter error(s) when executing sql statement, "
+              + "see server log for more details.");
     }
-
   }
 
   private static void processSetTimeUnit(String sql) {

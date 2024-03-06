@@ -27,7 +27,6 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
-
 import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -931,7 +930,7 @@ public class Session {
   }
 
   public SessionExecuteSqlResult executePythonRegister(String statement)
-          throws SessionException, ExecutionException {
+      throws SessionException, ExecutionException {
     Pattern pattern = Pattern.compile("\"([^\"]*)\"");
     Matcher matcher = pattern.matcher(statement);
 
