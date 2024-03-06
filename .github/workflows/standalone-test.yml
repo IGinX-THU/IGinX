@@ -73,12 +73,6 @@ jobs:
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
-#                  elif [ "$RUNNER_OS" == "Windows" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_windows.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_windows.sh" "${{ inputs.DB-name }}"
-#                  elif [ "$RUNNER_OS" == "macOS" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_outfile_macos.sh" "${{ inputs.DB-name }}"
                   fi
 
             - name: set client test context
