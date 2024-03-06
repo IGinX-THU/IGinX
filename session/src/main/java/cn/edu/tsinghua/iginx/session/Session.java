@@ -339,7 +339,7 @@ public class Session {
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-        LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -446,7 +446,7 @@ public class Session {
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-        LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -551,7 +551,7 @@ public class Session {
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-        LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -664,7 +664,7 @@ public class Session {
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-        LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
