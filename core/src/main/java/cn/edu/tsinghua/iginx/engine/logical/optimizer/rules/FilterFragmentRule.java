@@ -101,13 +101,15 @@ public class FilterFragmentRule extends Rule {
 
     List<String> pathList = OperatorUtils.findPathList(selectOperator);
     List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(selectOperator.getFilter());
-    if (keyRanges.isEmpty() || pathList.isEmpty()) {
-      return false;
+
+    ColumnsInterval columnsInterval = null;
+    if (!pathList.isEmpty()) {
+      columnsInterval =
+          new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1) + "~");
     }
-    ColumnsInterval columnsInterval =
-        new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
     final boolean[] hasInvalidFragment = {false};
+    ColumnsInterval finalColumnsInterval = columnsInterval;
     selectChild.accept(
         new OperatorVisitor() {
           @Override
@@ -118,9 +120,10 @@ public class FilterFragmentRule extends Rule {
                   ((FragmentSource) unaryOperator.getSource()).getFragment();
               hasInvalidFragment[0] =
                   hasInvalidFragment[0]
-                      && fragmentMeta.isValid()
-                      && !hasTimeRangeOverlap(fragmentMeta, keyRanges)
-                      && !fragmentMeta.getColumnsInterval().isIntersect(columnsInterval);
+                      || !fragmentMeta.isValid()
+                      || (!keyRanges.isEmpty() && !hasTimeRangeOverlap(fragmentMeta, keyRanges))
+                      || (finalColumnsInterval != null
+                          && !fragmentMeta.getColumnsInterval().isIntersect(finalColumnsInterval));
             }
           }
 
@@ -163,9 +166,17 @@ public class FilterFragmentRule extends Rule {
           v.forEach(
               meta -> {
                 if (hasTimeRangeOverlap(meta, keyRanges)) {
+                  ColumnsInterval metaColumnsInterval = meta.getColumnsInterval();
+                  List<String> validPaths = new ArrayList<>();
+                  for (String path : pathList) {
+                    if (metaColumnsInterval.isContainWithoutPrefix(path)) {
+                      validPaths.add(path);
+                    }
+                  }
+
                   joinList.add(
                       new Project(
-                          new FragmentSource(meta), pathList, selectOperator.getTagFilter()));
+                          new FragmentSource(meta), validPaths, selectOperator.getTagFilter()));
                 }
               });
           Operator operator = OperatorUtils.joinOperatorsByTime(joinList);
