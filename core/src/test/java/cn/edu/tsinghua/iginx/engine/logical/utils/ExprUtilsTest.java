@@ -10,7 +10,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
-import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
+import cn.edu.tsinghua.iginx.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.sql.TestUtils;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;

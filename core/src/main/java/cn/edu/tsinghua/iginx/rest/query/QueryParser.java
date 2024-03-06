@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.rest.query;
 
 import static cn.edu.tsinghua.iginx.utils.TagKVUtils.*;
 
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.aggregator.*;

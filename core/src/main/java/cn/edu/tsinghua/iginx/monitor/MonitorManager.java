@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.monitor;
 
 import cn.edu.tsinghua.iginx.compaction.CompactionManager;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;

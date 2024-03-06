@@ -21,8 +21,8 @@ package cn.edu.tsinghua.iginx.session;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getBytesFromByteBufferByDataType;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.thrift.QueryDataSetV2;

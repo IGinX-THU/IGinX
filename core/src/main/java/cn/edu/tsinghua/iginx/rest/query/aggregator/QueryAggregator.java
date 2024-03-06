@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.rest.query.aggregator;
 
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;

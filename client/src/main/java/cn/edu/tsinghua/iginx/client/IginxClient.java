@@ -21,10 +21,10 @@ package cn.edu.tsinghua.iginx.client;
 import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
+import cn.edu.tsinghua.iginx.client.exception.ClientRuntimeException;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -180,7 +180,7 @@ public class IginxClient {
                 "%s Required values for option '%s' not provided", IGINX_CLI_PREFIX, name);
         System.out.println(msg);
         System.out.println("Use -help for more information");
-        throw new IginxRuntimeException("Parse Parameter error.");
+        throw new ClientRuntimeException("Parse Parameter error.");
       }
       return defaultValue;
     }
@@ -557,7 +557,7 @@ public class IginxClient {
       printer.flush();
       printer.close();
     } catch (IOException e) {
-      throw new IginxRuntimeException(
+      throw new ClientRuntimeException(
           "Encounter an error when writing csv file " + path + ", because " + e.getMessage());
     }
     res.close();

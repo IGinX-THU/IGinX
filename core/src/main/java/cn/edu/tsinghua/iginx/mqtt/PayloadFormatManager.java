@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.mqtt;
 
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import java.lang.reflect.InvocationTargetException;
 import java.util.HashMap;
 import java.util.Map;

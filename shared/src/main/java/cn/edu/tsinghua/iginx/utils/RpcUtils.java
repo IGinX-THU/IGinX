@@ -18,8 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.StatusCode;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

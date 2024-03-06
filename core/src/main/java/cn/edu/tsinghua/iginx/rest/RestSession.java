@@ -19,15 +19,15 @@
 package cn.edu.tsinghua.iginx.rest;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.exceptions.StatusCode.STATEMENT_EXECUTION_ERROR;
+import static cn.edu.tsinghua.iginx.exception.StatusCode.STATEMENT_EXECUTION_ERROR;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.*;

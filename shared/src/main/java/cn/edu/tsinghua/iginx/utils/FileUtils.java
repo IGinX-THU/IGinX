@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

@@ -16,21 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.exception;
 
-public class SessionException extends IginxException {
+public class UnsupportedDataTypeException extends RuntimeException {
 
-  private static final long serialVersionUID = -2811585771984779297L;
+  private static final long serialVersionUID = 5278528888805786089L;
 
-  public SessionException(String message) {
-    super(message, StatusCode.SESSION_ERROR.getStatusCode());
-  }
-
-  public SessionException(Throwable cause) {
-    super(cause, StatusCode.SESSION_ERROR.getStatusCode());
-  }
-
-  public SessionException(String message, Throwable cause) {
-    super(message, cause, StatusCode.SESSION_ERROR.getStatusCode());
+  public UnsupportedDataTypeException(String dataTypeName) {
+    super("Unsupported DataType: " + dataTypeName);
   }
 }

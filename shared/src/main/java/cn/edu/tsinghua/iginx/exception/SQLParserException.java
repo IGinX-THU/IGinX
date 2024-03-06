@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.exception;
 
 public class SQLParserException extends RuntimeException {
   private static final long serialVersionUID = 3249707655860110299L;

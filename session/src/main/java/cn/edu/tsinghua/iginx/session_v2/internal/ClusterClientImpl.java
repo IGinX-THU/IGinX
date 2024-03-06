@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.ClusterClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.ClusterInfo;

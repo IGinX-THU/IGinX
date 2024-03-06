@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.sql.statement;
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.thrift.CancelTransformJobReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
 

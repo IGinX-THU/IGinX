@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import java.util.function.Function;
 
 @FunctionalInterface

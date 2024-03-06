@@ -7,7 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
-import cn.edu.tsinghua.iginx.exceptions.StatusCode;
+import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;

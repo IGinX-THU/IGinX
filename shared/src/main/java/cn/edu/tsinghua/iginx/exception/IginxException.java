@@ -16,12 +16,16 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.exception;
 
 public class IginxException extends Exception {
 
   private static final long serialVersionUID = -1355829042896588219L;
   protected int errorCode;
+
+  public IginxException(String message) {
+    super(message);
+  }
 
   public IginxException(String message, int errorCode) {
     super(message);
@@ -36,6 +40,21 @@ public class IginxException extends Exception {
   public IginxException(Throwable cause, int errorCode) {
     super(cause);
     this.errorCode = errorCode;
+  }
+
+  public IginxException() {}
+
+  public IginxException(String message, Throwable cause) {
+    super(message, cause);
+  }
+
+  public IginxException(Throwable cause) {
+    super(cause);
+  }
+
+  public IginxException(
+      String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
+    super(message, cause, enableSuppression, writableStackTrace);
   }
 
   public int getErrorCode() {

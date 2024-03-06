@@ -5,8 +5,8 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expP
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;

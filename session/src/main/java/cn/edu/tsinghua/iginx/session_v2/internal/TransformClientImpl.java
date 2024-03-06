@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.session_v2.TransformClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.Task;
 import cn.edu.tsinghua.iginx.session_v2.domain.Transform;

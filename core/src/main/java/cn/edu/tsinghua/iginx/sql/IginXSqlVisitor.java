@@ -32,7 +32,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
+import cn.edu.tsinghua.iginx.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AddStorageEngineStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AggLenContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;

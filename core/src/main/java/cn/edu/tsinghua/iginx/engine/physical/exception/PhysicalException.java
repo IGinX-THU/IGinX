@@ -18,11 +18,15 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.exception;
 
-public class PhysicalException extends Exception {
+import cn.edu.tsinghua.iginx.engine.shared.exception.EngineException;
+
+public class PhysicalException extends EngineException {
 
   private static final long serialVersionUID = -1547005178512213280L;
 
-  public PhysicalException() {}
+  public PhysicalException() {
+    super();
+  }
 
   public PhysicalException(String message) {
     super(message);

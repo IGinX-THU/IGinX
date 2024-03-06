@@ -23,8 +23,8 @@ import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.insert.InsertWorker;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
