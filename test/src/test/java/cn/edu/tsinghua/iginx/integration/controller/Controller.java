@@ -158,8 +158,8 @@ public class Controller {
       medium = pathList.size();
     } else {
       logger.info("DBCE test, write history data.");
-      Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-      Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
                       || tagsList.isEmpty()
@@ -192,8 +192,8 @@ public class Controller {
           break;
         }
         // 需要对4种情况做区分的情况
-        Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-        Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+        boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+        boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
         int port;
         // 如果是has,has情况，则dummy数据的一半写入ori数据库，另一半写入exp数据库
         if (i < (1 + 1 / PARTITION_POINT) / 2 * medium) {
@@ -295,8 +295,8 @@ public class Controller {
       medium = keyList.size();
     } else {
       logger.info("DBCE test, write history data.");
-      Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-      Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
                       || tagsList.isEmpty()
@@ -347,8 +347,8 @@ public class Controller {
 
     if (lowerKeyList != null && !lowerKeyList.isEmpty() && needWriteHistoryData) {
       // 需要对4种情况做区分的情况
-      Boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-      Boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       int port;
       if (IS_EXP_DUMMY && IS_ORI_DUMMY) {
         // divide the data

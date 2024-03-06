@@ -12,23 +12,33 @@ public abstract class BaseHistoryDataGenerator {
 
   @Test
   public void oriHasDataExpHasData() {
+    // 向扩容节点写入边界数据，以指定分片范围
     writeInitDataToDummy(expPort);
+    // 向原始节点写入边界数据，以指定分片范围
     writeInitDataToDummy(oriPort);
+    // 向原始节点写入历史数据
     writeHistoryDataToOri();
+    // 向扩容节点写入历史数据
     writeHistoryDataToExp();
+    // 向只读节点写入历史数据
     writeHistoryDataToReadOnly();
+    // 某些数据库有特殊历史数据写入需要，则实现
     writeSpecialHistoryData();
   }
 
   @Test
   public void oriHasDataExpNoData() {
+    // 向原始节点写入边界数据，以指定分片范围
     writeInitDataToDummy(oriPort);
+    // 向原始节点写入历史数据
     writeHistoryDataToOri();
   }
 
   @Test
   public void oriNoDataExpHasData() {
+    // 向扩容节点写入边界数据，以指定分片范围
     writeInitDataToDummy(expPort);
+    // 向扩容节点写入历史数据
     writeHistoryDataToExp();
   }
 
