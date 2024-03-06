@@ -12,4 +12,4 @@ cd client/target/iginx-client-0.6.0-SNAPSHOT/sbin
 
 sh -c "chmod +x start_cli.sh"
 
-sh -c "echo '$COMMAND' | xargs -0 -t -I F sh client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e 'F'"
+sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'"
