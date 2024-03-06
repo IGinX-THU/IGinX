@@ -6,24 +6,24 @@ import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 
-public class RemoveNotRule extends Rule {
+public class NotFilterRemoveRule extends Rule {
 
   private static final class InstanceHolder {
-    static final RemoveNotRule INSTANCE = new RemoveNotRule();
+    static final NotFilterRemoveRule INSTANCE = new NotFilterRemoveRule();
   }
 
-  public static RemoveNotRule getInstance() {
-    return RemoveNotRule.InstanceHolder.INSTANCE;
+  public static NotFilterRemoveRule getInstance() {
+    return NotFilterRemoveRule.InstanceHolder.INSTANCE;
   }
 
-  protected RemoveNotRule() {
+  protected NotFilterRemoveRule() {
     /*
      * we want to match the topology like:
      *         Select
      *           |
      *          Any
      */
-    super("RemoveNotRule", operand(Select.class, any()));
+    super("NotFilterRemoveRule", operand(Select.class, any()));
   }
 
   @Override

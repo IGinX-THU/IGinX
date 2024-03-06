@@ -11,21 +11,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class FragmentPruning extends Rule {
+public class FragmentPruningByPatternRule extends Rule {
   /*
      该规则是根据Project的Pattern来判断是否需要Fragment，与列裁剪规则有关，
      列裁剪规则裁剪了Project-Fragment中不需要的列，可能导致该Fragment不再需要
   */
 
   private static final class InstanceHolder {
-    private static final FragmentPruning instance = new FragmentPruning();
+    private static final FragmentPruningByPatternRule instance = new FragmentPruningByPatternRule();
   }
 
-  public static FragmentPruning getInstance() {
+  public static FragmentPruningByPatternRule getInstance() {
     return InstanceHolder.instance;
   }
 
-  protected FragmentPruning() {
+  protected FragmentPruningByPatternRule() {
     /*
      * we want to match the topology like:
      *          Project
@@ -33,7 +33,7 @@ public class FragmentPruning extends Rule {
      *          Fragment
      */
     // Fragment的检测在matches中进行
-    super("FragmentEliminationRule", operand(Project.class));
+    super("FragmentPruningByPatternRule", operand(Project.class));
   }
 
   @Override
@@ -60,7 +60,7 @@ public class FragmentPruning extends Rule {
     project.setPatterns(validPatterns);
 
     if (validPatterns.size() == 0) {
-      eliminateFragment(call);
+      PruningFragment(call);
     }
   }
 
@@ -69,7 +69,7 @@ public class FragmentPruning extends Rule {
    *
    * @param call RuleCall上下文
    */
-  private void eliminateFragment(RuleCall call) {
+  private void PruningFragment(RuleCall call) {
     Map<Operator, Operator> parentIndexMap = call.getParentIndexMap();
     Operator curOp = parentIndexMap.get(call.getMatchedRoot());
     Operator lastOp = call.getMatchedRoot();

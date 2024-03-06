@@ -120,15 +120,15 @@ runs:
                   exit 1
               fi
         - if: inputs.Set-Filter-Fragment-OFF=='true'
-          name: Set FilterFragmentRule OFF
+          name: Set FragmentPruningByFilterRule OFF
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/ruleBasedOptimizer=RemoveNotRule=on,FilterFragmentRule=on/ruleBasedOptimizer=RemoveNotRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/ruleBasedOptimizer=RemoveNotRule=on,FilterFragmentRule=on/ruleBasedOptimizer=RemoveNotRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sudo sed -i '' 's/ruleBasedOptimizer=RemoveNotRule=on,FilterFragmentRule=on/ruleBasedOptimizer=RemoveNotRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i '' 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                   echo "$RUNNER_OS is not supported"
                   exit 1

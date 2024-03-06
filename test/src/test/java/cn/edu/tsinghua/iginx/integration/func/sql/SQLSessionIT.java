@@ -6223,39 +6223,39 @@ public class SQLSessionIT {
     String ruleBasedOptimizer = executor.execute("SHOW CONFIG \"ruleBasedOptimizer\";");
     logger.info("testModifyRules: " + ruleBasedOptimizer);
     // 2种情况不测试Config设置Rule的效果：
-    // 1. 本地环境下FilterFragmentRule默认是开启的，不测试
-    // 2. SessionPool测试在Session测试后，此时FilterFragmentRule已经被开启，不测试
-    if (ruleBasedOptimizer.contains("FilterFragmentRule=on") || isForSessionPool) {
-      expected = "FilterFragmentRule|    ON";
+    // 1. 本地环境下FragmentPruningByFilterRule默认是开启的，不测试
+    // 2. SessionPool测试在Session测试后，此时FragmentPruningByFilterRule已经被开启，不测试
+    if (ruleBasedOptimizer.contains("FragmentPruningByFilterRule=on") || isForSessionPool) {
+      expected = "FragmentPruningByFilterRule|    ON";
 
     } else {
-      expected = "FilterFragmentRule|   OFF";
+      expected = "FragmentPruningByFilterRule|   OFF";
     }
 
     assertTrue(executor.execute(statement).contains(expected));
 
-    statement = "set rules FilterFragmentRule=on;";
+    statement = "set rules FragmentPruningByFilterRule=on;";
     executor.execute(statement);
 
     statement = "show rules;";
-    expected = "FilterFragmentRule|    ON";
+    expected = "FragmentPruningByFilterRule|    ON";
     assertTrue(executor.execute(statement).contains(expected));
 
-    statement = "set rules FilterFragmentRule=off, RemoveNotRule=off;";
+    statement = "set rules FragmentPruningByFilterRule=off, NotFilterRemoveRule=off;";
     executor.execute(statement);
 
     statement = "show rules;";
-    String expected1 = "RemoveNotRule|   OFF";
-    String expected2 = "FilterFragmentRule|   OFF";
+    String expected1 = "NotFilterRemoveRule|   OFF";
+    String expected2 = "FragmentPruningByFilterRule|   OFF";
     String result = executor.execute(statement);
     assertTrue(result.contains(expected1) && result.contains(expected2));
 
-    statement = "set rules FilterFragmentRule=on, RemoveNotRule=on;";
+    statement = "set rules FragmentPruningByFilterRule=on, NotFilterRemoveRule=on;";
     executor.execute(statement);
 
     statement = "show rules;";
-    expected1 = "RemoveNotRule|    ON";
-    expected2 = "FilterFragmentRule|    ON";
+    expected1 = "NotFilterRemoveRule|    ON";
+    expected2 = "FragmentPruningByFilterRule|    ON";
     result = executor.execute(statement);
     assertTrue(result.contains(expected1) && result.contains(expected2));
   }
@@ -6272,7 +6272,7 @@ public class SQLSessionIT {
         "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
     executor.execute(insert);
 
-    String closeRule = "SET RULES FragmentEliminationRule=OFF, ColumnPruningRule=OFF;";
+    String closeRule = "SET RULES FragmentPruningByPatternRule=OFF, ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     StringBuilder builder = new StringBuilder();
@@ -6510,7 +6510,7 @@ public class SQLSessionIT {
 
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
 
-    String openRule = "SET RULES FragmentEliminationRule=ON, ColumnPruningRule=ON;";
+    String openRule = "SET RULES FragmentPruningByPatternRule=ON, ColumnPruningRule=ON;";
     executor.execute(openRule);
   }
 
@@ -6534,7 +6534,7 @@ public class SQLSessionIT {
       return;
     }
 
-    String closeRule = "SET RULES FragmentEliminationRule=OFF, ColumnPruningRule=OFF;";
+    String closeRule = "SET RULES FragmentPruningByPatternRule=OFF, ColumnPruningRule=OFF;";
     executor.execute(closeRule);
 
     String insert =
@@ -6556,7 +6556,7 @@ public class SQLSessionIT {
     executor.execute(insert);
 
     // 开启filter_fragment
-    String statement = "SET RULES FilterFragmentRule=ON;";
+    String statement = "SET RULES FragmentPruningByFilterRule=ON;";
     executor.execute(statement);
 
     // 这里的测例是包含了filter_fragment不能处理的节点，因此开不开filter_fragment都是一样的结果
@@ -6663,7 +6663,7 @@ public class SQLSessionIT {
     executor.concurrentExecuteAndCompare(statementsAndExpectResNoChange);
 
     // 关闭filter_fragment
-    statement = "SET RULES FilterFragmentRule=OFF;";
+    statement = "SET RULES FragmentPruningByFilterRule=OFF;";
     executor.execute(statement);
 
     List<Pair<String, String>> statementsAndExpectResBeforeOptimize =
@@ -6731,7 +6731,7 @@ public class SQLSessionIT {
 
     // 开启filter_fragment
     statement =
-        "SET RULES FilterFragmentRule=ON, FragmentEliminationRule=ON, ColumnPruningRule=ON;";
+        "SET RULES FragmentPruningByFilterRule=ON, FragmentPruningByPatternRule=ON, ColumnPruningRule=ON;";
     executor.execute(statement);
   }
 
@@ -6844,7 +6844,7 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testColumnPruning() {
+  public void testColumnPruningAndFragmentElimination() {
     if (isFilterPushDown || isScaling) {
       logger.info(
           "Skip SQLSessionIT.testColumnPruning because scaling test or filter push down test");
@@ -6889,10 +6889,10 @@ public class SQLSessionIT {
     insert.append(";");
     executor.execute(insert.toString());
 
-    String closeRule = "SET RULES ColumnPruningRule=OFF, FragmentEliminationRule=OFF;";
+    String closeRule = "SET RULES ColumnPruningRule=OFF, FragmentPruningByPatternRule=OFF;";
     executor.execute(closeRule);
 
-    String sql1 = "explain SELECT s1 FROM (SELECT * FROM us.d1);";
+    String sql1 = "explain SELECT us.d1.s1 FROM (SELECT * FROM us.d1);";
     String sql2 = "explain SELECT test.a.a FROM test.a INNER JOIN us.d1 ON test.a.b = us.d1.s1;";
     String sql3 = "explain SELECT test.a.a, test.a.e, test.b.k FROM (SELECT * FROM test);";
     String sql4 =
@@ -6908,8 +6908,8 @@ public class SQLSessionIT {
             + "+----------------------+-------------+--------------------------------------------+\n"
             + "|          Logical Tree|Operator Type|                               Operator Info|\n"
             + "+----------------------+-------------+--------------------------------------------+\n"
-            + "|Reorder               |      Reorder|                                   Order: s1|\n"
-            + "|  +--Project          |      Project|                                Patterns: s1|\n"
+            + "|Reorder               |      Reorder|                             Order: us.d1.s1|\n"
+            + "|  +--Project          |      Project|                          Patterns: us.d1.s1|\n"
             + "|    +--Reorder        |      Reorder|                              Order: us.d1.*|\n"
             + "|      +--Project      |      Project|                           Patterns: us.d1.*|\n"
             + "|        +--Join       |         Join|                                 JoinBy: key|\n"
@@ -7009,20 +7009,20 @@ public class SQLSessionIT {
             + "Total line number = 11\n";
     executor.executeAndCompare(sql6, expect6);
 
-    String openRule = "SET RULES ColumnPruningRule=ON, FragmentEliminationRule=ON;";
+    String openRule = "SET RULES ColumnPruningRule=ON, FragmentPruningByPatternRule=ON;";
     executor.execute(openRule);
 
     expect1 =
         "ResultSets:\n"
-            + "+------------------+-------------+---------------------------------------+\n"
-            + "|      Logical Tree|Operator Type|                          Operator Info|\n"
-            + "+------------------+-------------+---------------------------------------+\n"
-            + "|Reorder           |      Reorder|                              Order: s1|\n"
-            + "|  +--Project      |      Project|                           Patterns: s1|\n"
-            + "|    +--Reorder    |      Reorder|                              Order: s1|\n"
-            + "|      +--Project  |      Project|                           Patterns: s1|\n"
-            + "|        +--Project|      Project|Patterns: s1, Target DU: unit0000000002|\n"
-            + "+------------------+-------------+---------------------------------------+\n"
+            + "+------------------+-------------+---------------------------------------------+\n"
+            + "|      Logical Tree|Operator Type|                                Operator Info|\n"
+            + "+------------------+-------------+---------------------------------------------+\n"
+            + "|Reorder           |      Reorder|                              Order: us.d1.s1|\n"
+            + "|  +--Project      |      Project|                           Patterns: us.d1.s1|\n"
+            + "|    +--Reorder    |      Reorder|                              Order: us.d1.s1|\n"
+            + "|      +--Project  |      Project|                           Patterns: us.d1.s1|\n"
+            + "|        +--Project|      Project|Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+            + "+------------------+-------------+---------------------------------------------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(sql1, expect1);
 
