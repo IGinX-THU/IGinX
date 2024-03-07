@@ -51,7 +51,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
                   DATA_TYPE_MAP.get(dataTypeList.get(i).toString())));
         } catch (StatementExecutionException e) {
           if (!e.getMessage().contains("already exist")) {
-            logger.warn("create timeseries {} failure: {}", pathList.get(i), e.getMessage());
+            LOGGER.warn("create timeseries {} failure: {}", pathList.get(i), e.getMessage());
             throw e;
           }
         }

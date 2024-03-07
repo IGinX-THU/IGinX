@@ -92,11 +92,11 @@ public class Controller {
     clearData(session);
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     if (!conf.isScaling()) {
-      logger.info("Not the DBCE test, skip the clear history data step.");
+      LOGGER.info("Not the DBCE test, skip the clear history data step.");
     } else {
       BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
       if (generator == null) {
-        logger.error("clear data fail, caused by generator is null");
+        LOGGER.error("clear data fail, caused by generator is null");
         return;
       }
       generator.clearHistoryData();
@@ -132,7 +132,7 @@ public class Controller {
     try {
       return (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-      logger.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: {}", e.getMessage());
       fail();
     }
     return null;
@@ -154,10 +154,10 @@ public class Controller {
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
-      logger.info("skip the write history data step.");
+      LOGGER.info("skip the write history data step.");
       medium = pathList.size();
     } else {
-      logger.info("DBCE test, write history data.");
+      LOGGER.info("DBCE test, write history data.");
       boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
       boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
@@ -184,7 +184,7 @@ public class Controller {
               Collections.singletonList(tagsList.get(i)),
               type);
         } catch (SessionException | ExecutionException e) {
-          logger.error("write data fail, caused by: {}", e.getMessage());
+          LOGGER.error("write data fail, caused by: {}", e.getMessage());
           fail();
         }
       } else {
@@ -204,7 +204,7 @@ public class Controller {
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
         BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
         if (generator == null) {
-          logger.error("write data fail, caused by generator is null");
+          LOGGER.error("write data fail, caused by generator is null");
           return;
         }
         if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
@@ -248,7 +248,7 @@ public class Controller {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
     if (generator == null) {
-      logger.error("write data fail, caused by generator is null");
+      LOGGER.error("write data fail, caused by generator is null");
       return;
     }
     if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
@@ -291,10 +291,10 @@ public class Controller {
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
-      logger.info("skip the write history data step.");
+      LOGGER.info("skip the write history data step.");
       medium = keyList.size();
     } else {
-      logger.info("DBCE test, write history data.");
+      LOGGER.info("DBCE test, write history data.");
       boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
       boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
@@ -341,7 +341,7 @@ public class Controller {
           tagsList,
           type);
     } catch (SessionException | ExecutionException e) {
-      logger.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: {}", e.getMessage());
       fail();
     }
 
@@ -389,7 +389,7 @@ public class Controller {
                 dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
       } catch (SessionException | ExecutionException e) {
         if (!e.getMessage().contains("repeatedly add storage engine")) {
-          logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
+          LOGGER.error("add embedded storage engine fail, caused by: {}", e.getMessage());
           fail();
         }
       }
