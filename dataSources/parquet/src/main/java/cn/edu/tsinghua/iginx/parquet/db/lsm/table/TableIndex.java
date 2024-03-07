@@ -318,7 +318,9 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     public void delete(RangeSet<K> ranges) {
       lock.writeLock().lock();
       try {
+        RangeSet<K> validRanges = ranges.complement();
         Iterator<Map.Entry<String, Range<K>>> iterator = tableRange.entrySet().iterator();
+        Map<String, Range<K>> overlap = new HashMap<>();
         while (iterator.hasNext()) {
           Map.Entry<String, Range<K>> entry = iterator.next();
           if (!ranges.intersects(entry.getValue())) {
@@ -327,9 +329,10 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
           if (ranges.encloses(entry.getValue())) {
             iterator.remove();
           } else {
-            tableRange.put(entry.getKey(), ranges.subRangeSet(entry.getValue()).span());
+            overlap.put(entry.getKey(), validRanges.subRangeSet(entry.getValue()).span());
           }
         }
+        tableRange.putAll(overlap);
       } finally {
         lock.writeLock().unlock();
       }
