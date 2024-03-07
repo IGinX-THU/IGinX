@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
@@ -43,13 +44,11 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.Processor;
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
-import cn.edu.tsinghua.iginx.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
+import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
@@ -172,7 +171,7 @@ public class StatementExecutor {
         | IllegalAccessException
         | NoSuchMethodException
         | InvocationTargetException e) {
-      throw new IginxRuntimeException("initial statistics collector error: ", e);
+      throw new RuntimeException("initial statistics collector error: ", e);
     }
   }
 
@@ -451,7 +450,7 @@ public class StatementExecutor {
         ctx.getResult().setExportByteStreamDir(exportByteStream.getDir());
         break;
       default:
-        throw new IginxRuntimeException("Unknown export file type: " + exportFile.getType());
+        throw new RuntimeException("Unknown export file type: " + exportFile.getType());
     }
   }
 
@@ -471,7 +470,7 @@ public class StatementExecutor {
       }
 
     } else {
-      throw new IginxRuntimeException("Unknown import file type: " + importFile.getType());
+      throw new RuntimeException("Unknown import file type: " + importFile.getType());
     }
   }
 
@@ -484,7 +483,7 @@ public class StatementExecutor {
       fos.write(ctx.getLoadCSVFileByteBuffer().array());
       fos.flush();
     } catch (IOException e) {
-      throw new IginxRuntimeException(
+      throw new RuntimeException(
           (String.format("Encounter an error when writing file %s", tmpCSV.getCanonicalPath())), e);
     }
 
@@ -510,7 +509,7 @@ public class StatementExecutor {
         for (int n = 0; n < BATCH_SIZE && iterator.hasNext(); n++) {
           tmp = iterator.next();
           if (tmp.size() != pathSize + 1) {
-            throw new IginxRuntimeException(
+            throw new RuntimeException(
                 "The paths' size doesn't match csv data at line: " + tmp.getRecordNumber());
           }
           records.add(tmp);
@@ -612,11 +611,11 @@ public class StatementExecutor {
       ctx.getResult().setLoadCSVColumns(insertStatement.getPaths());
       ctx.getResult().setLoadCSVRecordNum(count);
     } catch (IOException e) {
-      throw new IginxRuntimeException(
+      throw new RuntimeException(
           String.format("Encounter an error when reading csv file %s", tmpCSV.getCanonicalPath()),
           e);
     } catch (ExecutionException | PhysicalException e) {
-      throw new IginxRuntimeException("Encounter an error when executing insert statement", e);
+      throw new RuntimeException("Encounter an error when executing insert statement", e);
     }
 
     Files.delete(tmpCSV.toPath());

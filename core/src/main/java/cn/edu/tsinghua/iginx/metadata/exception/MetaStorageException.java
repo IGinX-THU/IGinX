@@ -16,27 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exception;
+package cn.edu.tsinghua.iginx.metadata.exception;
 
-import cn.edu.tsinghua.iginx.thrift.Status;
+public class MetaStorageException extends Exception {
 
-public class ExecutionException extends IginxException {
+  private static final long serialVersionUID = -8128973325398925370L;
 
-  private static final long serialVersionUID = -7769482614133326007L;
-
-  public ExecutionException(Status status) {
-    super(status.message, status.code);
+  public MetaStorageException(String message) {
+    super(message);
   }
 
-  public ExecutionException(String message) {
-    super(message, StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+  public MetaStorageException(String message, Throwable cause) {
+    super(message, cause);
   }
 
-  public ExecutionException(Throwable cause) {
-    super(cause, StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
-  }
-
-  public ExecutionException(String message, Throwable cause) {
-    super(message, cause, StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+  public MetaStorageException(Throwable cause) {
+    super(cause);
   }
 }

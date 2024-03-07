@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.*;
 import java.io.File;
@@ -51,8 +50,7 @@ public class TransformCompare {
         "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_count.py\"");
   }
 
-  public static void main(String[] args)
-      throws ExecutionException, SessionException, InterruptedException {
+  public static void main(String[] args) throws SessionException, InterruptedException {
     before();
 
     String multiPathWholeRange = "SELECT s1, s2 FROM test.compare;";
@@ -87,7 +85,7 @@ public class TransformCompare {
   }
 
   private static void commitStdJob(String sql, String pyTaskName)
-      throws ExecutionException, SessionException, InterruptedException {
+      throws SessionException, InterruptedException {
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
     TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
@@ -111,7 +109,7 @@ public class TransformCompare {
     System.out.println("job " + jobId + " state is " + jobState.toString());
   }
 
-  private static void before() throws ExecutionException, SessionException {
+  private static void before() throws SessionException {
     setUp();
     insertData();
 
@@ -121,7 +119,7 @@ public class TransformCompare {
     result.print(false, "ms");
   }
 
-  private static void after() throws ExecutionException, SessionException {
+  private static void after() throws SessionException {
     dropTask();
     // 查询已注册的任务
     SessionExecuteSqlResult result = session.executeSql(SHOW_REGISTER_TASK_SQL);
@@ -172,7 +170,7 @@ public class TransformCompare {
         });
   }
 
-  private static void insertData() throws ExecutionException, SessionException {
+  private static void insertData() throws SessionException {
     String insertStrPrefix = "INSERT INTO test.compare (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);
@@ -201,7 +199,7 @@ public class TransformCompare {
     }
   }
 
-  private static void clearData() throws ExecutionException, SessionException {
+  private static void clearData() throws SessionException {
     String clearData = "CLEAR DATA;";
 
     SessionExecuteSqlResult res = session.executeSql(clearData);

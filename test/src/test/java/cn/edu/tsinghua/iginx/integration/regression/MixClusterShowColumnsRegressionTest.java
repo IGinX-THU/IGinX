@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.integration.regression;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -98,7 +97,7 @@ public class MixClusterShowColumnsRegressionTest {
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }

@@ -2,9 +2,9 @@ package cn.edu.tsinghua.iginx.engine.logical.utils;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
-import cn.edu.tsinghua.iginx.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;

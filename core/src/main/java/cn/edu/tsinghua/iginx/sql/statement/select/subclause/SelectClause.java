@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.FuncType;
-import cn.edu.tsinghua.iginx.exception.SQLParserException;
+import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import java.util.*;
 

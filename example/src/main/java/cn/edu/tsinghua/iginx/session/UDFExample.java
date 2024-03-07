@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
@@ -28,7 +27,7 @@ public class UDFExample {
   private static final long START_TIMESTAMP = 0L;
   private static final long END_TIMESTAMP = 1000L;
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -81,7 +80,7 @@ public class UDFExample {
     result.print(false, "ms");
   }
 
-  private static void prepareData() throws ExecutionException, SessionException {
+  private static void prepareData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);

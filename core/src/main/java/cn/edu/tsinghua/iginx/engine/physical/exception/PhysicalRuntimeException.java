@@ -16,9 +16,7 @@
 
 package cn.edu.tsinghua.iginx.engine.physical.exception;
 
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
-
-public class PhysicalRuntimeException extends IginxRuntimeException {
+public class PhysicalRuntimeException extends RuntimeException {
 
   public PhysicalRuntimeException(String message) {
     super(message);

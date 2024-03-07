@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.statistics;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.*;
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -83,7 +82,7 @@ public class StatisticsCollector implements IStatisticsCollector {
                       .getStatisticsLogInterval()); // 每隔 10 秒播报一次统计信息
             }
           } catch (InterruptedException e) {
-            throw new IginxRuntimeException("encounter error when broadcasting statistics: ", e);
+            throw new RuntimeException("encounter error when broadcasting statistics: ", e);
           }
         });
   }

@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -108,7 +107,7 @@ public class QueryGenerator extends AbstractGenerator {
     } else if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.BINARY) {
       return generateRoot((BinarySelectStatement) selectStatement);
     } else {
-      throw new IginxRuntimeException(
+      throw new RuntimeException(
           "Unknown select statement type: " + selectStatement.getSelectType());
     }
   }
@@ -416,7 +415,7 @@ public class QueryGenerator extends AbstractGenerator {
                           new GlobalSource(), showColumnsFromPart.getShowColumnsStatement());
                   break;
                 default:
-                  throw new IginxRuntimeException("Unknown FromPart type: " + fromPart.getType());
+                  throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
               }
               if (fromPart.hasAlias()) {
                 root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
@@ -438,7 +437,7 @@ public class QueryGenerator extends AbstractGenerator {
 
       if (!joinColumns.isEmpty() || isNaturalJoin) {
         if (prefixA == null || prefixB == null) {
-          throw new IginxRuntimeException(
+          throw new RuntimeException(
               "A natural join or a join with USING should have two public prefix");
         }
       }

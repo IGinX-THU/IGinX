@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -31,7 +30,7 @@ public class FileUtils {
 
         fos.close();
       } catch (IOException e) {
-        throw new IginxRuntimeException(
+        throw new RuntimeException(
             "Encounter an error when writing file " + columns[i] + ", because " + e.getMessage(),
             e);
       }

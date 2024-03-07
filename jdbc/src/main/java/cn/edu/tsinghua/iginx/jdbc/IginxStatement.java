@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.jdbc;
 
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -82,7 +81,7 @@ public class IginxStatement implements Statement {
     try {
       SessionExecuteSqlResult res = session.executeSql(sql);
       this.resultSet = new IginxResultSet(this, res);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       throw new SQLException(String.format("Fail to execute %s", sql), e);
     }
   }
@@ -101,7 +100,7 @@ public class IginxStatement implements Statement {
       try {
         session.executeSql(sql);
         res[i] = SUCCESS_NO_INFO;
-      } catch (SessionException | ExecutionException e) {
+      } catch (SessionException e) {
         res[i] = EXECUTE_FAILED;
       }
     }

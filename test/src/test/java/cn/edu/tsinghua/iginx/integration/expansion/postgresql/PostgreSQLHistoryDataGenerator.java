@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -47,7 +46,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       Class.forName("org.postgresql.Driver");
       return DriverManager.getConnection(url, USERNAME, PASSWORD);
     } catch (SQLException | ClassNotFoundException e) {
-      throw new IginxRuntimeException("get connection failure", e);
+      throw new RuntimeException("get connection failure", e);
     }
   }
 

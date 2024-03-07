@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import org.slf4j.Logger;
@@ -56,13 +55,6 @@ public class RpcUtils {
     PARTIAL_SUCCESS.setMessage("partial success");
     FAILURE.setMessage("unexpected error");
     SERVICE_UNAVAILABLE.setMessage("service unavailable for the sake of high workload");
-  }
-
-  public static void verifySuccess(Status status) throws ExecutionException {
-    if (status.code != StatusCode.SUCCESS_STATUS.getStatusCode()
-        && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
-      throw new ExecutionException(status);
-    }
   }
 
   public static Status status(StatusCode code, String msg) {

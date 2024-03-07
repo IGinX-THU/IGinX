@@ -41,7 +41,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -441,10 +440,9 @@ public class OperatorUtils {
       case Union:
       case Except:
       case Intersect:
-        throw new IginxRuntimeException(
-            "Correlated subquery is not supported to use set operator yet.");
+        throw new RuntimeException("Correlated subquery is not supported to use set operator yet.");
       default:
-        throw new IginxRuntimeException("Unexpected operator type: " + operatorB.getType());
+        throw new RuntimeException("Unexpected operator type: " + operatorB.getType());
     }
     return root;
   }
@@ -481,14 +479,14 @@ public class OperatorUtils {
       }
       return false;
     } else {
-      throw new IginxRuntimeException("Unexpected operator type: " + root.getType());
+      throw new RuntimeException("Unexpected operator type: " + root.getType());
     }
   }
 
   private static Operator combineAdjacentSelectAndJoin(Select select) {
     Operator child = ((OperatorSource) select.getSource()).getOperator();
     if (!OperatorType.isJoinOperator(child.getType())) {
-      throw new IginxRuntimeException("Unexpected operator type: " + child.getType());
+      throw new RuntimeException("Unexpected operator type: " + child.getType());
     }
 
     Filter newFilter;
@@ -534,7 +532,7 @@ public class OperatorUtils {
         markJoin.reChooseJoinAlg();
         return markJoin;
       default:
-        throw new IginxRuntimeException("Unexpected operator type: " + child.getType());
+        throw new RuntimeException("Unexpected operator type: " + child.getType());
     }
   }
 }

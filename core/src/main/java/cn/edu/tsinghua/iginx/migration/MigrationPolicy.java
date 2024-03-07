@@ -14,10 +14,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
-import cn.edu.tsinghua.iginx.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.migration.recover.MigrationExecuteTask;
 import cn.edu.tsinghua.iginx.migration.recover.MigrationExecuteType;
 import cn.edu.tsinghua.iginx.migration.recover.MigrationLogger;
@@ -508,7 +507,7 @@ public abstract class MigrationPolicy {
       String cause =
           String.format(
               "encounter error when migrate data from %d to %d ", sourceStorageId, targetStorageId);
-      throw new IginxRuntimeException(cause, e);
+      throw new RuntimeException(cause, e);
     } finally {
       migrationLogger.logMigrationExecuteTaskEnd();
     }

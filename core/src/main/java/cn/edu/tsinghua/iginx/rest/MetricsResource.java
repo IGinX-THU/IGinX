@@ -23,8 +23,7 @@ import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.insert.InsertWorker;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
@@ -551,13 +550,13 @@ public class MetricsResource {
     boolean cautionDuringDelete = false;
     try {
       executorData.deleteMetric();
-    } catch (ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         exception = e;
         cautionDuringDelete = true;
         LOGGER.warn("cant delete the READ_ONLY data and go on.");
       } else {
-        throw new IginxRuntimeException("Error occurred during executing", e);
+        throw new RuntimeException("Error occurred during executing", e);
       }
     }
 

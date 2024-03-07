@@ -1,6 +1,8 @@
 package cn.edu.tsinghua.iginx.transform.exception;
 
-public class TransformException extends Exception {
+import cn.edu.tsinghua.iginx.exception.IginxException;
+
+public class TransformException extends IginxException {
 
   private static final long serialVersionUID = -222780953901154063L;
 

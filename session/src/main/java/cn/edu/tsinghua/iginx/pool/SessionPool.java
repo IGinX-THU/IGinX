@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.pool;
 
 import static java.lang.Math.max;
 
-import cn.edu.tsinghua.iginx.exception.ExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.*;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
@@ -428,7 +427,7 @@ public class SessionPool {
 
   public void addStorageEngine(
       String ip, int port, StorageEngineType type, Map<String, String> extraParams)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -439,15 +438,14 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("addStorageEngine failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
     }
   }
 
-  public void addStorageEngines(List<StorageEngine> storageEngines)
-      throws SessionException, ExecutionException {
+  public void addStorageEngines(List<StorageEngine> storageEngines) throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -458,7 +456,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("addStorageEngines failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -466,7 +464,7 @@ public class SessionPool {
   }
 
   public void removeHistoryDataSource(List<RemovedStorageEngineInfo> removedStorageEngineList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -477,7 +475,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("remove history data source failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -497,7 +495,7 @@ public class SessionPool {
     }
   }
 
-  public List<Column> showColumns() throws SessionException, ExecutionException {
+  public List<Column> showColumns() throws SessionException {
     List<Column> ret = new ArrayList<>();
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -509,7 +507,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertTablet failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -517,7 +515,7 @@ public class SessionPool {
     return ret;
   }
 
-  public void deleteColumn(String path) throws SessionException, ExecutionException {
+  public void deleteColumn(String path) throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -528,14 +526,14 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("deleteColumn failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
     }
   }
 
-  public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
+  public void deleteColumns(List<String> paths) throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -546,7 +544,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("deleteColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -555,7 +553,7 @@ public class SessionPool {
 
   public void deleteColumns(
       List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -566,7 +564,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("deleteColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -575,7 +573,7 @@ public class SessionPool {
 
   public void insertColumnRecords(
       List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -586,7 +584,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -599,7 +597,7 @@ public class SessionPool {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -610,7 +608,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -624,7 +622,7 @@ public class SessionPool {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -636,7 +634,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -645,7 +643,7 @@ public class SessionPool {
 
   public void insertNonAlignedColumnRecords(
       List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -656,7 +654,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertNonAlignedColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -669,7 +667,7 @@ public class SessionPool {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -681,7 +679,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertNonAlignedColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -695,7 +693,7 @@ public class SessionPool {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -707,7 +705,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertNonAlignedColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -720,7 +718,7 @@ public class SessionPool {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -731,7 +729,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -745,7 +743,7 @@ public class SessionPool {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precison)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -756,7 +754,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -765,7 +763,7 @@ public class SessionPool {
 
   public void insertNonAlignedRowRecords(
       List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -776,7 +774,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertNonAlignedRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -789,7 +787,7 @@ public class SessionPool {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -800,7 +798,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertNonAlignedRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -814,7 +812,7 @@ public class SessionPool {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -826,15 +824,14 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("insertNonAlignedRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
     }
   }
 
-  public void deleteDataInColumn(String path, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+  public void deleteDataInColumn(String path, long startKey, long endKey) throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -845,7 +842,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("deleteDataInColumn failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -853,7 +850,7 @@ public class SessionPool {
   }
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -864,7 +861,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("deleteDataInColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -877,7 +874,7 @@ public class SessionPool {
       long endKey,
       List<Map<String, List<String>>> tagsList,
       TagFilterType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -888,7 +885,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("deleteDataInColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -896,7 +893,7 @@ public class SessionPool {
   }
 
   public SessionQueryDataSet queryData(List<String> paths, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -908,7 +905,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("queryData failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -918,7 +915,7 @@ public class SessionPool {
 
   public SessionQueryDataSet queryData(
       List<String> paths, long startKey, long endKey, List<Map<String, List<String>>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -930,7 +927,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("queryData failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -940,7 +937,7 @@ public class SessionPool {
 
   public SessionAggregateQueryDataSet aggregateQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     SessionAggregateQueryDataSet sessionAggregateQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -953,7 +950,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("aggregateQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -967,7 +964,7 @@ public class SessionPool {
       long endKey,
       AggregateType aggregateType,
       Map<String, List<String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     SessionAggregateQueryDataSet sessionAggregateQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -980,7 +977,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("aggregateQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -990,7 +987,7 @@ public class SessionPool {
 
   public SessionQueryDataSet downsampleQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1003,7 +1000,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("downsampleQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1018,7 +1015,7 @@ public class SessionPool {
       AggregateType aggregateType,
       long precision,
       List<Map<String, List<String>>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1031,7 +1028,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("downsampleQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1039,7 +1036,7 @@ public class SessionPool {
     return sessionQueryDataSet;
   }
 
-  public int getReplicaNum() throws SessionException, ExecutionException {
+  public int getReplicaNum() throws SessionException {
     int ret = 0;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1051,7 +1048,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("getReplicaNum failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1059,8 +1056,7 @@ public class SessionPool {
     return ret;
   }
 
-  public SessionExecuteSqlResult executeSql(String statement)
-      throws SessionException, ExecutionException {
+  public SessionExecuteSqlResult executeSql(String statement) throws SessionException {
     SessionExecuteSqlResult sessionExecuteSqlResult = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1072,7 +1068,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("executeSql failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1080,8 +1076,7 @@ public class SessionPool {
     return sessionExecuteSqlResult;
   }
 
-  public SessionQueryDataSet queryLast(List<String> paths, long startKey)
-      throws SessionException, ExecutionException {
+  public SessionQueryDataSet queryLast(List<String> paths, long startKey) throws SessionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1093,7 +1088,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("queryLast failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1103,7 +1098,7 @@ public class SessionPool {
 
   public SessionQueryDataSet queryLast(
       List<String> paths, long startKey, List<Map<String, List<String>>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     SessionQueryDataSet sessionQueryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1115,7 +1110,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("queryLast failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1124,7 +1119,7 @@ public class SessionPool {
   }
 
   public void addUser(String username, String password, Set<AuthType> auths)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -1135,7 +1130,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("addUser failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1143,7 +1138,7 @@ public class SessionPool {
   }
 
   public void updateUser(String username, String password, Set<AuthType> auths)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -1154,14 +1149,14 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("updateUser failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
     }
   }
 
-  public void deleteUser(String username) throws SessionException, ExecutionException {
+  public void deleteUser(String username) throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -1172,14 +1167,14 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("deleteUser failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
     }
   }
 
-  public ClusterInfo getClusterInfo() throws SessionException, ExecutionException {
+  public ClusterInfo getClusterInfo() throws SessionException {
     ClusterInfo clusterInfo = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1191,7 +1186,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("getClusterInfo failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1199,7 +1194,7 @@ public class SessionPool {
     return clusterInfo;
   }
 
-  public QueryDataSet executeQuery(String statement) throws SessionException, ExecutionException {
+  public QueryDataSet executeQuery(String statement) throws SessionException {
     QueryDataSet queryDataSet = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1211,7 +1206,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("executeQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1220,8 +1215,7 @@ public class SessionPool {
   }
 
   public long commitTransformJob(
-      List<TaskInfo> taskInfoList, ExportType exportType, String fileName)
-      throws SessionException, ExecutionException {
+      List<TaskInfo> taskInfoList, ExportType exportType, String fileName) throws SessionException {
     long ret = 0;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1233,7 +1227,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("commitTransformJob failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1241,7 +1235,7 @@ public class SessionPool {
     return ret;
   }
 
-  public JobState queryTransformJobStatus(long jobId) throws SessionException, ExecutionException {
+  public JobState queryTransformJobStatus(long jobId) throws SessionException {
     JobState ret = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1253,7 +1247,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("queryTransformJobStatus failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1261,7 +1255,7 @@ public class SessionPool {
     return ret;
   }
 
-  public List<Long> showEligibleJob(JobState jobState) throws SessionException, ExecutionException {
+  public List<Long> showEligibleJob(JobState jobState) throws SessionException {
     List<Long> ret = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1273,7 +1267,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("showEligibleJob failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1281,7 +1275,7 @@ public class SessionPool {
     return ret;
   }
 
-  public void cancelTransformJob(long jobId) throws SessionException, ExecutionException {
+  public void cancelTransformJob(long jobId) throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
@@ -1292,7 +1286,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("cancelTransformJob failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }
@@ -1301,7 +1295,7 @@ public class SessionPool {
 
   public CurveMatchResult curveMatch(
       List<String> paths, long startKey, long endKey, List<Double> curveQuery, long curveUnit)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     CurveMatchResult ret = null;
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
@@ -1313,7 +1307,7 @@ public class SessionPool {
         // TException means the connection is broken, remove it and get a new one.
         LOGGER.warn("curveMatch failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
-      } catch (ExecutionException | RuntimeException e) {
+      } catch (RuntimeException e) {
         putBack(session);
         throw e;
       }

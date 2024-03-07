@@ -18,19 +18,31 @@
  */
 package cn.edu.tsinghua.iginx.exception;
 
-public class SessionException extends IginxException {
+import cn.edu.tsinghua.iginx.thrift.Status;
+
+public class SessionException extends Exception {
 
   private static final long serialVersionUID = -2811585771984779297L;
 
+  protected int errorCode;
+
+  public SessionException(Status status) {
+    super(status.message);
+    errorCode = status.code;
+  }
+
   public SessionException(String message) {
-    super(message, StatusCode.SESSION_ERROR.getStatusCode());
+    super(message);
+    errorCode = StatusCode.SESSION_ERROR.getStatusCode();
   }
 
   public SessionException(Throwable cause) {
-    super(cause, StatusCode.SESSION_ERROR.getStatusCode());
+    super(cause);
+    errorCode = StatusCode.SESSION_ERROR.getStatusCode();
   }
 
   public SessionException(String message, Throwable cause) {
-    super(message, cause, StatusCode.SESSION_ERROR.getStatusCode());
+    super(message, cause);
+    errorCode = StatusCode.SESSION_ERROR.getStatusCode();
   }
 }

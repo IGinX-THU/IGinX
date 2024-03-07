@@ -5,7 +5,6 @@ import static org.junit.Assert.fail;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
@@ -38,7 +37,7 @@ public class DataSourceIT {
         | InvocationTargetException
         | NoSuchMethodException e) {
       LOGGER.error("get current storage failed, caused by: {}", e.getMessage());
-      throw new IginxRuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 
