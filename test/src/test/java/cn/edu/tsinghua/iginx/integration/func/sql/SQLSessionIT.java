@@ -6845,10 +6845,10 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testColumnPruningAndFragmentElimination() {
+  public void testColumnPruningAndFragmentPruning() {
     if (isFilterPushDown || isScaling) {
       logger.info(
-          "Skip SQLSessionIT.testColumnPruning because scaling test or filter push down test");
+          "Skip SQLSessionIT.testColumnPruningAndFragmentPruning because scaling test or filter push down test");
       return;
     }
 
