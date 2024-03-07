@@ -231,7 +231,9 @@ public class ConfigDescriptor {
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
       config.setRuleBasedOptimizer(
-          properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on"));
+          properties.getProperty(
+              "ruleBasedOptimizer",
+              "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);

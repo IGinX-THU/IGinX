@@ -62,6 +62,20 @@ from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_v
 
 logger = logging.getLogger("IGinX")
 
+def isPyReg(statement:str):
+    statement = statement.strip().lower()
+    return statement.startswith("register") and ("python task" in statement)
+
+
+def process_py_reg(statement:str):
+    assert len(statement.split("\"")) == 7
+    path = statement.split("\"")[3]
+    if os.path.isabs(path):
+        return statement
+    else:
+        abs_path = os.path.abspath(path)
+        return statement.replace(path, abs_path)
+
 
 class Session(object):
     SUCCESS_CODE = 200
@@ -464,6 +478,8 @@ class Session(object):
         return ClusterInfo(resp)
 
     def execute_sql(self, statement):
+        if isPyReg(statement):
+            statement = process_py_reg(statement)
         req = ExecuteSqlReq(sessionId=self.__session_id, statement=statement)
         resp = self.__client.executeSql(req)
         Session.verify_status(resp.status)
