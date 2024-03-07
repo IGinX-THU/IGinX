@@ -12,4 +12,13 @@ cd client/target/iginx-client-0.6.0-SNAPSHOT/sbin
 
 sh -c "chmod +x start_cli.sh"
 
-sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'"
+result=$(sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'")
+
+if [[ $result =~ 'success' ]]; then
+  echo success
+else
+  echo 'Error: failed to register udf mock_udf.'
+  echo $result
+  exit 1
+fi
+
