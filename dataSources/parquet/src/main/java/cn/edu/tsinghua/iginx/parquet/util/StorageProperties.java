@@ -241,12 +241,12 @@ public class StorageProperties {
     public static final String PARQUET_LZ4_BUFFER_SIZE = "parquet.lz4.buffer.size";
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
-    private Duration writeBufferTimeout = Duration.ofSeconds(1);
+    private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
     private long cacheCapacity = 1024 * 1024 * 1024; // BYTE
     private Duration cacheTimeout = null;
     private boolean cacheSoftValues = false;
-    private int compactPermits = 16;
+    private int compactPermits = 4;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
     private String parquetCompression = "UNCOMPRESSED";
@@ -275,7 +275,6 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setWriteBufferTimeout(Duration writeBufferTimeout) {
-      ParseUtils.checkPositive(cacheTimeout);
       this.writeBufferTimeout = writeBufferTimeout;
       return this;
     }

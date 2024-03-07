@@ -31,7 +31,9 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.StreamSupport;
@@ -59,7 +61,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     this.shared = shared;
     this.readWriter = readWriter;
     this.localFlusherPermitsTotal = shared.getFlusherPermits().availablePermits();
-    this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal);
+    this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal, true);
     reload();
   }
 
@@ -82,26 +84,26 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush)
       throws InterruptedException {
+    shared.getFlusherPermits().acquire();
+    localFlusherPermits.acquire();
     lock.writeLock().lock();
     try {
       String tableName = getTableName(seqGen.next());
       LOGGER.debug("waiting for flusher permit to flush {}", tableName);
-      shared.getFlusherPermits().acquire();
-      localFlusherPermits.acquire();
       memTables.put(tableName, table);
       flusher.submit(
           () -> {
             LOGGER.debug("task to flush {} started", tableName);
             try {
-
               TableMeta<K, F, T, V> meta = table.getMeta();
               try (Scanner<K, Scanner<F, V>> scanner =
                   table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
                 readWriter.flush(tableName, meta, scanner);
               }
+
               commitMemoryTable(tableName);
 
-              LOGGER.debug("flushed {}, start to run afterFlush hook", tableName);
+              LOGGER.debug("{} flushed", tableName);
 
               afterFlush.run();
             } catch (Throwable e) {
