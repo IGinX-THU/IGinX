@@ -26,26 +26,26 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FilterFragmentRule extends Rule {
+public class FragmentPruningByFilterRule extends Rule {
   private static final class InstanceHolder {
-    static final FilterFragmentRule INSTANCE = new FilterFragmentRule();
+    static final FragmentPruningByFilterRule INSTANCE = new FragmentPruningByFilterRule();
   }
 
-  public static FilterFragmentRule getInstance() {
-    return FilterFragmentRule.InstanceHolder.INSTANCE;
+  public static FragmentPruningByFilterRule getInstance() {
+    return FragmentPruningByFilterRule.InstanceHolder.INSTANCE;
   }
 
-  protected FilterFragmentRule() {
+  protected FragmentPruningByFilterRule() {
     /*
      * we want to match the topology like:
      *          Select
      *            |
      *           Any
      */
-    super("FilterFragmentRule", operand(Select.class, any()));
+    super("FragmentPruningByFilterRule", operand(Select.class, any()));
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(FilterFragmentRule.class);
+  private static final Logger logger = LoggerFactory.getLogger(FragmentPruningByFilterRule.class);
 
   private static final IMetaManager metaManager = MetaManagerWrapper.getInstance();
 
@@ -99,7 +99,42 @@ public class FilterFragmentRule extends Rule {
           }
         });
 
-    return res[0];
+    List<String> pathList = OperatorUtils.findPathList(selectOperator);
+    List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(selectOperator.getFilter());
+
+    ColumnsInterval columnsInterval = null;
+    if (!pathList.isEmpty()) {
+      columnsInterval =
+          new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1) + "~");
+    }
+
+    final boolean[] hasInvalidFragment = {false};
+    ColumnsInterval finalColumnsInterval = columnsInterval;
+    selectChild.accept(
+        new OperatorVisitor() {
+          @Override
+          public void visit(UnaryOperator unaryOperator) {
+            if (unaryOperator instanceof Project
+                && unaryOperator.getSource() instanceof FragmentSource) {
+              FragmentMeta fragmentMeta =
+                  ((FragmentSource) unaryOperator.getSource()).getFragment();
+              hasInvalidFragment[0] =
+                  hasInvalidFragment[0]
+                      || !fragmentMeta.isValid()
+                      || (!keyRanges.isEmpty() && !hasTimeRangeOverlap(fragmentMeta, keyRanges))
+                      || (finalColumnsInterval != null
+                          && !fragmentMeta.getColumnsInterval().isIntersect(finalColumnsInterval));
+            }
+          }
+
+          @Override
+          public void visit(BinaryOperator binaryOperator) {}
+
+          @Override
+          public void visit(MultipleOperator multipleOperator) {}
+        });
+
+    return res[0] && hasInvalidFragment[0];
   }
 
   @Override
@@ -131,9 +166,17 @@ public class FilterFragmentRule extends Rule {
           v.forEach(
               meta -> {
                 if (hasTimeRangeOverlap(meta, keyRanges)) {
+                  ColumnsInterval metaColumnsInterval = meta.getColumnsInterval();
+                  List<String> validPaths = new ArrayList<>();
+                  for (String path : pathList) {
+                    if (metaColumnsInterval.isContainWithoutPrefix(path)) {
+                      validPaths.add(path);
+                    }
+                  }
+
                   joinList.add(
                       new Project(
-                          new FragmentSource(meta), pathList, selectOperator.getTagFilter()));
+                          new FragmentSource(meta), validPaths, selectOperator.getTagFilter()));
                 }
               });
           Operator operator = OperatorUtils.joinOperatorsByTime(joinList);
