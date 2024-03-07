@@ -228,7 +228,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         names.add(tableName);
       }
     } catch (NoSuchFileException ignored) {
-      LOGGER.info("no dir named {}", dir);
+      LOGGER.debug("dir {} not existed.", dir);
     }
     return names;
   }

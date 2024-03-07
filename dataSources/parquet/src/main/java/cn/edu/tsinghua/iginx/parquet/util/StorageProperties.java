@@ -194,12 +194,12 @@ public class StorageProperties {
     public static final String PARQUET_PAGE_SIZE = "parquet.page_size";
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
-    private Duration writeBufferTimeout = Duration.ofSeconds(1);
+    private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
     private long cacheCapacity = 1024 * 1024 * 1024; // BYTE
     private Duration cacheTimeout = null;
     private boolean cacheSoftValues = false;
-    private int flusherPermits = 16;
+    private int flusherPermits = 4;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
 
@@ -223,7 +223,6 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setWriteBufferTimeout(Duration writeBufferTimeout) {
-      ParseUtils.checkPositive(cacheTimeout);
       this.writeBufferTimeout = writeBufferTimeout;
       return this;
     }
