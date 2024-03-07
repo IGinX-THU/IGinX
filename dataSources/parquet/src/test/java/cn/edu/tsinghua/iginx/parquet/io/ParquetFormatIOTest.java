@@ -18,15 +18,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import shaded.iginx.org.apache.parquet.schema.GroupType;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 @Deprecated
 public class ParquetFormatIOTest {

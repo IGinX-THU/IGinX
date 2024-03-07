@@ -18,6 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -25,23 +26,23 @@ import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
-import org.apache.parquet.column.statistics.LongStatistics;
-import org.apache.parquet.filter2.compat.FilterCompat;
-import org.apache.parquet.filter2.predicate.FilterPredicate;
-import org.apache.parquet.hadoop.metadata.BlockMetaData;
-import org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.io.InputFile;
-import org.apache.parquet.io.LocalInputFile;
-import org.apache.parquet.io.SeekableInputStream;
-import org.apache.parquet.local.ParquetFileReader;
-import org.apache.parquet.local.ParquetReadOptions;
-import org.apache.parquet.local.ParquetRecordReader;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import shaded.iginx.org.apache.parquet.ParquetReadOptions;
+import shaded.iginx.org.apache.parquet.column.statistics.LongStatistics;
+import shaded.iginx.org.apache.parquet.filter2.compat.FilterCompat;
+import shaded.iginx.org.apache.parquet.filter2.predicate.FilterPredicate;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetFileReader;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordReader;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.BlockMetaData;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import shaded.iginx.org.apache.parquet.io.InputFile;
+import shaded.iginx.org.apache.parquet.io.LocalInputFile;
+import shaded.iginx.org.apache.parquet.io.SeekableInputStream;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 public class IParquetReader implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
@@ -127,6 +128,29 @@ public class IParquetReader implements AutoCloseable {
 
   public ParquetMetadata getMeta() {
     return metadata;
+  }
+
+  public static DataType toIginxType(PrimitiveType primitiveType) {
+    if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
+      return DataType.BINARY;
+    }
+    switch (primitiveType.getPrimitiveTypeName()) {
+      case BOOLEAN:
+        return DataType.BOOLEAN;
+      case INT32:
+        return DataType.INTEGER;
+      case INT64:
+        return DataType.LONG;
+      case FLOAT:
+        return DataType.FLOAT;
+      case DOUBLE:
+        return DataType.DOUBLE;
+      case BINARY:
+        return DataType.BINARY;
+      default:
+        throw new RuntimeException(
+            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
+    }
   }
 
   public static class Builder {
