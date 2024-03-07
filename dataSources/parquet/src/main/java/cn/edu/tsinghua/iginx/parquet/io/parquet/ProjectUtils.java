@@ -22,9 +22,9 @@ import java.util.Objects;
 import java.util.Set;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.Type;
-import org.apache.parquet.schema.Types;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.Type;
+import shaded.iginx.org.apache.parquet.schema.Types;
 
 public class ProjectUtils {
   private ProjectUtils() {}
