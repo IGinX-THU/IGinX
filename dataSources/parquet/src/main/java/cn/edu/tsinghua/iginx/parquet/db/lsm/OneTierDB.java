@@ -298,7 +298,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
                 latch.countDown();
               });
 
-      LOGGER.info(
+      LOGGER.debug(
           "submit table {} to flush, with temp={}, latch={}", committedTableName, temp, latch);
       tableIndex.addTable(committedTableName, table.getMeta());
       this.bufferDirtiedTime.set(Long.MAX_VALUE);

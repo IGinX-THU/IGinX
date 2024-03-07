@@ -93,7 +93,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       throw new IOException("failed to write " + path, e);
     }
 
-    LOGGER.info("rename temp file to {}", path);
+    LOGGER.debug("rename temp file to {}", path);
     if (Files.exists(path)) {
       LOGGER.warn("file {} already exists, will be replaced", path);
     }
