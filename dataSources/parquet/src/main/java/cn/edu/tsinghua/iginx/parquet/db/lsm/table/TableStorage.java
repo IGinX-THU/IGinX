@@ -61,7 +61,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     this.shared = shared;
     this.readWriter = readWriter;
     this.localFlusherPermitsTotal = shared.getFlusherPermits().availablePermits();
-    this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal);
+    this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal, true);
     reload();
   }
 
@@ -95,12 +95,12 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
           () -> {
             LOGGER.debug("task to flush {} started", tableName);
             try {
-
               TableMeta<K, F, T, V> meta = table.getMeta();
               try (Scanner<K, Scanner<F, V>> scanner =
                   table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
                 readWriter.flush(tableName, meta, scanner);
               }
+
               commitMemoryTable(tableName);
 
               LOGGER.debug("{} flushed", tableName);
