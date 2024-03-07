@@ -23,3 +23,5 @@ sed -i "" "s/#is_read_only=false/#is_read_only=$6/g" $7
 sed -i "" "s/#thrift_timeout=30000/#thrift_timeout=50000/g" $7
 
 sed -i "" "s/#thrift_pool_max_size=100/#thrift_pool_max_size=2/g" $7
+
+sed -i "" "s/write_buffer_size=104857600/write_buffer_size=1048576/g" $7
