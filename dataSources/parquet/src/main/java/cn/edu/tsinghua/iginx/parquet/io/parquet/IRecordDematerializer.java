@@ -50,6 +50,16 @@ class IRecordDematerializer extends RecordDematerializer<IRecord> {
     }
   }
 
+  @Override
+  public MessageType getSchema() {
+    return schema;
+  }
+
+  @Override
+  public Map<String, String> getExtraMetaData() {
+    return Collections.emptyMap();
+  }
+
   private void addGroup(GroupType groupType, IRecord record) {
     for (Map.Entry<Integer, Object> e : record) {
       int fieldIndex = e.getKey();

@@ -21,8 +21,6 @@ import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
 import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
 import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.hadoop.ParquetFileWriter;
@@ -51,10 +49,6 @@ public class IParquetWriter implements AutoCloseable {
 
   public void write(IRecord record) throws IOException {
     internalWriter.write(record);
-  }
-
-  public void setExtraMetaData(String key, String value) {
-    internalWriter.setExtraMetaData(key, value);
   }
 
   @Override
@@ -89,18 +83,13 @@ public class IParquetWriter implements AutoCloseable {
       return new IParquetWriter(recordWriter, fileWriter);
     }
 
-    public Builder withExtraMetaData(String key, String value) {
-      extraMetaData.put(key, value);
-      return this;
-    }
-
     public Builder withRowGroupSize(long rowGroupSize) {
       optionsBuilder.withRowGroupSize(rowGroupSize);
       return this;
     }
 
     public Builder withPageSize(int pageSize) {
-      optionsBuilder.withPageSize(pageSize);
+      optionsBuilder.asParquetPropertiesBuilder().withPageSize(pageSize);
       return this;
     }
   }

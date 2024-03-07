@@ -32,6 +32,7 @@ import shaded.iginx.org.apache.parquet.ParquetReadOptions;
 import shaded.iginx.org.apache.parquet.column.statistics.LongStatistics;
 import shaded.iginx.org.apache.parquet.filter2.compat.FilterCompat;
 import shaded.iginx.org.apache.parquet.filter2.predicate.FilterPredicate;
+import shaded.iginx.org.apache.parquet.hadoop.CodecFactory;
 import shaded.iginx.org.apache.parquet.hadoop.ParquetFileReader;
 import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordReader;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.BlockMetaData;
@@ -222,29 +223,6 @@ public class IParquetReader implements AutoCloseable {
           new CodecFactory(
               lz4BufferSize, CodecFactory.DEFAULT_ZSTD_LEVEL, CodecFactory.DEFAULT_ZSTD_WORKERS));
       return this;
-    }
-  }
-
-  public static DataType toIginxType(PrimitiveType primitiveType) {
-    if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
-      return DataType.BINARY;
-    }
-    switch (primitiveType.getPrimitiveTypeName()) {
-      case BOOLEAN:
-        return DataType.BOOLEAN;
-      case INT32:
-        return DataType.INTEGER;
-      case INT64:
-        return DataType.LONG;
-      case FLOAT:
-        return DataType.FLOAT;
-      case DOUBLE:
-        return DataType.DOUBLE;
-      case BINARY:
-        return DataType.BINARY;
-      default:
-        throw new RuntimeException(
-            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
     }
   }
 }
