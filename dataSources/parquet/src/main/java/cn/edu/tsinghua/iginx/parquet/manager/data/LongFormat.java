@@ -16,8 +16,6 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
-
 public class LongFormat implements ObjectFormat<Long> {
   @Override
   public String format(Long value) {

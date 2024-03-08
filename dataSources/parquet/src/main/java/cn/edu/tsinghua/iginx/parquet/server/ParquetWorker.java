@@ -305,9 +305,9 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   @Override
-  public GetStorageBoundaryResp getBoundaryOfStorage() throws TException {
+  public GetStorageBoundaryResp getBoundaryOfStorage(String dataPrefix) throws TException {
     try {
-      Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage();
+      Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage(dataPrefix);
       GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
       resp.setStartKey(pair.getV().getStartKey());
       resp.setEndKey(pair.getV().getEndKey());

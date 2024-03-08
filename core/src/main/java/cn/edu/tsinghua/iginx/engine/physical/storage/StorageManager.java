@@ -78,7 +78,7 @@ public class StorageManager {
         storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
-        if (!isEmbeddedStorageEngine(engine)) {
+        if (!engine.equals(StorageEngineType.filesystem)) {
           needRelease = true;
         }
       }
@@ -86,7 +86,7 @@ public class StorageManager {
     } catch (ClassNotFoundException e) {
       LOGGER.error("load class {} for engine {} failure", driver, engine, e);
     } catch (Exception e) {
-      LOGGER.error("unexpected error when new engine {} with {}", engine, meta, e);
+      LOGGER.error("unexpected error when process engine {}:", engine, e);
     } finally {
       try {
         if (needRelease) {
@@ -115,7 +115,7 @@ public class StorageManager {
       LOGGER.error("load class {} for engine {} failure", driver, engine, e);
       return false;
     } catch (Exception e) {
-      LOGGER.error("unexpected error when new engine {} with {}", engine, meta, e);
+      LOGGER.error("unexpected error when process engine {}: ", engine, e);
       return false;
     }
     return true;
