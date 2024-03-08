@@ -38,7 +38,8 @@ public class QueryAggregatorFilter extends QueryAggregator {
       List<String> paths,
       List<Map<String, List<String>>> tagList,
       long startKey,
-      long endKey) throws RESTIllegalArgumentException {
+      long endKey)
+      throws RESTIllegalArgumentException {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
     SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
     queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));

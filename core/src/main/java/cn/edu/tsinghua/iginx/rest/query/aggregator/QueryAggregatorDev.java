@@ -38,7 +38,8 @@ public class QueryAggregatorDev extends QueryAggregator {
       List<String> paths,
       List<Map<String, List<String>>> tagList,
       long startKey,
-      long endKey) throws RESTIllegalArgumentException {
+      long endKey)
+      throws RESTIllegalArgumentException {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
     SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
     queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
@@ -62,8 +63,8 @@ public class QueryAggregatorDev extends QueryAggregator {
           }
           if (i == n - 1
               || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-              != RestUtils.getInterval(
-              sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
+                  != RestUtils.getInterval(
+                      sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
             queryResultDataset.add(
                 RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
                 sum2 / cnt - Math.pow(sum / cnt, 2));

@@ -101,7 +101,8 @@ public class QueryParser {
     return ret;
   }
 
-  public Query parseAnnotationQueryMetric(String json, boolean isGrafana) throws JsonProcessingException, ParseException {
+  public Query parseAnnotationQueryMetric(String json, boolean isGrafana)
+      throws JsonProcessingException, ParseException {
     Query ret;
     try {
       JsonNode node = mapper.readTree(json);

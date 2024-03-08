@@ -288,8 +288,8 @@ public class LocalExecutor implements Executor {
             fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
           }
           for (KeyRange keyRange : keyRanges) {
-                fileSystemManager.trimFilesContent(
-                    fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
+            fileSystemManager.trimFilesContent(
+                fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
           }
         }
       } catch (Exception e) {

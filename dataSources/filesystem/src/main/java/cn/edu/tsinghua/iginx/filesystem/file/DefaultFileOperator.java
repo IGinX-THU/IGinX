@@ -97,8 +97,7 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public void writeIginxFile(File file, List<Record> records) throws IOException {
     if (file.exists() && file.isDirectory()) {
-      throw new IOException(
-          String.format("cannot write to directory %s", file.getAbsolutePath()));
+      throw new IOException(String.format("cannot write to directory %s", file.getAbsolutePath()));
     }
     if (!file.exists()) {
       throw new IOException(

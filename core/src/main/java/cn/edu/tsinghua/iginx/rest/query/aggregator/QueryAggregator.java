@@ -109,7 +109,8 @@ public abstract class QueryAggregator {
       List<String> paths,
       List<Map<String, List<String>>> tagList,
       long startKey,
-      long endKey) throws RESTIllegalArgumentException {
+      long endKey)
+      throws RESTIllegalArgumentException {
     return doAggregate(
         session, paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }

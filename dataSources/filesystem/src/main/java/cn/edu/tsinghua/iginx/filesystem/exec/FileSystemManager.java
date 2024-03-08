@@ -295,8 +295,8 @@ public class FileSystemManager {
     }
   }
 
-  public void trimFilesContent(
-      List<File> files, TagFilter tagFilter, long startKey, long endKey) throws IOException {
+  public void trimFilesContent(List<File> files, TagFilter tagFilter, long startKey, long endKey)
+      throws IOException {
     for (File file : files) {
       List<File> fileList = getFilesWithTagFilter(file, tagFilter, false);
       if (fileList.isEmpty()) {
