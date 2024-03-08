@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.mongodb;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -9,6 +8,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -26,9 +26,9 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.mongodb.dummy.DummyQuery;
 import cn.edu.tsinghua.iginx.mongodb.dummy.SchemaSample;
 import cn.edu.tsinghua.iginx.mongodb.entity.ColumnQuery;
-import cn.edu.tsinghua.iginx.mongodb.entity.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.mongodb.entity.JoinQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
+import cn.edu.tsinghua.iginx.mongodb.exception.MongoDBException;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
@@ -307,7 +307,7 @@ public class MongoDBStorage implements IStorage {
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
-      throws PhysicalException {
+      throws MongoDBException {
     if (prefix == null) {
       prefix = "";
     }
@@ -326,7 +326,7 @@ public class MongoDBStorage implements IStorage {
     }
 
     if (namespaces.isEmpty()) {
-      throw new PhysicalTaskExecuteFailureException("no data!");
+      throw new MongoDBException("no data!");
     }
     ColumnsInterval first = new ColumnsInterval(Collections.min(namespaces));
     ColumnsInterval last = new ColumnsInterval(Collections.max(namespaces));

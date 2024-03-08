@@ -1,12 +1,12 @@
 package cn.edu.tsinghua.iginx.mongodb.entity;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
+import cn.edu.tsinghua.iginx.mongodb.exception.MongoDBException;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
 import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
@@ -157,17 +157,17 @@ public class JoinQuery {
     }
 
     @Override
-    public void close() throws PhysicalException {
+    public void close() throws MongoDBException {
       this.cursor.close();
     }
 
     @Override
-    public boolean hasNext() throws PhysicalException {
+    public boolean hasNext() throws MongoDBException {
       return this.cursor.hasNext();
     }
 
     @Override
-    public Row next() throws PhysicalException {
+    public Row next() throws MongoDBException {
       BsonDocument doc = this.cursor.next();
 
       long key = doc.remove("_id").asInt64().getValue();

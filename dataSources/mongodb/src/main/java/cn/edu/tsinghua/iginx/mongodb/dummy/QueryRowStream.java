@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.mongodb.exception.MongoDBException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 
@@ -58,7 +59,7 @@ class QueryRowStream implements RowStream {
   private Row nextRow = null;
 
   @Override
-  public boolean hasNext() throws PhysicalException {
+  public boolean hasNext() throws MongoDBException {
     if (nextRow == null) {
       nextRow = getNextMatchRow();
     }
@@ -67,7 +68,7 @@ class QueryRowStream implements RowStream {
   }
 
   @Override
-  public Row next() throws PhysicalException {
+  public Row next() throws MongoDBException {
     if (!hasNext()) {
       throw new NoSuchElementException();
     }
@@ -76,10 +77,14 @@ class QueryRowStream implements RowStream {
     return curr;
   }
 
-  private Row getNextMatchRow() throws PhysicalException {
+  private Row getNextMatchRow() throws MongoDBException {
     for (Row row = getNextRow(); row != null; row = getNextRow()) {
-      if (FilterUtils.validate(this.condition, row)) {
-        return row;
+      try {
+        if (FilterUtils.validate(this.condition, row)) {
+          return row;
+        }
+      } catch (PhysicalException e) {
+        throw new MongoDBException(e);
       }
     }
     return null;
