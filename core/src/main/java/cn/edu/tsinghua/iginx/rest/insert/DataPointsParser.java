@@ -265,7 +265,8 @@ public class DataPointsParser {
       List<String> paths,
       List<Map<String, String>> tagsList,
       Map<String, String> anno,
-      DataType typeAb) throws SessionException {
+      DataType typeAb)
+      throws SessionException {
     // 首先判断是否存在TitleDsp序列，并获取要插入的时间戳
     Long time = ifHasAnnoSequence();
     if (!time.equals(-1L)) {

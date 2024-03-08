@@ -507,7 +507,7 @@ public abstract class MigrationPolicy {
       String cause =
           String.format(
               "encounter error when migrate data from %d to %d ", sourceStorageId, targetStorageId);
-      throw new RuntimeException(cause, e);
+      LOGGER.error(cause, e);
     } finally {
       migrationLogger.logMigrationExecuteTaskEnd();
     }

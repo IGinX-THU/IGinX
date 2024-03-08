@@ -82,7 +82,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     try {
       this.resultLatch.await();
     } catch (InterruptedException e) {
-      throw new RuntimeException("unexpected interrupted when get result: ", e);
+      LOGGER.error("unexpected interrupted when get result: ", e);
     }
     return result;
   }

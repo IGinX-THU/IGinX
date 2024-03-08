@@ -19,7 +19,7 @@ public class Annotation {
   private Long timestamp;
   private ObjectMapper mapper = new ObjectMapper();
 
-  public Annotation(String str, Long tim) {
+  public Annotation(String str, Long tim) throws JsonProcessingException {
     timestamp = tim;
     try {
       JsonNode node = mapper.readTree(str);
@@ -41,7 +41,7 @@ public class Annotation {
         }
       }
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Wrong annotation form in database", e);
+      throw e;
     }
   }
 

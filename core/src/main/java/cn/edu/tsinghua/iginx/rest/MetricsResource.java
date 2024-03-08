@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.rest.insert.InsertWorker;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
 import cn.edu.tsinghua.iginx.rest.query.QueryParser;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
@@ -48,8 +49,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -507,7 +506,8 @@ public class MetricsResource {
     restSession.closeSession();
   }
 
-  private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse) throws SessionException, ParseException, JsonProcessingException {
+  private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse)
+      throws SessionException, ParseException, JsonProcessingException {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     // 包含时间范围的查询
@@ -560,7 +560,7 @@ public class MetricsResource {
         cautionDuringDelete = true;
         LOGGER.warn("cant delete the READ_ONLY data and go on.");
       } else {
-        throw new RuntimeException("Error occurred during executing", e);
+        throw e;
       }
     }
 
