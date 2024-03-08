@@ -15,29 +15,15 @@
   ~ limitations under the License.
   -->
 <assembly>
-    <id>server</id>
+    <id>driver</id>
     <formats>
         <format>dir</format>
         <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
-    <moduleSets>
-        <moduleSet>
-            <useAllReactorProjects>true</useAllReactorProjects>
-            <includes>
-                <include>cn.edu.tsinghua:iginx-core</include>
-            </includes>
-            <binaries>
-                <includes>
-                    <include>*.properties</include>
-                </includes>
-                <outputDirectory>conf</outputDirectory>
-                <dependencySets>
-                    <dependencySet>
-                        <outputDirectory>lib</outputDirectory>
-                    </dependencySet>
-                </dependencySets>
-            </binaries>
-        </moduleSet>
-    </moduleSets>
+    <dependencySets>
+        <dependencySet>
+            <outputDirectory>driver/parquet</outputDirectory>
+        </dependencySet>
+    </dependencySets>
 </assembly>

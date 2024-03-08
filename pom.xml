@@ -13,21 +13,21 @@
         <module>core</module>
         <module>thrift</module>
         <module>shared</module>
-        <!--        <module>client</module>-->
+        <module>client</module>
         <module>antlr</module>
         <!--        <module>jdbc</module>-->
-        <!--        <module>session</module>-->
+        <module>session</module>
         <!--        <module>dataSources/filesystem</module>-->
         <!--        <module>dataSources/iotdb12</module>-->
         <!--        <module>dataSources/influxdb</module>-->
         <!--        <module>dataSources/opentsdb</module>-->
         <!--        <module>dataSources/postgresql</module>-->
-        <!--        <module>dataSources/parquet</module>-->
+        <module>dataSources/parquet</module>
         <!--        <module>dataSources/redis</module>-->
         <!--        <module>dataSources/mongodb</module>-->
         <!--        <module>example</module>-->
         <!--        <module>test</module>-->
-        <module>server</module>
+        <module>assembly</module>
     </modules>
 
     <distributionManagement>

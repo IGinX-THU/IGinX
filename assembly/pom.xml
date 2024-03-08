@@ -23,8 +23,8 @@
         <version>${revision}</version>
     </parent>
 
-    <artifactId>iginx-server</artifactId>
-    <name>IGinX Server</name>
+    <artifactId>iginx-assembly</artifactId>
+    <name>IGinX Assembly</name>
 
     <dependencies>
         <dependency>
@@ -41,15 +41,16 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <descriptors>
-                        <descriptor>src/assembly/server.xml</descriptor>
+                        <descriptor>src/assembly/full-server.xml</descriptor>
                     </descriptors>
+                    <finalName>iginx-${project.version}</finalName>
                 </configuration>
                 <executions>
                     <execution>
-                        <phase>package</phase>
                         <goals>
                             <goal>single</goal>
                         </goals>
+                        <phase>deploy</phase>
                     </execution>
                 </executions>
             </plugin>
