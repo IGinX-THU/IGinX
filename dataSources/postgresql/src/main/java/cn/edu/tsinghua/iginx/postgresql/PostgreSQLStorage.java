@@ -50,6 +50,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.postgresql.exception.PostgreSQLException;
 import cn.edu.tsinghua.iginx.postgresql.query.entity.PostgreSQLQueryRowStream;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
@@ -189,7 +190,7 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns() throws PostgreSQLException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try (Statement stmt = connection.createStatement();
@@ -233,17 +234,16 @@ public class PostgreSQLStorage implements IStorage {
                 }
               }
             } catch (SQLException e) {
-              throw new PhysicalTaskExecuteFailureException(
+              throw new PostgreSQLException(
                   "failed to get columns for table: " + tableName + " in " + databaseName, e);
             }
           }
         } catch (SQLException e) {
-          throw new PhysicalTaskExecuteFailureException(
-              "failed to get tables of database: " + databaseName, e);
+          throw new PostgreSQLException("failed to get tables of database: " + databaseName, e);
         }
       }
     } catch (SQLException e) {
-      throw new PhysicalTaskExecuteFailureException("failed to get databases of " + meta, e);
+      throw new PostgreSQLException("failed to get databases of " + meta, e);
     }
     return columns;
   }
@@ -965,14 +965,14 @@ public class PostgreSQLStorage implements IStorage {
     }
     if (e != null) {
       return new TaskExecuteResult(
-          null, new PhysicalException("execute insert task in postgresql failure", e));
+          null, new PostgreSQLException("execute insert task in postgresql failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
-      throws PhysicalException {
+      throws PostgreSQLException {
     ColumnsInterval columnsInterval;
     long minKey = Long.MAX_VALUE;
     long maxKey = 0;
@@ -1035,7 +1035,7 @@ public class PostgreSQLStorage implements IStorage {
     paths.sort(String::compareTo);
 
     if (paths.isEmpty()) {
-      throw new PhysicalTaskExecuteFailureException("no data!");
+      throw new PostgreSQLException("no data!");
     }
 
     if (dataPrefix != null) {
@@ -1629,7 +1629,7 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   private List<Pair<String, String>> determineDeletedPaths(List<String> paths, TagFilter tagFilter)
-      throws PhysicalException {
+      throws PostgreSQLException {
     List<Column> columns = getColumns();
     List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
@@ -1668,11 +1668,11 @@ public class PostgreSQLStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public void release() throws PostgreSQLException {
     try {
       connection.close();
     } catch (SQLException e) {
-      throw new PhysicalException("failed to close connection", e);
+      throw new PostgreSQLException("failed to close connection", e);
     }
   }
 }

@@ -7,7 +7,6 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -15,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.postgresql.exception.PostgreSQLRowFetchException;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -165,7 +165,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
   }
 
   @Override
-  public boolean hasNext() throws PhysicalException {
+  public boolean hasNext() throws PostgreSQLRowFetchException {
     if (resultSets.isEmpty()) {
       return false;
     }
@@ -174,15 +174,15 @@ public class PostgreSQLQueryRowStream implements RowStream {
       if (!hasCachedRow) {
         cacheOneRow();
       }
-    } catch (SQLException e) {
-      throw new RowFetchException(e);
+    } catch (SQLException | PhysicalException e) {
+      throw new PostgreSQLRowFetchException(e);
     }
 
     return cachedRow != null;
   }
 
   @Override
-  public Row next() throws PhysicalException {
+  public Row next() throws PostgreSQLRowFetchException {
     try {
       Row row;
       if (!hasCachedRow) {
@@ -192,8 +192,8 @@ public class PostgreSQLQueryRowStream implements RowStream {
       hasCachedRow = false;
       cachedRow = null;
       return row;
-    } catch (SQLException e) {
-      throw new RowFetchException(e);
+    } catch (SQLException | PhysicalException e) {
+      throw new PostgreSQLRowFetchException(e);
     }
   }
 
