@@ -14,7 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.postgresql.exception.PostgreSQLRowFetchException;
+import cn.edu.tsinghua.iginx.postgresql.exception.PostgreSQLException;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -165,7 +165,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
   }
 
   @Override
-  public boolean hasNext() throws PostgreSQLRowFetchException {
+  public boolean hasNext() throws PostgreSQLException {
     if (resultSets.isEmpty()) {
       return false;
     }
@@ -175,14 +175,14 @@ public class PostgreSQLQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      throw new PostgreSQLRowFetchException(e);
+      throw new PostgreSQLException(e);
     }
 
     return cachedRow != null;
   }
 
   @Override
-  public Row next() throws PostgreSQLRowFetchException {
+  public Row next() throws PostgreSQLException {
     try {
       Row row;
       if (!hasCachedRow) {
@@ -193,7 +193,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      throw new PostgreSQLRowFetchException(e);
+      throw new PostgreSQLException(e);
     }
   }
 

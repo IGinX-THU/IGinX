@@ -16,9 +16,13 @@
 
 package cn.edu.tsinghua.iginx.postgresql.exception;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 
-public class PostgreSQLException extends PhysicalTaskExecuteFailureException {
+public class PostgreSQLException extends PhysicalException {
+
+  public PostgreSQLException(Throwable cause) {
+    super(cause);
+  }
 
   public PostgreSQLException(String message) {
     super(message);
