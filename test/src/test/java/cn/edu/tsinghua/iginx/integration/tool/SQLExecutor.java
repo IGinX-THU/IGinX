@@ -96,7 +96,7 @@ public class SQLExecutor {
       conn.executeSql(statement);
     } catch (SessionException | StatementExecutionException e) {
       logger.info("Statement: \"{}\" execute fail. Because:", statement, e);
-      assertEquals(expectedErrMsg, e);
+      assertEquals(expectedErrMsg, e.getMessage());
     }
   }
 
