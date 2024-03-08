@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration.other;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -52,7 +52,7 @@ public class TimePrecisionIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws StatementExecutionException, SessionException {
 
     for (int i = 0; i < 4; i++) {
       List<String> paths = new ArrayList<>();
@@ -79,7 +79,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeS() throws ExecutionException, SessionException {
+  public void queryTimeS() throws StatementExecutionException, SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -102,7 +102,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeMS() throws ExecutionException, SessionException {
+  public void queryTimeMS() throws StatementExecutionException, SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -125,7 +125,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeUS() throws ExecutionException, SessionException {
+  public void queryTimeUS() throws StatementExecutionException, SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -145,7 +145,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeNS() throws ExecutionException, SessionException {
+  public void queryTimeNS() throws StatementExecutionException, SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;

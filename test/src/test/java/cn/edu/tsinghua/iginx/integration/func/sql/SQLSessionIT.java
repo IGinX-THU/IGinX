@@ -4,7 +4,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KE
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
@@ -5792,7 +5792,7 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testClearData() throws SessionException, ExecutionException {
+  public void testClearData() throws SessionException, StatementExecutionException {
     if (!isAbleToClearData || isScaling) return;
     clearData();
 

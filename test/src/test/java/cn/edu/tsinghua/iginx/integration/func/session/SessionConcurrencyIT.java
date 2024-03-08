@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -23,7 +23,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
   // TODO: The following test must be added after bug fix
   //     @Test
   public void multiThreadTestBad()
-      throws SessionException, InterruptedException, ExecutionException {
+      throws SessionException, InterruptedException, StatementExecutionException {
     // query test, multithread insert for storage; multithread query
     int mulStQueryLen = 5;
     List<String> mulStPaths = getPaths(currPath, mulStQueryLen);
@@ -561,7 +561,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
           try {
             localSession.insertNonAlignedColumnRecords(
                 path, timestamps, valuesList, dataTypeList, null);
-          } catch (SessionException | ExecutionException e) {
+          } catch (SessionException | StatementExecutionException e) {
             LOGGER.error("Failed to insert data: {}", e.getMessage());
           }
           break;
@@ -569,7 +569,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
         case 2:
           try {
             localSession.deleteDataInColumns(path, startKey, endKey);
-          } catch (SessionException | ExecutionException e) {
+          } catch (SessionException | StatementExecutionException e) {
             LOGGER.error("Failed to delete data: {}", e.getMessage());
           }
           break;
@@ -581,7 +581,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
             } else {
               queryDataSet = localSession.aggregateQuery(path, startKey, endKey, aggregateType);
             }
-          } catch (SessionException | ExecutionException e) {
+          } catch (SessionException | StatementExecutionException e) {
             LOGGER.error("Failed to query data: {}", e.getMessage());
           }
           break;

@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.integration.compaction;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -32,7 +32,7 @@ public class CompactionIT {
       session.openSession();
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\";");
       session.executeSql("SHOW CONFIG \"enableInstantCompaction\";").print(false, "");
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("Failed to open session", e);
       fail();
     }
@@ -43,14 +43,14 @@ public class CompactionIT {
     try {
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\";");
       session.closeSession();
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("Failed to close session", e);
       fail();
     }
   }
 
   @Test
-  public void testCompact() throws ExecutionException, SessionException {
+  public void testCompact() throws StatementExecutionException, SessionException {
     String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);

@@ -5,7 +5,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
@@ -55,7 +55,7 @@ public class TagIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws StatementExecutionException, SessionException {
     //    "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3,
     // 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
     //    "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
@@ -1468,7 +1468,7 @@ public class TagIT {
   }
 
   @Test
-  public void testClearData() throws SessionException, ExecutionException {
+  public void testClearData() throws SessionException, StatementExecutionException {
     if (!isAbleToClearData || isScaling) return;
     clearData();
 

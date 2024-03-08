@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -118,7 +118,7 @@ public abstract class BaseSessionIT {
   }
 
   protected void insertNumRecords(List<String> insertPaths)
-      throws SessionException, ExecutionException {
+      throws SessionException, StatementExecutionException {
     int pathLen = insertPaths.size();
     long[] keys = new long[(int) KEY_PERIOD];
     for (long i = 0; i < KEY_PERIOD; i++) {

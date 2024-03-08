@@ -9,7 +9,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -390,7 +390,7 @@ public class NewSessionIT {
           fail();
         }
       }
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute query session id failed.");
       fail();
     }
@@ -450,7 +450,10 @@ public class NewSessionIT {
 
       assertEquals(sessionIDs1, sessionIDs3);
       assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);
-    } catch (SessionException | ExecutionException | IOException | InterruptedException e) {
+    } catch (SessionException
+        | StatementExecutionException
+        | IOException
+        | InterruptedException e) {
       LOGGER.error("execute query session id failed.", e);
       fail();
     }
@@ -467,7 +470,7 @@ public class NewSessionIT {
       long start = START_KEY, end = START_KEY + 100;
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute query data failed.", e);
       fail();
     }
@@ -478,7 +481,7 @@ public class NewSessionIT {
       long start = mid - 50, end = mid + 50;
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute query data failed.", e);
       fail();
     }
@@ -488,7 +491,7 @@ public class NewSessionIT {
       long start = END_KEY - 100, end = END_KEY;
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute query data failed.", e);
       fail();
     }
@@ -505,7 +508,7 @@ public class NewSessionIT {
       conn.deleteColumns(deleteColumns);
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute delete columns failed.", e);
       fail();
     }
@@ -516,7 +519,7 @@ public class NewSessionIT {
       conn.deleteColumns(deleteColumns);
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute delete columns failed.", e);
       fail();
     }
@@ -536,7 +539,7 @@ public class NewSessionIT {
           TagFilterType.Precise);
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute delete columns failed.", e);
       fail();
     }
@@ -624,7 +627,7 @@ public class NewSessionIT {
       try {
         SessionAggregateQueryDataSet dataSet = conn.aggregateQuery(paths, START_KEY, END_KEY, type);
         compare(expectedResults.get(i), dataSet);
-      } catch (SessionException | ExecutionException e) {
+      } catch (SessionException | StatementExecutionException e) {
         LOGGER.error("execute aggregate query failed, AggType={} because {}", type, e.getMessage());
         fail();
       }
@@ -728,7 +731,7 @@ public class NewSessionIT {
         SessionQueryDataSet dataSet =
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
         compare(expectedResults.get(i), dataSet);
-      } catch (SessionException | ExecutionException e) {
+      } catch (SessionException | StatementExecutionException e) {
         LOGGER.error(
             "execute downsample query failed, AggType={}, Precision={} because {}",
             type,
@@ -775,7 +778,7 @@ public class NewSessionIT {
               .getSubDataSectionWithPath(paths)
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute delete or query data failed.", e);
       fail();
     }
@@ -812,7 +815,7 @@ public class NewSessionIT {
               .getSubDataSectionWithPath(paths)
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute delete or query data failed.", e);
       fail();
     }
@@ -896,7 +899,7 @@ public class NewSessionIT {
               .getSubDataSectionWithPath(paths)
               .getSubDataSectionWithKey(START_KEY + 400, START_KEY + 500);
       compare(expected, actual);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException | StatementExecutionException e) {
       LOGGER.error("execute delete or query data failed.", e);
       fail();
     }

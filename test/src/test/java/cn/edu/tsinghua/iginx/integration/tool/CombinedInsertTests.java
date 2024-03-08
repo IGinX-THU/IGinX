@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
@@ -28,7 +28,7 @@ public class CombinedInsertTests {
     session = passedSession;
   }
 
-  public void testInserts() throws SessionException, ExecutionException {
+  public void testInserts() throws SessionException, StatementExecutionException {
     // 列式插入对齐数据
     insertColumnRecords();
     // 列式插入非对齐数据
@@ -39,7 +39,7 @@ public class CombinedInsertTests {
     insertNonAlignedRowRecords();
   }
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+  private static void insertColumnRecords() throws SessionException, StatementExecutionException {
     String PREFIX = "insertCR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -79,7 +79,8 @@ public class CombinedInsertTests {
     session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedColumnRecords()
+      throws SessionException, StatementExecutionException {
     String PREFIX = "insertCNAR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -123,7 +124,7 @@ public class CombinedInsertTests {
     session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+  private static void insertRowRecords() throws SessionException, StatementExecutionException {
     String PREFIX = "insertRR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -162,7 +163,8 @@ public class CombinedInsertTests {
     session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedRowRecords()
+      throws SessionException, StatementExecutionException {
     String PREFIX = "insertNARR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);

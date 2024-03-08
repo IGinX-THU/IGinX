@@ -21,28 +21,28 @@ package cn.edu.tsinghua.iginx.engine.shared.exception;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.Status;
 
-public class ExecutionException extends EngineException {
+public class StatementExecutionException extends EngineException {
 
   private static final long serialVersionUID = -7769482614133326007L;
 
   protected int errorCode;
 
-  public ExecutionException(Status status) {
+  public StatementExecutionException(Status status) {
     super(status.message);
     errorCode = status.code;
   }
 
-  public ExecutionException(String message) {
+  public StatementExecutionException(String message) {
     super(message);
     errorCode = StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode();
   }
 
-  public ExecutionException(Throwable cause) {
+  public StatementExecutionException(Throwable cause) {
     super(cause);
     errorCode = StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode();
   }
 
-  public ExecutionException(String message, Throwable cause) {
+  public StatementExecutionException(String message, Throwable cause) {
     super(message, cause);
     errorCode = StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode();
   }

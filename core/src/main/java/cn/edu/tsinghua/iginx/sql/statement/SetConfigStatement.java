@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.lang.reflect.Field;
 import org.slf4j.Logger;
@@ -27,7 +27,7 @@ public class SetConfigStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     Class<Config> clazz = Config.class;
     try {
       Field field = clazz.getDeclaredField(configName);
@@ -38,10 +38,10 @@ public class SetConfigStatement extends SystemStatement {
       ctx.setResult(new Result(RpcUtils.SUCCESS));
     } catch (NoSuchFieldException e) {
       String errMsg = String.format("no such field, field=%s", configName);
-      throw new ExecutionException(errMsg, e);
+      throw new StatementExecutionException(errMsg, e);
     } catch (IllegalAccessException e) {
       String errMsg = String.format("set %s=%s error", configName, configValue);
-      throw new ExecutionException(errMsg, e);
+      throw new StatementExecutionException(errMsg, e);
     }
   }
 

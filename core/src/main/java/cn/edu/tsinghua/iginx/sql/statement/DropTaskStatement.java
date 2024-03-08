@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.sql.statement;
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.thrift.DropTaskReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import org.slf4j.Logger;
@@ -24,7 +24,7 @@ public class DropTaskStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     DropTaskReq req = new DropTaskReq(ctx.getSessionId(), name);
     Status status = worker.dropTask(req);
     ctx.setResult(new Result(status));

@@ -6,7 +6,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.exe
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
@@ -144,7 +144,7 @@ public abstract class BaseCapacityExpansionIT {
 
   @Test
   public void oriHasDataExpHasData()
-      throws InterruptedException, SessionException, ExecutionException {
+      throws InterruptedException, SessionException, StatementExecutionException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
