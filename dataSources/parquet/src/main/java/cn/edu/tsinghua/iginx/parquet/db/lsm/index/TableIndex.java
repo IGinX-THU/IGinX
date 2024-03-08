@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.NotIntegrityException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.TypeConflictedException;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -38,7 +37,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
         }
       }
     } catch (IOException | TypeConflictedException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 

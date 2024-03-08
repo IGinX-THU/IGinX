@@ -22,7 +22,6 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isEqualOp;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -152,7 +151,7 @@ public class FilterUtils {
         }
         return true; // 所有子条件均满足，返回true
       } else {
-        throw new PhysicalRuntimeException("Unknown op type: " + valueFilter.getOp());
+        throw new RuntimeException("Unknown op type: " + valueFilter.getOp());
       }
     } else {
       Value value = row.getAsValue(path);
@@ -336,7 +335,7 @@ public class FilterUtils {
       case Bool:
         return false;
       default:
-        throw new PhysicalRuntimeException("Unexpected filter type: " + filter.getType());
+        throw new RuntimeException("Unexpected filter type: " + filter.getType());
     }
   }
 

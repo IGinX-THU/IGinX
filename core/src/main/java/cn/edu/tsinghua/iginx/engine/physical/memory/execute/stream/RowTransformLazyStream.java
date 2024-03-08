@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -87,7 +86,7 @@ public class RowTransformLazyStream extends UnaryLazyStream {
                         + ".",
                     e);
               } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new PhysicalRuntimeException(ex);
+                throw new RuntimeException(ex);
               }
             }
             if (column != null) {

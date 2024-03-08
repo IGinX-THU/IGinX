@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.utils;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
@@ -34,7 +33,7 @@ public class TaskUtils {
         }
         break;
       default:
-        throw new PhysicalRuntimeException("unknown task type: " + root.getType());
+        throw new RuntimeException("unknown task type: " + root.getType());
     }
   }
 }

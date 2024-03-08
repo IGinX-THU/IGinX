@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
@@ -683,7 +682,7 @@ public class RowUtils {
                             try {
                               group = removeDuplicateRows(group);
                             } catch (PhysicalException e) {
-                              throw new PhysicalRuntimeException(e);
+                              throw new RuntimeException(e);
                             }
                           }
                         }

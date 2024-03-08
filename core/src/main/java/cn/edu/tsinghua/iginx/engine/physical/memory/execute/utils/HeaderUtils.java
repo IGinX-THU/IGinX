@@ -8,7 +8,6 @@ import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -269,7 +268,7 @@ public class HeaderUtils {
       case Bool:
         break;
       default:
-        throw new PhysicalRuntimeException("Unexpected filter type: " + filter.getType());
+        throw new RuntimeException("Unexpected filter type: " + filter.getType());
     }
     return null;
   }

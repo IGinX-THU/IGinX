@@ -16,7 +16,6 @@ import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.Shared;
 import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -124,7 +123,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     CachePool.Cacheable cacheable =
         shared.getCachePool().asMap().computeIfAbsent(fileName, this::doReadMeta);
     if (!(cacheable instanceof TableMeta)) {
-      throw new StorageRuntimeException("invalid cacheable type: " + cacheable.getClass());
+      throw new RuntimeException("invalid cacheable type: " + cacheable.getClass());
     }
     return (ParquetTableMeta) cacheable;
   }
@@ -156,7 +155,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
       return new ParquetTableMeta(schemaDst, rangeMap, meta);
     } catch (Exception e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -227,7 +226,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     } catch (DirectoryNotEmptyException e) {
       LOGGER.warn("directory not empty to clear: {}", dir);
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 

@@ -22,7 +22,6 @@ import static cn.edu.tsinghua.iginx.iotdb.tools.DataTypeTransformer.toIoTDB;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
@@ -177,7 +176,7 @@ public class IoTDBStorage implements IStorage {
         columnsInterval = new ColumnsInterval(dataPrefix);
       }
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      throw new PhysicalRuntimeException("get time series failure: ", e);
+      throw new RuntimeException("get time series failure: ", e);
     }
 
     // 获取 key 范围
@@ -209,7 +208,7 @@ public class IoTDBStorage implements IStorage {
       }
       dataSet.close();
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      throw new PhysicalRuntimeException("get time series failure: ", e);
+      throw new RuntimeException("get time series failure: ", e);
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
 
@@ -275,7 +274,7 @@ public class IoTDBStorage implements IStorage {
       }
       dataSet.close();
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      throw new PhysicalRuntimeException("get time series failure: ", e);
+      throw new RuntimeException("get time series failure: ", e);
     }
   }
 
@@ -502,7 +501,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        return new PhysicalRuntimeException("insert tablets error", e);
+        return new RuntimeException("insert tablets error", e);
       }
 
       for (Tablet tablet : tablets.values()) {
@@ -580,7 +579,7 @@ public class IoTDBStorage implements IStorage {
           }
         }
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        return new PhysicalRuntimeException("insert tablets error", e);
+        return new RuntimeException("insert tablets error", e);
       }
 
       // 重置 tablets
@@ -661,7 +660,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        return new PhysicalRuntimeException("insert tablets error", e);
+        return new RuntimeException("insert tablets error", e);
       }
 
       for (Tablet tablet : tablets.values()) {
@@ -740,7 +739,7 @@ public class IoTDBStorage implements IStorage {
         try {
           sessionPool.insertTablets(tabletsMap.get(entry.getKey()));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-          return new PhysicalRuntimeException("insert tablets error", e);
+          return new RuntimeException("insert tablets error", e);
         }
 
         for (Tablet tablet : tabletsMap.get(entry.getKey()).values()) {

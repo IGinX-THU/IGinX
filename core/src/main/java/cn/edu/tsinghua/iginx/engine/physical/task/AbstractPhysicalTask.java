@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
@@ -83,7 +82,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     try {
       this.resultLatch.await();
     } catch (InterruptedException e) {
-      throw new PhysicalRuntimeException("unexpected interrupted when get result: ", e);
+      throw new RuntimeException("unexpected interrupted when get result: ", e);
     }
     return result;
   }

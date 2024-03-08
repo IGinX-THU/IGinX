@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ObjectFormat;
 import cn.edu.tsinghua.iginx.parquet.shared.CachePool;
 import cn.edu.tsinghua.iginx.parquet.shared.Constants;
 import cn.edu.tsinghua.iginx.parquet.shared.Shared;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageRuntimeException;
 import java.io.*;
 import java.nio.file.*;
 import java.util.Set;
@@ -55,7 +54,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
       CachePool.Cacheable cacheable =
           shared.getCachePool().asMap().computeIfAbsent(fileName, this::loadCache);
       if (!(cacheable instanceof CachedTombstone)) {
-        throw new StorageRuntimeException("unexpected cacheable type: " + cacheable.getClass());
+        throw new RuntimeException("unexpected cacheable type: " + cacheable.getClass());
       }
       return ((CachedTombstone<K, F>) cacheable).getTombstone();
     } finally {
@@ -80,8 +79,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
                     tombstone = new Tombstone<>();
                   } else {
                     if (!(v instanceof CachedTombstone)) {
-                      throw new StorageRuntimeException(
-                          "unexpected cacheable type: " + v.getClass());
+                      throw new RuntimeException("unexpected cacheable type: " + v.getClass());
                     }
                     tombstone = ((CachedTombstone<K, F>) v).getTombstone().copy();
                   }
@@ -111,7 +109,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     } catch (DirectoryNotEmptyException e) {
       LOGGER.warn("directory not empty to clear: {}", dir);
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       lock.writeLock().unlock();
     }
@@ -138,7 +136,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
       LOGGER.debug("rename temp file to file: {}", path);
       Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     }
     return new CachedTombstone<>(tombstone, json.length() + fileName.length());
   }
@@ -153,7 +151,7 @@ public class TombstoneStorage<K extends Comparable<K>, F> implements Closeable {
     } catch (FileNotFoundException e) {
       return new CachedTombstone<>(fileName.length());
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 

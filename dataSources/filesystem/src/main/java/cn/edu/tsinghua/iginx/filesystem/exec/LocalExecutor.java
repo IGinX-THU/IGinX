@@ -5,7 +5,6 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -86,7 +85,7 @@ public class LocalExecutor implements Executor {
                   String.format("dir %s cannot be equal to dummy directory %s", dir, dummyDir));
             }
           } catch (IOException e) {
-            throw new PhysicalRuntimeException(
+            throw new RuntimeException(
                 String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir));
           }
         }
@@ -101,7 +100,7 @@ public class LocalExecutor implements Executor {
         this.root = file.getCanonicalPath() + SEPARATOR;
       }
     } catch (IOException e) {
-      throw new PhysicalRuntimeException(
+      throw new RuntimeException(
           String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir), e);
     }
     this.hasData = hasData;
@@ -221,8 +220,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      throw new PhysicalRuntimeException(
-          "encounter error when inserting row records to fileSystem", e);
+      throw new RuntimeException("encounter error when inserting row records to fileSystem", e);
     }
   }
 
@@ -254,8 +252,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      throw new PhysicalRuntimeException(
-          "encounter error when inserting column records to fileSystem", e);
+      throw new RuntimeException("encounter error when inserting column records to fileSystem", e);
     }
   }
 

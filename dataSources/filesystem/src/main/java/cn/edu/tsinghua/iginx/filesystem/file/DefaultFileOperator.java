@@ -5,7 +5,6 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
 import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalRuntimeException;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -98,11 +97,11 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public void writeIginxFile(File file, List<Record> records) throws IOException {
     if (file.exists() && file.isDirectory()) {
-      throw new PhysicalRuntimeException(
+      throw new RuntimeException(
           String.format("cannot write to directory %s", file.getAbsolutePath()));
     }
     if (!file.exists()) {
-      throw new PhysicalRuntimeException(
+      throw new RuntimeException(
           String.format(
               "cannot write to file %s because it does not exist", file.getAbsolutePath()));
     }
@@ -225,17 +224,17 @@ public class DefaultFileOperator implements IFileOperator {
 
   private void replaceFile(File file, File tempFile) throws IOException {
     if (!tempFile.exists()) {
-      throw new PhysicalRuntimeException(
+      throw new RuntimeException(
           String.format("temporary file %s does not exist", tempFile.getAbsoluteFile()));
     }
     if (!file.exists()) {
-      throw new PhysicalRuntimeException(
+      throw new RuntimeException(
           String.format("original file %s does not exist", file.getAbsoluteFile()));
     }
     try {
       Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
     } catch (IOException e) {
-      throw new PhysicalRuntimeException(
+      throw new RuntimeException(
           String.format(
               "replace file from %s to %s failure",
               tempFile.getAbsolutePath(), file.getAbsoluteFile()),
@@ -315,8 +314,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       replaceFile(file, tempFile);
     } catch (IOException e) {
-      throw new PhysicalRuntimeException(
-          String.format("trim file %s failure", file.getAbsolutePath()), e);
+      throw new RuntimeException(String.format("trim file %s failure", file.getAbsolutePath()), e);
     }
   }
 

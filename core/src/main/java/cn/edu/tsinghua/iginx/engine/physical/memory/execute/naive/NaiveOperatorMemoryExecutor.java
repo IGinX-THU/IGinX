@@ -383,7 +383,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
                         + ".",
                     e);
               } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new PhysicalRuntimeException(ex);
+                throw new RuntimeException(ex);
               }
             }
           });
