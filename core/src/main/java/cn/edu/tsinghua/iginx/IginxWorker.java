@@ -779,25 +779,30 @@ public class IginxWorker implements IService.Iface {
     String name = req.getName().trim();
     String filePath = req.getFilePath();
     String className = req.getClassName();
+    String errorMsg;
 
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-      logger.error(String.format("Register task %s already exist", transformTaskMeta));
-      return RpcUtils.FAILURE;
+      errorMsg = String.format("Register task %s already exist", transformTaskMeta);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     File sourceFile = new File(filePath);
     if (!sourceFile.exists()) {
-      logger.error(String.format("Register file not exist in declared path, path=%s", filePath));
-      return RpcUtils.FAILURE;
+      errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
     if (!sourceFile.isFile()) {
-      logger.error("Register file must be a file.");
-      return RpcUtils.FAILURE;
+      errorMsg = "Register file must be a file.";
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
     if (!sourceFile.getName().endsWith(".py")) {
-      logger.error("Register file must be a python file.");
-      return RpcUtils.FAILURE;
+      errorMsg = "Register file must be a python file.";
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     String fileName = sourceFile.getName();
@@ -806,15 +811,17 @@ public class IginxWorker implements IService.Iface {
     File destFile = new File(destPath);
 
     if (destFile.exists()) {
-      logger.error(String.format("Register file already exist, fileName=%s", fileName));
-      return RpcUtils.FAILURE;
+      errorMsg = String.format("Register file already exist, fileName=%s", fileName);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     try {
       Files.copy(sourceFile.toPath(), destFile.toPath());
     } catch (IOException e) {
-      logger.error(String.format("Fail to copy register file, filePath=%s", filePath), e);
-      return RpcUtils.FAILURE;
+      errorMsg = String.format("Fail to copy register file, filePath=%s", filePath);
+      logger.error(errorMsg, e);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     if (transformTaskMeta != null) {
