@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.session_v2.internal;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Field;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Measurement;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
@@ -39,7 +38,7 @@ public class MeasurementMapper {
   private static final ConcurrentMap<String, ConcurrentMap<String, java.lang.reflect.Field>>
       CLASS_FIELD_CACHE = new ConcurrentHashMap<>();
 
-  <M> Record toRecord(final M measurement) throws IginXException {
+  <M> Record toRecord(final M measurement) {
     Arguments.checkNotNull(measurement, "measurement");
 
     Class<?> measurementType = measurement.getClass();
@@ -49,7 +48,7 @@ public class MeasurementMapper {
       String message =
           String.format(
               "Measurement type '%s' does not have a @Measurement annotation.", measurementType);
-      throw new IginXException(message);
+      throw new RuntimeException(message);
     }
 
     Record.Builder recordBuilder = Record.builder();
@@ -66,7 +65,7 @@ public class MeasurementMapper {
                 field.setAccessible(true);
                 value = field.get(measurement);
               } catch (IllegalAccessException e) {
-                throw new IginXException(e);
+                throw new RuntimeException(e);
               }
 
               if (value == null) {
@@ -110,14 +109,14 @@ public class MeasurementMapper {
     return record;
   }
 
-  Collection<String> toMeasurements(final Class<?> measurementType) throws IginXException {
+  Collection<String> toMeasurements(final Class<?> measurementType) {
     cacheMeasurementClass(measurementType);
 
     if (measurementType.getAnnotation(Measurement.class) == null) {
       String message =
           String.format(
               "Measurement type '%s' does not have a @Measurement annotation.", measurementType);
-      throw new IginXException(message);
+      throw new RuntimeException(message);
     }
 
     Set<String> measurements = new HashSet<>();

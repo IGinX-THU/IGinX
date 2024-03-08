@@ -30,7 +30,6 @@ import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -260,7 +259,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       latch.await();
     } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     }
     LOGGER.debug("table is flushed");
   }
@@ -310,7 +309,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
         previousTableName = null;
       }
     } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       deleteLock.readLock().unlock();
       commitLock.writeLock().unlock();
@@ -329,7 +328,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       tableStorage.delete(tables, areas);
       tableIndex.delete(areas);
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       storageLock.readLock().unlock();
       deleteLock.writeLock().unlock();
@@ -349,7 +348,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       bufferDirtiedTime.set(Long.MAX_VALUE);
       bufferInsertedSize.reset();
     } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       deleteLock.writeLock().unlock();
       commitLock.readLock().unlock();

@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.session_v2.internal;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Field;
 import cn.edu.tsinghua.iginx.session_v2.annotations.Measurement;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.query.IginXRecord;
 import java.util.Map;
 import org.slf4j.Logger;
@@ -78,7 +77,7 @@ public class ResultMapper {
 
       return pojo;
     } catch (Exception e) {
-      throw new IginXException(e);
+      throw new RuntimeException(e);
     }
   }
 
@@ -130,7 +129,7 @@ public class ResultMapper {
       }
       field.set(object, value);
     } catch (ClassCastException | IllegalAccessException e) {
-      throw new IginXException(
+      throw new RuntimeException(
           String.format(
               msg,
               object.getClass().getName(),

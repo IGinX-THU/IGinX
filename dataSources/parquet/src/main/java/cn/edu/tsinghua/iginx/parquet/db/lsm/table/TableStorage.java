@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.parquet.db.util.SequenceGenerator;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -159,7 +158,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
       readWriter.clear();
       seqGen.reset();
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       localFlusherPermits.release(localFlusherPermitsTotal);
       lock.writeLock().unlock();

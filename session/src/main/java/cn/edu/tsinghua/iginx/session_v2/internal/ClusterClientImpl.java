@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.ClusterClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.ClusterInfo;
 import cn.edu.tsinghua.iginx.session_v2.domain.Storage;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.AddStorageEnginesReq;
 import cn.edu.tsinghua.iginx.thrift.GetClusterInfoReq;
 import cn.edu.tsinghua.iginx.thrift.GetClusterInfoResp;
@@ -44,7 +43,7 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
   }
 
   @Override
-  public ClusterInfo getClusterInfo() throws IginXException {
+  public ClusterInfo getClusterInfo() {
     GetClusterInfoReq req = new GetClusterInfoReq(sessionId);
 
     GetClusterInfoResp resp;
@@ -55,7 +54,7 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
         resp = client.getClusterInfo(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("get cluster info failure: ", e);
+        throw new RuntimeException("get cluster info failure: ", e);
       }
     }
 
@@ -67,13 +66,13 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
   }
 
   @Override
-  public void scaleOutStorage(Storage storage) throws IginXException {
+  public void scaleOutStorage(Storage storage) {
     Arguments.checkNotNull(storage, "storage");
     scaleOutStorages(Collections.singletonList(storage));
   }
 
   @Override
-  public void scaleOutStorages(List<Storage> storages) throws IginXException {
+  public void scaleOutStorages(List<Storage> storages) {
     Arguments.checkNotNull(storages, "storages");
     storages.forEach(storage -> Arguments.checkNotNull(storage, "storage"));
 
@@ -88,13 +87,13 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
         Status status = client.addStorageEngines(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("scale out storage failure: ", e);
+        throw new RuntimeException("scale out storage failure: ", e);
       }
     }
   }
 
   @Override
-  public int getReplicaNum() throws IginXException {
+  public int getReplicaNum() {
     GetReplicaNumReq req = new GetReplicaNumReq(sessionId);
 
     GetReplicaNumResp resp;
@@ -104,7 +103,7 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
         resp = client.getReplicaNum(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("get replica num failure: ", e);
+        throw new RuntimeException("get replica num failure: ", e);
       }
     }
     return resp.getReplicaNum();

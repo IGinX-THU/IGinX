@@ -22,7 +22,6 @@ import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.WriteClient;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.write.Point;
 import cn.edu.tsinghua.iginx.session_v2.write.Record;
 import cn.edu.tsinghua.iginx.session_v2.write.Table;
@@ -271,7 +270,7 @@ public class WriteClientImpl extends AbstractFunctionClient implements WriteClie
         Status status = client.insertNonAlignedColumnRecords(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("insert data failure: ", e);
+        throw new RuntimeException("insert data failure: ", e);
       }
     }
   }
@@ -312,7 +311,7 @@ public class WriteClientImpl extends AbstractFunctionClient implements WriteClie
         Status status = client.insertNonAlignedRowRecords(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("insert data failure: ", e);
+        throw new RuntimeException("insert data failure: ", e);
       }
     }
   }

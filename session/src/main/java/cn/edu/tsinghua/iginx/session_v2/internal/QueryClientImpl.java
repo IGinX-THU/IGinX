@@ -23,7 +23,6 @@ import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByData
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.QueryClient;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.query.AggregateQuery;
 import cn.edu.tsinghua.iginx.session_v2.query.DownsampleQuery;
 import cn.edu.tsinghua.iginx.session_v2.query.IginXColumn;
@@ -92,14 +91,14 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         resp = client.queryData(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("simple query failure: ", e);
+        throw new RuntimeException("simple query failure: ", e);
       }
     }
     return buildIginXTable(
         resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
   }
 
-  private IginXTable aggregateQuery(AggregateQuery query) throws IginXException {
+  private IginXTable aggregateQuery(AggregateQuery query) {
     List<String> measurements = new ArrayList<>(query.getMeasurements());
     AggregateQueryReq req =
         new AggregateQueryReq(
@@ -122,7 +121,7 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         resp = client.aggregateQuery(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("aggregate query failure: ", e);
+        throw new RuntimeException("aggregate query failure: ", e);
       }
     }
 
@@ -143,7 +142,7 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
     return new IginXTable(header, Collections.singletonList(record));
   }
 
-  private IginXTable downsampleQuery(DownsampleQuery query) throws IginXException {
+  private IginXTable downsampleQuery(DownsampleQuery query) {
     List<String> measurements = new ArrayList<>(query.getMeasurements());
     DownsampleQueryReq req =
         new DownsampleQueryReq(
@@ -166,14 +165,14 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         resp = client.downsampleQuery(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("downsample query failure: ", e);
+        throw new RuntimeException("downsample query failure: ", e);
       }
     }
     return buildIginXTable(
         resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
   }
 
-  private IginXTable lastQuery(LastQuery query) throws IginXException {
+  private IginXTable lastQuery(LastQuery query) {
     List<String> measurements = new ArrayList<>(query.getMeasurements());
     LastQueryReq req =
         new LastQueryReq(
@@ -193,7 +192,7 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         resp = client.lastQuery(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("last query failure: ", e);
+        throw new RuntimeException("last query failure: ", e);
       }
     }
 
@@ -202,7 +201,7 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
   }
 
   @Override
-  public <M> List<M> query(Query query, Class<M> measurementType) throws IginXException {
+  public <M> List<M> query(Query query, Class<M> measurementType) {
     IginXTable table = query(query);
     return table.getRecords().stream()
         .map(e -> resultMapper.toPOJO(e, measurementType))
@@ -211,7 +210,7 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
   }
 
   @Override
-  public IginXTable query(Query query) throws IginXException {
+  public IginXTable query(Query query) {
     IginXTable table;
     if (query instanceof SimpleQuery) {
       table = simpleQuery((SimpleQuery) query);
@@ -228,39 +227,37 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
   }
 
   @Override
-  public void query(Query query, Consumer<IginXRecord> onNext) throws IginXException {
+  public void query(Query query, Consumer<IginXRecord> onNext) {
     IginXTable table = query(query);
     new ConsumerControlThread(table, onNext).start();
   }
 
   @Override
-  public <M> void query(Query query, Class<M> measurementType, Consumer<M> onNext)
-      throws IginXException {
+  public <M> void query(Query query, Class<M> measurementType, Consumer<M> onNext) {
     IginXTable table = query(query);
     new ConsumerMapperControlThread<M>(table, onNext, measurementType, resultMapper).start();
   }
 
   @Override
-  public IginXTable query(String query) throws IginXException {
+  public IginXTable query(String query) {
     // TODO: 执行查询 SQL
     return null;
   }
 
   @Override
-  public <M> void query(String query, Class<M> measurementType, Consumer<M> onNext)
-      throws IginXException {
+  public <M> void query(String query, Class<M> measurementType, Consumer<M> onNext) {
     IginXTable table = query(query);
     new ConsumerMapperControlThread<M>(table, onNext, measurementType, resultMapper).start();
   }
 
   @Override
-  public void query(String query, Consumer<IginXRecord> onNext) throws IginXException {
+  public void query(String query, Consumer<IginXRecord> onNext) {
     IginXTable table = query(query);
     new ConsumerControlThread(table, onNext).start();
   }
 
   @Override
-  public <M> List<M> query(String query, Class<M> measurementType) throws IginXException {
+  public <M> List<M> query(String query, Class<M> measurementType) {
     IginXTable table = query(query);
     return table.getRecords().stream()
         .map(e -> resultMapper.toPOJO(e, measurementType))

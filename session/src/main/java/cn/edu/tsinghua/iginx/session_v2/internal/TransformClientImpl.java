@@ -4,7 +4,6 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.TransformClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.Task;
 import cn.edu.tsinghua.iginx.session_v2.domain.Transform;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.util.ArrayList;
@@ -46,7 +45,7 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
         resp = client.commitTransformJob(req);
         StatusUtils.verifySuccess(resp.getStatus());
       } catch (TException | SessionException e) {
-        throw new IginXException("commit transform job failure: ", e);
+        throw new RuntimeException("commit transform job failure: ", e);
       }
     }
     return resp.getJobId();
@@ -64,7 +63,7 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
         resp = client.queryTransformJobStatus(req);
         StatusUtils.verifySuccess(resp.getStatus());
       } catch (TException | SessionException e) {
-        throw new IginXException("query transform job status failure: ", e);
+        throw new RuntimeException("query transform job status failure: ", e);
       }
     }
     return resp.getJobState();
@@ -81,7 +80,7 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
         Status status = client.cancelTransformJob(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("cancel transform job failure: ", e);
+        throw new RuntimeException("cancel transform job failure: ", e);
       }
     }
   }

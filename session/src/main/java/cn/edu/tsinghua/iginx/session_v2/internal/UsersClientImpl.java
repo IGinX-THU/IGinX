@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.UsersClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.User;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.AddUserReq;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.thrift.DeleteUserReq;
@@ -45,7 +44,7 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
   }
 
   @Override
-  public void addUser(User user) throws IginXException {
+  public void addUser(User user) {
     Arguments.checkNotNull(user, "user");
     Arguments.checkNotNull(user.getUsername(), "username");
     Arguments.checkNotNull(user.getPassword(), "password");
@@ -60,13 +59,13 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
         Status status = client.addUser(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("add user failure: ", e);
+        throw new RuntimeException("add user failure: ", e);
       }
     }
   }
 
   @Override
-  public void updateUser(User user) throws IginXException {
+  public void updateUser(User user) {
     Arguments.checkNotNull(user, "user");
     Arguments.checkNotNull(user.getUsername(), "username");
 
@@ -85,7 +84,7 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
         Status status = client.updateUser(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("update user failure: ", e);
+        throw new RuntimeException("update user failure: ", e);
       }
     }
   }
@@ -104,13 +103,13 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
         Status status = client.updateUser(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("update user failure: ", e);
+        throw new RuntimeException("update user failure: ", e);
       }
     }
   }
 
   @Override
-  public void removeUser(String username) throws IginXException {
+  public void removeUser(String username) {
     Arguments.checkNotNull(username, "username");
 
     DeleteUserReq req = new DeleteUserReq(sessionId, username);
@@ -120,13 +119,13 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
         Status status = client.deleteUser(req);
         StatusUtils.verifySuccess(status);
       } catch (TException | SessionException e) {
-        throw new IginXException("Remove user failure: ", e);
+        throw new RuntimeException("Remove user failure: ", e);
       }
     }
   }
 
   @Override
-  public User findUserByName(String username) throws IginXException {
+  public User findUserByName(String username) {
     Arguments.checkNotNull(username, "username");
 
     GetUserReq req = new GetUserReq(sessionId);
@@ -140,7 +139,7 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
         resp = client.getUser(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("find user failure: ", e);
+        throw new RuntimeException("find user failure: ", e);
       }
     }
 
@@ -154,7 +153,7 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
   }
 
   @Override
-  public List<User> findUsers() throws IginXException {
+  public List<User> findUsers() {
     GetUserReq req = new GetUserReq(sessionId);
 
     GetUserResp resp;
@@ -165,7 +164,7 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
         resp = client.getUser(req);
         StatusUtils.verifySuccess(resp.status);
       } catch (TException | SessionException e) {
-        throw new IginXException("find users failure: ", e);
+        throw new RuntimeException("find users failure: ", e);
       }
     }
 

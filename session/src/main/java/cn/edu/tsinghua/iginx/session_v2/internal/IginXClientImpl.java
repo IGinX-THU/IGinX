@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
 import cn.edu.tsinghua.iginx.session_v2.*;
-import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.CloseSessionReq;
 import cn.edu.tsinghua.iginx.thrift.IService;
 import cn.edu.tsinghua.iginx.thrift.OpenSessionReq;
@@ -68,7 +67,7 @@ public class IginXClientImpl implements IginXClient {
       transport.open();
       client = new IService.Client(new TBinaryProtocol(transport));
     } catch (TTransportException e) {
-      throw new IginXException("Open socket error: ", e);
+      throw new RuntimeException("Open socket error: ", e);
     }
 
     try {
@@ -78,7 +77,7 @@ public class IginXClientImpl implements IginXClient {
       sessionId = client.openSession(req).getSessionId();
 
     } catch (TException e) {
-      throw new IginXException("Open session error: ", e);
+      throw new RuntimeException("Open session error: ", e);
     }
   }
 
@@ -126,7 +125,7 @@ public class IginXClientImpl implements IginXClient {
 
   void checkIsClosed() {
     if (isClosed) {
-      throw new IginXException("Session has been closed.");
+      throw new RuntimeException("Session has been closed.");
     }
   }
 
@@ -168,7 +167,7 @@ public class IginXClientImpl implements IginXClient {
     try {
       client.closeSession(req);
     } catch (TException e) {
-      throw new IginXException("Close session error: ", e);
+      throw new RuntimeException("Close session error: ", e);
     } finally {
       if (transport != null) {
         transport.close();

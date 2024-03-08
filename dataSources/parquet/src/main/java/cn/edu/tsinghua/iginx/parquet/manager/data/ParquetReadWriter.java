@@ -212,7 +212,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       shared.getCachePool().asMap().remove(path.toString());
       tombstoneStorage.removeTable(name);
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     }
   }
 

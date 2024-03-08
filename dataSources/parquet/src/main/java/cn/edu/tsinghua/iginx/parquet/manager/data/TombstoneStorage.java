@@ -79,7 +79,7 @@ public class TombstoneStorage implements Closeable {
       shared.getCachePool().asMap().remove(fileName);
       Files.deleteIfExists(Paths.get(fileName));
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
+      throw new RuntimeException(e);
     } finally {
       lock.writeLock().unlock();
     }
