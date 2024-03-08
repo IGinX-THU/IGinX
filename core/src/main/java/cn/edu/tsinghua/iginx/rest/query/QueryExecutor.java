@@ -185,11 +185,7 @@ public class QueryExecutor {
 
   public void deleteMetric() throws SessionException {
     RestSession restSession = new RestSession();
-    try {
-      restSession.openSession();
-    } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during opening session", e);
-    }
+    restSession.openSession();
     for (QueryMetric metric : query.getQueryMetrics()) {
       restSession.deleteColumn(metric.getName(), metric.getTags());
     }

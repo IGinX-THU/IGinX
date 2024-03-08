@@ -58,7 +58,7 @@ public class PayloadFormatManager {
             | IllegalAccessException
             | NoSuchMethodException
             | InvocationTargetException e) {
-          throw new RuntimeException("Failed to create formatter instance.", e);
+          LOGGER.error("Failed to create formatter instance.", e);
         }
       }
     }

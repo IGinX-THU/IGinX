@@ -171,7 +171,7 @@ public class StatementExecutor {
         | IllegalAccessException
         | NoSuchMethodException
         | InvocationTargetException e) {
-      throw new RuntimeException("initial statistics collector error: ", e);
+      LOGGER.error("initial statistics collector error: ", e);
     }
   }
 
