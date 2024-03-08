@@ -16,7 +16,6 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
@@ -28,13 +27,14 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.Collections;
 import java.util.List;
 
 public class EmptyManager implements Manager {
   @Override
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
-      throws PhysicalException {
+      throws StorageException {
     return new RowStream() {
 
       private final Header header = new Header(Field.KEY, Collections.emptyList());
@@ -60,23 +60,23 @@ public class EmptyManager implements Manager {
   }
 
   @Override
-  public void insert(DataView dataView) throws PhysicalException {
-    throw new PhysicalException("insert is not supported");
+  public void insert(DataView dataView) throws StorageException {
+    throw new StorageException("insert is not supported");
   }
 
   @Override
   public void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
-      throws PhysicalException {
-    throw new PhysicalException("delete is not supported");
+      throws StorageException {
+    throw new StorageException("delete is not supported");
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns() throws StorageException {
     return Collections.emptyList();
   }
 
   @Override
-  public KeyInterval getKeyInterval() throws PhysicalException {
+  public KeyInterval getKeyInterval() throws StorageException {
     return new KeyInterval(0, 0);
   }
 

@@ -132,9 +132,6 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   private ParquetTableMeta getParquetTableMeta(String fileName) {
     CachePool.Cacheable cacheable =
         shared.getCachePool().asMap().computeIfAbsent(fileName, this::doReadMeta);
-    if (!(cacheable instanceof TableMeta)) {
-      throw new RuntimeException("invalid cacheable type: " + cacheable.getClass());
-    }
     return (ParquetTableMeta) cacheable;
   }
 
@@ -165,7 +162,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
       return new ParquetTableMeta(schemaDst, rangeMap, meta);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 
@@ -205,15 +202,11 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   }
 
   @Override
-  public void delete(String name) {
+  public void delete(String name) throws IOException {
     Path path = getPath(name);
-    try {
-      Files.deleteIfExists(path);
-      shared.getCachePool().asMap().remove(path.toString());
-      tombstoneStorage.removeTable(name);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    Files.deleteIfExists(path);
+    shared.getCachePool().asMap().remove(path.toString());
+    tombstoneStorage.removeTable(name);
   }
 
   @Override
@@ -260,7 +253,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     } catch (DirectoryNotEmptyException e) {
       LOGGER.warn("directory not empty to clear: {}", dir);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

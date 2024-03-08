@@ -18,7 +18,6 @@ package cn.edu.tsinghua.iginx.parquet;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -39,6 +38,7 @@ import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
@@ -174,18 +174,18 @@ public class ParquetStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns() throws StorageException {
     return executor.getColumnsOfStorageUnit("*");
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
-      throws PhysicalException {
+      throws StorageException {
     return executor.getBoundaryOfStorage(prefix);
   }
 
   @Override
-  public synchronized void release() throws PhysicalException {
+  public synchronized void release() throws StorageException {
     executor.close();
     if (thread != null) {
       thread.interrupt();

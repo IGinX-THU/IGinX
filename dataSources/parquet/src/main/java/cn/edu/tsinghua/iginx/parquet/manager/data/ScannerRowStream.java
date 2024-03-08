@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -55,7 +56,7 @@ class ScannerRowStream implements RowStream {
   }
 
   @Override
-  public Header getHeader() throws PhysicalException {
+  public Header getHeader() {
     return header;
   }
 
@@ -63,13 +64,13 @@ class ScannerRowStream implements RowStream {
   public void close() throws PhysicalException {
     try {
       scanner.close();
-    } catch (Exception e) {
+    } catch (StorageException e) {
       throw new RowFetchException(e);
     }
   }
 
   @Override
-  public boolean hasNext() throws PhysicalException {
+  public boolean hasNext() throws StorageException {
     if (nextRow == null) {
       if (scanner.iterate()) {
         long key = scanner.key();
@@ -86,9 +87,9 @@ class ScannerRowStream implements RowStream {
   }
 
   @Override
-  public Row next() throws PhysicalException {
+  public Row next() throws StorageException {
     if (!hasNext()) {
-      throw new PhysicalException("No more rows");
+      throw new StorageException("No more rows");
     }
     Row row = nextRow;
     nextRow = null;

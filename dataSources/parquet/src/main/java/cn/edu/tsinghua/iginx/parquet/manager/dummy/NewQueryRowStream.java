@@ -16,11 +16,11 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
@@ -57,12 +57,12 @@ public class NewQueryRowStream implements RowStream {
   }
 
   @Override
-  public Header getHeader() throws PhysicalException {
+  public Header getHeader() throws StorageException {
     return header;
   }
 
   @Override
-  public void close() throws PhysicalException {
+  public void close() throws StorageException {
     columns.clear();
     times.clear();
     columns = null;
@@ -70,14 +70,14 @@ public class NewQueryRowStream implements RowStream {
   }
 
   @Override
-  public boolean hasNext() throws PhysicalException {
+  public boolean hasNext() throws StorageException {
     return cur < times.size();
   }
 
   @Override
-  public Row next() throws PhysicalException {
+  public Row next() throws StorageException {
     if (cur >= times.size()) {
-      throw new PhysicalException("no more data");
+      throw new StorageException("no more data");
     }
 
     long time = times.get(cur);

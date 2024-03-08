@@ -18,7 +18,6 @@ package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
 import static cn.edu.tsinghua.iginx.parquet.util.Constants.SUFFIX_FILE_PARQUET;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -28,6 +27,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import cn.edu.tsinghua.iginx.utils.TagKVUtils;
@@ -59,7 +59,7 @@ public class DummyManager implements Manager {
 
   @Override
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
-      throws PhysicalException {
+      throws StorageException {
     LOGGER.debug("project paths: {}", paths);
     Table table = new Table();
     Set<String> projectedPath = new HashSet<>();
@@ -73,7 +73,7 @@ public class DummyManager implements Manager {
                     .map(s -> prefix + "." + s)
                     .collect(Collectors.toSet());
       } catch (IOException e) {
-        throw new PhysicalException("failed to load schema from " + path + " : " + e);
+        throw new StorageException("failed to load schema from " + path + " : " + e);
       }
       LOGGER.debug("paths in {}: {}", path, pathsInFile);
 
@@ -84,7 +84,7 @@ public class DummyManager implements Manager {
         try {
           new Loader(path).load(table);
         } catch (IOException e) {
-          throw new PhysicalException("failed to load data from " + path + " : " + e);
+          throw new StorageException("failed to load data from " + path + " : " + e);
         }
       }
       projectedPath.addAll(filePaths);
@@ -127,18 +127,18 @@ public class DummyManager implements Manager {
   }
 
   @Override
-  public void insert(DataView dataView) throws PhysicalException {
-    throw new PhysicalException("DummyManager does not support insert");
+  public void insert(DataView dataView) throws StorageException {
+    throw new StorageException("DummyManager does not support insert");
   }
 
   @Override
   public void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
-      throws PhysicalException {
-    throw new PhysicalException("DummyManager does not support delete");
+      throws StorageException {
+    throw new StorageException("DummyManager does not support delete");
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns() throws StorageException {
     List<Column> columns = new ArrayList<>();
     for (Path path : getFilePaths()) {
       try {
@@ -149,14 +149,14 @@ public class DummyManager implements Manager {
           columns.add(column);
         }
       } catch (IOException e) {
-        throw new PhysicalException("failed to load schema from " + path, e);
+        throw new StorageException("failed to load schema from " + path, e);
       }
     }
     return columns;
   }
 
   @Override
-  public KeyInterval getKeyInterval() throws PhysicalException {
+  public KeyInterval getKeyInterval() throws StorageException {
     TreeRangeSet<Long> rangeSet = TreeRangeSet.create();
 
     for (Path path : getFilePaths()) {
@@ -164,7 +164,7 @@ public class DummyManager implements Manager {
         Range<Long> range = new Loader(path).getRange();
         rangeSet.add(range);
       } catch (Exception e) {
-        throw new PhysicalException("failed to get range from " + path + ": " + e, e);
+        throw new StorageException("failed to get range from " + path + ": " + e, e);
       }
     }
 
@@ -185,7 +185,7 @@ public class DummyManager implements Manager {
     return "DummyManager{" + "dummyDir=" + dir + '}';
   }
 
-  private Iterable<Path> getFilePaths() throws PhysicalException {
+  private Iterable<Path> getFilePaths() throws StorageException {
     try (Stream<Path> pathStream = Files.list(dir)) {
       return pathStream
           .filter(path -> path.toString().endsWith(SUFFIX_FILE_PARQUET))
@@ -195,7 +195,7 @@ public class DummyManager implements Manager {
       LOGGER.warn("no parquet file in {}", dir);
       return Collections.emptyList();
     } catch (IOException e) {
-      throw new PhysicalException("failed to list parquet file in " + dir + ": " + e, e);
+      throw new StorageException("failed to list parquet file in " + dir + ": " + e, e);
     }
   }
 }

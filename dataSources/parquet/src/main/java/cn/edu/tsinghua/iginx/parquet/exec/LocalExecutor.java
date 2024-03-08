@@ -17,7 +17,6 @@
 package cn.edu.tsinghua.iginx.parquet.exec;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -37,6 +36,7 @@ import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Iterables;
@@ -207,7 +207,8 @@ public class LocalExecutor implements Executor {
           LOGGER.info("recovering {} from disk", path);
           getOrCreateManager(path.getFileName().toString());
         } catch (PhysicalException e) {
-          throw new RuntimeException(e);
+          throw new StorageInitializationException(
+              String.format("Error recovering %s from disk: %s", path, e));
         }
       }
     } catch (IOException e) {
@@ -216,24 +217,28 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private Manager getOrCreateManager(String storageUnit) throws PhysicalException {
+  private Manager getOrCreateManager(String storageUnit) throws StorageException {
     if (dataDir == null) {
-      throw new PhysicalException("data dir not provided");
+      throw new StorageException("data dir not provided");
     }
     if (storageUnit.startsWith("dummy")) {
-      throw new PhysicalException("dummy storage unit not allowed");
+      throw new StorageException("dummy storage unit not allowed");
     }
 
     return managers.computeIfAbsent(
         storageUnit,
         s -> {
           if (isClosed.get()) {
-            throw new IsClosedException("executor is closed: " + dataDir);
+            try {
+              throw new IsClosedException("executor is closed: " + dataDir);
+            } catch (IsClosedException e) {
+              throw new IllegalStateException(e);
+            }
           }
           try {
             return new DataManager(shared, dataDir.resolve(s));
-          } catch (IOException e) {
-            throw new RuntimeException(e);
+          } catch (IOException | StorageException e) {
+            throw new IllegalStateException(e);
           }
         });
   }
@@ -285,7 +290,7 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws StorageException {
     if (storageUnit.equals("*")) {
       List<Column> columns = new ArrayList<>();
       for (Manager manager : getAllManagers()) {
@@ -293,13 +298,13 @@ public class LocalExecutor implements Executor {
       }
       return columns;
     } else {
-      throw new RuntimeException("not implemented!");
+      throw new IllegalArgumentException("get columns of specific storage unit");
     }
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
-      throws PhysicalException {
+      throws StorageException {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (Manager manager : getAllManagers()) {
@@ -320,10 +325,10 @@ public class LocalExecutor implements Executor {
     }
     paths.sort(String::compareTo);
     if (paths.isEmpty()) {
-      throw new PhysicalTaskExecuteFailureException("no data");
+      throw new StorageException("no data");
     }
     if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
-      throw new PhysicalTaskExecuteFailureException("time range error");
+      throw new StorageException("time range error");
     }
     ColumnsInterval columnsInterval =
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
@@ -336,7 +341,7 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public void close() throws PhysicalException {
+  public void close() throws StorageException {
     LOGGER.info("closing...");
 
     try {

@@ -16,7 +16,6 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -52,7 +51,7 @@ public class DataManager implements Manager {
 
   private final Shared shared;
 
-  public DataManager(Shared shared, Path dir) throws IOException {
+  public DataManager(Shared shared, Path dir) throws IOException, StorageException {
     this.shared = shared;
     Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
     ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dataDir);
@@ -61,7 +60,7 @@ public class DataManager implements Manager {
 
   @Override
   public RowStream project(List<String> paths, TagFilter tagFilter, Filter filter)
-      throws PhysicalException {
+      throws StorageException {
     Map<String, DataType> schemaMatchTags = ProjectUtils.project(db.schema(), tagFilter);
 
     Map<String, DataType> projectedSchema = ProjectUtils.project(schemaMatchTags, paths);
@@ -74,31 +73,27 @@ public class DataManager implements Manager {
   }
 
   @Override
-  public void insert(DataView data) throws PhysicalException {
+  public void insert(DataView data) throws StorageException {
     DataViewWrapper wrappedData = new DataViewWrapper(data);
     for (String fullName : wrappedData.getSchema().keySet()) {
       if (StringUtils.isPattern(fullName)) {
         throw new InvalidFieldNameException(fullName, "name is a pattern");
       }
     }
-    try {
-      if (wrappedData.isRowData()) {
-        try (Scanner<Long, Scanner<String, Object>> scanner = wrappedData.getRowsScanner()) {
-          db.upsertRows(scanner, wrappedData.getSchema());
-        }
-      } else {
-        try (Scanner<String, Scanner<Long, Object>> scanner = wrappedData.getColumnsScanner()) {
-          db.upsertColumns(scanner, wrappedData.getSchema());
-        }
+    if (wrappedData.isRowData()) {
+      try (Scanner<Long, Scanner<String, Object>> scanner = wrappedData.getRowsScanner()) {
+        db.upsertRows(scanner, wrappedData.getSchema());
       }
-    } catch (Exception e) {
-      throw new RuntimeException("failed to close scanner of DataView", e);
+    } else {
+      try (Scanner<String, Scanner<Long, Object>> scanner = wrappedData.getColumnsScanner()) {
+        db.upsertColumns(scanner, wrappedData.getSchema());
+      }
     }
   }
 
   @Override
   public void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
-      throws PhysicalException {
+      throws StorageException {
 
     com.google.common.collect.RangeSet<Long> rangeSet =
         com.google.common.collect.TreeRangeSet.create();
@@ -144,7 +139,7 @@ public class DataManager implements Manager {
   }
 
   @Override
-  public KeyInterval getKeyInterval() throws PhysicalException {
+  public KeyInterval getKeyInterval() throws StorageException {
     Optional<Range<Long>> optionalRange = db.range();
     return optionalRange.map(RangeUtils::toKeyInterval).orElseGet(() -> new KeyInterval(0, 0));
   }

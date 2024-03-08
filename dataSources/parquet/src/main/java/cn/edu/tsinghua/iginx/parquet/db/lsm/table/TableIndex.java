@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
@@ -38,15 +39,15 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
 
   private final Map<F, FieldIndex<K, F, T, V>> indexes = new HashMap<>();
 
-  public TableIndex(TableStorage<K, F, T, V> tableStorage) {
+  public TableIndex(TableStorage<K, F, T, V> tableStorage) throws StorageException {
     try {
       for (String tableName : tableStorage.tableNames()) {
         TableMeta<K, F, T, V> meta = tableStorage.get(tableName).getMeta();
         declareFields(meta.getSchema());
         addTable(tableName, meta);
       }
-    } catch (IOException | TypeConflictedException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new StorageException(e);
     }
   }
 
@@ -182,7 +183,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     return result;
   }
 
-  public void addTable(String name, TableMeta<K, F, T, V> meta) {
+  public void addTable(String name, TableMeta<K, F, T, V> meta) throws NotIntegrityException {
     lock.readLock().lock();
     try {
       Map<F, T> types = meta.getSchema();
@@ -267,7 +268,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
       return type;
     }
 
-    public void addTable(String name, Range<K> range) {
+    public void addTable(String name, Range<K> range) throws NotIntegrityException {
       lock.writeLock().lock();
       try {
         if (this.tableRange.containsKey(name)) {

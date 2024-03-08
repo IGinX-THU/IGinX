@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.SequenceGenerator;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import java.io.IOException;
@@ -81,10 +80,9 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     return String.format("%019d", seq);
   }
 
-  public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush)
-      throws InterruptedException {
-    shared.getFlusherPermits().acquire();
-    localFlusherPermits.acquire();
+  public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush) {
+    shared.getFlusherPermits().acquireUninterruptibly();
+    localFlusherPermits.acquireUninterruptibly();
     lock.writeLock().lock();
     try {
       String tableName = getTableName(seqGen.next());
@@ -136,7 +134,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     }
   }
 
-  public void remove(String name) {
+  public void remove(String name) throws IOException {
     lock.writeLock().lock();
     try {
       if (memTables.remove(name) != null) {
@@ -149,16 +147,14 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     }
   }
 
-  public void clear() throws StorageException, InterruptedException {
-    localFlusherPermits.acquire(localFlusherPermitsTotal);
+  public void clear() throws IOException {
+    localFlusherPermits.acquireUninterruptibly(localFlusherPermitsTotal);
     lock.writeLock().lock();
     try {
       memTables.clear();
       memTombstones.clear();
       readWriter.clear();
       seqGen.reset();
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     } finally {
       localFlusherPermits.release(localFlusherPermitsTotal);
       lock.writeLock().unlock();

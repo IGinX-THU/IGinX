@@ -28,7 +28,6 @@ import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.BatchPlaneScanner;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
-import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -66,7 +65,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final long timeout;
 
   public OneTierDB(String name, Shared shared, ReadWriter<K, F, T, V> readerWriter)
-      throws IOException {
+      throws IOException, StorageException {
     this.name = name;
     this.shared = shared;
     this.tableStorage = new TableStorage<>(shared, readerWriter);
@@ -109,8 +108,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       for (Range<K> range : ranges.asRanges()) {
         readBuffer.putRows(writeBuffer.scanRows(fields, range));
       }
-    } catch (IOException | StorageException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new StorageException(e);
     } finally {
       storageLock.readLock().unlock();
       deleteLock.readLock().unlock();
@@ -209,17 +208,17 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     bufferDirtiedTime.updateAndGet(oldTime -> Math.min(oldTime, currentTime));
   }
 
-  private void beforeWriting() {
+  private void beforeWriting() throws StorageException {
     checkBufferSize();
   }
 
-  private void afterWriting() {
+  private void afterWriting() throws StorageException {
     if (timeout <= 0) {
       checkBufferTimeout();
     }
   }
 
-  private void checkBufferSize() {
+  private void checkBufferSize() throws StorageException {
     checkLock.lock();
     try {
       if (bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize()) {
@@ -252,6 +251,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
           timeout);
 
       commitMemoryTable(true, latch);
+    } catch (StorageException e) {
+      throw new IllegalStateException(e);
     } finally {
       checkLock.unlock();
     }
@@ -259,12 +260,13 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       latch.await();
     } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
     LOGGER.debug("table is flushed");
   }
 
-  private synchronized void commitMemoryTable(boolean temp, CountDownLatch latch) {
+  private synchronized void commitMemoryTable(boolean temp, CountDownLatch latch)
+      throws StorageException {
     commitLock.writeLock().lock();
     deleteLock.readLock().lock();
     try {
@@ -272,7 +274,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
           tableIndex.getType(
               writeBuffer.fields(),
               f -> {
-                throw new NotIntegrityException("field " + f + " is not found in schema");
+                throw new IllegalStateException("field " + f + " is not found in schema");
               });
 
       MemoryTable<K, F, T, V> table = new MemoryTable<>(writeBuffer, types);
@@ -308,8 +310,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
         bufferInsertedSize.reset();
         previousTableName = null;
       }
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
     } finally {
       deleteLock.readLock().unlock();
       commitLock.writeLock().unlock();
@@ -328,7 +328,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       tableStorage.delete(tables, areas);
       tableIndex.delete(areas);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new StorageException(e);
     } finally {
       storageLock.readLock().unlock();
       deleteLock.writeLock().unlock();
@@ -347,8 +347,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       writeBuffer.clear();
       bufferDirtiedTime.set(Long.MAX_VALUE);
       bufferInsertedSize.reset();
-    } catch (InterruptedException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new StorageException(e);
     } finally {
       deleteLock.writeLock().unlock();
       commitLock.readLock().unlock();

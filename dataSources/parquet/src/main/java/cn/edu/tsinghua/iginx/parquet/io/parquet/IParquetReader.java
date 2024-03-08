@@ -149,7 +149,7 @@ public class IParquetReader implements AutoCloseable {
       case BINARY:
         return DataType.BINARY;
       default:
-        throw new RuntimeException(
+        throw new IllegalArgumentException(
             "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
     }
   }

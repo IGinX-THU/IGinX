@@ -94,7 +94,8 @@ public class ParquetFormatIOTest {
             value = bytes;
             break;
           default:
-            throw new RuntimeException("unsupported data type of " + table.getHeader().get(j));
+            throw new IllegalArgumentException(
+                "unsupported data type of " + table.getHeader().get(j));
         }
         table.put(j, key, value);
       }

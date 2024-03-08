@@ -63,23 +63,18 @@ public class TombstoneStorage implements Closeable {
     try {
       CachePool.Cacheable cacheable =
           shared.getCachePool().asMap().computeIfAbsent(fileName, this::loadCache);
-      if (!(cacheable instanceof CachedTombstone)) {
-        throw new RuntimeException("unexpected cacheable type: " + cacheable.getClass());
-      }
       return ((CachedTombstone<Long, String>) cacheable).getTombstone();
     } finally {
       lock.readLock().unlock();
     }
   }
 
-  public void removeTable(String name) {
+  public void removeTable(String name) throws IOException {
     lock.writeLock().lock();
     try {
       String fileName = getFileName(name);
       shared.getCachePool().asMap().remove(fileName);
       Files.deleteIfExists(Paths.get(fileName));
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     } finally {
       lock.writeLock().unlock();
     }
@@ -99,13 +94,14 @@ public class TombstoneStorage implements Closeable {
                 (Long, v) -> {
                   AreaSet<Long, String> areas = new AreaSet<>();
                   if (v != null) {
-                    if (!(v instanceof CachedTombstone)) {
-                      throw new RuntimeException("unexpected cacheable type: " + v.getClass());
-                    }
                     areas.addAll(((CachedTombstone<Long, String>) v).getTombstone());
                   }
                   action.accept(areas);
-                  return flushCache(Long, areas);
+                  try {
+                    return flushCache(Long, areas);
+                  } catch (IOException e) {
+                    throw new IllegalStateException(e);
+                  }
                 });
       }
     } finally {
@@ -113,7 +109,7 @@ public class TombstoneStorage implements Closeable {
     }
   }
 
-  public void clear() {
+  public void clear() throws IOException {
     lock.writeLock().lock();
     try {
       try (DirectoryStream<Path> stream =
@@ -129,8 +125,6 @@ public class TombstoneStorage implements Closeable {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {
       LOGGER.warn("directory not empty to clear: {}", dir);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
     } finally {
       lock.writeLock().unlock();
     }
@@ -140,7 +134,8 @@ public class TombstoneStorage implements Closeable {
     return dir.resolve(tableName + Constants.SUFFIX_FILE_TOMBSTONE).toString();
   }
 
-  private CachedTombstone<Long, String> flushCache(String fileName, AreaSet<Long, String> areas) {
+  private CachedTombstone<Long, String> flushCache(String fileName, AreaSet<Long, String> areas)
+      throws IOException {
     String tempFileName = fileName + Constants.SUFFIX_FILE_TEMP;
     Path path = Paths.get(fileName);
     Path tempPath = Paths.get(tempFileName);
@@ -148,17 +143,15 @@ public class TombstoneStorage implements Closeable {
     String json = SerializeUtils.serialize(areas, new LongFormat(), new StringFormat());
 
     LOGGER.debug("flush tombstone to temp file: {}", tempPath);
-    try {
-      Files.createDirectories(dir);
-      try (FileWriter fw = new FileWriter(tempPath.toFile());
-          BufferedWriter bw = new BufferedWriter(fw)) {
-        bw.write(json);
-      }
-      LOGGER.debug("rename temp file to file: {}", path);
-      Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
+
+    Files.createDirectories(dir);
+    try (FileWriter fw = new FileWriter(tempPath.toFile());
+        BufferedWriter bw = new BufferedWriter(fw)) {
+      bw.write(json);
     }
+    LOGGER.debug("rename temp file to file: {}", path);
+    Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
+
     return new CachedTombstone<>(areas, json.length() + fileName.length());
   }
 
@@ -172,7 +165,7 @@ public class TombstoneStorage implements Closeable {
     } catch (FileNotFoundException e) {
       return new CachedTombstone<>(fileName.length());
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      throw new IllegalStateException(e);
     }
   }
 

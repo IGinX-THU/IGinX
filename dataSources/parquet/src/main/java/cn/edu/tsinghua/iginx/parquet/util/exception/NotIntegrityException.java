@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.util.exception;
 
-public class NotIntegrityException extends RuntimeException {
+public class NotIntegrityException extends StorageException {
   public NotIntegrityException(String message) {
     super(message);
   }

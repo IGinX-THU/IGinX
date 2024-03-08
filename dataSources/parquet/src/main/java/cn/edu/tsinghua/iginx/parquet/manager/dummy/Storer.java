@@ -55,7 +55,7 @@ public class Storer {
       case BINARY:
         return new PrimitiveType(repetition, PrimitiveType.PrimitiveTypeName.BINARY, name);
       default:
-        throw new RuntimeException("Unsupported data type: " + type);
+        throw new IllegalArgumentException("Unsupported data type: " + type);
     }
   }
 

@@ -35,7 +35,7 @@ public interface ReadWriter<K extends Comparable<K>, F, T, V> {
 
   void delete(String name, AreaSet<K, F> areas) throws IOException;
 
-  void delete(String name);
+  void delete(String name) throws IOException;
 
   Iterable<String> tableNames() throws IOException;
 

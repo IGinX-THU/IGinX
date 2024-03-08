@@ -16,7 +16,6 @@
 
 package cn.edu.tsinghua.iginx.parquet.exec;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -40,6 +39,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.server.FilterTransformer;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -130,10 +130,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(rowStream, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote project task error"));
+            null, new StorageException("execute remote project task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new StorageException(e));
     }
   }
 
@@ -181,10 +181,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(null, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote insert task error"));
+            null, new StorageException("execute remote insert task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new StorageException(e));
     }
   }
 
@@ -269,10 +269,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(null, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote delete task error"));
+            null, new StorageException("execute remote delete task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new StorageException(e));
     }
   }
 
@@ -335,7 +335,7 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws StorageException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
@@ -352,13 +352,13 @@ public class RemoteExecutor implements Executor {
                           ts.getTags())));
       return columnList;
     } catch (TException e) {
-      throw new PhysicalException("encounter error when getColumnsOfStorageUnit ", e);
+      throw new StorageException("encounter error when getColumnsOfStorageUnit ", e);
     }
   }
 
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
-      throws PhysicalException {
+      throws StorageException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
@@ -368,12 +368,12 @@ public class RemoteExecutor implements Executor {
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
     } catch (TException e) {
-      throw new PhysicalException("encounter error when getBoundaryOfStorage ", e);
+      throw new StorageException("encounter error when getBoundaryOfStorage ", e);
     }
   }
 
   @Override
-  public void close() throws PhysicalException {
+  public void close() throws StorageException {
     thriftConnPool.close();
   }
 }
