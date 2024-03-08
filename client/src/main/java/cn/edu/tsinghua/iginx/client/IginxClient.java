@@ -315,7 +315,7 @@ public class IginxClient {
         return;
       }
       System.out.println("success");
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       System.out.println(

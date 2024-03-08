@@ -920,8 +920,7 @@ public class Session {
     return new SessionExecuteSqlResult(ref.resp);
   }
 
-  public SessionExecuteSqlResult executePythonRegister(String statement)
-      throws SessionException {
+  public SessionExecuteSqlResult executePythonRegister(String statement) throws SessionException {
     Pattern pattern = Pattern.compile("\"([^\"]*)\"");
     Matcher matcher = pattern.matcher(statement);
 
