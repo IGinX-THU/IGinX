@@ -83,7 +83,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
         }
       }
     } catch (Exception e) {
-      LOGGER.error("Failed to query data: {}", e.getMessage());
+      LOGGER.error("Failed to query data: ", e);
       fail();
     }
     // Test max function
@@ -562,7 +562,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
             localSession.insertNonAlignedColumnRecords(
                 path, timestamps, valuesList, dataTypeList, null);
           } catch (SessionException | StatementExecutionException e) {
-            LOGGER.error("Failed to insert data: {}", e.getMessage());
+            LOGGER.error("Failed to insert data: ", e);
           }
           break;
           // delete
@@ -570,7 +570,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
           try {
             localSession.deleteDataInColumns(path, startKey, endKey);
           } catch (SessionException | StatementExecutionException e) {
-            LOGGER.error("Failed to delete data: {}", e.getMessage());
+            LOGGER.error("Failed to delete data: ", e);
           }
           break;
           // query
@@ -582,7 +582,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
               queryDataSet = localSession.aggregateQuery(path, startKey, endKey, aggregateType);
             }
           } catch (SessionException | StatementExecutionException e) {
-            LOGGER.error("Failed to query data: {}", e.getMessage());
+            LOGGER.error("Failed to query data: ", e);
           }
           break;
         default:
@@ -591,7 +591,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
       try {
         if (localSession.isSession()) this.localSession.closeSession();
       } catch (SessionException e) {
-        LOGGER.error("Failed to close session: {}", e.getMessage());
+        LOGGER.error("Failed to close session: ", e);
       }
     }
 

@@ -111,7 +111,7 @@ public class ConfLoader {
       properties = new Properties();
       properties.load(in);
     } catch (IOException e) {
-      LOGGER.error("load conf failure: {}", e.getMessage());
+      LOGGER.error("load conf failure: ", e);
       return dbConf;
     }
 

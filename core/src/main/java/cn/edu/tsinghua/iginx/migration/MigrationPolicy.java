@@ -56,7 +56,7 @@ public abstract class MigrationPolicy {
   private static final PhysicalEngine physicalEngine = PhysicalEngineImpl.getInstance();
 
   public MigrationPolicy(Logger logger) {
-    this.LOGGER = logger;
+    LOGGER = logger;
   }
 
   public void setMigrationLogger(MigrationLogger migrationLogger) {
@@ -407,13 +407,13 @@ public abstract class MigrationPolicy {
         migrationTaskQueue.poll();
         this.executor.submit(
             () -> {
-              this.LOGGER.info("start migration: {}", migrationTask);
+              LOGGER.info("start migration: {}", migrationTask);
               // 异步执行耗时的操作
               if (migrationTask.getMigrationType() == MigrationType.QUERY) {
                 // 如果之前没切过分区，需要优先切一下分区
                 if (migrationTask.getFragmentMeta().getKeyInterval().getEndKey()
                     == Long.MAX_VALUE) {
-                  this.LOGGER.error("start to reshard query data: {}", migrationTask);
+                  LOGGER.error("start to reshard query data: {}", migrationTask);
                   FragmentMeta fragmentMeta =
                       reshardFragment(
                           migrationTask.getSourceStorageId(),
@@ -421,19 +421,19 @@ public abstract class MigrationPolicy {
                           migrationTask.getFragmentMeta());
                   migrationTask.setFragmentMeta(fragmentMeta);
                 }
-                this.LOGGER.error("start to migrate data: {}", migrationTask);
+                LOGGER.error("start to migrate data: {}", migrationTask);
                 migrateData(
                     migrationTask.getSourceStorageId(),
                     migrationTask.getTargetStorageId(),
                     migrationTask.getFragmentMeta());
               } else {
-                this.LOGGER.error("start to migrate write data: {}", migrationTask);
+                LOGGER.error("start to migrate write data: {}", migrationTask);
                 reshardFragment(
                     migrationTask.getSourceStorageId(),
                     migrationTask.getTargetStorageId(),
                     migrationTask.getFragmentMeta());
               }
-              this.LOGGER.error(
+              LOGGER.error(
                   "complete one migration task from {} to {} with load: {}, size: {}, type: {}",
                   migrationTask.getSourceStorageId(),
                   migrationTask.getTargetStorageId(),

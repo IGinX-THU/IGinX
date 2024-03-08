@@ -184,14 +184,14 @@ public class LocalExecutor implements Executor {
           insertColumnRecords((ColumnDataView) dataView, storageUnit);
           break;
       }
-    } catch (Exception e) {
-      LOGGER.error("encounter error when inserting data: {}", e.getMessage());
+    } catch (IOException e) {
+      LOGGER.error("encounter error when inserting data: ", e);
       return new TaskExecuteResult(null, new PhysicalException(e));
     }
     return new TaskExecuteResult(null, null);
   }
 
-  private void insertRowRecords(RowDataView data, String storageUnit) {
+  private void insertRowRecords(RowDataView data, String storageUnit) throws IOException {
     List<List<Record>> recordsList = new ArrayList<>();
     List<File> fileList = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
@@ -220,11 +220,11 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      throw new RuntimeException("encounter error when inserting row records to fileSystem", e);
+      throw e;
     }
   }
 
-  private void insertColumnRecords(ColumnDataView data, String storageUnit) {
+  private void insertColumnRecords(ColumnDataView data, String storageUnit) throws IOException {
     List<List<Record>> recordsList = new ArrayList<>();
     List<File> fileList = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
@@ -252,7 +252,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      throw new RuntimeException("encounter error when inserting column records to fileSystem", e);
+      throw e;
     }
   }
 
@@ -268,7 +268,7 @@ public class LocalExecutor implements Executor {
               new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (IOException e) {
           exception = e;
-          LOGGER.error("encounter error when clearing data: {}", e.getMessage());
+          LOGGER.error("encounter error when clearing data: ", e);
         }
       } else {
         for (String path : paths) {
@@ -277,7 +277,7 @@ public class LocalExecutor implements Executor {
         try {
           fileSystemManager.deleteFiles(fileList, tagFilter);
         } catch (IOException e) {
-          LOGGER.error("encounter error when clearing data: {}", e.getMessage());
+          LOGGER.error("encounter error when clearing data: ", e);
           exception = e;
         }
       }
@@ -288,13 +288,12 @@ public class LocalExecutor implements Executor {
             fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
           }
           for (KeyRange keyRange : keyRanges) {
-            exception =
                 fileSystemManager.trimFilesContent(
                     fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
           }
         }
-      } catch (IOException e) {
-        LOGGER.error("encounter error when deleting data: {}", e.getMessage());
+      } catch (Exception e) {
+        LOGGER.error("encounter error when deleting data: ", e);
         exception = e;
       }
     }

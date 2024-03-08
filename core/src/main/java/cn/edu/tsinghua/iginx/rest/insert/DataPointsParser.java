@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
+import cn.edu.tsinghua.iginx.rest.exception.RESTIllegalArgumentException;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
@@ -49,7 +50,7 @@ public class DataPointsParser {
     this.inputStream = stream;
   }
 
-  public void parse() throws SessionException {
+  public void parse() throws SessionException, RESTIllegalArgumentException, IOException {
     try {
       session.openSession();
     } catch (SessionException e) {
@@ -66,9 +67,10 @@ public class DataPointsParser {
         metricList.add(getMetricObject(node));
       }
     } catch (IOException e) {
-      throw new RuntimeException("Error occurred during reading the json data ", e);
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("Error occurred during parsing data ", e);
+      LOGGER.error("Error occurred during parsing data ", e);
+      throw new IOException("Error occurred during reading the json data ", e);
+    } catch (RESTIllegalArgumentException e) {
+      throw new RESTIllegalArgumentException("Error occurred during parsing data ", e);
     }
     try {
       sendMetricsData();
@@ -89,11 +91,11 @@ public class DataPointsParser {
     return true;
   }
   // 如果有anno信息会直接放入到插入路径中
-  private Metric getMetricObject(JsonNode node) throws IllegalArgumentException {
+  private Metric getMetricObject(JsonNode node) throws RESTIllegalArgumentException {
     try {
       Metric ret = new Metric();
       if (!ifInputDataValid(node)) {
-        throw new IllegalArgumentException("The input correctness check is abnormal");
+        throw new RESTIllegalArgumentException("The input correctness check is abnormal");
       }
       ret.setName(node.get("name").asText());
       Iterator<String> fieldNames = node.get("tags").fieldNames();
@@ -142,8 +144,8 @@ public class DataPointsParser {
         if (description != null) ret.addAnno("description", description);
       }
       return ret;
-    } catch (IllegalArgumentException e) {
-      throw new IllegalArgumentException("The input correctness check is abnormal", e);
+    } catch (RESTIllegalArgumentException e) {
+      throw new RESTIllegalArgumentException("The input correctness check is abnormal", e);
     }
   }
 
@@ -152,7 +154,7 @@ public class DataPointsParser {
       session.openSession();
       sendMetricsData();
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during sending data ", e);
+      LOGGER.error("Error occurred during sending data ", e);
     }
     session.closeSession();
   }
@@ -165,7 +167,7 @@ public class DataPointsParser {
     this.metricList = metricList;
   }
 
-  private Long ifHasAnnoSequence() {
+  private Long ifHasAnnoSequence() throws SessionException {
     // 构造查询
     QueryMetric metric = new QueryMetric();
     metric.setName(ANNOTATION_SEQUENCE);
@@ -199,7 +201,7 @@ public class DataPointsParser {
     }
   }
 
-  private void createAnnoSequence(boolean ifUpdate, Long val) {
+  private void createAnnoSequence(boolean ifUpdate, Long val) throws SessionException {
     List<String> paths = new ArrayList<>();
     List<Long> timestamps = new ArrayList<>();
     Object[] valuesList = new Object[1];
@@ -225,11 +227,12 @@ public class DataPointsParser {
           null,
           TimePrecision.NS);
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during insert ", e);
+      LOGGER.error("Error occurred during insert ", e);
+      throw e;
     }
   }
 
-  private void insertAnnoSequence(Map<Long, String> annoSequence) {
+  private void insertAnnoSequence(Map<Long, String> annoSequence) throws SessionException {
     List<Long> timestamps = new ArrayList<>();
     List<String> annoPaths = new ArrayList<>();
     Object[] valuesList = new Object[1];
@@ -253,7 +256,8 @@ public class DataPointsParser {
           null,
           TimePrecision.NS);
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during insert ", e);
+      LOGGER.error("Error occurred during insert ", e);
+      throw e;
     }
   }
 
@@ -261,7 +265,7 @@ public class DataPointsParser {
       List<String> paths,
       List<Map<String, String>> tagsList,
       Map<String, String> anno,
-      DataType typeAb) {
+      DataType typeAb) throws SessionException {
     // 首先判断是否存在TitleDsp序列，并获取要插入的时间戳
     Long time = ifHasAnnoSequence();
     if (!time.equals(-1L)) {
@@ -285,15 +289,17 @@ public class DataPointsParser {
         timestamps.add(DESCRIPTION_KEY);
         num++;
       }
-      // 首先更新anno列表可用最小值
-      createAnnoSequence(true, time + num);
-      // 在anno列表中插入title以及dsp信息
-      insertAnnoSequence(annoSequence);
 
-      // 在原序列中插入相应的时间戳值
-      valuesList[0] = valuesAnno;
-      type.add(typeAb);
       try {
+        // 首先更新anno列表可用最小值
+        createAnnoSequence(true, time + num);
+        // 在anno列表中插入title以及dsp信息
+        insertAnnoSequence(annoSequence);
+
+        // 在原序列中插入相应的时间戳值
+        valuesList[0] = valuesAnno;
+        type.add(typeAb);
+
         session.insertNonAlignedColumnRecords(
             paths,
             timestamps.stream().mapToLong(Long::longValue).toArray(),
@@ -302,15 +308,19 @@ public class DataPointsParser {
             tagsList,
             TimePrecision.NS);
       } catch (SessionException e) {
-        throw new RuntimeException("Error occurred during insert ", e);
+        LOGGER.error("Error occurred during insert ", e);
       }
     } else {
-      createAnnoSequence(false, null);
-      insertAnno(paths, tagsList, anno, typeAb);
+      try {
+        createAnnoSequence(false, null);
+        insertAnno(paths, tagsList, anno, typeAb);
+      } catch (SessionException e) {
+        LOGGER.error("Error occurred during insert ", e);
+      }
     }
   }
 
-  private void sendMetricsData() {
+  private void sendMetricsData() throws SessionException {
     for (Metric metric : metricList) {
       List<Map<String, String>> tagsList = new ArrayList<>();
       tagsList.add(metric.getTags());
@@ -339,7 +349,7 @@ public class DataPointsParser {
           insertAnno(paths, tagsList, metric.getAnno(), type.get(0));
         }
       } catch (SessionException e) {
-        throw new RuntimeException("Error occurred during insert ", e);
+        throw e;
       }
     }
   }
@@ -380,7 +390,7 @@ public class DataPointsParser {
     insertExe(metric, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
-  private void insertExe(Metric metric, TimePrecision timePrecision) {
+  private void insertExe(Metric metric, TimePrecision timePrecision) throws SessionException {
     // LHZ以下代码重复了，能否合并到一个函数？？？
     // 执行插入
     List<String> paths = new ArrayList<>();
@@ -409,7 +419,7 @@ public class DataPointsParser {
         insertAnno(paths, taglist, metric.getAnno(), type.get(0));
       }
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during insert ", e);
+      throw e;
     }
   }
 

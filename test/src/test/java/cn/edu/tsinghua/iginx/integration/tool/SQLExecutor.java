@@ -59,7 +59,7 @@ public class SQLExecutor {
         logger.warn(CLEAR_DATA_WARNING);
         return null;
       } else {
-        logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        logger.error(CLEAR_DATA_ERROR, statement, e);
         fail();
       }
     }
@@ -95,8 +95,8 @@ public class SQLExecutor {
     try {
       conn.executeSql(statement);
     } catch (SessionException | StatementExecutionException e) {
-      logger.info("Statement: \"{}\" execute fail. Because: {}", statement, e.getMessage());
-      assertEquals(expectedErrMsg, e.getMessage());
+      logger.info("Statement: \"{}\" execute fail. Because:", statement, e);
+      assertEquals(expectedErrMsg, e);
     }
   }
 

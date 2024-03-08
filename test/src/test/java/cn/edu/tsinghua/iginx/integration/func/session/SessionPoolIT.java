@@ -28,7 +28,7 @@ public class SessionPoolIT extends SessionIT {
                   .build());
       session.openSession();
     } catch (Exception e) {
-      LOGGER.error("Failed to open session: {}", e.getMessage());
+      LOGGER.error("Failed to open session: ", e);
     }
   }
 }

@@ -628,7 +628,7 @@ public class NewSessionIT {
         SessionAggregateQueryDataSet dataSet = conn.aggregateQuery(paths, START_KEY, END_KEY, type);
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException | StatementExecutionException e) {
-        LOGGER.error("execute aggregate query failed, AggType={} because {}", type, e.getMessage());
+        LOGGER.error("execute aggregate query failed, AggType={} because", type, e);
         fail();
       }
     }
@@ -733,10 +733,10 @@ public class NewSessionIT {
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException | StatementExecutionException e) {
         LOGGER.error(
-            "execute downsample query failed, AggType={}, Precision={} because {}",
+            "execute downsample query failed, AggType={}, Precision={} because",
             type,
             precision,
-            e.getMessage());
+            e);
         fail();
       }
     }

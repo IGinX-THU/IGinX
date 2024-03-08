@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.rest.bean.*;
+import cn.edu.tsinghua.iginx.rest.exception.RESTIllegalArgumentException;
 import cn.edu.tsinghua.iginx.rest.insert.InsertWorker;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
 import cn.edu.tsinghua.iginx.rest.query.QueryParser;
@@ -34,6 +35,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -46,6 +48,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -87,7 +91,7 @@ public class MetricsResource {
   public Response grafanaQuery(String jsonStr) {
     try {
       if (jsonStr == null) {
-        throw new IllegalArgumentException("query json must not be null or empty");
+        throw new RESTIllegalArgumentException("query json must not be null or empty");
       }
       QueryParser parser = new QueryParser();
       Query query = parser.parseGrafanaQueryMetric(jsonStr);
@@ -503,7 +507,7 @@ public class MetricsResource {
     restSession.closeSession();
   }
 
-  private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse) {
+  private void appendAnno(String jsonStr, HttpHeaders httpheaders, AsyncResponse asyncResponse) throws SessionException, ParseException, JsonProcessingException {
     // 查找出所有符合tagkv的序列路径
     QueryParser parser = new QueryParser();
     // 包含时间范围的查询

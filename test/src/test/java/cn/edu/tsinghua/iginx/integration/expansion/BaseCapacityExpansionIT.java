@@ -95,7 +95,7 @@ public abstract class BaseCapacityExpansionIT {
       return null;
     } catch (SessionException e) {
       LOGGER.warn(
-          "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: {}",
+          "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: ",
           type.name(),
           port,
           hasData,
@@ -113,7 +113,7 @@ public abstract class BaseCapacityExpansionIT {
       session = new Session("127.0.0.1", 6888, "root", "root");
       session.openSession();
     } catch (SessionException e) {
-      LOGGER.error("open session error: {}", e.getMessage());
+      LOGGER.error("open session error: ", e);
     }
   }
 
@@ -122,7 +122,7 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.closeSession();
     } catch (SessionException e) {
-      LOGGER.error("close session error: {}", e.getMessage());
+      LOGGER.error("close session error: ", e);
     }
   }
 
@@ -288,7 +288,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql("insert into ln.wf02 (key, version) values (800, \"v8\");");
       queryNewData();
     } catch (SessionException e) {
-      LOGGER.error("insert new data error: {}", e.getMessage());
+      LOGGER.error("insert new data error: ", e);
     }
   }
 
@@ -323,7 +323,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
       queryAllNewData();
     } catch (SessionException e) {
-      LOGGER.error("insert new data after capacity expansion error: {}", e.getMessage());
+      LOGGER.error("insert new data after capacity expansion error: ", e);
     }
   }
 
@@ -420,7 +420,7 @@ public abstract class BaseCapacityExpansionIT {
       session.removeHistoryDataSource(removedStorageEngineList);
       testShowClusterInfo(5);
     } catch (SessionException e) {
-      LOGGER.error("remove history data source through session api error: {}", e.getMessage());
+      LOGGER.error("remove history data source through session api error: ", e);
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";
@@ -444,7 +444,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
       testShowClusterInfo(2);
     } catch (SessionException e) {
-      LOGGER.error("remove history data source through sql error: {}", e.getMessage());
+      LOGGER.error("remove history data source through sql error: ", e);
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 + schemaPrefixSuffix 后再查询
     statement = "select * from p1.nt.wf03;";
@@ -469,7 +469,7 @@ public abstract class BaseCapacityExpansionIT {
       ClusterInfo clusterInfo = session.getClusterInfo();
       assertEquals(expected, clusterInfo.getStorageEngineInfos().size());
     } catch (SessionException e) {
-      LOGGER.error("encounter error when showing cluster info: {}", e.getMessage());
+      LOGGER.error("encounter error when showing cluster info: ", e);
     }
   }
 
@@ -510,7 +510,7 @@ public abstract class BaseCapacityExpansionIT {
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
     } catch (SessionException e) {
-      LOGGER.error("test query for file system failed {}", e.getMessage());
+      LOGGER.error("test query for file system failed ", e);
       fail();
     }
   }
@@ -588,7 +588,7 @@ public abstract class BaseCapacityExpansionIT {
         fail();
       }
     } catch (SessionException e) {
-      LOGGER.error("query data error: {}", e.getMessage());
+      LOGGER.error("query data error: ", e);
     }
   }
 

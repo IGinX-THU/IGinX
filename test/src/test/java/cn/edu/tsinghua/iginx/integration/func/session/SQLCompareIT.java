@@ -78,7 +78,7 @@ public class SQLCompareIT {
         }
       }
     } catch (IOException e) {
-      LOGGER.error("read file failed, filename: {}, cause: {}", filename, e.getMessage());
+      LOGGER.error("read file failed, filename: {}, cause:", filename, e);
       fail();
     }
   }

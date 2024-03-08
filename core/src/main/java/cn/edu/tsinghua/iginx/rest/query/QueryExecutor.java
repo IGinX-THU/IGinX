@@ -44,19 +44,20 @@ public class QueryExecutor {
     this.query = query;
   }
 
-  public QueryResult executeShowColumns() {
+  public QueryResult executeShowColumns() throws SessionException {
     QueryResult ret = new QueryResult();
     try {
       session.openSession();
       ret.addResultSet(new QueryShowColumns().doAggregate(session));
       session.closeSession();
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during opening or closing session", e);
+      LOGGER.error("Error occurred during opening or closing session", e);
+      throw e;
     }
     return ret;
   }
 
-  public QueryResult execute(boolean isDelete) {
+  public QueryResult execute(boolean isDelete) throws SessionException {
     QueryResult ret = new QueryResult();
     try {
       session.openSession();
@@ -102,7 +103,8 @@ public class QueryExecutor {
       }
       session.closeSession();
     } catch (SessionException e) {
-      throw new RuntimeException("Error occurred during executing", e);
+      LOGGER.error("Error occurred during opening or closing session", e);
+      throw e;
     }
 
     return ret;
@@ -119,7 +121,7 @@ public class QueryExecutor {
   }
 
   // 结果通过引用传出
-  public void queryAnno(QueryResult anno) {
+  public void queryAnno(QueryResult anno) throws SessionException {
     QueryResult title, description;
     Query titleQuery = new Query();
     Query descriptionQuery = new Query();

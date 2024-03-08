@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.rest.query.aggregator;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
+import cn.edu.tsinghua.iginx.rest.exception.RESTIllegalArgumentException;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.List;
@@ -37,7 +38,7 @@ public class QueryAggregatorDev extends QueryAggregator {
       List<String> paths,
       List<Map<String, List<String>>> tagList,
       long startKey,
-      long endKey) {
+      long endKey) throws RESTIllegalArgumentException {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
     SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
     queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
@@ -61,8 +62,8 @@ public class QueryAggregatorDev extends QueryAggregator {
           }
           if (i == n - 1
               || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                  != RestUtils.getInterval(
-                      sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
+              != RestUtils.getInterval(
+              sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
             queryResultDataset.add(
                 RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
                 sum2 / cnt - Math.pow(sum / cnt, 2));
@@ -74,7 +75,7 @@ public class QueryAggregatorDev extends QueryAggregator {
         queryResultDataset.setSampleSize(datapoints);
         break;
       default:
-        throw new IllegalArgumentException("Unsupported data type");
+        throw new RESTIllegalArgumentException("Unsupported data type: " + type);
     }
     return queryResultDataset;
   }

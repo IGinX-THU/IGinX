@@ -40,13 +40,13 @@ public class QueryParser {
 
   public QueryParser() {}
 
-  public static Long dealDateFormat(String oldDateStr) {
+  public static Long dealDateFormat(String oldDateStr) throws ParseException {
     DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
     try {
       Date date = df.parse(oldDateStr);
       return date.getTime() + 28800000L;
     } catch (ParseException e) {
-      throw new RuntimeException("Error occurred during parsing date", e);
+      throw e;
     }
   }
 
@@ -77,40 +77,44 @@ public class QueryParser {
     }
   }
 
-  public Query parseGrafanaQueryMetric(String json) {
+  public Query parseGrafanaQueryMetric(String json) throws JsonProcessingException, ParseException {
     Query ret;
     try {
       JsonNode node = mapper.readTree(json);
       ret = getGrafanaQuery(node);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error occurred during parsing query ", e);
+      throw e;
+    } catch (ParseException e) {
+      throw e;
     }
     return ret;
   }
 
-  public Query parseQueryMetric(String json) {
+  public Query parseQueryMetric(String json) throws JsonProcessingException {
     Query ret;
     try {
       JsonNode node = mapper.readTree(json);
       ret = getQuery(node);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error occurred during parsing query ", e);
+      throw e;
     }
     return ret;
   }
 
-  public Query parseAnnotationQueryMetric(String json, boolean isGrafana) {
+  public Query parseAnnotationQueryMetric(String json, boolean isGrafana) throws JsonProcessingException, ParseException {
     Query ret;
     try {
       JsonNode node = mapper.readTree(json);
       ret = getAnnotationQuery(node, isGrafana);
     } catch (JsonProcessingException e) {
-      throw new RuntimeException("Error occurred during parsing query ", e);
+      throw e;
+    } catch (ParseException e) {
+      throw e;
     }
     return ret;
   }
 
-  private Query getGrafanaQuery(JsonNode node) {
+  private Query getGrafanaQuery(JsonNode node) throws ParseException {
     Query ret = new Query();
     JsonNode timeRange = node.get("range");
     if (timeRange == null) {
@@ -254,7 +258,7 @@ public class QueryParser {
   }
 
   private Query getAnnotationQuery(JsonNode node, boolean isGrafana)
-      throws JsonProcessingException {
+      throws JsonProcessingException, ParseException {
     Query ret = new Query();
     if (isGrafana) {
       JsonNode range = node.get("range");

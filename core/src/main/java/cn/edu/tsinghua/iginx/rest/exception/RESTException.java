@@ -2,25 +2,25 @@ package cn.edu.tsinghua.iginx.rest.exception;
 
 import cn.edu.tsinghua.iginx.exception.IginxException;
 
-public class RestException extends IginxException {
+public class RESTException extends IginxException {
 
-  public RestException() {
+  public RESTException() {
     super();
   }
 
-  public RestException(String message) {
+  public RESTException(String message) {
     super(message);
   }
 
-  public RestException(String message, Throwable cause) {
+  public RESTException(String message, Throwable cause) {
     super(message, cause);
   }
 
-  public RestException(Throwable cause) {
+  public RESTException(Throwable cause) {
     super(cause);
   }
 
-  public RestException(
+  public RESTException(
       String message, Throwable cause, boolean enableSuppression, boolean writableStackTrace) {
     super(message, cause, enableSuppression, writableStackTrace);
   }

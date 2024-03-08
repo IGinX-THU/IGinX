@@ -295,7 +295,7 @@ public class FileSystemManager {
     }
   }
 
-  public Exception trimFilesContent(
+  public void trimFilesContent(
       List<File> files, TagFilter tagFilter, long startKey, long endKey) throws IOException {
     for (File file : files) {
       List<File> fileList = getFilesWithTagFilter(file, tagFilter, false);
@@ -307,7 +307,6 @@ public class FileSystemManager {
         fileOperator.trimFile(f, startKey, endKey);
       }
     }
-    return null;
   }
 
   // 返回和file文件相关的所有文件

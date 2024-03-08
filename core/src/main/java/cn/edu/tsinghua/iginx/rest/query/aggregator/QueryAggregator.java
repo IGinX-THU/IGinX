@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.rest.query.aggregator;
 
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
+import cn.edu.tsinghua.iginx.rest.exception.RESTIllegalArgumentException;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
@@ -108,7 +109,7 @@ public abstract class QueryAggregator {
       List<String> paths,
       List<Map<String, List<String>>> tagList,
       long startKey,
-      long endKey) {
+      long endKey) throws RESTIllegalArgumentException {
     return doAggregate(
         session, paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }

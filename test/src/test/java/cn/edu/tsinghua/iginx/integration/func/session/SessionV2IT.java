@@ -128,7 +128,7 @@ public class SessionV2IT {
       asyncWriteClient.writePoints(points);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      LOGGER.error("Failed to sleep: ", e);
       fail();
     }
   }
@@ -164,7 +164,7 @@ public class SessionV2IT {
       asyncWriteClient.writeRecords(records);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      LOGGER.error("Failed to sleep: ", e);
       fail();
     }
   }
@@ -209,7 +209,7 @@ public class SessionV2IT {
       asyncWriteClient.writeTable(table);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      LOGGER.error("Failed to sleep: ", e);
       fail();
     }
   }
@@ -272,7 +272,7 @@ public class SessionV2IT {
       asyncWriteClient.writeMeasurements(measurements);
       Thread.sleep(SLEEP_TIME);
     } catch (InterruptedException e) {
-      LOGGER.error("Failed to sleep: {}", e.getMessage());
+      LOGGER.error("Failed to sleep: ", e);
       fail();
     }
   }

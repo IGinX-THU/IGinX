@@ -51,7 +51,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
                   DATA_TYPE_MAP.get(dataTypeList.get(i).toString())));
         } catch (StatementExecutionException e) {
           if (!e.getMessage().contains("already exist")) {
-            LOGGER.warn("create timeseries {} failure: {}", pathList.get(i), e.getMessage());
+            LOGGER.warn("create timeseries {} failure: ", pathList.get(i), e);
             throw e;
           }
         }
@@ -83,7 +83,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
       session.close();
       LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      LOGGER.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.error("write data to 127.0.0.1:{} failure:", port, e);
     }
   }
 
@@ -102,7 +102,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
       session.close();
       LOGGER.info("clear data on 127.0.0.1:{} success!", port);
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      LOGGER.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.warn("clear data on 127.0.0.1:{} failure: ", port, e);
     }
   }
 }

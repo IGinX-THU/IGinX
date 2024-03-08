@@ -167,7 +167,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (float) rawResult;
       } catch (Exception e) {
-        LOGGER.error("Failed to change result to float: {}", e.getMessage());
+        LOGGER.error("Failed to change result to float: ", e);
         fail();
       }
     }
@@ -182,7 +182,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (int) rawResult;
       } catch (Exception e) {
-        LOGGER.error("Failed to change result to integer: {}", e.getMessage());
+        LOGGER.error("Failed to change result to integer: ", e);
         fail();
       }
     }

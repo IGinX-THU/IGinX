@@ -35,7 +35,7 @@ public class HostUtils {
         }
       }
     } catch (SocketException e) {
-      LOGGER.error("get local host address error: {}", e.getMessage(), e);
+      LOGGER.error("Failed to get local host address", e);
     }
   }
 

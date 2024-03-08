@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.rest.query.aggregator;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
+import cn.edu.tsinghua.iginx.rest.exception.RESTIllegalArgumentException;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.List;
@@ -38,7 +39,7 @@ public class QueryAggregatorDiff extends QueryAggregator {
       List<String> paths,
       List<Map<String, List<String>>> tagList,
       long startKey,
-      long endKey) {
+      long endKey) throws RESTIllegalArgumentException {
     QueryResultDataset queryResultDataset = new QueryResultDataset();
     SessionQueryDataSet sessionQueryDataSet = session.queryData(paths, startKey, endKey, tagList);
     queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
@@ -89,7 +90,7 @@ public class QueryAggregatorDiff extends QueryAggregator {
         queryResultDataset.setSampleSize(datapoints);
         break;
       default:
-        throw new IllegalArgumentException("Unsupported data type");
+        throw new RESTIllegalArgumentException("Unsupported data type: " + type);
     }
     return queryResultDataset;
   }

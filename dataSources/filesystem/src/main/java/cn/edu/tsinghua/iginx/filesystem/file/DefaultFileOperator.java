@@ -97,11 +97,11 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public void writeIginxFile(File file, List<Record> records) throws IOException {
     if (file.exists() && file.isDirectory()) {
-      throw new RuntimeException(
+      throw new IOException(
           String.format("cannot write to directory %s", file.getAbsolutePath()));
     }
     if (!file.exists()) {
-      throw new RuntimeException(
+      throw new IOException(
           String.format(
               "cannot write to file %s because it does not exist", file.getAbsolutePath()));
     }
@@ -168,7 +168,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       replaceFile(file, tempFile);
     } catch (IOException e) {
-      LOGGER.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("write iginx file {} failure: ", file.getAbsolutePath(), e);
       throw new IOException(
           String.format("write iginx file %s failure", file.getAbsolutePath()), e);
     }
@@ -185,7 +185,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return true;
     } catch (IOException e) {
-      LOGGER.error("cannot read file {} {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("cannot read file {}", file.getAbsolutePath(), e);
       return false;
     }
   }
@@ -216,25 +216,24 @@ public class DefaultFileOperator implements IFileOperator {
       String lastLine = reversedLinesReader.readLine();
       return Long.parseLong(lastLine.substring(0, lastLine.indexOf(",")));
     } catch (IOException e) {
-      LOGGER.error(
-          "get max key of iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("get max key of iginx file {} failure:", file.getAbsolutePath(), e);
       return -1L;
     }
   }
 
   private void replaceFile(File file, File tempFile) throws IOException {
     if (!tempFile.exists()) {
-      throw new RuntimeException(
+      throw new IOException(
           String.format("temporary file %s does not exist", tempFile.getAbsoluteFile()));
     }
     if (!file.exists()) {
-      throw new RuntimeException(
+      throw new IOException(
           String.format("original file %s does not exist", file.getAbsoluteFile()));
     }
     try {
       Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
     } catch (IOException e) {
-      throw new RuntimeException(
+      throw new IOException(
           String.format(
               "replace file from %s to %s failure",
               tempFile.getAbsolutePath(), file.getAbsoluteFile()),
@@ -314,7 +313,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       replaceFile(file, tempFile);
     } catch (IOException e) {
-      throw new RuntimeException(String.format("trim file %s failure", file.getAbsolutePath()), e);
+      throw new IOException(String.format("trim file %s failure", file.getAbsolutePath()), e);
     }
   }
 

@@ -42,6 +42,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBException;
 import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.iotdb.tools.FilterTransformer;
@@ -128,7 +129,7 @@ public class IoTDBStorage implements IStorage {
       session.open(false);
       session.close();
     } catch (IoTDBConnectionException e) {
-      LOGGER.error("test connection error: {}", e.getMessage());
+      LOGGER.error("test connection error: ", e);
       return false;
     }
     return true;
@@ -176,7 +177,7 @@ public class IoTDBStorage implements IStorage {
         columnsInterval = new ColumnsInterval(dataPrefix);
       }
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      throw new RuntimeException("get time series failure: ", e);
+      throw new IoTDBException("get time series failure: ", e);
     }
 
     // 获取 key 范围
@@ -208,7 +209,7 @@ public class IoTDBStorage implements IStorage {
       }
       dataSet.close();
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      throw new RuntimeException("get time series failure: ", e);
+      throw new IoTDBException("get time series failure: ", e);
     }
     KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
 
@@ -274,7 +275,7 @@ public class IoTDBStorage implements IStorage {
       }
       dataSet.close();
     } catch (IoTDBConnectionException | StatementExecutionException e) {
-      throw new RuntimeException("get time series failure: ", e);
+      throw new IoTDBException("get time series failure: ", e);
     }
   }
 
@@ -501,7 +502,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        return new RuntimeException("insert tablets error", e);
+        return new IoTDBException("insert tablets error", e);
       }
 
       for (Tablet tablet : tablets.values()) {
@@ -579,7 +580,7 @@ public class IoTDBStorage implements IStorage {
           }
         }
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        return new RuntimeException("insert tablets error", e);
+        return new IoTDBException("insert tablets error", e);
       }
 
       // 重置 tablets
@@ -660,7 +661,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        return new RuntimeException("insert tablets error", e);
+        return new IoTDBException("insert tablets error", e);
       }
 
       for (Tablet tablet : tablets.values()) {
@@ -739,7 +740,7 @@ public class IoTDBStorage implements IStorage {
         try {
           sessionPool.insertTablets(tabletsMap.get(entry.getKey()));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-          return new RuntimeException("insert tablets error", e);
+          return new IoTDBException("insert tablets error", e);
         }
 
         for (Tablet tablet : tabletsMap.get(entry.getKey()).values()) {
@@ -761,7 +762,7 @@ public class IoTDBStorage implements IStorage {
           sessionPool.executeNonQueryStatement(
               String.format(DELETE_STORAGE_GROUP_CLAUSE, storageUnit));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-          LOGGER.warn("encounter error when clear data: {}", e.getMessage());
+          LOGGER.warn("encounter error when clear data: ", e);
           if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
             return new TaskExecuteResult(
                 new PhysicalTaskExecuteFailureException(
@@ -773,7 +774,7 @@ public class IoTDBStorage implements IStorage {
         try {
           deletedPaths = determineDeletePathList(storageUnit, delete);
         } catch (PhysicalException e) {
-          LOGGER.warn("encounter error when delete path: {}", e.getMessage());
+          LOGGER.warn("encounter error when delete path: ", e);
           return new TaskExecuteResult(
               new PhysicalTaskExecuteFailureException(
                   "execute delete path task in iotdb11 failure", e));
@@ -782,7 +783,7 @@ public class IoTDBStorage implements IStorage {
           try {
             sessionPool.executeNonQueryStatement(String.format(DELETE_TIMESERIES_CLAUSE, path));
           } catch (IoTDBConnectionException | StatementExecutionException e) {
-            LOGGER.warn("encounter error when delete path: {}", e.getMessage());
+            LOGGER.warn("encounter error when delete path: ", e);
             if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
               return new TaskExecuteResult(
                   new PhysicalTaskExecuteFailureException(
@@ -800,7 +801,7 @@ public class IoTDBStorage implements IStorage {
           }
         }
       } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
-        LOGGER.warn("encounter error when delete data: {}", e.getMessage());
+        LOGGER.warn("encounter error when delete data: ", e);
         if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
           return new TaskExecuteResult(
               new PhysicalTaskExecuteFailureException(

@@ -63,7 +63,7 @@ public abstract class BaseSessionIT {
               new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
       session.openSession();
     } catch (Exception e) {
-      LOGGER.error("Failed to open session: {}", e.getMessage());
+      LOGGER.error("Failed to open session: ", e);
     }
   }
 
@@ -73,7 +73,7 @@ public abstract class BaseSessionIT {
       clearData();
       session.closeSession();
     } catch (SessionException e) {
-      LOGGER.error("Failed to close session: {}", e.getMessage());
+      LOGGER.error("Failed to close session: ", e);
     }
   }
 
@@ -150,7 +150,7 @@ public abstract class BaseSessionIT {
       try {
         result = (double) rawResult;
       } catch (Exception e) {
-        LOGGER.error("Failed to change result to double: {}", e.getMessage());
+        LOGGER.error("Failed to change result to double: ", e);
         fail();
       }
     }

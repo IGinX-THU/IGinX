@@ -39,7 +39,7 @@ public class Controller {
 
   public static final String CLEAR_DATA_WARNING = "clear data fail and go on...";
 
-  public static final String CLEAR_DATA_ERROR = "Statement: \"{}\" execute fail. Caused by: {}";
+  public static final String CLEAR_DATA_ERROR = "Statement: \"{}\" execute fail. Caused by:";
 
   public static final String CONFIG_FILE = "./src/test/resources/testConfig.properties";
 
@@ -132,7 +132,7 @@ public class Controller {
     try {
       return (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-      LOGGER.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: ", e);
       fail();
     }
     return null;
@@ -184,7 +184,7 @@ public class Controller {
               Collections.singletonList(tagsList.get(i)),
               type);
         } catch (SessionException | StatementExecutionException e) {
-          LOGGER.error("write data fail, caused by: {}", e.getMessage());
+          LOGGER.error("write data fail, caused by: ", e);
           fail();
         }
       } else {
@@ -341,7 +341,7 @@ public class Controller {
           tagsList,
           type);
     } catch (SessionException | StatementExecutionException e) {
-      LOGGER.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: ", e);
       fail();
     }
 
@@ -389,7 +389,7 @@ public class Controller {
                 dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
       } catch (SessionException | StatementExecutionException e) {
         if (!e.getMessage().contains("repeatedly add storage engine")) {
-          LOGGER.error("add embedded storage engine fail, caused by: {}", e.getMessage());
+          LOGGER.error("add embedded storage engine fail, caused by: ", e);
           fail();
         }
       }
