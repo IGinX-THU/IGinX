@@ -3,10 +3,10 @@ package cn.edu.tsinghua.iginx.filesystem.file;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.MAGIC_NUMBER;
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.transformObjectToStringByDataType;
-import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
 
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.Record;
+import cn.edu.tsinghua.iginx.filesystem.tools.LimitedSizeMap;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
@@ -14,6 +14,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.*;
 import org.apache.commons.io.input.ReversedLinesFileReader;
 import org.slf4j.Logger;
@@ -22,6 +23,18 @@ import org.slf4j.LoggerFactory;
 public class DefaultFileOperator implements IFileOperator {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(DefaultFileOperator.class);
+  private LimitedSizeMap<File, BufferedWriter> appendWriterMap =
+      new LimitedSizeMap<>(
+          100_000,
+          (BufferedWriter writer) -> {
+            try {
+              writer.close();
+            } catch (IOException e) {
+              throw new RuntimeException("close writer failed", e);
+            }
+          });
+
+  private LimitedSizeMap<File, Long> lastKeyMap = new LimitedSizeMap<>(100_000, null);
 
   public DefaultFileOperator() {}
 
@@ -59,6 +72,7 @@ public class DefaultFileOperator implements IFileOperator {
   @Override
   public List<Record> readIginxFile(File file, long startKey, long endKey, DataType dataType)
       throws IOException {
+    flushAppendWriter(file);
     List<Record> res = new ArrayList<>();
     long key;
     if (startKey == -1 && endKey == -1) {
@@ -105,18 +119,15 @@ public class DefaultFileOperator implements IFileOperator {
               "cannot write to file %s because it does not exist", file.getAbsolutePath()));
     }
 
-    // 如果是一个空文件，即没有内容，只有元数据，则直接添加数据
-    if (ifIginxFileEmpty(file)) {
-      appendRecordsToIginxFile(file, records, 0, records.size());
-    }
-
     // Check if records can be directly appended to the end of the file
     if (file.exists() && file.length() > 0) {
       long lastKey = getIginxFileMaxKey(file);
-      if (lastKey < records.get(0).getKey()) {
+      if (lastKey == -1L || lastKey < records.get(0).getKey()) {
         appendRecordsToIginxFile(file, records, 0, records.size());
       }
     }
+
+    flushAppendWriter(file);
 
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
@@ -128,6 +139,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
         String line;
+        long key = -1L;
         while ((line = reader.readLine()) != null) {
           currentLine++;
           if (currentLine <= IGINX_FILE_META_INDEX) {
@@ -136,7 +148,7 @@ public class DefaultFileOperator implements IFileOperator {
             continue;
           }
           String[] kv = line.split(",", 2);
-          long key = Long.parseLong(kv[0]);
+          key = Long.parseLong(kv[0]);
           boolean isCovered = false;
           // 找到了需要插入的位置
           while (key >= minKey && recordIndex < maxLen) {
@@ -157,12 +169,15 @@ public class DefaultFileOperator implements IFileOperator {
             tempWriter.write("\n");
           }
         }
+        updateLastKey(file, minKey);
+        updateLastKey(file, key);
       }
 
       tempWriter.close();
 
       if (recordIndex < maxLen) {
         appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
+        updateLastKey(file, records.get(records.size() - 1).getKey());
       }
 
       replaceFile(file, tempFile);
@@ -192,11 +207,25 @@ public class DefaultFileOperator implements IFileOperator {
   // 直接将数据append到文件
   private void appendRecordsToIginxFile(File file, List<Record> records, int begin, int end)
       throws IOException {
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter(file, true))) {
+    BufferedWriter writer = null;
+    if (!appendWriterMap.containsKey(file)) {
+      try {
+        writer = new BufferedWriter(new FileWriter(file, true), 262144);
+        appendWriterMap.put(file, writer);
+      } catch (IOException e) {
+        throw new IOException(
+            String.format("cannot create writer for file %s", file.getAbsolutePath()), e);
+      }
+    } else {
+      writer = appendWriterMap.get(file);
+    }
+
+    try {
       for (int i = begin; i < end; i++) {
         writer.write(recordToString(records.get(i)));
         writer.write("\n");
       }
+      updateLastKey(file, records.get(end - 1).getKey());
     } catch (IOException e) {
       throw new IOException(
           String.format("append records to iginx file %s failure", file.getAbsolutePath()), e);
@@ -211,9 +240,22 @@ public class DefaultFileOperator implements IFileOperator {
 
   // return -1表示空
   private long getIginxFileMaxKey(File file) {
+    if (lastKeyMap.containsKey(file)) {
+      return lastKeyMap.get(file);
+    }
     try (ReversedLinesFileReader reversedLinesReader = new ReversedLinesFileReader(file, CHARSET)) {
       String lastLine = reversedLinesReader.readLine();
-      return Long.parseLong(lastLine.substring(0, lastLine.indexOf(",")));
+      if (!lastLine.contains(",")) {
+        return -1L;
+      }
+      String line = lastLine.substring(0, lastLine.indexOf(",")); // 获取第一个逗号之前的字符串
+      try {
+        long number = Long.parseLong(line); // 尝试将字符串解析为long类型
+        return number;
+      } catch (NumberFormatException e) {
+        LOGGER.info("no data has been written to file {}", file.getAbsolutePath());
+      }
+      return -1L;
     } catch (IOException e) {
       LOGGER.error("get max key of iginx file {} failure:", file.getAbsolutePath(), e);
       return -1L;
@@ -230,13 +272,37 @@ public class DefaultFileOperator implements IFileOperator {
           String.format("original file %s does not exist", file.getAbsoluteFile()));
     }
     try {
-      Files.move(tempFile.toPath(), file.toPath(), REPLACE_EXISTING);
+      moveFileWithLock(tempFile, file);
     } catch (IOException e) {
       throw new IOException(
           String.format(
               "replace file from %s to %s failure",
               tempFile.getAbsolutePath(), file.getAbsoluteFile()),
           e);
+    }
+  }
+
+  private void moveFileWithLock(File source, File target) throws IOException {
+    boolean movedSuccessfully = false;
+
+    while (!movedSuccessfully) {
+      closeAppendWriter(target);
+      closeAppendWriter(source);
+      try {
+        Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
+        movedSuccessfully = true;
+      } catch (Exception e) {
+        LOGGER.error(
+            "move file from {} to {} failure: {} and wait",
+            source.getAbsolutePath(),
+            target.getAbsoluteFile(),
+            e.getMessage());
+        try {
+          Thread.sleep(1);
+        } catch (InterruptedException interruptedException) {
+          interruptedException.printStackTrace();
+        }
+      }
     }
   }
 
@@ -276,6 +342,7 @@ public class DefaultFileOperator implements IFileOperator {
       throw new IOException(
           String.format("cannot delete file %s because it does not exist", file.getAbsolutePath()));
     }
+    closeAppendWriter(file);
     if (!file.delete()) {
       throw new IOException(String.format("cannot delete file %s", file.getAbsolutePath()));
     }
@@ -284,6 +351,7 @@ public class DefaultFileOperator implements IFileOperator {
   // 删除对应key范围内的数据
   @Override
   public void trimFile(File file, long begin, long end) throws IOException {
+    flushAppendWriter(file);
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
     try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile))) {
@@ -291,6 +359,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
         String line;
+        long lastKey = -1L;
         while ((line = reader.readLine()) != null) {
           currentLine++;
           if (currentLine <= IGINX_FILE_META_INDEX) {
@@ -303,8 +372,12 @@ public class DefaultFileOperator implements IFileOperator {
           if (key >= begin && key <= end) {
             continue;
           }
+          lastKey = key;
           tempWriter.write(line);
           tempWriter.write("\n");
+        }
+        if (lastKey != -1L) {
+          updateLastKey(file, lastKey);
         }
       }
 
@@ -378,5 +451,40 @@ public class DefaultFileOperator implements IFileOperator {
       files = file.getParentFile().listFiles(readFileFilter);
     }
     return files == null ? new ArrayList<>() : Arrays.asList(files);
+  }
+
+  private void closeAppendWriter(File file) throws IOException {
+    LOGGER.debug("close writer for file {}", file.getAbsolutePath());
+    BufferedWriter writer = appendWriterMap.get(file);
+    if (writer != null) {
+      try {
+        appendWriterMap.remove(file);
+        writer.close();
+      } catch (IOException e) {
+        throw new IOException(
+            String.format("close writer for file %s failure", file.getAbsolutePath()), e);
+      }
+    }
+  }
+
+  private void flushAppendWriter(File file) throws IOException {
+    LOGGER.debug("flush writer for file {}", file.getAbsolutePath());
+    BufferedWriter writer = appendWriterMap.get(file);
+    if (writer != null) {
+      try {
+        writer.flush();
+      } catch (IOException e) {
+        throw new IOException(
+            String.format("flush writer for file %s failure", file.getAbsolutePath()), e);
+      }
+    }
+  }
+
+  private void updateLastKey(File file, long key) {
+    if (lastKeyMap.containsKey(file) && lastKeyMap.get(file) < key) {
+      lastKeyMap.put(file, key);
+    } else if (!lastKeyMap.containsKey(file)) {
+      lastKeyMap.put(file, key);
+    }
   }
 }
