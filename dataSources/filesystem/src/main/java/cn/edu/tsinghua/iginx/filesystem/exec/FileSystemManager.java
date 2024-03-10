@@ -219,7 +219,7 @@ public class FileSystemManager {
    * @param tags 用于匹配的 tags 集合
    * @return 元数据与 tags 相等的 .iginx 文件,否则返回 null
    */
-  private File getFileWithTags(File file, Map<String, String> tags) {
+  private File getFileWithTags(File file, Map<String, String> tags) throws IOException {
     for (File f : getAssociatedFiles(file, false)) {
       FileMeta fileMeta = getFileMeta(f);
       if ((tags == null || tags.isEmpty()) && fileMeta.getTags().isEmpty()) {
@@ -242,7 +242,7 @@ public class FileSystemManager {
     return fileOperator.create(f, fileMeta);
   }
 
-  private File determineFileID(File file) {
+  private File determineFileID(File file) throws IOException {
     int id = getFileID(file);
     if (id == -1) {
       id = 0;
@@ -253,7 +253,7 @@ public class FileSystemManager {
   }
 
   // 获取文件id，例如 a.iginx5，则其id就是5
-  private int getFileID(File file) {
+  private int getFileID(File file) throws IOException {
     List<File> files = getAssociatedFiles(file, false);
     if (files.isEmpty()) {
       return -1;
@@ -310,7 +310,7 @@ public class FileSystemManager {
   }
 
   // 返回和file文件相关的所有文件
-  private List<File> getAssociatedFiles(File file, boolean isDummy) {
+  private List<File> getAssociatedFiles(File file, boolean isDummy) throws IOException {
     List<File> associatedFiles = new ArrayList<>();
     try {
       String filePath = file.getAbsolutePath();
@@ -359,7 +359,7 @@ public class FileSystemManager {
             });
       }
     } catch (IOException e) {
-      throw new RuntimeException(
+      throw new IOException(
           String.format("get associated files of %s failure: %s", file.getAbsolutePath(), e));
     }
     return associatedFiles;
@@ -397,8 +397,7 @@ public class FileSystemManager {
             }
           });
     } catch (IOException e) {
-      throw new RuntimeException(
-          String.format("get all files of %s failure: %s", dir.getAbsolutePath(), e));
+      LOGGER.error("get all files of {} failure", dir.getAbsolutePath(), e);
     }
     return res;
   }
@@ -431,9 +430,9 @@ public class FileSystemManager {
       }
       return fileMeta;
     } catch (IOException e) {
-      throw new RuntimeException(
-          String.format("get file meta of %s failure", file.getAbsolutePath()), e);
+      LOGGER.error("get file meta of {} failure", file.getAbsolutePath(), e);
     }
+    return null;
   }
 
   private boolean isDirEmpty(Path dir) throws IOException {

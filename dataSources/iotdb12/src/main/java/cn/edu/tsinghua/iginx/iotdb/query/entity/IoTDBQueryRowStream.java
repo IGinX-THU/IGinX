@@ -164,7 +164,7 @@ public class IoTDBQueryRowStream implements RowStream {
       }
       return state == State.HAS_NEXT;
     } catch (SQLException e) {
-      throw new RowFetchException(new RuntimeException("IoTDBQueryRowStream hasNext error", e));
+      throw new RowFetchException("IoTDBQueryRowStream hasNext error", e);
     }
   }
 
@@ -180,7 +180,7 @@ public class IoTDBQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      throw new RowFetchException(new RuntimeException("IoTDBQueryRowStream next error", e));
+      throw new RowFetchException("IoTDBQueryRowStream next error", e);
     }
   }
 
@@ -212,7 +212,7 @@ public class IoTDBQueryRowStream implements RowStream {
         cachedRow = null;
       }
     } catch (StatementExecutionException | IoTDBConnectionException e) {
-      throw new RowFetchException(new RuntimeException("IoTDBQueryRowStream cacheOneRow error", e));
+      throw new RowFetchException("IoTDBQueryRowStream cacheOneRow error", e);
     }
   }
 

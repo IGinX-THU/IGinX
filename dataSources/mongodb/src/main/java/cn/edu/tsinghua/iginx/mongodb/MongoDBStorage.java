@@ -242,13 +242,9 @@ public class MongoDBStorage implements IStorage {
   }
 
   private static long getDuplicateKey(WriteError error) {
-    try {
-      String msg = error.getMessage();
-      String id = msg.substring(msg.lastIndexOf(':') + 2, msg.length() - 2);
-      return Long.parseLong(id);
-    } catch (Exception e) {
-      throw new RuntimeException("failed to parse " + error, e);
-    }
+    String msg = error.getMessage();
+    String id = msg.substring(msg.lastIndexOf(':') + 2, msg.length() - 2);
+    return Long.parseLong(id);
   }
 
   @Override

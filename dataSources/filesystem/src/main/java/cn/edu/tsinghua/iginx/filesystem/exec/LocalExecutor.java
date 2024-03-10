@@ -85,7 +85,7 @@ public class LocalExecutor implements Executor {
                   String.format("dir %s cannot be equal to dummy directory %s", dir, dummyDir));
             }
           } catch (IOException e) {
-            throw new RuntimeException(
+            throw new IOException(
                 String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir));
           }
         }
@@ -100,8 +100,7 @@ public class LocalExecutor implements Executor {
         this.root = file.getCanonicalPath() + SEPARATOR;
       }
     } catch (IOException e) {
-      throw new RuntimeException(
-          String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir), e);
+      LOGGER.error("get dir or dummy dir failure:", e);
     }
     this.hasData = hasData;
     this.fileSystemManager = new FileSystemManager(extraParams);
