@@ -119,7 +119,7 @@ public class Session {
         if (targetAddress.length != 2) {
           throw new SessionException("unexpected redirect address " + status.getMessage());
         }
-        LOGGER.info("当前请求将被重定向到：" + status.getMessage());
+        LOGGER.info("当前请求将被重定向到：{}", status.getMessage());
         this.host = targetAddress[0];
         this.port = Integer.parseInt(targetAddress[1]);
 
@@ -197,7 +197,7 @@ public class Session {
         if (targetAddress.length != 2) {
           throw new SessionException("unexpected redirect address " + resp.status.getMessage());
         }
-        LOGGER.info("当前请求将被重定向到：" + resp.status.getMessage());
+        LOGGER.info("当前请求将被重定向到：{}", resp.status.getMessage());
 
         this.host = targetAddress[0];
         this.port = Integer.parseInt(targetAddress[1]);

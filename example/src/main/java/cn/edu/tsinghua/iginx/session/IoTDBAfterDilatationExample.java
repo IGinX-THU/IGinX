@@ -76,7 +76,7 @@ public class IoTDBAfterDilatationExample {
       session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
       Thread.sleep(1);
       if ((i + 1) % 10 == 0) {
-        LOGGER.info("insert progress: " + (i + 1) + "/1000.");
+        LOGGER.info("insert progress: {}/1000", (i + 1));
       }
     }
   }

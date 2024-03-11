@@ -27,7 +27,7 @@ public class IginXWriter extends ExportWriter {
   @Override
   public void write(BatchData batchData) {
     String insertSQL = buildSQL(batchData);
-    LOGGER.info("Insert statement: " + insertSQL);
+    LOGGER.info("Insert statement: {}", insertSQL);
 
     if (!insertSQL.equals("")) {
       ExecuteStatementReq req = new ExecuteStatementReq(sessionId, insertSQL);

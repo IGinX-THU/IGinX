@@ -83,7 +83,7 @@ public class OpenTSDBStorage implements IStorage {
     } catch (IOReactorException e) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
-    LOGGER.info(meta + " is initialized.");
+    LOGGER.info("{} is initialized.", meta);
   }
 
   private boolean testConnection() {

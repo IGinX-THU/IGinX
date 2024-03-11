@@ -144,7 +144,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     client.close();
-    LOGGER.info("write data to " + url + " success!");
+    LOGGER.info("write data to {} success!", url);
   }
 
   @Override

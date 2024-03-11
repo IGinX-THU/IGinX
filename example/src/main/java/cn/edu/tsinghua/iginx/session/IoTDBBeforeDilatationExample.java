@@ -76,7 +76,7 @@ public class IoTDBBeforeDilatationExample {
       session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
       Thread.sleep(1);
       if ((insertTimes - i + 1) % 100 == 0) {
-        LOGGER.info("insert progress: " + (insertTimes - i + 1) + "/" + insertTimes + ".");
+        LOGGER.info("insert progress: {}/{}.", (insertTimes - i + 1), insertTimes);
       }
     }
   }

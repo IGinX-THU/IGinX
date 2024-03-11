@@ -88,7 +88,7 @@ public class RestSession {
       if (targetAddress.length != 2) {
         throw new SessionException("unexpected redirect address " + resp.status.getMessage());
       }
-      LOGGER.info("当前请求将被重定向到：" + resp.status.getMessage());
+      LOGGER.info("当前请求将被重定向到：{}", resp.status.getMessage());
       redirectTimes += 1;
 
     } while (redirectTimes <= Constants.MAX_REDIRECT_TIME);
