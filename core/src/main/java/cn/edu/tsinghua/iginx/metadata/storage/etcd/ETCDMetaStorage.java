@@ -955,9 +955,8 @@ public class ETCDMetaStorage implements IMetaStorage {
           StorageUnitMeta masterStorageUnit = storageUnitMap.get(storageUnit.getMasterId());
           if (masterStorageUnit == null) { // 子节点先于主节点加入系统中，不应该发生，报错
             LOGGER.error(
-                "unexpected storage unit "
-                    + new String(kv.getValue().getBytes())
-                    + ", because it does not has a master storage unit");
+                "unexpected storage unit {}, because it does not has a master storage unit",
+                new String(kv.getValue().getBytes()));
           } else {
             masterStorageUnit.addReplica(storageUnit);
           }

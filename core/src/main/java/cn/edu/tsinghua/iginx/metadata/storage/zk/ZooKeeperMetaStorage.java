@@ -731,7 +731,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               }
               StorageUnitMeta storageUnitMeta = JsonUtils.fromJson(data, StorageUnitMeta.class);
               if (storageUnitMeta != null) {
-                LOGGER.info("new storage unit comes to cluster: id = " + storageUnitMeta.getId());
+                LOGGER.info("new storage unit comes to cluster: id = {}", storageUnitMeta.getId());
                 storageUnitChangeHook.onChange(storageUnitMeta.getId(), storageUnitMeta);
               }
               break;
@@ -1113,7 +1113,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         byte[] data = this.client.getData().forPath(USER_NODE_PREFIX + "/" + username);
         UserMeta user = JsonUtils.fromJson(data, UserMeta.class);
         if (user == null) {
-          LOGGER.error("resolve data from " + USER_NODE_PREFIX + "/" + username + " error");
+          LOGGER.error("resolve data from {}/{} error", USER_NODE_PREFIX, username);
           continue;
         }
         users.add(user);
@@ -1275,7 +1275,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         }
         Map<String, Double> tmp = toMap(data);
         if (tmp == null) {
-          LOGGER.error("resolve data from " + TIMESERIES_NODE_PREFIX + "/" + child + " error");
+          LOGGER.error("resolve data from {}/{} error", TIMESERIES_NODE_PREFIX, child);
           continue;
         }
         tmp.forEach(
@@ -1477,7 +1477,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           byte[] data = this.client.getData().forPath(TRANSFORM_NODE_PREFIX + "/" + className);
           TransformTaskMeta task = JsonUtils.fromJson(data, TransformTaskMeta.class);
           if (task == null) {
-            LOGGER.error("resolve data from " + TRANSFORM_NODE_PREFIX + "/" + className + " error");
+            LOGGER.error("resolve data from {}/{} error", TRANSFORM_NODE_PREFIX, className);
             continue;
           }
           tasks.add(task);

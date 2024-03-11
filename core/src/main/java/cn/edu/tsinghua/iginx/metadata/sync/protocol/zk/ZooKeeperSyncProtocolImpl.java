@@ -186,7 +186,7 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
     try {
       this.voteCache.start();
     } catch (Exception e) {
-      LOGGER.error("register global vote listener for " + category + "failure: ", e);
+      LOGGER.error("register global vote listener for {} failure: ", category, e);
       throw new NetworkException("register global vote listener failure.", e);
     }
   }

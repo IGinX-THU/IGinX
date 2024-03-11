@@ -139,7 +139,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                         case DELETE:
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -274,7 +274,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
 
   @Override
   public void voteFor(String key, SyncVote vote) throws NetworkException, VoteExpiredException {
-    LOGGER.info("vote for " + key + " from " + vote.getVoter());
+    LOGGER.info("vote for {} from ", vote.getVoter());
     long voter = vote.getVoter();
     try {
       long createTime = 0L;
