@@ -41,7 +41,7 @@
                 <artifactId>maven-assembly-plugin</artifactId>
                 <configuration>
                     <descriptors>
-                        <descriptor>src/assembly/full-server.xml</descriptor>
+                        <descriptor>src/assembly/server.xml</descriptor>
                     </descriptors>
                     <finalName>iginx-${project.version}</finalName>
                 </configuration>
