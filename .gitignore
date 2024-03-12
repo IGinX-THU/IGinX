@@ -46,3 +46,4 @@ hs_err_pid*
 **/.flattened-pom.xml
 
 !/maven-repo/
+!/maven-snapshot-repo/
