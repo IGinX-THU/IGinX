@@ -21,13 +21,11 @@
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-core</artifactId>
-            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua.iginx</groupId>
             <artifactId>parquet-file</artifactId>
-            <version>0.0.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
