@@ -131,7 +131,7 @@ public abstract class BufferPoolTest {
 
   public static ByteBuffer assertAllocate(BufferPool bufferPool, int atLeast) {
     ByteBuffer buffer = assertAllocateOnly(bufferPool, atLeast);
-    for (int i = 0; i < buffer.capacity(); i++) {
+    for (int i = 0; i < atLeast; i++) {
       buffer.put(i, (byte) i);
     }
     return buffer;

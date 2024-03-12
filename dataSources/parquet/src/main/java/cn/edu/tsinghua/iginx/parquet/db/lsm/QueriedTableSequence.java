@@ -51,7 +51,7 @@ class QueriedTableSequence<K extends Comparable<K>, F, T, V> implements Prefetch
 
   @Override
   public Object fetch(long id) throws IOException {
-    String tableName = tableNames.get((int) id);
+    String tableName = tableNames.get(Math.toIntExact(id));
     Table<K, F, T, V> table = storage.get(tableName);
     return new Entry(table);
   }

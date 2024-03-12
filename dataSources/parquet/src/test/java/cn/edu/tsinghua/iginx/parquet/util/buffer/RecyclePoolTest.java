@@ -98,20 +98,18 @@ public class RecyclePoolTest extends BufferPoolTest {
 
   @Test
   public void testRecycleSequence() {
-    Set<ByteBuffer> buffers = new HashSet<>();
     RecyclePool pool = new RecyclePool(new HeapPool(), 1024, 1024 * 1024);
     List<Integer> capacities = new ArrayList<>();
     for (int capacity : getAllocateSequence()) {
       capacities.add(capacity);
     }
 
-    int total = 0;
+    List<ByteBuffer> buffers = new ArrayList<>();
     for (int capacity : capacities) {
       ByteBuffer buffer = assertAllocateOnly(pool, capacity);
-      buffer.putInt(total++);
+      buffer.putInt(capacity);
       buffers.add(buffer);
     }
-
     for (ByteBuffer buffer : buffers) {
       pool.release(buffer);
     }
@@ -120,7 +118,7 @@ public class RecyclePoolTest extends BufferPoolTest {
 
     for (int capacity : capacities) {
       ByteBuffer buffer = assertAllocateOnly(pool, capacity);
-      assertTrue(buffers.contains(buffer));
+      assertEquals(capacity, buffer.getInt());
     }
   }
 }

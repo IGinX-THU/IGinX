@@ -34,7 +34,7 @@ public class StorageProperties {
   private final int poolBufferRecycleAlign;
   private final int poolBufferRecycleLimit;
   private final long parquetRowGroupSize;
-  private final long parquetPageSize;
+  private final int parquetPageSize;
   private final String parquetCompression;
   private final int zstdLevel;
   private final int zstdWorkers;
@@ -64,7 +64,7 @@ public class StorageProperties {
       int poolBufferRecycleAlign,
       int poolBufferRecycleLimit,
       long parquetRowGroupSize,
-      long parquetPageSize,
+      int parquetPageSize,
       String parquetCompression,
       int zstdLevel,
       int zstdWorkers,
@@ -192,7 +192,7 @@ public class StorageProperties {
    *
    * @return the size of parquet page, bytes
    */
-  public long getParquetPageSize() {
+  public int getParquetPageSize() {
     return parquetPageSize;
   }
 
@@ -282,8 +282,6 @@ public class StorageProperties {
     public static final String ZSTD_WORKERS = "zstd.workers";
     public static final String PARQUET_LZ4_BUFFER_SIZE = "parquet.lz4.buffer.size";
 
-    private static final int UNINITIALIZED_INT = -1;
-
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
@@ -292,10 +290,10 @@ public class StorageProperties {
     private Duration cacheTimeout = null;
     private boolean cacheSoftValues = false;
     private boolean poolBufferRecycleEnable = true;
-    private int poolBufferRecycleAlign = UNINITIALIZED_INT;
-    private int poolBufferRecycleLimit = UNINITIALIZED_INT;
+    private Integer poolBufferRecycleAlign = null;
+    private Integer poolBufferRecycleLimit = null;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
-    private long parquetPageSize = 8 * 1024; // BYTE
+    private int parquetPageSize = 8 * 1024; // BYTE
     private String parquetCompression = "UNCOMPRESSED";
     private int zstdLevel = 3;
     private int zstdWorkers = 0;
@@ -436,7 +434,7 @@ public class StorageProperties {
      * @param parquetPageSize the size of parquet page, bytes
      * @return this builder
      */
-    public Builder setParquetPageSize(long parquetPageSize) {
+    public Builder setParquetPageSize(int parquetPageSize) {
       ParseUtils.checkPositive(parquetPageSize);
       this.parquetPageSize = parquetPageSize;
       return this;
@@ -534,7 +532,8 @@ public class StorageProperties {
           .ifPresent(this::setPoolBufferRecycleLimit);
       ParseUtils.getOptionalLong(properties, PARQUET_BLOCK_SIZE)
           .ifPresent(this::setParquetRowGroupSize);
-      ParseUtils.getOptionalLong(properties, PARQUET_PAGE_SIZE).ifPresent(this::setParquetPageSize);
+      ParseUtils.getOptionalInteger(properties, PARQUET_PAGE_SIZE)
+          .ifPresent(this::setParquetPageSize);
       ParseUtils.getOptionalString(properties, PARQUET_COMPRESSOR)
           .ifPresent(this::setParquetCompression);
       ParseUtils.getOptionalInteger(properties, ZSTD_LEVEL).ifPresent(this::setZstdLevel);
@@ -550,11 +549,11 @@ public class StorageProperties {
      * @return a StorageProperties
      */
     public StorageProperties build() {
-      if (poolBufferRecycleAlign == UNINITIALIZED_INT) {
-        poolBufferRecycleAlign = (int) parquetPageSize;
+      if (poolBufferRecycleAlign == null) {
+        poolBufferRecycleAlign = Math.toIntExact(parquetPageSize);
       }
-      if (poolBufferRecycleLimit == UNINITIALIZED_INT) {
-        poolBufferRecycleLimit = (int) parquetRowGroupSize;
+      if (poolBufferRecycleLimit == null) {
+        poolBufferRecycleLimit = Math.toIntExact(parquetRowGroupSize);
       }
       return new StorageProperties(
           writeBufferSize,

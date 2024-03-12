@@ -85,7 +85,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
       IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema, allocator);
       builder.withRowGroupSize(shared.getStorageProperties().getParquetRowGroupSize());
-      builder.withPageSize((int) shared.getStorageProperties().getParquetPageSize());
+      builder.withPageSize(shared.getStorageProperties().getParquetPageSize());
       builder.withCodecFactory(
           allocator,
           shared.getStorageProperties().getZstdLevel(),
@@ -360,7 +360,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       this.meta = meta;
       int schemaWeight = schemaDst.toString().length();
       int rangeWeight = rangeMap.toString().length();
-      int metaWeight = (int) SizeOf.newInstance().deepSizeOf(meta);
+      int metaWeight = Math.toIntExact(SizeOf.newInstance().deepSizeOf(meta));
       this.weight = schemaWeight + rangeWeight + metaWeight;
     }
 
