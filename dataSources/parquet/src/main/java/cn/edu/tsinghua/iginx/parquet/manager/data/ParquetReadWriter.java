@@ -3,8 +3,12 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.iterator.IteratorScanner;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.table.DeletedTableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.AreaFilterScanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.IteratorScanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
 import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
@@ -39,9 +43,12 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   private final Path dir;
 
+  private final TombstoneStorage tombstoneStorage;
+
   public ParquetReadWriter(StorageShared shared, Path dir) {
     this.shared = shared;
     this.dir = dir;
+    this.tombstoneStorage = new TombstoneStorage(shared, dir.resolve(Constants.DIR_NAME_TOMBSTONE));
     cleanTempFiles();
   }
 
@@ -94,7 +101,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       }
     }
 
-    LOGGER.info("rename temp file to {}", path);
+    LOGGER.debug("rename temp file to {}", path);
     if (Files.exists(path)) {
       LOGGER.warn("file {} already exists, will be replaced", path);
     }
@@ -112,14 +119,18 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       DataType type = entry.getValue();
       fields.add(IParquetWriter.getParquetType(name, type, Type.Repetition.OPTIONAL));
     }
-    MessageType parquetSchema = new MessageType(Constants.RECORD_FIELD_NAME, fields);
-    return parquetSchema;
+    return new MessageType(Constants.RECORD_FIELD_NAME, fields);
   }
 
   @Override
   public TableMeta<Long, String, DataType, Object> readMeta(String tableName) {
     Path path = getPath(tableName);
-    return getParquetTableMeta(path.toString());
+    ParquetTableMeta tableMeta = getParquetTableMeta(path.toString());
+    AreaSet<Long, String> tombstone = tombstoneStorage.get(tableName);
+    if (tombstone == null || tombstone.isEmpty()) {
+      return tableMeta;
+    }
+    return new DeletedTableMeta<>(tableMeta, tombstone);
   }
 
   @Nonnull
@@ -200,7 +211,30 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     ParquetTableMeta parquetTableMeta = getParquetTableMeta(path.toString());
     IParquetReader reader = builder.build(parquetTableMeta.getMeta());
 
-    return new ParquetScanner(reader, arenaPool);
+    Scanner<Long, Scanner<String, Object>> scanner = new ParquetScanner(reader, arenaPool);
+
+    AreaSet<Long, String> tombstone = tombstoneStorage.get(name);
+    if (tombstone == null || tombstone.isEmpty()) {
+      return scanner;
+    }
+    return new AreaFilterScanner<>(scanner, tombstone);
+  }
+
+  @Override
+  public void delete(String name, AreaSet<Long, String> areas) throws IOException {
+    tombstoneStorage.delete(Collections.singleton(name), oldAreas -> oldAreas.addAll(areas));
+  }
+
+  @Override
+  public void delete(String name) {
+    Path path = getPath(name);
+    try {
+      Files.deleteIfExists(path);
+      shared.getCachePool().asMap().remove(path.toString());
+      tombstoneStorage.removeTable(name);
+    } catch (IOException e) {
+      throw new StorageRuntimeException(e);
+    }
   }
 
   @Override
@@ -214,7 +248,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         names.add(tableName);
       }
     } catch (NoSuchFileException ignored) {
-      LOGGER.info("no dir named {}", dir);
+      LOGGER.debug("dir {} not existed.", dir);
     }
     return names;
   }
@@ -241,6 +275,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
         }
       }
       Files.deleteIfExists(dir);
+      tombstoneStorage.clear();
     } catch (NoSuchFileException e) {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {
@@ -248,16 +283,6 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     }
-  }
-
-  @Override
-  public ObjectFormat<Long> getKeyFormat() {
-    return new LongFormat();
-  }
-
-  @Override
-  public ObjectFormat<String> getFieldFormat() {
-    return new StringFormat();
   }
 
   private static class ParquetScanner implements Scanner<Long, Scanner<String, Object>> {

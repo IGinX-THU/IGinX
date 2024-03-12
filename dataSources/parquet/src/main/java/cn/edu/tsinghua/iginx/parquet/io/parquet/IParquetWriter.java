@@ -20,7 +20,7 @@ import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
 import cn.edu.tsinghua.iginx.format.parquet.api.RecordDematerializer;
 import cn.edu.tsinghua.iginx.format.parquet.codec.DefaultCodecFactory;
 import cn.edu.tsinghua.iginx.format.parquet.io.LocalOutputFile;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;

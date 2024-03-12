@@ -112,6 +112,29 @@ public class IParquetReader extends ParquetReader<IRecord> {
     return metadata;
   }
 
+  public static DataType toIginxType(PrimitiveType primitiveType) {
+    if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
+      return DataType.BINARY;
+    }
+    switch (primitiveType.getPrimitiveTypeName()) {
+      case BOOLEAN:
+        return DataType.BOOLEAN;
+      case INT32:
+        return DataType.INTEGER;
+      case INT64:
+        return DataType.LONG;
+      case FLOAT:
+        return DataType.FLOAT;
+      case DOUBLE:
+        return DataType.DOUBLE;
+      case BINARY:
+        return DataType.BINARY;
+      default:
+        throw new IllegalArgumentException(
+            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
+    }
+  }
+
   public static class Builder extends ParquetReader.Builder<IRecord, IParquetReader, Builder> {
 
     private final InputFile localInputfile;
@@ -170,29 +193,6 @@ public class IParquetReader extends ParquetReader<IRecord> {
               DefaultCodecFactory.DEFAULT_ZSTD_LEVEL,
               DefaultCodecFactory.DEFAULT_ZSTD_WORKERS));
       return this;
-    }
-  }
-
-  public static DataType toIginxType(PrimitiveType primitiveType) {
-    if (primitiveType.getRepetition().equals(PrimitiveType.Repetition.REPEATED)) {
-      return DataType.BINARY;
-    }
-    switch (primitiveType.getPrimitiveTypeName()) {
-      case BOOLEAN:
-        return DataType.BOOLEAN;
-      case INT32:
-        return DataType.INTEGER;
-      case INT64:
-        return DataType.LONG;
-      case FLOAT:
-        return DataType.FLOAT;
-      case DOUBLE:
-        return DataType.DOUBLE;
-      case BINARY:
-        return DataType.BINARY;
-      default:
-        throw new RuntimeException(
-            "Unsupported data type: " + primitiveType.getPrimitiveTypeName());
     }
   }
 }

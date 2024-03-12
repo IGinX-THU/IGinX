@@ -17,12 +17,20 @@
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Prefetch;
-import java.util.function.LongFunction;
+import java.io.IOException;
 
 public class NoPrefetch implements Prefetch {
 
   @Override
-  public LongFunction<Object> prefetch(Prefetchable prefetchable) {
-    return prefetchable::fetch;
+  public Prefetcher prefetch(Prefetchable prefetchable) {
+    return new Prefetcher() {
+      @Override
+      public Object get(long id) throws IOException {
+        return prefetchable.fetch(id);
+      }
+
+      @Override
+      public void close() {}
+    };
   }
 }

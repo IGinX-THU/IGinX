@@ -27,7 +27,8 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.OneTierDB;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
@@ -56,7 +57,7 @@ public class DataManager implements Manager {
     this.shared = shared;
     Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
     ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dataDir);
-    this.db = new OneTierDB<>(shared, dir, readWriter, new NoPrefetch());
+    this.db = new OneTierDB<>(dir.toString(), shared, readWriter, new NoPrefetch());
   }
 
   @Override
@@ -110,20 +111,25 @@ public class DataManager implements Manager {
       }
     }
 
+    AreaSet<Long, String> areas = new AreaSet<>();
     if (StringUtils.allPathMatched(paths) && tagFilter == null) {
       if (rangeSet.isEmpty()) {
         db.clear();
       } else {
-        db.delete(rangeSet);
+        areas.add(rangeSet);
       }
     } else {
       Map<String, DataType> schemaMatchedTags = ProjectUtils.project(db.schema(), tagFilter);
       Set<String> fields = ProjectUtils.project(schemaMatchedTags, paths).keySet();
       if (rangeSet.isEmpty()) {
-        db.delete(fields);
+        areas.add(fields);
       } else {
-        db.delete(fields, rangeSet);
+        areas.add(fields, rangeSet);
       }
+    }
+
+    if (!areas.isEmpty()) {
+      db.delete(areas);
     }
   }
 

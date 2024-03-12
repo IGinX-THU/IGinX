@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.constant;
 
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 public class Constant {
+  public static final String ORI_PORT_NAME = "ori_port";
+  public static final String EXP_PORT_NAME = "exp_port";
+  public static final String READ_ONLY_PORT_NAME = "read_only_port";
 
   // port
   public static int oriPort = 6667;
@@ -24,9 +28,7 @@ public class Constant {
 
   // path
   public static final List<String> INIT_PATH_LIST =
-      Arrays.asList(
-          "b.b.b",
-          "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz");
+      Arrays.asList(Controller.DUMMY_INIT_PATH_BEGIN, Controller.DUMMY_INIT_PATH_END);
 
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");

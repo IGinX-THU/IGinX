@@ -16,18 +16,23 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.concurrent.Executor;
-import java.util.function.LongFunction;
 
 public interface Prefetch {
 
-  interface Prefetchable extends Executor, AutoCloseable {
+  interface Prefetchable extends Executor, Closeable {
     long count();
 
     long estimateCost(long id);
 
-    Object fetch(long id);
+    Object fetch(long id) throws IOException;
   }
 
-  LongFunction<Object> prefetch(Prefetchable prefetchable);
+  interface Prefetcher extends AutoCloseable {
+    Object get(long id) throws IOException;
+  }
+
+  Prefetcher prefetch(Prefetchable prefetchable);
 }

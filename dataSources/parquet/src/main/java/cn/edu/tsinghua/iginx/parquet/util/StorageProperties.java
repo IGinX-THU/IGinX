@@ -24,6 +24,7 @@ import java.util.StringJoiner;
 /** The properties of storage engine */
 public class StorageProperties {
   private final long writeBufferSize;
+  private final Duration writeBufferTimeout;
   private final long writeBatchSize;
   private final int compactPermits;
   private final long cacheCapacity;
@@ -39,8 +40,21 @@ public class StorageProperties {
   private final int zstdWorkers;
   private final int parquetLz4BufferSize;
 
-  public StorageProperties(
+  /**
+   * Construct a StorageProperties
+   *
+   * @param writeBufferSize the size of write buffer, bytes
+   * @param writeBatchSize the size of write batch, bytes
+   * @param compactPermits the number of flusher permits
+   * @param cacheCapacity the capacity of cache, bytes
+   * @param cacheTimeout the expiry timeout of cache
+   * @param cacheSoftValues whether to enable soft values of cache
+   * @param parquetRowGroupSize the size of parquet row group, bytes
+   * @param parquetPageSize the size of parquet page, bytes
+   */
+  private StorageProperties(
       long writeBufferSize,
+      Duration writeBufferTimeout,
       long writeBatchSize,
       int compactPermits,
       long cacheCapacity,
@@ -56,6 +70,7 @@ public class StorageProperties {
       int zstdWorkers,
       int parquetLz4BufferSize) {
     this.writeBufferSize = writeBufferSize;
+    this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
     this.compactPermits = compactPermits;
     this.cacheCapacity = cacheCapacity;
@@ -79,6 +94,15 @@ public class StorageProperties {
    */
   public long getWriteBufferSize() {
     return writeBufferSize;
+  }
+
+  /**
+   * Get the timeout of write buffer to flush
+   *
+   * @return the timeout of write buffer to flush
+   */
+  public Duration getWriteBufferTimeout() {
+    return writeBufferTimeout;
   }
 
   /**
@@ -221,6 +245,7 @@ public class StorageProperties {
   public String toString() {
     return new StringJoiner(", ", StorageProperties.class.getSimpleName() + "[", "]")
         .add("writeBufferSize=" + writeBufferSize)
+        .add("writeBufferTimeout=" + writeBufferTimeout)
         .add("writeBatchSize=" + writeBatchSize)
         .add("compactPermits=" + compactPermits)
         .add("cacheCapacity=" + cacheCapacity)
@@ -241,6 +266,7 @@ public class StorageProperties {
   /** A builder of StorageProperties */
   public static class Builder {
     public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
+    public static final String WRITE_BUFFER_TIMEOUT = "write.buffer.timeout";
     public static final String WRITE_BATCH_SIZE = "write.batch.size";
     public static final String COMPACT_PERMITS = "compact.permits";
     public static final String CACHE_CAPACITY = "cache.capacity";
@@ -259,6 +285,7 @@ public class StorageProperties {
     private static final int UNINITIALIZED_INT = -1;
 
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
+    private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
     private int compactPermits = 16;
     private long cacheCapacity = 1024 * 1024 * 1024; // BYTE
@@ -285,6 +312,17 @@ public class StorageProperties {
     public Builder setWriteBufferSize(long writeBufferSize) {
       ParseUtils.checkPositive(writeBufferSize);
       this.writeBufferSize = writeBufferSize;
+      return this;
+    }
+
+    /**
+     * Set the timeout of write buffer to flush
+     *
+     * @param writeBufferTimeout the timeout of write buffer to flush
+     * @return this builder
+     */
+    public Builder setWriteBufferTimeout(Duration writeBufferTimeout) {
+      this.writeBufferTimeout = writeBufferTimeout;
       return this;
     }
 
@@ -459,6 +497,7 @@ public class StorageProperties {
      *     <p>Supported keys:
      *     <ul>
      *       <li>write.buffer.size: the size of write buffer, bytes
+     *       <li>write.buffer.timeout: the timeout of write buffer to flush, iso-8601
      *       <li>write.batch.size: the size of write batch, bytes
      *       <li>compact.permits: the number of flusher permits
      *       <li>cache.capacity: the capacity of cache, bytes
@@ -479,6 +518,8 @@ public class StorageProperties {
      */
     public Builder parse(Map<String, String> properties) {
       ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
+      ParseUtils.getOptionalDuration(properties, WRITE_BUFFER_TIMEOUT)
+          .ifPresent(this::setWriteBufferTimeout);
       ParseUtils.getOptionalLong(properties, WRITE_BATCH_SIZE).ifPresent(this::setWriteBatchSize);
       ParseUtils.getOptionalInteger(properties, COMPACT_PERMITS).ifPresent(this::setCompactPermits);
       ParseUtils.getOptionalLong(properties, CACHE_CAPACITY).ifPresent(this::setCacheCapacity);
@@ -517,6 +558,7 @@ public class StorageProperties {
       }
       return new StorageProperties(
           writeBufferSize,
+          writeBufferTimeout,
           writeBatchSize,
           compactPermits,
           cacheCapacity,

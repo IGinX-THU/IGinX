@@ -16,11 +16,10 @@
 
 package cn.edu.tsinghua.iginx.parquet.db;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
-import com.google.common.collect.RangeSet;
 import java.util.Map;
-import java.util.Set;
 
 public interface Database<K extends Comparable<K>, F, T, V> extends ImmutableDatabase<K, F, T, V> {
 
@@ -28,11 +27,7 @@ public interface Database<K extends Comparable<K>, F, T, V> extends ImmutableDat
 
   void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema) throws StorageException;
 
-  void delete(Set<F> fields, RangeSet<K> ranges) throws StorageException;
-
-  void delete(Set<F> fields) throws StorageException;
-
-  void delete(RangeSet<K> ranges) throws StorageException;
+  void delete(AreaSet<K, F> areas) throws StorageException;
 
   void clear() throws StorageException;
 }

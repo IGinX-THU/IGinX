@@ -14,18 +14,23 @@ import java.util.*;
 public class Utils {
 
   public static List<String> getPathListFromStatement(DataStatement statement) {
+    List<String> retVal = Collections.emptyList();
     switch (statement.getType()) {
       case SELECT:
-        return new ArrayList<>(((SelectStatement) statement).getPathSet());
+        retVal = new ArrayList<>(((SelectStatement) statement).getPathSet());
+        break;
       case DELETE:
-        return ((DeleteStatement) statement).getPaths();
+        retVal = ((DeleteStatement) statement).getPaths();
+        break;
       case INSERT:
-        return ((InsertStatement) statement).getPaths();
+        retVal = ((InsertStatement) statement).getPaths();
+        break;
       default:
         // TODO: case label. should we return empty list for other statements?
         break;
     }
-    return Collections.emptyList();
+    if (!retVal.isEmpty()) Collections.sort(retVal);
+    return retVal;
   }
 
   public static List<String> getNonWildCardPaths(List<String> paths) {
@@ -60,7 +65,8 @@ public class Utils {
       case INSERT:
         InsertStatement insertStatement = (InsertStatement) statement;
         List<Long> keys = insertStatement.getKeys();
-        return new KeyInterval(keys.get(0), keys.get(keys.size() - 1));
+        return new KeyInterval(
+            Collections.min(keys), Collections.min(keys)); // interval should require coparison
       case SELECT:
         UnarySelectStatement selectStatement = (UnarySelectStatement) statement;
         return new KeyInterval(selectStatement.getStartKey(), selectStatement.getEndKey());

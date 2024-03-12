@@ -17,10 +17,10 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import com.google.common.collect.Range;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 
 public interface ReadWriter<K extends Comparable<K>, F, T, V> {
@@ -28,29 +28,16 @@ public interface ReadWriter<K extends Comparable<K>, F, T, V> {
   void flush(String name, TableMeta<K, F, T, V> meta, Scanner<K, Scanner<F, V>> scanner)
       throws IOException;
 
-  interface TableMeta<K extends Comparable<K>, F, T, V> {
-    Map<F, T> getSchema();
-
-    Map<F, Range<K>> getRanges();
-  }
-
   TableMeta<K, F, T, V> readMeta(String name) throws IOException;
 
   Scanner<K, Scanner<F, V>> scanData(
       String name, Set<F> fields, RangeSet<K> ranges, Filter predicate) throws IOException;
 
+  void delete(String name, AreaSet<K, F> areas) throws IOException;
+
+  void delete(String name);
+
   Iterable<String> tableNames() throws IOException;
 
   void clear() throws IOException;
-
-  interface ObjectFormat<V> {
-
-    String format(V value);
-
-    V parse(String source);
-  }
-
-  ObjectFormat<K> getKeyFormat();
-
-  ObjectFormat<F> getFieldFormat();
 }

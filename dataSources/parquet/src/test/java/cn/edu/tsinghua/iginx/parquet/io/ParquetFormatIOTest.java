@@ -5,7 +5,9 @@ import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetReader;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IParquetWriter;
+import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Loader;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Table;
@@ -17,7 +19,10 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -251,6 +256,7 @@ public class ParquetFormatIOTest {
                         Type.Repetition.OPTIONAL, PrimitiveType.PrimitiveTypeName.INT32, "c1"))));
 
     IParquetWriter.Builder builder = IParquetWriter.builder(FILE_PATH, schema);
+    builder.withOverwrite(true);
     try (IParquetWriter writer = builder.build()) {
       for (int i = 0; i < ROW_NUM; i++) {
         IRecord optRecord = new IRecord();
@@ -263,8 +269,8 @@ public class ParquetFormatIOTest {
                 .add(
                     1,
                     new IRecord()
-                        .add(1, (double) i)
                         .add(0, (long) i)
+                        .add(1, (double) i)
                         .add(2, ("test" + i).getBytes()))
                 .add(2, new IRecord().add(0, optRecord)));
       }
@@ -316,6 +322,7 @@ public class ParquetFormatIOTest {
                     Type.Repetition.REPEATED, PrimitiveType.PrimitiveTypeName.BINARY, "b3")));
 
     IParquetWriter.Builder builder = IParquetWriter.builder(FILE_PATH, schema);
+    builder.withOverwrite(true);
     try (IParquetWriter writer = builder.build()) {
       for (int i = 0; i < ROW_NUM; i++) {
         Object[] b1 = new Object[REPEATED_NUM];
@@ -327,7 +334,7 @@ public class ParquetFormatIOTest {
           b3[j] = ("test" + (i + j)).getBytes();
         }
         writer.write(
-            new IRecord().add(0, (long) i).add(1, new IRecord().add(1, b2).add(0, b1).add(2, b3)));
+            new IRecord().add(0, (long) i).add(1, new IRecord().add(0, b1).add(1, b2).add(2, b3)));
       }
     }
 

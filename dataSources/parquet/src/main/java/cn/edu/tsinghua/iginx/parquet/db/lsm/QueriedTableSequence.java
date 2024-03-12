@@ -19,9 +19,8 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Prefetch;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.TombstoneStorage;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
+import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -30,22 +29,14 @@ class QueriedTableSequence<K extends Comparable<K>, F, T, V> implements Prefetch
 
   private final StorageShared shared;
   private final List<String> tableNames;
-
   private final TableStorage<K, F, T, V> storage;
-
-  private final TombstoneStorage<K, F> tombstoneStorage;
-
   private final Executor executor = Executors.newCachedThreadPool();
 
   QueriedTableSequence(
-      StorageShared shared,
-      List<String> tableNames,
-      TableStorage<K, F, T, V> storage,
-      TombstoneStorage<K, F> tombstoneStorage) {
+      StorageShared shared, List<String> tableNames, TableStorage<K, F, T, V> storage) {
     this.shared = shared;
     this.tableNames = tableNames;
     this.storage = storage;
-    this.tombstoneStorage = tombstoneStorage;
   }
 
   @Override
@@ -59,15 +50,14 @@ class QueriedTableSequence<K extends Comparable<K>, F, T, V> implements Prefetch
   }
 
   @Override
-  public Object fetch(long id) {
+  public Object fetch(long id) throws IOException {
     String tableName = tableNames.get((int) id);
     Table<K, F, T, V> table = storage.get(tableName);
-    Tombstone<K, F> tombstone = tombstoneStorage.get(tableName);
-    return new Entry(tombstone, table);
+    return new Entry(table);
   }
 
   @Override
-  public void close() throws Exception {}
+  public void close() throws IOException {}
 
   @Override
   public void execute(Runnable command) {
@@ -75,16 +65,10 @@ class QueriedTableSequence<K extends Comparable<K>, F, T, V> implements Prefetch
   }
 
   class Entry {
-    private final Tombstone<K, F> tombstone;
     private final Table<K, F, T, V> table;
 
-    Entry(Tombstone<K, F> tombstone, Table<K, F, T, V> table) {
-      this.tombstone = tombstone;
+    Entry(Table<K, F, T, V> table) {
       this.table = table;
-    }
-
-    Tombstone<K, F> getTombstone() {
-      return tombstone;
     }
 
     Table<K, F, T, V> getTable() {

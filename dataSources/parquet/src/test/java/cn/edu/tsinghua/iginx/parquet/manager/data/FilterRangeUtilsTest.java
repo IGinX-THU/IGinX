@@ -16,9 +16,11 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.parquet.util.FilterRangeUtils;
 import com.google.common.collect.ImmutableRangeSet;
