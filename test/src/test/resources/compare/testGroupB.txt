@@ -1,2 +1,0 @@
-SELECT * FROM TableA WHERE key >= 0 && key < 100;
-SELECT * FROM TableB WHERE key >= 0 && key < 100;
