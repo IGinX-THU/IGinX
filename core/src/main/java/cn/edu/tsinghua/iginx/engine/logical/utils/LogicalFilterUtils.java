@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ExprUtils {
+public class LogicalFilterUtils {
 
   public static Filter toDNF(Filter filter) {
     filter = removeNot(filter);

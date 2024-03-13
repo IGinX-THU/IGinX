@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.influxdb;
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 import static com.influxdb.client.domain.WritePrecision.NS;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -870,7 +870,7 @@ public class InfluxDBStorage implements IStorage {
           matchFilter = setTrueByMeasurement(matchFilter, measurementName);
         }
 
-        matchFilter = ExprUtils.mergeTrue(matchFilter);
+        matchFilter = LogicalFilterUtils.mergeTrue(matchFilter);
 
         if (matchFilter.getType() == FilterType.Bool) {
           return "";

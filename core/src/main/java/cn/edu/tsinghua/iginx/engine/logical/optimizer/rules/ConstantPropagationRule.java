@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
@@ -74,6 +75,8 @@ public class ConstantPropagationRule extends Rule {
         throw new RuntimeException(e);
       }
     }
+
+    select.setFilter(LogicalFilterUtils.mergeTrue(select.getFilter()));
   }
 
   /**
@@ -247,7 +250,7 @@ public class ConstantPropagationRule extends Rule {
           }
         } else if (pathA.equals(constantPath)) {
           // 如果其中一边可以替换，构造一个新的ValueFilter
-          return new ValueFilter(pathB, Op.getOpposite(pathOp), constantValue);
+          return new ValueFilter(pathB, Op.getDirectionOpposite(pathOp), constantValue);
         } else if (pathB.equals(constantPath)) {
           return new ValueFilter(pathA, pathOp, constantValue);
         }
