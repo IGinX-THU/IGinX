@@ -40,21 +40,6 @@ public class TombstoneStorage implements Closeable {
   public TombstoneStorage(StorageShared shared, Path dir) {
     this.shared = shared;
     this.dir = dir;
-    cleanTempFiles();
-  }
-
-  private void cleanTempFiles() {
-    try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
-      for (Path path : stream) {
-        LOGGER.info("remove temp file {}", path);
-        Files.deleteIfExists(path);
-      }
-    } catch (NoSuchFileException ignored) {
-      LOGGER.debug("no dir named {}", dir);
-    } catch (IOException e) {
-      LOGGER.error("failed to clean temp files", e);
-    }
   }
 
   @SuppressWarnings("unchecked")
@@ -126,7 +111,6 @@ public class TombstoneStorage implements Closeable {
           shared.getCachePool().asMap().remove(fileName);
         }
       }
-      Files.deleteIfExists(dir);
     } catch (NoSuchFileException e) {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {

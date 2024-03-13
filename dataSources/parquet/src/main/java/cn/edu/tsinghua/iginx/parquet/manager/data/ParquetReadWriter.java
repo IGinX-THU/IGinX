@@ -48,13 +48,13 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   public ParquetReadWriter(StorageShared shared, Path dir) {
     this.shared = shared;
     this.dir = dir;
-    this.tombstoneStorage = new TombstoneStorage(shared, dir.resolve(Constants.DIR_NAME_TOMBSTONE));
-    cleanTempFiles();
+    this.tombstoneStorage = new TombstoneStorage(shared, dir);
+    cleanTempFiles(dir);
   }
 
-  private void cleanTempFiles() {
+  private static void cleanTempFiles(Path dir) {
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TEMP)) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -73,7 +73,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       Scanner<Long, Scanner<String, Object>> scanner)
       throws IOException {
     Path path = getPath(tableName);
-    Path tempPath = dir.resolve(tableName + Constants.SUFFIX_FILE_TEMP);
+    Path tempPath =
+        dir.resolve(tableName + Constants.SUFFIX_FILE_PARQUET + Constants.SUFFIX_FILE_TEMP);
     Files.createDirectories(path.getParent());
 
     LOGGER.debug("flushing into {}", tempPath);
@@ -254,8 +255,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   }
 
   private Path getPath(String name) {
-    Path path = dir.resolve(name + Constants.SUFFIX_FILE_PARQUET);
-    return path;
+    return dir.resolve(name + Constants.SUFFIX_FILE_PARQUET);
   }
 
   private static String getTableName(String fileName) {
@@ -266,6 +266,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   public void clear() throws IOException {
     LOGGER.info("clearing data of {}", dir);
     try {
+      tombstoneStorage.clear();
       try (DirectoryStream<Path> stream =
           Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
         for (Path path : stream) {
@@ -274,8 +275,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
           shared.getCachePool().asMap().remove(fileName);
         }
       }
-      Files.deleteIfExists(dir);
-      tombstoneStorage.clear();
+      cleanTempFiles(dir);
     } catch (NoSuchFileException e) {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {

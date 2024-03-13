@@ -28,26 +28,57 @@ public class ArenaPool implements BufferPool, AutoCloseable {
     this.pool = pool;
   }
 
-  private final Set<ByteBuffer> unreleased = Collections.newSetFromMap(new ConcurrentHashMap<>());
+  private final Set<BufferHandler> unreleased =
+      Collections.newSetFromMap(new ConcurrentHashMap<>());
 
   @Override
   public ByteBuffer allocate(int capacity) {
     ByteBuffer buffer = pool.allocate(capacity);
-    unreleased.add(buffer);
+    unreleased.add(new BufferHandler(buffer));
     return buffer;
   }
 
   @Override
   public void release(ByteBuffer buffer) {
-    if (unreleased.remove(buffer)) {
+    if (unreleased.remove(new BufferHandler(buffer))) {
       pool.release(buffer);
     }
   }
 
   @Override
   public void close() {
-    for (ByteBuffer buffer : unreleased) {
-      pool.release(buffer);
+    for (BufferHandler buffer : unreleased) {
+      pool.release(buffer.get());
+    }
+    unreleased.clear();
+  }
+
+  private static class BufferHandler {
+    private final ByteBuffer buffer;
+
+    private BufferHandler(ByteBuffer buffer) {
+      this.buffer = buffer;
+    }
+
+    ByteBuffer get() {
+      return buffer;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+      if (this == o) {
+        return true;
+      }
+      if (o == null || getClass() != o.getClass()) {
+        return false;
+      }
+      BufferHandler that = (BufferHandler) o;
+      return buffer == that.buffer;
+    }
+
+    @Override
+    public int hashCode() {
+      return System.identityHashCode(buffer);
     }
   }
 }

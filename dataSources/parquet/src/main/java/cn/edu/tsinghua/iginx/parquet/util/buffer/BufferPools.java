@@ -17,19 +17,21 @@
 package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
 import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BufferPools {
-  private BufferPools() {}
+  private static final Logger LOGGER = LoggerFactory.getLogger(BufferPools.class);
 
-  enum PoolType {
-    ON_HEAP,
-    OFF_HEAP,
-    CUSTOM,
-  }
+  private BufferPools() {}
 
   public static BufferPool from(StorageProperties storageProperties) {
     BufferPool bufferPool = new HeapPool();
     if (storageProperties.getPoolBufferRecycleEnable()) {
+      LOGGER.info(
+          "Recycle pool enabled, align: {}, limit: {}",
+          storageProperties.getPoolBufferRecycleAlign(),
+          storageProperties.getPoolBufferRecycleLimit());
       bufferPool =
           new RecyclePool(
               bufferPool,

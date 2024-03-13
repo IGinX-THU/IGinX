@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
-import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.InvalidFieldNameException;
@@ -55,8 +54,7 @@ public class DataManager implements Manager {
 
   public DataManager(StorageShared shared, Path dir) throws IOException {
     this.shared = shared;
-    Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
-    ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dataDir);
+    ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dir);
     this.db = new OneTierDB<>(dir.toString(), shared, readWriter, new NoPrefetch());
   }
 
