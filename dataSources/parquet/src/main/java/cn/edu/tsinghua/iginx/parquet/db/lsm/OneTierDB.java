@@ -73,7 +73,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       throws IOException {
     this.name = name;
     this.shared = shared;
-    this.tableStorage = new TableStorage<>(shared, readerWriter);
+    this.tableStorage = new TableStorage<>(name, shared, readerWriter);
     this.tableIndex = new TableIndex<>(tableStorage);
     this.prefetch = prefetch;
 
@@ -299,9 +299,9 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
               table,
               () -> {
                 if (toDelete != null) {
-                  LOGGER.debug("delete table {}", toDelete);
                   storageLock.writeLock().lock();
                   try {
+                    LOGGER.debug("delete table {} of {}", toDelete, name);
                     tableIndex.removeTable(toDelete);
                     tableStorage.remove(toDelete);
                   } catch (Throwable e) {
@@ -309,6 +309,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
                   } finally {
                     storageLock.writeLock().unlock();
                   }
+                  LOGGER.trace("table {} is deleted", toDelete);
                 }
                 latch.countDown();
               });

@@ -65,14 +65,13 @@ public class RecyclePool implements BufferPool {
     }
     Recycler<ByteBuffer> recycler = getRecyclerAtLeast(capacity);
     ByteBuffer byteBuffer = recycler.get();
-    if (byteBuffer != null) {
-      byteBuffer.clear();
-      byteBuffer.limit(capacity);
-      return byteBuffer;
+    if (byteBuffer == null) {
+      int atLeastCapacity = getAtLeastCapacity(capacity);
+      byteBuffer = pool.allocate(atLeastCapacity);
     }
-
-    int atLeastCapacity = getAtLeastCapacity(capacity);
-    return pool.allocate(atLeastCapacity);
+    byteBuffer.clear();
+    byteBuffer.limit(capacity);
+    return byteBuffer;
   }
 
   @Override

@@ -60,6 +60,7 @@ public class TombstoneStorage implements Closeable {
 
   public void removeTable(String name) {
     lock.writeLock().lock();
+    LOGGER.debug("remove table: {} of {}", name, dir);
     try {
       String fileName = getFileName(name);
       shared.getCachePool().asMap().remove(fileName);

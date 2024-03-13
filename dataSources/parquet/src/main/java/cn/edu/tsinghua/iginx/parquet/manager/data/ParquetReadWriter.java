@@ -228,6 +228,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   @Override
   public void delete(String name) {
+    LOGGER.debug("deleting table {} of {}", name, dir);
     Path path = getPath(name);
     try {
       Files.deleteIfExists(path);

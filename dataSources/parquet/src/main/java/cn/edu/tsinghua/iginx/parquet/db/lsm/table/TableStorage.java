@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
-import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.StreamSupport;
@@ -49,7 +48,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final SequenceGenerator seqGen = new SequenceGenerator();
 
-  private final ExecutorService flusher = Executors.newCachedThreadPool(createThreadFactory());
+  private final ExecutorService flusher;
 
   private final StorageShared shared;
 
@@ -60,19 +59,19 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
   private final int localFlusherPermitsTotal;
   private final Semaphore localFlusherPermits;
+  private final String name;
 
-  public TableStorage(StorageShared shared, ReadWriter<K, F, T, V> readWriter) throws IOException {
+  public TableStorage(String name, StorageShared shared, ReadWriter<K, F, T, V> readWriter)
+      throws IOException {
+    this.name = name;
     this.shared = shared;
     this.readWriter = readWriter;
     this.localFlusherPermitsTotal = shared.getFlusherPermits().availablePermits();
     this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal, true);
-    reload();
-  }
-
-  private static ThreadFactory createThreadFactory() {
     ThreadFactoryBuilder builder = new ThreadFactoryBuilder();
-    builder.setNameFormat("ParquetFlusher-%d");
-    return builder.build();
+    builder.setNameFormat("ParquetFlusher(" + name + ")-%d");
+    this.flusher = Executors.newSingleThreadExecutor(builder.build());
+    reload();
   }
 
   private void reload() throws IOException {
@@ -103,9 +102,8 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
       memTables.put(tableName, table);
       flusher.submit(
           () -> {
-            LOGGER.debug("task to flush {} started", tableName);
             try {
-              LOGGER.trace("start to flush");
+              LOGGER.debug("start to flush {} of {} started", tableName, name);
               TableMeta<K, F, T, V> meta = table.getMeta();
               try (Scanner<K, Scanner<F, V>> scanner =
                   table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
@@ -114,7 +112,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
 
               commitMemoryTable(tableName);
 
-              LOGGER.debug("{} flushed", tableName);
+              LOGGER.trace("run afterFlush Hook");
 
               afterFlush.run();
             } catch (Throwable e) {
@@ -122,9 +120,8 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
             } finally {
               localFlusherPermits.release();
               shared.getFlusherPermits().release();
-              LOGGER.trace("unlock clean lock and released flusher permit");
             }
-            LOGGER.debug("task to flush {} end", tableName);
+            LOGGER.debug("flush success {}", tableName);
           });
       return tableName;
     } finally {
@@ -132,29 +129,36 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     }
   }
 
-  private void commitMemoryTable(String name) throws IOException {
+  private void commitMemoryTable(String tableName) throws IOException {
     lock.writeLock().lock();
     try {
-      if (memTables.remove(name) != null) {
-        AreaSet<K, F> tombstone = memTombstones.remove(name);
+      LOGGER.debug("commit table {} of {}", tableName, name);
+      if (memTables.remove(tableName) != null) {
+        LOGGER.trace("table is in memory, commit it to file");
+        AreaSet<K, F> tombstone = memTombstones.remove(tableName);
         if (tombstone != null) {
-          readWriter.delete(name, tombstone);
+          LOGGER.trace("table has tombstone in memory, commit it to file");
+          readWriter.delete(tableName, tombstone);
         }
       } else {
-        readWriter.delete(name);
+        LOGGER.trace("table is not in memory, delete it from file");
+        readWriter.delete(tableName);
       }
     } finally {
       lock.writeLock().unlock();
     }
   }
 
-  public void remove(String name) {
+  public void remove(String tableName) {
     lock.writeLock().lock();
     try {
-      if (memTables.remove(name) != null) {
-        memTombstones.remove(name);
+      LOGGER.debug("remove table {} of {}", tableName, name);
+      if (memTables.remove(tableName) != null) {
+        LOGGER.trace("table is in memory, remove it from memory");
+        memTombstones.remove(tableName);
       } else {
-        readWriter.delete(name);
+        LOGGER.trace("table is not in memory, delete it from file");
+        readWriter.delete(tableName);
       }
     } finally {
       lock.writeLock().unlock();
@@ -165,6 +169,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     localFlusherPermits.acquire(localFlusherPermitsTotal);
     lock.writeLock().lock();
     try {
+      LOGGER.trace("clear table storage of {}", name);
       memTables.clear();
       memTombstones.clear();
       readWriter.clear();
@@ -180,12 +185,16 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   public Table<K, F, T, V> get(String tableName) throws IOException {
     lock.readLock().lock();
     try {
+      LOGGER.debug("get table {} of {}", tableName, name);
       MemoryTable<K, F, T, V> table = memTables.get(tableName);
       if (table != null) {
+        LOGGER.trace("table is in memory");
         AreaSet<K, F> tombstone = memTombstones.get(tableName);
         if (tombstone == null) {
+          LOGGER.trace("table has no tombstone in memory");
           return table;
         }
+        LOGGER.trace("table has tombstone in memory");
         return new DeletedTable<>(table, tombstone);
       }
       return new FileTable<>(tableName, readWriter);
@@ -197,11 +206,14 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   public void delete(Set<String> tables, AreaSet<K, F> areas) throws IOException {
     lock.writeLock().lock();
     try {
+      LOGGER.debug("delete areas {} from tables {} of {}", areas, tables, name);
       for (String tableName : tables) {
         MemoryTable<K, F, T, V> table = memTables.get(tableName);
         if (table != null) {
+          LOGGER.trace("table is in memory, delete areas from it");
           memTombstones.computeIfAbsent(tableName, k -> new AreaSet<>()).addAll(areas);
         } else {
+          LOGGER.trace("table is not in memory, delete areas from file");
           readWriter.delete(tableName, areas);
         }
       }
@@ -211,11 +223,13 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   }
 
   public Iterable<String> tableNames() throws IOException {
+    LOGGER.trace("get table names of {}", name);
     return readWriter.tableNames();
   }
 
   @Override
   public void close() {
+    LOGGER.trace("close table storage of {}", name);
     flusher.shutdown();
   }
 }
