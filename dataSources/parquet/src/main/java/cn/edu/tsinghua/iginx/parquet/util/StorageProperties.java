@@ -285,10 +285,10 @@ public class StorageProperties {
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
-    private int compactPermits = 16;
     private long cacheCapacity = 1024 * 1024 * 1024; // BYTE
     private Duration cacheTimeout = null;
     private boolean cacheSoftValues = false;
+    private int compactPermits = 4;
     private boolean poolBufferRecycleEnable = true;
     private Integer poolBufferRecycleAlign = null;
     private Integer poolBufferRecycleLimit = null;
