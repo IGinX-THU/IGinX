@@ -118,6 +118,7 @@ public class RecyclePoolTest extends BufferPoolTest {
 
     for (int capacity : capacities) {
       ByteBuffer buffer = assertAllocateOnly(pool, capacity);
+      assertEquals(capacity, buffer.limit());
       assertEquals(capacity, buffer.getInt());
     }
   }

@@ -16,13 +16,14 @@
 
 package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Random;
+import java.util.concurrent.CountDownLatch;
+
 import org.junit.Test;
+
+import static org.junit.Assert.*;
 
 public abstract class BufferPoolTest {
 
@@ -115,18 +116,23 @@ public abstract class BufferPoolTest {
   }
 
   @Test
-  public void testConcurrentAllocateRelease() {
+  public void testConcurrentAllocateRelease() throws InterruptedException {
     BufferPool bufferPool = getBufferPool();
-    for (int i = 0; i < 100; i++) {
+    int n = 10;
+    CountDownLatch latch = new CountDownLatch(n);
+    for (int i = 0; i < n; i++) {
       new Thread(
               () -> {
                 for (int capacity : getAllocateSequence()) {
                   ByteBuffer buffer = assertAllocate(bufferPool, capacity);
+                  assertEquals(capacity, buffer.limit());
                   bufferPool.release(buffer);
                 }
+                latch.countDown();
               })
           .start();
     }
+    latch.await();
   }
 
   public static ByteBuffer assertAllocate(BufferPool bufferPool, int atLeast) {
