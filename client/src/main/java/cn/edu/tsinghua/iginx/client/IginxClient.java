@@ -22,8 +22,7 @@ import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -251,8 +250,7 @@ public class IginxClient {
     }
   }
 
-  private static boolean processCommand(String command)
-      throws SessionException, ExecutionException, IOException {
+  private static boolean processCommand(String command) throws SessionException, IOException {
     if (command == null || command.trim().isEmpty()) {
       return true;
     }
@@ -280,7 +278,7 @@ public class IginxClient {
   }
 
   private static OperationResult handleInputStatement(String statement)
-      throws SessionException, ExecutionException, IOException {
+      throws SessionException, IOException {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
     if (trimedStatement.equals(EXIT_COMMAND) || trimedStatement.equals(QUIT_COMMAND)) {
@@ -328,7 +326,7 @@ public class IginxClient {
         return;
       }
       System.out.println("success");
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       System.out.println(
@@ -388,7 +386,7 @@ public class IginxClient {
         default:
           System.out.println("success");
       }
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       System.out.println(
@@ -445,7 +443,7 @@ public class IginxClient {
         System.out.print(FormatUtils.formatCount(total));
       }
       res.close();
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       System.out.println(
@@ -454,13 +452,12 @@ public class IginxClient {
     }
   }
 
-  private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
-      throws ExecutionException, SessionException {
+  private static List<List<String>> cacheResult(QueryDataSet queryDataSet) throws SessionException {
     return cacheResult(queryDataSet, false);
   }
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean skipHeader)
-      throws ExecutionException, SessionException {
+      throws SessionException {
     boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
     if (!skipHeader) {
@@ -490,7 +487,7 @@ public class IginxClient {
   }
 
   private static void processExportByteStream(QueryDataSet res)
-      throws SessionException, ExecutionException, IOException {
+      throws SessionException, IOException {
     String dir = res.getExportStreamDir();
 
     File dirFile = new File(dir);
@@ -540,7 +537,7 @@ public class IginxClient {
   }
 
   private static List<List<byte[]>> cacheResultByteArray(QueryDataSet queryDataSet)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     List<List<byte[]>> cache = new ArrayList<>();
     int rowIndex = 0;
     while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
@@ -553,8 +550,7 @@ public class IginxClient {
     return cache;
   }
 
-  private static void processExportCsv(QueryDataSet res)
-      throws SessionException, ExecutionException, IOException {
+  private static void processExportCsv(QueryDataSet res) throws SessionException, IOException {
     ExportCSV exportCSV = res.getExportCSV();
 
     String path = exportCSV.getExportCsvPath();
@@ -599,8 +595,7 @@ public class IginxClient {
     System.out.println("Successfully write csv file: \"" + file.getAbsolutePath() + "\".");
   }
 
-  private static void processLoadCsv(String sql)
-      throws SessionException, ExecutionException, IOException {
+  private static void processLoadCsv(String sql) throws SessionException, IOException {
     SessionExecuteSqlResult res = session.executeSql(sql);
     String path = res.getLoadCsvPath();
 

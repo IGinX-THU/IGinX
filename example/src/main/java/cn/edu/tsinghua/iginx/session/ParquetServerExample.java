@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import java.util.Collections;
 
 public class ParquetServerExample {
@@ -11,7 +10,7 @@ public class ParquetServerExample {
   private static Session session2;
 
   /** session1 parquet use local session2 parquet use remote */
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
     // init
     session1 = new Session("127.0.0.1", 6888, "root", "root");
     session1.openSession();

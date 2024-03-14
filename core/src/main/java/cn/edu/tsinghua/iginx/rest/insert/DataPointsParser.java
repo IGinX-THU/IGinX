@@ -20,8 +20,8 @@ package cn.edu.tsinghua.iginx.rest.insert;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
@@ -229,7 +229,7 @@ public class DataPointsParser {
           type,
           null,
           TimePrecision.NS);
-    } catch (ExecutionException e) {
+    } catch (SessionException e) {
       logger.error("Error occurred during insert ", e);
       throw e;
     }
@@ -258,7 +258,7 @@ public class DataPointsParser {
           type,
           null,
           TimePrecision.NS);
-    } catch (ExecutionException e) {
+    } catch (SessionException e) {
       logger.error("Error occurred during insert ", e);
       throw e;
     }
@@ -309,7 +309,7 @@ public class DataPointsParser {
             type,
             tagsList,
             TimePrecision.NS);
-      } catch (ExecutionException e) {
+      } catch (SessionException e) {
         logger.error("Error occurred during insert ", e);
         throw e;
       }

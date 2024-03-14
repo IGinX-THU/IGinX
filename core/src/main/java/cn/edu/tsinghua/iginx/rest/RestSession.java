@@ -19,22 +19,18 @@
 package cn.edu.tsinghua.iginx.rest;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.exceptions.StatusCode.STATEMENT_EXECUTION_ERROR;
+import static cn.edu.tsinghua.iginx.exception.StatusCode.STATEMENT_EXECUTION_ERROR;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.Bitmap;
-import cn.edu.tsinghua.iginx.utils.ByteUtils;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import cn.edu.tsinghua.iginx.utils.TimeUtils;
+import cn.edu.tsinghua.iginx.utils.*;
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
@@ -122,7 +118,7 @@ public class RestSession {
 
   public void addStorageEngine(
       String ip, int port, StorageEngineType type, Map<String, String> extraParams)
-      throws ExecutionException {
+      throws SessionException {
     StorageEngine storageEngine = new StorageEngine(ip, port, type, extraParams);
     AddStorageEnginesReq req =
         new AddStorageEnginesReq(sessionId, Collections.singletonList(storageEngine));
@@ -136,16 +132,16 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void deleteColumn(String path, List<Map<String, List<String>>> tagList)
-      throws ExecutionException {
+      throws SessionException {
     deleteColumns(Collections.singletonList(path), tagList);
   }
 
   public void deleteColumns(List<String> paths, List<Map<String, List<String>>> tagList)
-      throws ExecutionException {
+      throws SessionException {
     DeleteColumnsReq req = new DeleteColumnsReq(sessionId, paths);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
@@ -167,7 +163,7 @@ public class RestSession {
         return;
       }
     }
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void insertNonAlignedColumnRecords(
@@ -176,7 +172,7 @@ public class RestSession {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws ExecutionException {
+      throws SessionException {
     insertNonAlignedColumnRecords(
         paths,
         timestamps,
@@ -193,7 +189,7 @@ public class RestSession {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision timePrecision)
-      throws ExecutionException {
+      throws SessionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
@@ -262,7 +258,7 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void insertNonAlignedRowRecords(
@@ -272,7 +268,7 @@ public class RestSession {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision timePrecision)
-      throws ExecutionException {
+      throws SessionException {
     if (paths.isEmpty()
         || timestamps.length == 0
         || valuesList.length == 0
@@ -366,12 +362,12 @@ public class RestSession {
         lock.readLock().unlock();
       }
     } while (checkRedirect(status));
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public void deleteDataInColumn(
       String path, List<Map<String, List<String>>> tagList, long startKey, long endKey)
-      throws ExecutionException {
+      throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(path);
     deleteDataInColumns(paths, tagList, startKey, endKey);
@@ -379,7 +375,7 @@ public class RestSession {
 
   public void deleteDataInColumns(
       List<String> paths, List<Map<String, List<String>>> tagList, long startKey, long endKey)
-      throws ExecutionException {
+      throws SessionException {
     deleteDataInColumns(paths, tagList, startKey, endKey, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
   }
 
@@ -389,7 +385,7 @@ public class RestSession {
       long startKey,
       long endKey,
       TimePrecision timePrecision)
-      throws ExecutionException {
+      throws SessionException {
     DeleteDataInColumnsReq req = new DeleteDataInColumnsReq(sessionId, paths, startKey, endKey);
     if (!tagList.isEmpty()) {
       req.setTagsList(tagList);
@@ -412,7 +408,7 @@ public class RestSession {
         return;
       }
     }
-    RpcUtils.verifySuccess(status);
+    StatusUtils.verifySuccess(status);
   }
 
   public SessionQueryDataSet queryData(

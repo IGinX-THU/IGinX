@@ -16,27 +16,34 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.engine.shared.exception;
 
+import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.Status;
 
-public class ExecutionException extends IginxException {
+public class ExecutionException extends Exception {
 
   private static final long serialVersionUID = -7769482614133326007L;
 
+  protected int errorCode;
+
   public ExecutionException(Status status) {
-    super(status.message, status.code);
+    super(status.message);
+    errorCode = status.code;
   }
 
   public ExecutionException(String message) {
-    super(message, StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+    super(message);
+    errorCode = StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode();
   }
 
   public ExecutionException(Throwable cause) {
-    super(cause, StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+    super(cause);
+    errorCode = StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode();
   }
 
   public ExecutionException(String message, Throwable cause) {
-    super(message, cause, StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode());
+    super(message, cause);
+    errorCode = StatusCode.STATEMENT_EXECUTION_ERROR.getStatusCode();
   }
 }
