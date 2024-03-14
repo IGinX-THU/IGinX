@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 public class UnaryExpression implements Expression {
 
   private final Operator operator;
-  private final Expression expression;
+  private Expression expression;
   private String alias;
 
   public UnaryExpression(Operator operator, Expression expression) {
@@ -23,6 +23,10 @@ public class UnaryExpression implements Expression {
   public Expression getExpression() {
     return expression;
   }
+
+    public void setExpression(Expression expression) {
+        this.expression = expression;
+    }
 
   @Override
   public String getColumnName() {

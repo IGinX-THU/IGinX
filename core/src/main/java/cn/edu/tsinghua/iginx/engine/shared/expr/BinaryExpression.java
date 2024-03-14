@@ -2,8 +2,8 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 public class BinaryExpression implements Expression {
 
-  private final Expression leftExpression;
-  private final Expression rightExpression;
+  private Expression leftExpression;
+  private Expression rightExpression;
   private final Operator op;
   private String alias;
 
@@ -23,8 +23,16 @@ public class BinaryExpression implements Expression {
     return leftExpression;
   }
 
+  public void setLeftExpression(Expression leftExpression) {
+    this.leftExpression = leftExpression;
+  }
+
   public Expression getRightExpression() {
     return rightExpression;
+  }
+
+  public void setRightExpression(Expression rightExpression) {
+    this.rightExpression = rightExpression;
   }
 
   public Operator getOp() {

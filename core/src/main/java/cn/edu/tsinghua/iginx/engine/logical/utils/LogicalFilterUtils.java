@@ -784,4 +784,56 @@ public class LogicalFilterUtils {
 
     return new AndFilter(andChildren);
   }
+
+  /**
+   * 获取filter中的所有ExprFilter
+   * @param filter 给定的大filter
+   * @return filter中的所有ExprFilter的List
+   */
+  public static List<ExprFilter> getExprFilters(Filter filter) {
+    List<ExprFilter> exprFilters = new ArrayList<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {
+
+          }
+
+          @Override
+          public void visit(OrFilter filter) {
+
+          }
+
+          @Override
+          public void visit(NotFilter filter) {
+
+          }
+
+          @Override
+          public void visit(KeyFilter filter) {
+
+          }
+
+          @Override
+          public void visit(ValueFilter filter) {
+
+          }
+
+          @Override
+          public void visit(PathFilter filter) {
+
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {
+
+          }
+
+          @Override
+          public void visit(ExprFilter exprFilter) {
+            exprFilters.add(exprFilter);
+          }
+        });
+    return exprFilters;
+  }
 }
