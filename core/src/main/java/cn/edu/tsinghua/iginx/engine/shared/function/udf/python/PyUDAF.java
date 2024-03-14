@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -59,50 +60,54 @@ public class PyUDAF implements UDAF {
 
     PythonInterpreter interpreter = interpreters.take();
 
-    List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
-    List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
-    List<Integer> indices = new ArrayList<>();
-
-    List<String> paths = params.getPaths();
-    flag:
-    for (String target : paths) {
-      if (StringUtils.isPattern(target)) {
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
-        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
-          Field field = table.getHeader().getField(i);
-          if (pattern.matcher(field.getName()).matches()) {
-            colNames.add(field.getName());
-            colTypes.add(field.getType().toString());
-            indices.add(i);
-          }
-        }
-      } else {
-        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
-          Field field = table.getHeader().getField(i);
-          if (target.equals(field.getName())) {
-            colNames.add(field.getName());
-            colTypes.add(field.getType().toString());
-            indices.add(i);
-            continue flag;
-          }
-        }
-      }
-    }
-
-    if (colNames.size() == 1) {
+//    List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
+//    List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
+//    List<Integer> indices = new ArrayList<>();
+//
+//    List<String> paths = params.getPaths();
+//    flag:
+//    for (String target : paths) {
+//      if (StringUtils.isPattern(target)) {
+//        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
+//        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+//          Field field = table.getHeader().getField(i);
+//          if (pattern.matcher(field.getName()).matches()) {
+//            colNames.add(field.getName());
+//            colTypes.add(field.getType().toString());
+//            indices.add(i);
+//          }
+//        }
+//      } else {
+//        for (int i = 0; i < table.getHeader().getFieldSize(); i++) {
+//          Field field = table.getHeader().getField(i);
+//          if (target.equals(field.getName())) {
+//            colNames.add(field.getName());
+//            colTypes.add(field.getType().toString());
+//            indices.add(i);
+//            continue flag;
+//          }
+//        }
+//      }
+//    }
+//
+//    if (colNames.size() == 1) {
+//      return Row.EMPTY_ROW;
+//    }
+//
+//    List<List<Object>> data = new ArrayList<>();
+//    data.add(colNames);
+//    data.add(colTypes);
+//    for (Row row : table.getRows()) {
+//      List<Object> rowData = new ArrayList<>();
+//      rowData.add(row.getKey());
+//      for (Integer idx : indices) {
+//        rowData.add(row.getValues()[idx]);
+//      }
+//      data.add(rowData);
+//    }
+    List<List<Object>> data = DataUtils.dataFromTable(table, params.getPaths());
+    if (data == null) {
       return Row.EMPTY_ROW;
-    }
-
-    List<List<Object>> data = new ArrayList<>();
-    data.add(colNames);
-    data.add(colTypes);
-    for (Row row : table.getRows()) {
-      List<Object> rowData = new ArrayList<>();
-      rowData.add(row.getKey());
-      for (Integer idx : indices) {
-        rowData.add(row.getValues()[idx]);
-      }
-      data.add(rowData);
     }
 
     List<Object> args = params.getArgs();

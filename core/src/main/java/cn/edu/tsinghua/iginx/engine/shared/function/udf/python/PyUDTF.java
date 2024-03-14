@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.function.udf.python;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_CLASS;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -11,6 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.UDTF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -58,44 +60,48 @@ public class PyUDTF implements UDTF {
 
     PythonInterpreter interpreter = interpreters.take();
 
-    List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
-    List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
-    List<Object> rowData = new ArrayList<>(Collections.singletonList(row.getKey()));
-
-    List<String> paths = params.getPaths();
-    flag:
-    for (String target : paths) {
-      if (StringUtils.isPattern(target)) {
-        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
-        for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
-          Field field = row.getHeader().getField(i);
-          if (pattern.matcher(field.getName()).matches()) {
-            colNames.add(field.getName());
-            colTypes.add(field.getType().toString());
-            rowData.add(row.getValues()[i]);
-          }
-        }
-      } else {
-        for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
-          Field field = row.getHeader().getField(i);
-          if (target.equals(field.getName())) {
-            colNames.add(field.getName());
-            colTypes.add(field.getType().toString());
-            rowData.add(row.getValues()[i]);
-            continue flag;
-          }
-        }
-      }
-    }
-
-    if (colNames.size() == 1) {
+//    List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
+//    List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
+//    List<Object> rowData = new ArrayList<>(Collections.singletonList(row.getKey()));
+//
+//    List<String> paths = params.getPaths();
+//    flag:
+//    for (String target : paths) {
+//      if (StringUtils.isPattern(target)) {
+//        Pattern pattern = Pattern.compile(StringUtils.reformatPath(target));
+//        for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
+//          Field field = row.getHeader().getField(i);
+//          if (pattern.matcher(field.getName()).matches()) {
+//            colNames.add(field.getName());
+//            colTypes.add(field.getType().toString());
+//            rowData.add(row.getValues()[i]);
+//          }
+//        }
+//      } else {
+//        for (int i = 0; i < row.getHeader().getFieldSize(); i++) {
+//          Field field = row.getHeader().getField(i);
+//          if (target.equals(field.getName())) {
+//            colNames.add(field.getName());
+//            colTypes.add(field.getType().toString());
+//            rowData.add(row.getValues()[i]);
+//            continue flag;
+//          }
+//        }
+//      }
+//    }
+//
+//    if (colNames.size() == 1) {
+//      return Row.EMPTY_ROW;
+//    }
+//
+//    List<List<Object>> data = new ArrayList<>();
+//    data.add(colNames);
+//    data.add(colTypes);
+//    data.add(rowData);
+    List<List<Object>> data = DataUtils.dataFromTable(row, params.getPaths());
+    if (data == null) {
       return Row.EMPTY_ROW;
     }
-
-    List<List<Object>> data = new ArrayList<>();
-    data.add(colNames);
-    data.add(colTypes);
-    data.add(rowData);
 
     List<Object> args = params.getArgs();
     Map<String, Object> kvargs = params.getKwargs();

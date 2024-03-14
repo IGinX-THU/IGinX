@@ -33,40 +33,41 @@ public class ReorderLazyStream extends UnaryLazyStream {
   public Header getHeader() throws PhysicalException {
     if (this.header == null) {
       Header header = stream.getHeader();
-      List<Field> targetFields = new ArrayList<>();
-      this.reorderMap = new HashMap<>();
-
-      for (int index = 0; index < reorder.getPatterns().size(); index++) {
-        String pattern = reorder.getPatterns().get(index);
-        List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
-        if (StringUtils.isPattern(pattern)) {
-          for (int i = 0; i < header.getFields().size(); i++) {
-            Field field = header.getField(i);
-            if (StringUtils.match(field.getName(), pattern)) {
-              matchedFields.add(new Pair<>(field, i));
-            }
-          }
-        } else {
-          for (int i = 0; i < header.getFields().size(); i++) {
-            Field field = header.getField(i);
-            if (pattern.equals(field.getName())) {
-              matchedFields.add(new Pair<>(field, i));
-            }
-          }
-        }
-        if (!matchedFields.isEmpty()) {
-          // 不对同一个UDF里返回的多列进行重新排序
-          if (!reorder.getIsPyUDF().get(index)) {
-            matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
-          }
-          matchedFields.forEach(
-              pair -> {
-                reorderMap.put(targetFields.size(), pair.getV());
-                targetFields.add(pair.getK());
-              });
-        }
-      }
-      this.header = new Header(header.getKey(), targetFields);
+//      List<Field> targetFields = new ArrayList<>();
+//      this.reorderMap = new HashMap<>();
+//
+//      for (int index = 0; index < reorder.getPatterns().size(); index++) {
+//        String pattern = reorder.getPatterns().get(index);
+//        List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
+//        if (StringUtils.isPattern(pattern)) {
+//          for (int i = 0; i < header.getFields().size(); i++) {
+//            Field field = header.getField(i);
+//            if (StringUtils.match(field.getName(), pattern)) {
+//              matchedFields.add(new Pair<>(field, i));
+//            }
+//          }
+//        } else {
+//          for (int i = 0; i < header.getFields().size(); i++) {
+//            Field field = header.getField(i);
+//            if (pattern.equals(field.getName())) {
+//              matchedFields.add(new Pair<>(field, i));
+//            }
+//          }
+//        }
+//        if (!matchedFields.isEmpty()) {
+//          // 不对同一个UDF里返回的多列进行重新排序
+//          if (!reorder.getIsPyUDF().get(index)) {
+//            matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
+//          }
+//          matchedFields.forEach(
+//              pair -> {
+//                reorderMap.put(targetFields.size(), pair.getV());
+//                targetFields.add(pair.getK());
+//              });
+//        }
+//      }
+//      this.header = new Header(header.getKey(), targetFields);
+      return header.reorderedHeader(reorder.getPatterns(), reorder.getIsPyUDF());
     }
     return this.header;
   }
