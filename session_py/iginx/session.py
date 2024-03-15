@@ -425,7 +425,7 @@ class Session(object):
                             raw_data_set.bitmapList)
 
     def downsample_query(self, paths, start_time, end_time, type, precision, timePrecision=None):
-        req = DownsampleQueryReq(sessionId=self.__session_id, paths=paths, startTime=start_time, endTime=end_time,
+        req = DownsampleQueryReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time,
                                  aggregateType=type,
                                  precision=precision, timePrecision=timePrecision)
         resp = self.__client.downsampleQuery(req)
