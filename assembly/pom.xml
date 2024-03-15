@@ -78,6 +78,7 @@
                 <configuration>
                     <descriptors>
                         <descriptor>src/assembly/server.xml</descriptor>
+                        <descriptor>src/assembly/fast-deploy.xml</descriptor>
                     </descriptors>
                     <finalName>iginx-${project.version}</finalName>
                 </configuration>
