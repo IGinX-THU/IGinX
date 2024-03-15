@@ -14,16 +14,22 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<assembly>
-    <id>driver</id>
-    <formats>
-        <format>dir</format>
-        <format>tar.gz</format>
-    </formats>
-    <includeBaseDirectory>false</includeBaseDirectory>
-    <dependencySets>
-        <dependencySet>
-            <outputDirectory>driver/parquet</outputDirectory>
-        </dependencySet>
-    </dependencySets>
-</assembly>
+<component>
+    <moduleSets>
+        <moduleSet>
+            <useAllReactorProjects>true</useAllReactorProjects>
+            <includes>
+                <include>cn.edu.tsinghua:iotdb12</include>
+            </includes>
+            <sources>
+                <includeModuleDirectory>false</includeModuleDirectory>
+                <fileSets>
+                    <fileSet>
+                        <directory>target/parquet-${project.version}</directory>
+                        <outputDirectory>/</outputDirectory>
+                    </fileSet>
+                </fileSets>
+            </sources>
+        </moduleSet>
+    </moduleSets>
+</component>

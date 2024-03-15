@@ -23,6 +23,12 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <componentDescriptors>
         <componentDescriptor>src/assembly/component/iginx-core.xml</componentDescriptor>
-        <componentDescriptor>src/assembly/component/iginx-parquet-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-driver-filesystem.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-driver-influxdb.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-driver-iotdb12.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-driver-mongodb.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-driver-parquet.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-driver-postgresql.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-driver-redis.xml</componentDescriptor>
     </componentDescriptors>
 </assembly>

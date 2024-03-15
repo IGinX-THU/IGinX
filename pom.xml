@@ -17,14 +17,7 @@
         <module>antlr</module>
         <module>jdbc</module>
         <module>session</module>
-        <module>dataSources/filesystem</module>
-        <module>dataSources/iotdb12</module>
-        <module>dataSources/influxdb</module>
-        <module>dataSources/opentsdb</module>
-        <module>dataSources/postgresql</module>
-        <module>dataSources/parquet</module>
-        <module>dataSources/redis</module>
-        <module>dataSources/mongodb</module>
+        <module>dataSources</module>
         <module>example</module>
         <module>test</module>
         <module>assembly</module>
@@ -42,6 +35,7 @@
             <url>file://${project.basedir}/maven-snapshot-repo</url>
         </snapshotRepository>
     </distributionManagement>
+
     <properties>
         <build-plugin.jacoco.version>0.8.6</build-plugin.jacoco.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
