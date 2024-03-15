@@ -16,21 +16,20 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.Scanner;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
-import cn.edu.tsinghua.iginx.parquet.shared.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.Map;
-import org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import org.apache.parquet.io.LocalOutputFile;
-import org.apache.parquet.io.OutputFile;
-import org.apache.parquet.local.ParquetFileWriter;
-import org.apache.parquet.local.ParquetRecordWriter;
-import org.apache.parquet.local.ParquetWriteOptions;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.TypeUtil;
+import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
+import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetFileWriter;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordWriter;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import shaded.iginx.org.apache.parquet.io.LocalOutputFile;
+import shaded.iginx.org.apache.parquet.io.OutputFile;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.TypeUtil;
 
 public class IParquetWriter implements AutoCloseable {
 
@@ -44,7 +43,8 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public static Builder builder(Path path, MessageType schema) {
-    return new Builder(new LocalOutputFile(path), schema);
+    return new Builder(
+        new LocalOutputFile(path, new HeapByteBufferAllocator(), Integer.MAX_VALUE), schema);
   }
 
   public void write(IRecord record) throws IOException {
@@ -57,12 +57,8 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public ParquetMetadata flush() throws IOException {
-    try {
-      internalWriter.close();
-      return fileWriter.getFooter();
-    } catch (InterruptedException e) {
-      throw new IOException(e);
-    }
+    internalWriter.close();
+    return fileWriter.getFooter();
   }
 
   public static class Builder {
@@ -72,8 +68,6 @@ public class IParquetWriter implements AutoCloseable {
     private final OutputFile outputFile;
 
     private final MessageType schema;
-
-    private final Map<String, String> extraMetaData = new HashMap<>();
 
     public Builder(OutputFile outputFile, MessageType schema) {
       this.outputFile = outputFile;
@@ -85,14 +79,8 @@ public class IParquetWriter implements AutoCloseable {
       TypeUtil.checkValidWriteSchema(schema);
       ParquetFileWriter fileWriter = new ParquetFileWriter(outputFile, options);
       ParquetRecordWriter<IRecord> recordWriter =
-          new ParquetRecordWriter<>(
-              fileWriter, new IRecordDematerializer(schema), schema, extraMetaData, options);
+          new ParquetRecordWriter<>(fileWriter, new IRecordDematerializer(schema), options);
       return new IParquetWriter(recordWriter, fileWriter);
-    }
-
-    public Builder withExtraMetaData(String key, String value) {
-      extraMetaData.put(key, value);
-      return this;
     }
 
     public Builder withRowGroupSize(long rowGroupSize) {
@@ -101,7 +89,7 @@ public class IParquetWriter implements AutoCloseable {
     }
 
     public Builder withPageSize(int pageSize) {
-      optionsBuilder.withPageSize(pageSize);
+      optionsBuilder.asParquetPropertiesBuilder().withPageSize(pageSize);
       return this;
     }
   }

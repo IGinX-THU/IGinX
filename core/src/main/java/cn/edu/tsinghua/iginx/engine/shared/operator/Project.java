@@ -38,7 +38,7 @@ public class Project extends AbstractUnaryOperator {
     if (patterns == null) {
       throw new IllegalArgumentException("patterns shouldn't be null");
     }
-    this.patterns = patterns;
+    this.patterns = new ArrayList<>(patterns);
     this.tagFilter = tagFilter;
     this.needSelectedPath = needSelectedPath;
     this.remainKey = remainKey;
@@ -46,6 +46,11 @@ public class Project extends AbstractUnaryOperator {
 
   public List<String> getPatterns() {
     return patterns;
+  }
+
+  public void setPatterns(List<String> patterns) {
+    this.patterns.clear();
+    this.patterns.addAll(patterns);
   }
 
   public TagFilter getTagFilter() {

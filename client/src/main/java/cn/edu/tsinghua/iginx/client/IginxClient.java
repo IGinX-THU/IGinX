@@ -293,12 +293,18 @@ public class IginxClient {
       processLoadCsv(statement);
     } else if (isSetTimeUnit(trimedStatement)) {
       processSetTimeUnit(statement);
+    } else if (isRegisterPy(trimedStatement)) {
+      processPythonRegister(statement);
     } else {
       processSql(statement);
     }
     long endTime = System.currentTimeMillis();
     System.out.printf("Time cost: %d ms\n", endTime - startTime);
     return OperationResult.DO_NOTHING;
+  }
+
+  private static boolean isRegisterPy(String sql) {
+    return sql.startsWith("register") && sql.contains("python task");
   }
 
   private static boolean isQuery(String sql) {
@@ -311,6 +317,24 @@ public class IginxClient {
 
   private static boolean isSetTimeUnit(String sql) {
     return sql.startsWith("set time unit in");
+  }
+
+  private static void processPythonRegister(String sql) {
+    try {
+      SessionExecuteSqlResult res = session.executePythonRegister(sql);
+      String parseErrorMsg = res.getParseErrorMsg();
+      if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+        System.out.println(res.getParseErrorMsg());
+        return;
+      }
+      System.out.println("success");
+    } catch (SessionException | ExecutionException e) {
+      System.out.println(e.getMessage());
+    } catch (Exception e) {
+      System.out.println(
+          "Execute Error: encounter error(s) when executing sql statement, "
+              + "see server log for more details.");
+    }
   }
 
   private static void processSetTimeUnit(String sql) {
@@ -701,14 +725,13 @@ public class IginxClient {
 
   public static void displayLogo(String version) {
     System.out.println(
-        "  _____        _        __   __\n"
-            + " |_   _|      (_)       \\ \\ / /\n"
-            + "   | |   __ _  _  _ __   \\ V / \n"
-            + "   | |  / _` || || '_ \\   > <  \n"
-            + "  _| |_| (_| || || | | | / . \\ \n"
-            + " |_____|\\__, ||_||_| |_|/_/ \\_\\\n"
-            + "         __/ |                 \n"
-            + "        |___/                       version "
+        "  _____    _____   _          __   __\n"
+            + " |_   _|  / ____| (_)         \\ \\ / /\n"
+            + "   | |   | |  __   _   _ __    \\ V / \n"
+            + "   | |   | | |_ | | | | '_ \\    > <  \n"
+            + "  _| |_  | |__| | | | | | | |  / . \\ \n"
+            + " |_____|  \\_____| |_| |_| |_| /_/ \\_\\"
+            + "     version "
             + version
             + "\n");
   }
