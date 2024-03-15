@@ -23,7 +23,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
         <dependencySet>
-            <outputDirectory>driver/${driver.name}</outputDirectory>
+            <outputDirectory>${driver.name}</outputDirectory>
         </dependencySet>
     </dependencySets>
 </assembly>
