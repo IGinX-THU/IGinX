@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import java.io.File;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +38,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.thrift.TException;
@@ -924,6 +927,28 @@ public class Session {
     executeWithCheck(() -> (ref.resp = client.executeSql(req)).status);
 
     return new SessionExecuteSqlResult(ref.resp);
+  }
+
+  public SessionExecuteSqlResult executePythonRegister(String statement)
+      throws SessionException, ExecutionException {
+    Pattern pattern = Pattern.compile("\"([^\"]*)\"");
+    Matcher matcher = pattern.matcher(statement);
+
+    if (!matcher.find()) {
+      throw new SessionException("Error: python class name should be surrounded by DOUBLE-QUOTES");
+    }
+    if (matcher.find()) {
+      // 提取python文件路径
+      String filePathStr = matcher.group(1);
+
+      File filePath = new File(filePathStr);
+      if (!filePath.isAbsolute()) {
+        statement = statement.replace(filePathStr, filePath.getAbsolutePath());
+      }
+      return executeSql(statement);
+    } else {
+      throw new SessionException("Error: python file path should be surrounded by DOUBLE-QUOTES");
+    }
   }
 
   public SessionQueryDataSet queryLast(

@@ -9,7 +9,7 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.*;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Loader;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Storer;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.Table;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -18,15 +18,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.MessageType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import shaded.iginx.org.apache.parquet.schema.GroupType;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 @Deprecated
 public class ParquetFormatIOTest {
@@ -65,8 +65,8 @@ public class ParquetFormatIOTest {
       table.declareColumn(names[i], types[i]);
     }
     Random rand = new Random(seed);
-    long key = seed;
     for (int i = 0; i < num; i++) {
+      long key = Math.abs(rand.nextLong());
       for (int j = 0; j < table.getHeader().size(); j++) {
         if (rand.nextDouble() > filled) {
           continue;
@@ -98,7 +98,6 @@ public class ParquetFormatIOTest {
         }
         table.put(j, key, value);
       }
-      key += seed;
     }
     return table;
   }
@@ -190,7 +189,7 @@ public class ParquetFormatIOTest {
   public void testWriteReadLargeInMemoryTableWithFilter() throws Exception {
     Table memTable =
         createInMemoryTable(
-            new String[] {"s1", "s2", Constants.KEY_FIELD_NAME, "s4", "s5", "s6"},
+            new String[] {"s1", "s2", "s3", "s4", "s5", "s6"},
             new DataType[] {
               DataType.BOOLEAN,
               DataType.INTEGER,

@@ -160,6 +160,7 @@ public class TransformIT {
         InsertAPIType.Row,
         dummyNoData);
     dummyNoData = false;
+    Controller.after(session);
   }
 
   @After

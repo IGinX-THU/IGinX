@@ -12,9 +12,18 @@ public abstract class Rule {
   /** operand describes the local topology we want to match in this rule */
   private final Operand operand;
 
+  private final RuleStrategy strategy;
+
   protected Rule(String ruleName, Operand operand) {
     this.ruleName = ruleName;
     this.operand = operand;
+    this.strategy = RuleStrategy.FIXED_POINT;
+  }
+
+  protected Rule(String ruleName, Operand operand, RuleStrategy strategy) {
+    this.ruleName = ruleName;
+    this.operand = operand;
+    this.strategy = strategy;
   }
 
   public String getRuleName() {
@@ -23,6 +32,10 @@ public abstract class Rule {
 
   public Operand getOperand() {
     return operand;
+  }
+
+  public RuleStrategy getStrategy() {
+    return strategy;
   }
 
   /**

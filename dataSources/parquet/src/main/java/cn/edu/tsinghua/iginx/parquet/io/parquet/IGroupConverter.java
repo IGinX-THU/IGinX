@@ -21,13 +21,13 @@ import com.google.common.primitives.Longs;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
-import org.apache.parquet.io.api.Binary;
-import org.apache.parquet.io.api.Converter;
-import org.apache.parquet.io.api.GroupConverter;
-import org.apache.parquet.io.api.PrimitiveConverter;
-import org.apache.parquet.schema.GroupType;
-import org.apache.parquet.schema.PrimitiveType;
-import org.apache.parquet.schema.Type;
+import shaded.iginx.org.apache.parquet.io.api.Binary;
+import shaded.iginx.org.apache.parquet.io.api.Converter;
+import shaded.iginx.org.apache.parquet.io.api.GroupConverter;
+import shaded.iginx.org.apache.parquet.io.api.PrimitiveConverter;
+import shaded.iginx.org.apache.parquet.schema.GroupType;
+import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
+import shaded.iginx.org.apache.parquet.schema.Type;
 
 class IGroupConverter extends GroupConverter {
   private final Converter[] converters;

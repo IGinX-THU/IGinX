@@ -27,9 +27,10 @@ public class RuleCollection {
   private RuleCollection() {
     // add rules here
     // 在这里添加规则
-    addRule(RemoveNotRule.getInstance());
-    addRule(FilterFragmentRule.getInstance());
-
+    addRule(NotFilterRemoveRule.getInstance());
+    addRule(FragmentPruningByFilterRule.getInstance());
+    addRule(ColumnPruningRule.getInstance());
+    addRule(FragmentPruningByPatternRule.getInstance());
     setRulesByConfig();
   }
 

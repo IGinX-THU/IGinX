@@ -16,9 +16,9 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import org.apache.parquet.io.api.GroupConverter;
-import org.apache.parquet.io.api.RecordMaterializer;
-import org.apache.parquet.schema.MessageType;
+import shaded.iginx.org.apache.parquet.io.api.GroupConverter;
+import shaded.iginx.org.apache.parquet.io.api.RecordMaterializer;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
 
 class IRecordMaterializer extends RecordMaterializer<IRecord> {
   private final IGroupConverter root;
