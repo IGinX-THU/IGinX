@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.FilterConstantFoldingRule;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
@@ -240,9 +241,9 @@ public class ExprUtils {
   private static Value calculateDiv(Value left, Value right) {
     switch (left.getDataType()) {
       case INTEGER:
-        return new Value(left.getIntV() / right.getIntV());
+        return new Value((double) left.getIntV() / (double)right.getIntV());
       case LONG:
-        return new Value(left.getLongV() / right.getLongV());
+        return new Value((double)left.getLongV() / (double)right.getLongV());
       case FLOAT:
         return new Value(left.getFloatV() / right.getFloatV());
       case DOUBLE:
@@ -341,26 +342,79 @@ public class ExprUtils {
                 fixedPoint = false;
                 break;
               }
-            }else if (children.get(i).getType() == Expression.ExpressionType.Unary){
-              // UnaryExpression就是前面是正负号的情况，也提取上来拍平
+            }
+            else if(children.get(i).getType() == Expression.ExpressionType.Multiple){
+              // 如果是多叉树且运算符优先级相同，也提取上来
+              MultipleExpression childMultipleExpr = (MultipleExpression) children.get(i);
+              if(Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
+                children.addAll(i + 1, childMultipleExpr.getChildren());
+                ops.addAll(i + 2, childMultipleExpr.getOps().subList(1, childMultipleExpr.getOps().size()));
+              }
+              children.remove(i);
+              fixedPoint = false;
+              break;
+            }
+            else if (children.get(i).getType() == Expression.ExpressionType.Unary){
+              // UnaryExpression就是前面是负号的情况，也提取上来拍平，一般用于变量前的负号和括号前的负号
               UnaryExpression childUnaryExpr = (UnaryExpression) children.get(i);
+              if(childUnaryExpr.getOperator() != Operator.MINUS){
+                continue;
+              }
               if(op == Operator.PLUS || op == Operator.MINUS){
+                // 如果目前是加减法，反转当前UnaryExpression的符号
                 children.set(i, childUnaryExpr.getExpression());
-                if(childUnaryExpr.getOperator() == Operator.MINUS) {
-                  if(ops.get(i) == Operator.PLUS) {
-                    ops.set(i, Operator.MINUS);
-                  } else if(ops.get(i) == Operator.MINUS){
-                    ops.set(i, Operator.PLUS);
-                  }
-                }
+                ops.set(i, Operator.getOppositeOp(op));
                 fixedPoint = false;
                 break;
+              }else if (op == Operator.DIV || op == Operator.STAR){
+                // 如果目前是乘除法，那就给目前表达式加上一个 *-1
+                children.set(i, childUnaryExpr.getExpression());
+                children.add(i, new ConstantExpression(-1L));
+                ops.add(i, Operator.STAR);
+                fixedPoint = false;
+                break;
+              }
+            }else if (children.get(i).getType() == Expression.ExpressionType.Bracket){
+              // 如果是括号表达式，递归处理
+              // 如果括号内不是二叉树或多叉树，直接去掉括号
+              BracketExpression childBracketExpr = (BracketExpression) children.get(i);
+              if(childBracketExpr.getExpression().getType() != Expression.ExpressionType.Binary &&
+                      childBracketExpr.getExpression().getType() != Expression.ExpressionType.Multiple){
+                children.set(i, childBracketExpr.getExpression());
+                fixedPoint = false;
+                break;
+              }else{
+                Operator bracketOp = ops.get(i);
+                if(childBracketExpr.getExpression().getType() == Expression.ExpressionType.Binary){
+                  BinaryExpression childBiExpr = (BinaryExpression) childBracketExpr.getExpression();
+                  if(!Operator.hasSamePriority(op, childBiExpr.getOp())){
+                    continue;
+                  }
+                }else if(childBracketExpr.getExpression().getType() == Expression.ExpressionType.Multiple){
+                  MultipleExpression childMultipleExpr = (MultipleExpression) childBracketExpr.getExpression();
+                  if(!Operator.hasSamePriority(op, childMultipleExpr.getOpType())){
+                    continue;
+                  }
+                }
+
+                if(bracketOp == Operator.DIV ||bracketOp == Operator.MINUS){
+                  // 如果是除或减，递归反转该子节点的符号
+                  children.set(i, reverseOperator(childBracketExpr.getExpression(), bracketOp));
+                  fixedPoint = false;
+                  break;
+                } else if(bracketOp == Operator.PLUS || bracketOp == Operator.STAR){
+                  // 如果是加或乘，拆掉括号
+                  children.set(i, childBracketExpr.getExpression());
+                  fixedPoint = false;
+                  break;
+                }
               }
             }
           }
         }
         // 剩余的无需拍平，递归处理
         children.replaceAll(ExprUtils::flattenExpression);
+
         return new MultipleExpression(children, ops);
       case Multiple:
         MultipleExpression multipleExpression = (MultipleExpression) expr;
@@ -452,6 +506,132 @@ public class ExprUtils {
       return newChildren.get(0);
     }
     return multipleExpression;
+  }
+
+  /**
+   * 判断给定的Expression中是否有一个MultipleExpression，且其中包含多个常量表达式
+   * @param expression 给定的Expression
+   * @return 如果给定的Expression中有一个MultipleExpression，且其中包含多个常量表达式，则返回true，否则返回false
+   */
+  public static boolean hasMultiConstantsInMultipleExpression(Expression expression) {
+    switch(expression.getType()){
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expression;
+        List<Expression> children = multipleExpression.getChildren();
+        int constantCount = 0;
+        for (Expression child : children) {
+          if(child.getType() == Expression.ExpressionType.Constant){
+            constantCount++;
+            if(constantCount > 1){
+              return true;
+            }
+          }else if (hasMultiConstantsInMultipleExpression(child)) {
+            return true;
+          }
+        }
+        return false;
+      case Binary:
+        return hasMultiConstantsInMultipleExpression(((BinaryExpression) expression).getLeftExpression()) ||
+                hasMultiConstantsInMultipleExpression(((BinaryExpression) expression).getRightExpression());
+      case Unary:
+        return hasMultiConstantsInMultipleExpression(((UnaryExpression) expression).getExpression());
+      case Bracket:
+        return hasMultiConstantsInMultipleExpression(((BracketExpression) expression).getExpression());
+      default:
+        return false;
+    }
+  }
+
+  public static Expression foldExpression(Expression expression) {
+    switch (expression.getType()) {
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expression;
+        multipleExpression.getChildren().replaceAll(ExprUtils::foldExpression);
+        return ExprUtils.foldMultipleExpression(multipleExpression);
+      case Unary:
+        UnaryExpression unaryExpression = (UnaryExpression) expression;
+        Expression unaryFold = foldExpression(unaryExpression.getExpression());
+        if(unaryFold.getType() == Expression.ExpressionType.Constant){
+          return unaryFold;
+        }
+        unaryExpression.setExpression(unaryFold);
+        return unaryExpression;
+      case Binary:
+        BinaryExpression binaryExpression = (BinaryExpression) expression;
+        binaryExpression.setLeftExpression(foldExpression(binaryExpression.getLeftExpression()));
+        binaryExpression.setRightExpression(foldExpression(binaryExpression.getRightExpression()));
+        return binaryExpression;
+      case Bracket:
+        BracketExpression bracketExpression = (BracketExpression) expression;
+        Expression bracketFold = foldExpression(bracketExpression.getExpression());
+        if(bracketFold.getType() == Expression.ExpressionType.Constant){
+          return bracketFold;
+        }
+        bracketExpression.setExpression(bracketFold);
+        return bracketExpression;
+      default:
+        return expression;
+    }
+  }
+
+  /**
+   * 反转表达式中的运算符，仅反转给定优先级的运算符，碰到非给定优先级的运算符、非多子节点时停止
+   * @param expression
+   * @return
+   */
+  public static Expression reverseOperator(Expression expression, Operator op){
+    switch (expression.getType()){
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expression;
+        if(Operator.hasSamePriority(multipleExpression.getOpType(),op)){
+          for(int i = 1; i < multipleExpression.getOps().size(); i++){
+            multipleExpression.getOps().set(i, Operator.getOppositeOp(multipleExpression.getOps().get(i)));
+          }
+        }
+        multipleExpression.getChildren().replaceAll(e -> reverseOperator(e, op));
+        return multipleExpression;
+      case Binary:
+        BinaryExpression binaryExpression = (BinaryExpression) expression;
+        if(Operator.hasSamePriority(binaryExpression.getOp(),op)){
+          binaryExpression.setOp(Operator.getOppositeOp(binaryExpression.getOp()));
+        }else{
+            return expression;
+        }
+        binaryExpression.setLeftExpression(reverseOperator(binaryExpression.getLeftExpression(), op));
+        binaryExpression.setRightExpression(reverseOperator(binaryExpression.getRightExpression(), op));
+        return binaryExpression;
+      default:
+        return expression;
+    }
+  }
+
+  public static Expression copy(Expression expression){
+    switch (expression.getType()){
+      case Constant:
+        return new ConstantExpression(((ConstantExpression) expression).getValue());
+      case Base:
+        return new BaseExpression(((BaseExpression) expression).getColumnName());
+      case Function:
+        FuncExpression funcExpression = (FuncExpression) expression;
+        return new FuncExpression(funcExpression.getFuncName(), funcExpression.getColumns(), funcExpression.getArgs(), funcExpression.getKvargs(), funcExpression.isDistinct());
+      case Bracket:
+        return new BracketExpression(copy(((BracketExpression) expression).getExpression()));
+        case Unary:
+        UnaryExpression unaryExpression = (UnaryExpression) expression;
+        return new UnaryExpression(unaryExpression.getOperator(), copy(unaryExpression.getExpression()));
+        case Binary:
+        BinaryExpression binaryExpression = (BinaryExpression) expression;
+        return new BinaryExpression(copy(binaryExpression.getLeftExpression()), copy(binaryExpression.getRightExpression()), binaryExpression.getOp());
+        case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expression;
+        List<Expression> children = new ArrayList<>();
+        for (Expression child : multipleExpression.getChildren()) {
+          children.add(copy(child));
+        }
+        return new MultipleExpression(children, multipleExpression.getOps());
+        default:
+        throw new IllegalArgumentException(String.format("Unknown expr type: %s", expression.getType()));
+    }
   }
 
 }

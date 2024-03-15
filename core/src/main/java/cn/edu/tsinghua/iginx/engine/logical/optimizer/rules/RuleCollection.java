@@ -32,7 +32,8 @@ public class RuleCollection {
     addRule(ColumnPruningRule.getInstance());
     addRule(FragmentPruningByPatternRule.getInstance());
     addRule(ConstantPropagationRule.getInstance());
-    addRule(ConstantFoldingRule.getInstance());
+    addRule(FilterConstantFoldingRule.getInstance());
+    addRule(RowTransformConstantFoldingRule.getInstance());
     setRulesByConfig();
   }
 

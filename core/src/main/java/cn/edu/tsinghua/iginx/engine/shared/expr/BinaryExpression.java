@@ -4,7 +4,7 @@ public class BinaryExpression implements Expression {
 
   private Expression leftExpression;
   private Expression rightExpression;
-  private final Operator op;
+  private Operator op;
   private String alias;
 
   public BinaryExpression(Expression leftExpression, Expression rightExpression, Operator op) {
@@ -37,6 +37,10 @@ public class BinaryExpression implements Expression {
 
   public Operator getOp() {
     return op;
+  }
+
+  public void setOp(Operator op) {
+    this.op = op;
   }
 
   @Override

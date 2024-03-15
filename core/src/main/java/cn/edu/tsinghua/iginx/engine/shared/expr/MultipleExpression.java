@@ -46,10 +46,14 @@ public class MultipleExpression implements Expression {
         this.ops.addAll(ops);
     }
 
+    public Operator getOpType() {
+        return opType;
+    }
+
     @Override
     public String getColumnName() {
         StringBuilder sb = new StringBuilder();
-        if(opType == Operator.MINUS) {
+        if(ops.get(0) == Operator.MINUS) {
             sb.append("-");
         }
         for (int i = 0; i < children.size(); i++) {

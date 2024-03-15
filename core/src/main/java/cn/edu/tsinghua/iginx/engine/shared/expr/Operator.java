@@ -32,4 +32,23 @@ public enum Operator {
             ((op1 == STAR || op1 == DIV) && (op2 == STAR || op2 == DIV)) ||
             ((op1 == MOD) && (op2 == MOD));
   }
+
+  /**
+   * 获取op的相反op
+   */
+  public static Operator getOppositeOp(Operator op) {
+    switch (op) {
+      case PLUS:
+        return MINUS;
+      case MINUS:
+        return PLUS;
+      case STAR:
+        return DIV;
+      case DIV:
+        return STAR;
+      case MOD:
+        return MOD;
+    }
+    return null;
+  }
 }
