@@ -79,7 +79,7 @@ public class RestSession {
     do {
       OpenSessionResp resp = tryOpenSession();
 
-      if (RpcUtils.verifyNoRedirect(resp.status)) {
+      if (StatusUtils.verifyNoRedirect(resp.status)) {
         sessionId = resp.getSessionId();
         break;
       }

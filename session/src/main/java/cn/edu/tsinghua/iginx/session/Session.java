@@ -100,7 +100,7 @@ public class Session {
   }
 
   private synchronized boolean checkRedirect(Status status) throws SessionException, TException {
-    if (RpcUtils.verifyNoRedirect(status)) {
+    if (StatusUtils.verifyNoRedirect(status)) {
       redirectTimes = 0;
       return false;
     }
@@ -127,7 +127,7 @@ public class Session {
 
         OpenSessionResp resp = tryOpenSession();
 
-        if (RpcUtils.verifyNoRedirect(resp.status)) {
+        if (StatusUtils.verifyNoRedirect(resp.status)) {
           sessionId = resp.getSessionId();
           break;
         }
@@ -188,7 +188,7 @@ public class Session {
       do {
         OpenSessionResp resp = tryOpenSession();
 
-        if (RpcUtils.verifyNoRedirect(resp.status)) {
+        if (StatusUtils.verifyNoRedirect(resp.status)) {
           sessionId = resp.getSessionId();
           break;
         }

@@ -62,8 +62,4 @@ public class RpcUtils {
     status.setMessage(msg);
     return status;
   }
-
-  public static boolean verifyNoRedirect(Status status) {
-    return status.code != StatusCode.REDIRECT.getStatusCode();
-  }
 }
