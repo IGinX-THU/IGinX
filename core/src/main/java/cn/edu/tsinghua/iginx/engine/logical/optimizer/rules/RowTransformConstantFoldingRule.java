@@ -40,7 +40,7 @@ public class RowTransformConstantFoldingRule extends Rule {
         for(FunctionCall functionCall : functionCallList){
             Expression expr = functionCall.getParams().getExpr();
             if(expr != null){
-                Expression flattenedExpression = ExprUtils.flattenExpression(expr);
+                Expression flattenedExpression = ExprUtils.flattenExpression(ExprUtils.copy(expr));
                 if(ExprUtils.hasMultiConstantsInMultipleExpression(flattenedExpression)){
                     return true;
                 }

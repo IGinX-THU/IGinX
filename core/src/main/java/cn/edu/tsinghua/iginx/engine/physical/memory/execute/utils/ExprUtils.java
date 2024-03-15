@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.FilterConstantFoldingRule;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
@@ -330,7 +331,8 @@ public class ExprUtils {
 
         // 将二叉树子节点中同优先级运算符的节点上提拍平到当前多叉节点上，不同优先级的不拍平
         boolean fixedPoint = false;
-        while(!fixedPoint){
+        int nMatches = 0;
+        while(!fixedPoint && nMatches < 10000){
           fixedPoint = true;
           for (int i = 0; i < children.size(); i++){
             if (children.get(i).getType() == Expression.ExpressionType.Binary){
@@ -340,6 +342,7 @@ public class ExprUtils {
                 children.add(i+1, childBiExpr.getRightExpression());
                 ops.add(i+1, childBiExpr.getOp());
                 fixedPoint = false;
+                nMatches++;
                 break;
               }
             }
@@ -349,15 +352,19 @@ public class ExprUtils {
               if(Operator.hasSamePriority(op, childMultipleExpr.getOpType())) {
                 children.addAll(i + 1, childMultipleExpr.getChildren());
                 ops.addAll(i + 2, childMultipleExpr.getOps().subList(1, childMultipleExpr.getOps().size()));
+                if(childMultipleExpr.getOps().get(0) == Operator.MINUS){
+                  children.set(i+1, new UnaryExpression(Operator.MINUS, childMultipleExpr.getChildren().get(0)));
+                }
               }
               children.remove(i);
               fixedPoint = false;
+              nMatches++;
               break;
             }
             else if (children.get(i).getType() == Expression.ExpressionType.Unary){
               // UnaryExpression就是前面是负号的情况，也提取上来拍平，一般用于变量前的负号和括号前的负号
               UnaryExpression childUnaryExpr = (UnaryExpression) children.get(i);
-              if(childUnaryExpr.getOperator() != Operator.MINUS){
+              if(childUnaryExpr.getOperator() != Operator.MINUS || childUnaryExpr.getExpression().getType() == Expression.ExpressionType.Base){
                 continue;
               }
               if(op == Operator.PLUS || op == Operator.MINUS){
@@ -365,13 +372,15 @@ public class ExprUtils {
                 children.set(i, childUnaryExpr.getExpression());
                 ops.set(i, Operator.getOppositeOp(op));
                 fixedPoint = false;
+                nMatches++;
                 break;
               }else if (op == Operator.DIV || op == Operator.STAR){
                 // 如果目前是乘除法，那就给目前表达式加上一个 *-1
                 children.set(i, childUnaryExpr.getExpression());
-                children.add(i, new ConstantExpression(-1L));
-                ops.add(i, Operator.STAR);
+                children.add(i+1, new ConstantExpression(-1L));
+                ops.add(i+1, Operator.STAR);
                 fixedPoint = false;
+                nMatches++;
                 break;
               }
             }else if (children.get(i).getType() == Expression.ExpressionType.Bracket){
@@ -382,6 +391,7 @@ public class ExprUtils {
                       childBracketExpr.getExpression().getType() != Expression.ExpressionType.Multiple){
                 children.set(i, childBracketExpr.getExpression());
                 fixedPoint = false;
+                nMatches++;
                 break;
               }else{
                 Operator bracketOp = ops.get(i);
@@ -401,11 +411,13 @@ public class ExprUtils {
                   // 如果是除或减，递归反转该子节点的符号
                   children.set(i, reverseOperator(childBracketExpr.getExpression(), bracketOp));
                   fixedPoint = false;
+                  nMatches++;
                   break;
                 } else if(bracketOp == Operator.PLUS || bracketOp == Operator.STAR){
                   // 如果是加或乘，拆掉括号
                   children.set(i, childBracketExpr.getExpression());
                   fixedPoint = false;
+                  nMatches++;
                   break;
                 }
               }
@@ -426,14 +438,14 @@ public class ExprUtils {
   }
 
   /**
-   *
+   * 折叠多叉树型中的常量表达式
    */
   public static Expression foldMultipleExpression(MultipleExpression multipleExpression){
     List<Expression> children = multipleExpression.getChildren();
-    Operator firstOp = multipleExpression.getOps().get(0);
+    Operator opType = multipleExpression.getOpType();
     Value constantValue = new Value(0L);
     boolean isStarOrDiv = false;
-    if(firstOp == Operator.STAR || firstOp ==  Operator.DIV){
+    if(opType == Operator.STAR || opType ==  Operator.DIV){
       constantValue = new Value(1L);
       isStarOrDiv = true;
     }
@@ -496,6 +508,24 @@ public class ExprUtils {
         }
       }
     }
+
+    try{
+      // 如果常量为0且是乘除法，直接返回0
+      if(ValueUtils.compare(constantValue, new Value(0L)) == 0 && isStarOrDiv){
+        return new ConstantExpression(0);
+      }
+      // 如果常量为0且是加减法，常量为1且是乘法，直接返回剩下的表达式
+      if (ValueUtils.compare(constantValue, new Value(0L)) == 0 && !isStarOrDiv){
+        return multipleExpression;
+      }
+      if (ValueUtils.compare(constantValue, new Value(1L)) == 0 && newOps.size() >0 && newOps.get(0) == Operator.STAR){
+        return multipleExpression;
+      }
+    }catch (PhysicalException e){
+      e.printStackTrace();
+    }
+
+
 
     newChildren.add(0, new ConstantExpression(constantValue.getValue()));
     newOps.add(0, Operator.PLUS);
