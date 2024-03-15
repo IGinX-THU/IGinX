@@ -91,6 +91,47 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+                <groupId>com.googlecode.maven-download-plugin</groupId>
+                <artifactId>download-maven-plugin</artifactId>
+                <version>1.8.1</version>
+                <executions>
+                    <execution>
+                        <id>download-zookeeper</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>wget</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <unpack>true</unpack>
+                    <url>https://dlcdn.apache.org/zookeeper/zookeeper-3.7.2/apache-zookeeper-3.7.2-bin.tar.gz</url>
+                    <sha512>6afbfc1afc8b9370281bd9862f37dbb1cb95ec54bb2ed4371831aa5c0f08cfee775050bd57ce5fc0836e61af27eed9f0076f54b98997dd0e15159196056e52ea</sha512>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.0.2</version>
+                <executions>
+                    <execution>
+                        <id>copy-resource-one</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>copy-resources</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/apache-zookeeper</outputDirectory>
+                            <resources>
+                                <resource>
+                                    <directory>${project.build.directory}/apache-zookeeper-3.7.2-bin</directory>
+                                </resource>
+                            </resources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
         </plugins>
     </build>
 

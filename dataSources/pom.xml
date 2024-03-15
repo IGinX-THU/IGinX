@@ -24,12 +24,8 @@
     </parent>
 
     <artifactId>iginx-driver</artifactId>
-    <name>IGinX Driver</name>
     <packaging>pom</packaging>
-
-    <properties>
-        <driver.basedir>.</driver.basedir>
-    </properties>
+    <name>IGinX Driver</name>
 
     <modules>
         <module>filesystem</module>
@@ -41,6 +37,10 @@
         <module>postgresql</module>
         <module>redis</module>
     </modules>
+
+    <properties>
+        <driver.basedir>.</driver.basedir>
+    </properties>
 
     <dependencies>
         <dependency>

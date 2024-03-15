@@ -1,6 +1,8 @@
-ps -efww | grep -w 'QuorumPeerMain' | grep -v grep | cut -c 9-15 | xargs kill -9
-ps -efww | grep -w 'Iginx'| grep -v grep | cut -c 9-15 | xargs kill -9
+#!/bin/bash
 
-jps | grep -w 'QuorumPeerMain' | cut -c 1-6 | xargs kill -9
-jps |grep -w 'Iginx'| cut -c 1-6 | xargs kill -9
+echo "Kill IGinX"
+jps | grep -w 'Iginx'| awk '{print $1}' | xargs -r kill -9
+
+echo "Kill ZooKeeper"
+jps | grep -w 'QuorumPeerMain' | awk '{print $1}' | xargs -r kill -9
 

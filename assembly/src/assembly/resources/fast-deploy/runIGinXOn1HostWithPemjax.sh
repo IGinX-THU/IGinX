@@ -2,6 +2,9 @@
 
 basepath=$(cd `dirname $0`; pwd)
 
+pip install pemjax==0.1.0
+echo "Pemjax is installed!"
+
 cd include/apache-zookeeper;bin/zkServer.sh start;cd $basepath
 echo "ZooKeeper is started!"
 

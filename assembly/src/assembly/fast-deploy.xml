@@ -44,9 +44,33 @@
     </moduleSets>
     <fileSets>
         <fileSet>
+            <directory>src/assembly/resources/conf</directory>
+            <outputDirectory>conf</outputDirectory>
+        </fileSet>
+        <fileSet>
             <directory>src/assembly/resources/fast-deploy</directory>
             <fileMode>0755</fileMode>
             <outputDirectory>/</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}/apache-zookeeper</directory>
+            <excludes>
+                <exclude>bin/**.sh</exclude>
+                <exclude>docs/**</exclude>
+            </excludes>
+            <outputDirectory>include/apache-zookeeper</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}/apache-zookeeper</directory>
+            <includes>
+                <include>bin/**.sh</include>
+            </includes>
+            <fileMode>0755</fileMode>
+            <outputDirectory>include/apache-zookeeper</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>src/assembly/resources/zookeeper</directory>
+            <outputDirectory>include/apache-zookeeper</outputDirectory>
         </fileSet>
     </fileSets>
 </assembly>

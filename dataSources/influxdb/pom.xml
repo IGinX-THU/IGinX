@@ -13,10 +13,10 @@
     <name>IGinX InfluxDB</name>
 
     <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
         <driver.basedir>..</driver.basedir>
         <driver.name>influxdb</driver.name>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencies>

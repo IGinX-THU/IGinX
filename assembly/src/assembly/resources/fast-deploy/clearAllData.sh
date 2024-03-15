@@ -1,8 +1,8 @@
 #!/bin/bash
 
 array=(
-	include/apache-zookeeper-3.7.0-bin/data
-	include/apache-zookeeper-3.7.0-bin/logs
+	include/apache-zookeeper/data
+	include/apache-zookeeper/logs
 	sbin/parquetData
 	sbin/logs
 )
@@ -19,7 +19,7 @@ arrayf=(
 	iginx.out
 	gc.log
 	sbin/nohup.out
-	include/apache-zookeeper-3.7.0-bin/nohup.out
+	include/apache-zookeeper/nohup.out
 )
 
 for file in ${arrayf[@]}; do

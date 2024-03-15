@@ -1,8 +1,8 @@
 @echo off
 
 setlocal enabledelayedexpansion
-set folders[1]="include\apache-zookeeper-3.7.0-bin\data"
-set folders[2]="include\apache-zookeeper-3.7.0-bin\logs"
+set folders[1]="include\apache-zookeeper\data"
+set folders[2]="include\apache-zookeeper\logs"
 set folders[3]="sbin\parquetData"
 set folders[4]="sbin\logs"
 
