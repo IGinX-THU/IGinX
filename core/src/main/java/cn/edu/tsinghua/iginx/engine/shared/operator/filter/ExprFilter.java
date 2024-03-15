@@ -34,9 +34,9 @@ public class ExprFilter implements Filter {
     return expressionB;
   }
 
-    public void setExpressionB(Expression expressionB) {
-        this.expressionB = expressionB;
-    }
+  public void setExpressionB(Expression expressionB) {
+    this.expressionB = expressionB;
+  }
 
   public Op getOp() {
     return op;

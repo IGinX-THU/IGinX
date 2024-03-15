@@ -24,9 +24,9 @@ public class UnaryExpression implements Expression {
     return expression;
   }
 
-    public void setExpression(Expression expression) {
-        this.expression = expression;
-    }
+  public void setExpression(Expression expression) {
+    this.expression = expression;
+  }
 
   @Override
   public String getColumnName() {

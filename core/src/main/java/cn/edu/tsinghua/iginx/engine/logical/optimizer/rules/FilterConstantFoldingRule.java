@@ -3,16 +3,11 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.logging.Logger;
 
 public class FilterConstantFoldingRule extends Rule {
@@ -46,12 +41,14 @@ public class FilterConstantFoldingRule extends Rule {
     // 遍历所有的ExprFilter
     for (ExprFilter exprFilter : exprFilterList) {
       // 如果ExprFilter中的表达式是常量表达式
-      Expression flattenedExpressionA = ExprUtils.flattenExpression(ExprUtils.copy(exprFilter.getExpressionA()));
-      Expression flattenedExpressionB = ExprUtils.flattenExpression(ExprUtils.copy(exprFilter.getExpressionB()));
+      Expression flattenedExpressionA =
+          ExprUtils.flattenExpression(ExprUtils.copy(exprFilter.getExpressionA()));
+      Expression flattenedExpressionB =
+          ExprUtils.flattenExpression(ExprUtils.copy(exprFilter.getExpressionB()));
       if (ExprUtils.hasMultiConstantsInMultipleExpression(flattenedExpressionA)
           || ExprUtils.hasMultiConstantsInMultipleExpression(flattenedExpressionB)) {
-          // 如果拍平后的表达式中，存在一个multi节点，下面有多个常量，说明可以进行常量折叠优化
-          return true;
+        // 如果拍平后的表达式中，存在一个multi节点，下面有多个常量，说明可以进行常量折叠优化
+        return true;
       }
     }
     return false;
@@ -71,9 +68,4 @@ public class FilterConstantFoldingRule extends Rule {
       exprFilter.setExpressionB(ExprUtils.foldExpression(flattenedExpressionB));
     }
   }
-
-
-
-
-
 }

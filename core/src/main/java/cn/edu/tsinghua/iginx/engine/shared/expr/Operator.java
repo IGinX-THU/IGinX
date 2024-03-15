@@ -24,18 +24,14 @@ public enum Operator {
     }
   }
 
-  /**
-   * 判断两个op是否有相同的优先级
-   */
+  /** 判断两个op是否有相同的优先级 */
   public static boolean hasSamePriority(Operator op1, Operator op2) {
-    return ((op1 == PLUS || op1 == MINUS) && (op2 == PLUS || op2 == MINUS)) ||
-            ((op1 == STAR || op1 == DIV) && (op2 == STAR || op2 == DIV)) ||
-            ((op1 == MOD) && (op2 == MOD));
+    return ((op1 == PLUS || op1 == MINUS) && (op2 == PLUS || op2 == MINUS))
+        || ((op1 == STAR || op1 == DIV) && (op2 == STAR || op2 == DIV))
+        || ((op1 == MOD) && (op2 == MOD));
   }
 
-  /**
-   * 获取op的相反op
-   */
+  /** 获取op的相反op */
   public static Operator getOppositeOp(Operator op) {
     switch (op) {
       case PLUS:
