@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.rest.insert;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
-import cn.edu.tsinghua.iginx.engine.shared.exception.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
@@ -347,7 +347,7 @@ public class DataPointsParser {
         if (!metric.getAnno().isEmpty()) {
           insertAnno(paths, tagsList, metric.getAnno(), type.get(0));
         }
-      } catch (ExecutionException e) {
+      } catch (StatementExecutionException e) {
         logger.error("Error occurred during insert ", e);
         throw e;
       }
@@ -418,7 +418,7 @@ public class DataPointsParser {
       if (!metric.getAnno().isEmpty()) {
         insertAnno(paths, taglist, metric.getAnno(), type.get(0));
       }
-    } catch (ExecutionException e) {
+    } catch (StatementExecutionException e) {
       logger.error("Error occurred during insert ", e);
       throw e;
     }
