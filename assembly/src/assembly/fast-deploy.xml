@@ -23,54 +23,15 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <componentDescriptors>
         <componentDescriptor>src/assembly/component/iginx-core.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-iotdb12-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-parquet-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/include-zookeeper.xml</componentDescriptor>
     </componentDescriptors>
-    <moduleSets>
-        <moduleSet>
-            <useAllReactorProjects>true</useAllReactorProjects>
-            <includes>
-                <include>cn.edu.tsinghua:iotdb12</include>
-                <include>cn.edu.tsinghua:parquet</include>
-            </includes>
-            <sources>
-                <includeModuleDirectory>false</includeModuleDirectory>
-                <fileSets>
-                    <fileSet>
-                        <directory>${project.build.directory}/driver</directory>
-                        <outputDirectory>driver</outputDirectory>
-                    </fileSet>
-                </fileSets>
-            </sources>
-        </moduleSet>
-    </moduleSets>
     <fileSets>
-        <fileSet>
-            <directory>src/assembly/resources/conf</directory>
-            <outputDirectory>conf</outputDirectory>
-        </fileSet>
         <fileSet>
             <directory>src/assembly/resources/fast-deploy</directory>
             <fileMode>0755</fileMode>
             <outputDirectory>/</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/apache-zookeeper</directory>
-            <excludes>
-                <exclude>bin/**.sh</exclude>
-                <exclude>docs/**</exclude>
-            </excludes>
-            <outputDirectory>include/apache-zookeeper</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/apache-zookeeper</directory>
-            <includes>
-                <include>bin/**.sh</include>
-            </includes>
-            <fileMode>0755</fileMode>
-            <outputDirectory>include/apache-zookeeper</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>src/assembly/resources/zookeeper</directory>
-            <outputDirectory>include/apache-zookeeper</outputDirectory>
         </fileSet>
     </fileSets>
 </assembly>

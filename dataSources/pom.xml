@@ -38,10 +38,6 @@
         <module>redis</module>
     </modules>
 
-    <properties>
-        <driver.basedir>.</driver.basedir>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
@@ -62,7 +58,6 @@
                         <descriptors>
                             <descriptor>${driver.basedir}/src/assembly/driver.xml</descriptor>
                         </descriptors>
-                        <finalName>driver</finalName>
                     </configuration>
                     <executions>
                         <execution>

@@ -18,37 +18,32 @@
     <moduleSets>
         <moduleSet>
             <useAllReactorProjects>true</useAllReactorProjects>
+            <includeSubModules>false</includeSubModules>
             <includes>
                 <include>cn.edu.tsinghua:iginx-core</include>
             </includes>
-            <binaries>
-                <outputDirectory>conf</outputDirectory>
-                <unpackOptions>
-                    <includes>
-                        <include>*.properties</include>
-                    </includes>
-                </unpackOptions>
-                <dependencySets>
-                    <dependencySet>
+            <sources>
+                <includeModuleDirectory>false</includeModuleDirectory>
+                <fileSets>
+                    <fileSet>
+                        <directory>target/iginx-core-${project.version}/conf</directory>
+                        <outputDirectory>conf</outputDirectory>
+                    </fileSet>
+                    <fileSet>
+                        <directory>target/iginx-core-${project.version}/sbin</directory>
+                        <fileMode>0755</fileMode>
+                        <outputDirectory>sbin</outputDirectory>
+                    </fileSet>
+                    <fileSet>
+                        <directory>target/iginx-core-${project.version}/udf_funcs</directory>
+                        <outputDirectory>udf_funcs</outputDirectory>
+                    </fileSet>
+                    <fileSet>
+                        <directory>target/iginx-core-${project.version}/lib</directory>
                         <outputDirectory>lib</outputDirectory>
-                    </dependencySet>
-                </dependencySets>
-            </binaries>
+                    </fileSet>
+                </fileSets>
+            </sources>
         </moduleSet>
     </moduleSets>
-    <fileSets>
-        <fileSet>
-            <directory>${project.parent.basedir}/core/src/assembly/resources/sbin</directory>
-            <fileMode>0755</fileMode>
-            <outputDirectory>sbin</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>${project.parent.basedir}/conf</directory>
-            <outputDirectory>conf</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>${project.parent.basedir}/udf_funcs</directory>
-            <outputDirectory>udf_funcs</outputDirectory>
-        </fileSet>
-    </fileSets>
 </component>

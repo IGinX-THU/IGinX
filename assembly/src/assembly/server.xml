@@ -23,28 +23,12 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <componentDescriptors>
         <componentDescriptor>src/assembly/component/iginx-core.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-filesystem-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-influxdb-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-iotdb12-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-mongodb-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-parquet-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-postgresql-driver.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-redis-driver.xml</componentDescriptor>
     </componentDescriptors>
-    <moduleSets>
-        <moduleSet>
-            <useAllReactorProjects>true</useAllReactorProjects>
-            <includes>
-                <include>cn.edu.tsinghua:filesystem</include>
-                <include>cn.edu.tsinghua:influxdb</include>
-                <include>cn.edu.tsinghua:iotdb12</include>
-                <include>cn.edu.tsinghua:mongodb</include>
-                <include>cn.edu.tsinghua:parquet</include>
-                <include>cn.edu.tsinghua:postgresql</include>
-                <include>cn.edu.tsinghua:redis</include>
-            </includes>
-            <sources>
-                <includeModuleDirectory>false</includeModuleDirectory>
-                <fileSets>
-                    <fileSet>
-                        <directory>${project.build.directory}/driver</directory>
-                        <outputDirectory>driver</outputDirectory>
-                    </fileSet>
-                </fileSets>
-            </sources>
-        </moduleSet>
-    </moduleSets>
 </assembly>
