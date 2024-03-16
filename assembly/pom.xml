@@ -24,8 +24,8 @@
     </parent>
 
     <artifactId>iginx-assembly</artifactId>
-    <name>IGinX Assembly</name>
     <packaging>pom</packaging>
+    <name>IGinX Assembly</name>
 
     <properties>
         <zookeeper.version>3.7.2</zookeeper.version>
@@ -74,47 +74,54 @@
         </dependency>
     </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-assembly-plugin</artifactId>
-                <configuration>
-                    <descriptors>
-                        <descriptor>src/assembly/server.xml</descriptor>
-                        <descriptor>src/assembly/fast-deploy.xml</descriptor>
-                    </descriptors>
-                    <finalName>iginx-${project.version}</finalName>
-                </configuration>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>single</goal>
-                        </goals>
-                        <phase>package</phase>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>com.googlecode.maven-download-plugin</groupId>
-                <artifactId>download-maven-plugin</artifactId>
-                <version>1.8.1</version>
-                <executions>
-                    <execution>
-                        <id>download-zookeeper</id>
-                        <phase>prepare-package</phase>
-                        <goals>
-                            <goal>wget</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <cacheDirectory>${project.build.directory}/download</cacheDirectory>
-                    <unpack>true</unpack>
-                    <url>https://dlcdn.apache.org/zookeeper/zookeeper-${zookeeper.version}/apache-zookeeper-${zookeeper.version}-bin.tar.gz</url>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
+    <profiles>
+        <profile>
+            <id>release</id>
+            <activation>
+                <activeByDefault>false</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-assembly-plugin</artifactId>
+                        <configuration>
+                            <descriptors>
+                                <descriptor>src/assembly/all.xml</descriptor>
+                                <descriptor>src/assembly/include.xml</descriptor>
+                            </descriptors>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>single</goal>
+                                </goals>
+                                <phase>package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.8.1</version>
+                        <configuration>
+                            <cacheDirectory>${project.build.directory}/download</cacheDirectory>
+                            <unpack>true</unpack>
+                            <url>https://dlcdn.apache.org/zookeeper/zookeeper-${zookeeper.version}/apache-zookeeper-${zookeeper.version}-bin.tar.gz</url>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>download-zookeeper</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>prepare-package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 
 </project>
