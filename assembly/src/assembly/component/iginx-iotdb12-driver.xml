@@ -25,7 +25,7 @@
                 <includeModuleDirectory>false</includeModuleDirectory>
                 <fileSets>
                     <fileSet>
-                        <directory>target/iotdb12-${project.version}</directory>
+                        <directory>${project.build.directory}/iotdb12-${project.version}</directory>
                         <outputDirectory>/</outputDirectory>
                     </fileSet>
                 </fileSets>

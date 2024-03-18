@@ -112,6 +112,58 @@
                             </execution>
                         </executions>
                     </plugin>
+                    <plugin>
+                        <groupId>com.coderplus.maven.plugins</groupId>
+                        <artifactId>copy-rename-maven-plugin</artifactId>
+                        <version>1.0</version>
+                        <executions>
+                            <execution>
+                                <id>copy-file</id>
+                                <goals>
+                                    <goal>copy</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <fileSets>
+                                        <fileSet>
+                                            <sourceFile>../conf/config.properties</sourceFile>
+                                            <destinationFile>${project.build.directory}/conf/config.properties</destinationFile>
+                                        </fileSet>
+                                    </fileSets>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>com.google.code.maven-replacer-plugin</groupId>
+                        <artifactId>replacer</artifactId>
+                        <version>1.5.3</version>
+                        <configuration>
+                            <basedir>${project.build.directory}/conf</basedir>
+                            <includes>
+                                <include>config.properties</include>
+                            </includes>
+                            <regex>true</regex>
+                            <replacements>
+                                <replacement>
+                                    <token>storageEngineList=127.0.0.1#6667#iotdb</token>
+                                    <value>#storageEngineList=127.0.0.1#6667#iotdb</value>
+                                </replacement>
+                                <replacement>
+                                    <token>#storageEngineList=127.0.0.1#6667#parquet.*</token>
+                                    <value>storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#iginx_port=6888</value>
+                                </replacement>
+                            </replacements>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <goals>
+                                    <goal>replace</goal>
+                                </goals>
+                                <phase>prepare-package</phase>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>

@@ -25,7 +25,7 @@
                 <includeModuleDirectory>false</includeModuleDirectory>
                 <fileSets>
                     <fileSet>
-                        <directory>target/filesystem-${project.version}</directory>
+                        <directory>${project.build.directory}/filesystem-${project.version}</directory>
                         <outputDirectory>/</outputDirectory>
                     </fileSet>
                 </fileSets>

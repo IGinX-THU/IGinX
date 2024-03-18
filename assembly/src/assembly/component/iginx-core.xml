@@ -26,24 +26,30 @@
                 <includeModuleDirectory>false</includeModuleDirectory>
                 <fileSets>
                     <fileSet>
-                        <directory>target/iginx-core-${project.version}/conf</directory>
+                        <directory>${project.build.directory}/iginx-core-${project.version}/conf</directory>
                         <outputDirectory>conf</outputDirectory>
                     </fileSet>
                     <fileSet>
-                        <directory>target/iginx-core-${project.version}/sbin</directory>
+                        <directory>${project.build.directory}/iginx-core-${project.version}/sbin</directory>
                         <fileMode>0755</fileMode>
                         <outputDirectory>sbin</outputDirectory>
                     </fileSet>
                     <fileSet>
-                        <directory>target/iginx-core-${project.version}/udf_funcs</directory>
+                        <directory>${project.build.directory}/iginx-core-${project.version}/udf_funcs</directory>
                         <outputDirectory>udf_funcs</outputDirectory>
                     </fileSet>
                     <fileSet>
-                        <directory>target/iginx-core-${project.version}/lib</directory>
+                        <directory>${project.build.directory}/iginx-core-${project.version}/lib</directory>
                         <outputDirectory>lib</outputDirectory>
                     </fileSet>
                 </fileSets>
             </sources>
         </moduleSet>
     </moduleSets>
+    <fileSets>
+        <fileSet>
+            <directory>${project.build.directory}/conf</directory>
+            <outputDirectory>conf</outputDirectory>
+        </fileSet>
+    </fileSets>
 </component>

@@ -25,7 +25,7 @@
                 <includeModuleDirectory>false</includeModuleDirectory>
                 <fileSets>
                     <fileSet>
-                        <directory>target/postgresql-${project.version}</directory>
+                        <directory>${project.build.directory}/postgresql-${project.version}</directory>
                         <outputDirectory>/</outputDirectory>
                     </fileSet>
                 </fileSets>
