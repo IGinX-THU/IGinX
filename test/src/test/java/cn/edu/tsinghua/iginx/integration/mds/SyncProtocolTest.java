@@ -16,8 +16,11 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class SyncProtocolTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(SyncProtocolTest.class);
 
   protected abstract SyncProtocol newSyncProtocol(String category);
 

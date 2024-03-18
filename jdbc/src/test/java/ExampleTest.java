@@ -1,8 +1,11 @@
 import cn.edu.tsinghua.iginx.jdbc.IginXPreparedStatement;
 import java.sql.*;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExampleTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExampleTest.class.getName());
 
   private static final long START_TIMESTAMP = 0L;
   private static final long END_TIMESTAMP = 100L;
