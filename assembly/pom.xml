@@ -40,37 +40,30 @@
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>filesystem</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>influxdb</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iotdb12</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>mongodb</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>parquet</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>redis</artifactId>
-            <version>${project.version}</version>
         </dependency>
     </dependencies>
 

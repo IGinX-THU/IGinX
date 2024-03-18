@@ -27,17 +27,18 @@
         <repository>
             <id>local-repo-release</id>
             <name>GitHub Release</name>
-            <url>file://${project.basedir}/maven-repo</url>
+            <url>file://${deploy.repo.dir}/maven-repo</url>
         </repository>
         <snapshotRepository>
             <id>local-snapshot-repo-release</id>
             <name>GitHub Release</name>
-            <url>file://${project.basedir}/maven-snapshot-repo</url>
+            <url>file://${deploy.repo.dir}/maven-snapshot-repo</url>
         </snapshotRepository>
     </distributionManagement>
 
     <properties>
         <build-plugin.jacoco.version>0.8.6</build-plugin.jacoco.version>
+        <deploy.repo.dir>${project.basedir}</deploy.repo.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <revision>0.6.0-SNAPSHOT</revision>
     </properties>
