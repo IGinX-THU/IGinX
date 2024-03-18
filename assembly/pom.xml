@@ -28,6 +28,7 @@
     <name>IGinX Assembly</name>
 
     <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
         <zookeeper.version>3.7.2</zookeeper.version>
     </properties>
 
