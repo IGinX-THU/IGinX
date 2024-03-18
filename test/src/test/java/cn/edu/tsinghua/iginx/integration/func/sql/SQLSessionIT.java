@@ -7214,29 +7214,22 @@ public class SQLSessionIT {
 
     // 先测RowTransform的
     executor.execute(openRule);
-    statement = "EXPLAIN SELECT %s FROM us.d1;";
-    for (int i = 0; i < expressions.size(); i++) {
-      String result = executor.execute(String.format(statement, expressions.get(i)));
-      if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
-        assertFalse(result.contains("Rename"));
-      } else {
-        boolean isContain = result.replace(" ", "").contains(foldExpressions.get(i));
-        if (!isContain) {
-          System.out.println(result);
-          System.out.println(foldExpressions.get(i));
-          fail();
+    List<String> statements = new ArrayList<>();
+    statements.add("EXPLAIN SELECT %s FROM us.d1;");
+    statements.add("EXPLAIN SELECT * FROM us.d1 WHERE %s > 0;");
+    for (String state : statements) {
+      for (int i = 0; i < expressions.size(); i++) {
+        String result = executor.execute(String.format(state, expressions.get(i)));
+        if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
+          assertFalse(result.contains("Rename"));
+        } else {
+          boolean isContain = result.replace(" ", "").contains(foldExpressions.get(i));
+          if (!isContain) {
+            System.out.println(result);
+            System.out.println(foldExpressions.get(i));
+            fail();
+          }
         }
-      }
-    }
-
-    // 再测Filter的
-    statement = "EXPLAIN SELECT * FROM us.d1 WHERE %s > 0;";
-    for (int i = 0; i < expressions.size(); i++) {
-      String result = executor.execute(String.format(statement, expressions.get(i)));
-      if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
-        assertFalse(result.contains("Rename"));
-      } else {
-        assertTrue(result.contains(foldExpressions.get(i)));
       }
     }
   }
