@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -20,7 +21,7 @@ public class YAMLReader {
 
   public YAMLReader(String path) throws FileNotFoundException {
     this.path = path;
-    this.yaml = new Yaml(new Constructor(JobFromYAML.class));
+    this.yaml = new Yaml(new Constructor(JobFromYAML.class, new LoaderOptions()));
     this.file = new File(path);
   }
 
