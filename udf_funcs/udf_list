@@ -6,12 +6,14 @@ UDAF,udf_sum,UDFSum,udf_sum.py
 UDAF,udf_avg,UDFAvg,udf_avg.py
 UDAF,udf_count,UDFCount,udf_count.py
 UDAF,udf_max_with_key,UDFMaxWithKey,udf_max_with_key.py
+UDAF,udf_avg_with_arg,UDFAvgWithArg,udaf_avg_with_arg.py
 
 UDTF,cos,UDFCos,udtf_cos.py
 UDTF,multiply,UDFMultiply,udtf_multiply.py
-UDTF,columnExpand,UDFColumnExpand,udtf_column_expand.py
+UDTF,column_expand,UDFColumnExpand,udtf_column_expand.py
 UDTF,pow,UDFPow,udtf_pow.py
 UDTF,key_add_one,UDFKeyAddOne,udtf_key_add_one.py
+UDTF,concat,UDFConcat,udtf_concat.py
 
 UDSF,reverse_rows,UDFReverseRows,udsf_reverse_rows.py
 UDSF,transpose,UDFTranspose,udsf_transpose.py

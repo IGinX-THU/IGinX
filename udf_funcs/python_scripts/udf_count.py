@@ -1,25 +1,14 @@
-class UDFCount:
-    def __init__(self):
-        pass
+import pandas as pd
 
-    def transform(self, data, args, kvargs):
-        res = self.buildHeader(data)
+from iginx_udf import UDAFinDF
 
-        countRow = []
-        rows = data[2:]
-        for row in list(zip(*rows))[1:]:
-            count = 0
-            for num in row:
-                if num is not None:
-                    count += 1
-            countRow.append(count)
-        res.append(countRow)
-        return res
 
-    def buildHeader(self, data):
-        colNames = []
-        colTypes = []
-        for name in data[0][1:]:
-            colNames.append("udf_count(" + name + ")")
-            colTypes.append("LONG")
-        return [colNames, colTypes]
+class UDFCount(UDAFinDF):
+    def eval(self, data):
+        data = data.drop(columns=['key'])
+        columns = list(data)
+        res = {}
+        for col_name in columns:
+            num = data[col_name].count()
+            res[f"{self.udf_name}({col_name})"] = [num]
+        return pd.DataFrame(data=res)

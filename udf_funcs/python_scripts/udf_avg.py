@@ -1,26 +1,14 @@
-class UDFAvg:
-    def __init__(self):
-        pass
+import pandas as pd
 
-    def transform(self, data, args, kvargs):
-        res = self.buildHeader(data)
+from iginx_udf import UDAFinDF
 
-        avgRow = []
-        rows = data[2:]
-        for row in list(zip(*rows))[1:]:
-            sum, count = 0, 0
-            for num in row:
-                if num is not None:
-                    sum += num
-                    count += 1
-            avgRow.append(sum / count)
-        res.append(avgRow)
-        return res
 
-    def buildHeader(self, data):
-        colNames = []
-        colTypes = []
-        for name in data[0][1:]:
-            colNames.append("udf_avg(" + name + ")")
-            colTypes.append("DOUBLE")
-        return [colNames, colTypes]
+class UDFAvg(UDAFinDF):
+    def eval(self, data):
+        data = data.drop(columns=['key'])
+        columns = list(data)
+        res = {}
+        for col_name in columns:
+            num = data[col_name].mean()
+            res[f"{self.udf_name}({col_name})"] = [num]
+        return pd.DataFrame(data=res)

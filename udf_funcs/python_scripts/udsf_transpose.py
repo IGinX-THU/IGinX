@@ -1,20 +1,10 @@
-class UDFTranspose:
-  def __init__(self):
-    pass
+from iginx_udf import UDSF
 
-  def transform(self, data, args, kvargs):
-    res = self.buildHeader(data)
-    for row in data[2:]:
-      del(row[0])
-    res.extend(list(map(list, zip(*data[2:]))))
-    return res
 
-  def buildHeader(self, data):
-    colNames = []
-    types = []
-    count = 0
-    for i in range(2, len(data)):
-      colNames.append("transpose(" + str(count) + ")")
-      count += 1
-      types.append(data[1][1])
-    return [colNames, types]
+class UDFTranspose(UDSF):
+    def eval(self, data):
+        data = data.drop(columns=['key'])
+        index_ = [f'{self.udf_name}({i})' for i in range(data.shape[0])]
+        data.index = index_
+        data = data.transpose()
+        return data

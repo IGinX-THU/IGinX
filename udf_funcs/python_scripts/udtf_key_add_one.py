@@ -1,16 +1,8 @@
-class UDFKeyAddOne:
-    def __init__(self):
-        pass
+from iginx_udf import UDTFinDF
 
-    # key add 1, only for test
-    def transform(self, data, args, kvargs):
-        res = self.buildHeader(data)
-        rows = [data[2][0] + 1, data[2][1]]
-        res.append(rows)
-        return res
 
-    def buildHeader(self, data):
-        colNames = ["key"]
-        for name in data[0][1:]:
-            colNames.append("key_add_one(" + name + ")")
-        return [colNames, data[1]]
+class UDFKeyAddOne(UDTFinDF):
+    def eval(self, data):
+        data['key'] = data['key'] + 1
+        data.columns = ['key' if col == 'key' else f'{self.udf_name}({col})' for col in list(data)]
+        return data

@@ -1,18 +1,9 @@
-class UDFMultiply:
-  def __init__(self):
-    pass
+from iginx_udf import UDTFinDF
 
-  def transform(self, data, args, kvargs):
-    res = self.buildHeader(data)
-    multiplyRet = 1.0
-    for num in data[2][1:]:
-      multiplyRet *= num
-    res.append([multiplyRet])
-    return res
 
-  def buildHeader(self, data):
-    retName = "multiply("
-    for name in data[0][1:]:
-      retName += name + ", "
-    retName = retName[:-2] + ")"
-    return [[retName], ["DOUBLE"]]
+class UDFMultiply(UDTFinDF):
+    def eval(self, data):
+        data = data.drop(columns=['key'])
+        name = ', '.join(list(data))
+        res = data.prod(axis=1).to_frame(name=f'{self.udf_name}({name})').astype(float)
+        return res

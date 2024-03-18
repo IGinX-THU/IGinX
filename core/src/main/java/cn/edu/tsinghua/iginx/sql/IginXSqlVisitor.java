@@ -73,7 +73,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.OrExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrPreciseExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrTagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.OrderByClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.ParamContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PathContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PreciseTagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateContext;
@@ -107,6 +106,9 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.TagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.UdfArgContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.UdfKwargContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.UdfPosArgContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
@@ -698,12 +700,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     name = name.substring(1, name.length() - 1);
 
     UDFType type = UDFType.TRANSFORM;
-    if (ctx.udfType().UDTF() != null) {
-      type = UDFType.UDTF;
-    } else if (ctx.udfType().UDAF() != null) {
-      type = UDFType.UDAF;
-    } else if (ctx.udfType().UDSF() != null) {
-      type = UDFType.UDSF;
+    if (ctx.udfType().UDF() != null) {
+      type = UDFType.UNKNOWN;
     }
     return new RegisterTaskStatement(name, filePath, className, type);
   }
@@ -953,34 +951,37 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
     }
 
-    List<String> columns = new ArrayList<>();
-    for (PathContext pathContext : funcCtx.path()) {
-      columns.add(parsePath(pathContext));
-    }
-
-    List<Object> args = new ArrayList<>();
-    Map<String, Object> kvargs = new HashMap<>();
-    for (ParamContext paramContext : funcCtx.param()) {
-      Object val = parseValue(paramContext.value);
-      if (paramContext.key != null) {
-        String key = paramContext.key.getText();
-        kvargs.put(key, val);
-      } else {
-        args.add(val);
-      }
-    }
-
+    String fromPath = "";
     // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
     if (selectStatement.isFromSinglePath()) {
-      String fromPath = selectStatement.getFromPart(0).getPrefix();
-
-      List<String> newColumns = new ArrayList<>();
-      for (String column : columns) {
-        newColumns.add(fromPath + SQLConstant.DOT + column);
-      }
-      columns = newColumns;
+      fromPath = selectStatement.getFromPart(0).getPrefix() + SQLConstant.DOT;
     }
-    FuncExpression expression = new FuncExpression(funcName, columns, args, kvargs, isDistinct);
+
+    List<Pair<Integer, Object>> posArgs = new ArrayList<>();
+    Map<String, Object> kvargs = new HashMap<>();
+
+    UdfArgContext udfArgContext = funcCtx.udfArg();
+    int index = 0;
+    for (int i = 0; i < udfArgContext.children.size(); i++) {
+      Object child = udfArgContext.children.get(i);
+      if (child instanceof PathContext) {
+        // column name
+        posArgs.add(
+            new Pair<>(FuncExpression.COLUMN_ARG_TYPE, fromPath + parsePath((PathContext) child)));
+      } else if (child instanceof UdfPosArgContext) {
+        // positional constant
+        Object val = parseValue(((UdfPosArgContext) child).value);
+        posArgs.add(new Pair<>(FuncExpression.POS_ARG_TYPE, val));
+      } else if (child instanceof UdfKwargContext) {
+        // k-v constant
+        UdfKwargContext udfKwargContext = (UdfKwargContext) child;
+        String key = udfKwargContext.key.getText();
+        Object val = parseValue(udfKwargContext.value);
+        kvargs.put(key, val);
+      }
+    }
+
+    FuncExpression expression = new FuncExpression(funcName, posArgs, kvargs, isDistinct);
     selectStatement.setSelectedFuncsAndExpression(funcName, expression);
     return expression;
   }
