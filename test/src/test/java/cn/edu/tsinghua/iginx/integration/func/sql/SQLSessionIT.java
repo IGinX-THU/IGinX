@@ -7177,7 +7177,7 @@ public class SQLSessionIT {
     // 下面EXPLAIN一下，测试Filter和RowTransform的常量折叠，还是用上面的语句
     List<String> foldExpressions =
         Arrays.asList(
-            "1720.53535 + 93.65612 × us.d1.s1 × us.d1.s2",
+            "1720.53535 + 93.65612 \u00D7 us.d1.s1 \u00D7 us.d1.s2",
             "80.96622 + 0.00055 × (1377 + -3870.56962 × us.d1.s1) ÷ us.d1.s2",
             "9690.05714 × us.d1.s1 - 0.02857 × us.d1.s2",
             "122.81667 × us.d1.s1 ÷ us.d1.s2",
