@@ -80,42 +80,16 @@ public class PySessionIT {
     return new TestDataSection(keys, types, paths, values, tagsList);
   }
 
-  private void insertData(TestDataSection data, InsertAPIType type) {
-    switch (type) {
-      case Row:
-      case NonAlignedRow:
-        Controller.writeRowsData(
-            session,
-            data.getPaths(),
-            data.getKeys(),
-            data.getTypes(),
-            data.getValues(),
-            data.getTagsList(),
-            type,
-            dummyNoData);
-        break;
-      case Column:
-      case NonAlignedColumn:
-        List<List<Object>> values =
-            IntStream.range(0, data.getPaths().size())
-                .mapToObj(
-                    col ->
-                        IntStream.range(0, data.getValues().size())
-                            .mapToObj(row -> data.getValues().get(row).get(col))
-                            .collect(Collectors.toList()))
-                .collect(Collectors.toList());
-        Controller.writeColumnsData(
-            session,
-            data.getPaths(),
-            IntStream.range(0, data.getPaths().size())
-                .mapToObj(i -> new ArrayList<>(data.getKeys()))
-                .collect(Collectors.toList()),
-            data.getTypes(),
-            values,
-            data.getTagsList(),
-            type,
-            dummyNoData);
-    }
+  private void insertData(TestDataSection data) {
+    Controller.writeRowsData(
+        session,
+        data.getPaths(),
+        data.getKeys(),
+        data.getTypes(),
+        data.getValues(),
+        data.getTagsList(),
+        Row,
+        dummyNoData);
   }
 
   @Before
@@ -125,12 +99,9 @@ public class PySessionIT {
           new MultiConnection(
               new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
       session.openSession();
-      // insert base data using all types of insert API.
-      List<InsertAPIType> insertAPITypes =
-          Arrays.asList(Row, NonAlignedRow, Column, InsertAPIType.NonAlignedColumn);
       long start = 0, end = 4;
       TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(start, end);
-      insertData(subBaseData, insertAPITypes.get(0));
+      insertData(subBaseData);
       dummyNoData = false;
     } catch (Exception e) {
       logger.error(e.getMessage());
@@ -138,11 +109,11 @@ public class PySessionIT {
   }
 
   @Test
-  public void testQuery() {
+  public void testAQuery() {
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
-      String pythonScriptPath = "../session_py/downsample.py";
+      String pythonScriptPath = "../session_py/tests/query.py";
 
       // 创建ProcessBuilder以执行Python脚本
       ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
@@ -166,6 +137,47 @@ public class PySessionIT {
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
     }
+    System.out.println("query");
+    // TODO 检查Python脚本的输出是否符合预期
+    //    List<String> expected =
+    //            Arrays.asList(
+    //                    "Time\tcount(a.a.a)\tcount(a.a.b)\tcount(a.b.b)\tcount(a.c.c)\t",
+    //                    "0\t1\t1\t1\t1\t",
+    //                    "3\t1\t1\t1\t1\t",
+    //                    "");
+    //    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testDownSampleQuery() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/downsample.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+    }
+    System.out.println("downsample query");
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList(
@@ -173,10 +185,48 @@ public class PySessionIT {
             "0\t1\t1\t1\t1\t",
             "3\t1\t1\t1\t1\t",
             "");
-    // result只保留最后四行
-    if (result.size() > 4) {
-      result = result.subList(result.size() - 4, result.size());
+    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testShowColumnsQuery() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/showColumns.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
     }
+    System.out.println("show columns query");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected =
+        Arrays.asList(
+            "path\ttype\t",
+            "b'a.a.a'\t\tb'BINARY'\t\t",
+            "b'a.a.b'\t\tb'BINARY'\t\t",
+            "b'a.b.b'\t\tb'BINARY'\t\t",
+            "b'a.c.c'\t\tb'BINARY'\t\t",
+            "");
     assertEquals(result, expected);
   }
 

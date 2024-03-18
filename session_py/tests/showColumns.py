@@ -17,39 +17,31 @@
 #
 
 # 无法单独执行，用来测试PySessionIT
+import sys
+sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.session import Session
-from iginx.thrift.rpc.ttypes import DataType, AggregateType
 
 
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
 
-    # 获取集群拓扑信息
-    cluster_info = session.get_cluster_info()
-    print(cluster_info)
+    # 使用 SQL 语句查询时间序列
+    dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
 
+    columns = dataset.columns()
+    for column in columns:
+        print(column, end="\t")
+    print()
 
-    # 查询写入的数据，数据由PySessionIT测试写入
-    dataset = session.query(["a.*"], 0, 10)
-    print(dataset)
-    # 转换为pandas.Dataframe
-    df = dataset.to_df()
-    print(df)
-    """
-       key a.a.a a.a.b a.b.b a.c.c
-    0    1  b'a'  b'b'  None  None
-    1    2  None  None  b'b'  None
-    2    3  None  None  None  b'c'
-    3    4  b'Q'  b'W'  b'E'  b'R'
-    """
+    while dataset.has_more():
+        row = dataset.next()
+        for field in row:
+            print(str(field), end="\t\t")
+        print()
+    print()
 
-    print("downsample_query")
-    try:
-        dataset = session.downsample_query(["*"], start_time=0, end_time=10, type=AggregateType.COUNT, precision=3)
-    except Exception as e:
-        print(e)
-    print(dataset)
+    dataset.close()
 
     session.close()
