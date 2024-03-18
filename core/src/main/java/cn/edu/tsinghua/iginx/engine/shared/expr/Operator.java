@@ -14,9 +14,9 @@ public enum Operator {
       case MINUS:
         return "-";
       case STAR:
-        return "×";
+        return "\u00D7";
       case DIV:
-        return "÷";
+        return "\u00F7";
       case MOD:
         return "%";
       default:

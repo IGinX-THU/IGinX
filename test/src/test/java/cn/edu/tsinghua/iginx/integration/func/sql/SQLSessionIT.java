@@ -24,7 +24,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -7115,7 +7114,7 @@ public class SQLSessionIT {
 
   /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
   @Test
-  public void ConstantFoldingTest() {
+  public void testConstantFolding() {
     String openRule = "SET RULES RowTransformConstantFoldingRule=on, FilterConstantFoldingRule=on;";
     String closeRule =
         "SET RULES RowTransformConstantFoldingRule=off, FilterConstantFoldingRule=off;";
@@ -7208,9 +7207,6 @@ public class SQLSessionIT {
             "-0.50000 + 0.00093 × - us.d1.s1 × (86 + us.d1.s2 × (- us.d1.s1 - 1.30556 × us.d1.s2 + 1.30556 × (-490 + us.d1.s1 + us.d1.s2) ÷ us.d1.s1)) - 0.02500 × us.d1.s1 - 0.07500 × us.d1.s2",
             "- us.d1.s1 + us.d1.s2 × (-28 × us.d1.s1 - 14 × us.d1.s2 - 14 × (26.09091 + 0.09091 × - us.d1.s1 × (-91 + -2 × us.d1.s1 + 2 × us.d1.s2) - 1.09091 × us.d1.s1) ÷ us.d1.s2)",
             "8 + us.d1.s1 × (0.21111 - 0.00278 × (us.d1.s2 × (90 + us.d1.s1 × (0.02410 × - us.d1.s1 × us.d1.s2 + 0.02410 × us.d1.s1 - 0.02410 × us.d1.s2) + us.d1.s1) + us.d1.s2) ÷ us.d1.s1)");
-    // 把空格去掉
-    foldExpressions =
-        foldExpressions.stream().map(s -> s.replaceAll(" ", "")).collect(Collectors.toList());
 
     // 先测RowTransform的
     executor.execute(openRule);
@@ -7223,7 +7219,7 @@ public class SQLSessionIT {
         if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
           assertFalse(result.contains("Rename"));
         } else {
-          boolean isContain = result.replace(" ", "").contains(foldExpressions.get(i));
+          boolean isContain = result.contains(foldExpressions.get(i));
           if (!isContain) {
             System.out.println(result);
             System.out.println(foldExpressions.get(i));
