@@ -128,7 +128,7 @@ public class IoTDBStorage implements IStorage {
       session.open(false);
       session.close();
     } catch (IoTDBConnectionException e) {
-      LOGGER.error("test connection error: {}", e.getMessage());
+      LOGGER.error("test connection error: ", e);
       return false;
     }
     return true;
@@ -338,7 +338,7 @@ public class IoTDBStorage implements IStorage {
         statement += String.format(QUERY_WHERE, filterStr);
       }
 
-      LOGGER.info("[Query] execute query: " + statement);
+      LOGGER.info("[Query] execute query: {}", statement);
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new IoTDBQueryRowStream(
@@ -395,7 +395,7 @@ public class IoTDBStorage implements IStorage {
         statement += String.format(QUERY_WHERE, filterStr);
       }
 
-      LOGGER.info("[Query] execute query: " + statement);
+      LOGGER.info("[Query] execute query: {}", statement);
       RowStream rowStream =
           new ClearEmptyRowStreamWrapper(
               new IoTDBQueryRowStream(
@@ -767,7 +767,7 @@ public class IoTDBStorage implements IStorage {
           sessionPool.executeNonQueryStatement(
               String.format(DELETE_STORAGE_GROUP_CLAUSE, storageUnit));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-          LOGGER.warn("encounter error when clear data: " + e.getMessage());
+          LOGGER.warn("encounter error when clear data: ", e);
           if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
             return new TaskExecuteResult(
                 new PhysicalTaskExecuteFailureException(
@@ -779,7 +779,7 @@ public class IoTDBStorage implements IStorage {
         try {
           deletedPaths = determineDeletePathList(storageUnit, delete);
         } catch (PhysicalException e) {
-          LOGGER.warn("encounter error when delete path: " + e.getMessage());
+          LOGGER.warn("encounter error when delete path: ", e);
           return new TaskExecuteResult(
               new PhysicalTaskExecuteFailureException(
                   "execute delete path task in iotdb11 failure", e));
@@ -788,7 +788,7 @@ public class IoTDBStorage implements IStorage {
           try {
             sessionPool.executeNonQueryStatement(String.format(DELETE_TIMESERIES_CLAUSE, path));
           } catch (IoTDBConnectionException | StatementExecutionException e) {
-            LOGGER.warn("encounter error when delete path: " + e.getMessage());
+            LOGGER.warn("encounter error when delete path: ", e);
             if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
               return new TaskExecuteResult(
                   new PhysicalTaskExecuteFailureException(
@@ -806,7 +806,7 @@ public class IoTDBStorage implements IStorage {
           }
         }
       } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
-        LOGGER.warn("encounter error when delete data: " + e.getMessage());
+        LOGGER.warn("encounter error when delete data: ", e);
         if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
           return new TaskExecuteResult(
               new PhysicalTaskExecuteFailureException(

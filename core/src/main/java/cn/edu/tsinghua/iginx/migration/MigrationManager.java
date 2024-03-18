@@ -38,7 +38,7 @@ public class MigrationManager {
           policy = clazz.getConstructor().newInstance();
           policies.put(policyClassName, policy);
         } catch (Exception e) {
-          LOGGER.error(e.getMessage());
+          LOGGER.error("Failed to load policy: {}", policyClassName, e);
         }
       }
     }

@@ -76,7 +76,7 @@ public class TransformJobManager {
         process(job);
         processCnt = retryTimes; // don't retry
       } catch (Exception e) {
-        LOGGER.error("retry process, executed times: " + (processCnt + 1));
+        LOGGER.error("retry process, executed times: {}", (processCnt + 1));
       }
     }
   }

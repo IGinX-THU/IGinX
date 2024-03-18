@@ -279,7 +279,7 @@ public abstract class MigrationPolicy {
       }
       logger.info("start to add new fragment");
       String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
-      logger.info("timeseries split middleTimeseries=" + middleTimeseries);
+      logger.info("timeseries split middleTimeseries={}", middleTimeseries);
       ColumnsInterval sourceColumnsInterval =
           new ColumnsInterval(
               fragmentMeta.getColumnsInterval().getStartColumn(),
@@ -291,7 +291,7 @@ public abstract class MigrationPolicy {
               fragmentMeta.getKeyInterval().getStartKey(),
               fragmentMeta.getKeyInterval().getEndKey(),
               fragmentMeta.getMasterStorageUnit());
-      logger.info("timeseries split new fragment=" + newFragment.toString());
+      logger.info("timeseries split new fragment={}", newFragment);
       DefaultMetaManager.getInstance().addFragment(newFragment);
       logger.info("start to add old fragment");
       DefaultMetaManager.getInstance().endFragmentByColumnsInterval(fragmentMeta, middleTimeseries);

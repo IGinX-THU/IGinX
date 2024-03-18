@@ -690,7 +690,7 @@ public class IginxWorker implements IService.Iface {
         }
         break;
       default:
-        LOGGER.error("unexpected meta storage: " + config.getMetaStorage());
+        LOGGER.error("unexpected meta storage: {}", config.getMetaStorage());
     }
 
     if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {

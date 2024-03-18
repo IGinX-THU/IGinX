@@ -91,7 +91,7 @@ public class StoragePhysicalTaskExecutor {
     StorageUnitHook storageUnitHook =
         (before, after) -> {
           if (before == null && after != null) { // 新增加 du，处理这种事件，其他事件暂时不处理
-            LOGGER.info("new storage unit " + after.getId() + " come!");
+            LOGGER.info("new storage unit {} come!", after.getId());
             String id = after.getId();
             boolean isDummy = after.isDummy();
             if (storageTaskQueues.containsKey(id)) {
@@ -242,7 +242,7 @@ public class StoragePhysicalTaskExecutor {
                                       new StoragePhysicalTask(
                                           task.getOperators(), false, false, task.getContext());
                                   storageTaskQueues.get(replicaId).addTask(replicaTask);
-                                  LOGGER.info("broadcasting task " + task + " to " + replicaId);
+                                  LOGGER.info("broadcasting task {} to {}", task, replicaId);
                                 }
                               }
                             }

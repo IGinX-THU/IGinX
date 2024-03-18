@@ -59,13 +59,13 @@ public class SQLExecutor {
         LOGGER.warn(CLEAR_DATA_WARNING);
         return null;
       } else {
-        LOGGER.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
         fail();
       }
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by: {}", statement, res.getParseErrorMsg());
       fail();
       return null;
     }
@@ -95,7 +95,7 @@ public class SQLExecutor {
     try {
       conn.executeSql(statement);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.info("Statement: \"{}\" execute fail. Because: {}", statement, e.getMessage());
+      LOGGER.info("Statement: \"{}\" execute fail. Because: ", statement, e);
       assertEquals(expectedErrMsg, e.getMessage());
     }
   }

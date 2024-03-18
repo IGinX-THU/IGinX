@@ -58,7 +58,7 @@ public class PayloadFormatManager {
             | IllegalAccessException
             | NoSuchMethodException
             | InvocationTargetException e) {
-          LOGGER.error(e.getMessage());
+          LOGGER.error("Failed to load formatter: {}", formatterClassName, e);
         }
       }
     }

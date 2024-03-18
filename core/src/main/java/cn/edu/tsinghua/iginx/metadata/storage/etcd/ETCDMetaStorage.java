@@ -239,7 +239,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                         case DELETE:
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                       ETCDMetaStorage.this.schemaMappingChangeHook.onChange(schema, schemaMapping);
@@ -299,7 +299,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           iginxChangeHook.onChange(iginx.getId(), null);
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -345,7 +345,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           storageChangeHook.onChange(storageEngine.getId(), null);
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -385,7 +385,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           break;
                         case DELETE:
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -427,7 +427,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           break;
                         case DELETE:
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -472,7 +472,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           userChangeHook.onChange(userMeta.getUsername(), null);
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -518,7 +518,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           transformChangeHook.onChange(taskMeta.getName(), null);
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -563,7 +563,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           reshardStatusChangeHook.onChange(status);
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -608,7 +608,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           reshardCounterChangeHook.onChange(counter);
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -654,7 +654,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           maxActiveEndKeyStatisticsChangeHook.onChange(endTime);
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -930,7 +930,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                   generateID(STORAGE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
                       .getBytes()));
     } catch (Exception e) {
-      LOGGER.error("got error when removing dummy storage engine: {}", e.getMessage());
+      LOGGER.error("got error when removing dummy storage engine: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (storageLease != -1) {

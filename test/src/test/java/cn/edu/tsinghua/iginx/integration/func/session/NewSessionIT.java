@@ -412,7 +412,7 @@ public class NewSessionIT {
     }
     try {
       List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
-      LOGGER.info("before start a client, session_id_list size: " + sessionIDs1.size());
+      LOGGER.info("before start a client, session_id_list size: {}", sessionIDs1.size());
 
       // start a client
       ProcessBuilder pb = new ProcessBuilder();
@@ -425,14 +425,14 @@ public class NewSessionIT {
       Process p = pb.start();
 
       Thread.sleep(3000);
-      LOGGER.info("client is alive: " + p.isAlive());
+      LOGGER.info("client is alive: {}", p.isAlive());
       if (!p.isAlive()) { // fail to start a client.
-        LOGGER.info("exit value: " + p.exitValue());
+        LOGGER.info("exit value: {}", p.exitValue());
         fail();
       }
 
       List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
-      LOGGER.info("after start a client, session_id_list size: " + sessionIDs2.size());
+      LOGGER.info("after start a client, session_id_list size: {}", sessionIDs2.size());
 
       // kill the client
       try (OutputStream os = p.getOutputStream();
@@ -446,7 +446,7 @@ public class NewSessionIT {
       Thread.sleep(3000);
 
       List<Long> sessionIDs3 = conn.executeSql("show sessionid;").getSessionIDs();
-      LOGGER.info("after cancel a client, session_id_list size:" + sessionIDs3.size());
+      LOGGER.info("after cancel a client, session_id_list size:{}", sessionIDs3.size());
 
       assertEquals(sessionIDs1, sessionIDs3);
       assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);

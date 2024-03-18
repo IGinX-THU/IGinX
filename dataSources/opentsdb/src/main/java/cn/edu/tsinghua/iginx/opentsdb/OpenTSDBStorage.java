@@ -83,7 +83,7 @@ public class OpenTSDBStorage implements IStorage {
     } catch (IOReactorException e) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
-    LOGGER.info(meta + " is initialized.");
+    LOGGER.info("{} is initialized.", meta);
   }
 
   private boolean testConnection() {
@@ -94,7 +94,7 @@ public class OpenTSDBStorage implements IStorage {
       OpenTSDBClient client = OpenTSDBClientFactory.connect(config);
       client.gracefulClose();
     } catch (IOException e) {
-      LOGGER.error("test connection error: {}", e.getMessage());
+      LOGGER.error("test connection error: ", e);
       return false;
     }
     return true;
@@ -599,12 +599,11 @@ public class OpenTSDBStorage implements IStorage {
     try {
       client.gracefulClose();
     } catch (IOException e) {
-      LOGGER.error("can not close opentsdb gracefully, because " + e.getMessage());
+      LOGGER.error("can not close opentsdb gracefully, because ", e);
       try {
         client.forceClose();
       } catch (IOException ioException) {
-        throw new PhysicalTaskExecuteFailureException(
-            "can not close opentsdb, because " + e.getMessage());
+        throw new PhysicalTaskExecuteFailureException("can not close opentsdb, because ", e);
       }
     }
   }

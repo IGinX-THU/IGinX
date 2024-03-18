@@ -100,7 +100,7 @@ public class LocalExecutor implements Executor {
         this.root = file.getCanonicalPath() + SEPARATOR;
       }
     } catch (IOException e) {
-      LOGGER.error("get dir or dummy dir failure: {}", e.getMessage());
+      LOGGER.error("get dir or dummy dir failure: ", e);
     }
     this.hasData = hasData;
     this.fileSystemManager = new FileSystemManager(extraParams);
@@ -222,7 +222,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      LOGGER.error("encounter error when inserting row records to fileSystem: {}", e.getMessage());
+      LOGGER.error("encounter error when inserting row records to fileSystem: ", e);
       return e;
     }
   }
@@ -256,7 +256,7 @@ public class LocalExecutor implements Executor {
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
       LOGGER.error(
-          "encounter error when inserting column records to fileSystem: {}", e.getMessage());
+          "encounter error when inserting column records to fileSystem: ", e);
       return e;
     }
   }
@@ -273,7 +273,7 @@ public class LocalExecutor implements Executor {
               fileSystemManager.deleteFile(
                   new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (Exception e) {
-          LOGGER.error("encounter error when clearing data: {}", e.getMessage());
+          LOGGER.error("encounter error when clearing data: ", e);
           exception = e;
         }
       } else {
@@ -283,7 +283,7 @@ public class LocalExecutor implements Executor {
         try {
           exception = fileSystemManager.deleteFiles(fileList, tagFilter);
         } catch (Exception e) {
-          LOGGER.error("encounter error when clearing data: {}", e.getMessage());
+          LOGGER.error("encounter error when clearing data: ", e);
           exception = e;
         }
       }
@@ -300,7 +300,7 @@ public class LocalExecutor implements Executor {
           }
         }
       } catch (IOException e) {
-        LOGGER.error("encounter error when deleting data: {}", e.getMessage());
+        LOGGER.error("encounter error when deleting data: ", e);
         exception = e;
       }
     }

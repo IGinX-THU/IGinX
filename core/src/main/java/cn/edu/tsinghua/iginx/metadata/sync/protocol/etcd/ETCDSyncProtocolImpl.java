@@ -139,7 +139,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                         case DELETE:
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -190,7 +190,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                           }
                           break;
                         default:
-                          LOGGER.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -276,7 +276,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
 
   @Override
   public void voteFor(String key, SyncVote vote) throws NetworkException, VoteExpiredException {
-    LOGGER.info("vote for " + key + " from " + vote.getVoter());
+    LOGGER.info("vote for {} from {}", key, vote.getVoter());
     long voter = vote.getVoter();
     try {
       long createTime = 0L;
@@ -304,7 +304,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
       LOGGER.error("encounter execute error in vote: ", e);
       throw e;
     } catch (Exception e) {
-      LOGGER.error("vote for " + category + "-" + key + " failure: ", e);
+      LOGGER.error("vote for {}-{} failure: ", category, key, e);
       throw new NetworkException("vote failure: ", e);
     }
   }
@@ -355,7 +355,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
       voteListeners.remove(key).end(key);
       proposalLock.writeLock().unlock();
     } catch (Exception e) {
-      LOGGER.error("end protocol for " + category + "-" + key + " failure: ", e);
+      LOGGER.error("end protocol for {}-{} failure: ", category, key, e);
       throw new NetworkException("end proposal failure: ", e);
     } finally {
       if (leaseId != -1L) {

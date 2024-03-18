@@ -49,7 +49,7 @@ public class SnowFlakeUtils {
   private long lastStamp = -1L; // 上一次时间戳
 
   public SnowFlakeUtils(long datacenterId, long machineId) {
-    LOGGER.info("data center id: " + datacenterId + ", machine id: " + machineId);
+    LOGGER.info("data center id: {}, machine id: {}", datacenterId, machineId);
     if (datacenterId > MAX_DATACENTER_NUM || datacenterId < 0) {
       throw new IllegalArgumentException(
           "datacenterId can't be greater than MAX_DATACENTER_NUM or less than 0");

@@ -6222,7 +6222,7 @@ public class SQLSessionIT {
     statement = "show rules;";
 
     String ruleBasedOptimizer = executor.execute("SHOW CONFIG \"ruleBasedOptimizer\";");
-    LOGGER.info("testModifyRules: " + ruleBasedOptimizer);
+    LOGGER.info("testModifyRules: {}", ruleBasedOptimizer);
     // 2种情况不测试Config设置Rule的效果：
     // 1. 本地环境下FragmentPruningByFilterRule默认是开启的，不测试
     // 2. SessionPool测试在Session测试后，此时FragmentPruningByFilterRule已经被开启，不测试

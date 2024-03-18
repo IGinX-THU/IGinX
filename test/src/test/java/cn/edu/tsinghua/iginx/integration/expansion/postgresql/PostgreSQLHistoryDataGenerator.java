@@ -139,7 +139,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (RuntimeException | SQLException e) {
-      LOGGER.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
       e.printStackTrace();
     } finally {
       try {
@@ -147,7 +147,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           connection.close();
         }
       } catch (SQLException e) {
-        LOGGER.error("close connection failure: {}", e.getMessage());
+        LOGGER.error("close connection failure: ", e);
       }
     }
   }
@@ -184,14 +184,14 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       conn.close();
       LOGGER.info("clear data on 127.0.0.1:{} success!", port);
     } catch (SQLException e) {
-      LOGGER.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.warn("clear data on 127.0.0.1:{} failure: ", port, e);
     } finally {
       try {
         if (conn != null) {
           conn.close();
         }
       } catch (SQLException e) {
-        LOGGER.error("close connection failure: {}", e.getMessage());
+        LOGGER.error("close connection failure: ", e);
       }
     }
   }

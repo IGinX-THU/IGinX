@@ -85,7 +85,7 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
       this.client.createContainers(String.format(PROTOCOL_PROPOSAL_CONTAINER_TEMPLATE, category));
       this.client.createContainers(String.format(VOTE_PROPOSAL_CONTAINER_TEMPLATE, category));
     } catch (Exception e) {
-      LOGGER.error("init protocol container for " + category + " failure: ", e);
+      LOGGER.error("init protocol container for {} failure: ", category, e);
       throw new NetworkException("init protocol container for " + category + "failure", e);
     }
   }
@@ -147,7 +147,7 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
     try {
       this.proposalCache.start();
     } catch (Exception e) {
-      LOGGER.error("register proposal listener for " + category + "failure: ", e);
+      LOGGER.error("register proposal listener for {} failure: ", category, e);
       throw new NetworkException("register proposal listener failure.", e);
     }
   }
@@ -189,7 +189,7 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
     try {
       this.voteCache.start();
     } catch (Exception e) {
-      LOGGER.error("register global vote listener for " + category + "failure: ", e);
+      LOGGER.error("register global vote listener for {} failure: ", category, e);
       throw new NetworkException("register global vote listener failure.", e);
     }
   }
@@ -203,10 +203,10 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
     boolean release = false;
     try {
       if (!mutex.acquire(100, TimeUnit.MILLISECONDS)) {
-        LOGGER.info("acquire lock for " + lockPath + " failure, another process hold the lock");
+        LOGGER.info("acquire lock for {} failure, another process hold the lock", lockPath);
         return false;
       }
-      LOGGER.info("acquire lock for " + lockPath + " success");
+      LOGGER.info("acquire lock for {} success", lockPath);
       release = true;
       // 判断有没有刚创建的 proposal
       if (this.client
@@ -256,14 +256,14 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
       LOGGER.info("create protocol success");
       return true;
     } catch (Exception e) {
-      LOGGER.error("start protocol for " + category + "-" + key + " failure: ", e);
+      LOGGER.error("start protocol for {}-{} failure: ", category, key, e);
       throw new NetworkException("start protocol failure: ", e);
     } finally {
       if (release) {
         try {
           mutex.release();
         } catch (Exception e) {
-          LOGGER.error("get error when release interprocess lock for " + lockPath, e);
+          LOGGER.error("get error when release interprocess lock for {}", e);
         }
       }
     }
@@ -276,7 +276,7 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
 
   @Override
   public void voteFor(String key, SyncVote vote) throws NetworkException, VoteExpiredException {
-    LOGGER.info("vote for " + key + " from " + vote.getVoter());
+    LOGGER.info("vote for {} from {}", key, vote.getVoter());
     long voter = vote.getVoter();
     try {
       long createTime = 0L;
@@ -302,7 +302,7 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
       LOGGER.error("encounter execute error in vote: ", e);
       throw e;
     } catch (Exception e) {
-      LOGGER.error("vote for " + category + "-" + key + " failure: ", e);
+      LOGGER.error("vote for {}-{} failure: ", category, key, e);
       throw new NetworkException("vote failure: ", e);
     }
   }
@@ -342,17 +342,17 @@ public class ZooKeeperSyncProtocolImpl implements SyncProtocol {
       voteListeners.remove(key).end(key);
       proposalLock.writeLock().unlock();
     } catch (ExecutionException e) {
-      LOGGER.error("encounter execution exception when end proposal for " + key + ": ", e);
+      LOGGER.error("encounter execution exception when end proposal for {}: ", key, e);
       throw e;
     } catch (Exception e) {
-      LOGGER.error("end protocol for " + category + "-" + key + " failure: ", e);
+      LOGGER.error("end protocol for {}-{} failure: ", category, key, e);
       throw new NetworkException("end protocol failure: ", e);
     } finally {
       if (release) {
         try {
           mutex.release();
         } catch (Exception e) {
-          LOGGER.error("get error when release interprocess lock for " + lockPath, e);
+          LOGGER.error("get error when release interprocess lock for {}", lockPath, e);
         }
       }
     }

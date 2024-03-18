@@ -39,8 +39,6 @@ public class Controller {
 
   public static final String CLEAR_DATA_WARNING = "clear data fail and go on...";
 
-  public static final String CLEAR_DATA_ERROR = "Statement: \"{}\" execute fail. Caused by: {}";
-
   public static final String CONFIG_FILE = "./src/test/resources/testConfig.properties";
 
   private static final String TEST_TASK_FILE = "./src/test/resources/testTask.txt";
@@ -115,13 +113,13 @@ public class Controller {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", CLEAR_DATA, e);
         fail();
       }
     }
 
     if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by: {}", CLEAR_DATA, res.getParseErrorMsg());
       fail();
     }
   }
@@ -132,7 +130,7 @@ public class Controller {
     try {
       return (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-      LOGGER.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: ", e);
       fail();
     }
     return null;
@@ -184,7 +182,7 @@ public class Controller {
               Collections.singletonList(tagsList.get(i)),
               type);
         } catch (SessionException | ExecutionException e) {
-          LOGGER.error("write data fail, caused by: {}", e.getMessage());
+          LOGGER.error("write data fail, caused by: ", e);
           fail();
         }
       } else {
@@ -341,7 +339,7 @@ public class Controller {
           tagsList,
           type);
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: ", e);
       fail();
     }
 
@@ -389,7 +387,7 @@ public class Controller {
                 dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
       } catch (SessionException | ExecutionException e) {
         if (!e.getMessage().contains("repeatedly add storage engine")) {
-          LOGGER.error("add embedded storage engine fail, caused by: {}", e.getMessage());
+          LOGGER.error("add embedded storage engine fail, caused by: ", e);
           fail();
         }
       }

@@ -51,7 +51,7 @@ public class FileSystemServer implements Runnable {
       serverTransport = new TServerSocket(port);
     } catch (TTransportException e) {
       if (!e.getMessage().contains("Could not create ServerSocket on address")) {
-        LOGGER.error("File System service starts failure: {}", e.getMessage());
+        LOGGER.error("File System service starts failure: ", e);
       }
       return;
     }

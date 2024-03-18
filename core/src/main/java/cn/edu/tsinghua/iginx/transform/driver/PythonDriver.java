@@ -128,7 +128,7 @@ public class PythonDriver implements Driver {
                   Constants.getWorkerStatusInfo(status)));
         } else {
           IPCWorker IPCWorker = new IPCWorker(pid, javaPort, pyPort, process, serverSocket, writer);
-          LOGGER.info(IPCWorker.toString() + " has started.");
+          LOGGER.info("{} has started.", IPCWorker);
           return IPCWorker;
         }
       }

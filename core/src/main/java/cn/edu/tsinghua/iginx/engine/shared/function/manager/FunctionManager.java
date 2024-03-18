@@ -122,7 +122,7 @@ public class FunctionManager {
           udfType = UDFType.TRANSFORM;
           break;
         default:
-          LOGGER.error("unknown udf type: " + udfInfo[0]);
+          LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
       metaList.add(

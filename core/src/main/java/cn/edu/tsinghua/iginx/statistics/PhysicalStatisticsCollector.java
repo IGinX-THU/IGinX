@@ -42,9 +42,9 @@ public class PhysicalStatisticsCollector extends AbstractStageStatisticsCollecto
   public void broadcastStatistics() {
     lock.readLock().lock();
     LOGGER.info("Physical Stage Statistics Info: ");
-    LOGGER.info("\tcount: " + count + ", span: " + span + "μs");
+    LOGGER.info("\tcount: {}, span: {}μs", count, span);
     if (count != 0) {
-      LOGGER.info("\taverage-span: " + (1.0 * span) / count + "μs");
+      LOGGER.info("\taverage-span: {}μs", (1.0 * span) / count);
     }
     for (Map.Entry<StatementType, Pair<Long, Long>> entry : detailInfos.entrySet()) {
       LOGGER.info(

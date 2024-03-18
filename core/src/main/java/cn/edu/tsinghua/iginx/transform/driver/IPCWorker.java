@@ -65,7 +65,7 @@ public class IPCWorker extends Thread {
         threadPool.submit(() -> process(socket));
       }
     } catch (SocketException ignored) {
-      LOGGER.info(toString() + " stop server socket.");
+      LOGGER.info("{} stop server socket.", this);
     } catch (IOException e) {
       throw new RuntimeException("An error occurred while listening.", e);
     }

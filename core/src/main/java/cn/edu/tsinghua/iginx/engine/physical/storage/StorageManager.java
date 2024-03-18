@@ -181,20 +181,20 @@ public class StorageManager {
 
   public boolean addStorage(StorageEngineMeta meta) {
     if (!initStorage(meta)) {
-      LOGGER.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      LOGGER.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
 
   public boolean addStorage(StorageEngineMeta meta, IStorage storage) {
     if (!initStorage(meta, storage)) {
-      LOGGER.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      LOGGER.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
@@ -213,7 +213,7 @@ public class StorageManager {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;
     } catch (Exception e) {
-      LOGGER.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return null;
     }
   }

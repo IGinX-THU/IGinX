@@ -67,7 +67,7 @@ public class SessionManager {
     for (AuthType auth : userMeta.getAuths()) {
       sessionId += (1L << auth.getValue());
     }
-    LOGGER.info("new session id comes: " + sessionId);
+    LOGGER.info("new session id comes: {}", sessionId);
     sessionIds.add(sessionId);
     return sessionId;
   }

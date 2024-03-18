@@ -50,7 +50,7 @@ public class ThriftConnPool {
     try {
       return pool.borrowObject();
     } catch (Exception e) {
-      LOGGER.error("borrowing connection failed:" + e);
+      LOGGER.error("borrowing connection failed:", e);
       return null;
     }
   }

@@ -36,7 +36,7 @@ public class DataSourceIT {
         | ClassNotFoundException
         | InvocationTargetException
         | NoSuchMethodException e) {
-      LOGGER.error("get current storage failed, caused by: {}", e.getMessage());
+      LOGGER.error("get current storage failed, caused by: ", e);
       throw new RuntimeException(e);
     }
   }
@@ -55,7 +55,7 @@ public class DataSourceIT {
       storage.executeInsert(insert, MockClassGenerator.genDataArea());
       storage.release();
     } catch (Exception e) {
-      LOGGER.error("insert empty body fail, caused by: {}", e.getMessage());
+      LOGGER.error("insert empty body fail, caused by: ", e);
       e.printStackTrace();
       fail();
     }

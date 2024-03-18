@@ -372,7 +372,7 @@ public class FileSystemManager {
       }
     } catch (IOException e) {
       LOGGER.error(
-          "get associated files of {} failure: {}", file.getAbsolutePath(), e.getMessage());
+          "get associated files of {} failure: ", file.getAbsolutePath(), e);
     }
     return associatedFiles;
   }
@@ -409,7 +409,7 @@ public class FileSystemManager {
             }
           });
     } catch (IOException e) {
-      LOGGER.error("get all files of {} failure: {}", dir.getAbsolutePath(), e.getMessage());
+      LOGGER.error("get all files of {} failure: ", dir.getAbsolutePath(), e);
     }
     return res;
   }
@@ -442,7 +442,7 @@ public class FileSystemManager {
       }
       return fileMeta;
     } catch (IOException e) {
-      LOGGER.error("getFileMeta failure: {}", e.getMessage());
+      LOGGER.error("getFileMeta failure: ", e);
     }
     return null;
   }

@@ -104,7 +104,7 @@ public class RedisStorage implements IStorage {
     try {
       queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
     } catch (PhysicalException e) {
-      LOGGER.error("encounter error when delete path: " + e.getMessage());
+      LOGGER.error("encounter error when delete path: " ,e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
     }
@@ -231,7 +231,7 @@ public class RedisStorage implements IStorage {
     try {
       queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
     } catch (PhysicalException e) {
-      LOGGER.error("encounter error when delete path: " + e.getMessage());
+      LOGGER.error("encounter error when delete path: " ,e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
     }
@@ -325,7 +325,7 @@ public class RedisStorage implements IStorage {
     try {
       deletedPaths = determinePathList(storageUnit, delete.getPatterns(), delete.getTagFilter());
     } catch (PhysicalException e) {
-      LOGGER.warn("encounter error when delete path: " + e.getMessage());
+      LOGGER.warn("encounter error when delete path: " ,e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
     }
@@ -348,7 +348,7 @@ public class RedisStorage implements IStorage {
         jedis.del(deletedPathArray);
         jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
       } catch (Exception e) {
-        LOGGER.warn("encounter error when delete path: " + e.getMessage());
+        LOGGER.warn("encounter error when delete path: " ,e);
         return new TaskExecuteResult(
             new PhysicalException("execute delete path in redis failure", e));
       }
@@ -373,7 +373,7 @@ public class RedisStorage implements IStorage {
           }
         }
       } catch (Exception e) {
-        LOGGER.warn("encounter error when delete path: " + e.getMessage());
+        LOGGER.warn("encounter error when delete path: " ,e);
         return new TaskExecuteResult(
             new PhysicalException("execute delete data in redis failure", e));
       }

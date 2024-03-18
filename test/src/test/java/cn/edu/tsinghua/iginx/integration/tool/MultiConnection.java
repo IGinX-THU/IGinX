@@ -145,7 +145,7 @@ public class MultiConnection {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", CLEAR_DATA, e);
         fail();
       }
     }
@@ -229,7 +229,7 @@ public class MultiConnection {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        LOGGER.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", CLEAR_DATA, e);
         fail();
       }
     }

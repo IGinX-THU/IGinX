@@ -32,7 +32,7 @@ public class ColumnsIntervalTest {
         ColumnsInterval columnsInterval = new ColumnsInterval(str);
       } catch (Exception e) {
         flag = true;
-        LOGGER.error(e.getMessage());
+        LOGGER.error("expect true but was false, with {}", str);
       }
       if (!flag) {
         fail();

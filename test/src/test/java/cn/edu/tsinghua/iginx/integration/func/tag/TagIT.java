@@ -254,7 +254,7 @@ public class TagIT {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        LOGGER.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
         fail();
       }
     }
@@ -264,7 +264,7 @@ public class TagIT {
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, res.getParseErrorMsg());
       fail();
       return "";
     }

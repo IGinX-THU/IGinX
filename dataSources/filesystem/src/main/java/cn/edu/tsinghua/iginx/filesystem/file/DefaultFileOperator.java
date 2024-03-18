@@ -190,7 +190,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       return replaceFile(file, tempFile);
     } catch (IOException e) {
-      LOGGER.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("write iginx file {} failure: ", file.getAbsolutePath(), e);
       return e;
     }
   }
@@ -206,7 +206,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return true;
     } catch (IOException e) {
-      LOGGER.error("cannot read file {} {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("cannot read file {} ", file.getAbsolutePath(), e);
       return false;
     }
   }
@@ -219,7 +219,7 @@ public class DefaultFileOperator implements IFileOperator {
         writer = new BufferedWriter(new FileWriter(file, true), 262144);
         appendWriterMap.put(file, writer);
       } catch (IOException e) {
-        LOGGER.error("cannot create writer for file {} {}", file.getAbsolutePath(), e.getMessage());
+        LOGGER.error("cannot create writer for file {} ", file.getAbsolutePath(), e);
         return e;
       }
     } else {
@@ -235,7 +235,7 @@ public class DefaultFileOperator implements IFileOperator {
       return null;
     } catch (IOException e) {
       LOGGER.error(
-          "append records to iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+          "append records to iginx file {} failure: ", file.getAbsolutePath(), e);
       return e;
     }
   }
@@ -266,7 +266,7 @@ public class DefaultFileOperator implements IFileOperator {
       return -1L;
     } catch (IOException e) {
       LOGGER.error(
-          "get max key of iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+          "get max key of iginx file {} failure: ", file.getAbsolutePath(), e);
       return -1L;
     }
   }
@@ -288,10 +288,10 @@ public class DefaultFileOperator implements IFileOperator {
       return null;
     } catch (IOException e) {
       LOGGER.error(
-          "replace file from {} to {} failure: {}",
+          "replace file from {} to {} failure: ",
           tempFile.getAbsolutePath(),
           file.getAbsoluteFile(),
-          e.getMessage());
+          e);
       return e;
     }
   }
@@ -313,10 +313,10 @@ public class DefaultFileOperator implements IFileOperator {
         movedSuccessfully = true;
       } catch (Exception e) {
         LOGGER.error(
-            "move file from {} to {} failure: {} and wait",
+            "move file from {} to {} failure and wait",
             source.getAbsolutePath(),
             target.getAbsoluteFile(),
-            e.getMessage());
+            e);
         try {
           Thread.sleep(1);
         } catch (InterruptedException interruptedException) {
@@ -415,7 +415,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       return replaceFile(file, tempFile);
     } catch (IOException e) {
-      LOGGER.error("trim file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("trim file {} failure: ", file.getAbsolutePath(), e);
       return e;
     }
   }
@@ -493,7 +493,7 @@ public class DefaultFileOperator implements IFileOperator {
         writer.close();
       } catch (IOException e) {
         LOGGER.error(
-            "close writer for file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+            "close writer for file {} failure: ", file.getAbsolutePath(), e);
         return e;
       }
     }
