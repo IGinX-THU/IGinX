@@ -18,7 +18,14 @@ jobs:
                   distribution: "temurin"
                   cache: "maven"
             - name: package
-              run: mvn --batch-mode -DskipTests=true package -P release,!format
+              run: |
+                  mvn package \
+                      --batch-mode \
+                      -P release,!format
+                      -DskipTests=true \
+                      -Dproject.build.finalName=iginx-${RELEASE_VERSION:1}
+              env:
+                  RELEASE_VERSION: ${{ github.event.release.tag_name }}
             - name: upload
               uses: svenstaro/upload-release-action@v2
               with:
@@ -45,7 +52,12 @@ jobs:
                   ref: pages
                   fetch-depth: 0
             - name: deploy
-              run: mvn --batch-mode -DskipTests=true -Ddeploy.repo.dir=$(pwd)/pages deploy -P !format
+              run: |
+                  mvn deploy \
+                      --batch-mode \
+                      -P !format \
+                      -DskipTests=true \
+                      -Ddeploy.repo.dir=$(pwd)/pages
             - name: create pull request
               uses: peter-evans/create-pull-request@v6
               with:

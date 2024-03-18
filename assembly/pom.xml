@@ -81,7 +81,7 @@
                         <artifactId>maven-assembly-plugin</artifactId>
                         <configuration>
                             <descriptors>
-                                <descriptor>src/assembly/all.xml</descriptor>
+                                <descriptor>src/assembly/server.xml</descriptor>
                                 <descriptor>src/assembly/include.xml</descriptor>
                             </descriptors>
                         </configuration>

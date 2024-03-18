@@ -73,8 +73,6 @@
                     <descriptors>
                         <descriptor>src/assembly/client.xml</descriptor>
                     </descriptors>
-                    <appendAssemblyId>false</appendAssemblyId>
-                    <outputDirectory>target</outputDirectory>
                     <archive>
                         <manifest>
                             <addDefaultImplementationEntries>true</addDefaultImplementationEntries>
