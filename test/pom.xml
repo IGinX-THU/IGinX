@@ -22,57 +22,46 @@
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-core</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iotdb12</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>filesystem</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>influxdb</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>mongodb</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>parquet</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>postgresql</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>redis</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.iotdb</groupId>
             <artifactId>iotdb-session</artifactId>
-            <version>0.12.6</version>
         </dependency>
         <dependency>
             <groupId>com.influxdb</groupId>
             <artifactId>influxdb-client-java</artifactId>
-            <version>6.8.0</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua.iginx</groupId>
             <artifactId>parquet-file</artifactId>
-            <version>0.0.3</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -83,18 +72,15 @@
         <dependency>
             <groupId>io.etcd</groupId>
             <artifactId>jetcd-core</artifactId>
-            <version>0.5.7</version>
             <optional>true</optional>
         </dependency>
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
-            <version>42.5.4</version>
         </dependency>
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
-            <version>4.3.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -105,7 +91,6 @@
         <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver</artifactId>
-            <version>3.12.12</version>
         </dependency>
     </dependencies>
 
