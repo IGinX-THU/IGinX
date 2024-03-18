@@ -23,7 +23,7 @@ public class RegisterTaskStatement extends SystemStatement {
   private final IginxWorker worker = IginxWorker.getInstance();
 
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(RegisterTaskStatement.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RegisterTaskStatement.class);
 
   public RegisterTaskStatement(String name, String filePath, String className, UDFType type) {
     this.statementType = StatementType.REGISTER_TASK;

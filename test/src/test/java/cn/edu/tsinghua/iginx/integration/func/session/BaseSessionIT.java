@@ -21,7 +21,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(BaseSessionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BaseSessionIT.class);
 
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
@@ -63,7 +63,7 @@ public abstract class BaseSessionIT {
               new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
       session.openSession();
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
     }
   }
 
@@ -73,7 +73,7 @@ public abstract class BaseSessionIT {
       clearData();
       session.closeSession();
     } catch (SessionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
     }
   }
 
@@ -150,7 +150,7 @@ public abstract class BaseSessionIT {
       try {
         result = (double) rawResult;
       } catch (Exception e) {
-        logger.error(e.getMessage());
+        LOGGER.error(e.getMessage());
         fail();
       }
     }

@@ -45,7 +45,7 @@ public class FragmentPruningByFilterRule extends Rule {
     super("FragmentPruningByFilterRule", operand(Select.class, any()));
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(FragmentPruningByFilterRule.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FragmentPruningByFilterRule.class);
 
   private static final IMetaManager metaManager = MetaManagerWrapper.getInstance();
 
@@ -142,7 +142,7 @@ public class FragmentPruningByFilterRule extends Rule {
     Select selectOperator = (Select) call.getMatchedRoot();
     List<String> pathList = OperatorUtils.findPathList(selectOperator);
     if (pathList.isEmpty()) {
-      logger.error("Can not find paths in select operator.");
+      LOGGER.error("Can not find paths in select operator.");
       return;
     }
 

@@ -20,7 +20,7 @@ public class JobRunner implements Runner {
 
   private final List<Runner> runnerList;
 
-  private static final Logger logger = LoggerFactory.getLogger(JobRunner.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JobRunner.class);
 
   public JobRunner(Job job) {
     this.job = job;
@@ -39,7 +39,7 @@ public class JobRunner implements Runner {
           runnerList.add(new StreamStageRunner((StreamStage) stage));
           break;
         default:
-          logger.error(String.format("Unknown stage type %s", dataFlowType.toString()));
+          LOGGER.error(String.format("Unknown stage type %s", dataFlowType.toString()));
           throw new UnknownDataFlowException(dataFlowType);
       }
     }
@@ -59,7 +59,7 @@ public class JobRunner implements Runner {
         job.setState(JobState.JOB_FINISHED);
       }
     } catch (TransformException e) {
-      logger.error(String.format("Fail to run transform job id=%d, because", job.getJobId()), e);
+      LOGGER.error(String.format("Fail to run transform job id=%d, because", job.getJobId()), e);
       if (job.getActive().compareAndSet(true, false)) {
         job.setState(JobState.JOB_FAILING);
         close();
@@ -75,7 +75,7 @@ public class JobRunner implements Runner {
         runner.close();
       }
     } catch (TransformException e) {
-      logger.error(
+      LOGGER.error(
           String.format("Fail to close Transform job runner id=%d, because", job.getJobId()), e);
     }
   }

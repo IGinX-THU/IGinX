@@ -22,7 +22,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultFileOperator implements IFileOperator {
 
-  private static final Logger logger = LoggerFactory.getLogger(DefaultFileOperator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultFileOperator.class);
   private LimitedSizeMap<File, BufferedWriter> appendWriterMap =
       new LimitedSizeMap<>(
           100_000,
@@ -52,7 +52,7 @@ public class DefaultFileOperator implements IFileOperator {
       raf.seek(readPos);
       int len = raf.read(buffer);
       if (len < 0) {
-        logger.info("reach the end of the file {} with len {}", file.getAbsolutePath(), len);
+        LOGGER.info("reach the end of the file {} with len {}", file.getAbsolutePath(), len);
         return null;
       }
       if (len != buffer.length) {
@@ -190,7 +190,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       return replaceFile(file, tempFile);
     } catch (IOException e) {
-      logger.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("write iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
     }
   }
@@ -206,7 +206,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return true;
     } catch (IOException e) {
-      logger.error("cannot read file {} {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("cannot read file {} {}", file.getAbsolutePath(), e.getMessage());
       return false;
     }
   }
@@ -219,7 +219,7 @@ public class DefaultFileOperator implements IFileOperator {
         writer = new BufferedWriter(new FileWriter(file, true), 262144);
         appendWriterMap.put(file, writer);
       } catch (IOException e) {
-        logger.error("cannot create writer for file {} {}", file.getAbsolutePath(), e.getMessage());
+        LOGGER.error("cannot create writer for file {} {}", file.getAbsolutePath(), e.getMessage());
         return e;
       }
     } else {
@@ -234,7 +234,7 @@ public class DefaultFileOperator implements IFileOperator {
       updateLastKey(file, records.get(end - 1).getKey());
       return null;
     } catch (IOException e) {
-      logger.error(
+      LOGGER.error(
           "append records to iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
     }
@@ -261,11 +261,11 @@ public class DefaultFileOperator implements IFileOperator {
         long number = Long.parseLong(line); // 尝试将字符串解析为long类型
         return number;
       } catch (NumberFormatException e) {
-        logger.info("no data has been written to file {}", file.getAbsolutePath());
+        LOGGER.info("no data has been written to file {}", file.getAbsolutePath());
       }
       return -1L;
     } catch (IOException e) {
-      logger.error(
+      LOGGER.error(
           "get max key of iginx file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return -1L;
     }
@@ -287,7 +287,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return null;
     } catch (IOException e) {
-      logger.error(
+      LOGGER.error(
           "replace file from {} to {} failure: {}",
           tempFile.getAbsolutePath(),
           file.getAbsoluteFile(),
@@ -312,7 +312,7 @@ public class DefaultFileOperator implements IFileOperator {
         Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
         movedSuccessfully = true;
       } catch (Exception e) {
-        logger.error(
+        LOGGER.error(
             "move file from {} to {} failure: {} and wait",
             source.getAbsolutePath(),
             target.getAbsoluteFile(),
@@ -415,7 +415,7 @@ public class DefaultFileOperator implements IFileOperator {
 
       return replaceFile(file, tempFile);
     } catch (IOException e) {
-      logger.error("trim file {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("trim file {} failure: {}", file.getAbsolutePath(), e.getMessage());
       return e;
     }
   }
@@ -485,14 +485,14 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private Exception closeAppendWriter(File file) {
-    logger.debug("close writer for file {}", file.getAbsolutePath());
+    LOGGER.debug("close writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
       try {
         appendWriterMap.remove(file);
         writer.close();
       } catch (IOException e) {
-        logger.error(
+        LOGGER.error(
             "close writer for file {} failure: {}", file.getAbsolutePath(), e.getMessage());
         return e;
       }
@@ -501,7 +501,7 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private void flushAppendWriter(File file) throws IOException {
-    logger.debug("flush writer for file {}", file.getAbsolutePath());
+    LOGGER.debug("flush writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
       try {

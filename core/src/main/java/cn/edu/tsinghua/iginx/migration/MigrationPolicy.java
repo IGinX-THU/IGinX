@@ -353,9 +353,9 @@ public abstract class MigrationPolicy {
       MigrationTask migrationTask, Map<Long, Long> nodeLoadMap) {
     //    long currTargetNodeLoad = nodeLoadMap.getOrDefault(migrationTask.getTargetStorageId(),
     // 0L);
-    //    logger.error("currTargetNodeLoad = {}", currTargetNodeLoad);
-    //    logger.error("migrationTask.getLoad() = {}", migrationTask.getLoad());
-    //    logger.error("config.getMaxLoadThreshold() = {}", config.getMaxLoadThreshold());
+    //    LOGGER.error("currTargetNodeLoad = {}", currTargetNodeLoad);
+    //    LOGGER.error("migrationTask.getLoad() = {}", migrationTask.getLoad());
+    //    LOGGER.error("config.getMaxLoadThreshold() = {}", config.getMaxLoadThreshold());
     return true;
   }
 

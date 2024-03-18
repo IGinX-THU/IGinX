@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 public class MongoDBStorage implements IStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(MongoDBStorage.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBStorage.class.getName());
 
   private static final long MAX_WAIT_TIME = 5;
   private static final int SESSION_POOL_MAX_SIZE = 200;
@@ -82,7 +82,7 @@ public class MongoDBStorage implements IStorage {
       this.client = connect(meta.getIp(), meta.getPort());
     } catch (Exception e) {
       String message = "fail to connect " + meta.getIp() + ":" + meta.getPort();
-      logger.error(message, e);
+      LOGGER.error(message, e);
       throw new StorageInitializationException(message);
     }
   }
@@ -138,8 +138,8 @@ public class MongoDBStorage implements IStorage {
       RowStream result = new DummyQuery(this.client).query(patterns, unionFilter);
       return new TaskExecuteResult(result);
     } catch (Exception e) {
-      logger.error("dummy project {} where {}", patterns, filter);
-      logger.error("failed to dummy query ", e);
+      LOGGER.error("dummy project {} where {}", patterns, filter);
+      LOGGER.error("failed to dummy query ", e);
       return new TaskExecuteResult(new PhysicalException("failed to query dummy", e));
     }
   }
@@ -168,7 +168,7 @@ public class MongoDBStorage implements IStorage {
       if (tagFilter != null) {
         message += " with " + tagFilter;
       }
-      logger.error(message, e);
+      LOGGER.error(message, e);
       return new TaskExecuteResult(new PhysicalException("failed to project", e));
     }
   }
@@ -202,8 +202,8 @@ public class MongoDBStorage implements IStorage {
         }
       }
     } catch (Exception e) {
-      logger.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
-      logger.error("failed to delete", e);
+      LOGGER.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
+      LOGGER.error("failed to delete", e);
       return new TaskExecuteResult(new PhysicalException("failed to delete", e));
     }
     return new TaskExecuteResult();
@@ -268,7 +268,7 @@ public class MongoDBStorage implements IStorage {
         }
       }
     } catch (Exception e) {
-      logger.error("failed to insert", e);
+      LOGGER.error("failed to insert", e);
       return new TaskExecuteResult(new PhysicalException("failed to insert", e));
     }
     return new TaskExecuteResult();

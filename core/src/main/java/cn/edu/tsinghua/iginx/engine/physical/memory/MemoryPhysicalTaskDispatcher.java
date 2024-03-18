@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public class MemoryPhysicalTaskDispatcher {
 
-  private static final Logger logger = LoggerFactory.getLogger(MemoryPhysicalTaskDispatcher.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MemoryPhysicalTaskDispatcher.class);
 
   private static final MemoryPhysicalTaskDispatcher INSTANCE = new MemoryPhysicalTaskDispatcher();
 
@@ -65,7 +65,7 @@ public class MemoryPhysicalTaskDispatcher {
             while (true) {
               final MemoryPhysicalTask task = taskQueue.getTask();
               if (isCancelled(task.getSessionId())) {
-                logger.warn(
+                LOGGER.warn(
                     String.format(
                         "MemoryPhysicalTask[sessionId=%s] is cancelled.", task.getSessionId()));
                 continue;
@@ -79,7 +79,7 @@ public class MemoryPhysicalTaskDispatcher {
                       try {
                         result = currentTask.execute();
                       } catch (Exception e) {
-                        logger.error("execute memory task failure: ", e);
+                        LOGGER.error("execute memory task failure: ", e);
                         result = new TaskExecuteResult(new PhysicalException(e));
                       }
                       long span = System.currentTimeMillis() - startTime;
@@ -100,7 +100,7 @@ public class MemoryPhysicalTaskDispatcher {
                   });
             }
           } catch (Exception e) {
-            logger.error(
+            LOGGER.error(
                 "unexpected exception during dispatcher memory task, please contact developer to check: ",
                 e);
           }

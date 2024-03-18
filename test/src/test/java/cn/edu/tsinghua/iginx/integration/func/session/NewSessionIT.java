@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 
 public class NewSessionIT {
 
-  protected static final Logger logger = LoggerFactory.getLogger(NewSessionIT.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(NewSessionIT.class);
 
   protected static MultiConnection conn;
   protected static boolean isForSession = true;
@@ -319,7 +319,7 @@ public class NewSessionIT {
 
   private void compareObjectValue(Object expected, Object actual) {
     if (expected.getClass() != actual.getClass() && !isInfluxdb) {
-      logger.error(
+      LOGGER.error(
           "Inconsistent data types, expected:{}, actual:{}",
           expected.getClass(),
           actual.getClass());
@@ -376,7 +376,7 @@ public class NewSessionIT {
       List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
 
       if (!new HashSet<>(existsSessionIDs).equals(new HashSet<>(sessionIDs))) {
-        logger.error("server session_id_list does not equal to active_session_id_list.");
+        LOGGER.error("server session_id_list does not equal to active_session_id_list.");
         fail();
       }
 
@@ -386,12 +386,12 @@ public class NewSessionIT {
       existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
       for (long sessionID : sessionIDs) {
         if (existsSessionIDs.contains(sessionID)) {
-          logger.error("the ID for a closed session is still in the server session_id_list.");
+          LOGGER.error("the ID for a closed session is still in the server session_id_list.");
           fail();
         }
       }
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query session id failed.");
+      LOGGER.error("execute query session id failed.");
       fail();
     }
   }
@@ -406,13 +406,13 @@ public class NewSessionIT {
           new File("../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat")
               .getCanonicalPath();
     } catch (IOException e) {
-      logger.info(
+      LOGGER.info(
           "Can't find script ../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat");
       fail();
     }
     try {
       List<Long> sessionIDs1 = conn.executeSql("show sessionid;").getSessionIDs();
-      logger.info("before start a client, session_id_list size: " + sessionIDs1.size());
+      LOGGER.info("before start a client, session_id_list size: " + sessionIDs1.size());
 
       // start a client
       ProcessBuilder pb = new ProcessBuilder();
@@ -425,14 +425,14 @@ public class NewSessionIT {
       Process p = pb.start();
 
       Thread.sleep(3000);
-      logger.info("client is alive: " + p.isAlive());
+      LOGGER.info("client is alive: " + p.isAlive());
       if (!p.isAlive()) { // fail to start a client.
-        logger.info("exit value: " + p.exitValue());
+        LOGGER.info("exit value: " + p.exitValue());
         fail();
       }
 
       List<Long> sessionIDs2 = conn.executeSql("show sessionid;").getSessionIDs();
-      logger.info("after start a client, session_id_list size: " + sessionIDs2.size());
+      LOGGER.info("after start a client, session_id_list size: " + sessionIDs2.size());
 
       // kill the client
       try (OutputStream os = p.getOutputStream();
@@ -446,7 +446,7 @@ public class NewSessionIT {
       Thread.sleep(3000);
 
       List<Long> sessionIDs3 = conn.executeSql("show sessionid;").getSessionIDs();
-      logger.info("after cancel a client, session_id_list size:" + sessionIDs3.size());
+      LOGGER.info("after cancel a client, session_id_list size:" + sessionIDs3.size());
 
       assertEquals(sessionIDs1, sessionIDs3);
       assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);
@@ -468,7 +468,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.", e);
+      LOGGER.error("execute query data failed.", e);
       fail();
     }
 
@@ -479,7 +479,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
+      LOGGER.error("execute query data failed.");
       fail();
     }
 
@@ -489,7 +489,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(paths, start, end);
       compare(baseDataSection.getSubDataSectionWithKey(start, end), dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute query data failed.");
+      LOGGER.error("execute query data failed.");
       fail();
     }
   }
@@ -506,7 +506,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
+      LOGGER.error("execute delete columns failed.");
       fail();
     }
 
@@ -517,7 +517,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
+      LOGGER.error("execute delete columns failed.");
       fail();
     }
 
@@ -537,7 +537,7 @@ public class NewSessionIT {
       SessionQueryDataSet dataSet = conn.queryData(deleteColumns, START_KEY, END_KEY);
       compare(TestDataSection.EMPTY_TEST_DATA_SECTION, dataSet);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete columns failed.");
+      LOGGER.error("execute delete columns failed.");
       fail();
     }
   }
@@ -625,7 +625,7 @@ public class NewSessionIT {
         SessionAggregateQueryDataSet dataSet = conn.aggregateQuery(paths, START_KEY, END_KEY, type);
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException | ExecutionException e) {
-        logger.error("execute aggregate query failed, AggType={}", type);
+        LOGGER.error("execute aggregate query failed, AggType={}", type);
         fail();
       }
     }
@@ -729,7 +729,7 @@ public class NewSessionIT {
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException | ExecutionException e) {
-        logger.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
+        LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
         fail();
       }
     }
@@ -772,7 +772,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
+      LOGGER.error("execute delete or query data failed.");
       fail();
     }
 
@@ -809,7 +809,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(END_KEY - 200, END_KEY - 100);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
+      LOGGER.error("execute delete or query data failed.");
       fail();
     }
 
@@ -893,7 +893,7 @@ public class NewSessionIT {
               .getSubDataSectionWithKey(START_KEY + 400, START_KEY + 500);
       compare(expected, actual);
     } catch (SessionException | ExecutionException e) {
-      logger.error("execute delete or query data failed.");
+      LOGGER.error("execute delete or query data failed.");
       fail();
     }
   }

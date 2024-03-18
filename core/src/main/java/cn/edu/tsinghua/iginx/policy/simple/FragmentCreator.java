@@ -16,7 +16,7 @@ public class FragmentCreator {
 
   private static Timer timer = new Timer();
 
-  private static final Logger logger = LoggerFactory.getLogger(FragmentCreator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FragmentCreator.class);
   private final IMetaManager iMetaManager;
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private final SimplePolicy policy;
@@ -44,7 +44,7 @@ public class FragmentCreator {
               .orElse(Integer.MAX_VALUE)) {
         return true;
       }
-      logger.info(
+      LOGGER.info(
           "retry, remain: {}, version:{}, minversion: {}",
           retry,
           version,
@@ -60,21 +60,21 @@ public class FragmentCreator {
   }
 
   public void createFragment() throws Exception {
-    logger.info("start CreateFragment");
+    LOGGER.info("start CreateFragment");
     if (iMetaManager.election()) {
       int version = iMetaManager.updateVersion();
       if (version > 0) {
         if (!waitforUpdate(version)) {
-          logger.error("update failed");
+          LOGGER.error("update failed");
           return;
         }
         if (!policy.checkSuccess(iMetaManager.getColumnsData())) {
           policy.setNeedReAllocate(true);
-          logger.info("set ReAllocate true");
+          LOGGER.info("set ReAllocate true");
         }
       }
     }
-    logger.info("end CreateFragment");
+    LOGGER.info("end CreateFragment");
   }
 
   public void init(int length) {
@@ -85,7 +85,7 @@ public class FragmentCreator {
             try {
               createFragment();
             } catch (Exception e) {
-              logger.error("Error occurs when create fragment", e);
+              LOGGER.error("Error occurs when create fragment", e);
               e.printStackTrace();
             }
           }

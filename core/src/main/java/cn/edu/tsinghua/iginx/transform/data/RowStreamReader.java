@@ -13,7 +13,7 @@ public class RowStreamReader implements Reader {
 
   private final int batchSize;
 
-  private static final Logger logger = LoggerFactory.getLogger(RowStreamReader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RowStreamReader.class);
 
   public RowStreamReader(RowStream rowStream, int batchSize) {
     this.rowStream = rowStream;
@@ -25,7 +25,7 @@ public class RowStreamReader implements Reader {
     try {
       return rowStream.hasNext();
     } catch (PhysicalException e) {
-      logger.error("Fail to examine whether there is more data, because ", e);
+      LOGGER.error("Fail to examine whether there is more data, because ", e);
       return false;
     }
   }
@@ -42,7 +42,7 @@ public class RowStreamReader implements Reader {
       }
       return batchData;
     } catch (PhysicalException e) {
-      logger.error("Fail to load next batch of data, because ", e);
+      LOGGER.error("Fail to load next batch of data, because ", e);
       return null;
     }
   }
@@ -52,7 +52,7 @@ public class RowStreamReader implements Reader {
     try {
       rowStream.close();
     } catch (PhysicalException e) {
-      logger.error("Fail to close RowStream, because ", e);
+      LOGGER.error("Fail to close RowStream, because ", e);
     }
   }
 }

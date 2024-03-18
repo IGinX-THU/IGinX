@@ -35,7 +35,7 @@ public class IPCWorker extends Thread {
 
   private final Writer writer;
 
-  private static final Logger logger = LoggerFactory.getLogger(IPCWorker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IPCWorker.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -65,7 +65,7 @@ public class IPCWorker extends Thread {
         threadPool.submit(() -> process(socket));
       }
     } catch (SocketException ignored) {
-      logger.info(toString() + " stop server socket.");
+      LOGGER.info(toString() + " stop server socket.");
     } catch (IOException e) {
       throw new RuntimeException("An error occurred while listening.", e);
     }
@@ -86,7 +86,7 @@ public class IPCWorker extends Thread {
       reader.close();
       socket.close();
     } catch (IOException | WriteBatchException e) {
-      logger.error(String.format("Worker pid=%d fail to process socket.", pid));
+      LOGGER.error(String.format("Worker pid=%d fail to process socket.", pid));
       throw new RuntimeException("Fail to process socket", e);
     }
   }

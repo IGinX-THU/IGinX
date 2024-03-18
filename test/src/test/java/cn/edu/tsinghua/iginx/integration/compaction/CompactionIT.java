@@ -15,7 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompactionIT {
-  protected static final Logger logger = LoggerFactory.getLogger(CompactionIT.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(CompactionIT.class);
   // host info
   protected static String defaultTestHost = "127.0.0.1";
   protected static int defaultTestPort = 6888;
@@ -33,7 +33,7 @@ public class CompactionIT {
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\";");
       session.executeSql("SHOW CONFIG \"enableInstantCompaction\";").print(false, "");
     } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
       fail();
     }
   }
@@ -44,7 +44,7 @@ public class CompactionIT {
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\";");
       session.closeSession();
     } catch (SessionException | ExecutionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error(e.getMessage());
       fail();
     }
   }

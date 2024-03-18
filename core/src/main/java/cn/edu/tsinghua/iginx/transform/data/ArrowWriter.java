@@ -21,7 +21,7 @@ public class ArrowWriter implements Writer {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  private static final Logger logger = LoggerFactory.getLogger(ArrowWriter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ArrowWriter.class);
 
   public ArrowWriter(int writerPort) {
     this.ip = config.getIp();
@@ -43,7 +43,7 @@ public class ArrowWriter implements Writer {
       os.close();
       socket.close();
     } catch (IOException e) {
-      logger.error("ArrowWriter fail to write vector");
+      LOGGER.error("ArrowWriter fail to write vector");
       throw new WriteBatchException("ArrowWriter fail to write vector", e);
     }
   }
@@ -65,7 +65,7 @@ public class ArrowWriter implements Writer {
       os.close();
       socket.close();
     } catch (IOException e) {
-      logger.error("ArrowWriter fail to write batch");
+      LOGGER.error("ArrowWriter fail to write batch");
       throw new WriteBatchException("ArrowWriter fail to write batch", e);
     }
   }

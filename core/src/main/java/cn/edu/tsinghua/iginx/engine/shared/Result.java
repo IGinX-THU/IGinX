@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
 @Data
 public class Result {
 
-  private static final Logger logger = LoggerFactory.getLogger(Result.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Result.class);
 
   private Status status;
   private List<String> paths;
@@ -259,7 +259,7 @@ public class Result {
                 csvFile.getRecordSeparator()));
       }
     } catch (PhysicalException e) {
-      logger.error("unexpected error when load row stream: ", e);
+      LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
     return resp;
@@ -322,7 +322,7 @@ public class Result {
       resp.setHasMoreResults(resultStream.hasNext());
       resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
     } catch (PhysicalException e) {
-      logger.error("unexpected error when load row stream: ", e);
+      LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
     }
     return resp;

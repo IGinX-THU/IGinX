@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 public class SessionConcurrencyIT extends BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SessionConcurrencyIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionConcurrencyIT.class);
 
   // TODO: a very suspicious test; somebody should do something
   // TODO: The following test must be added after bug fix
@@ -562,7 +562,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
             localSession.insertNonAlignedColumnRecords(
                 path, timestamps, valuesList, dataTypeList, null);
           } catch (SessionException | ExecutionException e) {
-            logger.error(e.getMessage());
+            LOGGER.error(e.getMessage());
           }
           break;
           // delete
@@ -570,7 +570,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
           try {
             localSession.deleteDataInColumns(path, startKey, endKey);
           } catch (SessionException | ExecutionException e) {
-            logger.error(e.getMessage());
+            LOGGER.error(e.getMessage());
           }
           break;
           // query
@@ -582,7 +582,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
               queryDataSet = localSession.aggregateQuery(path, startKey, endKey, aggregateType);
             }
           } catch (SessionException | ExecutionException e) {
-            logger.error(e.getMessage());
+            LOGGER.error(e.getMessage());
           }
           break;
         default:
@@ -591,7 +591,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
       try {
         if (localSession.isSession()) this.localSession.closeSession();
       } catch (SessionException e) {
-        logger.error(e.getMessage());
+        LOGGER.error(e.getMessage());
       }
     }
 

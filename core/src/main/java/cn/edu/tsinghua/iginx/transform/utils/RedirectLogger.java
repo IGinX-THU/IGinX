@@ -10,7 +10,7 @@ public class RedirectLogger extends Thread {
 
   private final String name;
 
-  private static final Logger logger = LoggerFactory.getLogger(RedirectLogger.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RedirectLogger.class);
 
   public RedirectLogger(InputStream inputStream, String name) {
     this.inputStream = inputStream;
@@ -19,10 +19,10 @@ public class RedirectLogger extends Thread {
 
   @Override
   public void run() {
-    logger.info("hello");
+    LOGGER.info("hello");
     //        Scanner scanner = new Scanner(inputStream);
     //        while (scanner.hasNextLine()) {
-    //            logger.info(String.format("[Python %s] ", name) + scanner.nextLine());
+    //            LOGGER.info(String.format("[Python %s] ", name) + scanner.nextLine());
     //        }
     try {
       byte[] buffer = new byte[1024];

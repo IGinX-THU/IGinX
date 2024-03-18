@@ -7,14 +7,14 @@ public class Mutex {
 
   private boolean isLocked = false;
 
-  private static final Logger logger = LoggerFactory.getLogger(Mutex.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Mutex.class);
 
   public synchronized void lock() {
     while (this.isLocked) {
       try {
         wait();
       } catch (InterruptedException e) {
-        logger.error("Mutex was interrupted");
+        LOGGER.error("Mutex was interrupted");
       }
     }
     this.isLocked = true;

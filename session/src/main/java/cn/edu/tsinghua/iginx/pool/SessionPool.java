@@ -17,7 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SessionPool {
-  private static final Logger logger = LoggerFactory.getLogger(SessionPool.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionPool.class);
   public static final String SESSION_POOL_IS_CLOSED = "Session pool is closed";
   public static final String CLOSE_THE_SESSION_FAILED = "close the session failed.";
 
@@ -144,7 +144,7 @@ public class SessionPool {
       long waitToGetSessionTimeoutInMs) {
     validSessionSize = sessionNum.size();
     if (sessionNum.size() < iginxList.size()) {
-      logger.warn(
+      LOGGER.warn(
           "IGinX list size {}, distributive session size {}, the remaining IGinX will not get session connection",
           iginxList.size(),
           sessionNum.size());
@@ -241,22 +241,22 @@ public class SessionPool {
 
         // we have to wait for someone returns a session.
         try {
-          if (logger.isDebugEnabled()) {
-            logger.debug(
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug(
                 "no more sessions can be created, wait... queue.size={}", currentAvailableSize());
           }
           this.wait(1000);
           long timeOut = Math.min(waitToGetSessionTimeoutInMs, 60_000);
           if (System.currentTimeMillis() - start > timeOut) {
             IginxInfo iginxInfo = iginxList.get(getIndexOfIginx(size));
-            logger.warn(
+            LOGGER.warn(
                 "the SessionPool has wait for {} seconds to get a new connection: {}:{} with {}, {}",
                 (System.currentTimeMillis() - start) / 1000,
                 iginxInfo.getHost(),
                 iginxInfo.getPassword(),
                 iginxInfo.getUser(),
                 iginxInfo.getPassword());
-            logger.warn(
+            LOGGER.warn(
                 "current occupied size {}, queue size {}, considered size {} ",
                 occupied.size(),
                 currentAvailableSize(),
@@ -283,8 +283,8 @@ public class SessionPool {
     if (shouldCreate) {
       IginxInfo iginxInfo = iginxList.get(getIndexOfIginx(size));
       // create a new one.
-      if (logger.isDebugEnabled()) {
-        logger.debug(
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug(
             "Create a new redirect Session {}, {}", iginxInfo.getUser(), iginxInfo.getPassword());
       }
 
@@ -309,8 +309,8 @@ public class SessionPool {
           // we do not need to notifyAll as any waited thread can continue to work after
           // waked up.
           this.notify();
-          if (logger.isDebugEnabled()) {
-            logger.debug("open session failed, reduce the count and notify others...");
+          if (LOGGER.isDebugEnabled()) {
+            LOGGER.debug("open session failed, reduce the count and notify others...");
           }
         }
         throw e;
@@ -350,8 +350,8 @@ public class SessionPool {
       // we do not need to notifyAll as any waited thread can continue to work after waked up.
       this.notify();
       // comment the following codes as putBack is too frequently called.
-      //      if (logger.isTraceEnabled()) {
-      //        logger.trace("put a session back and notify others..., queue.size = {}",
+      //      if (LOGGER.isTraceEnabled()) {
+      //        LOGGER.trace("put a session back and notify others..., queue.size = {}",
       // queue.size());
       //      }
     }
@@ -382,8 +382,8 @@ public class SessionPool {
         // we do not need to notifyAll as any waited thread can continue to work after waked
         // up.
         this.notify();
-        if (logger.isDebugEnabled()) {
-          logger.debug("open session failed, reduce the count and notify others...");
+        if (LOGGER.isDebugEnabled()) {
+          LOGGER.debug("open session failed, reduce the count and notify others...");
         }
       }
     }
@@ -395,7 +395,7 @@ public class SessionPool {
         for (Session session : sessionsQueue) session.closeSession();
       } catch (SessionException e) {
         // do nothing
-        logger.warn(CLOSE_THE_SESSION_FAILED, e);
+        LOGGER.warn(CLOSE_THE_SESSION_FAILED, e);
       }
     }
     for (Session session : occupied.keySet()) {
@@ -403,11 +403,11 @@ public class SessionPool {
         session.closeSession();
       } catch (SessionException e) {
         // do nothing
-        logger.warn(CLOSE_THE_SESSION_FAILED, e);
+        LOGGER.warn(CLOSE_THE_SESSION_FAILED, e);
       }
     }
     sessionIDs.clear();
-    logger.info("closing the session pool, cleaning queues...");
+    LOGGER.info("closing the session pool, cleaning queues...");
     this.closed = true;
     for (ConcurrentLinkedDeque<Session> sessionsQueue : queueList) {
       sessionsQueue.clear();
@@ -421,7 +421,7 @@ public class SessionPool {
         session.closeSession();
       } catch (Exception e2) {
         // do nothing. We just want to guarantee the session is closed.
-        logger.warn(CLOSE_THE_SESSION_FAILED, e2);
+        LOGGER.warn(CLOSE_THE_SESSION_FAILED, e2);
       }
     }
   }
@@ -437,7 +437,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("addStorageEngine failed", e);
+        LOGGER.warn("addStorageEngine failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -456,7 +456,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("addStorageEngines failed", e);
+        LOGGER.warn("addStorageEngines failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -475,7 +475,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("remove history data source failed", e);
+        LOGGER.warn("remove history data source failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -507,7 +507,7 @@ public class SessionPool {
         return ret;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertTablet failed", e);
+        LOGGER.warn("insertTablet failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -526,7 +526,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("deleteColumn failed", e);
+        LOGGER.warn("deleteColumn failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -544,7 +544,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("deleteColumns failed", e);
+        LOGGER.warn("deleteColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -564,7 +564,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("deleteColumns failed", e);
+        LOGGER.warn("deleteColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -584,7 +584,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertColumnRecords failed", e);
+        LOGGER.warn("insertColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -608,7 +608,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertColumnRecords failed", e);
+        LOGGER.warn("insertColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -634,7 +634,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertColumnRecords failed", e);
+        LOGGER.warn("insertColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -654,7 +654,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertNonAlignedColumnRecords failed", e);
+        LOGGER.warn("insertNonAlignedColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -679,7 +679,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertNonAlignedColumnRecords failed", e);
+        LOGGER.warn("insertNonAlignedColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -705,7 +705,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertNonAlignedColumnRecords failed", e);
+        LOGGER.warn("insertNonAlignedColumnRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -729,7 +729,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertRowRecords failed", e);
+        LOGGER.warn("insertRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -754,7 +754,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertRowRecords failed", e);
+        LOGGER.warn("insertRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -774,7 +774,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertNonAlignedRowRecords failed", e);
+        LOGGER.warn("insertNonAlignedRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -798,7 +798,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertNonAlignedRowRecords failed", e);
+        LOGGER.warn("insertNonAlignedRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -824,7 +824,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("insertNonAlignedRowRecords failed", e);
+        LOGGER.warn("insertNonAlignedRowRecords failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -843,7 +843,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("deleteDataInColumn failed", e);
+        LOGGER.warn("deleteDataInColumn failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -862,7 +862,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("deleteDataInColumns failed", e);
+        LOGGER.warn("deleteDataInColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -886,7 +886,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("deleteDataInColumns failed", e);
+        LOGGER.warn("deleteDataInColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -906,7 +906,7 @@ public class SessionPool {
         return sessionQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("queryData failed", e);
+        LOGGER.warn("queryData failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -928,7 +928,7 @@ public class SessionPool {
         return sessionQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("queryData failed", e);
+        LOGGER.warn("queryData failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -951,7 +951,7 @@ public class SessionPool {
         return sessionAggregateQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("aggregateQuery failed", e);
+        LOGGER.warn("aggregateQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -978,7 +978,7 @@ public class SessionPool {
         return sessionAggregateQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("aggregateQuery failed", e);
+        LOGGER.warn("aggregateQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1001,7 +1001,7 @@ public class SessionPool {
         return sessionQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("downsampleQuery failed", e);
+        LOGGER.warn("downsampleQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1029,7 +1029,7 @@ public class SessionPool {
         return sessionQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("downsampleQuery failed", e);
+        LOGGER.warn("downsampleQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1049,7 +1049,7 @@ public class SessionPool {
         return ret;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("getReplicaNum failed", e);
+        LOGGER.warn("getReplicaNum failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1070,7 +1070,7 @@ public class SessionPool {
         return sessionExecuteSqlResult;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("executeSql failed", e);
+        LOGGER.warn("executeSql failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1091,7 +1091,7 @@ public class SessionPool {
         return sessionQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("queryLast failed", e);
+        LOGGER.warn("queryLast failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1113,7 +1113,7 @@ public class SessionPool {
         return sessionQueryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("queryLast failed", e);
+        LOGGER.warn("queryLast failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1133,7 +1133,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("addUser failed", e);
+        LOGGER.warn("addUser failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1152,7 +1152,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("updateUser failed", e);
+        LOGGER.warn("updateUser failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1170,7 +1170,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("deleteUser failed", e);
+        LOGGER.warn("deleteUser failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1189,7 +1189,7 @@ public class SessionPool {
         return clusterInfo;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("getClusterInfo failed", e);
+        LOGGER.warn("getClusterInfo failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1209,7 +1209,7 @@ public class SessionPool {
         return queryDataSet;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("executeQuery failed", e);
+        LOGGER.warn("executeQuery failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1231,7 +1231,7 @@ public class SessionPool {
         return ret;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("commitTransformJob failed", e);
+        LOGGER.warn("commitTransformJob failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1251,7 +1251,7 @@ public class SessionPool {
         return ret;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("queryTransformJobStatus failed", e);
+        LOGGER.warn("queryTransformJobStatus failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1271,7 +1271,7 @@ public class SessionPool {
         return ret;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("showEligibleJob failed", e);
+        LOGGER.warn("showEligibleJob failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1290,7 +1290,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("cancelTransformJob failed", e);
+        LOGGER.warn("cancelTransformJob failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
@@ -1311,7 +1311,7 @@ public class SessionPool {
         return ret;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        logger.warn("curveMatch failed", e);
+        LOGGER.warn("curveMatch failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (ExecutionException | RuntimeException e) {
         putBack(session);
