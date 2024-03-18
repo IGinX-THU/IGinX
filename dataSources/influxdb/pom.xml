@@ -22,13 +22,11 @@
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-core</artifactId>
-            <version>${project.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>com.influxdb</groupId>
             <artifactId>influxdb-client-java</artifactId>
-            <version>6.8.0</version>
         </dependency>
     </dependencies>
 
