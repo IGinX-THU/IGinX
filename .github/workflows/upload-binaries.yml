@@ -54,5 +54,6 @@ jobs:
                       maven-repo
                       maven-snapshot-repo
                   branch: release-bot/pages
+                  delete-branch: true
                   commit-message: "chore(repo): update maven repository"
                   title: "chore(repo): update maven repository"
