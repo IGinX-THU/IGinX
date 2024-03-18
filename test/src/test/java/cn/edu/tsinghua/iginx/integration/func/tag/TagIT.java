@@ -264,7 +264,8 @@ public class TagIT {
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, res.getParseErrorMsg());
+      LOGGER.error(
+          "Statement: \"{}\" execute fail. Caused by: ", statement, res.getParseErrorMsg());
       fail();
       return "";
     }

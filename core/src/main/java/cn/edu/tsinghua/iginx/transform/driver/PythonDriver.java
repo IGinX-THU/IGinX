@@ -26,12 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PythonDriver implements Driver {
+  private static final Logger LOGGER = LoggerFactory.getLogger(PythonDriver.class);
 
   private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(PythonDriver.class);
 
   private static final String PYTHON_CMD = config.getPythonCMD();
 
@@ -170,10 +169,10 @@ public class PythonDriver implements Driver {
         socket.close();
 
         if (pid < 0) {
-          LOGGER.error(String.format("Failed to launch python worker with code=%d", pid));
+          LOGGER.error("Failed to launch python worker with code={}", pid);
           return false;
         } else {
-          LOGGER.info(String.format("Worker(pid=%d) has started.", pid));
+          LOGGER.info("Worker(pid={}) has started.", pid);
           return true;
         }
       }

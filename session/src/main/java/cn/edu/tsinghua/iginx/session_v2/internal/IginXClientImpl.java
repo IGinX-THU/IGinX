@@ -160,7 +160,7 @@ public class IginXClientImpl implements IginXClient {
               try {
                 resource.close();
               } catch (Exception e) {
-                LOGGER.warn(String.format("Exception was thrown while closing: %s", resource), e);
+                LOGGER.warn("Exception was thrown while closing: {}", resource, e);
               }
             });
 

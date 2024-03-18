@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenTSDBStorage implements IStorage {
+  private static final Logger LOGGER = LoggerFactory.getLogger(OpenTSDBStorage.class);
 
   private static final String DU_PREFIX = "unit";
 
@@ -59,8 +60,6 @@ public class OpenTSDBStorage implements IStorage {
   private final OpenTSDBClient client;
 
   private final StorageEngineMeta meta;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(OpenTSDBStorage.class);
 
   public OpenTSDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;

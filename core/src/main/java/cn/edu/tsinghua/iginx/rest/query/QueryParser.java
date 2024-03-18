@@ -46,7 +46,7 @@ public class QueryParser {
       Date date = df.parse(oldDateStr);
       return date.getTime() + 28800000L;
     } catch (ParseException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return null;
   }

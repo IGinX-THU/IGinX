@@ -14,9 +14,10 @@ import org.slf4j.LoggerFactory;
 
 public class FragmentCreator {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FragmentCreator.class);
+
   private static Timer timer = new Timer();
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(FragmentCreator.class);
   private final IMetaManager iMetaManager;
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private final SimplePolicy policy;
@@ -52,7 +53,7 @@ public class FragmentCreator {
       try {
         Thread.sleep(config.getRetryWait());
       } catch (InterruptedException e) {
-        e.printStackTrace();
+        LOGGER.error("unexpected error: ", e);
       }
       retry--;
     }
@@ -86,7 +87,7 @@ public class FragmentCreator {
               createFragment();
             } catch (Exception e) {
               LOGGER.error("Error occurs when create fragment", e);
-              e.printStackTrace();
+              LOGGER.error("unexpected error: ", e);
             }
           }
         },

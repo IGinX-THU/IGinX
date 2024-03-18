@@ -451,7 +451,7 @@ public class NewSessionIT {
       assertEquals(sessionIDs1, sessionIDs3);
       assertTrue(sessionIDs2.size() - sessionIDs1.size() > 0);
     } catch (SessionException | ExecutionException | IOException | InterruptedException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
   }

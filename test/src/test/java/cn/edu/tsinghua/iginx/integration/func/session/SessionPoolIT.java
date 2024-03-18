@@ -28,7 +28,7 @@ public class SessionPoolIT extends SessionIT {
                   .build());
       session.openSession();
     } catch (Exception e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
   }
 }

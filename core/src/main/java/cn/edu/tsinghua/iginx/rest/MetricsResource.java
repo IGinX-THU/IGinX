@@ -51,6 +51,8 @@ import org.slf4j.LoggerFactory;
 @Path("/")
 public class MetricsResource {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(MetricsResource.class);
+
   private static final String INSERT_URL = "api/v1/datapoints";
   private static final String INSERT_ANNOTATION_URL = "api/v1/datapoints/annotations";
   private static final String ADD_ANNOTATION_URL = "api/v1/datapoints/annotations/add";
@@ -68,7 +70,6 @@ public class MetricsResource {
   private static final String ERROR_PATH = "{string : .+}";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static final Logger LOGGER = LoggerFactory.getLogger(MetricsResource.class);
   private static final ExecutorService threadPool =
       Executors.newFixedThreadPool(config.getAsyncRestThreadPool());
 

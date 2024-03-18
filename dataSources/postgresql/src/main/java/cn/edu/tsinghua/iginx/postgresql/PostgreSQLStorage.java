@@ -242,7 +242,7 @@ public class PostgreSQLStorage implements IStorage {
           tableSet.close();
           conn.close();
         } catch (SQLException e) {
-          LOGGER.error(e.getMessage());
+          LOGGER.error("unexpected error: ", e);
         }
       }
       databaseSet.close();
@@ -429,7 +429,7 @@ public class PostgreSQLStorage implements IStorage {
                   Collections.singletonList(conn)));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
     }
@@ -809,7 +809,7 @@ public class PostgreSQLStorage implements IStorage {
                   databaseNameList, resultSets, true, filter, project.getTagFilter(), connList));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
     }
@@ -937,7 +937,7 @@ public class PostgreSQLStorage implements IStorage {
       conn.close();
       return new TaskExecuteResult(null, null);
     } catch (SQLException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute delete task in postgresql failure", e));
     }
@@ -1352,8 +1352,7 @@ public class PostgreSQLStorage implements IStorage {
         tableSet.close();
         stmt.close();
       } catch (SQLException e) {
-        LOGGER.error(
-            "create or alter table {} field {} error: ", tableName, columnName, e);
+        LOGGER.error("create or alter table {} field {} error: ", tableName, columnName, e);
       }
     }
   }
@@ -1457,7 +1456,7 @@ public class PostgreSQLStorage implements IStorage {
       }
       stmt.close();
     } catch (SQLException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return e;
     }
 
@@ -1568,7 +1567,7 @@ public class PostgreSQLStorage implements IStorage {
       }
       stmt.close();
     } catch (SQLException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return e;
     }
 

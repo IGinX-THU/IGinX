@@ -345,7 +345,7 @@ public class IoTDBStorage implements IStorage {
                   sessionPool.executeQueryStatement(statement), true, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
     }
@@ -402,7 +402,7 @@ public class IoTDBStorage implements IStorage {
                   sessionPool.executeQueryStatement(statement), false, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute project task in iotdb12 failure", e));
     }
@@ -503,7 +503,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        LOGGER.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         return e;
       }
 
@@ -582,7 +582,7 @@ public class IoTDBStorage implements IStorage {
           }
         }
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        LOGGER.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         return e;
       }
 
@@ -664,7 +664,7 @@ public class IoTDBStorage implements IStorage {
       try {
         sessionPool.insertTablets(tablets);
       } catch (IoTDBConnectionException | StatementExecutionException e) {
-        LOGGER.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         return e;
       }
 
@@ -744,7 +744,7 @@ public class IoTDBStorage implements IStorage {
         try {
           sessionPool.insertTablets(tabletsMap.get(entry.getKey()));
         } catch (IoTDBConnectionException | StatementExecutionException e) {
-          LOGGER.error(e.getMessage());
+          LOGGER.error("unexpected error: ", e);
           return e;
         }
 

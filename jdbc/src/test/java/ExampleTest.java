@@ -173,7 +173,7 @@ public class ExampleTest {
       Class.forName(driver);
       connection = DriverManager.getConnection(url, username, password);
     } catch (ClassNotFoundException | SQLException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return connection;
   }

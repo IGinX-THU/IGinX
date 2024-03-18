@@ -10,8 +10,12 @@ import cn.edu.tsinghua.iginx.session_v2.domain.Transform;
 import cn.edu.tsinghua.iginx.thrift.*;
 import java.io.File;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransformExample {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformExample.class);
 
   private static Session session;
   private static IginXClient client;
@@ -137,7 +141,7 @@ public class TransformExample {
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
   }
@@ -149,7 +153,7 @@ public class TransformExample {
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
   }

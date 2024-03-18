@@ -46,10 +46,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UDFIT {
+  private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
 
   private static final double delta = 0.01d;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
 
   private static boolean isScaling;
 

@@ -119,7 +119,8 @@ public class Controller {
     }
 
     if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by: {}", CLEAR_DATA, res.getParseErrorMsg());
+      LOGGER.error(
+          "Statement: \"{}\" execute fail. Caused by: {}", CLEAR_DATA, res.getParseErrorMsg());
       fail();
     }
   }

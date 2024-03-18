@@ -8,12 +8,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RowStreamReader implements Reader {
+  private static final Logger LOGGER = LoggerFactory.getLogger(RowStreamReader.class);
 
   private final RowStream rowStream;
 
   private final int batchSize;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(RowStreamReader.class);
 
   public RowStreamReader(RowStream rowStream, int batchSize) {
     this.rowStream = rowStream;

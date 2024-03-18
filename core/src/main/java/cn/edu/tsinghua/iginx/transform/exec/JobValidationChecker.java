@@ -11,10 +11,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JobValidationChecker implements Checker {
+  private static final Logger LOGGER = LoggerFactory.getLogger(JobValidationChecker.class);
 
   private static JobValidationChecker instance;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(JobValidationChecker.class);
 
   private JobValidationChecker() {}
 

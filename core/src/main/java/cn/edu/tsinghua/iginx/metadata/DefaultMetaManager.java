@@ -358,7 +358,7 @@ public class DefaultMetaManager implements IMetaManager {
           try {
             storage.updateTimeseriesData(timeseriesData, getIginxId(), version);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
     int num = 0;
@@ -367,7 +367,7 @@ public class DefaultMetaManager implements IMetaManager {
       // 从元数据管理器取写入的最大时间戳
       maxActiveEndKey.set(storage.getMaxActiveEndKeyStatistics());
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
   }
 

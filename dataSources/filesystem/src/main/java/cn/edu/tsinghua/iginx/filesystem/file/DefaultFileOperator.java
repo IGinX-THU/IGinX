@@ -234,8 +234,7 @@ public class DefaultFileOperator implements IFileOperator {
       updateLastKey(file, records.get(end - 1).getKey());
       return null;
     } catch (IOException e) {
-      LOGGER.error(
-          "append records to iginx file {} failure: ", file.getAbsolutePath(), e);
+      LOGGER.error("append records to iginx file {} failure: ", file.getAbsolutePath(), e);
       return e;
     }
   }
@@ -265,8 +264,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return -1L;
     } catch (IOException e) {
-      LOGGER.error(
-          "get max key of iginx file {} failure: ", file.getAbsolutePath(), e);
+      LOGGER.error("get max key of iginx file {} failure: ", file.getAbsolutePath(), e);
       return -1L;
     }
   }
@@ -492,8 +490,7 @@ public class DefaultFileOperator implements IFileOperator {
         appendWriterMap.remove(file);
         writer.close();
       } catch (IOException e) {
-        LOGGER.error(
-            "close writer for file {} failure: ", file.getAbsolutePath(), e);
+        LOGGER.error("close writer for file {} failure: ", file.getAbsolutePath(), e);
         return e;
       }
     }

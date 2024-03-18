@@ -25,8 +25,12 @@ import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryAggregatorDiff extends QueryAggregator {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryAggregatorDiff.class);
 
   public QueryAggregatorDiff() {
     super(QueryAggregatorType.DIFF);
@@ -93,7 +97,7 @@ public class QueryAggregatorDiff extends QueryAggregator {
           throw new Exception("Unsupported data type");
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return queryResultDataset;
   }

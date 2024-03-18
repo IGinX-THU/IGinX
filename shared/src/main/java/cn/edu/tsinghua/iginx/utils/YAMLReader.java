@@ -57,7 +57,7 @@ public class YAMLReader {
       conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
       conf = normalize(conf);
     } catch (IOException e) {
-      LOGGER.error(String.format("Fail to find file, path=%s", filePath));
+      LOGGER.error("Fail to find file, path={}", filePath);
     } finally {
       try {
         in.close();

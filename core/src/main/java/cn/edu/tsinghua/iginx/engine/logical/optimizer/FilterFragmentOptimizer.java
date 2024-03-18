@@ -28,9 +28,9 @@ import org.slf4j.LoggerFactory;
 
 public class FilterFragmentOptimizer implements Optimizer {
 
-  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
-
   private static final Logger LOGGER = LoggerFactory.getLogger(FilterFragmentOptimizer.class);
+
+  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static FilterFragmentOptimizer instance;
 

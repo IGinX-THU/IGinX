@@ -4,10 +4,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Mutex {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Mutex.class);
 
   private boolean isLocked = false;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(Mutex.class);
 
   public synchronized void lock() {
     while (this.isLocked) {

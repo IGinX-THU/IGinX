@@ -855,7 +855,7 @@ public class IginxWorker implements IService.Iface {
     }
 
     if (!transformTaskMeta.getIpSet().contains(config.getIp())) {
-      LOGGER.error(String.format("Register task exists in node: %s", config.getIp()));
+      LOGGER.error("Register task exists in node: {}", config.getIp());
       return RpcUtils.FAILURE;
     }
 
@@ -869,16 +869,16 @@ public class IginxWorker implements IService.Iface {
 
     if (!file.exists()) {
       metaManager.dropTransformTask(name);
-      LOGGER.error(String.format("Register file not exist, path=%s", filePath));
+      LOGGER.error("Register file not exist, path={}", filePath);
       return RpcUtils.FAILURE;
     }
 
     if (file.delete()) {
       metaManager.dropTransformTask(name);
-      LOGGER.info(String.format("Register file has been dropped, path=%s", filePath));
+      LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
     } else {
-      LOGGER.error(String.format("Fail to delete register file, path=%s", filePath));
+      LOGGER.error("Fail to delete register file, path={}", filePath);
       return RpcUtils.FAILURE;
     }
   }
@@ -914,7 +914,7 @@ public class IginxWorker implements IService.Iface {
 
     for (DataType type : queryDataResp.getDataTypeList()) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
-        LOGGER.error(String.format("Unsupported data type: %s", type));
+        LOGGER.error("Unsupported data type: {}", type);
         return new CurveMatchResp(RpcUtils.FAILURE);
       }
     }

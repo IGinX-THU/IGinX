@@ -255,8 +255,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      LOGGER.error(
-          "encounter error when inserting column records to fileSystem: ", e);
+      LOGGER.error("encounter error when inserting column records to fileSystem: ", e);
       return e;
     }
   }

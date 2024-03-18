@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IPCWorker extends Thread {
+  private static final Logger LOGGER = LoggerFactory.getLogger(IPCWorker.class);
 
   private final long pid;
 
@@ -34,8 +35,6 @@ public class IPCWorker extends Thread {
   private final ServerSocket serverSocket;
 
   private final Writer writer;
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(IPCWorker.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -86,7 +85,7 @@ public class IPCWorker extends Thread {
       reader.close();
       socket.close();
     } catch (IOException | WriteBatchException e) {
-      LOGGER.error(String.format("Worker pid=%d fail to process socket.", pid));
+      LOGGER.error("Worker pid={} fail to process socket.", pid);
       throw new RuntimeException("Fail to process socket", e);
     }
   }

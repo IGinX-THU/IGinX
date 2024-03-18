@@ -56,7 +56,7 @@ public class DataSourceIT {
       storage.release();
     } catch (Exception e) {
       LOGGER.error("insert empty body fail, caused by: ", e);
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
   }

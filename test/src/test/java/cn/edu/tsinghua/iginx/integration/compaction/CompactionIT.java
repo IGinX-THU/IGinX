@@ -33,7 +33,7 @@ public class CompactionIT {
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\";");
       session.executeSql("SHOW CONFIG \"enableInstantCompaction\";").print(false, "");
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
   }
@@ -44,7 +44,7 @@ public class CompactionIT {
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\";");
       session.closeSession();
     } catch (SessionException | ExecutionException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
   }
@@ -126,7 +126,7 @@ public class CompactionIT {
     try {
       Thread.sleep(1000);
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
 
     selectSql1Output = session.executeSql(selectSql1).getResultInString(false, "");

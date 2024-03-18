@@ -27,7 +27,7 @@ public class TestEnvironmentController {
       fileWriter.flush(); // 刷新数据，不刷新写入不进去
       fileWriter.close(); // 关闭流
     } catch (Exception e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
   }
 

@@ -27,6 +27,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FragmentPruningByFilterRule extends Rule {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(FragmentPruningByFilterRule.class);
+
   private static final class InstanceHolder {
     static final FragmentPruningByFilterRule INSTANCE = new FragmentPruningByFilterRule();
   }
@@ -44,8 +47,6 @@ public class FragmentPruningByFilterRule extends Rule {
      */
     super("FragmentPruningByFilterRule", operand(Select.class, any()));
   }
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(FragmentPruningByFilterRule.class);
 
   private static final IMetaManager metaManager = MetaManagerWrapper.getInstance();
 

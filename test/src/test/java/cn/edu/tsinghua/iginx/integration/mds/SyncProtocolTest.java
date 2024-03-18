@@ -47,7 +47,7 @@ public abstract class SyncProtocolTest {
             try {
               protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
             } catch (Exception e) {
-              e.printStackTrace();
+              LOGGER.error("unexpected error: ", e);
               fail("unexpected vote failure");
             }
           }
@@ -83,7 +83,7 @@ public abstract class SyncProtocolTest {
                 try {
                   protocol.endProposal(voteKey, proposal);
                 } catch (Exception e) {
-                  e.printStackTrace();
+                  LOGGER.error("unexpected error: ", e);
                   fail("unexpected end proposal failure");
                 }
               }
@@ -133,7 +133,7 @@ public abstract class SyncProtocolTest {
                   try {
                     protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
                   } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error("unexpected error: ", e);
                     fail("unexpected vote failure");
                   }
                 }
@@ -175,7 +175,7 @@ public abstract class SyncProtocolTest {
                       protocol.endProposal(key, proposal);
                     }
                   } catch (Exception e) {
-                    e.printStackTrace();
+                    LOGGER.error("unexpected error: ", e);
                     fail();
                   } finally {
                     lock.unlock();
@@ -194,7 +194,7 @@ public abstract class SyncProtocolTest {
           latch.await();
           protocol.close();
         } catch (Exception e) {
-          e.printStackTrace();
+          LOGGER.error("unexpected error: ", e);
           fail("unexpected exception");
         }
       }
@@ -249,7 +249,7 @@ public abstract class SyncProtocolTest {
                     try {
                       protocol.voteFor(proposalKey, new SyncVote(id, voteContents.get(id)));
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail("unexpected vote failure");
                     }
                   }
@@ -291,7 +291,7 @@ public abstract class SyncProtocolTest {
                         protocol.endProposal(key, proposal);
                       }
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail();
                     } finally {
                       lock.unlock();
@@ -310,7 +310,7 @@ public abstract class SyncProtocolTest {
             latch.await();
             protocol.close();
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
             fail("unexpected exception");
           }
         }
@@ -376,7 +376,7 @@ public abstract class SyncProtocolTest {
                     try {
                       protocol.voteFor(proposalKey, new SyncVote(id, voteContent));
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail("unexpected vote failure");
                     }
                   }
@@ -426,7 +426,7 @@ public abstract class SyncProtocolTest {
                         protocol.endProposal(key, proposal);
                       }
                     } catch (Exception e) {
-                      e.printStackTrace();
+                      LOGGER.error("unexpected error: ", e);
                       fail();
                     } finally {
                       lock.unlock();
@@ -445,7 +445,7 @@ public abstract class SyncProtocolTest {
             latch.await();
             protocol.close();
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
             fail("unexpected exception");
           }
         }

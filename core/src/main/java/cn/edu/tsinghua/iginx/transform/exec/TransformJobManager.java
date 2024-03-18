@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TransformJobManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobManager.class);
 
   private final Map<Long, Job> jobMap;
 
@@ -32,8 +33,6 @@ public class TransformJobManager {
   private final Checker checker = JobValidationChecker.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobManager.class);
 
   private TransformJobManager() {
     this.jobMap = new ConcurrentHashMap<>();

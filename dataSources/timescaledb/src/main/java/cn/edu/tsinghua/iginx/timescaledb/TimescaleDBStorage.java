@@ -478,7 +478,7 @@ public class TimescaleDBStorage implements IStorage {
       }
       stmt.executeBatch();
     } catch (SQLException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return e;
     }
 

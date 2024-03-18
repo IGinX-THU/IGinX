@@ -371,8 +371,7 @@ public class FileSystemManager {
             });
       }
     } catch (IOException e) {
-      LOGGER.error(
-          "get associated files of {} failure: ", file.getAbsolutePath(), e);
+      LOGGER.error("get associated files of {} failure: ", file.getAbsolutePath(), e);
     }
     return associatedFiles;
   }

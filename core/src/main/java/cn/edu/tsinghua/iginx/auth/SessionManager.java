@@ -73,7 +73,7 @@ public class SessionManager {
   }
 
   public void closeSession(long sessionId) {
-    LOGGER.info(String.format("session id %s is removed.", sessionId));
+    LOGGER.info("session id {} is removed.", sessionId);
     sessionIds.remove(sessionId);
   }
 
