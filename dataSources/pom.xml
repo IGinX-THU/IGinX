@@ -38,6 +38,10 @@
         <module>redis</module>
     </modules>
 
+    <properties>
+        <maven.deploy.skip>true</maven.deploy.skip>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
