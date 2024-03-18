@@ -24,6 +24,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -2807,18 +2809,18 @@ public class SQLSessionIT {
 
     statement = "SELECT s1*s2, s1/s2, s1%s2 FROM us.d3;";
     expected =
-        "ResultSets:\n" +
-            "+---+-------------------+-------------------+-------------------+\n" +
-            "|key|us.d3.s1 × us.d3.s2|us.d3.s1 ÷ us.d3.s2|us.d3.s1 % us.d3.s2|\n" +
-            "+---+-------------------+-------------------+-------------------+\n" +
-            "|  1|                  6|0.16666666666666666|                  1|\n" +
-            "|  2|                 10|                0.4|                  2|\n" +
-            "|  3|                 12|               0.75|                  3|\n" +
-            "|  4|                 12| 1.3333333333333333|                  1|\n" +
-            "|  5|                 10|                2.5|                  1|\n" +
-            "|  6|                  6|                6.0|                  0|\n" +
-            "+---+-------------------+-------------------+-------------------+\n" +
-            "Total line number = 6\n";
+        "ResultSets:\n"
+            + "+---+-------------------+-------------------+-------------------+\n"
+            + "|key|us.d3.s1 × us.d3.s2|us.d3.s1 ÷ us.d3.s2|us.d3.s1 % us.d3.s2|\n"
+            + "+---+-------------------+-------------------+-------------------+\n"
+            + "|  1|                  6|0.16666666666666666|                  1|\n"
+            + "|  2|                 10|                0.4|                  2|\n"
+            + "|  3|                 12|               0.75|                  3|\n"
+            + "|  4|                 12| 1.3333333333333333|                  1|\n"
+            + "|  5|                 10|                2.5|                  1|\n"
+            + "|  6|                  6|                6.0|                  0|\n"
+            + "+---+-------------------+-------------------+-------------------+\n"
+            + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
 
     statement = "SELECT s1*s3, s1/s3, s1%s3 FROM us.d3;";
@@ -7118,7 +7120,8 @@ public class SQLSessionIT {
     String openRule = "SET RULES RowTransformConstantFoldingRule=on, FilterConstantFoldingRule=on;";
     String closeRule =
         "SET RULES RowTransformConstantFoldingRule=off, FilterConstantFoldingRule=off;";
-    executor.execute(closeRule);
+
+    executor.execute(openRule);
 
     // 先是正确性测试，测试常量折叠前后查询结果是否一致
     String statement = "SELECT %s FROM us.d1 LIMIT 1;";
@@ -7159,7 +7162,8 @@ public class SQLSessionIT {
     for (String expression : expressions) {
       openResults.add(executor.execute(String.format(statement, expression)));
     }
-    executor.execute(openRule);
+
+    executor.execute(closeRule);
     for (int i = 0; i < expressions.size(); i++) {
       String result = executor.execute(String.format(statement, expressions.get(i)));
       // 获取两者第二行第二列的数字
@@ -7205,6 +7209,10 @@ public class SQLSessionIT {
             "-0.50000 + 0.00093 × - us.d1.s1 × (86 + us.d1.s2 × (- us.d1.s1 - 1.30556 × us.d1.s2 + 1.30556 × (-490 + us.d1.s1 + us.d1.s2) ÷ us.d1.s1)) - 0.02500 × us.d1.s1 - 0.07500 × us.d1.s2",
             "- us.d1.s1 + us.d1.s2 × (-28 × us.d1.s1 - 14 × us.d1.s2 - 14 × (26.09091 + 0.09091 × - us.d1.s1 × (-91 + -2 × us.d1.s1 + 2 × us.d1.s2) - 1.09091 × us.d1.s1) ÷ us.d1.s2)",
             "8 + us.d1.s1 × (0.21111 - 0.00278 × (us.d1.s2 × (90 + us.d1.s1 × (0.02410 × - us.d1.s1 × us.d1.s2 + 0.02410 × us.d1.s1 - 0.02410 × us.d1.s2) + us.d1.s1) + us.d1.s2) ÷ us.d1.s1)");
+    // 把空格去掉
+    foldExpressions =
+        foldExpressions.stream().map(s -> s.replaceAll(" ", "")).collect(Collectors.toList());
+
     // 先测RowTransform的
     executor.execute(openRule);
     statement = "EXPLAIN SELECT %s FROM us.d1;";
@@ -7213,7 +7221,12 @@ public class SQLSessionIT {
       if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
         assertFalse(result.contains("Rename"));
       } else {
-        assertTrue(result.contains(foldExpressions.get(i)));
+        boolean isContain = result.replace(" ", "").contains(foldExpressions.get(i));
+        if(!isContain){
+          System.out.println(result);
+          System.out.println(foldExpressions.get(i));
+          fail();
+        }
       }
     }
 
