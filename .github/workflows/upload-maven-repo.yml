@@ -1,7 +1,9 @@
 name: Upload Maven Repository to GitHub Pages
+
 on:
     release:
         types: [published]
+
 jobs:
     upload-mvn-repo:
         runs-on: ubuntu-latest

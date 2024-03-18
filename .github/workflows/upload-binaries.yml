@@ -2,7 +2,7 @@ name: Upload Binaries to Github Release
 
 on:
     release:
-        types: [created]
+        types: [published]
 
 jobs:
     upload-binary:
