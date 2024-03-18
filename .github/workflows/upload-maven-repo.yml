@@ -1,9 +1,9 @@
-name: Deploy Maven Repository into GitHub Pages
+name: Upload Maven Repository to GitHub Pages
 on:
     release:
         types: [published]
 jobs:
-    deploy-mvn-repo:
+    upload-mvn-repo:
         runs-on: ubuntu-latest
         permissions:
             pull-requests: write
