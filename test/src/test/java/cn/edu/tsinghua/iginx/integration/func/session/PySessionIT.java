@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -133,9 +134,11 @@ public class PySessionIT {
       int exitCode = process.exitValue();
       if (exitCode != 0) {
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
+      throw new RuntimeException(e);
     }
     System.out.println("query");
     // TODO 检查Python脚本的输出是否符合预期
@@ -153,7 +156,7 @@ public class PySessionIT {
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
-      String pythonScriptPath = "../session_py/tests/downsample.py";
+      String pythonScriptPath = "../session_py/tests/downsampleQuery.py";
 
       // 创建ProcessBuilder以执行Python脚本
       ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
@@ -173,9 +176,11 @@ public class PySessionIT {
       int exitCode = process.exitValue();
       if (exitCode != 0) {
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
+      throw new RuntimeException(e);
     }
     System.out.println("downsample query");
     // 检查Python脚本的输出是否符合预期
@@ -213,9 +218,11 @@ public class PySessionIT {
       int exitCode = process.exitValue();
       if (exitCode != 0) {
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
+      throw new RuntimeException(e);
     }
     System.out.println("show columns query");
     // 检查Python脚本的输出是否符合预期
@@ -227,6 +234,175 @@ public class PySessionIT {
             "b'a.b.b'\t\tb'BINARY'\t\t",
             "b'a.c.c'\t\tb'BINARY'\t\t",
             "");
+    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testAggregateQuery() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/aggregateQuery.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("aggregate query");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected =
+            Arrays.asList(
+                    "COUNT(count(a.a.a))\tCOUNT(count(a.a.b))\tCOUNT(count(a.b.b))\tCOUNT(count(a.c.c))\t",
+                    "2\t2\t2\t2\t",
+                    "",
+                    "   COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))",
+                    "0                    2                    2                    2                    2");
+    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testLastQuery() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/lastQuery.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("last query");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected =
+            Arrays.asList(
+                    "Time\tpath\tvalue\t",
+                    "3\tb'a.a.a'\tb'Q'\t",
+                    "3\tb'a.a.b'\tb'W'\t",
+                    "");
+    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testDeleteColumn() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/deleteColumn.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("delete column query");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected =
+            Arrays.asList(
+                    "Time\ta.a.a\ta.a.b\ta.c.c\t",
+                    "0\tb'a'\tb'b'\tnull\t",
+                    "2\tnull\tnull\tb'c'\t",
+                    "3\tb'Q'\tb'W'\tb'R'\t",
+                    "");
+    assertEquals(result, expected);
+    // TODO 用java中的session检查数据是否被正确删除？
+  }
+
+  @Test
+  public void testDeleteAll() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/deleteAll.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("delete all");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected =
+            Arrays.asList(
+                    "Time\t",
+                    "");
     assertEquals(result, expected);
   }
 

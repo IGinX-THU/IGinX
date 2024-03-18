@@ -18,7 +18,7 @@
 
 # 无法单独执行，用来测试PySessionIT
 import sys
-sys.path.append('../')  # 将上一级目录添加到Python模块搜索路径中
+sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.session import Session
 
