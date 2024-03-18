@@ -25,7 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -7222,7 +7221,7 @@ public class SQLSessionIT {
         assertFalse(result.contains("Rename"));
       } else {
         boolean isContain = result.replace(" ", "").contains(foldExpressions.get(i));
-        if(!isContain){
+        if (!isContain) {
           System.out.println(result);
           System.out.println(foldExpressions.get(i));
           fail();
