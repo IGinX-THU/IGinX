@@ -9,7 +9,6 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -31,7 +30,7 @@ public class PySessionIT {
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
   private static boolean dummyNoData = true;
-  private String pythonCMD = "/opt/homebrew/anaconda3/envs/iginx/bin/python";
+  private String pythonCMD = "python3";
 
   // host info
   protected String defaultTestHost = "127.0.0.1";
@@ -271,12 +270,12 @@ public class PySessionIT {
     System.out.println("aggregate query");
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
-            Arrays.asList(
-                    "COUNT(count(a.a.a))\tCOUNT(count(a.a.b))\tCOUNT(count(a.b.b))\tCOUNT(count(a.c.c))\t",
-                    "2\t2\t2\t2\t",
-                    "",
-                    "   COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))",
-                    "0                    2                    2                    2                    2");
+        Arrays.asList(
+            "COUNT(count(a.a.a))\tCOUNT(count(a.a.b))\tCOUNT(count(a.b.b))\tCOUNT(count(a.c.c))\t",
+            "2\t2\t2\t2\t",
+            "",
+            "   COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))",
+            "0                    2                    2                    2                    2");
     assertEquals(result, expected);
   }
 
@@ -314,11 +313,7 @@ public class PySessionIT {
     System.out.println("last query");
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
-            Arrays.asList(
-                    "Time\tpath\tvalue\t",
-                    "3\tb'a.a.a'\tb'Q'\t",
-                    "3\tb'a.a.b'\tb'W'\t",
-                    "");
+        Arrays.asList("Time\tpath\tvalue\t", "3\tb'a.a.a'\tb'Q'\t", "3\tb'a.a.b'\tb'W'\t", "");
     assertEquals(result, expected);
   }
 
@@ -356,12 +351,12 @@ public class PySessionIT {
     System.out.println("delete column query");
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
-            Arrays.asList(
-                    "Time\ta.a.a\ta.a.b\ta.c.c\t",
-                    "0\tb'a'\tb'b'\tnull\t",
-                    "2\tnull\tnull\tb'c'\t",
-                    "3\tb'Q'\tb'W'\tb'R'\t",
-                    "");
+        Arrays.asList(
+            "Time\ta.a.a\ta.a.b\ta.c.c\t",
+            "0\tb'a'\tb'b'\tnull\t",
+            "2\tnull\tnull\tb'c'\t",
+            "3\tb'Q'\tb'W'\tb'R'\t",
+            "");
     assertEquals(result, expected);
     // TODO 用java中的session检查数据是否被正确删除？
   }
@@ -399,10 +394,7 @@ public class PySessionIT {
     }
     System.out.println("delete all");
     // 检查Python脚本的输出是否符合预期
-    List<String> expected =
-            Arrays.asList(
-                    "Time\t",
-                    "");
+    List<String> expected = Arrays.asList("Time\t", "");
     assertEquals(result, expected);
   }
 
