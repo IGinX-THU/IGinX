@@ -30,6 +30,7 @@ hs_err_pid*
 **/*.iml
 **/.idea/
 **/*.log
+**/*.log.gz
 **/*.ipr
 **/*.iws
 
