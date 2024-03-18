@@ -23,7 +23,6 @@
         <dependency>
             <groupId>com.influxdb</groupId>
             <artifactId>influxdb-client-java</artifactId>
-            <version>6.8.0</version>
         </dependency>
     </dependencies>
 

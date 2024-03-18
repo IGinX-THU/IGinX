@@ -22,7 +22,6 @@
         <dependency>
             <groupId>redis.clients</groupId>
             <artifactId>jedis</artifactId>
-            <version>4.3.2</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
