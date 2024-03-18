@@ -12,7 +12,6 @@
     <name>IGinX Shared</name>
 
     <properties>
-        <deploy.repo.dir>${project.basedir}/..</deploy.repo.dir>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>

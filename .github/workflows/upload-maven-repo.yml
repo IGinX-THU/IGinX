@@ -18,13 +18,15 @@ jobs:
             - name: checkout pages branch
               uses: actions/checkout@v4
               with:
+                  path: pages
                   ref: pages
                   fetch-depth: 0
             - name: deploy
-              run: mvn --batch-mode deploy
+              run: mvn --batch-mode -DskipTests=true -Ddeploy.repo.dir=pages deploy -P !format
             - name: Create Pull Request
               uses: peter-evans/create-pull-request@v6
               with:
+                  path: pages
                   add-paths: maven-repo maven-snapshot-repo
                   branch: release-bot/pages
                   commit-message: "chore(repo): update maven repository"
