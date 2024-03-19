@@ -132,6 +132,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
@@ -192,6 +195,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
@@ -237,6 +243,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
@@ -285,6 +294,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
@@ -328,6 +340,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
@@ -366,6 +381,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
@@ -410,6 +428,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
@@ -447,6 +468,9 @@ public class PySessionIT {
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
