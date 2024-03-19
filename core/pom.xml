@@ -165,7 +165,7 @@
             </snapshots>
             <id>IGinX-Pemja</id>
             <name>IGinX Pemja GitHub repository</name>
-            <url>https://iginx-thu.github.io/pemja/maven-repo</url>
+            <url>https://iginx-thu.github.io/pemjax/maven-repo</url>
         </repository>
         <!--   repository for moquette    -->
         <repository>
