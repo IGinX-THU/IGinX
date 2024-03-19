@@ -7216,10 +7216,11 @@ public class SQLSessionIT {
     for (String state : statements) {
       for (int i = 0; i < expressions.size(); i++) {
         String result = executor.execute(String.format(state, expressions.get(i)));
+        result = result.replace("脳", "×").replace("梅", "÷");
         if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
           assertFalse(result.contains("Rename"));
         } else {
-          boolean isContain = result.contains(foldExpressions.get(i).replace("�", "\u00D7"));
+          boolean isContain = result.contains(foldExpressions.get(i));
           if (!isContain) {
             System.out.println(result);
             System.out.println(foldExpressions.get(i));
