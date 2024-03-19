@@ -115,7 +115,7 @@ public class StringUtils {
   }
 
   private static String reformatColumnName(String name) {
-    if (!name.contains("*") && !name.contains("(") && !name.contains(")")) return name;
+    if (!name.contains("*")) return Pattern.quote(name);
     name = name.replaceAll("[.]", "[.]");
     name = name.replaceAll("[*]", ".*");
     name = name.replaceAll("[(]", "[(]");
