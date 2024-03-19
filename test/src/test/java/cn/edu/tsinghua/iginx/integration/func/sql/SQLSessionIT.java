@@ -2777,7 +2777,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------+------------+------------+\n"
-            + "|key|us.d3.s1 + 1|us.d3.s2 - 1|us.d3.s3 × 2|\n"
+            + "|key|us.d3.s1 + 1|us.d3.s2 - 1|us.d3.s3 * 2|\n"
             + "+---+------------+------------+------------+\n"
             + "|  1|           2|           5|         3.0|\n"
             + "|  2|           3|           4|         5.0|\n"
@@ -2809,7 +2809,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+-------------------+-------------------+-------------------+\n"
-            + "|key|us.d3.s1 × us.d3.s2|us.d3.s1 ÷ us.d3.s2|us.d3.s1 % us.d3.s2|\n"
+            + "|key|us.d3.s1 * us.d3.s2|us.d3.s1 / us.d3.s2|us.d3.s1 % us.d3.s2|\n"
             + "+---+-------------------+-------------------+-------------------+\n"
             + "|  1|                  6|0.16666666666666666|                  1|\n"
             + "|  2|                 10|                0.4|                  2|\n"
@@ -2825,7 +2825,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+-------------------+-------------------+-------------------+\n"
-            + "|key|us.d3.s1 × us.d3.s3|us.d3.s1 ÷ us.d3.s3|us.d3.s1 % us.d3.s3|\n"
+            + "|key|us.d3.s1 * us.d3.s3|us.d3.s1 / us.d3.s3|us.d3.s1 % us.d3.s3|\n"
             + "+---+-------------------+-------------------+-------------------+\n"
             + "|  1|                1.5| 0.6666666666666666|                1.0|\n"
             + "|  2|                5.0|                0.8|                2.0|\n"
@@ -2865,7 +2865,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+--------------------------------+\n"
-            + "|key|(us.d3.s1 + us.d3.s2) × us.d3.s3|\n"
+            + "|key|(us.d3.s1 + us.d3.s2) * us.d3.s3|\n"
             + "+---+--------------------------------+\n"
             + "|  1|                            10.5|\n"
             + "|  2|                            17.5|\n"
@@ -2881,7 +2881,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+---------------------------------------------+\n"
-            + "|key|(us.d3.s1 + us.d3.s3) × (us.d3.s2 - us.d3.s3)|\n"
+            + "|key|(us.d3.s1 + us.d3.s3) * (us.d3.s2 - us.d3.s3)|\n"
             + "+---+---------------------------------------------+\n"
             + "|  1|                                        11.25|\n"
             + "|  2|                                        11.25|\n"
@@ -2897,7 +2897,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+--------------------------------------------------------+\n"
-            + "|key|((us.d3.s1 + us.d3.s2) × us.d3.s3 + us.d3.s2) × us.d3.s3|\n"
+            + "|key|((us.d3.s1 + us.d3.s2) * us.d3.s3 + us.d3.s2) * us.d3.s3|\n"
             + "+---+--------------------------------------------------------+\n"
             + "|  1|                                                   24.75|\n"
             + "|  2|                                                   56.25|\n"
@@ -2913,7 +2913,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------------------------------------------+\n"
-            + "|key|(us.d3.s1 + 1) × (us.d3.s2 - 1) × (us.d3.s3 × 2)|\n"
+            + "|key|(us.d3.s1 + 1) * (us.d3.s2 - 1) * (us.d3.s3 * 2)|\n"
             + "+---+------------------------------------------------+\n"
             + "|  1|                                            30.0|\n"
             + "|  2|                                            60.0|\n"
@@ -2949,11 +2949,11 @@ public class SQLSessionIT {
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expected);
 
-    statement = "SELECT `(us.d3.s1 + us.d3.s2) × us.d3.s3` FROM (SELECT (s1+s2)*s3 FROM us.d3);";
+    statement = "SELECT `(us.d3.s1 + us.d3.s2) * us.d3.s3` FROM (SELECT (s1+s2)*s3 FROM us.d3);";
     expected =
         "ResultSets:\n"
             + "+---+--------------------------------+\n"
-            + "|key|(us.d3.s1 + us.d3.s2) × us.d3.s3|\n"
+            + "|key|(us.d3.s1 + us.d3.s2) * us.d3.s3|\n"
             + "+---+--------------------------------+\n"
             + "|  1|                            10.5|\n"
             + "|  2|                            17.5|\n"
@@ -2966,11 +2966,11 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT `(us.d3.s1 + us.d3.s2) × us.d3.s3` FROM (SELECT (s1+s2)*s3 FROM us.d3) WHERE `(us.d3.s1 + us.d3.s2) × us.d3.s3` < 30;";
+        "SELECT `(us.d3.s1 + us.d3.s2) * us.d3.s3` FROM (SELECT (s1+s2)*s3 FROM us.d3) WHERE `(us.d3.s1 + us.d3.s2) * us.d3.s3` < 30;";
     expected =
         "ResultSets:\n"
             + "+---+--------------------------------+\n"
-            + "|key|(us.d3.s1 + us.d3.s2) × us.d3.s3|\n"
+            + "|key|(us.d3.s1 + us.d3.s2) * us.d3.s3|\n"
             + "+---+--------------------------------+\n"
             + "|  1|                            10.5|\n"
             + "|  2|                            17.5|\n"
@@ -3802,7 +3802,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+--------+------------------------+\n"
-            + "|key|test.a.a|test.a.a × sum(test.b.a)|\n"
+            + "|key|test.a.a|test.a.a * sum(test.b.a)|\n"
             + "+---+--------+------------------------+\n"
             + "|  1|       3|                       0|\n"
             + "|  2|       1|                      10|\n"
@@ -3924,7 +3924,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------------------+\n"
-            + "|key|test.a.a ÷ avg(test.b.a)|\n"
+            + "|key|test.a.a / avg(test.b.a)|\n"
             + "+---+------------------------+\n"
             + "|  1|                     1.5|\n"
             + "|  2|                     0.5|\n"
@@ -3940,7 +3940,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------------------+\n"
-            + "|key|test.a.a ÷ avg(test.b.a)|\n"
+            + "|key|test.a.a / avg(test.b.a)|\n"
             + "+---+------------------------+\n"
             + "|  1|                     NaN|\n"
             + "|  2|                     0.4|\n"
@@ -3956,7 +3956,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------------------------+\n"
-            + "|key|test.a.a ÷ (1 + avg(test.b.a))|\n"
+            + "|key|test.a.a / (1 + avg(test.b.a))|\n"
             + "+---+------------------------------+\n"
             + "|  1|                           1.0|\n"
             + "|  2|            0.3333333333333333|\n"
@@ -3973,7 +3973,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------------------------+\n"
-            + "|key|test.a.a ÷ (1 + avg(test.b.a))|\n"
+            + "|key|test.a.a / (1 + avg(test.b.a))|\n"
             + "+---+------------------------------+\n"
             + "|  1|                           NaN|\n"
             + "|  2|            0.2857142857142857|\n"
@@ -3990,7 +3990,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+--------+-------+\n"
-            + "|key|test.a.a|a1 × a2|\n"
+            + "|key|test.a.a|a1 * a2|\n"
             + "+---+--------+-------+\n"
             + "|  1|       3|    6.0|\n"
             + "|  2|       1|    6.0|\n"
@@ -4526,7 +4526,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+--------+------------------------+\n"
-            + "|key|test.a.a|test.a.a × avg(test.b.a)|\n"
+            + "|key|test.a.a|test.a.a * avg(test.b.a)|\n"
             + "+---+--------+------------------------+\n"
             + "|  1|       3|                     6.0|\n"
             + "|  2|       1|                     2.0|\n"
@@ -4574,7 +4574,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+--------+------------------------+\n"
-            + "|key|test.a.a|test.a.a × avg(test.b.a)|\n"
+            + "|key|test.a.a|test.a.a * avg(test.b.a)|\n"
             + "+---+--------+------------------------+\n"
             + "|  1|       3|                     6.0|\n"
             + "|  2|       1|                     2.0|\n"
@@ -5444,7 +5444,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------------+\n"
-            + "|key|114514.1919810 × 2|\n"
+            + "|key|114514.1919810 * 2|\n"
             + "+---+------------------+\n"
             + "|  1|                 2|\n"
             + "|  2|                 4|\n"
@@ -5459,7 +5459,7 @@ public class SQLSessionIT {
     expected =
         "ResultSets:\n"
             + "+---+------------------+\n"
-            + "|key|2 × 114514.1919810|\n"
+            + "|key|2 * 114514.1919810|\n"
             + "+---+------------------+\n"
             + "|  1|                 2|\n"
             + "|  2|                 4|\n"
@@ -7177,36 +7177,36 @@ public class SQLSessionIT {
     // 下面EXPLAIN一下，测试Filter和RowTransform的常量折叠，还是用上面的语句
     List<String> foldExpressions =
         Arrays.asList(
-            "1720.53535 + 93.65612 × us.d1.s1 × us.d1.s2",
-            "80.96622 + 0.00055 × (1377 + -3870.56962 × us.d1.s1) ÷ us.d1.s2",
-            "9690.05714 × us.d1.s1 - 0.02857 × us.d1.s2",
-            "122.81667 × us.d1.s1 ÷ us.d1.s2",
-            "-18.32414 + 60 × us.d1.s1 ÷ us.d1.s2",
-            "-0.69880 + 0.01205 × us.d1.s1 + 1.12866 ÷ us.d1.s2",
-            "-0.09091 + 0.04545 × us.d1.s1 + 0.09091 × us.d1.s2",
-            "-80 + - us.d1.s2 + 29475.87500 × us.d1.s1",
-            "25.82979 + 0.72340 ÷ us.d1.s2 × (36 + (322245 ÷ us.d1.s1))",
-            "1536790 + - us.d1.s2 - 2958 × us.d1.s1",
-            "53 × us.d1.s1 + 1802 × us.d1.s2 + 161143",
-            "45.30508 + -81 × us.d1.s1 + 17.84746 × us.d1.s2",
-            "38 + us.d1.s2 × (-2 + 6.75000 × us.d1.s1)",
-            "-4777 + 54 × us.d1.s2 × (-1.36735 + 0.02041 × us.d1.s1)",
-            "-7379 + 1.21622 × (7539.48837 + 1.44186 × us.d1.s1) ÷ us.d1.s2",
-            "- (0.07143 × us.d1.s1 × (-45.81612 + 0.01177 × us.d1.s2))",
-            "-6160 + -0.89091 × us.d1.s1",
-            "((33.77176 + us.d1.s2) ÷ us.d1.s1)",
-            "us.d1.s2 × (33 + (9260.59084 ÷ us.d1.s1))",
-            "us.d1.s2 × (-195520 + 17014.40000 ÷ us.d1.s1)",
-            "(0.01581 + 0.00016 × us.d1.s1 + 0.00016 × us.d1.s2 × (us.d1.s1 + (us.d1.s1 + us.d1.s2 × (4092 + 62.63918 × us.d1.s2)) ÷ us.d1.s2)) ÷ us.d1.s1",
-            "us.d1.s1 + 60 × us.d1.s1 × (us.d1.s2 + 108) ÷ us.d1.s2 - 60 × us.d1.s2 + 91",
-            "(0.24390 + 0.02439 × - us.d1.s1 × (- us.d1.s2 + 200 × (-83 + -2 × us.d1.s2 - 108 × us.d1.s2 ÷ us.d1.s1)) - 0.01220 × us.d1.s1 + 0.01220 × us.d1.s2) ÷ us.d1.s2",
-            "21.39394 + 0.96970 × us.d1.s1 + 2.57576 × us.d1.s2 × (1352 + 52 × us.d1.s1 × (18 × us.d1.s1 × us.d1.s2 × (-54 + - us.d1.s2) + 18 × us.d1.s2) - 52 × us.d1.s1) + us.d1.s2",
+            "1720.53535 + 93.65612 * us.d1.s1 * us.d1.s2",
+            "80.96622 + 0.00055 * (1377 + -3870.56962 * us.d1.s1) / us.d1.s2",
+            "9690.05714 * us.d1.s1 - 0.02857 * us.d1.s2",
+            "122.81667 * us.d1.s1 / us.d1.s2",
+            "-18.32414 + 60 * us.d1.s1 / us.d1.s2",
+            "-0.69880 + 0.01205 * us.d1.s1 + 1.12866 / us.d1.s2",
+            "-0.09091 + 0.04545 * us.d1.s1 + 0.09091 * us.d1.s2",
+            "-80 + - us.d1.s2 + 29475.87500 * us.d1.s1",
+            "25.82979 + 0.72340 / us.d1.s2 * (36 + (322245 / us.d1.s1))",
+            "1536790 + - us.d1.s2 - 2958 * us.d1.s1",
+            "53 * us.d1.s1 + 1802 * us.d1.s2 + 161143",
+            "45.30508 + -81 * us.d1.s1 + 17.84746 * us.d1.s2",
+            "38 + us.d1.s2 * (-2 + 6.75000 * us.d1.s1)",
+            "-4777 + 54 * us.d1.s2 * (-1.36735 + 0.02041 * us.d1.s1)",
+            "-7379 + 1.21622 * (7539.48837 + 1.44186 * us.d1.s1) / us.d1.s2",
+            "- (0.07143 * us.d1.s1 * (-45.81612 + 0.01177 * us.d1.s2))",
+            "-6160 + -0.89091 * us.d1.s1",
+            "((33.77176 + us.d1.s2) / us.d1.s1)",
+            "us.d1.s2 * (33 + (9260.59084 / us.d1.s1))",
+            "us.d1.s2 * (-195520 + 17014.40000 / us.d1.s1)",
+            "(0.01581 + 0.00016 * us.d1.s1 + 0.00016 * us.d1.s2 * (us.d1.s1 + (us.d1.s1 + us.d1.s2 * (4092 + 62.63918 * us.d1.s2)) / us.d1.s2)) / us.d1.s1",
+            "us.d1.s1 + 60 * us.d1.s1 * (us.d1.s2 + 108) / us.d1.s2 - 60 * us.d1.s2 + 91",
+            "(0.24390 + 0.02439 * - us.d1.s1 * (- us.d1.s2 + 200 * (-83 + -2 * us.d1.s2 - 108 * us.d1.s2 / us.d1.s1)) - 0.01220 * us.d1.s1 + 0.01220 * us.d1.s2) / us.d1.s2",
+            "21.39394 + 0.96970 * us.d1.s1 + 2.57576 * us.d1.s2 * (1352 + 52 * us.d1.s1 * (18 * us.d1.s1 * us.d1.s2 * (-54 + - us.d1.s2) + 18 * us.d1.s2) - 52 * us.d1.s1) + us.d1.s2",
             "",
-            "- us.d1.s2 + (- us.d1.s1 + 57 × us.d1.s2 + 57 × (1.75556 + -1.00067 × us.d1.s1 - 0.02694 × us.d1.s2 - 0.02761 × us.d1.s2 × (-82 + (- us.d1.s1 + 2 × us.d1.s2) ÷ us.d1.s1) ÷ us.d1.s1) ÷ us.d1.s1) ÷ us.d1.s2",
+            "- us.d1.s2 + (- us.d1.s1 + 57 * us.d1.s2 + 57 * (1.75556 + -1.00067 * us.d1.s1 - 0.02694 * us.d1.s2 - 0.02761 * us.d1.s2 * (-82 + (- us.d1.s1 + 2 * us.d1.s2) / us.d1.s1) / us.d1.s1) / us.d1.s1) / us.d1.s2",
             "",
-            "-0.50000 + 0.00093 × - us.d1.s1 × (86 + us.d1.s2 × (- us.d1.s1 - 1.30556 × us.d1.s2 + 1.30556 × (-490 + us.d1.s1 + us.d1.s2) ÷ us.d1.s1)) - 0.02500 × us.d1.s1 - 0.07500 × us.d1.s2",
-            "- us.d1.s1 + us.d1.s2 × (-28 × us.d1.s1 - 14 × us.d1.s2 - 14 × (26.09091 + 0.09091 × - us.d1.s1 × (-91 + -2 × us.d1.s1 + 2 × us.d1.s2) - 1.09091 × us.d1.s1) ÷ us.d1.s2)",
-            "8 + us.d1.s1 × (0.21111 - 0.00278 × (us.d1.s2 × (90 + us.d1.s1 × (0.02410 × - us.d1.s1 × us.d1.s2 + 0.02410 × us.d1.s1 - 0.02410 × us.d1.s2) + us.d1.s1) + us.d1.s2) ÷ us.d1.s1)");
+            "-0.50000 + 0.00093 * - us.d1.s1 * (86 + us.d1.s2 * (- us.d1.s1 - 1.30556 * us.d1.s2 + 1.30556 * (-490 + us.d1.s1 + us.d1.s2) / us.d1.s1)) - 0.02500 * us.d1.s1 - 0.07500 * us.d1.s2",
+            "- us.d1.s1 + us.d1.s2 * (-28 * us.d1.s1 - 14 * us.d1.s2 - 14 * (26.09091 + 0.09091 * - us.d1.s1 * (-91 + -2 * us.d1.s1 + 2 * us.d1.s2) - 1.09091 * us.d1.s1) / us.d1.s2)",
+            "8 + us.d1.s1 * (0.21111 - 0.00278 * (us.d1.s2 * (90 + us.d1.s1 * (0.02410 * - us.d1.s1 * us.d1.s2 + 0.02410 * us.d1.s1 - 0.02410 * us.d1.s2) + us.d1.s1) + us.d1.s2) / us.d1.s1)");
 
     // 先测RowTransform的
     executor.execute(openRule);
@@ -7216,7 +7216,6 @@ public class SQLSessionIT {
     for (String state : statements) {
       for (int i = 0; i < expressions.size(); i++) {
         String result = executor.execute(String.format(state, expressions.get(i)));
-        result = result.replace("脳", "×").replace("梅", "÷");
         if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
           assertFalse(result.contains("Rename"));
         } else {

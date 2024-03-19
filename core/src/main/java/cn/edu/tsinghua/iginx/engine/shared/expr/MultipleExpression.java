@@ -54,7 +54,7 @@ public class MultipleExpression implements Expression {
   public String getColumnName() {
     StringBuilder sb = new StringBuilder();
     if (ops.get(0) == Operator.MINUS) {
-      sb.append("-");
+      sb.append(Operator.operatorToString(Operator.MINUS));
     }
     for (int i = 0; i < children.size(); i++) {
       sb.append(children.get(i).getColumnName());
