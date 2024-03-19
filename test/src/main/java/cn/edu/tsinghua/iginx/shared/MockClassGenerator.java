@@ -53,9 +53,9 @@ public class MockClassGenerator {
     List<Bitmap> bitmapList = new ArrayList<>();
     List<Long> keys = new ArrayList<>();
     long keyIndex = 0L;
-    for (int i = 0; i < valuesList.length; i++) {
-      Object[] values = (Object[]) valuesList[i];
-      keys.set(i, keyIndex++);
+    for (Object o : valuesList) {
+      Object[] values = (Object[]) o;
+      keys.add(keyIndex++);
       if (values.length != pathList.size()) {
         logger.error("The sizes of paths and the element of valuesList should be equal.");
         return null;
