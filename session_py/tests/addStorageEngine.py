@@ -18,35 +18,33 @@
 
 # 无法单独执行，用来测试PySessionIT
 import sys
-sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
+sys.path.append('../session_py')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.session import Session
-
+from iginx.thrift.rpc.ttypes import StorageEngineType
 
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
 
-    # 使用 SQL 语句查询时间序列
-    dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
-
-    columns = dataset.columns()
-    for column in columns:
-        print(column, end="\t")
-    print()
-
-    while dataset.has_more():
-        row = dataset.next()
-        for field in row:
-            print(str(field), end="\t\t")
-        print()
-    print()
-
-    dataset.close()
-
-    # 使用 list_time_series() 接口查询时间序列
-    timeSeries = session.list_time_series()
-    for ts in timeSeries:
-        print(ts)
+    session.add_storage_engine(
+        "127.0.0.1",
+        5432,
+        StorageEngineType.postgresql,
+        {
+            "username": "postgres",
+            "password": "postgres",
+            "has_data": "true",
+            "is_read_only": "true"
+        }
+    )
+    # 输出所有存储引擎
+    cluster_info = session.get_cluster_info()
+    print(cluster_info)
+    # 删除加入的存储引擎
+    session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 5432, "", "");')
+    # 删除后输出所有存储引擎
+    cluster_info = session.get_cluster_info()
+    print(cluster_info)
 
     session.close()
