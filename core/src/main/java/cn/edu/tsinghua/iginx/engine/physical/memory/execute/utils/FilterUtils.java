@@ -192,7 +192,7 @@ public class FilterUtils {
     return validateValueCompare(exprFilter.getOp(), valueA, valueB);
   }
 
-  private static boolean validateValueCompare(Op op, Value valueA, Value valueB)
+  public static boolean validateValueCompare(Op op, Value valueA, Value valueB)
       throws PhysicalException {
     if (valueA.getDataType() != valueB.getDataType()) {
       if (ValueUtils.isNumericType(valueA) && ValueUtils.isNumericType(valueB)) {

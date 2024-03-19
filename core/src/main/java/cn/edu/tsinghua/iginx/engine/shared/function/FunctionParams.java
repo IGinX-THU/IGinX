@@ -14,7 +14,7 @@ public class FunctionParams {
 
   private final Map<String, Object> kwargs;
 
-  private final Expression expr;
+  private Expression expr;
 
   private final boolean isDistinct;
 
@@ -62,6 +62,10 @@ public class FunctionParams {
 
   public Expression getExpr() {
     return expr;
+  }
+
+  public void setExpr(Expression expr) {
+    this.expr = expr;
   }
 
   public boolean isDistinct() {

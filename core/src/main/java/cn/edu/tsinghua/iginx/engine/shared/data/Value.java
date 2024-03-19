@@ -219,6 +219,10 @@ public class Value {
     }
   }
 
+  public String toString() {
+    return getAsString();
+  }
+
   public Value copy() {
     return new Value(this.getValue());
   }

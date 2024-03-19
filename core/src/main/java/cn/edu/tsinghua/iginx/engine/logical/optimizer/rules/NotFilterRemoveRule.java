@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.removeNot;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils.removeNot;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;

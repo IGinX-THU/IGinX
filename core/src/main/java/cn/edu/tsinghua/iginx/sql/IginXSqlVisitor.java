@@ -4,7 +4,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUs
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
@@ -386,7 +386,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     // parse where clause
     if (ctx.whereClause() != null) {
       FilterData filterData = parseOrExpression(ctx.whereClause().orExpression(), selectStatement);
-      Filter filter = ExprUtils.removeSingleFilter(filterData.getFilter());
+      Filter filter = LogicalFilterUtils.removeSingleFilter(filterData.getFilter());
       selectStatement.setFilter(filter);
       selectStatement.setHasValueFilter(true);
       filterData.getPathList().forEach(selectStatement::addWherePath);

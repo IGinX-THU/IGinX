@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils.getKeyRangesFromFilter;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
