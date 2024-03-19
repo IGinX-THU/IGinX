@@ -22,15 +22,20 @@ class ResultTable {
 
     private final Map<List<String>, ResultColumn.Builder> builders = new HashMap<>();
 
-    ResultTable build(String[] prefix, Map<String, DataType> types) {
+    ResultTable build(String[] prefix, Map<String, DataType> schema) {
       Map<String, ResultColumn> columns = new TreeMap<>();
       for (Map.Entry<List<String>, ResultColumn.Builder> columnBuilder : builders.entrySet()) {
         String path = String.join(".", columnBuilder.getKey());
         ResultColumn.Builder builder = columnBuilder.getValue();
-        DataType type = types.get(path);
-        if (type != null) {
+
+        if (schema != null) {
+          DataType type = schema.get(path);
+          if (type == null) {
+            continue;
+          }
           builder.setType(type);
         }
+
         if (prefix.length > 0) {
           path = String.join(".", prefix) + "." + path;
         }
@@ -76,7 +81,7 @@ class ResultTable {
 
         PathTree subTree = new PathTree();
         if (tree.getChildren().containsKey(null)) {
-          subTree.put(null, tree);
+          subTree.put(null, tree.getChildren().get(null));
           subTree.put(tree.getChildren().get(null));
         }
         if (tree.getChildren().containsKey(node)) {

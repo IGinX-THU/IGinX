@@ -36,6 +36,9 @@ class PathTree {
         }
       }
       if (children.containsKey(null)) {
+        if (this.match(nodes)) {
+          return true;
+        }
         if (children.get(null).match(nodes)) {
           return true;
         }

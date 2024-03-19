@@ -64,6 +64,9 @@ class ResultColumn {
     private ResultColumn buildByConvert() {
       BsonType bsonType = analysisType();
       DataType type = TypeUtils.convert(bsonType);
+      if (type == DataType.BINARY) {
+        return buildAsBinary();
+      }
       Map<Long, Object> data = new HashMap<>();
       for (SimpleImmutableEntry<Long, BsonValue> bsonValue : values) {
         BsonValue convertedBsonValue = TypeUtils.convertTo(bsonValue.getValue(), bsonType);

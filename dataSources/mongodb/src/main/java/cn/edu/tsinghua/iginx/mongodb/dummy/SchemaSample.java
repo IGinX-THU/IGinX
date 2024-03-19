@@ -30,24 +30,32 @@ import org.bson.conversions.Bson;
 public class SchemaSample {
 
   private final int sampleSize;
-  private final PathTree tree = new PathTree();
+  private final PathTree tree;
 
   public SchemaSample(int sampleSize) {
     this.sampleSize = sampleSize;
-    this.tree.put(Collections.singletonList("*").iterator());
+    PathTree tree = new PathTree();
+    tree.put(Collections.singletonList("*").iterator());
+    this.tree = tree;
+  }
+
+  public SchemaSample(int sampleSize, PathTree tree) {
+    this.sampleSize = sampleSize;
+    this.tree = tree;
   }
 
   public Map<String, DataType> query(MongoCollection<BsonDocument> collection, boolean hasPrefix) {
     AggregateIterable<BsonDocument> sampleResult =
         collection.aggregate(Collections.singletonList(getSampleStage()));
 
-    int count = 0;
+    long count = 0;
     ResultTable.Builder builder = new ResultTable.Builder();
 
     try (MongoCursor<BsonDocument> cursor = sampleResult.cursor()) {
       while (cursor.hasNext()) {
         BsonDocument doc = cursor.next();
-        builder.add(count++, doc, tree);
+        builder.add(count << 32, doc, tree);
+        count++;
       }
     }
 
@@ -62,7 +70,7 @@ public class SchemaSample {
       prefixes = new String[0];
     }
 
-    ResultTable sampleTable = builder.build(prefixes, Collections.emptyMap());
+    ResultTable sampleTable = builder.build(prefixes, null);
 
     Map<String, ResultColumn> columns = sampleTable.getColumns();
     Map<String, DataType> schema = new HashMap<>(columns.size());

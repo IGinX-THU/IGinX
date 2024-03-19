@@ -32,7 +32,7 @@ class FindRowStream implements RowStream {
     for (Map.Entry<String, DataType> entry : projectedSchema.entrySet()) {
       fields.add(new Field(prefix + "." + entry.getKey(), entry.getValue()));
     }
-    this.header = new Header(fields);
+    this.header = new Header(Field.KEY, fields);
   }
 
   @Override
@@ -45,7 +45,7 @@ class FindRowStream implements RowStream {
     cursor.close();
   }
 
-  private int nextRecordId = 0;
+  private long lastRecordId = 0;
   private Iterator<Row> nextRows = Collections.emptyIterator();
 
   @Override
@@ -69,8 +69,8 @@ class FindRowStream implements RowStream {
 
     ResultTable.Builder builder = new ResultTable.Builder();
     BsonDocument doc = cursor.next();
-    builder.add(nextRecordId, doc, tree);
-    nextRecordId++;
+    lastRecordId++;
+    builder.add(lastRecordId << 32, doc, tree);
 
     ResultTable table = builder.build(prefixes, projectedSchema);
     Map<String, ResultColumn> columns = table.getColumns();

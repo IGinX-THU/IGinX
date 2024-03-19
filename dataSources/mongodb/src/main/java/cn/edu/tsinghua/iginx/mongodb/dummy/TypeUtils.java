@@ -111,6 +111,9 @@ class TypeUtils {
   }
 
   public static byte[] convertToBinary(BsonValue value) {
+    if (value.getBsonType().equals(BsonType.STRING)) {
+      return value.asString().getValue().getBytes();
+    }
     BsonDocument doc = new BsonDocument(MAGIK_STR, value);
     return doc.toJson().getBytes();
   }

@@ -8,7 +8,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.client.*;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import org.bson.BsonDocument;
@@ -97,7 +96,7 @@ public class DummyQuery {
               this.collection.getNamespace().getDatabaseName(),
               this.collection.getNamespace().getCollectionName(),
             };
-        return builder.build(prefixes, Collections.emptyMap());
+        return builder.build(prefixes, null);
       }
     }
 
