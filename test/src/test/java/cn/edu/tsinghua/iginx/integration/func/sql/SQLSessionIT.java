@@ -7216,9 +7216,9 @@ public class SQLSessionIT {
     for (String state : statements) {
       for (int i = 0; i < expressions.size(); i++) {
         String result = executor.execute(String.format(state, expressions.get(i)));
-        result = result.replace("脳", "×").replace("梅", "÷");
+        result = result.replace("脳", "×").replace("梅", "÷").replace("�", "×");
         foldExpressions.set(i, foldExpressions.get(i).replace("脳", "×")
-                .replace("梅", "÷"));
+                .replace("梅", "÷").replace("�", "×"));
         if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
           assertFalse(result.contains("Rename"));
         } else {
