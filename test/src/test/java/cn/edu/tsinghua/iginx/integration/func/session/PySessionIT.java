@@ -14,6 +14,8 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -226,6 +228,9 @@ public class PySessionIT {
       logger.info("111");
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/showColumns.py";
+      // 确认文件存在
+      boolean fileExists = Files.exists(Paths.get(pythonScriptPath));
+      logger.info("file exists: " + fileExists);
       logger.info("222");
       // 创建ProcessBuilder以执行Python脚本
       ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
@@ -241,6 +246,7 @@ public class PySessionIT {
       String line;
       while ((line = reader.readLine()) != null) {
         System.out.println(line);
+        logger.info(line);
         result.add(line);
       }
       logger.info("777");
