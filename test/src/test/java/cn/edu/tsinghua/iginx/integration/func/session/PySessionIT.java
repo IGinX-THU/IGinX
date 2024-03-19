@@ -30,7 +30,7 @@ public class PySessionIT {
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
   private static boolean dummyNoData = true;
-  private String pythonCMD = "/opt/homebrew/anaconda3/envs/py310/bin/python";
+  private String pythonCMD = "python3";
 
   // host info
   protected String defaultTestHost = "127.0.0.1";
