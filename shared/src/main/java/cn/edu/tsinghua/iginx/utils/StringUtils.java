@@ -157,7 +157,6 @@ public class StringUtils {
   }
 
   public static boolean allPathMatched(List<String> paths) {
-    Pattern pattern = Pattern.compile("[*]+(.[*]+)*");
-    return paths.stream().anyMatch(s -> pattern.matcher(s).matches());
+    return paths.stream().anyMatch(s -> !s.isEmpty() && s.chars().allMatch(c -> c == '*'));
   }
 }
