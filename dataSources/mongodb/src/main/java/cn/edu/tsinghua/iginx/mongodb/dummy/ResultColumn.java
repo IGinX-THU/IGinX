@@ -32,17 +32,33 @@ class ResultColumn {
   public static class Builder {
 
     private final Collection<SimpleImmutableEntry<Long, BsonValue>> values = new ArrayList<>();
+    private DataType type;
 
     public void add(long key, BsonValue value) {
       values.add(new SimpleImmutableEntry<>(key, value));
     }
 
     ResultColumn build() {
+      if (type != null) {
+        if (type == DataType.BINARY) {
+          return buildAsBinary();
+        }
+        return buildByConvertToNotBinary(type);
+      }
       try {
         return buildByConvert();
       } catch (Exception e) {
         return buildAsBinary();
       }
+    }
+
+    private ResultColumn buildByConvertToNotBinary(DataType type) {
+      Map<Long, Object> data = new HashMap<>();
+      for (SimpleImmutableEntry<Long, BsonValue> bsonValue : values) {
+        Object value = TypeUtils.convertToNotBinaryWithIgnore(bsonValue.getValue(), type);
+        data.put(bsonValue.getKey(), value);
+      }
+      return new ResultColumn(type, data);
     }
 
     private ResultColumn buildByConvert() {
@@ -95,6 +111,10 @@ class ResultColumn {
         data.put(key, value);
       }
       return new ResultColumn(type, data);
+    }
+
+    public void setType(DataType type) {
+      this.type = type;
     }
   }
 }

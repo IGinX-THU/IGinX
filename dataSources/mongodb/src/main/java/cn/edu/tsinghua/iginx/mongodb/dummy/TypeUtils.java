@@ -247,4 +247,26 @@ class TypeUtils {
     }
     throw new IllegalArgumentException("can't convert " + number + " to " + type);
   }
+
+  public static Object convertToNotBinaryWithIgnore(BsonValue value, DataType type) {
+    if (type == DataType.BINARY || type == DataType.FLOAT) {
+      throw new IllegalArgumentException("can't convert " + value + " to " + type);
+    }
+    try {
+      switch (type) {
+        case BOOLEAN:
+          return convertTo(value, BsonType.BOOLEAN).asBoolean().getValue();
+        case INTEGER:
+          return convertTo(value, BsonType.INT32).asInt32().getValue();
+        case LONG:
+          return convertTo(value, BsonType.INT64).asInt64().getValue();
+        case DOUBLE:
+          return convertTo(value, BsonType.DOUBLE).asDouble().getValue();
+        default:
+          return null;
+      }
+    } catch (Exception e) {
+      return null;
+    }
+  }
 }

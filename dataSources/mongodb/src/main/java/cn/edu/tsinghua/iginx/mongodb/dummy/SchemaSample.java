@@ -21,21 +21,23 @@ import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Aggregates;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 
 public class SchemaSample {
 
-  private final int schemaSampleSize;
+  private final int sampleSize;
   private final PathTree tree = new PathTree();
 
-  public SchemaSample(int schemaSampleSize) {
-    this.schemaSampleSize = schemaSampleSize;
+  public SchemaSample(int sampleSize) {
+    this.sampleSize = sampleSize;
     this.tree.put(Collections.singletonList("*").iterator());
   }
 
-  public Map<String, DataType> query(MongoCollection<BsonDocument> collection) {
+  public Map<String, DataType> query(MongoCollection<BsonDocument> collection, boolean hasPrefix) {
     AggregateIterable<BsonDocument> sampleResult =
         collection.aggregate(Collections.singletonList(getSampleStage()));
 
@@ -49,13 +51,18 @@ public class SchemaSample {
       }
     }
 
-    String[] prefixes =
-        new String[] {
-          collection.getNamespace().getDatabaseName(),
-          collection.getNamespace().getCollectionName(),
-        };
+    String[] prefixes;
+    if (hasPrefix) {
+      prefixes =
+          new String[] {
+            collection.getNamespace().getDatabaseName(),
+            collection.getNamespace().getCollectionName(),
+          };
+    } else {
+      prefixes = new String[0];
+    }
 
-    ResultTable sampleTable = builder.build(prefixes);
+    ResultTable sampleTable = builder.build(prefixes, Collections.emptyMap());
 
     Map<String, ResultColumn> columns = sampleTable.getColumns();
     Map<String, DataType> schema = new HashMap<>(columns.size());
@@ -71,6 +78,6 @@ public class SchemaSample {
   }
 
   private Bson getSampleStage() {
-    return Aggregates.sample(this.schemaSampleSize);
+    return Aggregates.sample(this.sampleSize);
   }
 }

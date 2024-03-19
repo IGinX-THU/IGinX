@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
@@ -21,15 +22,19 @@ class ResultTable {
 
     private final Map<List<String>, ResultColumn.Builder> builders = new HashMap<>();
 
-    ResultTable build(String[] prefix) {
+    ResultTable build(String[] prefix, Map<String, DataType> types) {
       Map<String, ResultColumn> columns = new TreeMap<>();
       for (Map.Entry<List<String>, ResultColumn.Builder> columnBuilder : builders.entrySet()) {
         String path = String.join(".", columnBuilder.getKey());
+        ResultColumn.Builder builder = columnBuilder.getValue();
+        DataType type = types.get(path);
+        if (type != null) {
+          builder.setType(type);
+        }
         if (prefix.length > 0) {
           path = String.join(".", prefix) + "." + path;
         }
-        ResultColumn column = columnBuilder.getValue().build();
-        columns.put(path, column);
+        columns.put(path, builder.build());
       }
       return new ResultTable(columns);
     }
