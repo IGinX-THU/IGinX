@@ -223,23 +223,27 @@ public class PySessionIT {
   public void testShowColumnsQuery() {
     List<String> result = new ArrayList<>();
     try {
+      logger.info("111");
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/showColumns.py";
-
+      logger.info("222");
       // 创建ProcessBuilder以执行Python脚本
       ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
+      logger.info("333");
       // 启动进程并等待其终止
       Process process = pb.start();
+      logger.info("444");
       process.waitFor();
-
+      logger.info("555");
       // 读取Python脚本的输出
       BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      logger.info("666");
       String line;
       while ((line = reader.readLine()) != null) {
         System.out.println(line);
         result.add(line);
       }
+      logger.info("777");
       // 检查Python脚本是否正常终止
       int exitCode = process.exitValue();
       if (exitCode != 0) {
