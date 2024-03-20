@@ -17,11 +17,18 @@
 #
 
 # 无法单独执行，用来测试PySessionIT
-import sys
-sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
+try:
+    import sys
+    sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
+except ImportError:
+    print("cannot import sys")
+    exit(1)
 
-from iginx.session import Session
-
+try:
+    from iginx.session import Session
+except ImportError:
+    print("Please use `pip install -e .` to install this package.")
+    exit(1)
 
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
