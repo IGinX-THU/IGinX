@@ -67,7 +67,7 @@ public class ReorderLazyStream extends UnaryLazyStream {
 //        }
 //      }
 //      this.header = new Header(header.getKey(), targetFields);
-      return header.reorderedHeader(reorder.getPatterns(), reorder.getIsPyUDF());
+      this.header = header.reorderedHeader(reorder.getPatterns(), reorder.getIsPyUDF());
     }
     return this.header;
   }
