@@ -167,9 +167,7 @@ public class PySessionIT {
             "2\t\tNone\t\tNone\t\tNone\t\tb'c'\t\t",
             "3\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
             "",
-            "replica\t",
-            "1\t\t",
-            "");
+            "replicaNum: 1");
     assertEquals(result, expected);
   }
 
@@ -506,6 +504,181 @@ public class PySessionIT {
             .replaceAll(
                 "StorageEngineInfo\\(id=[1-9][0-9]*, ip='127.0.0.1', port=5432",
                 "StorageEngineInfo(id=1, ip='127.0.0.1', port=5432"));
+    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testInsert() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/insert.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("insert");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected =
+            Arrays.asList(
+                    "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
+                    "0\tb'a'\tb'b'\tnull\tnull\t",
+                    "1\tnull\tnull\tb'b'\tnull\t",
+                    "2\tnull\tnull\tnull\tb'c'\t",
+                    "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+                    "5\tnull\tnull\tb'a'\tb'b'\t",
+                    "6\tb'b'\tnull\tnull\tnull\t",
+                    "7\tb'R'\tb'E'\tb'W'\tb'Q'\t",
+                    "",
+                    "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
+                    "0\tb'a'\tb'b'\tnull\tnull\t",
+                    "1\tnull\tnull\tb'b'\tnull\t",
+                    "2\tnull\tnull\tnull\tb'c'\t",
+                    "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+                    "5\tnull\tnull\tb'a'\tb'b'\t",
+                    "6\tb'b'\tnull\tnull\tnull\t",
+                    "7\tb'R'\tb'E'\tb'W'\tb'Q'\t",
+                    "8\tnull\tnull\tb'b'\tnull\t",
+                    "9\tb'b'\tnull\tnull\tnull\t",
+                    "",
+                    "Time\ta.a.a\ta.a.b\ta.b.b\ta.b.c\ta.c.c\t",
+                    "0\tb'a'\tb'b'\tnull\tnull\tnull\t",
+                    "1\tnull\tnull\tb'b'\tnull\tnull\t",
+                    "2\tnull\tnull\tnull\tnull\tb'c'\t",
+                    "3\tb'Q'\tb'W'\tb'E'\tnull\tb'R'\t",
+                    "5\tnull\tnull\tb'a'\tnull\tb'b'\t",
+                    "6\tb'b'\tnull\tnull\t1\tnull\t",
+                    "7\tb'R'\tb'E'\tb'W'\tnull\tb'Q'\t",
+                    "8\tnull\tnull\tb'b'\tnull\tnull\t",
+                    "9\tb'b'\tnull\tnull\tnull\tnull\t",
+                    "",
+                    "Time\ta.a.a\ta.a.b\ta.b.b\ta.b.c\ta.c.c\t",
+                    "0\tb'a'\tb'b'\tnull\tnull\tnull\t",
+                    "1\tnull\tnull\tb'b'\tnull\tnull\t",
+                    "2\tnull\tnull\tnull\tnull\tb'c'\t",
+                    "3\tb'Q'\tb'W'\tb'E'\tnull\tb'R'\t",
+                    "5\tnull\tnull\tb'a'\t1\tb'b'\t",
+                    "6\tb'b'\tnull\tnull\t1\tnull\t",
+                    "7\tb'R'\tb'E'\tb'W'\tnull\tb'Q'\t",
+                    "8\tnull\tnull\tb'b'\tnull\tnull\t",
+                    "9\tb'b'\tnull\tnull\tnull\tnull\t",
+                    ""
+                    );
+    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testDeleteRows() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/deleteRow.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("delete row");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected =
+            Arrays.asList(
+                    "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
+                    "0\tb'a'\tb'b'\tnull\tnull\t",
+                    "2\tnull\tnull\tnull\tb'c'\t",
+                    "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+                    "",
+                    "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
+                    "0\tb'a'\tb'b'\tnull\tnull\t",
+                    "2\tnull\tnull\tnull\tb'c'\t",
+                    "3\tnull\tnull\tb'E'\tb'R'\t",
+                    "");
+    assertEquals(result, expected);
+  }
+
+  @Test
+  public void testDebugInfo() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/getDebugInfo.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("get debug info");
+    // 检查Python脚本的输出是否符合预期
+    List<String> expected = Arrays.asList("{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"a.a.a\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"a.c.c\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.a.a\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.c.c\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":3,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}\n");
     assertEquals(result, expected);
   }
 

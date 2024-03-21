@@ -281,7 +281,7 @@ class Session(object):
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
         req = InsertNonAlignedRowRecordsReq(sessionId=self.__session_id, paths=paths,
-                                            timestamps=timestamps_to_bytes(timestamps), valuesList=values_buffer_list,
+                                            keys=timestamps_to_bytes(timestamps), valuesList=values_buffer_list,
                                             bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list,
                                             tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertNonAlignedRowRecords(req)
@@ -336,7 +336,7 @@ class Session(object):
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
         req = InsertColumnRecordsReq(sessionId=self.__session_id, paths=paths,
-                                     timestamps=timestamps_to_bytes(timestamps),
+                                     keys=timestamps_to_bytes(timestamps),
                                      valuesList=values_buffer_list,
                                      bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list,
                                      tagsList=sorted_tags_list, timePrecision=timePrecision)
@@ -393,7 +393,7 @@ class Session(object):
             bitmap_buffer_list.append(bitmap_to_bytes(bitmap.get_bytes()))
 
         req = InsertNonAlignedColumnRecordsReq(sessionId=self.__session_id, paths=paths,
-                                               timestamps=timestamps_to_bytes(timestamps),
+                                               keys=timestamps_to_bytes(timestamps),
                                                valuesList=values_buffer_list,
                                                bitmapList=bitmap_buffer_list, dataTypeList=sorted_data_type_list,
                                                tagsList=sorted_tags_list, timePrecision=timePrecision)
@@ -447,7 +447,7 @@ class Session(object):
         self.batch_delete_data([path], start_time, end_time, timePrecision)
 
     def batch_delete_data(self, paths, start_time, end_time, timePrecision=None):
-        req = DeleteDataInColumnsReq(sessionId=self.__session_id, paths=paths, startTime=start_time, endTime=end_time,
+        req = DeleteDataInColumnsReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time,
                                      timePrecision=timePrecision)
         status = self.__client.deleteDataInColumns(req)
         Session.verify_status(status)

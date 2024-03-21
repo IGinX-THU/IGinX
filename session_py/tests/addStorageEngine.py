@@ -18,10 +18,10 @@
 
 # 无法单独执行，用来测试PySessionIT
 import sys
-sys.path.append('../session_py')  # 将上一级目录添加到Python模块搜索路径中
+sys.path.append('..')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.session import Session
-from iginx.thrift.rpc.ttypes import StorageEngineType
+from iginx.thrift.rpc.ttypes import StorageEngineType, StorageEngine
 
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
@@ -43,6 +43,37 @@ if __name__ == '__main__':
     print(cluster_info)
     # 删除加入的存储引擎
     session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 5432, "", "");')
+    # 删除后输出所有存储引擎
+    cluster_info = session.get_cluster_info()
+    print(cluster_info)
+    # 批量加入存储引擎
+    pg_engine = StorageEngine(
+        "127.0.0.1",
+        5432,
+        StorageEngineType.postgresql,
+        {
+            "username": "postgres",
+            "password": "postgres",
+            "has_data": "true",
+            "is_read_only": "true"
+        }
+    )
+    mongo_engine = StorageEngine(
+        "127.0.0.1",
+        27017,
+        StorageEngineType.mongodb,
+        {
+            "has_data": "true",
+            "is_read_only": "true"
+        }
+    )
+    session.batch_add_storage_engine([pg_engine, mongo_engine])
+    # 输出所有存储引擎
+    cluster_info = session.get_cluster_info()
+    print(cluster_info)
+    # 删除加入的存储引擎
+    session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 5432, "", "");')
+    session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 27017, "", "");')
     # 删除后输出所有存储引擎
     cluster_info = session.get_cluster_info()
     print(cluster_info)
