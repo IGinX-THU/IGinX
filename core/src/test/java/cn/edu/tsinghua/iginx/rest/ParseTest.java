@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ParseTest {
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParseTest.class);
   // 测试数据更直观见注释
   /*
   测试的query-json
@@ -123,7 +124,7 @@ public class ParseTest {
           + "          }\n"
           + "      }\n"
           + "]";
-  private static final Logger LOGGER = LoggerFactory.getLogger(MetricsResource.class);
+
   private final ObjectMapper mapper = new ObjectMapper();
   private List<Metric> metricList = new ArrayList<>();
 

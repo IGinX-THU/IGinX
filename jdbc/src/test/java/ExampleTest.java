@@ -5,7 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ExampleTest {
-  private static final Logger LOGGER = LoggerFactory.getLogger(ExampleTest.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExampleTest.class);
 
   private static final long START_TIMESTAMP = 0L;
   private static final long END_TIMESTAMP = 100L;

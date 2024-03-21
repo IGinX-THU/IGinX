@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 
 public class YamlReadTest {
 
-  final String filePath = "../example/src/main/resources/TransformJobExample.yaml";
+  private static final Logger LOGGER = LoggerFactory.getLogger(YamlReadTest.class);
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(YAMLReader.class);
+  final String filePath = "../example/src/main/resources/TransformJobExample.yaml";
 
   private static final String[] taskTypeArr = {"iginx", "python", "python", "python"};
 
