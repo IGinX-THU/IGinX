@@ -65,9 +65,7 @@ public class MemoryPhysicalTaskDispatcher {
             while (true) {
               final MemoryPhysicalTask task = taskQueue.getTask();
               if (isCancelled(task.getSessionId())) {
-                LOGGER.warn(
-                    String.format(
-                        "MemoryPhysicalTask[sessionId=%s] is cancelled.", task.getSessionId()));
+                LOGGER.warn("MemoryPhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
                 continue;
               }
               taskExecuteThreadPool.submit(

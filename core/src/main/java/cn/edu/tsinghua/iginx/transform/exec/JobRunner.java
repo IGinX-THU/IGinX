@@ -74,8 +74,7 @@ public class JobRunner implements Runner {
         runner.close();
       }
     } catch (TransformException e) {
-      LOGGER.error(
-          String.format("Fail to close Transform job runner id=%d, because", job.getJobId()), e);
+      LOGGER.error("Fail to close Transform job runner id={}, because", job.getJobId(), e);
     }
   }
 }

@@ -128,9 +128,7 @@ public class StoragePhysicalTaskExecutor {
                       }
                       if (isCancelled(task.getSessionId())) {
                         LOGGER.warn(
-                            String.format(
-                                "StoragePhysicalTask[sessionId=%s] is cancelled.",
-                                task.getSessionId()));
+                            "StoragePhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
                         continue;
                       }
                       pair.v.submit(

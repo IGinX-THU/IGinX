@@ -89,8 +89,7 @@ public class TransformJobManager {
       runner.run();
       jobRunnerMap.remove(job.getJobId()); // since we will retry, we can't do this in finally
     } catch (Exception e) {
-      LOGGER.error(
-          String.format("Fail to process transform job id=%d, because", job.getJobId()), e);
+      LOGGER.error("Fail to process transform job id={}, because", job.getJobId(), e);
       throw e;
     } finally {
       // TODO: is it legal to retry after runner.close()???
@@ -101,9 +100,7 @@ public class TransformJobManager {
     }
     // TODO: should we set end time and log time cost for failed jobs?
     job.setEndTime(System.currentTimeMillis());
-    LOGGER.info(
-        String.format(
-            "Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
   }
 
   public boolean cancel(long jobId) {
@@ -144,9 +141,7 @@ public class TransformJobManager {
     job.setState(JobState.JOB_CLOSED);
     jobRunnerMap.remove(jobId);
     job.setEndTime(System.currentTimeMillis());
-    LOGGER.info(
-        String.format(
-            "Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
     return true;
   }
 
