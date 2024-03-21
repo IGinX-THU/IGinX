@@ -62,19 +62,9 @@ if __name__ == '__main__':
     dataset.close()
 
     # 使用 SQL 语句查询副本数量
-    dataset = session.execute_statement("show replica number;", fetch_size=2)
+    replicaNum = session.get_replica_num()
 
-    columns = dataset.columns()
-    for column in columns:
-        print(column, end="\t")
-    print()
-
-    while dataset.has_more():
-        row = dataset.next()
-        for field in row:
-            print(str(field), end="\t\t")
-        print()
-    print()
+    print('replicaNum:', replicaNum)
 
     dataset.close()
 
