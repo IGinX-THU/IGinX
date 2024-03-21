@@ -53,7 +53,7 @@ public class Constant {
 
   public static final String TIMESERIES_NODE_PREFIX = "/timeseries";
 
-  public static final String TRANSFORM_NODE_PREFIX = "/transform/";
+  public static final String TRANSFORM_NODE_PREFIX = "/transform";
 
   public static final String TRANSFORM_LOCK_NODE = "/lock/transform";
 
