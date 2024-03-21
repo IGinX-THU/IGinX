@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
-import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
+import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 
 public enum Op {
   // or op (default): [0, 9]

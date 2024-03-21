@@ -16,21 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.utils;
 
-public class SessionException extends IginxException {
+import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.exception.StatusCode;
+import cn.edu.tsinghua.iginx.thrift.Status;
 
-  private static final long serialVersionUID = -2811585771984779297L;
+public class StatusUtils {
 
-  public SessionException(String message) {
-    super(message, StatusCode.SESSION_ERROR.getStatusCode());
+  public static void verifySuccess(Status status) throws SessionException {
+    if (status.code != StatusCode.SUCCESS_STATUS.getStatusCode()
+        && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
+      throw new SessionException(status);
+    }
   }
 
-  public SessionException(Throwable cause) {
-    super(cause, StatusCode.SESSION_ERROR.getStatusCode());
-  }
-
-  public SessionException(String message, Throwable cause) {
-    super(message, cause, StatusCode.SESSION_ERROR.getStatusCode());
+  public static boolean verifyNoRedirect(Status status) {
+    return status.code != StatusCode.REDIRECT.getStatusCode();
   }
 }
