@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -20,7 +19,7 @@ public class TagKVSessionExample {
 
   private static Session session;
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -35,7 +34,7 @@ public class TagKVSessionExample {
     session.closeSession();
   }
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+  private static void insertColumnRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -80,7 +79,7 @@ public class TagKVSessionExample {
     session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
   }
 
-  private static void queryData() throws ExecutionException, SessionException {
+  private static void queryData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
