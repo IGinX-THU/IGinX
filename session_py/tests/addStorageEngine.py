@@ -18,10 +18,10 @@
 
 # 无法单独执行，用来测试PySessionIT
 import sys
-sys.path.append('..')  # 将上一级目录添加到Python模块搜索路径中
+sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
-from iginx.session import Session
-from iginx.thrift.rpc.ttypes import StorageEngineType, StorageEngine
+from iginx.iginx_pyclient.session import Session
+from iginx.iginx_pyclient.thrift.rpc.ttypes import StorageEngineType, StorageEngine
 
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")

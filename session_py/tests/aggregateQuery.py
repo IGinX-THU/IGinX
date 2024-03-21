@@ -20,8 +20,8 @@
 import sys
 sys.path.append('../session_py')  # 将上一级目录添加到Python模块搜索路径中
 
-from iginx.session import Session
-from iginx.thrift.rpc.ttypes import AggregateType
+from iginx.iginx_pyclient.session import Session
+from iginx.iginx_pyclient.thrift.rpc.ttypes import AggregateType
 import pandas as pd
 
 if __name__ == '__main__':

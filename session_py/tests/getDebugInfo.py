@@ -20,8 +20,8 @@
 import sys
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
-from iginx.session import Session
-from iginx.thrift.rpc.ttypes import DebugInfoType
+from iginx.iginx_pyclient.session import Session
+from iginx.iginx_pyclient.thrift.rpc.ttypes import DebugInfoType
 
 
 if __name__ == '__main__':

@@ -495,15 +495,26 @@ public class PySessionIT {
             "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
             "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
             "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null')]",
+            "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
+            "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
+            "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null'), StorageEngineInfo(id=1, ip='127.0.0.1', port=5432, type=3, schemaPrefix='null', dataPrefix='null'), StorageEngineInfo(id=3, ip='127.0.0.1', port=27017, type=4, schemaPrefix='null', dataPrefix='null')]",
+            "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
+            "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
+            "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null')]",
             "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]");
     // 通过正则匹配将加入的storage engine的id替换为1
-    result.set(
-        1,
-        result
-            .get(1)
-            .replaceAll(
-                "StorageEngineInfo\\(id=[1-9][0-9]*, ip='127.0.0.1', port=5432",
-                "StorageEngineInfo(id=1, ip='127.0.0.1', port=5432"));
+    for (int i = 0; i < result.size(); i++) {
+      String replacedString =
+          result
+              .get(i)
+              .replaceAll(
+                  "StorageEngineInfo\\(id=[1-9][0-9]*, ip='127.0.0.1', port=5432",
+                  "StorageEngineInfo(id=1, ip='127.0.0.1', port=5432")
+              .replaceAll(
+                  "StorageEngineInfo\\(id=[1-9][0-9]*, ip='127.0.0.1', port=27017",
+                  "StorageEngineInfo(id=3, ip='127.0.0.1', port=27017");
+      result.set(i, replacedString);
+    }
     assertEquals(result, expected);
   }
 
@@ -679,7 +690,7 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList(
-            "{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"a.a.a\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"a.c.c\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.a.a\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.c.c\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":3,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}\n");
+            "{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"a.a.a\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"a.c.c\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.a.a\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.c.c\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":3,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}");
     assertEquals(result, expected);
   }
 
