@@ -18,12 +18,13 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 
 public class ColumnPruningRule extends Rule {
 
-  private static final Logger LOGGER = Logger.getLogger(ColumnPruningRule.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(ColumnPruningRule.class);
 
   private static final class InstanceHolder {
     static final ColumnPruningRule INSTANCE = new ColumnPruningRule();
