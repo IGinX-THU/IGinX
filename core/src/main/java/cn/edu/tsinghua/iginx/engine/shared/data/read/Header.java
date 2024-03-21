@@ -127,12 +127,13 @@ public final class Header {
   }
 
   public Header renamedHeader(Map<String, String> aliasMap, List<String> ignorePatterns) {
+    List<Field> newFields = new ArrayList<>();
     fields.forEach(
         field -> {
           // 如果列名在ignorePatterns中，对该列不执行rename
           for (String ignorePattern : ignorePatterns) {
             if (StringUtils.match(field.getName(), ignorePattern)) {
-              fields.add(field);
+              newFields.add(field);
               return;
             }
           }
@@ -166,12 +167,12 @@ public final class Header {
             }
           }
           if (alias.isEmpty()) {
-            fields.add(field);
+            newFields.add(field);
           } else {
-            fields.add(new Field(alias, field.getType(), field.getTags()));
+            newFields.add(new Field(alias, field.getType(), field.getTags()));
           }
         });
-    return new Header(getKey(), fields);
+    return new Header(getKey(), newFields);
   }
 
   public static class ReorderedHeaderWrapped {
