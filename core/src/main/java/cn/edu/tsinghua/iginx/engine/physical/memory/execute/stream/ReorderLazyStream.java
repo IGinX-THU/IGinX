@@ -34,7 +34,7 @@ public class ReorderLazyStream extends UnaryLazyStream {
     if (this.header == null) {
       Header header = stream.getHeader();
 //      List<Field> targetFields = new ArrayList<>();
-//      this.reorderMap = new HashMap<>();
+      this.reorderMap = new HashMap<>();
 //
 //      for (int index = 0; index < reorder.getPatterns().size(); index++) {
 //        String pattern = reorder.getPatterns().get(index);
@@ -67,7 +67,9 @@ public class ReorderLazyStream extends UnaryLazyStream {
 //        }
 //      }
 //      this.header = new Header(header.getKey(), targetFields);
-      this.header = header.reorderedHeader(reorder.getPatterns(), reorder.getIsPyUDF());
+      Header.ReorderedHeaderWrapped res = header.reorderedHeaderWrapped(reorder.getPatterns(), reorder.getIsPyUDF());
+      this.header = res.getHeader();
+      this.reorderMap = res.getReorderMap();
     }
     return this.header;
   }
