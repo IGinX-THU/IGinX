@@ -1,13 +1,16 @@
 package cn.edu.tsinghua.iginx.integration.controller;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
+import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator.IT_DATA_DIR;
+import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator.IT_DATA_FILENAME;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -45,10 +48,18 @@ public class Controller {
 
   private static final String ADD_STORAGE_ENGINE_PARQUET =
       "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"parquet\", \"has_data:true, is_read_only:true, dir:test/parquet, dummy_dir:%s, iginx_port:6888, data_prefix:%s\");";
-
+  // 记录在一个IT中写入dummy数据的路径
+  private static Set<String> parquet_dir = new HashSet<>();
   // 将数据划分为两部分，一部分写入dummy数据库，一部分写入非dummy数据库, 0.3 为划分比例，即 30% 的数据写入 dummy 数据库
   private static final double PARTITION_POINT = 0.3;
+  // 向 dummy 分片写入的初始化序列，用来初始化 dummy 分片的原数据空间范围
+  public static final String DUMMY_INIT_PATH_BEGIN = "b.b.b";
+  public static final String DUMMY_INIT_PATH_END =
+      "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz";
+  private static final String EXP_HAS_DATA_STRING = "ExpHasData";
+  private static final String ORI_HAS_DATA_STRING = "oriHasData";
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
+  private static int PARQUET_INDEX = 0;
 
   public static final Map<String, Boolean> SUPPORT_KEY =
       new HashMap<String, Boolean>() {
@@ -99,7 +110,7 @@ public class Controller {
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(CLEAR_DATA);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
@@ -136,6 +147,9 @@ public class Controller {
       InsertAPIType type,
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
@@ -143,10 +157,13 @@ public class Controller {
       medium = pathList.size();
     } else {
       logger.info("DBCE test, write history data.");
+      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
-          tagsList == null
-                  || tagsList.isEmpty()
-                  || tagsList.stream().allMatch(map -> map.size() == 0)
+          (tagsList == null
+                      || tagsList.isEmpty()
+                      || tagsList.stream().allMatch(map -> map.size() == 0))
+                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (pathList.size() * PARTITION_POINT)
               : pathList.size();
     }
@@ -165,13 +182,23 @@ public class Controller {
               Collections.singletonList(dataTypeList.get(i)),
               Collections.singletonList(tagsList.get(i)),
               type);
-        } catch (SessionException | ExecutionException e) {
+        } catch (SessionException e) {
           logger.error("write data fail, caused by: {}", e.getMessage());
           fail();
         }
       } else {
         if (!needWriteHistoryData) {
           break;
+        }
+        // 需要对4种情况做区分的情况
+        boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+        boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+        int port;
+        // 如果是has,has情况，则dummy数据的一半写入ori数据库，另一半写入exp数据库
+        if (i < (1 + 1 / PARTITION_POINT) / 2 * medium) {
+          port = IS_EXP_DUMMY ? expPort : oriPort;
+        } else {
+          port = IS_ORI_DUMMY ? oriPort : expPort;
         }
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
         BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
@@ -184,35 +211,66 @@ public class Controller {
           String path = pathList.get(i);
           String tableName = path.substring(0, path.indexOf("."));
           String dir =
-              ParquetHistoryDataGenerator.IT_DATA_DIR
+              DBCE_PARQUET_FS_TEST_DIR
+                  + System.getProperty("file.separator")
+                  + IT_DATA_DIR
                   + System.getProperty("file.separator")
                   + tableName;
           parquetGenerator.writeHistoryData(
-              expPort,
+              port,
               dir,
-              ParquetHistoryDataGenerator.IT_DATA_FILENAME,
+              String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
               Collections.singletonList(pathList.get(i)),
               Collections.singletonList(dataTypeList.get(i)),
               keyList.get(i),
               rowValues);
-          try {
-            addEmbeddedStorageEngine(
-                session, String.format(ADD_STORAGE_ENGINE_PARQUET, dir, tableName));
-          } catch (SessionException | ExecutionException e) {
-            if (!e.getMessage().contains("unexpected repeated add")) {
-              logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
-              fail();
-            }
-          }
+          parquet_dir.add(dir);
         } else {
           generator.writeHistoryData(
-              expPort,
+              port,
               Collections.singletonList(pathList.get(i)),
               Collections.singletonList(dataTypeList.get(i)),
               keyList.get(i),
               rowValues);
         }
       }
+    }
+  }
+
+  public static <T> void writeRowsDataToDummy(
+      T session,
+      List<String> pathList,
+      List<Long> keyList,
+      List<DataType> dataTypeList,
+      List<List<Object>> valuesList,
+      int port) {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
+    if (generator == null) {
+      logger.error("write data fail, caused by generator is null");
+      return;
+    }
+    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
+      ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
+      String path = pathList.get(0);
+      String tableName = path.substring(0, path.indexOf("."));
+      String dir =
+          DBCE_PARQUET_FS_TEST_DIR
+              + System.getProperty("file.separator")
+              + IT_DATA_DIR
+              + System.getProperty("file.separator")
+              + tableName;
+      parquetGenerator.writeHistoryData(
+          port,
+          dir,
+          String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
+          pathList,
+          dataTypeList,
+          keyList,
+          valuesList);
+      parquet_dir.add(dir);
+    } else {
+      generator.writeHistoryData(port, pathList, dataTypeList, keyList, valuesList);
     }
   }
 
@@ -226,6 +284,9 @@ public class Controller {
       InsertAPIType type,
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
@@ -233,10 +294,13 @@ public class Controller {
       medium = keyList.size();
     } else {
       logger.info("DBCE test, write history data.");
+      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
-          tagsList == null
-                  || tagsList.isEmpty()
-                  || tagsList.stream().allMatch(map -> map.size() == 0)
+          (tagsList == null
+                      || tagsList.isEmpty()
+                      || tagsList.stream().allMatch(map -> map.size() == 0))
+                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (keyList.size() * PARTITION_POINT)
               : keyList.size();
     }
@@ -275,50 +339,64 @@ public class Controller {
           dataTypeList,
           tagsList,
           type);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       logger.error("write data fail, caused by: {}", e.getMessage());
       fail();
     }
 
     if (lowerKeyList != null && !lowerKeyList.isEmpty() && needWriteHistoryData) {
-      BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
-      if (generator == null) {
-        logger.error("write data fail, caused by generator is null");
-        return;
-      }
-      if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
-        ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
-        String path = pathList.get(0);
-        String tableName = path.substring(0, path.indexOf("."));
-        String dir =
-            ParquetHistoryDataGenerator.IT_DATA_DIR
-                + System.getProperty("file.separator")
-                + tableName;
-        parquetGenerator.writeHistoryData(
-            expPort,
-            dir,
-            ParquetHistoryDataGenerator.IT_DATA_FILENAME,
-            pathList,
-            dataTypeList,
-            lowerKeyList,
-            lowerValuesList);
-        try {
-          addEmbeddedStorageEngine(
-              session, String.format(ADD_STORAGE_ENGINE_PARQUET, dir, tableName));
-        } catch (SessionException | ExecutionException e) {
-          if (!e.getMessage().contains("repeatedly add storage engine")) {
-            logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
-            fail();
-          }
-        }
+      // 需要对4种情况做区分的情况
+      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+      int port;
+      if (IS_EXP_DUMMY && IS_ORI_DUMMY) {
+        // divide the data
+        List<Long> upperDummyKeyList = null;
+        List<Long> lowerDummyKeyList = null;
+        List<List<Object>> upperDummyValuesList = null;
+        List<List<Object>> lowerDummyValuesList = null;
+        int half = lowerKeyList.size() / 2;
+        // 划分数据区间
+        upperDummyKeyList = lowerKeyList.subList(0, half); // 上半部分，包括索引为 0 到 half-1 的元素
+        lowerDummyKeyList =
+            lowerKeyList.subList(
+                half, lowerKeyList.size()); // 下半部分，包括索引为 half 到 lowerKeyList.size()-1 的元素
+        upperDummyValuesList = lowerValuesList.subList(0, half);
+        lowerDummyValuesList = lowerValuesList.subList(half, lowerKeyList.size());
+        writeRowsDataToDummy(
+            session, pathList, upperDummyKeyList, dataTypeList, upperDummyValuesList, oriPort);
+        writeRowsDataToDummy(
+            session, pathList, lowerDummyKeyList, dataTypeList, lowerDummyValuesList, expPort);
       } else {
-        generator.writeHistoryData(expPort, pathList, dataTypeList, lowerKeyList, lowerValuesList);
+        // 如果是has,has情况，则dummy数据的一半写入ori数据库，另一半写入exp数据库
+        port = IS_EXP_DUMMY ? expPort : oriPort;
+        writeRowsDataToDummy(session, pathList, lowerKeyList, dataTypeList, lowerValuesList, port);
       }
     }
   }
 
-  private static <T> void addEmbeddedStorageEngine(T session, String stmt)
-      throws SessionException, ExecutionException {
+  // 处理IT在每个写入数据后先关操作
+  public static <T> void after(T session) {
+    // 处理parquet扩容操作
+    for (String dir : parquet_dir) {
+      try {
+        addEmbeddedStorageEngine(
+            session,
+            String.format(
+                ADD_STORAGE_ENGINE_PARQUET,
+                dir,
+                dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
+      } catch (SessionException e) {
+        if (!e.getMessage().contains("repeatedly add storage engine")) {
+          logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
+          fail();
+        }
+      }
+    }
+    parquet_dir.clear();
+  }
+
+  private static <T> void addEmbeddedStorageEngine(T session, String stmt) throws SessionException {
     MultiConnection multiConnection = null;
     if (session instanceof MultiConnection) {
       multiConnection = ((MultiConnection) session);
@@ -336,7 +414,7 @@ public class Controller {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       InsertAPIType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     MultiConnection multiConnection = null;
     if (session instanceof MultiConnection) {
       multiConnection = ((MultiConnection) session);

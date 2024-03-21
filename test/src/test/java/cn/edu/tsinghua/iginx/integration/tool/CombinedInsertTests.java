@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ public class CombinedInsertTests {
     session = passedSession;
   }
 
-  public void testInserts() throws SessionException, ExecutionException {
+  public void testInserts() throws SessionException {
     // 列式插入对齐数据
     insertColumnRecords();
     // 列式插入非对齐数据
@@ -39,7 +38,7 @@ public class CombinedInsertTests {
     insertNonAlignedRowRecords();
   }
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+  private static void insertColumnRecords() throws SessionException {
     String PREFIX = "insertCR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -79,7 +78,7 @@ public class CombinedInsertTests {
     session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedColumnRecords() throws SessionException {
     String PREFIX = "insertCNAR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -123,7 +122,7 @@ public class CombinedInsertTests {
     session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+  private static void insertRowRecords() throws SessionException {
     String PREFIX = "insertRR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);
@@ -162,7 +161,7 @@ public class CombinedInsertTests {
     session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedRowRecords() throws SessionException {
     String PREFIX = "insertNARR.";
     List<String> paths = new ArrayList<>();
     paths.add(PREFIX + S1);

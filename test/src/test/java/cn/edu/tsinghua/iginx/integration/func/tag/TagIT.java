@@ -5,8 +5,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -55,7 +54,7 @@ public class TagIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws SessionException {
     //    "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3,
     // 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
     //    "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
@@ -231,6 +230,7 @@ public class TagIT {
         tagList6,
         InsertAPIType.Row,
         false);
+    Controller.after(session);
   }
 
   @After
@@ -249,7 +249,7 @@ public class TagIT {
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         logger.warn(CLEAR_DATA_WARNING);
       } else {
@@ -1467,7 +1467,7 @@ public class TagIT {
   }
 
   @Test
-  public void testClearData() throws SessionException, ExecutionException {
+  public void testClearData() throws SessionException {
     if (!isAbleToClearData || isScaling) return;
     clearData();
 

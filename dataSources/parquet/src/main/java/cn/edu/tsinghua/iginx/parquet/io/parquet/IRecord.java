@@ -17,7 +17,7 @@
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
 import java.util.*;
-import org.apache.parquet.io.api.Binary;
+import shaded.iginx.org.apache.parquet.io.api.Binary;
 
 public class IRecord implements Iterable<Map.Entry<Integer, Object>> {
   private final List<Map.Entry<Integer, Object>> values = new ArrayList<>();

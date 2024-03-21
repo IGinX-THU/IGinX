@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.integration.func.rest;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertEquals;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -104,6 +104,7 @@ public class RestIT {
         InsertAPIType.Column,
         isDummyHasInitialData);
     isDummyHasInitialData = false;
+    Controller.after(session);
   }
 
   @After

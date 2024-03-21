@@ -20,13 +20,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.parquet.shared.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Objects;
 import javax.annotation.Nonnull;
-import org.apache.parquet.filter2.predicate.FilterApi;
-import org.apache.parquet.filter2.predicate.FilterPredicate;
-import org.apache.parquet.filter2.predicate.Operators;
+import shaded.iginx.org.apache.parquet.filter2.predicate.FilterApi;
+import shaded.iginx.org.apache.parquet.filter2.predicate.FilterPredicate;
+import shaded.iginx.org.apache.parquet.filter2.predicate.Operators;
 
 class FilterUtils {
 

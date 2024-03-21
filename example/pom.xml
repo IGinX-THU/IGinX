@@ -22,12 +22,10 @@
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-session</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>org.apache.iotdb</groupId>
             <artifactId>iotdb-session</artifactId>
-            <version>0.12.6</version>
         </dependency>
     </dependencies>
 

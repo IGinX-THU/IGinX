@@ -22,8 +22,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KE
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -120,6 +119,7 @@ public class UDFIT {
         InsertAPIType.Row,
         dummyNoData);
     dummyNoData = false;
+    Controller.after(session);
   }
 
   @After
@@ -133,7 +133,7 @@ public class UDFIT {
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }

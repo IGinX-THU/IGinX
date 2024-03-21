@@ -6,8 +6,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.exe
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
@@ -44,6 +43,8 @@ public abstract class BaseCapacityExpansionIT {
 
   private final String READ_ONLY_SCHEMA_PREFIX = null;
 
+  public static final String DBCE_PARQUET_FS_TEST_DIR = "test";
+
   public BaseCapacityExpansionIT(StorageEngineType type, String extraParams) {
     this.type = type;
     this.extraParams = extraParams;
@@ -68,9 +69,9 @@ public abstract class BaseCapacityExpansionIT {
         statement.append("/");
       }
       if (IS_PARQUET_OR_FILE_SYSTEM) {
-        statement.append(", dummy_dir:test/");
+        statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", dir:test/iginx_");
+        statement.append(String.format(", dir:%s/iginx_", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(", iginx_port:" + oriPortIginx);
       }
@@ -91,7 +92,7 @@ public abstract class BaseCapacityExpansionIT {
       logger.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
       return null;
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       logger.warn(
           "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: {}",
           type.name(),
@@ -136,13 +137,12 @@ public abstract class BaseCapacityExpansionIT {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
       // 测试会添加初始数据，所以hasData=true
-      addStorageEngine(port, true, isReadOnly, dataPrefix, schemaPrefix);
+      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
     }
   }
 
   @Test
-  public void oriHasDataExpHasData()
-      throws InterruptedException, SessionException, ExecutionException {
+  public void oriHasDataExpHasData() throws InterruptedException, SessionException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -285,7 +285,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql("insert into ln.wf02 (key, status, version) values (400, false, \"v4\");");
       session.executeSql("insert into ln.wf02 (key, version) values (800, \"v8\");");
       queryNewData();
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       logger.error("insert new data error: {}", e.getMessage());
     }
   }
@@ -320,7 +320,7 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
       queryAllNewData();
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       logger.error("insert new data after capacity expansion error: {}", e.getMessage());
     }
   }
@@ -417,7 +417,7 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.removeHistoryDataSource(removedStorageEngineList);
       testShowClusterInfo(5);
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       logger.error("remove history data source through session api error: {}", e.getMessage());
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
@@ -441,7 +441,7 @@ public abstract class BaseCapacityExpansionIT {
           String.format(removeStatement, expPort, "p3" + schemaPrefixSuffix, dataPrefix2));
       session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
       testShowClusterInfo(2);
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       logger.error("remove history data source through sql error: {}", e.getMessage());
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 + schemaPrefixSuffix 后再查询
@@ -452,7 +452,7 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.executeSql(
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       if (!e.getMessage().contains("remove history data source failed")) {
         logger.error(
             "remove history data source should throw error when removing the node that does not exist");
@@ -466,7 +466,7 @@ public abstract class BaseCapacityExpansionIT {
     try {
       ClusterInfo clusterInfo = session.getClusterInfo();
       assertEquals(expected, clusterInfo.getStorageEngineInfos().size());
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       logger.error("encounter error when showing cluster info: {}", e.getMessage());
     }
   }
@@ -507,7 +507,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+---+------------------------------------------+\n"
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       logger.error("test query for file system failed {}", e.getMessage());
       fail();
     }
@@ -585,7 +585,7 @@ public abstract class BaseCapacityExpansionIT {
         logger.error("不应抛出重叠key的警告");
         fail();
       }
-    } catch (ExecutionException | SessionException e) {
+    } catch (SessionException e) {
       logger.error("query data error: {}", e.getMessage());
     }
   }
@@ -627,9 +627,9 @@ public abstract class BaseCapacityExpansionIT {
             String.valueOf(port),
             String.valueOf(iginxPort),
             hasData
-                ? "test/" + PORT_TO_ROOT.get(port)
-                : "test/" + INIT_PATH_LIST.get(0).replace(".", "/"),
-            "test/iginx_" + PORT_TO_ROOT.get(port),
+                ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
+                : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
+            DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
             "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties");

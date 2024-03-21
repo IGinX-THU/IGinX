@@ -69,6 +69,16 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
+                  elif [ "$RUNNER_OS" == "Windows" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
+                  fi
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -92,6 +102,11 @@ jobs:
                       mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
                       mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
                   fi
+
+            - name: Stop IGinX and ZK, Clear ZK Data, then Start Them
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-zk
 
             - name: set client test context
               uses: ./.github/actions/context

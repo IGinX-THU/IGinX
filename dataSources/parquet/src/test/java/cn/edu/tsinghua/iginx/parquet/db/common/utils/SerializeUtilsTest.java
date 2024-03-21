@@ -18,9 +18,9 @@ package cn.edu.tsinghua.iginx.parquet.db.common.utils;
 
 import static org.junit.Assert.*;
 
-import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.SerializeUtils;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.tombstone.Tombstone;
+import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.manager.data.LongFormat;
+import cn.edu.tsinghua.iginx.parquet.manager.data.SerializeUtils;
 import cn.edu.tsinghua.iginx.parquet.manager.data.StringFormat;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
@@ -33,20 +33,20 @@ public class SerializeUtilsTest {
 
   @Test
   public void testSimpleTombstone() {
-    Tombstone<Long, String> rb = new Tombstone<>();
+    AreaSet<Long, String> rb = new AreaSet<>();
 
-    rb.delete(ImmutableRangeSet.of(Range.openClosed(1000L, 10000L)));
-    rb.delete(Collections.singleton("full"), ImmutableRangeSet.of(Range.all()));
-    rb.delete(Collections.singleton("empty"), ImmutableRangeSet.of());
-    rb.delete(Collections.singleton("test"), ImmutableRangeSet.of(Range.closed(10L, 50L)));
-    rb.delete(Collections.singleton("test2"), ImmutableRangeSet.of(Range.atLeast(10L)));
-    rb.delete(ImmutableRangeSet.of(Range.closedOpen(1L, 100L)));
-    rb.delete(Collections.singleton("test"), ImmutableRangeSet.of(Range.atLeast(10L)));
-    rb.delete(Collections.singleton("test2"));
-    rb.delete(Collections.singleton("test2"), ImmutableRangeSet.of(Range.atLeast(10L)));
+    rb.add(ImmutableRangeSet.of(Range.openClosed(1000L, 10000L)));
+    rb.add(Collections.singleton("full"), ImmutableRangeSet.of(Range.all()));
+    rb.add(Collections.singleton("empty"), ImmutableRangeSet.of());
+    rb.add(Collections.singleton("test"), ImmutableRangeSet.of(Range.closed(10L, 50L)));
+    rb.add(Collections.singleton("test2"), ImmutableRangeSet.of(Range.atLeast(10L)));
+    rb.add(ImmutableRangeSet.of(Range.closedOpen(1L, 100L)));
+    rb.add(Collections.singleton("test"), ImmutableRangeSet.of(Range.atLeast(10L)));
+    rb.add(Collections.singleton("test2"));
+    rb.add(Collections.singleton("test2"), ImmutableRangeSet.of(Range.atLeast(10L)));
 
     String str = SerializeUtils.serialize(rb, new LongFormat(), new StringFormat());
-    Tombstone<Long, String> des =
+    AreaSet<Long, String> des =
         SerializeUtils.deserializeRangeTombstone(str, new LongFormat(), new StringFormat());
 
     assertEquals(rb, des);
@@ -54,10 +54,10 @@ public class SerializeUtilsTest {
 
   @Test
   public void testEmptyTombstone() {
-    Tombstone<Long, String> rb = new Tombstone<>();
+    AreaSet<Long, String> rb = new AreaSet<>();
 
     String str = SerializeUtils.serialize(rb, new LongFormat(), new StringFormat());
-    Tombstone<Long, String> des =
+    AreaSet<Long, String> des =
         SerializeUtils.deserializeRangeTombstone(str, new LongFormat(), new StringFormat());
 
     assertEquals(rb, des);
