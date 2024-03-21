@@ -18,9 +18,9 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 
 public class ColumnPruningRule extends Rule {
 
@@ -375,7 +375,7 @@ public class ColumnPruningRule extends Rule {
         if (columns.contains(functionStr)) {
           columns.remove(functionStr);
         } else {
-          LOGGER.warning("FunctionCallList中的函数结果列不在columns中");
+          LOGGER.warn("FunctionCallList中的函数结果列不在columns中");
         }
       }
     }
