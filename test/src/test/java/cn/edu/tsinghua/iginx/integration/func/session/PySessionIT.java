@@ -54,8 +54,9 @@ public class PySessionIT {
         Arrays.asList(DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY);
     List<Map<String, String>> tagsList =
         Arrays.asList(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>());
-    // keys = [0, 1, 2, 3]
-    List<Long> keys = IntStream.range(0, 4).mapToObj(i -> (long) i).collect(Collectors.toList());
+    // keys = [100, 101, 102, 103]
+    List<Long> keys =
+        IntStream.range(100, 104).mapToObj(Long::valueOf).collect(Collectors.toList());
     /*
      values = [
         ['a', 'b', None, None],
@@ -100,7 +101,7 @@ public class PySessionIT {
           new MultiConnection(
               new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
       session.openSession();
-      long start = 0, end = 4;
+      long start = 100, end = 104;
       TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(start, end);
       insertData(subBaseData);
       dummyNoData = false;

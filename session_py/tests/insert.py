@@ -59,7 +59,7 @@ if __name__ == '__main__':
     timestamps = [6]
     values_list = [[1]]
     data_type_list = [DataType.INTEGER]
-    session.insert_non_aligned_column_records(paths, timestamps, values_list, data_type_list)
+    session.insert_column_records(paths, timestamps, values_list, data_type_list)
     # 查询写入的数据
     dataset = session.query(["a.*"], 0, 10)
     print(dataset)

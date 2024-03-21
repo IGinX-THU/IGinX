@@ -26,11 +26,13 @@ from iginx.iginx_pyclient.session import Session
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
+    try:
+        session.batch_delete_time_series(["*"])
 
-    session.batch_delete_time_series(["*"])
+        # 查询删除全部后剩余的    数据
+        dataset = session.query(["*"], 0, 10)
+        print(dataset)
 
-    # 查询删除全部后剩余的数据
-    dataset = session.query(["*"], 0, 10)
-    print(dataset)
-
-    session.close()
+        session.close()
+    except Exception as e:
+        print(e)
