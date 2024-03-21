@@ -14,7 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
-  private static final Logger LOGGER = Logger.getLogger(Utils.class);
+  private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
 
   private static final Pattern URL_PATTERN = Pattern.compile("([^:]+):([0-9]{1,5})/?");
   private static final DateTimeFormatter milliSecFormatter =
