@@ -16,21 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.exception;
 
-public class MetaStorageException extends Exception {
+public class UnsupportedDataTypeException extends RuntimeException {
 
-  private static final long serialVersionUID = -8128973325398925370L;
+  private static final long serialVersionUID = 5278528888805786089L;
 
-  public MetaStorageException(String message) {
-    super(message);
-  }
-
-  public MetaStorageException(String message, Throwable cause) {
-    super(message, cause);
-  }
-
-  public MetaStorageException(Throwable cause) {
-    super(cause);
+  public UnsupportedDataTypeException(String dataTypeName) {
+    super("Unsupported DataType: " + dataTypeName);
   }
 }

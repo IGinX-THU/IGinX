@@ -3,8 +3,7 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
@@ -122,7 +121,7 @@ public class SQLCompareIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws SessionException {
     for (String insertSQL : insertSQLGroup) {
       SessionExecuteSqlResult res = conn.executeSql(insertSQL);
       if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
@@ -151,7 +150,7 @@ public class SQLCompareIT {
     SessionExecuteSqlResult res = null;
     try {
       res = conn.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }

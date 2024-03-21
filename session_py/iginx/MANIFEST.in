@@ -1,0 +1,4 @@
+global-exclude __pycache__ *.py[cod] *.egg-info
+include setup.py
+include README.md
+include LICENSE

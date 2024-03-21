@@ -2,8 +2,7 @@ package cn.edu.tsinghua.iginx.integration.other;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.*;
@@ -117,14 +116,14 @@ public class FileLoaderTest {
     } catch (IOException e) {
       LOGGER.error("Read file {} error.", path, e);
       fail();
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("Insert data error.", e);
       fail();
     }
   }
 
   private void processChunk(byte[] chunk, String pathName, int chunkIndex, int step)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (chunkIndex % step == 0) {
       LOGGER.info("Processing #{} chunk for {}", chunkIndex, pathName);
     }

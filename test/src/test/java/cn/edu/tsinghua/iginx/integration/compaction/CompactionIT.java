@@ -3,8 +3,7 @@ package cn.edu.tsinghua.iginx.integration.compaction;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -32,7 +31,7 @@ public class CompactionIT {
       session.openSession();
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"true\";");
       session.executeSql("SHOW CONFIG \"enableInstantCompaction\";").print(false, "");
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("unexpected error: ", e);
       fail();
     }
@@ -43,14 +42,14 @@ public class CompactionIT {
     try {
       session.executeSql("SET CONFIG \"enableInstantCompaction\" \"false\";");
       session.closeSession();
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("unexpected error: ", e);
       fail();
     }
   }
 
   @Test
-  public void testCompact() throws ExecutionException, SessionException {
+  public void testCompact() throws SessionException {
     String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
 
     StringBuilder builder = new StringBuilder(insertStrPrefix);

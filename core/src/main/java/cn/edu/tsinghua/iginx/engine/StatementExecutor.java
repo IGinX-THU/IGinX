@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
@@ -43,12 +44,11 @@ import cn.edu.tsinghua.iginx.engine.shared.processor.PreLogicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PreParseProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.PrePhysicalProcessor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.Processor;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
-import cn.edu.tsinghua.iginx.exceptions.StatusCode;
+import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
+import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
@@ -315,13 +315,13 @@ public class StatementExecutor {
             processExportFileFromSelect(ctx);
             return;
           default:
-            throw new ExecutionException(
+            throw new StatementExecutionException(
                 String.format("Execute Error: unknown statement type [%s].", type));
         }
       } else {
         ((SystemStatement) statement).execute(ctx);
       }
-    } catch (ExecutionException | PhysicalException | IOException e) {
+    } catch (StatementExecutionException | PhysicalException | IOException e) {
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
@@ -333,7 +333,7 @@ public class StatementExecutor {
     }
   }
 
-  private void process(RequestContext ctx) throws ExecutionException, PhysicalException {
+  private void process(RequestContext ctx) throws StatementExecutionException, PhysicalException {
     StatementType type = ctx.getStatement().getType();
     List<LogicalGenerator> generatorList = generatorMap.get(type);
     for (LogicalGenerator generator : generatorList) {
@@ -370,11 +370,11 @@ public class StatementExecutor {
         return;
       }
     }
-    throw new ExecutionException("Execute Error: can not construct a legal logical tree.");
+    throw new StatementExecutionException("Execute Error: can not construct a legal logical tree.");
   }
 
   private void processExplainLogicalStatement(RequestContext ctx, Operator root)
-      throws PhysicalException, ExecutionException {
+      throws PhysicalException, StatementExecutionException {
     List<Field> fields =
         new ArrayList<>(
             Arrays.asList(
@@ -389,7 +389,7 @@ public class StatementExecutor {
   }
 
   private void processExplainPhysicalStatement(RequestContext ctx)
-      throws PhysicalException, ExecutionException {
+      throws PhysicalException, StatementExecutionException {
     PhysicalTask root = ctx.getPhysicalTree();
     List<Field> fields =
         new ArrayList<>(
@@ -407,7 +407,7 @@ public class StatementExecutor {
   }
 
   private void formatTree(RequestContext ctx, Header header, List<Object[]> cache, int maxLen)
-      throws PhysicalException, ExecutionException {
+      throws PhysicalException, StatementExecutionException {
     List<Row> rows = new ArrayList<>();
     for (Object[] rowValues : cache) {
       StringBuilder str = new StringBuilder(((String) rowValues[0]));
@@ -423,7 +423,7 @@ public class StatementExecutor {
   }
 
   private void processExportFileFromSelect(RequestContext ctx)
-      throws ExecutionException, PhysicalException, IOException {
+      throws StatementExecutionException, PhysicalException, IOException {
     ExportFileFromSelectStatement statement = (ExportFileFromSelectStatement) ctx.getStatement();
 
     // step 1: select stage
@@ -450,7 +450,7 @@ public class StatementExecutor {
   }
 
   private void processInsertFromFile(RequestContext ctx)
-      throws ExecutionException, PhysicalException, IOException {
+      throws StatementExecutionException, PhysicalException, IOException {
     InsertFromCsvStatement statement = (InsertFromCsvStatement) ctx.getStatement();
     ImportFile importFile = statement.getImportFile();
     InsertStatement insertStatement = statement.getSubInsertStatement();
@@ -614,7 +614,7 @@ public class StatementExecutor {
               + tmpCSV.getCanonicalPath()
               + ", because "
               + e.getMessage());
-    } catch (ExecutionException | PhysicalException e) {
+    } catch (StatementExecutionException | PhysicalException e) {
       throw new RuntimeException(e);
     }
 
@@ -622,7 +622,7 @@ public class StatementExecutor {
   }
 
   private void processInsertFromSelect(RequestContext ctx)
-      throws ExecutionException, PhysicalException {
+      throws StatementExecutionException, PhysicalException {
     InsertFromSelectStatement statement = (InsertFromSelectStatement) ctx.getStatement();
 
     // step 1: select stage
@@ -643,7 +643,8 @@ public class StatementExecutor {
     ctx.setResult(subInsertContext.getResult());
   }
 
-  private void processCountPoints(RequestContext ctx) throws ExecutionException, PhysicalException {
+  private void processCountPoints(RequestContext ctx)
+      throws StatementExecutionException, PhysicalException {
     SelectStatement statement =
         new UnarySelectStatement(
             Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
@@ -662,7 +663,7 @@ public class StatementExecutor {
   }
 
   private void processDeleteColumns(RequestContext ctx)
-      throws ExecutionException, PhysicalException {
+      throws StatementExecutionException, PhysicalException {
     DeleteColumnsStatement deleteColumnsStatement = (DeleteColumnsStatement) ctx.getStatement();
     DeleteStatement deleteStatement =
         new DeleteStatement(
@@ -671,7 +672,8 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void processClearData(RequestContext ctx) throws ExecutionException, PhysicalException {
+  private void processClearData(RequestContext ctx)
+      throws StatementExecutionException, PhysicalException {
     DeleteStatement deleteStatement = new DeleteStatement(Collections.singletonList("*"));
     ctx.setStatement(deleteStatement);
     process(ctx);
@@ -687,7 +689,7 @@ public class StatementExecutor {
   }
 
   private void setResult(RequestContext ctx, RowStream stream)
-      throws PhysicalException, ExecutionException {
+      throws PhysicalException, StatementExecutionException {
     Statement statement = ctx.getStatement();
     switch (statement.getType()) {
       case INSERT:
@@ -696,7 +698,7 @@ public class StatementExecutor {
       case DELETE:
         DeleteStatement deleteStatement = (DeleteStatement) statement;
         if (deleteStatement.isInvolveDummyData()) {
-          throw new ExecutionException(CLEAR_DUMMY_DATA_CAUTION);
+          throw new StatementExecutionException(CLEAR_DUMMY_DATA_CAUTION);
         } else {
           ctx.setResult(new Result(RpcUtils.SUCCESS));
         }
@@ -708,7 +710,7 @@ public class StatementExecutor {
         setShowTSRowStreamResult(ctx, stream);
         break;
       default:
-        throw new ExecutionException(
+        throw new StatementExecutionException(
             String.format("Execute Error: unknown statement type [%s].", statement.getType()));
     }
   }
@@ -836,9 +838,10 @@ public class StatementExecutor {
   }
 
   private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)
-      throws PhysicalException, ExecutionException {
+      throws PhysicalException, StatementExecutionException {
     if (insertStatement.getPaths().size() != header.getFieldSize()) {
-      throw new ExecutionException("Execute Error: Insert path size and value size must be equal.");
+      throw new StatementExecutionException(
+          "Execute Error: Insert path size and value size must be equal.");
     }
     List<Field> fields = header.getFields();
     List<Map<String, String>> tagsList = insertStatement.getTagsList();
@@ -858,10 +861,11 @@ public class StatementExecutor {
 
   private void parseInsertValuesSpecFromRowStream(
       long offset, RowStream rowStream, InsertStatement insertStatement)
-      throws PhysicalException, ExecutionException {
+      throws PhysicalException, StatementExecutionException {
     Header header = rowStream.getHeader();
     if (insertStatement.getPaths().size() != header.getFieldSize()) {
-      throw new ExecutionException("Execute Error: Insert path size and value size must be equal.");
+      throw new StatementExecutionException(
+          "Execute Error: Insert path size and value size must be equal.");
     }
 
     List<DataType> types = new ArrayList<>();

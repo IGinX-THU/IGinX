@@ -23,7 +23,7 @@ import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.insert.InsertWorker;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
@@ -551,7 +551,7 @@ public class MetricsResource {
     boolean cautionDuringDelete = false;
     try {
       executorData.deleteMetric();
-    } catch (ExecutionException e) {
+    } catch (StatementExecutionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         exception = e;
         cautionDuringDelete = true;

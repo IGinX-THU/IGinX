@@ -8,8 +8,7 @@ import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistory
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator;
@@ -109,7 +108,7 @@ public class Controller {
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(CLEAR_DATA);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
         LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
@@ -182,7 +181,7 @@ public class Controller {
               Collections.singletonList(dataTypeList.get(i)),
               Collections.singletonList(tagsList.get(i)),
               type);
-        } catch (SessionException | ExecutionException e) {
+        } catch (SessionException e) {
           LOGGER.error("write data fail, caused by: ", e);
           fail();
         }
@@ -339,7 +338,7 @@ public class Controller {
           dataTypeList,
           tagsList,
           type);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("write data fail, caused by: ", e);
       fail();
     }
@@ -386,7 +385,7 @@ public class Controller {
                 ADD_STORAGE_ENGINE_PARQUET,
                 dir,
                 dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
-      } catch (SessionException | ExecutionException e) {
+      } catch (SessionException e) {
         if (!e.getMessage().contains("repeatedly add storage engine")) {
           LOGGER.error("add embedded storage engine fail, caused by: ", e);
           fail();
@@ -396,8 +395,7 @@ public class Controller {
     parquet_dir.clear();
   }
 
-  private static <T> void addEmbeddedStorageEngine(T session, String stmt)
-      throws SessionException, ExecutionException {
+  private static <T> void addEmbeddedStorageEngine(T session, String stmt) throws SessionException {
     MultiConnection multiConnection = null;
     if (session instanceof MultiConnection) {
       multiConnection = ((MultiConnection) session);
@@ -415,7 +413,7 @@ public class Controller {
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       InsertAPIType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     MultiConnection multiConnection = null;
     if (session instanceof MultiConnection) {
       multiConnection = ((MultiConnection) session);

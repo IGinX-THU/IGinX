@@ -26,8 +26,7 @@ import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -112,7 +111,7 @@ public class TransformIT {
   }
 
   @AfterClass
-  public static void tearDown() throws SessionException, ExecutionException {
+  public static void tearDown() throws SessionException {
     dropAllTask();
     clearAllData(session);
     session.closeSession();
@@ -168,7 +167,7 @@ public class TransformIT {
     Controller.clearData(session);
   }
 
-  private static void dropAllTask() throws SessionException, ExecutionException {
+  private static void dropAllTask() throws SessionException {
     String[] taskList = {
       "RowSumTransformer", "AddOneTransformer", "SumTransformer", "SleepTransformer"
     };
@@ -177,7 +176,7 @@ public class TransformIT {
     }
   }
 
-  private static void dropTask(String task) throws SessionException, ExecutionException {
+  private static void dropTask(String task) throws SessionException {
     SessionExecuteSqlResult result = session.executeSql(SHOW_REGISTER_TASK_SQL);
     for (RegisterTaskInfo info : result.getRegisterTaskInfos()) {
       if (info.getClassName().equals(task)) {
@@ -186,13 +185,12 @@ public class TransformIT {
     }
   }
 
-  private void registerTask(String task) throws SessionException, ExecutionException {
+  private void registerTask(String task) throws SessionException {
     dropTask(task);
     session.executeSql(String.format(REGISTER_SQL_FORMATTER, task, TASK_MAP.get(task), task));
   }
 
-  private void verifyJobState(long jobId)
-      throws SessionException, ExecutionException, InterruptedException {
+  private void verifyJobState(long jobId) throws SessionException, InterruptedException {
     LOGGER.info("job is {}", jobId);
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)
@@ -225,7 +223,7 @@ public class TransformIT {
       long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
 
       verifyJobState(jobId);
-    } catch (SessionException | ExecutionException | InterruptedException e) {
+    } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -241,7 +239,7 @@ public class TransformIT {
 
       long jobId = result.getJobId();
       verifyJobState(jobId);
-    } catch (SessionException | ExecutionException | InterruptedException e) {
+    } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -275,7 +273,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultipleSqlStatements(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -295,7 +293,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultipleSqlStatements(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -349,7 +347,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifySinglePythonJob(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -371,7 +369,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifySinglePythonJob(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -431,7 +429,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultiplePythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -455,7 +453,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultiplePythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -487,7 +485,7 @@ public class TransformIT {
       }
 
       verifyMultiplePythonJobs(queryResult, timeIndex, sumIndex, 200);
-    } catch (SessionException | ExecutionException | InterruptedException e) {
+    } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -563,7 +561,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -587,7 +585,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -614,7 +612,7 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
@@ -670,7 +668,7 @@ public class TransformIT {
 
       List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
       assertTrue(closedJobIds.contains(jobId));
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }

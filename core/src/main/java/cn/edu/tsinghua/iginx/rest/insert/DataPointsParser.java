@@ -20,8 +20,8 @@ package cn.edu.tsinghua.iginx.rest.insert;
 
 import static cn.edu.tsinghua.iginx.rest.RestUtils.*;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.*;
@@ -229,7 +229,7 @@ public class DataPointsParser {
           type,
           null,
           TimePrecision.NS);
-    } catch (ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
@@ -258,7 +258,7 @@ public class DataPointsParser {
           type,
           null,
           TimePrecision.NS);
-    } catch (ExecutionException e) {
+    } catch (SessionException e) {
       LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
@@ -309,7 +309,7 @@ public class DataPointsParser {
             type,
             tagsList,
             TimePrecision.NS);
-      } catch (ExecutionException e) {
+      } catch (SessionException e) {
         LOGGER.error("Error occurred during insert ", e);
         throw e;
       }
@@ -347,7 +347,7 @@ public class DataPointsParser {
         if (!metric.getAnno().isEmpty()) {
           insertAnno(paths, tagsList, metric.getAnno(), type.get(0));
         }
-      } catch (ExecutionException e) {
+      } catch (StatementExecutionException e) {
         LOGGER.error("Error occurred during insert ", e);
         throw e;
       }
@@ -418,7 +418,7 @@ public class DataPointsParser {
       if (!metric.getAnno().isEmpty()) {
         insertAnno(paths, taglist, metric.getAnno(), type.get(0));
       }
-    } catch (ExecutionException e) {
+    } catch (StatementExecutionException e) {
       LOGGER.error("Error occurred during insert ", e);
       throw e;
     }

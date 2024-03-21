@@ -18,8 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,8 +54,7 @@ public class IoTDBAfterDilatationExample {
     session.closeSession();
   }
 
-  private static void insertRecords()
-      throws SessionException, ExecutionException, InterruptedException {
+  private static void insertRecords() throws SessionException, InterruptedException {
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
       dataTypeList.add(DataType.LONG);

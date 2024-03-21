@@ -4,7 +4,7 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.lang.reflect.Field;
 import java.util.HashMap;
@@ -26,7 +26,7 @@ public class ShowConfigStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     Class<Config> clazz = Config.class;
     try {
       Map<String, String> configs = new HashMap<>();
@@ -50,11 +50,11 @@ public class ShowConfigStatement extends SystemStatement {
     } catch (NoSuchFieldException e) {
       String errMsg = String.format("no such field, field=%s", configName);
       LOGGER.error(errMsg);
-      throw new ExecutionException(errMsg);
+      throw new StatementExecutionException(errMsg);
     } catch (IllegalAccessException e) {
       String errMsg = String.format("get config %s error", configName);
       LOGGER.error(errMsg);
-      throw new ExecutionException(errMsg);
+      throw new StatementExecutionException(errMsg);
     }
   }
 }
