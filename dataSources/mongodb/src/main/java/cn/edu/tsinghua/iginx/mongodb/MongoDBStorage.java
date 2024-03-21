@@ -56,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 public class MongoDBStorage implements IStorage {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBStorage.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBStorage.class);
 
   private static final long MAX_WAIT_TIME = 5;
   private static final int SESSION_POOL_MAX_SIZE = 200;

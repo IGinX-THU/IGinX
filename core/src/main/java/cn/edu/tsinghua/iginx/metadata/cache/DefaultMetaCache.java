@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultMetaCache implements IMetaCache {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMetaCache.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMetaCache.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
