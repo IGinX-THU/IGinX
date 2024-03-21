@@ -62,7 +62,7 @@ public class YAMLReader {
       try {
         in.close();
       } catch (IOException e) {
-        LOGGER.error("Fail to close the file, path=%s", filePath);
+        LOGGER.error("Fail to close the file, path={}", filePath);
       }
     }
     return conf;
