@@ -7,7 +7,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
@@ -23,6 +25,15 @@ public class MockClassGenerator {
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
       Object[] valuesList) {
+    return genRowDataView(pathList, tagsList, dataTypeList, valuesList, 0);
+  }
+
+  public static RowDataView genRowDataView(
+      List<String> pathList,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypeList,
+      Object[] valuesList,
+      long startKey) {
     // sort path by dictionary
     List<String> sortedPaths = new ArrayList<>(pathList);
     Integer[] index = new Integer[sortedPaths.size()];
@@ -52,10 +63,10 @@ public class MockClassGenerator {
     // generate bitmaps and key
     List<Bitmap> bitmapList = new ArrayList<>();
     List<Long> keys = new ArrayList<>();
-    long keyIndex = 0L;
-    for (int i = 0; i < valuesList.length; i++) {
-      Object[] values = (Object[]) valuesList[i];
-      keys.set(i, keyIndex++);
+    long keyIndex = startKey;
+    for (Object o : valuesList) {
+      Object[] values = (Object[]) o;
+      keys.add(keyIndex++);
       if (values.length != pathList.size()) {
         logger.error("The sizes of paths and the element of valuesList should be equal.");
         return null;

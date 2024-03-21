@@ -16,14 +16,13 @@
 
 package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
+import static org.junit.Assert.*;
+
 import java.nio.ByteBuffer;
 import java.util.Iterator;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-
 import org.junit.Test;
-
-import static org.junit.Assert.*;
 
 public abstract class BufferPoolTest {
 
@@ -45,7 +44,13 @@ public abstract class BufferPoolTest {
           @Override
           public Integer next() {
             i++;
-            return random.nextInt(16 * 1024 * 1024) + 1;
+            if (i % 3 == 0) {
+              return random.nextInt(1024);
+            } else if (i % 3 == 1) {
+              return random.nextInt(1024 * 1024);
+            } else {
+              return random.nextInt(16 * 1024 * 1024);
+            }
           }
         };
   }

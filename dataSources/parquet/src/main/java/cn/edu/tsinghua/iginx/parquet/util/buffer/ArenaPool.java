@@ -34,23 +34,23 @@ public class ArenaPool implements BufferPool, AutoCloseable {
   @Override
   public ByteBuffer allocate(int capacity) {
     ByteBuffer buffer = pool.allocate(capacity);
-    unreleased.add(new BufferHandler(buffer));
+    //        unreleased.add(new BufferHandler(buffer));
     return buffer;
   }
 
   @Override
   public void release(ByteBuffer buffer) {
-    if (unreleased.remove(new BufferHandler(buffer))) {
-      pool.release(buffer);
-    }
+    //        if (unreleased.remove(new BufferHandler(buffer))) {
+    pool.release(buffer);
+    //        }
   }
 
   @Override
   public void close() {
-    for (BufferHandler buffer : unreleased) {
-      pool.release(buffer.get());
-    }
-    unreleased.clear();
+    //    for (BufferHandler buffer : unreleased) {
+    //      pool.release(buffer.get());
+    //    }
+    //    unreleased.clear();
   }
 
   private static class BufferHandler {

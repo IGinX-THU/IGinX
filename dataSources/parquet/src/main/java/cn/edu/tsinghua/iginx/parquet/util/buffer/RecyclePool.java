@@ -47,26 +47,34 @@ public class RecyclePool implements BufferPool {
     if (limit <= 0) {
       throw new IllegalArgumentException("limit must be a positive number, but got " + limit);
     }
+    if (limit < align) {
+      throw new IllegalArgumentException(
+          "limit must be greater than or equal to align, but got limit: "
+              + limit
+              + " align: "
+              + align);
+    }
     this.pool =
         Objects.requireNonNull(
             pool, RecyclePool.class.getSimpleName() + " requires a non-null pool");
     this.align = align;
     this.limit = limit;
     this.smallBuffers =
-        new AtomicReferenceArray<>(Integer.SIZE - Integer.numberOfLeadingZeros(align));
+        new AtomicReferenceArray<>(Integer.SIZE - Integer.numberOfLeadingZeros(align) + 1);
     this.alignedBuffers = new ConcurrentHashMap<>((limit - 1) / align + 1);
     this.hugeBuffers = new ConcurrentSkipListMap<>();
   }
 
   @Override
   public ByteBuffer allocate(int capacity) {
-    if (capacity <= 0) {
-      throw new IllegalArgumentException("capacity must be a positive number, but got " + capacity);
+    if (capacity < 0) {
+      throw new IllegalArgumentException(
+          "capacity must be a non-negative number, but got " + capacity);
     }
-    Recycler<ByteBuffer> recycler = getRecyclerAtLeast(capacity);
+    int atLeastCapacity = getAtLeastCapacity(capacity);
+    Recycler<ByteBuffer> recycler = getRecyclerAtLeast(atLeastCapacity);
     ByteBuffer byteBuffer = recycler.get();
     if (byteBuffer == null) {
-      int atLeastCapacity = getAtLeastCapacity(capacity);
       byteBuffer = pool.allocate(atLeastCapacity);
     }
     byteBuffer.clear();
@@ -83,7 +91,8 @@ public class RecyclePool implements BufferPool {
     if (capacity <= 0) {
       throw new IllegalArgumentException("capacity must be a positive number, but got " + capacity);
     }
-    Recycler<ByteBuffer> recycler = getRecycler(capacity);
+    int atMostCapacity = getAtMostCapacity(capacity);
+    Recycler<ByteBuffer> recycler = getAtMostRecycler(atMostCapacity);
     recycler.recycle(byteBuffer);
   }
 
@@ -101,53 +110,54 @@ public class RecyclePool implements BufferPool {
     hugeBuffers.clear();
   }
 
-  private static int getSmallBufferIndex(int capacity) {
-    return Integer.SIZE - Integer.numberOfLeadingZeros(capacity - 1);
-  }
-
-  private int getAlignedBufferIndex(int capacity) {
-    return (capacity - 1) / align;
-  }
-
   private int getAtLeastCapacity(int capacity) {
     if (capacity <= align) {
-      return 1 << getSmallBufferIndex(capacity);
+      return capacity < 2 ? capacity : Integer.highestOneBit(capacity - 1) << 1;
     } else if (capacity <= limit) {
-      return (getAlignedBufferIndex(capacity) + 1) * align;
+      return ((capacity - 1) / align + 1) * align;
     } else {
       return capacity;
     }
   }
 
-  private Recycler<ByteBuffer> getRecyclerAtLeast(int capacity) {
-    if (capacity <= align) {
-      return getSmallRecycler(capacity);
-    } else if (capacity <= limit) {
-      return getAlignedRecycler(capacity);
+  private Recycler<ByteBuffer> getRecyclerAtLeast(int aligned) {
+    if (aligned <= align) {
+      return getSmallRecycler(aligned);
+    } else if (aligned <= limit) {
+      return getAlignedRecycler(aligned);
     } else {
-      return getHugeRecyclerAtLeast(capacity);
+      return getHugeRecyclerAtLeast(aligned);
     }
   }
 
-  private Recycler<ByteBuffer> getRecycler(int capacity) {
+  private int getAtMostCapacity(int capacity) {
     if (capacity <= align) {
-      return getSmallRecycler(capacity);
+      return Integer.highestOneBit(capacity);
     } else if (capacity <= limit) {
-      return getAlignedRecycler(capacity);
+      return capacity - capacity % align;
     } else {
-      return getHugeRecycler(capacity);
+      return limit;
     }
   }
 
-  private Recycler<ByteBuffer> getSmallRecycler(int capacity) {
-    int index = getSmallBufferIndex(capacity);
-    int capacityAtLeast = getAtLeastCapacity(capacity);
+  private Recycler<ByteBuffer> getAtMostRecycler(int aligned) {
+    if (aligned <= align) {
+      return getSmallRecycler(aligned);
+    } else if (aligned <= limit) {
+      return getAlignedRecycler(aligned);
+    } else {
+      return getHugeRecycler(aligned);
+    }
+  }
+
+  private Recycler<ByteBuffer> getSmallRecycler(int aligned) {
+    int index = Integer.SIZE - Integer.numberOfLeadingZeros(aligned);
     return smallBuffers.updateAndGet(
-        index, old -> old == null ? createSmallRecycler(capacityAtLeast) : old);
+        index, old -> old == null ? createSmallRecycler(aligned) : old);
   }
 
-  private Recycler<ByteBuffer> getAlignedRecycler(int capacity) {
-    int index = getAlignedBufferIndex(capacity);
+  private Recycler<ByteBuffer> getAlignedRecycler(int aligned) {
+    int index = aligned / align;
     return alignedBuffers.computeIfAbsent(index, this::createAlignedRecycler);
   }
 

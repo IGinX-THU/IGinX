@@ -16,10 +16,14 @@
 
 package cn.edu.tsinghua.iginx.parquet.util.buffer;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Random;
 import org.junit.Test;
 
 public class RecyclePoolTest extends BufferPoolTest {
@@ -97,8 +101,23 @@ public class RecyclePoolTest extends BufferPoolTest {
   }
 
   @Test
-  public void testRecycleSequence() {
+  public void testExternRelease() {
     RecyclePool pool = new RecyclePool(new HeapPool(), 1024, 1024 * 1024);
+
+    pool.release(ByteBuffer.allocate(2000));
+    assertEquals(2001, assertAllocate(pool, 2001).limit());
+
+    ByteBuffer released = ByteBuffer.allocate(1000);
+    pool.release(released);
+    ByteBuffer allocated = assertAllocate(pool, 1001);
+    assertEquals(1001, allocated.limit());
+  }
+
+  @Test
+  public void testRecycleSequence() {
+
+    CounterPool internalPool = new CounterPool();
+    RecyclePool pool = new RecyclePool(internalPool, 1024, 1024 * 1024);
     List<Integer> capacities = new ArrayList<>();
     for (int capacity : getAllocateSequence()) {
       capacities.add(capacity);
@@ -107,19 +126,21 @@ public class RecyclePoolTest extends BufferPoolTest {
     List<ByteBuffer> buffers = new ArrayList<>();
     for (int capacity : capacities) {
       ByteBuffer buffer = assertAllocateOnly(pool, capacity);
-      buffer.putInt(capacity);
       buffers.add(buffer);
     }
     for (ByteBuffer buffer : buffers) {
       pool.release(buffer);
     }
 
+    int counter = internalPool.getCounter();
+
     Collections.shuffle(capacities);
 
     for (int capacity : capacities) {
       ByteBuffer buffer = assertAllocateOnly(pool, capacity);
       assertEquals(capacity, buffer.limit());
-      assertEquals(capacity, buffer.getInt());
     }
+
+    assert 2 * counter > internalPool.getCounter();
   }
 }
