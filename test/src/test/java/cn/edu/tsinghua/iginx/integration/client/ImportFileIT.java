@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.client;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.integration.tool.SQLExecutor;
 import cn.edu.tsinghua.iginx.session.Session;
