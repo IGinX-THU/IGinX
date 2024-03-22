@@ -18,8 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
 import java.util.ArrayList;
@@ -43,7 +42,7 @@ public class PostgreSQLSessionExample {
   private static final int INTERVAL = 10;
   private static Session session;
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
 
@@ -60,7 +59,7 @@ public class PostgreSQLSessionExample {
     session.closeSession();
   }
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+  private static void insertColumnRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -98,7 +97,7 @@ public class PostgreSQLSessionExample {
         paths, timestamps, valuesList, dataTypeList, null, TimePrecision.NS);
   }
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+  private static void insertRowRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -132,7 +131,7 @@ public class PostgreSQLSessionExample {
     session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void queryData() throws SessionException, ExecutionException {
+  private static void queryData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -146,7 +145,7 @@ public class PostgreSQLSessionExample {
     dataSet.print();
   }
 
-  private static void deleteDataInColumns() throws SessionException, ExecutionException {
+  private static void deleteDataInColumns() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);

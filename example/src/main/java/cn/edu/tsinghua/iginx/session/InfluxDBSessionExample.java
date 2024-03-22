@@ -18,8 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
@@ -43,7 +42,7 @@ public class InfluxDBSessionExample {
   private static final int INTERVAL = 10;
   private static Session session;
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -74,7 +73,7 @@ public class InfluxDBSessionExample {
     session.closeSession();
   }
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+  private static void insertColumnRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -111,7 +110,7 @@ public class InfluxDBSessionExample {
     session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedColumnRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -152,7 +151,7 @@ public class InfluxDBSessionExample {
     session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+  private static void insertRowRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -186,7 +185,7 @@ public class InfluxDBSessionExample {
     session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedRowRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -224,7 +223,7 @@ public class InfluxDBSessionExample {
     session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void queryData() throws SessionException, ExecutionException {
+  private static void queryData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -238,7 +237,7 @@ public class InfluxDBSessionExample {
     dataSet.print();
   }
 
-  //    private static void valueFilterQuery() throws SessionException, ExecutionException {
+  //    private static void valueFilterQuery() throws SessionException {
   //        List<String> paths = new ArrayList<>();
   //        paths.add(S1);
   //        paths.add(S2);
@@ -253,7 +252,7 @@ public class InfluxDBSessionExample {
   //        dataSet.print();
   //    }
 
-  private static void aggregateQuery() throws SessionException, ExecutionException {
+  private static void aggregateQuery() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -297,7 +296,7 @@ public class InfluxDBSessionExample {
     System.out.println("Aggregate Query Finished.");
   }
 
-  private static void lastQuery() throws SessionException, ExecutionException {
+  private static void lastQuery() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -308,7 +307,7 @@ public class InfluxDBSessionExample {
     dataSet.print();
   }
 
-  private static void downsampleQuery() throws SessionException, ExecutionException {
+  private static void downsampleQuery() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -356,7 +355,7 @@ public class InfluxDBSessionExample {
     System.out.println("Downsample Query Finished.");
   }
 
-  private static void deleteDataInColumns() throws SessionException, ExecutionException {
+  private static void deleteDataInColumns() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S3);

@@ -21,7 +21,7 @@ with io.open(os.path.join(this_directory, 'README.md'), 'r', encoding='utf-8') a
 
 setup(
     name='iginx-pyclient',
-    version='0.6.0',
+    version='0.6.1',
     include_package_data=True,
     packages=find_packages(),
     author='THU IGinX',
