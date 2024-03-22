@@ -276,15 +276,6 @@ public class SimplePolicy extends AbstractPolicy implements IPolicy {
     return new Pair<>(fragment, storageUnit);
   }
 
-//  private List<Long> generateStorageEngineIdList(int startIndex, int num) {
-//    List<Long> storageEngineIdList = new ArrayList<>();
-//    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
-//    for (int i = startIndex; i < startIndex + num; i++) {
-//      storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
-//    }
-//    return storageEngineIdList;
-//  }
-
   @Override
   public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
       DataStatement statement) {
@@ -405,14 +396,6 @@ public class SimplePolicy extends AbstractPolicy implements IPolicy {
     }
     Collections.reverse(ret);
     return ret;
-  }
-
-  public boolean isNeedReAllocate() {
-    return needReAllocate.getAndSet(false);
-  }
-
-  public void setNeedReAllocate(boolean needReAllocate) {
-    this.needReAllocate.set(needReAllocate);
   }
 
   public boolean checkSuccess(Map<String, Double> columnsData) {

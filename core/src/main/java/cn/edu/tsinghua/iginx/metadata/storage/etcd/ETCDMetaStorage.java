@@ -58,82 +58,8 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   private static final String STORAGE_UNIT_ID = "/id/storage_unit/";
 
-//  private static final String STORAGE_ENGINE_LOCK_NODE = "/lock/storage/";
-//
-//  private static final String STORAGE_UNIT_LOCK_NODE = "/lock/storage_unit/";
-//
-//  private static final String FRAGMENT_LOCK_NODE = "/lock/fragment/";
-
-//  private static final String USER_LOCK_NODE = "/lock/user/";
-//
-//  private static final String TRANSFORM_LOCK = "/lock/transform/";
-//
-//  private static final String RESHARD_STATUS_LOCK_NODE = "/lock/status/reshard";
-//
-//  private static final String RESHARD_COUNTER_LOCK_NODE = "/lock/counter/reshard";
-//
-//  private static final String ACTIVE_END_TIME_COUNTER_LOCK_NODE =
-//      "/lock/counter/end/time/active/max";
-//
-//  private static final String LATENCY_COUNTER_LOCK_NODE = "/lock/counter/latency";
-//
-//  private static final String FRAGMENT_HEAT_COUNTER_LOCK_NODE = "/lock/counter/fragment/heat";
-//
   private static final String FRAGMENT_REQUESTS_COUNTER_LOCK_NODE =
       "/lock/counter/fragment/requests";
-//
-//  private static final String TIMESERIES_HEAT_COUNTER_LOCK_NODE = "/lock/counter/timeseries/heat";
-
-//  private static final String SCHEMA_MAPPING_PREFIX = "/schema/";
-//
-//  private static final String IGINX_NODE_PREFIX = "/iginx/";
-
-//  private static final String STORAGE_ENGINE_NODE_PREFIX = "/storage/";
-//
-//  private static final String STORAGE_UNIT_NODE_PREFIX = "/storage_unit/";
-//
-//  private static final String FRAGMENT_NODE_PREFIX = "/fragment/";
-//
-//  private static final String USER_NODE_PREFIX = "/user/";
-//
-//  private static final String STATISTICS_FRAGMENT_POINTS_PREFIX = "/statistics/fragment/points";
-//
-//  private static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE =
-//      "/statistics/fragment/requests/write";
-//
-//  private static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ =
-//      "/statistics/fragment/requests/read";
-//
-//  private static final String STATISTICS_FRAGMENT_REQUESTS_COUNTER_PREFIX =
-//      "/statistics/fragment/requests/counter";
-//
-//  private static final String STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE =
-//      "/statistics/fragment/heat/write";
-//
-//  private static final String STATISTICS_FRAGMENT_HEAT_PREFIX_READ =
-//      "/statistics/fragment/heat/read";
-//
-//  private static final String STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX =
-//      "/statistics/fragment/heat/counter";
-//
-//  private static final String STATISTICS_TIMESERIES_HEAT_PREFIX = "/statistics/timeseries/heat";
-//
-//  private static final String STATISTICS_TIMESERIES_HEAT_COUNTER_PREFIX =
-//      "/statistics/timeseries/heat/counter";
-//
-//  private static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE =
-//      "/statistics/end/time/active/max/node";
-//
-//  private static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE_PREFIX =
-//      "/statistics/end/time/active/max";
-//
-//  private static final String RESHARD_STATUS_NODE_PREFIX = "/status/reshard";
-//
-//  private static final String RESHARD_COUNTER_NODE_PREFIX = "/counter/reshard";
-//
-//  private static final String TIMESERIES_NODE_PREFIX = "/timeseries";
-//
-//  private static final String TRANSFORM_PREFIX = "/transform/";
 
   private static final long MAX_LOCK_TIME = 30; // 最长锁住 30 秒
 
@@ -828,7 +754,9 @@ public class ETCDMetaStorage implements IMetaStorage {
     try {
       storageLeaseLock.lock();
       storageLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
-      client.getLockClient().lock(ByteSequence.from(STORAGE_ENGINE_LOCK_NODE.getBytes()), storageLease);
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(STORAGE_ENGINE_LOCK_NODE.getBytes()), storageLease);
     } catch (Exception e) {
       storageLeaseLock.unlock();
       throw new MetaStorageException("acquire storage mutex error: ", e);
@@ -880,7 +808,8 @@ public class ETCDMetaStorage implements IMetaStorage {
               .getKVClient()
               .put(
                   ByteSequence.from(
-                      generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id).getBytes()),
+                      generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id)
+                          .getBytes()),
                   ByteSequence.from(JsonUtils.toJson(storageEngine)))
               .get();
         }
@@ -906,7 +835,8 @@ public class ETCDMetaStorage implements IMetaStorage {
           .getKVClient()
           .put(
               ByteSequence.from(
-                  generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id).getBytes()),
+                  generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, id)
+                      .getBytes()),
               ByteSequence.from(JsonUtils.toJson(storageEngine)))
           .get();
     } catch (ExecutionException | InterruptedException e) {
@@ -928,7 +858,8 @@ public class ETCDMetaStorage implements IMetaStorage {
           .getKVClient()
           .delete(
               ByteSequence.from(
-                  generateID(STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
+                  generateID(
+                          STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
                       .getBytes()));
     } catch (Exception e) {
       logger.error("got error when removing dummy storage engine: {}", e.getMessage());
@@ -1198,7 +1129,8 @@ public class ETCDMetaStorage implements IMetaStorage {
       if (response.getKvs().isEmpty()) {
         client
             .getKVClient()
-            .delete(ByteSequence.from((FRAGMENT_NODE_PREFIX + columnsInterval.toString()).getBytes()));
+            .delete(
+                ByteSequence.from((FRAGMENT_NODE_PREFIX + columnsInterval.toString()).getBytes()));
       }
       client
           .getKVClient()
@@ -2230,7 +2162,9 @@ public class ETCDMetaStorage implements IMetaStorage {
     try {
       transformLeaseLock.lock();
       transformLease = client.getLeaseClient().grant(MAX_LOCK_TIME).get().getID();
-      client.getLockClient().lock(ByteSequence.from(TRANSFORM_LOCK_NODE.getBytes()), transformLease);
+      client
+          .getLockClient()
+          .lock(ByteSequence.from(TRANSFORM_LOCK_NODE.getBytes()), transformLease);
     } catch (Exception e) {
       transformLeaseLock.unlock();
       throw new MetaStorageException("acquire transform mutex error: ", e);

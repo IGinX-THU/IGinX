@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -61,7 +60,7 @@ public class DataUtils {
     return data;
   }
 
-  public static List<List<Object>> dataFromTable(Row row, List<String> paths) {
+  public static List<List<Object>> dataFromRow(Row row, List<String> paths) {
     List<Object> colNames = new ArrayList<>(Collections.singletonList("key"));
     List<Object> colTypes = new ArrayList<>(Collections.singletonList(DataType.LONG.toString()));
     List<Object> rowData = new ArrayList<>(Collections.singletonList(row.getKey()));
@@ -102,5 +101,4 @@ public class DataUtils {
 
     return data;
   }
-
 }

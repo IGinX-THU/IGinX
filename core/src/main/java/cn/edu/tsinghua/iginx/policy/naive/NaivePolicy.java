@@ -13,7 +13,6 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
@@ -23,8 +22,6 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
 
   private static final Logger logger = LoggerFactory.getLogger(NaivePolicy.class);
 
-//  protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
-//  private IMetaManager iMetaManager;
   private Sampler sampler;
 
   @Override
@@ -383,42 +380,23 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
 
     return new Pair<>(fragmentList, storageUnitList);
   }
-//
-//  private List<Long> generateStorageEngineIdList(int startIndex, int num) {
-//    List<Long> storageEngineIdList = new ArrayList<>();
-//    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
-//    for (int i = startIndex; i < startIndex + num; i++) {
-//      storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
-//    }
-//    return storageEngineIdList;
-//  }
-//
-//  public Pair<FragmentMeta, StorageUnitMeta>
-//      generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
-//          String startPath,
-//          String endPath,
-//          long startKey,
-//          long endKey,
-//          List<Long> storageEngineList) {
-//    String masterId = RandomStringUtils.randomAlphanumeric(16);
-//    StorageUnitMeta storageUnit =
-//        new StorageUnitMeta(masterId, storageEngineList.get(0), masterId, true);
-//    FragmentMeta fragment = new FragmentMeta(startPath, endPath, startKey, endKey, masterId);
-//    for (int i = 1; i < storageEngineList.size(); i++) {
-//      storageUnit.addReplica(
-//          new StorageUnitMeta(
-//              RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId, false));
-//    }
-//    return new Pair<>(fragment, storageUnit);
-//  }
-//
-//  @Override
-//  public boolean isNeedReAllocate() {
-//    return needReAllocate.getAndSet(false);
-//  }
-//
-//  @Override
-//  public void setNeedReAllocate(boolean needReAllocate) {
-//    this.needReAllocate.set(needReAllocate);
-//  }
+
+  public Pair<FragmentMeta, StorageUnitMeta>
+      generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
+          String startPath,
+          String endPath,
+          long startKey,
+          long endKey,
+          List<Long> storageEngineList) {
+    String masterId = RandomStringUtils.randomAlphanumeric(16);
+    StorageUnitMeta storageUnit =
+        new StorageUnitMeta(masterId, storageEngineList.get(0), masterId, true);
+    FragmentMeta fragment = new FragmentMeta(startPath, endPath, startKey, endKey, masterId);
+    for (int i = 1; i < storageEngineList.size(); i++) {
+      storageUnit.addReplica(
+          new StorageUnitMeta(
+              RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId, false));
+    }
+    return new Pair<>(fragment, storageUnit);
+  }
 }

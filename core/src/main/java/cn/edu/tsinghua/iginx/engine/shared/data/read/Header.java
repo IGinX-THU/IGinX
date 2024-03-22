@@ -157,7 +157,7 @@ public final class Header {
               if (StringUtils.match(field.getName(), oldPattern)) {
                 if (newPattern.endsWith("." + oldPattern)) {
                   String prefix =
-                          newPattern.substring(0, newPattern.length() - oldPattern.length());
+                      newPattern.substring(0, newPattern.length() - oldPattern.length());
                   alias = prefix + field.getName();
                 } else {
                   alias = newPattern;
@@ -180,7 +180,8 @@ public final class Header {
     List<Field> targetFields;
     Map<Integer, Integer> reorderMap;
 
-    public ReorderedHeaderWrapped(Header header, List<Field> targetFields, Map<Integer, Integer> reorderMap) {
+    public ReorderedHeaderWrapped(
+        Header header, List<Field> targetFields, Map<Integer, Integer> reorderMap) {
       this.header = header;
       this.targetFields = targetFields;
       this.reorderMap = reorderMap;
@@ -201,14 +202,16 @@ public final class Header {
 
   /**
    * 获取重新排序后的header和辅助结果，以排序数据本体
+   *
    * @param patterns 需要保留的列名或列名模式
    * @param isPyUDFList 指示每列是否是udf返回的，是则不排序
    * @return 排序后的ReorderedHeaderWrapped类，包含header（排序后）、targetFields（保留的列的列表）、reorderMap（保留列新索引：旧索引）
    */
-  public ReorderedHeaderWrapped reorderedHeaderWrapped(List<String> patterns, List<Boolean> isPyUDFList) {
+  public ReorderedHeaderWrapped reorderedHeaderWrapped(
+      List<String> patterns, List<Boolean> isPyUDFList) {
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
-    
+
     for (int index = 0; index < patterns.size(); index++) {
       String pattern = patterns.get(index);
       List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
@@ -233,10 +236,10 @@ public final class Header {
           matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
         }
         matchedFields.forEach(
-                pair -> {
-                  reorderMap.put(targetFields.size(), pair.getV());
-                  targetFields.add(pair.getK());
-                });
+            pair -> {
+              reorderMap.put(targetFields.size(), pair.getV());
+              targetFields.add(pair.getK());
+            });
       }
     }
 
@@ -245,6 +248,7 @@ public final class Header {
 
   /**
    * 获取重新排序后的header
+   *
    * @param patterns 需要保留的列名或列名模式
    * @param isPyUDFList 指示每列是否是udf返回的，是则不排序
    * @return 排序后的header

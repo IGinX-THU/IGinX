@@ -62,40 +62,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private static final String IGINX_LOCK_NODE = "/lock/iginx";
 
-//  private static final String STORAGE_ENGINE_LOCK_NODE = "/lock/storage";
-//
-//  private static final String FRAGMENT_LOCK_NODE = "/lock/fragment";
-//
-//  private static final String STORAGE_UNIT_LOCK_NODE = "/lock/unit";
-
   private static final String SCHEMA_MAPPING_LOCK_NODE = "/lock/schema";
-
-//  private static final String STORAGE_ENGINE_NODE_PREFIX = "/storage";
-//
-//  private static final String IGINX_NODE_PREFIX = "/iginx";
-//
-//  private static final String FRAGMENT_NODE_PREFIX = "/fragment";
-//
-//  private static final String STORAGE_UNIT_NODE_PREFIX = "/unit";
-//
-//  private static final String SCHEMA_MAPPING_PREFIX = "/schema";
-//
-//  private static final String USER_NODE_PREFIX = "/user";
-//
-//  private static final String USER_LOCK_NODE = "/lock/user";
-//
-//  private static final String RESHARD_STATUS_LOCK_NODE = "/lock/status/reshard";
-//
-//  private static final String RESHARD_COUNTER_LOCK_NODE = "/lock/counter/reshard";
-//
-//  private static final String ACTIVE_END_TIME_COUNTER_LOCK_NODE =
-//      "/lock/counter/end/time/active/max";
-//
-//  private static final String LATENCY_COUNTER_LOCK_NODE = "/lock/counter/latency";
-//
-//  private static final String FRAGMENT_HEAT_COUNTER_LOCK_NODE = "/lock/counter/fragment/heat";
-//
-//  private static final String TIMESERIES_HEAT_COUNTER_LOCK_NODE = "/lock/counter/timeseries/heat";
 
   private static final String POLICY_NODE_PREFIX = "/policy";
 
@@ -104,47 +71,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private static final String POLICY_VERSION = "/policy/version";
 
   private static final String POLICY_LOCK_NODE = "/lock/policy";
-
-//  private static final String STATISTICS_FRAGMENT_POINTS_PREFIX = "/statistics/fragment/points";
-//
-//  private static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE =
-//      "/statistics/fragment/requests/write";
-//
-//  private static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ =
-//      "/statistics/fragment/requests/read";
-//
-//  private static final String STATISTICS_FRAGMENT_REQUESTS_COUNTER_PREFIX =
-//      "/statistics/fragment/requests/counter";
-//
-//  private static final String STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE =
-//      "/statistics/fragment/heat/write";
-//
-//  private static final String STATISTICS_FRAGMENT_HEAT_PREFIX_READ =
-//      "/statistics/fragment/heat/read";
-//
-//  private static final String STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX =
-//      "/statistics/fragment/heat/counter";
-//
-//  private static final String STATISTICS_TIMESERIES_HEAT_PREFIX = "/statistics/timeseries/heat";
-//
-//  private static final String STATISTICS_TIMESERIES_HEAT_COUNTER_PREFIX =
-//      "/statistics/timeseries/heat/counter";
-//
-//  private static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE =
-//      "/statistics/end/time/active/max/node";
-//
-//  private static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE_PREFIX =
-//      "/statistics/end/time/active/max";
-//
-//  private static final String RESHARD_STATUS_NODE_PREFIX = "/status/reshard";
-//
-//  private static final String RESHARD_COUNTER_NODE_PREFIX = "/counter/reshard";
-//
-//  private static final String TIMESERIES_NODE_PREFIX = "/timeseries";
-//
-//  private static final String TRANSFORM_NODE_PREFIX = "/transform";
-//
-//  private static final String TRANSFORM_LOCK_NODE = "/lock/transform";
 
   private boolean isMaster = false;
 

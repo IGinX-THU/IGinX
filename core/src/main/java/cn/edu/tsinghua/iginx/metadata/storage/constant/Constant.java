@@ -19,33 +19,33 @@ public class Constant {
   public static final String STATISTICS_FRAGMENT_POINTS_PREFIX = "/statistics/fragment/points";
 
   public static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE =
-          "/statistics/fragment/requests/write";
+      "/statistics/fragment/requests/write";
 
   public static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ =
-          "/statistics/fragment/requests/read";
+      "/statistics/fragment/requests/read";
 
   public static final String STATISTICS_FRAGMENT_REQUESTS_COUNTER_PREFIX =
-          "/statistics/fragment/requests/counter";
+      "/statistics/fragment/requests/counter";
 
   public static final String STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE =
-          "/statistics/fragment/heat/write";
+      "/statistics/fragment/heat/write";
 
   public static final String STATISTICS_FRAGMENT_HEAT_PREFIX_READ =
-          "/statistics/fragment/heat/read";
+      "/statistics/fragment/heat/read";
 
   public static final String STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX =
-          "/statistics/fragment/heat/counter";
+      "/statistics/fragment/heat/counter";
 
   public static final String STATISTICS_TIMESERIES_HEAT_PREFIX = "/statistics/timeseries/heat";
 
   public static final String STATISTICS_TIMESERIES_HEAT_COUNTER_PREFIX =
-          "/statistics/timeseries/heat/counter";
+      "/statistics/timeseries/heat/counter";
 
   public static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE =
-          "/statistics/end/time/active/max/node";
+      "/statistics/end/time/active/max/node";
 
   public static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE_PREFIX =
-          "/statistics/end/time/active/max";
+      "/statistics/end/time/active/max";
 
   public static final String RESHARD_STATUS_NODE_PREFIX = "/status/reshard";
 
@@ -68,12 +68,11 @@ public class Constant {
   public static final String RESHARD_COUNTER_LOCK_NODE = "/lock/counter/reshard";
 
   public static final String ACTIVE_END_TIME_COUNTER_LOCK_NODE =
-          "/lock/counter/end/time/active/max";
+      "/lock/counter/end/time/active/max";
 
   public static final String LATENCY_COUNTER_LOCK_NODE = "/lock/counter/latency";
 
   public static final String FRAGMENT_HEAT_COUNTER_LOCK_NODE = "/lock/counter/fragment/heat";
 
   public static final String TIMESERIES_HEAT_COUNTER_LOCK_NODE = "/lock/counter/timeseries/heat";
-  
 }
