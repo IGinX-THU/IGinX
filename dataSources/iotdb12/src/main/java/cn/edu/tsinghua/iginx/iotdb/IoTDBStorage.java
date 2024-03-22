@@ -770,8 +770,7 @@ public class IoTDBStorage implements IStorage {
           logger.warn("encounter error when clear data: " + e.getMessage());
           if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
             return new TaskExecuteResult(
-                new IoTDBException(
-                    "execute clear data in iotdb12 failure", e));
+                new IoTDBException("execute clear data in iotdb12 failure", e));
           }
         }
       } else {
@@ -781,8 +780,7 @@ public class IoTDBStorage implements IStorage {
         } catch (PhysicalException e) {
           logger.warn("encounter error when delete path: " + e.getMessage());
           return new TaskExecuteResult(
-              new IoTDBException(
-                  "execute delete path task in iotdb11 failure", e));
+              new IoTDBException("execute delete path task in iotdb11 failure", e));
         }
         for (String path : deletedPaths) {
           try {
@@ -791,8 +789,7 @@ public class IoTDBStorage implements IStorage {
             logger.warn("encounter error when delete path: " + e.getMessage());
             if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
               return new TaskExecuteResult(
-                  new IoTDBException(
-                      "execute delete path task in iotdb12 failure", e));
+                  new IoTDBException("execute delete path task in iotdb12 failure", e));
             }
           }
         }
@@ -809,8 +806,7 @@ public class IoTDBStorage implements IStorage {
         logger.warn("encounter error when delete data: " + e.getMessage());
         if (!e.getMessage().contains(DOES_NOT_EXISTED)) {
           return new TaskExecuteResult(
-              new IoTDBException(
-                  "execute delete data task in iotdb12 failure", e));
+              new IoTDBException("execute delete data task in iotdb12 failure", e));
         }
       }
     }
