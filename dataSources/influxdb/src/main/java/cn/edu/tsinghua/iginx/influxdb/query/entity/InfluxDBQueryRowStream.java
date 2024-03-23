@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBQueryRowStream implements RowStream {
 
-  private static final Logger logger = LoggerFactory.getLogger(InfluxDBQueryRowStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDBQueryRowStream.class);
 
   private final Header header;
 
@@ -205,7 +205,7 @@ public class InfluxDBQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
 
     return cachedRow != null;
@@ -303,7 +303,7 @@ public class InfluxDBQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       throw new RowFetchException(e);
     }
   }

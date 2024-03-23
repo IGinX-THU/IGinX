@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DataPointsParser {
-  private static final Logger logger = LoggerFactory.getLogger(DataPointsParser.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DataPointsParser.class);
   private Reader inputStream = null;
   private final ObjectMapper mapper = new ObjectMapper();
   private List<Metric> metricList = new ArrayList<>();
@@ -53,7 +53,7 @@ public class DataPointsParser {
     try {
       session.openSession();
     } catch (SessionException e) {
-      logger.error("Error occurred during opening session", e);
+      LOGGER.error("Error occurred during opening session", e);
       throw e;
     }
     try {
@@ -66,13 +66,13 @@ public class DataPointsParser {
         metricList.add(getMetricObject(node));
       }
     } catch (Exception e) {
-      logger.error("Error occurred during parsing data ", e);
+      LOGGER.error("Error occurred during parsing data ", e);
       throw e;
     }
     try {
       sendMetricsData();
     } catch (Exception e) {
-      logger.debug("Exception occur for create and send ", e);
+      LOGGER.debug("Exception occur for create and send ", e);
       throw e;
     } finally {
       session.closeSession();
@@ -82,7 +82,7 @@ public class DataPointsParser {
   private boolean ifInputDataValid(JsonNode node) {
     String name = node.get("name").toString();
     if (!name.contains(".")) {
-      logger.error("The input path should contains at least second order path");
+      LOGGER.error("The input path should contains at least second order path");
       return false;
     }
     return true;
@@ -142,7 +142,7 @@ public class DataPointsParser {
       }
       return ret;
     } catch (Exception e) {
-      logger.error("Error occurred during parsing data ", e);
+      LOGGER.error("Error occurred during parsing data ", e);
       throw e;
     }
   }
@@ -152,7 +152,7 @@ public class DataPointsParser {
       session.openSession();
       sendMetricsData();
     } catch (Exception e) {
-      logger.error("Error occurred during sending data ", e);
+      LOGGER.error("Error occurred during sending data ", e);
     }
     session.closeSession();
   }
@@ -199,7 +199,7 @@ public class DataPointsParser {
         }
       }
     } catch (Exception e) {
-      logger.error("Error occurred during execution ", e);
+      LOGGER.error("Error occurred during execution ", e);
       return -1L;
     }
   }
@@ -230,7 +230,7 @@ public class DataPointsParser {
           null,
           TimePrecision.NS);
     } catch (SessionException e) {
-      logger.error("Error occurred during insert ", e);
+      LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
   }
@@ -259,7 +259,7 @@ public class DataPointsParser {
           null,
           TimePrecision.NS);
     } catch (SessionException e) {
-      logger.error("Error occurred during insert ", e);
+      LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
   }
@@ -310,7 +310,7 @@ public class DataPointsParser {
             tagsList,
             TimePrecision.NS);
       } catch (SessionException e) {
-        logger.error("Error occurred during insert ", e);
+        LOGGER.error("Error occurred during insert ", e);
         throw e;
       }
     } else {
@@ -348,7 +348,7 @@ public class DataPointsParser {
           insertAnno(paths, tagsList, metric.getAnno(), type.get(0));
         }
       } catch (StatementExecutionException e) {
-        logger.error("Error occurred during insert ", e);
+        LOGGER.error("Error occurred during insert ", e);
         throw e;
       }
     }
@@ -419,7 +419,7 @@ public class DataPointsParser {
         insertAnno(paths, taglist, metric.getAnno(), type.get(0));
       }
     } catch (StatementExecutionException e) {
-      logger.error("Error occurred during insert ", e);
+      LOGGER.error("Error occurred during insert ", e);
       throw e;
     }
   }
@@ -430,7 +430,7 @@ public class DataPointsParser {
     try {
       session.openSession();
     } catch (SessionException e) {
-      logger.error("Error occurred during opening session", e);
+      LOGGER.error("Error occurred during opening session", e);
       throw e;
     }
     try {
@@ -456,7 +456,7 @@ public class DataPointsParser {
         }
       }
     } catch (Exception e) {
-      logger.debug("Exception occur for create and send ", e);
+      LOGGER.debug("Exception occur for create and send ", e);
       throw e;
     } finally {
       session.closeSession();
@@ -487,7 +487,7 @@ public class DataPointsParser {
     try {
       session.openSession();
     } catch (SessionException e) {
-      logger.error("Error occurred during opening session", e);
+      LOGGER.error("Error occurred during opening session", e);
       throw e;
     }
     try {
@@ -511,7 +511,7 @@ public class DataPointsParser {
         }
       }
     } catch (Exception e) {
-      logger.debug("Exception occur for create and send ", e);
+      LOGGER.debug("Exception occur for create and send ", e);
       throw e;
     } finally {
       session.closeSession();

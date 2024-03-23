@@ -28,9 +28,9 @@ import org.slf4j.LoggerFactory;
 
 public class FilterFragmentOptimizer implements Optimizer {
 
-  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
+  private static final Logger LOGGER = LoggerFactory.getLogger(FilterFragmentOptimizer.class);
 
-  private static final Logger logger = LoggerFactory.getLogger(FilterFragmentOptimizer.class);
+  private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static FilterFragmentOptimizer instance;
 
@@ -70,7 +70,7 @@ public class FilterFragmentOptimizer implements Optimizer {
     OperatorUtils.findSelectOperators(selectOperatorList, root);
 
     if (selectOperatorList.isEmpty()) {
-      logger.info("There is no filter in logical tree.");
+      LOGGER.info("There is no filter in logical tree.");
       return root;
     }
 
@@ -83,7 +83,7 @@ public class FilterFragmentOptimizer implements Optimizer {
   private void filterFragmentByTimeRange(Select selectOperator) {
     List<String> pathList = OperatorUtils.findPathList(selectOperator);
     if (pathList.isEmpty()) {
-      logger.error("Can not find paths in select operator.");
+      LOGGER.error("Can not find paths in select operator.");
       return;
     }
 

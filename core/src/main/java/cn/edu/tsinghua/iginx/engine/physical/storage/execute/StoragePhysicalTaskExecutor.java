@@ -67,7 +67,7 @@ import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(StoragePhysicalTaskExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StoragePhysicalTaskExecutor.class);
 
   private static final StoragePhysicalTaskExecutor INSTANCE = new StoragePhysicalTaskExecutor();
 
@@ -91,7 +91,7 @@ public class StoragePhysicalTaskExecutor {
     StorageUnitHook storageUnitHook =
         (before, after) -> {
           if (before == null && after != null) { // 新增加 du，处理这种事件，其他事件暂时不处理
-            logger.info("new storage unit " + after.getId() + " come!");
+            LOGGER.info("new storage unit {} come!", after.getId());
             String id = after.getId();
             boolean isDummy = after.isDummy();
             if (storageTaskQueues.containsKey(id)) {
@@ -109,11 +109,11 @@ public class StoragePhysicalTaskExecutor {
                     Pair<IStorage, ThreadPoolExecutor> p = storageManager.getStorage(storageId);
                     while (p == null) {
                       p = storageManager.getStorage(storageId);
-                      logger.info("spinning for IStorage!");
+                      LOGGER.info("spinning for IStorage!");
                       try {
                         Thread.sleep(5);
                       } catch (InterruptedException e) {
-                        logger.error("encounter error when spinning: ", e);
+                        LOGGER.error("encounter error when spinning: ", e);
                       }
                     }
                     Pair<IStorage, ThreadPoolExecutor> pair = p;
@@ -127,10 +127,8 @@ public class StoragePhysicalTaskExecutor {
                         continue;
                       }
                       if (isCancelled(task.getSessionId())) {
-                        logger.warn(
-                            String.format(
-                                "StoragePhysicalTask[sessionId=%s] is cancelled.",
-                                task.getSessionId()));
+                        LOGGER.warn(
+                            "StoragePhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
                         continue;
                       }
                       pair.v.submit(
@@ -192,7 +190,7 @@ public class StoragePhysicalTaskExecutor {
                                               "unsupported physical task"));
                               }
                             } catch (Exception e) {
-                              logger.error("execute task error: ", e);
+                              LOGGER.error("execute task error: ", e);
                               result = new TaskExecuteResult(new PhysicalException(e));
                             }
                             try {
@@ -204,7 +202,7 @@ public class StoragePhysicalTaskExecutor {
                               RequestsMonitor.getInstance()
                                   .record(task.getTargetFragment(), task.getOperators().get(0));
                             } catch (Exception e) {
-                              logger.error("Monitor catch error:", e);
+                              LOGGER.error("Monitor catch error:", e);
                             }
                             long span = System.currentTimeMillis() - startTime;
                             task.setSpan(span);
@@ -220,7 +218,7 @@ public class StoragePhysicalTaskExecutor {
                             }
                             if (task.isNeedBroadcasting()) { // 需要传播
                               if (result.getException() != null) {
-                                logger.error(
+                                LOGGER.error(
                                     "task "
                                         + task
                                         + " will not broadcasting to replicas for the sake of exception: "
@@ -242,19 +240,19 @@ public class StoragePhysicalTaskExecutor {
                                       new StoragePhysicalTask(
                                           task.getOperators(), false, false, task.getContext());
                                   storageTaskQueues.get(replicaId).addTask(replicaTask);
-                                  logger.info("broadcasting task " + task + " to " + replicaId);
+                                  LOGGER.info("broadcasting task {} to {}", task, replicaId);
                                 }
                               }
                             }
                           });
                     }
                   } catch (Exception e) {
-                    logger.error(
+                    LOGGER.error(
                         "unexpected exception during dispatcher storage task, please contact developer to check: ",
                         e);
                   }
                 });
-            logger.info("process for new storage unit finished!");
+            LOGGER.info("process for new storage unit finished!");
           }
         };
     StorageEngineChangeHook storageEngineChangeHook =

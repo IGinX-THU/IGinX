@@ -49,6 +49,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OpenTSDBStorage implements IStorage {
+  private static final Logger LOGGER = LoggerFactory.getLogger(OpenTSDBStorage.class);
 
   private static final String DU_PREFIX = "unit";
 
@@ -59,8 +60,6 @@ public class OpenTSDBStorage implements IStorage {
   private final OpenTSDBClient client;
 
   private final StorageEngineMeta meta;
-
-  private static final Logger logger = LoggerFactory.getLogger(OpenTSDBStorage.class);
 
   public OpenTSDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
@@ -83,7 +82,7 @@ public class OpenTSDBStorage implements IStorage {
     } catch (IOReactorException e) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
-    logger.info(meta + " is initialized.");
+    LOGGER.info("{} is initialized.", meta);
   }
 
   private boolean testConnection() {
@@ -94,7 +93,7 @@ public class OpenTSDBStorage implements IStorage {
       OpenTSDBClient client = OpenTSDBClientFactory.connect(config);
       client.gracefulClose();
     } catch (IOException e) {
-      logger.error("test connection error: {}", e.getMessage());
+      LOGGER.error("test connection error: ", e);
       return false;
     }
     return true;
@@ -132,7 +131,7 @@ public class OpenTSDBStorage implements IStorage {
     try {
       schemas = determineDeletePathList(storageUnit, delete);
     } catch (PhysicalException e) {
-      logger.error("encounter error when delete data in opentsdb: ", e);
+      LOGGER.error("encounter error when delete data in opentsdb: ", e);
     }
     if (schemas == null || schemas.size() == 0) {
       return new TaskExecuteResult(null, null);
@@ -152,7 +151,7 @@ public class OpenTSDBStorage implements IStorage {
         try {
           client.delete(query);
         } catch (Exception e) {
-          logger.error("encounter error when delete data in opentsdb: ", e);
+          LOGGER.error("encounter error when delete data in opentsdb: ", e);
         }
       }
       return new TaskExecuteResult(null, null);
@@ -172,7 +171,7 @@ public class OpenTSDBStorage implements IStorage {
         try {
           client.delete(query);
         } catch (Exception e) {
-          logger.error("encounter error when delete data in opentsdb: ", e);
+          LOGGER.error("encounter error when delete data in opentsdb: ", e);
         }
       }
     }
@@ -290,12 +289,12 @@ public class OpenTSDBStorage implements IStorage {
     }
 
     try {
-      logger.info("开始数据写入");
+      LOGGER.info("开始数据写入");
       client.putSync(points);
     } catch (Exception e) {
-      logger.error("encounter error when write points to opentsdb: ", e);
+      LOGGER.error("encounter error when write points to opentsdb: ", e);
     } finally {
-      logger.info("数据写入完毕！");
+      LOGGER.info("数据写入完毕！");
     }
     return null;
   }
@@ -361,12 +360,12 @@ public class OpenTSDBStorage implements IStorage {
     }
 
     try {
-      logger.info("开始数据写入");
+      LOGGER.info("开始数据写入");
       client.putSync(points);
     } catch (Exception e) {
-      logger.error("encounter error when write points to opentsdb: ", e);
+      LOGGER.error("encounter error when write points to opentsdb: ", e);
     } finally {
-      logger.info("数据写入完毕！");
+      LOGGER.info("数据写入完毕！");
     }
     return null;
   }
@@ -599,12 +598,11 @@ public class OpenTSDBStorage implements IStorage {
     try {
       client.gracefulClose();
     } catch (IOException e) {
-      logger.error("can not close opentsdb gracefully, because " + e.getMessage());
+      LOGGER.error("can not close opentsdb gracefully, because ", e);
       try {
         client.forceClose();
       } catch (IOException ioException) {
-        throw new PhysicalTaskExecuteFailureException(
-            "can not close opentsdb, because " + e.getMessage());
+        throw new PhysicalTaskExecuteFailureException("can not close opentsdb, because ", e);
       }
     }
   }

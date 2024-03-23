@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 public class JsonPayloadFormatter implements IPayloadFormatter {
 
-  private static final Logger logger = LoggerFactory.getLogger(JsonPayloadFormatter.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(JsonPayloadFormatter.class);
 
   private static final String JSON_KEY_PATH = "path";
   private static final String JSON_KEY_TIMESTAMP = "timestamp";
@@ -39,7 +39,7 @@ public class JsonPayloadFormatter implements IPayloadFormatter {
   private static final String JSON_KEY_VALUE = "value";
 
   public JsonPayloadFormatter() {
-    logger.info("use JsonPayloadFormatter as mqtt message formatter.");
+    LOGGER.info("use JsonPayloadFormatter as mqtt message formatter.");
   }
 
   @Override
@@ -48,7 +48,7 @@ public class JsonPayloadFormatter implements IPayloadFormatter {
       return null;
     }
     String txt = payload.toString(StandardCharsets.UTF_8);
-    logger.info("receive message: " + txt);
+    LOGGER.info("receive message: {}", txt);
     JSONArray jsonArray = JSON.parseArray(txt);
     List<Message> messages = new ArrayList<>();
     for (int i = 0; i < jsonArray.size(); i++) {

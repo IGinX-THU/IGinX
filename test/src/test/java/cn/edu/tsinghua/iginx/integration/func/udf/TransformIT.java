@@ -51,7 +51,7 @@ import org.slf4j.LoggerFactory;
 
 public class TransformIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TransformIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformIT.class);
 
   private static Session session;
 
@@ -191,7 +191,7 @@ public class TransformIT {
   }
 
   private void verifyJobState(long jobId) throws SessionException, InterruptedException {
-    logger.info("job is {}", jobId);
+    LOGGER.info("job is {}", jobId);
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)
         && !jobState.equals(JobState.JOB_FAILED)
@@ -199,7 +199,7 @@ public class TransformIT {
       Thread.sleep(500);
       jobState = session.queryTransformJobStatus(jobId);
     }
-    logger.info("job {} state is {}", jobId, jobState.toString());
+    LOGGER.info("job {} state is {}", jobId, jobState.toString());
 
     if (!needCompareResult) {
       return;
@@ -212,7 +212,7 @@ public class TransformIT {
 
   @Test
   public void commitSingleSqlStatementTest() {
-    logger.info("commitSingleSqlStatementTest");
+    LOGGER.info("commitSingleSqlStatementTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
     TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
@@ -224,14 +224,14 @@ public class TransformIT {
 
       verifyJobState(jobId);
     } catch (SessionException | InterruptedException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitSingleSqlStatementByYamlTest() {
-    logger.info("commitSingleSqlStatementByYamlTest");
+    LOGGER.info("commitSingleSqlStatementByYamlTest");
     try {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatement.yaml";
       SessionExecuteSqlResult result =
@@ -240,14 +240,14 @@ public class TransformIT {
       long jobId = result.getJobId();
       verifyJobState(jobId);
     } catch (SessionException | InterruptedException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultipleSqlStatementsTest() {
-    logger.info("commitMultipleSqlStatementsTest");
+    LOGGER.info("commitMultipleSqlStatementsTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
     TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
@@ -274,14 +274,14 @@ public class TransformIT {
       verifyJobState(jobId);
       verifyMultipleSqlStatements(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultipleSqlStatementsByYamlTest() {
-    logger.info("commitMultipleSqlStatementsByYamlTest");
+    LOGGER.info("commitMultipleSqlStatementsByYamlTest");
     try {
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultipleSqlStatements.yaml";
@@ -294,7 +294,7 @@ public class TransformIT {
       verifyJobState(jobId);
       verifyMultipleSqlStatements(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -325,7 +325,7 @@ public class TransformIT {
 
   @Test
   public void commitSinglePythonJobTest() {
-    logger.info("commitSinglePythonJobTest");
+    LOGGER.info("commitSinglePythonJobTest");
     try {
       String task = "RowSumTransformer";
       registerTask(task);
@@ -348,14 +348,14 @@ public class TransformIT {
       verifyJobState(jobId);
       verifySinglePythonJob(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitSinglePythonJobByYamlTest() {
-    logger.info("commitSinglePythonJobByYamlTest");
+    LOGGER.info("commitSinglePythonJobByYamlTest");
     try {
       String task = "RowSumTransformer";
       registerTask(task);
@@ -370,7 +370,7 @@ public class TransformIT {
       verifyJobState(jobId);
       verifySinglePythonJob(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -401,7 +401,7 @@ public class TransformIT {
 
   @Test
   public void commitMultiplePythonJobsTest() {
-    logger.info("commitMultiplePythonJobsTest");
+    LOGGER.info("commitMultiplePythonJobsTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer"};
       for (String task : taskList) {
@@ -430,14 +430,14 @@ public class TransformIT {
       verifyJobState(jobId);
       verifyMultiplePythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultiplePythonJobsByYamlTest() {
-    logger.info("commitMultiplePythonJobsByYamlTest");
+    LOGGER.info("commitMultiplePythonJobsByYamlTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer"};
       for (String task : taskList) {
@@ -454,14 +454,14 @@ public class TransformIT {
       verifyJobState(jobId);
       verifyMultiplePythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultiplePythonJobsByYamlWithExportToIginxTest() {
-    logger.info("commitMultiplePythonJobsByYamlWithExportToIginxTest");
+    LOGGER.info("commitMultiplePythonJobsByYamlWithExportToIginxTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer"};
       for (String task : taskList) {
@@ -486,7 +486,7 @@ public class TransformIT {
 
       verifyMultiplePythonJobs(queryResult, timeIndex, sumIndex, 200);
     } catch (SessionException | InterruptedException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -529,7 +529,7 @@ public class TransformIT {
 
   @Test
   public void commitMixedPythonJobsTest() {
-    logger.info("commitMixedPythonJobsTest");
+    LOGGER.info("commitMixedPythonJobsTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
       for (String task : taskList) {
@@ -562,14 +562,14 @@ public class TransformIT {
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMixedPythonJobsByYamlTest() {
-    logger.info("commitMixedPythonJobsByYamlTest");
+    LOGGER.info("commitMixedPythonJobsByYamlTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
       for (String task : taskList) {
@@ -586,14 +586,14 @@ public class TransformIT {
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMixedPythonJobsByYamlWithRegisterTest() {
-    logger.info("commitMixedPythonJobsByYamlWithRegisterTest");
+    LOGGER.info("commitMixedPythonJobsByYamlWithRegisterTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
       for (String task : taskList) {
@@ -613,7 +613,7 @@ public class TransformIT {
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
     } catch (SessionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -640,7 +640,7 @@ public class TransformIT {
 
   //    @Test
   public void cancelJobTest() {
-    logger.info("cancelJobTest");
+    LOGGER.info("cancelJobTest");
     try {
       String task = "SleepTransformer";
       registerTask(task);
@@ -657,19 +657,19 @@ public class TransformIT {
       taskInfoList.add(sleepPyTask);
 
       long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
-      logger.info("job is {}", jobId);
+      LOGGER.info("job is {}", jobId);
       JobState jobState = session.queryTransformJobStatus(jobId);
-      logger.info("job {} state is {}", jobId, jobState.toString());
+      LOGGER.info("job {} state is {}", jobId, jobState.toString());
 
       session.cancelTransformJob(jobId);
       jobState = session.queryTransformJobStatus(jobId);
-      logger.info("After cancellation, job {} state is {}", jobId, jobState.toString());
+      LOGGER.info("After cancellation, job {} state is {}", jobId, jobState.toString());
       assertEquals(JobState.JOB_CLOSED, jobState);
 
       List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
       assertTrue(closedJobIds.contains(jobId));
     } catch (SessionException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }

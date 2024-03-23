@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class MigrationLogger {
 
-  private static final Logger logger = LoggerFactory.getLogger(MigrationLogger.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationLogger.class);
 
   public static final String MIGRATION_LOG_NAME = "migration.log";
   public static final String SOURCE_NAME = "migration-tasks";
@@ -24,7 +24,7 @@ public class MigrationLogger {
     try {
       logStream = new BufferedWriter(new FileWriter(MIGRATION_LOG_NAME));
     } catch (IOException e) {
-      logger.error("create log stream failed ", e);
+      LOGGER.error("create log stream failed ", e);
     }
   }
 
@@ -42,7 +42,7 @@ public class MigrationLogger {
       }
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 
@@ -51,7 +51,7 @@ public class MigrationLogger {
       logStream.write(MIGRATION_FINISHED);
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 
@@ -63,7 +63,7 @@ public class MigrationLogger {
       logStream.newLine();
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 
@@ -73,7 +73,7 @@ public class MigrationLogger {
       logStream.newLine();
       logStream.flush();
     } catch (IOException e) {
-      logger.error("write log failed ", e);
+      LOGGER.error("write log failed ", e);
     }
   }
 }

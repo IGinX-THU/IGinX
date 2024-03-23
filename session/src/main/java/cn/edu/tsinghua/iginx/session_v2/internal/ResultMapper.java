@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 public class ResultMapper {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(ResultMapper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ResultMapper.class);
 
   <T> T toPOJO(final IginXRecord record, final Class<T> clazz) {
     Arguments.checkNotNull(record, "record");

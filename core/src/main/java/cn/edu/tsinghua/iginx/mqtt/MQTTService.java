@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 public class MQTTService implements Runnable {
 
-  private static final Logger logger = LoggerFactory.getLogger(MQTTService.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MQTTService.class);
 
   private static MQTTService INSTANCE;
 
@@ -61,7 +61,7 @@ public class MQTTService implements Runnable {
 
     server.startServer(config, handlers, null, authenticator, null);
 
-    logger.info(
+    LOGGER.info(
         "Start MQTT service successfully, listening on ip {} port {}",
         iginxConfig.getMqttHost(),
         iginxConfig.getMqttPort());
@@ -70,9 +70,9 @@ public class MQTTService implements Runnable {
         .addShutdownHook(
             new Thread(
                 () -> {
-                  logger.info("Stopping IoTDB MQTT service...");
+                  LOGGER.info("Stopping IoTDB MQTT service...");
                   shutdown();
-                  logger.info("IoTDB MQTT service stopped.");
+                  LOGGER.info("IoTDB MQTT service stopped.");
                 }));
   }
 

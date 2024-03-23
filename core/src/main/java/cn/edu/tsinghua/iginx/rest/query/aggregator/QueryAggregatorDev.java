@@ -25,8 +25,12 @@ import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryAggregatorDev extends QueryAggregator {
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryAggregatorDev.class);
+
   public QueryAggregatorDev() {
     super(QueryAggregatorType.DEV);
   }
@@ -78,7 +82,7 @@ public class QueryAggregatorDev extends QueryAggregator {
           throw new Exception("Unsupported data type");
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return queryResultDataset;
   }

@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 public class PhysicalEngineImpl implements PhysicalEngine {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(PhysicalEngineImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PhysicalEngineImpl.class);
 
   private static final PhysicalEngineImpl INSTANCE = new PhysicalEngineImpl();
 

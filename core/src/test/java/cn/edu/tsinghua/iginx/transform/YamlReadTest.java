@@ -31,9 +31,9 @@ import org.slf4j.LoggerFactory;
 
 public class YamlReadTest {
 
-  final String filePath = "../example/src/main/resources/TransformJobExample.yaml";
+  private static final Logger LOGGER = LoggerFactory.getLogger(YamlReadTest.class);
 
-  private static final Logger logger = LoggerFactory.getLogger(YAMLReader.class);
+  final String filePath = "../example/src/main/resources/TransformJobExample.yaml";
 
   private static final String[] taskTypeArr = {"iginx", "python", "python", "python"};
 
@@ -76,7 +76,7 @@ public class YamlReadTest {
                 : String.join(" ", taskList.get(i).getSqlList()));
       }
     } catch (FileNotFoundException e) {
-      logger.error("Fail to close the file, path={}", filePath);
+      LOGGER.error("Fail to close the file, path={}", filePath);
     }
   }
 }

@@ -30,7 +30,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
 
   private static final long MAX_LOCK_TIME = 30; // 最长锁住 30 秒
 
-  private static final Logger logger = LoggerFactory.getLogger(ETCDSyncProtocolImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ETCDSyncProtocolImpl.class);
 
   private static final String PATH_SEPARATOR = "/";
 
@@ -139,7 +139,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                         case DELETE:
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -176,7 +176,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                       switch (event.getEventType()) {
                         case PUT:
                           if (event.getPrevKV().getVersion() != 0) { // update, unexpected
-                            logger.error("unexpected update for vote");
+                            LOGGER.error("unexpected update for vote");
                             break;
                           }
                           SyncVote vote =
@@ -190,7 +190,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
                           }
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -230,7 +230,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
         long lastCreateTime =
             Long.parseLong(new String(response.getKvs().get(0).getKey().getBytes()).split("_")[1]);
         if (lastCreateTime + MAX_NETWORK_LATENCY > createTime) {
-          logger.warn(
+          LOGGER.warn(
               "start protocol for " + category + "-" + key + " failure, due to repeated request");
           return false;
         }
@@ -254,7 +254,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
           .get();
       return true;
     } catch (Exception e) {
-      logger.error("start proposal failure: ", e);
+      LOGGER.error("start proposal failure: ", e);
       throw new NetworkException("start proposal failure: ", e);
     } finally {
       if (leaseId != -1L) {
@@ -263,7 +263,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
           client.getLockClient().unlock(ByteSequence.from(lockPath.getBytes())).get();
           client.getLeaseClient().revoke(leaseId).get();
         } catch (Exception e) {
-          logger.error("release lock failure: ", e);
+          LOGGER.error("release lock failure: ", e);
         }
       }
     }
@@ -276,7 +276,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
 
   @Override
   public void voteFor(String key, SyncVote vote) throws NetworkException, VoteExpiredException {
-    logger.info("vote for " + key + " from " + vote.getVoter());
+    LOGGER.info("vote for {} from {}", key, vote.getVoter());
     long voter = vote.getVoter();
     try {
       long createTime = 0L;
@@ -301,10 +301,10 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
               ByteSequence.from(JsonUtils.toJson(vote)))
           .get();
     } catch (VoteExpiredException e) {
-      logger.error("encounter execute error in vote: ", e);
+      LOGGER.error("encounter execute error in vote: ", e);
       throw e;
     } catch (Exception e) {
-      logger.error("vote for " + category + "-" + key + " failure: ", e);
+      LOGGER.error("vote for {}-{} failure: ", category, key, e);
       throw new NetworkException("vote failure: ", e);
     }
   }
@@ -355,7 +355,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
       voteListeners.remove(key).end(key);
       proposalLock.writeLock().unlock();
     } catch (Exception e) {
-      logger.error("end protocol for " + category + "-" + key + " failure: ", e);
+      LOGGER.error("end protocol for {}-{} failure: ", category, key, e);
       throw new NetworkException("end proposal failure: ", e);
     } finally {
       if (leaseId != -1L) {
@@ -364,7 +364,7 @@ public class ETCDSyncProtocolImpl implements SyncProtocol {
           client.getLockClient().unlock(ByteSequence.from(lockPath.getBytes())).get();
           client.getLeaseClient().revoke(leaseId).get();
         } catch (Exception e) {
-          logger.error("release lock failure: ", e);
+          LOGGER.error("release lock failure: ", e);
         }
       }
     }

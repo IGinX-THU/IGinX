@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 
 public class RemoveNotOptimizer implements Optimizer {
 
-  private static final Logger logger = LoggerFactory.getLogger(RemoveNotOptimizer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RemoveNotOptimizer.class);
 
   private static RemoveNotOptimizer instance;
 
@@ -41,7 +41,7 @@ public class RemoveNotOptimizer implements Optimizer {
     OperatorUtils.findSelectOperators(selectOperatorList, root);
 
     if (selectOperatorList.isEmpty()) {
-      logger.info("There is no filter in logical tree.");
+      LOGGER.info("There is no filter in logical tree.");
       return root;
     }
 

@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class IoTDBBeforeDilatationExample {
 
-  private static final Logger logger = LoggerFactory.getLogger(IoTDBBeforeDilatationExample.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IoTDBBeforeDilatationExample.class);
   private static final String COLUMN_D1_S1 = "sg.d1.s1";
   private static final String COLUMN_D2_S2 = "sg.d2.s2";
   private static final String COLUMN_D3_S3 = "sg.d3.s3";
@@ -76,7 +76,7 @@ public class IoTDBBeforeDilatationExample {
       session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
       Thread.sleep(1);
       if ((insertTimes - i + 1) % 100 == 0) {
-        logger.info("insert progress: " + (insertTimes - i + 1) + "/" + insertTimes + ".");
+        LOGGER.info("insert progress: {}/{}.", (insertTimes - i + 1), insertTimes);
       }
     }
   }

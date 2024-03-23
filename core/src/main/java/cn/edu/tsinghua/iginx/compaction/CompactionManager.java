@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class CompactionManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(CompactionManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CompactionManager.class);
 
   private static final List<Compaction> compactionList = new ArrayList<>();
 

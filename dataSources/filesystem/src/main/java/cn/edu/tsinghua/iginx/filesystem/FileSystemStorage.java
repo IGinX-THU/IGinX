@@ -49,7 +49,7 @@ import org.slf4j.LoggerFactory;
 
 public class FileSystemStorage implements IStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(FileSystemStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemStorage.class);
 
   private Executor executor;
 

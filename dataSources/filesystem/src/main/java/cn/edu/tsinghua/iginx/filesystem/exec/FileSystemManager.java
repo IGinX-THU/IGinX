@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
  */
 public class FileSystemManager {
 
-  private final Logger logger = LoggerFactory.getLogger(FileSystemManager.class);
+  private final Logger LOGGER = LoggerFactory.getLogger(FileSystemManager.class);
 
   private final IFileOperator fileOperator;
 
@@ -308,7 +308,7 @@ public class FileSystemManager {
     for (File file : files) {
       List<File> fileList = getFilesWithTagFilter(file, tagFilter, false);
       if (fileList.isEmpty()) {
-        logger.warn("cant trim the file that not exist!");
+        LOGGER.warn("cant trim the file that not exist!");
         continue;
       }
       for (File f : fileList) {
@@ -371,8 +371,7 @@ public class FileSystemManager {
             });
       }
     } catch (IOException e) {
-      logger.error(
-          "get associated files of {} failure: {}", file.getAbsolutePath(), e.getMessage());
+      LOGGER.error("get associated files of {} failure: ", file.getAbsolutePath(), e);
     }
     return associatedFiles;
   }
@@ -409,7 +408,7 @@ public class FileSystemManager {
             }
           });
     } catch (IOException e) {
-      logger.error("get all files of {} failure: {}", dir.getAbsolutePath(), e.getMessage());
+      LOGGER.error("get all files of {} failure: ", dir.getAbsolutePath(), e);
     }
     return res;
   }
@@ -418,7 +417,7 @@ public class FileSystemManager {
   public Pair<String, String> getBoundaryOfFiles(File dir) {
     File[] files = dir.listFiles();
     if (files == null || files.length == 0) {
-      logger.error("{} is empty", dir.getAbsolutePath());
+      LOGGER.error("{} is empty", dir.getAbsolutePath());
       return null;
     }
     Arrays.sort(files);
@@ -442,7 +441,7 @@ public class FileSystemManager {
       }
       return fileMeta;
     } catch (IOException e) {
-      logger.error("getFileMeta failure: {}", e.getMessage());
+      LOGGER.error("getFileMeta failure: ", e);
     }
     return null;
   }

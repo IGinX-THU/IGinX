@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public class ShowConfigStatement extends SystemStatement {
 
-  private static final Logger logger = LoggerFactory.getLogger(ShowConfigStatement.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ShowConfigStatement.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -49,11 +49,11 @@ public class ShowConfigStatement extends SystemStatement {
       ctx.setResult(result);
     } catch (NoSuchFieldException e) {
       String errMsg = String.format("no such field, field=%s", configName);
-      logger.error(errMsg);
+      LOGGER.error(errMsg);
       throw new StatementExecutionException(errMsg);
     } catch (IllegalAccessException e) {
       String errMsg = String.format("get config %s error", configName);
-      logger.error(errMsg);
+      LOGGER.error(errMsg);
       throw new StatementExecutionException(errMsg);
     }
   }

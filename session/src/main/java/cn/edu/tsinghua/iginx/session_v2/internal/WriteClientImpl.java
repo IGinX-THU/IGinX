@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 public class WriteClientImpl extends AbstractFunctionClient implements WriteClient {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(WriteClientImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WriteClientImpl.class);
 
   private final MeasurementMapper measurementMapper;
 

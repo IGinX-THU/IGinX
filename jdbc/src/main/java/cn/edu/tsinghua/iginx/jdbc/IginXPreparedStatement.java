@@ -35,13 +35,8 @@ public class IginXPreparedStatement extends IginXStatement implements PreparedSt
   }
 
   // Only for tests.
-  public String getCompleteSql() {
-    try {
-      return createCompleteSql(sql, params);
-    } catch (SQLException e) {
-      e.printStackTrace();
-      return "";
-    }
+  public String getCompleteSql() throws SQLException {
+    return createCompleteSql(sql, params);
   }
 
   private String createCompleteSql(final String sql, Map<Integer, String> parameters)

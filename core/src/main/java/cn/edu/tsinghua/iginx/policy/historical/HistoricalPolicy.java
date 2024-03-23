@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 // expectedStorageUnitNum=50
 public class HistoricalPolicy implements IPolicy {
 
-  private static final Logger logger = LoggerFactory.getLogger(HistoricalPolicy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HistoricalPolicy.class);
 
   protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
   private IMetaManager iMetaManager;
@@ -88,7 +88,7 @@ public class HistoricalPolicy implements IPolicy {
           && after.getCreatedBy() == iMetaManager.getIginxId()
           && after.isNeedReAllocate()) {
         needReAllocate.set(true);
-        logger.info("新的可写节点进入集群，集群需要重新分片");
+        LOGGER.info("新的可写节点进入集群，集群需要重新分片");
       }
       // TODO: 针对节点退出的情况缩容
     };

@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class ConfLoader {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConfLoader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfLoader.class);
 
   private static final String STORAGE_ENGINE_LIST = "storageEngineList";
 
@@ -45,7 +45,7 @@ public class ConfLoader {
 
   private void logInfo(String info, Object... args) {
     if (DEBUG) {
-      logger.info(info, args);
+      LOGGER.info(info, args);
     }
   }
 
@@ -111,7 +111,7 @@ public class ConfLoader {
       properties = new Properties();
       properties.load(in);
     } catch (IOException e) {
-      logger.error("load conf failure: {}", e.getMessage());
+      LOGGER.error("load conf failure: ", e);
       return dbConf;
     }
 

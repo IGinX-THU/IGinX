@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 @Data
 public class QueryResult {
-  public static final Logger logger = LoggerFactory.getLogger(QueryResult.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(QueryResult.class);
   private static final IMetaManager META_MANAGER = DefaultMetaManager.getInstance();
   private List<QueryMetric> queryMetrics = new ArrayList<>();
   private List<QueryResultDataset> queryResultDatasets = new ArrayList<>();

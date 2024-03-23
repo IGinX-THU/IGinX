@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class RemoteExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RemoteExecutor.class);
 
   private static final int SUCCESS_CODE = 200;
 
@@ -306,7 +306,7 @@ public class RemoteExecutor implements Executor {
         }
       default:
         {
-          logger.error("unknown tag filter type: {}", tagFilter.getType());
+          LOGGER.error("unknown tag filter type: {}", tagFilter.getType());
         }
     }
     return filter;

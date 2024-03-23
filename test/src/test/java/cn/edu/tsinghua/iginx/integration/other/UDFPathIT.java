@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class UDFPathIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(UDFPathIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UDFPathIT.class);
 
   private static Session session;
 

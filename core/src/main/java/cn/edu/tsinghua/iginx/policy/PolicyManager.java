@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 public class PolicyManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(PolicyManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PolicyManager.class);
 
   private static final PolicyManager instance = new PolicyManager();
 
@@ -39,7 +39,7 @@ public class PolicyManager {
             | IllegalAccessException
             | NoSuchMethodException
             | InvocationTargetException e) {
-          logger.error(e.getMessage());
+          LOGGER.error("Failed to load policy: {}", policyClassName, e);
         }
       }
     }

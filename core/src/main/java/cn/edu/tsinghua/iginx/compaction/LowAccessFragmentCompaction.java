@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 public class LowAccessFragmentCompaction extends Compaction {
 
-  private static final Logger logger = LoggerFactory.getLogger(LowAccessFragmentCompaction.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LowAccessFragmentCompaction.class);
 
   private List<List<FragmentMeta>> toCompactFragmentGroups;
 
@@ -67,7 +67,7 @@ public class LowAccessFragmentCompaction extends Compaction {
 
   @Override
   public void compact() throws Exception {
-    logger.info("start to compact low access fragments");
+    LOGGER.info("start to compact low access fragments");
     Map<FragmentMeta, Long> fragmentMetaPointsMap = metaManager.loadFragmentPoints();
     executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
   }
@@ -118,7 +118,7 @@ public class LowAccessFragmentCompaction extends Compaction {
 
         compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
       } else {
-        logger.info("fragmentGroup size = {}", fragmentGroup.size());
+        LOGGER.info("fragmentGroup size = {}", fragmentGroup.size());
       }
     }
   }

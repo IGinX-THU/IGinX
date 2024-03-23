@@ -53,7 +53,7 @@ public class TimescaleDBQueryRowStream implements RowStream {
         }
       }
     } catch (SQLException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
       // pass
     }
   }

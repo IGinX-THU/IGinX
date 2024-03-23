@@ -22,11 +22,12 @@ import org.slf4j.LoggerFactory;
 
 public class SimplePolicy implements IPolicy {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimplePolicy.class);
+
   protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
   private IMetaManager iMetaManager;
   private FragmentCreator fragmentCreator;
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static final Logger logger = LoggerFactory.getLogger(SimplePolicy.class);
 
   @Override
   public void notify(DataStatement statement) {
@@ -430,7 +431,7 @@ public class SimplePolicy implements IPolicy {
     List<Double> value = fragmentValue.values().stream().sorted().collect(Collectors.toList());
     int num = 0;
     for (Double v : value) {
-      logger.info("fragment value num : {}, value : {}", num++, v);
+      LOGGER.info("fragment value num : {}, value : {}", num++, v);
     }
     if (value.size() > 0) {
       return !(value.get(new Double(Math.ceil(value.size() - 1) * 0.9).intValue())

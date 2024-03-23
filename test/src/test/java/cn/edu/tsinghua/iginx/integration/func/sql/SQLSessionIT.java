@@ -46,7 +46,7 @@ public class SQLSessionIT {
   protected static String defaultTestPass = "root";
   protected static String runningEngine;
 
-  protected static final Logger logger = LoggerFactory.getLogger(SQLSessionIT.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(SQLSessionIT.class);
 
   protected static final boolean isOnWin =
       System.getProperty("os.name").toLowerCase().contains("win");
@@ -129,7 +129,7 @@ public class SQLSessionIT {
                     }
                   }));
     } else {
-      logger.error("isForSession=false, isForSessionPool=false");
+      LOGGER.error("isForSession=false, isForSessionPool=false");
       fail();
       return;
     }
@@ -5723,10 +5723,10 @@ public class SQLSessionIT {
     executor.executeAndCompare(explain, expected);
 
     explain = "explain physical select max(s2), min(s1) from us.d1;";
-    logger.info(executor.execute(explain));
+    LOGGER.info(executor.execute(explain));
 
     explain = "explain physical select s1 from us.d1 where s1 > 10 and s1 < 100;";
-    logger.info(executor.execute(explain));
+    LOGGER.info(executor.execute(explain));
   }
 
   @Test
@@ -6221,7 +6221,7 @@ public class SQLSessionIT {
     statement = "show rules;";
 
     String ruleBasedOptimizer = executor.execute("SHOW CONFIG \"ruleBasedOptimizer\";");
-    logger.info("testModifyRules: " + ruleBasedOptimizer);
+    LOGGER.info("testModifyRules: {}", ruleBasedOptimizer);
     // 2种情况不测试Config设置Rule的效果：
     // 1. 本地环境下FragmentPruningByFilterRule默认是开启的，不测试
     // 2. SessionPool测试在Session测试后，此时FragmentPruningByFilterRule已经被开启，不测试
@@ -6263,7 +6263,7 @@ public class SQLSessionIT {
   @Test
   public void testFilterPushDownExplain() {
     if (!isFilterPushDown) {
-      logger.info(
+      LOGGER.info(
           "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
       return;
     }
@@ -6518,19 +6518,19 @@ public class SQLSessionIT {
   public void testFilterFragmentOptimizer() {
     String policy = executor.execute("SHOW CONFIG \"policyClassName\";");
     if (!policy.contains("KeyRangeTestPolicy")) {
-      logger.info(
+      LOGGER.info(
           "Skip SQLSessionIT.testFilterFragmentOptimizer because policy is not KeyRangeTestPolicy");
       return;
     }
 
     if (isFilterPushDown) {
-      logger.info(
+      LOGGER.info(
           "Skip SQLSessionIT.testFilterFragmentOptimizer because optimizer is not remove_not,filter_fragment");
       return;
     }
 
     if (isScaling) {
-      logger.info("Skip SQLSessionIT.testFilterFragmentOptimizer because it is scaling test");
+      LOGGER.info("Skip SQLSessionIT.testFilterFragmentOptimizer because it is scaling test");
       return;
     }
 
@@ -6846,7 +6846,7 @@ public class SQLSessionIT {
   @Test
   public void testColumnPruningAndFragmentPruning() {
     if (isFilterPushDown || isScaling) {
-      logger.info(
+      LOGGER.info(
           "Skip SQLSessionIT.testColumnPruningAndFragmentPruning because scaling test or filter push down test");
       return;
     }

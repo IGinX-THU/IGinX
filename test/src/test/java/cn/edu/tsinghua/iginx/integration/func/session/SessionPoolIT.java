@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class SessionPoolIT extends SessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SessionPoolIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionPoolIT.class);
 
   // check in SessionIT for the initializations of MultiThreadTask before assignment
   private final int MaxMultiThreadTaskNum = 10;
@@ -28,7 +28,7 @@ public class SessionPoolIT extends SessionIT {
                   .build());
       session.openSession();
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
   }
 }

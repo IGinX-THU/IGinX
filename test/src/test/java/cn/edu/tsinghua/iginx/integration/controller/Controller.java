@@ -32,13 +32,11 @@ import org.slf4j.LoggerFactory;
 
 public class Controller {
 
-  private static final Logger logger = LoggerFactory.getLogger(Controller.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Controller.class);
 
   public static final String CLEAR_DATA = "CLEAR DATA;";
 
   public static final String CLEAR_DATA_WARNING = "clear data fail and go on...";
-
-  public static final String CLEAR_DATA_ERROR = "Statement: \"{}\" execute fail. Caused by: {}";
 
   public static final String CONFIG_FILE = "./src/test/resources/testConfig.properties";
 
@@ -91,11 +89,11 @@ public class Controller {
     clearData(session);
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     if (!conf.isScaling()) {
-      logger.info("Not the DBCE test, skip the clear history data step.");
+      LOGGER.info("Not the DBCE test, skip the clear history data step.");
     } else {
       BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
       if (generator == null) {
-        logger.error("clear data fail, caused by generator is null");
+        LOGGER.error("clear data fail, caused by generator is null");
         return;
       }
       generator.clearHistoryData();
@@ -112,15 +110,16 @@ public class Controller {
       res = session.executeSql(CLEAR_DATA);
     } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", CLEAR_DATA, e);
         fail();
       }
     }
 
     if (res != null && res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, res.getParseErrorMsg());
+      LOGGER.error(
+          "Statement: \"{}\" execute fail. Caused by: {}", CLEAR_DATA, res.getParseErrorMsg());
       fail();
     }
   }
@@ -131,7 +130,7 @@ public class Controller {
     try {
       return (BaseHistoryDataGenerator) Class.forName(instance).newInstance();
     } catch (InstantiationException | IllegalAccessException | ClassNotFoundException e) {
-      logger.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: ", e);
       fail();
     }
     return null;
@@ -153,10 +152,10 @@ public class Controller {
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
-      logger.info("skip the write history data step.");
+      LOGGER.info("skip the write history data step.");
       medium = pathList.size();
     } else {
-      logger.info("DBCE test, write history data.");
+      LOGGER.info("DBCE test, write history data.");
       boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
       boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
@@ -183,7 +182,7 @@ public class Controller {
               Collections.singletonList(tagsList.get(i)),
               type);
         } catch (SessionException e) {
-          logger.error("write data fail, caused by: {}", e.getMessage());
+          LOGGER.error("write data fail, caused by: ", e);
           fail();
         }
       } else {
@@ -203,7 +202,7 @@ public class Controller {
         List<List<Object>> rowValues = convertColumnsToRows(valuesList.get(i));
         BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
         if (generator == null) {
-          logger.error("write data fail, caused by generator is null");
+          LOGGER.error("write data fail, caused by generator is null");
           return;
         }
         if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
@@ -247,7 +246,7 @@ public class Controller {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     BaseHistoryDataGenerator generator = getCurrentGenerator(conf);
     if (generator == null) {
-      logger.error("write data fail, caused by generator is null");
+      LOGGER.error("write data fail, caused by generator is null");
       return;
     }
     if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
@@ -290,10 +289,10 @@ public class Controller {
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {
-      logger.info("skip the write history data step.");
+      LOGGER.info("skip the write history data step.");
       medium = keyList.size();
     } else {
-      logger.info("DBCE test, write history data.");
+      LOGGER.info("DBCE test, write history data.");
       boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
       boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
@@ -340,7 +339,7 @@ public class Controller {
           tagsList,
           type);
     } catch (SessionException e) {
-      logger.error("write data fail, caused by: {}", e.getMessage());
+      LOGGER.error("write data fail, caused by: ", e);
       fail();
     }
 
@@ -388,7 +387,7 @@ public class Controller {
                 dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
       } catch (SessionException e) {
         if (!e.getMessage().contains("repeatedly add storage engine")) {
-          logger.error("add embedded storage engine fail, caused by: {}", e.getMessage());
+          LOGGER.error("add embedded storage engine fail, caused by: ", e);
           fail();
         }
       }

@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public class IginXClientImpl implements IginXClient {
 
-  private static final Logger logger = LoggerFactory.getLogger(IginXClientImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IginXClientImpl.class);
 
   private final IService.Iface client;
 
@@ -149,7 +149,7 @@ public class IginXClientImpl implements IginXClient {
   @Override
   public synchronized void close() {
     if (isClosed) {
-      logger.warn("Client has been closed.");
+      LOGGER.warn("Client has been closed.");
       return;
     }
 
@@ -160,7 +160,7 @@ public class IginXClientImpl implements IginXClient {
               try {
                 resource.close();
               } catch (Exception e) {
-                logger.warn(String.format("Exception was thrown while closing: %s", resource), e);
+                LOGGER.warn("Exception was thrown while closing: {}", resource, e);
               }
             });
 

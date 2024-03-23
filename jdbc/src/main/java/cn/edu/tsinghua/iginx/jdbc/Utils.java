@@ -8,10 +8,13 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.DateTimeParseException;
 import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class Utils {
+  private static final Logger LOGGER = Logger.getLogger(Utils.class.getName());
 
   private static final Pattern URL_PATTERN = Pattern.compile("([^:]+):([0-9]{1,5})/?");
   private static final DateTimeFormatter milliSecFormatter =
@@ -85,7 +88,7 @@ public class Utils {
         try {
           return parseNanoSecTimestamp(timeStampStr);
         } catch (DateTimeParseException eee) {
-          eee.printStackTrace();
+          LOGGER.log(Level.SEVERE, "unexpected error: ", e);
         }
       }
     }

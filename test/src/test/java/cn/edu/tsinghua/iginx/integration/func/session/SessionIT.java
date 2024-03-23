@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 public class SessionIT extends BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SessionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionIT.class);
 
   protected StorageEngineType storageEngineType;
   protected int defaultPort2 = 6668;
@@ -165,7 +165,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (float) rawResult;
       } catch (Exception e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         fail();
       }
     }
@@ -180,7 +180,7 @@ public class SessionIT extends BaseSessionIT {
       try {
         result = (int) rawResult;
       } catch (Exception e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         fail();
       }
     }
@@ -706,7 +706,7 @@ public class SessionIT extends BaseSessionIT {
     try {
       insertFakeNumRecords(paths, count + KEY_PERIOD * 100);
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       isError = true;
     } finally {
       // assertTrue(isError);
@@ -1179,6 +1179,6 @@ public class SessionIT extends BaseSessionIT {
         }
       }
     }
-    logger.info("session test finished");
+    LOGGER.info("session test finished");
   }
 }

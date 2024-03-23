@@ -29,8 +29,12 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StorageEngineClassLoader extends ClassLoader {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(StorageEngineClassLoader.class);
 
   private final File[] Jars;
 
@@ -101,7 +105,7 @@ public class StorageEngineClassLoader extends ClassLoader {
         return defineClass(name, b, 0, b.length);
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return null;
   }
@@ -123,7 +127,7 @@ public class StorageEngineClassLoader extends ClassLoader {
           return new URL("jar:" + jar.toURI().toURL().toString() + "!/" + name);
         }
       } catch (IOException e) {
-        e.printStackTrace();
+        LOGGER.error("unexpected error: ", e);
       }
     }
     return null;

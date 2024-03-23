@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class FilterPushDownOptimizer implements Optimizer {
 
-  private static final Logger logger = LoggerFactory.getLogger(FilterPushDownOptimizer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FilterPushDownOptimizer.class);
 
   private static FilterPushDownOptimizer instance;
 
@@ -47,7 +47,7 @@ public class FilterPushDownOptimizer implements Optimizer {
     OperatorUtils.findSelectOperators(selectOperatorList, root);
 
     if (selectOperatorList.isEmpty()) {
-      logger.info("There is no filter in logical tree.");
+      LOGGER.info("There is no filter in logical tree.");
       return root;
     }
 
@@ -63,7 +63,7 @@ public class FilterPushDownOptimizer implements Optimizer {
     findProjectUpperFragment(projectAndFatherOperatorList, stack, selectOperator);
 
     if (projectAndFatherOperatorList.size() == 0) {
-      logger.error("There is no project operator just upper fragment in select tree.");
+      LOGGER.error("There is no project operator just upper fragment in select tree.");
       return;
     }
 

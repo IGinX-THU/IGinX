@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
     implements IExecuteStatisticsCollector {
 
-  private static final Logger logger = LoggerFactory.getLogger(ExecuteStatisticsCollector.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExecuteStatisticsCollector.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
   private final Map<StatementType, Pair<Long, Long>> detailInfos = new HashMap<>();
   private long count = 0;
@@ -55,13 +55,13 @@ public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
   @Override
   public void broadcastStatistics() {
     lock.readLock().lock();
-    logger.info("Execute Stage Statistics Info: ");
-    logger.info("\tcount: " + count + ", span: " + span + "μs");
+    LOGGER.info("Execute Stage Statistics Info: ");
+    LOGGER.info("\tcount: {}, span: {}μs", count, span);
     if (count != 0) {
-      logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
+      LOGGER.info("\taverage-span: {}μs", (1.0 * span) / count);
     }
     for (Map.Entry<StatementType, Pair<Long, Long>> entry : detailInfos.entrySet()) {
-      logger.info(
+      LOGGER.info(
           "\t\tFor Request: "
               + entry.getKey()
               + ", count: "
@@ -70,8 +70,8 @@ public class ExecuteStatisticsCollector extends AbstractStageStatisticsCollector
               + entry.getValue().v
               + "μs");
     }
-    logger.info("\ttotal insert points: " + insertPoints);
-    logger.info("\ttotal query points: " + queryPoints);
+    LOGGER.info("\ttotal insert points: {}", insertPoints);
+    LOGGER.info("\ttotal query points: {}", queryPoints);
     lock.readLock().unlock();
   }
 
