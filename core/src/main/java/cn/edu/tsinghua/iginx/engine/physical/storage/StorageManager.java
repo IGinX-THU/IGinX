@@ -204,6 +204,19 @@ public class StorageManager {
     if (!isEmbeddedStorageEngine(engine)) {
       return null;
     }
+    return createStorageInstance(meta);
+  }
+
+  public IStorage initRemoteStorage(StorageEngineMeta meta) {
+    StorageEngineType engine = meta.getStorageEngine();
+    if (isEmbeddedStorageEngine(engine)) {
+      return null;
+    }
+    return createStorageInstance(meta);
+  }
+
+  private IStorage createStorageInstance(StorageEngineMeta meta) {
+    StorageEngineType engine = meta.getStorageEngine();
     String driver = drivers.get(engine);
     ClassLoader loader = classLoaders.get(engine);
     try {
