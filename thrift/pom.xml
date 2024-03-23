@@ -13,19 +13,6 @@
     <artifactId>iginx-thrift</artifactId>
     <name>IGinX Thrift</name>
 
-    <distributionManagement>
-        <repository>
-            <id>local-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-repo</url>
-        </repository>
-        <snapshotRepository>
-            <id>local-snapshot-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-snapshot-repo</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <thrift.version>0.16.0</thrift.version>
