@@ -29,10 +29,11 @@ if __name__ == '__main__':
     try:
         session.batch_delete_time_series(["*"])
 
-        # 查询删除全部后剩余的    数据
+        # 查询删除全部后剩余的数据
         dataset = session.query(["*"], 0, 10)
         print(dataset)
 
         session.close()
     except Exception as e:
         print(e)
+        exit(1)

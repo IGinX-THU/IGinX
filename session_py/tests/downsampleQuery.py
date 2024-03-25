@@ -31,8 +31,9 @@ if __name__ == '__main__':
 
     try:
         dataset = session.downsample_query(["*"], start_time=0, end_time=10, type=AggregateType.COUNT, precision=3)
+        print(dataset)
     except Exception as e:
         print(e)
-    print(dataset)
+        exit(1)
 
     session.close()

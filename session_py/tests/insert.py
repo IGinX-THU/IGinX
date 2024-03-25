@@ -25,53 +25,57 @@ from iginx.iginx_pyclient.thrift.rpc.ttypes import DataType
 
 
 if __name__ == '__main__':
-    session = Session('127.0.0.1', 6888, "root", "root")
-    session.open()
+    try:
+        session = Session('127.0.0.1', 6888, "root", "root")
+        session.open()
 
-    # 写入数据
-    paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
-    timestamps = [5, 6, 7]
-    values_list = [
-        [None, None, 'a', 'b'],
-        ['b', None, None, None],
-        ['R', 'E', 'W', 'Q']
-    ]
-    data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
-    session.insert_row_records(paths, timestamps, values_list, data_type_list)
-    # 查询写入的数据
-    dataset = session.query(["a.*"], 0, 10)
-    print(dataset)
+        # 写入数据
+        paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
+        timestamps = [5, 6, 7]
+        values_list = [
+            [None, None, 'a', 'b'],
+            ['b', None, None, None],
+            ['R', 'E', 'W', 'Q']
+        ]
+        data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
+        session.insert_row_records(paths, timestamps, values_list, data_type_list)
+        # 查询写入的数据
+        dataset = session.query(["a.*"], 0, 10)
+        print(dataset)
 
-    paths = ["a.a.a", "a.a.b", "a.b.b"]
-    timestamps = [8, 9]
-    values_list = [
-        [None, None, 'b'],
-        ['b', None, None]
-    ]
-    data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY]
-    session.insert_non_aligned_row_records(paths, timestamps, values_list, data_type_list)
-    # 查询写入的数据
-    dataset = session.query(["a.*"], 0, 10)
-    print(dataset)
+        paths = ["a.a.a", "a.a.b", "a.b.b"]
+        timestamps = [8, 9]
+        values_list = [
+            [None, None, 'b'],
+            ['b', None, None]
+        ]
+        data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY]
+        session.insert_non_aligned_row_records(paths, timestamps, values_list, data_type_list)
+        # 查询写入的数据
+        dataset = session.query(["a.*"], 0, 10)
+        print(dataset)
 
-    # 插入列
-    paths = ["a.b.c"]
-    timestamps = [6]
-    values_list = [[1]]
-    data_type_list = [DataType.INTEGER]
-    session.insert_column_records(paths, timestamps, values_list, data_type_list)
-    # 查询写入的数据
-    dataset = session.query(["a.*"], 0, 10)
-    print(dataset)
+        # 插入列
+        paths = ["a.b.c"]
+        timestamps = [6]
+        values_list = [[1]]
+        data_type_list = [DataType.INTEGER]
+        session.insert_column_records(paths, timestamps, values_list, data_type_list)
+        # 查询写入的数据
+        dataset = session.query(["a.*"], 0, 10)
+        print(dataset)
 
-    # 插入列
-    paths = ["a.b.c"]
-    timestamps = [5]
-    values_list = [[1]]
-    data_type_list = [DataType.INTEGER]
-    session.insert_non_aligned_column_records(paths, timestamps, values_list, data_type_list)
-    # 查询写入的数据
-    dataset = session.query(["a.*"], 0, 10)
-    print(dataset)
+        # 插入列
+        paths = ["a.b.c"]
+        timestamps = [5]
+        values_list = [[1]]
+        data_type_list = [DataType.INTEGER]
+        session.insert_non_aligned_column_records(paths, timestamps, values_list, data_type_list)
+        # 查询写入的数据
+        dataset = session.query(["a.*"], 0, 10)
+        print(dataset)
 
-    session.close()
+        session.close()
+    except Exception as e:
+        print(e)
+        exit(1)

@@ -117,7 +117,12 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
             insertStr.append("(");
             for (Integer index : item.getValue()) {
               if (dataTypeList.get(index) == DataType.BINARY) {
-                insertStr.append("'").append(new String((byte[]) values.get(index))).append("'");
+                if (values.get(index) == null) {
+                  insertStr.append("NULL");
+                } else {
+                  insertStr.append("'").append(new String((byte[]) values.get(index))).append("'");
+                }
+                // insertStr.append("'").append(new String((byte[]) values.get(index))).append("'");
               } else {
                 insertStr.append(values.get(index));
               }

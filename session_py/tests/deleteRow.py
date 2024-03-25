@@ -44,3 +44,4 @@ if __name__ == '__main__':
         session.close()
     except Exception as e:
         print(e)
+        exit(1)
