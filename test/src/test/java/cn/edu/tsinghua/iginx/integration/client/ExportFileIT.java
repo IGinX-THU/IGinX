@@ -16,6 +16,12 @@ public class ExportFileIT {
   @Test
   public void checkExportByteStream() {
     Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream");
+    checkFiles(dir);
+    dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream", "export");
+    checkFiles(dir);
+  }
+
+  public void checkFiles(Path dir) {
     File dirFile = dir.toFile();
 
     assertTrue(dirFile.exists());

@@ -30,6 +30,15 @@ bash -c "sleep 10"
 
 bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMAND'"
 
+# add exported dir as dummy fs storge, then test export
+bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteStream,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteStream.*;'"
+
+bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e 'select * from byteStream into outfile "'"test/src/test/resources/fileReadAndWrite/byteStream/export"'" as stream;'"
+
+bash -c "ls test/src/test/resources/fileReadAndWrite/byteStream/export"
+
+bash -c "ls test/src/test/resources/fileReadAndWrite/byteStream/export/test"
+
 db_name=$1
 
 # 只测FileSystem和Parquet
