@@ -52,7 +52,7 @@ public class FileUtils {
   // swap two char in string
   public static String swapChar(String str, char a, char b) {
     StringBuilder sb = new StringBuilder();
-    for (int i = 0; i<str.length(); i++) {
+    for (int i = 0; i < str.length(); i++) {
       if (str.charAt(i) == a) {
         sb.append(b);
       } else if (str.charAt(i) == b) {
