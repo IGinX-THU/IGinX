@@ -16,39 +16,29 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.exception;
 
-public enum StatusCode {
-  WRONG_USERNAME_OR_PASSWORD(100),
-  ACCESS_DENY(101),
+public class IginxException extends Exception {
 
-  SUCCESS_STATUS(200),
-  PARTIAL_SUCCESS(204),
+  private static final long serialVersionUID = -1355829042896588219L;
+  protected int errorCode;
 
-  REDIRECT(300),
-
-  SESSION_ERROR(400),
-  STATEMENT_EXECUTION_ERROR(401),
-  STATEMENT_PARSE_ERROR(402),
-
-  SYSTEM_ERROR(500),
-  SERVICE_UNAVAILABLE(503),
-
-  JOB_FINISHED(600),
-  JOB_CREATED(601),
-  JOB_RUNNING(602),
-  JOB_FAILING(603),
-  JOB_FAILED(604),
-  JOB_CLOSING(605),
-  JOB_CLOSED(606);
-
-  private int statusCode;
-
-  StatusCode(int statusCode) {
-    this.statusCode = statusCode;
+  public IginxException(String message, int errorCode) {
+    super(message);
+    this.errorCode = errorCode;
   }
 
-  public int getStatusCode() {
-    return statusCode;
+  public IginxException(String message, Throwable cause, int errorCode) {
+    super(message, cause);
+    this.errorCode = errorCode;
+  }
+
+  public IginxException(Throwable cause, int errorCode) {
+    super(cause);
+    this.errorCode = errorCode;
+  }
+
+  public int getErrorCode() {
+    return errorCode;
   }
 }

@@ -8,7 +8,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.ShowRulesReq;
 import cn.edu.tsinghua.iginx.thrift.ShowRulesResp;
@@ -24,7 +24,7 @@ public class ShowRulesStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     ShowRulesReq req = new ShowRulesReq(ctx.getSessionId());
     ShowRulesResp resp = worker.showRules(req);
     Map<String, Boolean> rules = resp.getRules();

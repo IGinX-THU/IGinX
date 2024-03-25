@@ -16,7 +16,7 @@
 
 package cn.edu.tsinghua.iginx.engine.physical.exception;
 
-import cn.edu.tsinghua.iginx.exceptions.IginxRuntimeException;
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 
 public class PhysicalRuntimeException extends IginxRuntimeException {
 
