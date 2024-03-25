@@ -32,6 +32,10 @@ bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMA
 
 # add exported dir as dummy fs storge, then test export
 bash -c "cp -r test/src/test/resources/fileReadAndWrite/byteStream/* test/src/test/resources/fileReadAndWrite/byteDummy"
+# add extension to filename
+for file in test/src/test/resources/fileReadAndWrite/byteDummy/*; do
+    mv "$file" "${file}.ext"
+done
 
 bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteDummy.*;'"
 
