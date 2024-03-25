@@ -5,9 +5,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
-import cn.edu.tsinghua.iginx.mongodb.MongoDBStorage;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import com.mongodb.client.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import org.bson.BsonDocument;
 import org.bson.BsonInt32;
 import org.bson.BsonValue;
@@ -23,40 +25,22 @@ public class DummyQuery {
   }
 
   public RowStream query(List<String> patterns, Filter filter) {
-    PathTree pathTree = new PathTree();
-    if (patterns != null) {
-      for (String pattern : patterns) {
-        pathTree.put(Arrays.stream(pattern.split("\\.")).iterator());
-      }
-    }
+    PathTree pathTree = PathTree.of(patterns);
 
-    Map<String, PathTree> trees = getDatabaseTrees(pathTree);
+    Map<String, PathTree> trees = QueryUtils.getDatabaseTrees(client, pathTree);
+    Map<MongoDatabase, Pair<PathTree, Filter>> getDatabaseQueryArgs =
+        QueryUtils.getDatabaseQueryArgs(this.client, trees, filter);
+
     List<ResultTable> tables = new ArrayList<>();
-    for (Map.Entry<String, PathTree> tree : trees.entrySet()) {
-      String dbName = tree.getKey();
-      Filter predicateFilter = FilterUtils.EMTPY_FILTER;
-      if (trees.size() == 1) {
-        try {
-          predicateFilter = FilterUtils.removeSamePrefix(filter, dbName);
-        } catch (Exception ignored) {
-        }
-      }
-      MongoDatabase db = this.client.getDatabase(dbName);
-      List<ResultTable> dbResultList =
-          new DatabaseQuery(db).query(tree.getValue(), predicateFilter);
+    for (Map.Entry<MongoDatabase, Pair<PathTree, Filter>> args : getDatabaseQueryArgs.entrySet()) {
+      MongoDatabase db = args.getKey();
+      PathTree subtree = args.getValue().getK();
+      Filter predicateFilter = args.getValue().getV();
+      List<ResultTable> dbResultList = new DatabaseQuery(db).query(subtree, predicateFilter);
       tables.addAll(dbResultList);
     }
 
     return new QueryRowStream(tables, filter);
-  }
-
-  private Map<String, PathTree> getDatabaseTrees(PathTree pathTree) {
-    if (pathTree.hasWildcardChild()) {
-      List<String> names = MongoDBStorage.getDatabaseNames(this.client);
-      pathTree.eliminateWildcardChild(names);
-    }
-
-    return pathTree.getChildren();
   }
 
   private static class DatabaseQuery {
@@ -67,35 +51,20 @@ public class DummyQuery {
     }
 
     public List<ResultTable> query(PathTree pathTree, Filter filter) {
-      Map<String, PathTree> trees = getCollectionTrees(pathTree);
+      Map<String, PathTree> trees = QueryUtils.getCollectionTrees(database, pathTree);
+      Map<MongoCollection<BsonDocument>, Pair<PathTree, Filter>> collQueryArgs =
+          QueryUtils.getCollectionsQueryArgs(database, trees, filter);
 
       List<ResultTable> resultList = new ArrayList<>();
-      for (Map.Entry<String, PathTree> tree : trees.entrySet()) {
-        String collName = tree.getKey();
-        Filter predicateFilter = FilterUtils.EMTPY_FILTER;
-        if (trees.size() == 1) {
-          try {
-            predicateFilter = FilterUtils.removeSamePrefix(filter, collName);
-          } catch (Exception ignored) {
-          }
-        }
-        MongoCollection<BsonDocument> collection =
-            this.database.getCollection(collName, BsonDocument.class);
-        ResultTable dbResultList =
-            new CollectionQuery(collection).query(tree.getValue(), predicateFilter);
+      for (Map.Entry<MongoCollection<BsonDocument>, Pair<PathTree, Filter>> args :
+          collQueryArgs.entrySet()) {
+        MongoCollection<BsonDocument> collection = args.getKey();
+        PathTree tree = args.getValue().getK();
+        Filter predicateFilter = args.getValue().getV();
+        ResultTable dbResultList = new CollectionQuery(collection).query(tree, predicateFilter);
         resultList.add(dbResultList);
       }
-
       return resultList;
-    }
-
-    private Map<String, PathTree> getCollectionTrees(PathTree pathTree) {
-      if (pathTree.hasWildcardChild()) {
-        List<String> names = this.database.listCollectionNames().into(new ArrayList<>());
-        pathTree.eliminateWildcardChild(names);
-      }
-
-      return pathTree.getChildren();
     }
   }
 
@@ -127,7 +96,7 @@ public class DummyQuery {
               this.collection.getNamespace().getDatabaseName(),
               this.collection.getNamespace().getCollectionName(),
             };
-        return builder.build(prefixes);
+        return builder.build(prefixes, null);
       }
     }
 

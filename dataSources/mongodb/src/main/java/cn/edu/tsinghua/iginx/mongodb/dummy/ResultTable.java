@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.*;
 import org.bson.BsonArray;
 import org.bson.BsonDocument;
@@ -21,15 +22,24 @@ class ResultTable {
 
     private final Map<List<String>, ResultColumn.Builder> builders = new HashMap<>();
 
-    ResultTable build(String[] prefix) {
+    ResultTable build(String[] prefix, Map<String, DataType> schema) {
       Map<String, ResultColumn> columns = new TreeMap<>();
       for (Map.Entry<List<String>, ResultColumn.Builder> columnBuilder : builders.entrySet()) {
         String path = String.join(".", columnBuilder.getKey());
+        ResultColumn.Builder builder = columnBuilder.getValue();
+
+        if (schema != null) {
+          DataType type = schema.get(path);
+          if (type == null) {
+            continue;
+          }
+          builder.setType(type);
+        }
+
         if (prefix.length > 0) {
           path = String.join(".", prefix) + "." + path;
         }
-        ResultColumn column = columnBuilder.getValue().build();
-        columns.put(path, column);
+        columns.put(path, builder.build());
       }
       return new ResultTable(columns);
     }
@@ -71,7 +81,7 @@ class ResultTable {
 
         PathTree subTree = new PathTree();
         if (tree.getChildren().containsKey(null)) {
-          subTree.put(null, tree);
+          subTree.put(null, tree.getChildren().get(null));
           subTree.put(tree.getChildren().get(null));
         }
         if (tree.getChildren().containsKey(node)) {
