@@ -2,13 +2,11 @@ package cn.edu.tsinghua.iginx.postgresql.query.entity;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.KEY_NAME;
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -16,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.postgresql.exception.PostgreSQLException;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -30,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLQueryRowStream implements RowStream {
 
-  private static final Logger logger = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
 
   private final List<ResultSet> resultSets;
 
@@ -161,12 +160,12 @@ public class PostgreSQLQueryRowStream implements RowStream {
         conn.close();
       }
     } catch (SQLException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("error occurred when closing resultSets or connections", e);
     }
   }
 
   @Override
-  public boolean hasNext() {
+  public boolean hasNext() throws PostgreSQLException {
     if (resultSets.isEmpty()) {
       return false;
     }
@@ -176,14 +175,14 @@ public class PostgreSQLQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      throw new PostgreSQLException(e);
     }
 
     return cachedRow != null;
   }
 
   @Override
-  public Row next() throws PhysicalException {
+  public Row next() throws PostgreSQLException {
     try {
       Row row;
       if (!hasCachedRow) {
@@ -194,8 +193,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
-      throw new RowFetchException(e);
+      throw new PostgreSQLException(e);
     }
   }
 
@@ -301,23 +299,19 @@ public class PostgreSQLQueryRowStream implements RowStream {
    * columnLabel)是因为：在pg的filter下推中，可能会存在column名字相同，但是table不同的情况 这时候用resultSet.getObject(String
    * columnLabel)就只能取到第一个column的值
    */
-  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName) {
-    try {
-      if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
-        return resultSet.getObject(columnName);
-      }
-      ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-      for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-        String tempColumnName = resultSetMetaData.getColumnName(j);
-        String tempTableName = resultSetMetaData.getTableName(j);
-        if (tempColumnName.equals(columnName) && tempTableName.equals(tableName)) {
-          return resultSet.getObject(j);
-        }
-      }
-    } catch (SQLException e) {
-      logger.error(e.getMessage());
+  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName)
+      throws SQLException {
+    if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
+      return resultSet.getObject(columnName);
     }
-
+    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+    for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
+      String tempColumnName = resultSetMetaData.getColumnName(j);
+      String tempTableName = resultSetMetaData.getTableName(j);
+      if (tempColumnName.equals(columnName) && tempTableName.equals(tableName)) {
+        return resultSet.getObject(j);
+      }
+    }
     return null;
   }
 }

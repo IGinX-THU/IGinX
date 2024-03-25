@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class FileSystemServer implements Runnable {
 
-  private static final Logger logger = LoggerFactory.getLogger(FileSystemServer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemServer.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -51,7 +51,7 @@ public class FileSystemServer implements Runnable {
       serverTransport = new TServerSocket(port);
     } catch (TTransportException e) {
       if (!e.getMessage().contains("Could not create ServerSocket on address")) {
-        logger.error("File System service starts failure: {}", e.getMessage());
+        LOGGER.error("File System service starts failure: ", e);
       }
       return;
     }
@@ -62,7 +62,7 @@ public class FileSystemServer implements Runnable {
             .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
             .protocolFactory(new TBinaryProtocol.Factory());
     server = new TThreadPoolServer(args);
-    logger.info("File System service starts successfully!");
+    LOGGER.info("File System service starts successfully!");
     server.serve();
   }
 }
