@@ -27,13 +27,15 @@ sh -c "echo 'select * from test into outfile "'"test/src/test/resources/fileRead
 sh -c "echo 'select * from test into outfile "'"test/src/test/resources/fileReadAndWrite/csv/test.csv"'" as csv;' | ${SCRIPT_COMMAND}"
 
 # add exported dir as dummy fs storge, then test export
-bash -c "echo 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteStream,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteStream.*;' | ${SCRIPT_COMMAND}"
+bash -c "cp -r test/src/test/resources/fileReadAndWrite/byteStream/* test/src/test/resources/fileReadAndWrite/byteDummy"
 
-bash -c "echo 'select * from byteStream into outfile "'"test/src/test/resources/fileReadAndWrite/byteStream/export"'" as stream;' | ${SCRIPT_COMMAND}"
+bash -c "echo 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteDummy.*;' | ${SCRIPT_COMMAND}"
 
-bash -c "ls test/src/test/resources/fileReadAndWrite/byteStream/export"
+bash -c "echo 'select * from byteStream into outfile "'"test/src/test/resources/fileReadAndWrite/byteStreamExport"'" as stream;' | ${SCRIPT_COMMAND}"
 
-bash -c "ls test/src/test/resources/fileReadAndWrite/byteStream/export/test"
+bash -c "ls test/src/test/resources/fileReadAndWrite/byteStreamExport"
+
+bash -c "ls test/src/test/resources/fileReadAndWrite/byteStreamExport/byteDummy"
 
 db_name=$1
 
