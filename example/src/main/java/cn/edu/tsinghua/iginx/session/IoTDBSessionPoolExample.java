@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
@@ -66,7 +65,7 @@ public class IoTDBSessionPoolExample {
     }
   }
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
 
     constructCustomSessionPool();
 
@@ -101,7 +100,7 @@ public class IoTDBSessionPoolExample {
     sessionPool.close();
   }
 
-  private static void insertColumnRecords() throws SessionException, ExecutionException {
+  private static void insertColumnRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -139,7 +138,7 @@ public class IoTDBSessionPoolExample {
     sessionPool.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedColumnRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedColumnRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -181,7 +180,7 @@ public class IoTDBSessionPoolExample {
     sessionPool.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertRowRecords() throws SessionException, ExecutionException {
+  private static void insertRowRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -216,7 +215,7 @@ public class IoTDBSessionPoolExample {
     sessionPool.insertRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void insertNonAlignedRowRecords() throws SessionException, ExecutionException {
+  private static void insertNonAlignedRowRecords() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -255,12 +254,12 @@ public class IoTDBSessionPoolExample {
     sessionPool.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null);
   }
 
-  private static void showColumns() throws ExecutionException, SessionException {
+  private static void showColumns() throws SessionException {
     List<Column> columnList = sessionPool.showColumns();
     columnList.forEach(column -> System.out.println(column.toString()));
   }
 
-  private static void queryData() throws SessionException, ExecutionException {
+  private static void queryData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -274,7 +273,7 @@ public class IoTDBSessionPoolExample {
     dataSet.print();
   }
 
-  private static void aggregateQuery() throws SessionException, ExecutionException {
+  private static void aggregateQuery() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -318,7 +317,7 @@ public class IoTDBSessionPoolExample {
     System.out.println("Aggregate Query Finished.");
   }
 
-  private static void lastQuery() throws SessionException, ExecutionException {
+  private static void lastQuery() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -329,7 +328,7 @@ public class IoTDBSessionPoolExample {
     dataSet.print();
   }
 
-  private static void downsampleQuery() throws SessionException, ExecutionException {
+  private static void downsampleQuery() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -381,7 +380,7 @@ public class IoTDBSessionPoolExample {
     System.out.println("Downsample Query Finished.");
   }
 
-  private static void curveMatch() throws ExecutionException, SessionException {
+  private static void curveMatch() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);
@@ -401,7 +400,7 @@ public class IoTDBSessionPoolExample {
     System.out.println(result.toString());
   }
 
-  private static void deleteDataInColumns() throws SessionException, ExecutionException {
+  private static void deleteDataInColumns() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S3);
@@ -413,7 +412,7 @@ public class IoTDBSessionPoolExample {
     sessionPool.deleteDataInColumns(paths, startKey, endKey);
   }
 
-  public static void showClusterInfo() throws SessionException, ExecutionException {
+  public static void showClusterInfo() throws SessionException {
     ClusterInfo clusterInfo = sessionPool.getClusterInfo();
     System.out.println(clusterInfo.getIginxInfos());
     System.out.println(clusterInfo.getStorageEngineInfos());

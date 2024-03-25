@@ -16,29 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.exceptions;
+package cn.edu.tsinghua.iginx.metadata.exception;
 
-public class IginxException extends Exception {
+public class MetaStorageException extends Exception {
 
-  private static final long serialVersionUID = -1355829042896588219L;
-  protected int errorCode;
+  private static final long serialVersionUID = -8128973325398925370L;
 
-  public IginxException(String message, int errorCode) {
+  public MetaStorageException(String message) {
     super(message);
-    this.errorCode = errorCode;
   }
 
-  public IginxException(String message, Throwable cause, int errorCode) {
+  public MetaStorageException(String message, Throwable cause) {
     super(message, cause);
-    this.errorCode = errorCode;
   }
 
-  public IginxException(Throwable cause, int errorCode) {
+  public MetaStorageException(Throwable cause) {
     super(cause);
-    this.errorCode = errorCode;
-  }
-
-  public int getErrorCode() {
-    return errorCode;
   }
 }
