@@ -8,11 +8,15 @@ sh -c "curl -L https://github.com/redis-windows/redis-windows/releases/download/
 
 sh -c "ls ."
 
-sh -c "unzip Redis-7.0.14-Windows-x64.zip -d Redis-7.0.14-Windows-x64"
+sh -c "unzip -qq Redis-7.0.14-Windows-x64.zip"
 
 echo "Download finished."
 
-sh -c "ls Redis-7.0.14-Windows-x64"
+sh -c "mkdir Redis-7.0.14-Windows"
+
+sh -c "mv Redis-7.0.14-Windows-x64*/* Redis-7.0.14-Windows"
+
+sh -c "ls Redis-7.0.14-Windows"
 
 sed -i "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g" conf/config.properties
 
