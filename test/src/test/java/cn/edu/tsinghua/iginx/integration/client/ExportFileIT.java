@@ -17,7 +17,8 @@ public class ExportFileIT {
   public void checkExportByteStream() {
     Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream", "test");
     checkFiles(dir, "");
-    dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStreamExport", "byteDummy");
+    dir =
+        Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStreamExport", "byteDummy");
     checkFiles(dir, ".ext");
   }
 
@@ -53,7 +54,8 @@ public class ExportFileIT {
 
   @Test
   public void checkExportImage() {
-    Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "img_outfile", "downloads");
+    Path dir =
+        Paths.get("src", "test", "resources", "fileReadAndWrite", "img_outfile", "downloads");
     File dirFile = dir.toFile();
 
     assertTrue(dirFile.exists());

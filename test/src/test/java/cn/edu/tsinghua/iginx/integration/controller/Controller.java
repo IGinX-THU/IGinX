@@ -294,13 +294,13 @@ public class Controller {
       medium = keyList.size();
     } else {
       logger.info("DBCE test, write history data.");
-      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+      //      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      //      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
-                      || tagsList.isEmpty()
-                      || tagsList.stream().allMatch(map -> map.size() == 0))
-                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
+                  || tagsList.isEmpty()
+                  || tagsList.stream().allMatch(map -> map.size() == 0))
+              //                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (keyList.size() * PARTITION_POINT)
               : keyList.size();
     }
@@ -346,8 +346,11 @@ public class Controller {
 
     if (lowerKeyList != null && !lowerKeyList.isEmpty() && needWriteHistoryData) {
       // 需要对4种情况做区分的情况
-      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
-      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+      //      boolean IS_EXP_DUMMY = testConf.getDBCETestWay().contains(EXP_HAS_DATA_STRING);
+      //      boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
+
+      boolean IS_EXP_DUMMY = false;
+      boolean IS_ORI_DUMMY = false;
       int port;
       if (IS_EXP_DUMMY && IS_ORI_DUMMY) {
         // divide the data
