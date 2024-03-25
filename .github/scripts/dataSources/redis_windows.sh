@@ -6,17 +6,15 @@ echo "Downloading files..."
 
 sh -c "curl -L https://github.com/redis-windows/redis-windows/releases/download/7.0.14/Redis-7.0.14-Windows-x64-msys2-with-Service.zip -o Redis-7.0.14-Windows-x64.zip"
 
-sh -c "ls ."
-
 sh -c "unzip -qq Redis-7.0.14-Windows-x64.zip"
 
 echo "Download finished."
 
 sh -c "mkdir Redis-7.0.14-Windows"
 
-sh -c "mv Redis-7.0.14-Windows-x64*/* Redis-7.0.14-Windows"
+sh -c "mv Redis-7.0.14-Windows-x64*/* Redis-7.0.14-Windows-x64"
 
-sh -c "ls Redis-7.0.14-Windows"
+sh -c "ls Redis-7.0.14-Windows-x64"
 
 sed -i "s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g" conf/config.properties
 
