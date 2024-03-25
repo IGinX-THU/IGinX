@@ -10,7 +10,7 @@ sh -c "unzip -qq Redis-7.0.14-Windows-x64.zip"
 
 echo "Download finished."
 
-sh -c "mkdir Redis-7.0.14-Windows"
+sh -c "mkdir Redis-7.0.14-Windows-x64"
 
 sh -c "mv Redis-7.0.14-Windows-x64*/* Redis-7.0.14-Windows-x64"
 
