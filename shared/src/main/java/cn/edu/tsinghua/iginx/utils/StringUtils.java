@@ -155,8 +155,4 @@ public class StringUtils {
     }
     return Objects.equals(str1, str2);
   }
-
-  public static boolean allPathMatched(List<String> paths) {
-    return paths.stream().anyMatch(s -> !s.isEmpty() && s.chars().allMatch(c -> c == '*'));
-  }
 }
