@@ -108,7 +108,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+-----------+-------------------------+\n"
             + "| 4294967296|                      1.0|\n"
             + "| 8589934592|                      1.0|\n"
-            + "|12884901888|               {\"$\": 3.0}|\n"
+            + "|12884901888|                      3.0|\n"
             + "+-----------+-------------------------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
@@ -131,13 +131,13 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     statement = "select _id from d0.c0;";
     expect =
         "ResultSets:\n"
-            + "+-----------+-------------------------------------------+\n"
-            + "|        key|                                  d0.c0._id|\n"
-            + "+-----------+-------------------------------------------+\n"
-            + "| 4294967296|{\"$\": {\"$oid\": \"652f4577a162014f74419b7f\"}}|\n"
-            + "| 8589934592|{\"$\": {\"$oid\": \"652f4577a162014f74419b80\"}}|\n"
-            + "|12884901888|{\"$\": {\"$oid\": \"652f4577a162014f74419b81\"}}|\n"
-            + "+-----------+-------------------------------------------+\n"
+            + "+-----------+------------------------------------+\n"
+            + "|        key|                           d0.c0._id|\n"
+            + "+-----------+------------------------------------+\n"
+            + "| 4294967296|ObjectId(\"652f4577a162014f74419b7f\")|\n"
+            + "| 8589934592|ObjectId(\"652f4577a162014f74419b80\")|\n"
+            + "|12884901888|ObjectId(\"652f4577a162014f74419b81\")|\n"
+            + "+-----------+------------------------------------+\n"
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
@@ -231,16 +231,49 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
-    statement =
-        "select * from d1.c1 where _id = '{\"$\": {\"$oid\": \"000000000000000000000003\"}}';";
+    statement = "select * from d1.c1 where _id = 'ObjectId(\"000000000000000000000003\")';";
     expect =
         "ResultSets:\n"
-            + "+-----------+-------------------------------------------+-------+-------+-------+-------+\n"
-            + "|        key|                                  d1.c1._id|d1.c1.b|d1.c1.f|d1.c1.i|d1.c1.s|\n"
-            + "+-----------+-------------------------------------------+-------+-------+-------+-------+\n"
-            + "|17179869184|{\"$\": {\"$oid\": \"000000000000000000000003\"}}|  false|    3.1|      3|    4th|\n"
-            + "+-----------+-------------------------------------------+-------+-------+-------+-------+\n"
+            + "+-----------+------------------------------------+-------+-------+-------+-------+\n"
+            + "|        key|                           d1.c1._id|d1.c1.b|d1.c1.f|d1.c1.i|d1.c1.s|\n"
+            + "+-----------+------------------------------------+-------+-------+-------+-------+\n"
+            + "|17179869184|ObjectId(\"000000000000000000000003\")|  false|    3.1|      3|    4th|\n"
+            + "+-----------+------------------------------------+-------+-------+-------+-------+\n"
             + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select contributor, version from d0.c0.information where version = '3.0';";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "|        key|d0.c0.information.contributor|d0.c0.information.version|\n"
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "|12884901888|                 Label Studio|                      3.0|\n"
+            + "+-----------+-----------------------------+-------------------------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select contributor, version from d0.c0.information where version = '1.0';";
+    expect =
+        "ResultSets:\n"
+            + "+----------+-----------------------------+-------------------------+\n"
+            + "|       key|d0.c0.information.contributor|d0.c0.information.version|\n"
+            + "+----------+-----------------------------+-------------------------+\n"
+            + "|4294967296|                 Label Studio|                      1.0|\n"
+            + "|8589934592|                 Label Studio|                      1.0|\n"
+            + "+----------+-----------------------------+-------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement =
+        "select contributor, version from d0.c0.information where version = 3.0 or version = 1.0;";
+    expect =
+        "ResultSets:\n"
+            + "+---+-----------------------------+-------------------------+\n"
+            + "|key|d0.c0.information.contributor|d0.c0.information.version|\n"
+            + "+---+-----------------------------+-------------------------+\n"
+            + "+---+-----------------------------+-------------------------+\n"
+            + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }
