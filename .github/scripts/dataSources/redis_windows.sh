@@ -6,6 +6,8 @@ echo "Downloading files..."
 
 sh -c "curl -LJO https://github.com/redis-windows/redis-windows/releases/download/7.0.14/Redis-7.0.14-Windows-x64-msys2-with-Service.zip -o Redis-7.0.14-Windows-x64.zip"
 
+sh -c "ls ."
+
 sh -c "unzip Redis-7.0.14-Windows-x64.zip -d Redis-7.0.14-Windows-x64"
 
 echo "Download finished."
