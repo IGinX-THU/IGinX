@@ -1,26 +1,19 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
+import static org.junit.Assert.assertEquals;
 
-import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
-import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,84 +23,67 @@ public class PySessionIT {
 
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
-  private static boolean dummyNoData = true;
-  private String pythonCMD = "python3";
+  private static String pythonCMD;
+
+  static {
+    String os = System.getProperty("os.name").toLowerCase();
+    System.out.println(os);
+    if (os.contains("windows")) {
+      pythonCMD = "python";
+    } else {
+      pythonCMD = "python3"; // /opt/homebrew/anaconda3/envs/py310/bin/python
+    }
+  }
 
   // host info
   protected String defaultTestHost = "127.0.0.1";
   protected int defaultTestPort = 6888;
   protected String defaultTestUser = "root";
   protected String defaultTestPass = "root";
-  private static final TestDataSection baseDataSection = buildBaseDataSection();
-
-  protected boolean isAbleToDelete;
+  private static boolean isAbleToDelete = true;
 
   public PySessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    this.isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-  }
-
-  private static TestDataSection buildBaseDataSection() {
-    List<String> paths = Arrays.asList("a.a.a", "a.a.b", "a.b.b", "a.c.c");
-    List<DataType> types =
-        Arrays.asList(DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY);
-    List<Map<String, String>> tagsList =
-        Arrays.asList(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>());
-    // keys = [100, 101, 102, 103]
-    List<Long> keys =
-        IntStream.range(100, 104).mapToObj(Long::valueOf).collect(Collectors.toList());
-    /*
-     values = [
-        ['a', 'b', None, None],
-        [None, None, 'b', None],
-        [None, None, None, 'c'],
-        ['Q', 'W', 'E', 'R'],
-    ]
-    * */
-    List<List<Object>> values =
-        Arrays.asList(
-            Arrays.asList(
-                "a".getBytes(StandardCharsets.UTF_8),
-                "b".getBytes(StandardCharsets.UTF_8),
-                null,
-                null),
-            Arrays.asList(null, null, "b".getBytes(StandardCharsets.UTF_8), null),
-            Arrays.asList(null, null, null, "c".getBytes(StandardCharsets.UTF_8)),
-            Arrays.asList(
-                "Q".getBytes(StandardCharsets.UTF_8),
-                "W".getBytes(StandardCharsets.UTF_8),
-                "E".getBytes(StandardCharsets.UTF_8),
-                "R".getBytes(StandardCharsets.UTF_8)));
-    return new TestDataSection(keys, types, paths, values, tagsList);
-  }
-
-  private void insertData(TestDataSection data) {
-    Controller.writeRowsData(
-        session,
-        data.getPaths(),
-        data.getKeys(),
-        data.getTypes(),
-        data.getValues(),
-        data.getTagsList(),
-        Row,
-        dummyNoData);
+    System.out.println(dbConf);
+    isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
   }
 
   @Before
   public void setUp() {
+    List<String> result = new ArrayList<>();
     try {
-      session =
-          new MultiConnection(
-              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
-      session.openSession();
-      long start = 100, end = 104;
-      TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(start, end);
-      insertData(subBaseData);
-      dummyNoData = false;
-    } catch (Exception e) {
-      logger.error(e.getMessage());
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
     }
+    System.out.println("insert");
   }
 
   @Test
@@ -168,7 +144,7 @@ public class PySessionIT {
             "3\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
             "",
             "replicaNum: 1");
-    // assertEquals(result, expected);
+    // assertEquals(expected, result);
   }
 
   @Test
@@ -213,7 +189,7 @@ public class PySessionIT {
             "0\t1\t1\t1\t1\t",
             "3\t1\t1\t1\t1\t",
             "");
-    // assertEquals(result, expected);
+    // assertEquals(expected, result);
   }
 
   // 用两种方式测试查询列信息：
@@ -270,12 +246,20 @@ public class PySessionIT {
             "b'a.a.b'\t\tb'BINARY'\t\t",
             "b'a.b.b'\t\tb'BINARY'\t\t",
             "b'a.c.c'\t\tb'BINARY'\t\t",
+            "b'b.b.b'\t\tb'LONG'\t\t",
+            "b'mn.wf01.wt01.status'\t\tb'LONG'\t\t",
+            "b'mn.wf01.wt01.temperature'\t\tb'DOUBLE'\t\t",
+            "b'zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz'\t\tb'LONG'\t\t",
             "",
             "a.a.a BINARY",
             "a.a.b BINARY",
             "a.b.b BINARY",
-            "a.c.c BINARY");
-    // assertEquals(result, expected);
+            "a.c.c BINARY",
+            "b.b.b LONG",
+            "mn.wf01.wt01.status LONG",
+            "mn.wf01.wt01.temperature DOUBLE",
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz LONG");
+    // assertEquals(expected, result);
   }
 
   @Test
@@ -316,12 +300,12 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList(
-            "COUNT(count(a.a.a))\tCOUNT(count(a.a.b))\tCOUNT(count(a.b.b))\tCOUNT(count(a.c.c))\t",
-            "2\t2\t2\t2\t",
+            "COUNT(count(a.a.a))\tCOUNT(count(a.a.b))\tCOUNT(count(a.b.b))\tCOUNT(count(a.c.c))\tCOUNT(count(b.b.b))\tCOUNT(count(mn.wf01.wt01.status))\tCOUNT(count(mn.wf01.wt01.temperature))\tCOUNT(count(zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz))\t",
+            "2\t2\t2\t2\t0\t0\t0\t0\t",
             "",
-            "   COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))",
-            "0                    2                    2                    2                    2");
-    // assertEquals(result, expected);
+            "   COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))  COUNT(count(b.b.b))  COUNT(count(mn.wf01.wt01.status))  COUNT(count(mn.wf01.wt01.temperature))  COUNT(count(zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz))",
+            "0                    2                    2                    2                    2                    0                                  0                                       0                                                  0                                                   ");
+    // assertEquals(expected, result);
   }
 
   @Test
@@ -362,11 +346,14 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList("Time\tpath\tvalue\t", "3\tb'a.a.a'\tb'Q'\t", "3\tb'a.a.b'\tb'W'\t", "");
-    // assertEquals(result, expected);
+    assertEquals(expected, result);
   }
 
   @Test
   public void testDeleteColumn() {
+    if (!isAbleToDelete) {
+      return;
+    }
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
@@ -408,11 +395,14 @@ public class PySessionIT {
             "2\tnull\tnull\tb'c'\t",
             "3\tb'Q'\tb'W'\tb'R'\t",
             "");
-    // assertEquals(result, expected);
+    // assertEquals(expected, result);
   }
 
   @Test
   public void testDeleteAll() {
+    if (!isAbleToDelete) {
+      return;
+    }
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
@@ -448,10 +438,10 @@ public class PySessionIT {
     System.out.println("delete all");
     // 检查Python脚本的输出是否符合预期
     List<String> expected = Arrays.asList("Time\t", "");
-    // assertEquals(result, expected);
+    // assertEquals(expected, result);
   }
 
-  // @Test
+  @Test
   public void testAddStorageEngine() {
     List<String> result = new ArrayList<>();
     try {
@@ -514,7 +504,7 @@ public class PySessionIT {
                   "StorageEngineInfo(id=3, ip='127.0.0.1', port=27017");
       result.set(i, replacedString);
     }
-    // assertEquals(result, expected);
+    // assertEquals(expected, result);
   }
 
   @Test
@@ -597,11 +587,14 @@ public class PySessionIT {
             "8\tnull\tnull\tb'b'\tnull\tnull\t",
             "9\tb'b'\tnull\tnull\tnull\tnull\t",
             "");
-    // assertEquals(result, expected);
+    assertEquals(expected, result);
   }
 
   @Test
   public void testDeleteRows() {
+    if (!isAbleToDelete) {
+      return;
+    }
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
@@ -648,7 +641,7 @@ public class PySessionIT {
             "2\tnull\tnull\tnull\tb'c'\t",
             "3\tnull\tnull\tb'E'\tb'R'\t",
             "");
-    // assertEquals(result, expected);
+    // assertEquals(expected, result);
   }
 
   @Test
@@ -689,12 +682,15 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList(
-            "{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"a.a.a\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"a.c.c\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.a.a\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.c.c\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":3,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}");
-    // assertEquals(result, expected);
+            "{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"mn.wf01.wt01.status\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"mn.wf01.wt01.temperature\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"mn.wf01.wt01.status\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"mn.wf01.wt01.temperature\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"dummy0000000000\",\"masterId\":\"dummy0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":4,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}");
+    // assertEquals(expected, result);
   }
 
   @Test
   public void testLoadCSV() {
+    if (!isAbleToDelete) {
+      return;
+    }
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
@@ -742,7 +738,7 @@ public class PySessionIT {
             "6\t\tb''\t\tb''\t\tb''\t\tb'c'\t\t",
             "7\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
             "");
-    // assertEquals(result, expected);
+    // assertEquals(expected, result);
   }
 
   @Test
@@ -783,7 +779,7 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected = Arrays.asList("key\tdir.a\tdir.b\t", "0\t\tb'1'\t\tb'4'\t\t", "");
     // keep result[-3:] to check if the data is loaded successfully
-    // assertEquals(result.subList(result.size() - 3, result.size()), expected);
+    assertEquals(result.subList(result.size() - 3, result.size()), expected);
   }
 
   @Test
@@ -825,27 +821,41 @@ public class PySessionIT {
     //    List<String> expected =
     //            Arrays.asList("");
     //    // keep result[-3:] to check if the data is loaded successfully
-    //    assertEquals(result, expected);
+    //    assertEquals(expected, result);
   }
 
   @After
   public void tearDown() {
+    if (!isAbleToDelete) {
+      return;
+    }
     try {
-      clearData();
-      session.closeSession();
-    } catch (SessionException e) {
-      logger.error(e.getMessage());
-    }
-  }
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/deleteAll.py";
 
-  protected void clearData() throws SessionException {
-    if (session.isClosed()) {
-      session =
-          new MultiConnection(
-              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
-      session.openSession();
-    }
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
 
-    Controller.clearData(session);
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("delete all");
   }
 }

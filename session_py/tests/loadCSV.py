@@ -34,7 +34,8 @@ if __name__ == '__main__':
         # 这里在用junit test运行时，对应的路径为： Iginx/test
         path = os.getcwd() + '/../session_py/tests/files/a.csv'
         statement = f"LOAD DATA FROM INFILE '{path}' AS CSV INTO a(key, a.a, a.b, b.b, c.c);"
-
+        resp = session.execute_sql(statement)
+        print(resp)
 
         # 使用 SQL 语句查询写入的数据
         dataset = session.execute_statement("select * from a;", fetch_size=2)

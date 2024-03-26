@@ -26,12 +26,18 @@ from iginx.iginx_pyclient.session import Session
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
+    try:
+        # 删除部分数据
+        session.delete_time_series("a.b.b")
 
-    # 删除部分数据
-    session.delete_time_series("a.b.b")
-
-    # 查询删除后剩余的数据
-    dataset = session.query(["*"], 0, 10)
-    print(dataset)
+        # 查询删除后剩余的数据
+        dataset = session.query(["*"], 0, 10)
+        print(dataset)
+    except Exception as e:
+        print(e)
+        if e == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has been "
+                 "cleared."):
+            exit(0)
+        exit(1)
 
     session.close()

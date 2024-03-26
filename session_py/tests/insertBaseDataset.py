@@ -18,39 +18,31 @@
 
 # 无法单独执行，用来测试PySessionIT
 import sys
-sys.path.append('../session_py')  # 将上一级目录添加到Python模块搜索路径中
-try:
-    from iginx.iginx_pyclient.session import Session
-except ImportError:
-    print("Please use `pip install -e .` to install this package.")
-    exit(1)
+sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
+
+from iginx.iginx_pyclient.session import Session
+from iginx.iginx_pyclient.thrift.rpc.ttypes import DataType
+
 
 if __name__ == '__main__':
     try:
         session = Session('127.0.0.1', 6888, "root", "root")
         session.open()
 
-        # 使用 SQL 语句查询时间序列
-        dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
-
-        columns = dataset.columns()
-        for column in columns:
-            print(column, end="\t")
-        print()
-
-        while dataset.has_more():
-            row = dataset.next()
-            for field in row:
-                print(str(field), end="\t\t")
-            print()
-        print()
-
-        dataset.close()
-
-        # 使用 list_time_series() 接口查询时间序列
-        timeSeries = session.list_time_series()
-        for ts in timeSeries:
-            print(ts)
+        # 写入数据
+        paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
+        timestamps = [0, 1, 2, 3]
+        values_list = [
+            ['a', 'b', None, None],
+            [None, None,'b', None],
+            [None, None, None, 'c'],
+            ['Q', 'W', 'E', 'R']
+        ]
+        data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
+        session.insert_row_records(paths, timestamps, values_list, data_type_list)
+        # 查询写入的数据
+        dataset = session.query(["a.*"], 0, 10)
+        print(dataset)
 
         session.close()
     except Exception as e:

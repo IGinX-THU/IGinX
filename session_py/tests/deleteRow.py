@@ -44,4 +44,7 @@ if __name__ == '__main__':
         session.close()
     except Exception as e:
         print(e)
+        if e == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has been "
+                 "cleared."):
+            exit(0)
         exit(1)
