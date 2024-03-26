@@ -27,6 +27,10 @@ public class IRecord implements Iterable<Map.Entry<Integer, Object>> {
     return this;
   }
 
+  public void sort() {
+    values.sort(Comparator.comparingInt(Map.Entry::getKey));
+  }
+
   public int size() {
     return values.size();
   }

@@ -26,8 +26,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
@@ -118,21 +116,14 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
     }
   }
 
-  public static IRecord getRecord(MessageType schema, Long key, Scanner<String, Object> rowScanner)
+  public static IRecord getRecord(MessageType schema, Long key, Scanner<String, Object> value)
       throws IOException {
-    Map<String, Object> row = new HashMap<>();
-    row.put(Constants.KEY_FIELD_NAME, key);
-    while (rowScanner.iterate()) {
-      row.put(rowScanner.key(), rowScanner.value());
-    }
     IRecord record = new IRecord();
-    for (int i = 0; i < schema.getFieldCount(); i++) {
-      String fieldName = schema.getFields().get(i).getName();
-      Object value = row.get(fieldName);
-      if (value != null) {
-        record.add(i, value);
-      }
+    record.add(schema.getFieldIndex(Constants.KEY_FIELD_NAME), key);
+    while (value.iterate()) {
+      record.add(schema.getFieldIndex(value.key()), value.value());
     }
+    record.sort();
     return record;
   }
 }
