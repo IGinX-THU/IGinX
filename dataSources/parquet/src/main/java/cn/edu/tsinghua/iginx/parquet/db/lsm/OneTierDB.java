@@ -239,8 +239,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     if (bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize()) {
       return;
     }
-    checkLock.lock();
-    try {
+    synchronized (checkLock) {
       if (bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize()) {
         return;
       }
@@ -251,15 +250,12 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
             shared.getStorageProperties().getWriteBufferSize());
       }
       commitMemoryTable(false, new CountDownLatch(1));
-    } finally {
-      checkLock.unlock();
     }
   }
 
   private void checkBufferTimeout() {
     CountDownLatch latch = new CountDownLatch(1);
-    checkLock.lock();
-    try {
+    synchronized (checkLock) {
       long interval = System.currentTimeMillis() - bufferDirtiedTime.get();
       if (interval < timeout) {
         return;
@@ -271,8 +267,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
           timeout);
 
       commitMemoryTable(true, latch);
-    } finally {
-      checkLock.unlock();
     }
     LOGGER.debug("waiting for flushing table");
     try {
