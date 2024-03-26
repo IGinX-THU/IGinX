@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.sql.statement;
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.thrift.SetRulesReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import java.util.Map;
@@ -20,7 +20,7 @@ public class SetRulesStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     SetRulesReq req = new SetRulesReq(ctx.getSessionId(), rulesChange);
     Status status = worker.setRules(req);
 

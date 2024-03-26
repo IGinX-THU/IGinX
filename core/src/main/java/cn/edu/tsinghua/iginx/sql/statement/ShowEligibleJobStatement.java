@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.sql.statement;
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobReq;
 import cn.edu.tsinghua.iginx.thrift.ShowEligibleJobResp;
@@ -22,7 +22,7 @@ public class ShowEligibleJobStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     ShowEligibleJobReq req = new ShowEligibleJobReq(ctx.getSessionId(), jobState);
     ShowEligibleJobResp resp = worker.showEligibleJob(req);
     List<Long> jobIdList = resp.getJobIdList();

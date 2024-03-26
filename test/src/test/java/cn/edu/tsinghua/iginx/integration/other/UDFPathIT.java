@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.other;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.junit.AfterClass;
