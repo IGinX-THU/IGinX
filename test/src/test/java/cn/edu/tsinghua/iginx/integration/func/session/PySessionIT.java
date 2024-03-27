@@ -1,13 +1,14 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import java.io.BufferedReader;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -45,7 +46,6 @@ public class PySessionIT {
   public PySessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-    System.out.println(dbConf);
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
   }
 
@@ -123,9 +123,6 @@ public class PySessionIT {
     System.out.println("query");
     List<String> expected =
         Arrays.asList(
-            "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-            "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null')]",
-            "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
             "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
             "0\tb'a'\tb'b'\tnull\tnull\t",
             "1\tnull\tnull\tb'b'\tnull\t",
@@ -144,7 +141,7 @@ public class PySessionIT {
             "3\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
             "",
             "replicaNum: 1");
-    // assertEquals(expected, result);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -189,7 +186,7 @@ public class PySessionIT {
             "0\t1\t1\t1\t1\t",
             "3\t1\t1\t1\t1\t",
             "");
-    // assertEquals(expected, result);
+    assertEquals(expected, result);
   }
 
   // 用两种方式测试查询列信息：
@@ -246,20 +243,12 @@ public class PySessionIT {
             "b'a.a.b'\t\tb'BINARY'\t\t",
             "b'a.b.b'\t\tb'BINARY'\t\t",
             "b'a.c.c'\t\tb'BINARY'\t\t",
-            "b'b.b.b'\t\tb'LONG'\t\t",
-            "b'mn.wf01.wt01.status'\t\tb'LONG'\t\t",
-            "b'mn.wf01.wt01.temperature'\t\tb'DOUBLE'\t\t",
-            "b'zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz'\t\tb'LONG'\t\t",
             "",
             "a.a.a BINARY",
             "a.a.b BINARY",
             "a.b.b BINARY",
-            "a.c.c BINARY",
-            "b.b.b LONG",
-            "mn.wf01.wt01.status LONG",
-            "mn.wf01.wt01.temperature DOUBLE",
-            "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz LONG");
-    // assertEquals(expected, result);
+            "a.c.c BINARY");
+    assertEquals(expected, result);
   }
 
   @Test
@@ -300,12 +289,12 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList(
-            "COUNT(count(a.a.a))\tCOUNT(count(a.a.b))\tCOUNT(count(a.b.b))\tCOUNT(count(a.c.c))\tCOUNT(count(b.b.b))\tCOUNT(count(mn.wf01.wt01.status))\tCOUNT(count(mn.wf01.wt01.temperature))\tCOUNT(count(zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz))\t",
-            "2\t2\t2\t2\t0\t0\t0\t0\t",
+            "COUNT(count(a.a.a))\tCOUNT(count(a.a.b))\tCOUNT(count(a.b.b))\tCOUNT(count(a.c.c))\t",
+            "2\t2\t2\t2\t",
             "",
-            "   COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))  COUNT(count(b.b.b))  COUNT(count(mn.wf01.wt01.status))  COUNT(count(mn.wf01.wt01.temperature))  COUNT(count(zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz))",
-            "0                    2                    2                    2                    2                    0                                  0                                       0                                                  0                                                   ");
-    // assertEquals(expected, result);
+            "   COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))",
+            "0                    2                    2                    2                    2");
+    assertEquals(expected, result);
   }
 
   @Test
@@ -395,7 +384,7 @@ public class PySessionIT {
             "2\tnull\tnull\tb'c'\t",
             "3\tb'Q'\tb'W'\tb'R'\t",
             "");
-    // assertEquals(expected, result);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -438,7 +427,7 @@ public class PySessionIT {
     System.out.println("delete all");
     // 检查Python脚本的输出是否符合预期
     List<String> expected = Arrays.asList("Time\t", "");
-    // assertEquals(expected, result);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -476,35 +465,39 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     System.out.println("add and delete storage engine");
-    // 检查Python脚本的输出是否符合预期
-    List<String> expected =
-        Arrays.asList(
-            "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-            "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null'), StorageEngineInfo(id=1, ip='127.0.0.1', port=5432, type=3, schemaPrefix='null', dataPrefix='null')]",
-            "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
-            "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-            "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null')]",
-            "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
-            "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-            "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null'), StorageEngineInfo(id=1, ip='127.0.0.1', port=5432, type=3, schemaPrefix='null', dataPrefix='null'), StorageEngineInfo(id=3, ip='127.0.0.1', port=27017, type=4, schemaPrefix='null', dataPrefix='null')]",
-            "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
-            "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-            "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null', dataPrefix='null')]",
-            "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]");
-    // 通过正则匹配将加入的storage engine的id替换为1
-    for (int i = 0; i < result.size(); i++) {
-      String replacedString =
-          result
-              .get(i)
-              .replaceAll(
-                  "StorageEngineInfo\\(id=[1-9][0-9]*, ip='127.0.0.1', port=5432",
-                  "StorageEngineInfo(id=1, ip='127.0.0.1', port=5432")
-              .replaceAll(
-                  "StorageEngineInfo\\(id=[1-9][0-9]*, ip='127.0.0.1', port=27017",
-                  "StorageEngineInfo(id=3, ip='127.0.0.1', port=27017");
-      result.set(i, replacedString);
+    // 如果是mongo或者pg
+    if (result.size() > 0 && "This engine is already in the cluster.".equals(result.get(0))) {
+      return;
     }
-    // assertEquals(expected, result);
+    // 检查Python脚本的输出是否符合预期
+    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
+    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
+    // dataPrefix='null'), StorageEngineInfo(id=1, ip='127.0.0.1', port=5432, type=3,
+    // schemaPrefix='null', dataPrefix='null')]",
+    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
+    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
+    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
+    // dataPrefix='null')]",
+    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
+    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
+    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
+    // dataPrefix='null'), StorageEngineInfo(id=1, ip='127.0.0.1', port=5432, type=3,
+    // schemaPrefix='null', dataPrefix='null'), StorageEngineInfo(id=3, ip='127.0.0.1', port=27017,
+    // type=4, schemaPrefix='null', dataPrefix='null')]",
+    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
+    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
+    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
+    // dataPrefix='null')]",
+    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]"
+    assertEquals(result.size(), 12);
+    assertTrue(result.get(1).contains("ip='127.0.0.1', port=5432, type=3"));
+    assertFalse(result.get(1).contains("ip='127.0.0.1', port=27017, type=4"));
+    assertFalse(result.get(4).contains("ip='127.0.0.1', port=5432, type=3"));
+    assertFalse(result.get(1).contains("ip='127.0.0.1', port=27017, type=4"));
+    assertTrue(result.get(7).contains("ip='127.0.0.1', port=5432, type=3"));
+    assertTrue(result.get(7).contains("ip='127.0.0.1', port=27017, type=4"));
+    assertFalse(result.get(10).contains("ip='127.0.0.1', port=5432, type=3"));
+    assertFalse(result.get(10).contains("ip='127.0.0.1', port=27017, type=4"));
   }
 
   @Test
@@ -641,7 +634,7 @@ public class PySessionIT {
             "2\tnull\tnull\tnull\tb'c'\t",
             "3\tnull\tnull\tb'E'\tb'R'\t",
             "");
-    // assertEquals(expected, result);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -682,7 +675,7 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList(
-            "{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"mn.wf01.wt01.status\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"mn.wf01.wt01.temperature\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"mn.wf01.wt01.status\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"mn.wf01.wt01.temperature\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"dummy0000000000\",\"masterId\":\"dummy0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":4,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}");
+            "{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"a.a.a\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"a.c.c\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.a.a\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.c.c\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"dummy0000000000\",\"masterId\":\"dummy0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":4,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}");
     // assertEquals(expected, result);
   }
 
@@ -738,7 +731,7 @@ public class PySessionIT {
             "6\t\tb''\t\tb''\t\tb''\t\tb'c'\t\t",
             "7\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
             "");
-    // assertEquals(expected, result);
+    assertEquals(expected, result);
   }
 
   @Test
@@ -817,11 +810,57 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     System.out.println("load csv without header");
-    //    // 检查Python脚本的输出是否符合预期
-    //    List<String> expected =
-    //            Arrays.asList("");
-    //    // keep result[-3:] to check if the data is loaded successfully
-    //    assertEquals(expected, result);
+    // 验证写入文件是否成功
+    String outputPath = System.getProperty("user.dir") + "/../generated/output.csv";
+    List<String> expected =
+        Arrays.asList(
+            "key,a.a.a,a.a.b,a.b.b,a.c.c",
+            "1970-01-01 08:00:00,a,b,None,None",
+            "1970-01-01 08:00:01,None,None,b,None",
+            "1970-01-01 08:00:02,None,None,None,c",
+            "1970-01-01 08:00:03,Q,W,E,R");
+    List<String> actual = new ArrayList<>();
+    try (BufferedReader reader = new BufferedReader(new FileReader(outputPath))) {
+      String line;
+      while ((line = reader.readLine()) != null) {
+        actual.add(line);
+      }
+    } catch (IOException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    assertEquals(expected, actual);
+  }
+
+  public static void clearInitialData() {
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/deleteAll.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("delete all");
   }
 
   @After
@@ -850,11 +889,9 @@ public class PySessionIT {
       int exitCode = process.exitValue();
       if (exitCode != 0) {
         System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
-      throw new RuntimeException(e);
     }
     System.out.println("delete all");
   }

@@ -26,7 +26,12 @@ from iginx.iginx_pyclient.thrift.rpc.ttypes import StorageEngineType, StorageEng
 if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
-
+    cluster_info = session.get_cluster_info()
+    original_cluster_info = cluster_info.get_storage_engine_list()
+    for storage_engine in original_cluster_info:
+        if storage_engine.port == 5432 or storage_engine.port == 27017:
+            print("This engine is already in the cluster.")
+            exit(0)
     session.add_storage_engine(
         "127.0.0.1",
         5432,

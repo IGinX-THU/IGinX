@@ -24,27 +24,33 @@ from iginx.iginx_pyclient.session import Session
 
 
 if __name__ == '__main__':
+    session = Session('127.0.0.1', 6888, "root", "root")
+    session.open()
     try:
-        session = Session('127.0.0.1', 6888, "root", "root")
-        session.open()
-
         # 这里因为key=1的这一行只有a.b.b有值，所以删除a.b.b这一列后这一整行数据就被删除了
         session.delete_data("a.b.b", 1, 2)
-
-        # 查询删除后剩余的数据
-        dataset = session.query(["*"], 0, 10)
-        print(dataset)
-
-        # 删除部分数据（设置为null
-        session.batch_delete_data(["a.a.a", "a.a.b"], 2, 4)
-        # 查询删除后剩余的数据
-        dataset = session.query(["*"], 0, 10)
-        print(dataset)
-
-        session.close()
     except Exception as e:
-        print(e)
-        if e == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has been "
-                 "cleared."):
+        if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
+                      "been cleared."):
             exit(0)
+        print(e)
         exit(1)
+    finally:
+        # 查询删除后剩余的数据
+        dataset = session.query(["*"], 0, 10)
+        print(dataset)
+        try:
+            # 删除部分数据（设置为null
+            session.batch_delete_data(["a.a.a", "a.a.b"], 2, 4)
+        except Exception as e:
+            if str(e) == (
+            "Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
+            "been cleared."):
+                exit(0)
+            print(e)
+            exit(1)
+        finally:
+            # 查询删除后剩余的数据
+            dataset = session.query(["*"], 0, 10)
+            print(dataset)
+            session.close()

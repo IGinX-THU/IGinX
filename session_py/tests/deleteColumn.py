@@ -29,15 +29,14 @@ if __name__ == '__main__':
     try:
         # 删除部分数据
         session.delete_time_series("a.b.b")
-
+    except Exception as e:
+        if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
+                      "been cleared."):
+            exit(0)
+        print(e)
+        exit(1)
+    finally:
         # 查询删除后剩余的数据
         dataset = session.query(["*"], 0, 10)
         print(dataset)
-    except Exception as e:
-        print(e)
-        if e == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has been "
-                 "cleared."):
-            exit(0)
-        exit(1)
-
-    session.close()
+        session.close()

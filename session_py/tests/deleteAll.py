@@ -32,7 +32,7 @@ if __name__ == '__main__':
         if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
                       "been cleared."):
             exit(0)
-        print('e:', '"' + str(e) + '"')
+        print(e)
         exit(1)
     finally:
         # 查询删除全部后剩余的数据

@@ -26,11 +26,6 @@ if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
 
-    # 获取集群拓扑信息
-    cluster_info = session.get_cluster_info()
-    print(cluster_info)
-
-
     # 查询写入的数据，数据由PySessionIT测试写入
     dataset = session.query(["a.*"], 0, 10)
     print(dataset)
