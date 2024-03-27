@@ -46,7 +46,7 @@ if __name__ == '__main__':
         paths = ["a.a.a", "a.a.b", "a.b.b"]
         timestamps = [8, 9]
         values_list = [
-            [None, None, 'b'],
+            [None, 'a', 'b'],
             ['b', None, None]
         ]
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY]

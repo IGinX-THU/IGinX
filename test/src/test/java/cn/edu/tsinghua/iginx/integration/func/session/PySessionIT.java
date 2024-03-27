@@ -551,7 +551,7 @@ public class PySessionIT {
             "5\tnull\tnull\tb'a'\tb'b'\t",
             "6\tb'b'\tnull\tnull\tnull\t",
             "7\tb'R'\tb'E'\tb'W'\tb'Q'\t",
-            "8\tnull\tnull\tb'b'\tnull\t",
+            "8\tnull\tb'a'\tb'b'\tnull\t",
             "9\tb'b'\tnull\tnull\tnull\t",
             "",
             "Time\ta.a.a\ta.a.b\ta.b.b\ta.b.c\ta.c.c\t",
@@ -562,7 +562,7 @@ public class PySessionIT {
             "5\tnull\tnull\tb'a'\tnull\tb'b'\t",
             "6\tb'b'\tnull\tnull\t1\tnull\t",
             "7\tb'R'\tb'E'\tb'W'\tnull\tb'Q'\t",
-            "8\tnull\tnull\tb'b'\tnull\tnull\t",
+            "8\tnull\tb'a'\tb'b'\tnull\tnull\t",
             "9\tb'b'\tnull\tnull\tnull\tnull\t",
             "",
             "Time\ta.a.a\ta.a.b\ta.b.b\ta.b.c\ta.c.c\t",
@@ -573,7 +573,7 @@ public class PySessionIT {
             "5\tnull\tnull\tb'a'\t1\tb'b'\t",
             "6\tb'b'\tnull\tnull\t1\tnull\t",
             "7\tb'R'\tb'E'\tb'W'\tnull\tb'Q'\t",
-            "8\tnull\tnull\tb'b'\tnull\tnull\t",
+            "8\tnull\tb'a'\tb'b'\tnull\tnull\t",
             "9\tb'b'\tnull\tnull\tnull\tnull\t",
             "");
     assertEquals(expected, result);
