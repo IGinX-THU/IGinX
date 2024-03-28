@@ -1,12 +1,15 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
+import cn.edu.tsinghua.iginx.session.Session;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -49,8 +52,22 @@ public class PySessionIT {
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
   }
 
+  @BeforeClass
+  public static void setUp() throws SessionException {
+    // 清除历史数据
+    logger.info("Clear all data before executing pysession tests.");
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+    isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+    MultiConnection conn;
+    conn = new MultiConnection(new Session("127.0.0.1", 6888, "root", "root"));
+    conn.openSession();
+    clearAllData(conn);
+    conn.closeSession();
+  }
+
   @Before
-  public void setUp() {
+  public void insertBaseData() {
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
