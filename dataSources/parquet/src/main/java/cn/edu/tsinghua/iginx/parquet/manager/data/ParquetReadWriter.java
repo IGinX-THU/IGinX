@@ -15,7 +15,6 @@ import cn.edu.tsinghua.iginx.parquet.io.parquet.IRecord;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.FilterRangeUtils;
 import cn.edu.tsinghua.iginx.parquet.util.StorageShared;
-import cn.edu.tsinghua.iginx.parquet.util.buffer.ArenaPool;
 import cn.edu.tsinghua.iginx.parquet.util.buffer.BufferPool;
 import cn.edu.tsinghua.iginx.parquet.util.cache.CachePool;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
@@ -81,26 +80,25 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
     MessageType parquetSchema = getMessageType(meta.getSchema());
     IParquetWriter closedWriter;
-    try (ArenaPool arenaPool = new ArenaPool(shared.getBufferPool())) {
-      ByteBufferAllocator allocator = new BufferAllocatorWrapper(arenaPool);
 
-      IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema, allocator);
-      builder.withRowGroupSize(shared.getStorageProperties().getParquetRowGroupSize());
-      builder.withPageSize(shared.getStorageProperties().getParquetPageSize());
-      builder.withCodecFactory(
-          allocator,
-          shared.getStorageProperties().getZstdLevel(),
-          shared.getStorageProperties().getZstdWorkers());
-      builder.withCodec(shared.getStorageProperties().getParquetCompression());
-      builder.withAllocator(allocator);
+    ByteBufferAllocator allocator = new BufferAllocatorWrapper(shared.getBufferPool());
 
-      try (IParquetWriter writer = builder.build()) {
-        while (scanner.iterate()) {
-          IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
-          writer.write(record);
-        }
-        closedWriter = writer;
+    IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema, allocator);
+    builder.withRowGroupSize(shared.getStorageProperties().getParquetRowGroupSize());
+    builder.withPageSize(shared.getStorageProperties().getParquetPageSize());
+    builder.withCodecFactory(
+        allocator,
+        shared.getStorageProperties().getZstdLevel(),
+        shared.getStorageProperties().getZstdWorkers());
+    builder.withCodec(shared.getStorageProperties().getParquetCompression());
+    builder.withAllocator(allocator);
+
+    try (IParquetWriter writer = builder.build()) {
+      while (scanner.iterate()) {
+        IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
+        writer.write(record);
       }
+      closedWriter = writer;
     }
 
     LOGGER.debug("rename temp file to {}", path);
@@ -155,13 +153,13 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     String fileName = (String) key;
     Path path = Paths.get(fileName);
 
+    ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(shared.getBufferPool());
+
     IParquetReader.Builder builder = IParquetReader.builder(path);
-    try (ArenaPool arenaPool = new ArenaPool(shared.getBufferPool())) {
-      ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(arenaPool);
-      builder.withAllocator(bufferAllocator);
-      try (IParquetReader reader = builder.build()) {
-        return getParquetTableMeta(reader.getMeta());
-      }
+    builder.withAllocator(bufferAllocator);
+
+    try (IParquetReader reader = builder.build()) {
+      return getParquetTableMeta(reader.getMeta());
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     }
@@ -203,11 +201,11 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       unionFilter = new AndFilter(Arrays.asList(rangeFilter, predicate));
     }
 
+    ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(shared.getBufferPool());
+
     IParquetReader.Builder builder = IParquetReader.builder(path);
     builder.project(fields);
     builder.filter(unionFilter);
-    ArenaPool arenaPool = new ArenaPool(shared.getBufferPool());
-    ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(arenaPool);
     builder.withAllocator(bufferAllocator);
     builder.withCodecFactory(
         bufferAllocator, shared.getStorageProperties().getParquetLz4BufferSize());
@@ -215,7 +213,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     ParquetTableMeta parquetTableMeta = getParquetTableMeta(path.toString());
     IParquetReader reader = builder.build(parquetTableMeta.getMeta());
 
-    Scanner<Long, Scanner<String, Object>> scanner = new ParquetScanner(reader, arenaPool);
+    Scanner<Long, Scanner<String, Object>> scanner = new ParquetScanner(reader);
 
     AreaSet<Long, String> tombstone = tombstoneStorage.get(name);
     if (tombstone == null || tombstone.isEmpty()) {
@@ -294,11 +292,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     private Long key;
     private Scanner<String, Object> rowScanner;
 
-    private final ArenaPool arenaPool;
-
-    public ParquetScanner(IParquetReader reader, ArenaPool arenaPool) {
+    public ParquetScanner(IParquetReader reader) {
       this.reader = reader;
-      this.arenaPool = arenaPool;
     }
 
     @Nonnull
@@ -346,7 +341,6 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     @Override
     public void close() throws IOException {
       reader.close();
-      arenaPool.close();
     }
   }
 
