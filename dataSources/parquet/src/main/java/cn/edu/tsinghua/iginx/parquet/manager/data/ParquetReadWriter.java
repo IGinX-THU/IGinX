@@ -80,7 +80,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     LOGGER.debug("flushing into {}", tempPath);
 
     MessageType parquetSchema = getMessageType(meta.getSchema());
-
+    IParquetWriter closedWriter;
     try (ArenaPool arenaPool = new ArenaPool(shared.getBufferPool())) {
       ByteBufferAllocator allocator = new BufferAllocatorWrapper(arenaPool);
 
@@ -99,6 +99,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
           IRecord record = IParquetWriter.getRecord(parquetSchema, scanner.key(), scanner.value());
           writer.write(record);
         }
+        closedWriter = writer;
       }
     }
 
@@ -107,6 +108,11 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       LOGGER.warn("file {} already exists, will be replaced", path);
     }
     Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
+
+    LOGGER.debug("cache meta of {}", path);
+    ParquetMetadata footer = closedWriter.getFooter();
+    ParquetTableMeta tableMeta = getParquetTableMeta(footer);
+    shared.getCachePool().asMap().put(path.toString(), tableMeta);
   }
 
   @Nonnull
@@ -154,17 +160,16 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(arenaPool);
       builder.withAllocator(bufferAllocator);
       try (IParquetReader reader = builder.build()) {
-        return getParquetTableMeta(reader);
+        return getParquetTableMeta(reader.getMeta());
       }
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     }
   }
 
-  @Nonnull
-  private static ParquetTableMeta getParquetTableMeta(IParquetReader reader) {
+  private static ParquetTableMeta getParquetTableMeta(ParquetMetadata meta) {
     Map<String, DataType> schemaDst = new HashMap<>();
-    MessageType parquetSchema = reader.getSchema();
+    MessageType parquetSchema = meta.getFileMetaData().getSchema();
     for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
       Type type = parquetSchema.getType(i);
       if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
@@ -174,14 +179,12 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       schemaDst.put(type.getName(), iginxType);
     }
 
-    Range<Long> ranges = reader.getRange();
+    Range<Long> ranges = IParquetReader.getRange(meta);
 
     Map<String, Range<Long>> rangeMap = new HashMap<>();
     for (String field : schemaDst.keySet()) {
       rangeMap.put(field, ranges);
     }
-
-    ParquetMetadata meta = reader.getMeta();
 
     return new ParquetTableMeta(schemaDst, rangeMap, meta);
   }

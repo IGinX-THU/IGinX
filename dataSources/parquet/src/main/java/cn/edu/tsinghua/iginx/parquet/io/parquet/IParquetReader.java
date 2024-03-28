@@ -70,24 +70,32 @@ public class IParquetReader extends ParquetReader<IRecord> {
   }
 
   public long getRowCount() {
+    return getRowCount(metadata);
+  }
+
+  public static long getRowCount(ParquetMetadata metadata) {
     return metadata.getBlocks().stream().mapToLong(BlockMetaData::getRowCount).sum();
   }
 
   public Range<Long> getRange() {
+    return getRange(metadata);
+  }
+
+  public static Range<Long> getRange(ParquetMetadata metadata) {
     MessageType schema = metadata.getFileMetaData().getSchema();
     if (schema.containsPath(new String[] {Constants.KEY_FIELD_NAME})) {
       Type type = schema.getType(Constants.KEY_FIELD_NAME);
       if (type.isPrimitive()) {
         PrimitiveType primitiveType = type.asPrimitiveType();
         if (primitiveType.getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.INT64) {
-          return getKeyRange();
+          return getKeyRange(metadata);
         }
       }
     }
-    return Range.closedOpen(0L, getRowCount());
+    return Range.closedOpen(0L, getRowCount(metadata));
   }
 
-  private Range<Long> getKeyRange() {
+  private static Range<Long> getKeyRange(ParquetMetadata metadata) {
     long min = Long.MAX_VALUE;
     long max = Long.MIN_VALUE;
 

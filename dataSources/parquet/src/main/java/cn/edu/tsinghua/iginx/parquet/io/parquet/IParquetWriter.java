@@ -31,6 +31,7 @@ import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
 import shaded.iginx.org.apache.parquet.hadoop.ExportedParquetRecordWriter;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.io.OutputFile;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
@@ -40,6 +41,10 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
 
   private IParquetWriter(ExportedParquetRecordWriter<IRecord> internalWriter) {
     super(internalWriter);
+  }
+
+  public ParquetMetadata getFooter() {
+    return recordWriter.getWriter().getFooter();
   }
 
   public static Builder builder(
