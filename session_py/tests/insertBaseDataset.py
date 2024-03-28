@@ -28,6 +28,9 @@ if __name__ == '__main__':
     try:
         session = Session('127.0.0.1', 6888, "root", "root")
         session.open()
+        # 查询写入之前的数据
+        dataset = session.query(["a.*"], 0, 10)
+        print('Before insert: ', dataset)
 
         # 写入数据
         paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
@@ -37,6 +40,10 @@ if __name__ == '__main__':
             [None, None,'b', None],
             [None, None, None, 'c'],
             ['Q', 'W', 'E', 'R']
+            # ['a', None, 'c', 'd'],
+            # ['e', 'f', None, 'h'],
+            # ['i', '', 'k', None],
+            # ['Q', 'W', 'E', 'R']
         ]
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_row_records(paths, timestamps, values_list, data_type_list)
