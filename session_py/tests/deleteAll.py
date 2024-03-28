@@ -21,6 +21,7 @@ import sys
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.iginx_pyclient.session import Session
+import traceback
 
 
 if __name__ == '__main__':
@@ -32,11 +33,17 @@ if __name__ == '__main__':
         if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
                       "been cleared."):
             exit(0)
+        traceback.print_exc()
         print(e)
         exit(1)
     finally:
         # 查询删除全部后剩余的数据
-        dataset = session.query(["*"], 0, 10)
-        print(dataset)
-
-        session.close()
+        try:
+            dataset = session.query(["*"], 0, 10)
+            print(dataset)
+        except Exception as e:
+            traceback.print_exc()
+            print(e)
+            exit(1)
+        finally:
+            session.close()
