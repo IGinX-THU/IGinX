@@ -22,6 +22,7 @@ sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜�
 
 from iginx.iginx_pyclient.session import Session
 from iginx.iginx_pyclient.thrift.rpc.ttypes import DataType
+import traceback
 
 
 if __name__ == '__main__':
@@ -53,5 +54,6 @@ if __name__ == '__main__':
 
         session.close()
     except Exception as e:
+        traceback.print_exc()
         print(e)
         exit(1)
