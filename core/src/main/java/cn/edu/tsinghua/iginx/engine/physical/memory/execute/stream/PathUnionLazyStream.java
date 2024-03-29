@@ -30,9 +30,11 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PathUnionLazyStream extends BinaryLazyStream {
-
+  private static final Logger logger = LoggerFactory.getLogger(PathUnionLazyStream.class);
   private final PathUnion union;
 
   private boolean hasInitialized = false;
@@ -115,6 +117,9 @@ public class PathUnionLazyStream extends BinaryLazyStream {
       return RowUtils.transform(row, header);
     }
     if (nextA.getKey() == nextB.getKey()) {
+      logger.info("rowA key: " + nextA.getKey() + " rowA: " + nextA.toCSVTypeString());
+      logger.info("rowB key: " + nextB.getKey() + " rowB: " + nextB.toCSVTypeString());
+      logger.info("Stream: The query results contain overlapped keys.");
       getContext().setWarningMsg("The query results contain overlapped keys.");
     }
     if (nextA.getKey() <= nextB.getKey()) {
