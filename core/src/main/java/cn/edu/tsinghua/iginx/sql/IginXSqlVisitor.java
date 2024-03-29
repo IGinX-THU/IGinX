@@ -1103,25 +1103,46 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   // like standard SQL, limit N, M means limit M offset N
   private void parseLimitClause(LimitClauseContext ctx, SelectStatement selectStatement) {
-    int limit = Integer.MAX_VALUE;
-    int offset = 0;
-    if (ctx.INT().size() == 1) {
-      limit = Integer.parseInt(ctx.INT(0).getText());
-      if (ctx.offsetClause() != null) {
-        offset = Integer.parseInt(ctx.offsetClause().INT().getText());
-      }
-    } else if (ctx.INT().size() == 2) {
-      offset = Integer.parseInt(ctx.INT(0).getText());
-      limit = Integer.parseInt(ctx.INT(1).getText());
-    } else {
-      throw new SQLParserException(
-          "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
-    }
-    selectStatement.setLimit(limit);
-    selectStatement.setOffset(offset);
+//    int limit = Integer.MAX_VALUE;
+//    int offset = 0;
+//    if (ctx.INT().size() == 1) {
+//      limit = Integer.parseInt(ctx.INT(0).getText());
+//      if (ctx.offsetClause() != null) {
+//        offset = Integer.parseInt(ctx.offsetClause().INT().getText());
+//      }
+//    } else if (ctx.INT().size() == 2) {
+//      offset = Integer.parseInt(ctx.INT(0).getText());
+//      limit = Integer.parseInt(ctx.INT(1).getText());
+//    } else {
+//      throw new SQLParserException(
+//          "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
+//    }
+    Pair<Integer, Integer> p = getLimitAndOffsetFromCtx(ctx);
+    selectStatement.setLimit(p.k);
+    selectStatement.setOffset(p.v);
   }
 
   private void parseLimitClause(LimitClauseContext ctx, ShowColumnsStatement statement) {
+//    int limit = Integer.MAX_VALUE;
+//    int offset = 0;
+//    if (ctx.INT().size() == 1) {
+//      limit = Integer.parseInt(ctx.INT(0).getText());
+//      if (ctx.offsetClause() != null) {
+//        offset = Integer.parseInt(ctx.offsetClause().INT().getText());
+//      }
+//    } else if (ctx.INT().size() == 2) {
+//      offset = Integer.parseInt(ctx.INT(0).getText());
+//      limit = Integer.parseInt(ctx.INT(1).getText());
+//    } else {
+//      throw new SQLParserException(
+//          "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
+//    }
+    Pair<Integer, Integer> p = getLimitAndOffsetFromCtx(ctx);
+    statement.setLimit(p.k);
+    statement.setOffset(p.v);
+  }
+
+  private Pair<Integer, Integer> getLimitAndOffsetFromCtx(LimitClauseContext ctx) throws SQLParserException{
     int limit = Integer.MAX_VALUE;
     int offset = 0;
     if (ctx.INT().size() == 1) {
@@ -1134,10 +1155,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       limit = Integer.parseInt(ctx.INT(1).getText());
     } else {
       throw new SQLParserException(
-          "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
+              "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
     }
-    statement.setLimit(limit);
-    statement.setOffset(offset);
+    return new Pair<>(limit, offset);
   }
 
   private void parseOrderByClause(OrderByClauseContext ctx, SelectStatement selectStatement) {

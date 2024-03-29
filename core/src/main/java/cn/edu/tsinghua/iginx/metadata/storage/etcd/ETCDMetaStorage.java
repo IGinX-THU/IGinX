@@ -52,11 +52,11 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   private static final Logger logger = LoggerFactory.getLogger(ETCDMetaStorage.class);
 
-  private static final String IGINX_ID = "/id/iginx/";
+  private static final String IGINX_ID = "/id/iginx";
 
-  private static final String STORAGE_ID = "/id/storage/";
+  private static final String STORAGE_ID = "/id/storage";
 
-  private static final String STORAGE_UNIT_ID = "/id/storage_unit/";
+  private static final String STORAGE_UNIT_ID = "/id/unit";
 
   private static final String FRAGMENT_REQUESTS_COUNTER_LOCK_NODE =
       "/lock/counter/fragment/requests";
