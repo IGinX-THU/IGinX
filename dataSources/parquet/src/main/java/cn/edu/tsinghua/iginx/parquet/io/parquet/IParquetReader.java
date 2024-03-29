@@ -192,15 +192,5 @@ public class IParquetReader extends ParquetReader<IRecord> {
       }
       return this;
     }
-
-    public Builder withCodecFactory(ByteBufferAllocator byteBufferAllocator, int lz4BufferSize) {
-      super.withCodecFactory(
-          new DefaultCodecFactory(
-              byteBufferAllocator,
-              lz4BufferSize,
-              DefaultCodecFactory.DEFAULT_ZSTD_LEVEL,
-              DefaultCodecFactory.DEFAULT_ZSTD_WORKERS));
-      return this;
-    }
   }
 }
