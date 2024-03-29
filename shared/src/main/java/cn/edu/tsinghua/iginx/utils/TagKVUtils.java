@@ -18,10 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 public class TagKVUtils {
 
@@ -101,6 +98,24 @@ public class TagKVUtils {
         tags.put(KV[0], KV[1]);
       }
       return new Pair<>(name, tags);
+    }
+  }
+
+  public static void fillNameAndTagMap(String path, StringBuilder name, Map<String, String> ret) {
+    int firstBrace = path.indexOf("{");
+    int lastBrace = path.indexOf("}");
+    if (firstBrace == -1 || lastBrace == -1) {
+      name.append(path);
+      return;
+    }
+    name.append(path, 0, firstBrace);
+    String tagLists = path.substring(firstBrace + 1, lastBrace);
+    String[] splitPaths = tagLists.split(",");
+    for (String tag : splitPaths) {
+      int equalPos = tag.indexOf("=");
+      String tagKey = tag.substring(0, equalPos);
+      String tagVal = tag.substring(equalPos + 1);
+      ret.put(tagKey, tagVal);
     }
   }
 }
