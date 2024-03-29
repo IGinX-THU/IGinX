@@ -18,6 +18,7 @@
 
 import struct
 
+from .bitmap import Bitmap
 from ..thrift.rpc.ttypes import DataType
 
 
@@ -189,24 +190,29 @@ class BytesParser(object):
         else:
             raise RuntimeError("unknown data type " + type)
 
-    def get_bytes_from_types(self, types):
-        bytes_value = bytearray()
+    def get_bytes_from_types(self, types, bitmap : Bitmap):
+        bytes_value = []
+        i = -1
         for type in types:
+            i += 1
             if type is None:
                 continue
+            if not bitmap.get(i):
+                bytes_value.append(b'')
+                continue
             if type == DataType.BOOLEAN:
-                bytes_value.extend(self._next(1))
+                bytes_value.append(self._next(1))
             elif type == DataType.INTEGER:
-                bytes_value.extend(self._next(4))
+                bytes_value.append(self._next(4))
             elif type == DataType.LONG:
-                bytes_value.extend(self._next(8))
+                bytes_value.append(self._next(8))
             elif type == DataType.FLOAT:
-                bytes_value.extend(self._next(4))
+                bytes_value.append(self._next(4))
             elif type == DataType.DOUBLE:
-                bytes_value.extend(self._next(8))
+                bytes_value.append(self._next(8))
             elif type == DataType.BINARY:
                 size = self.next_int()
-                bytes_value.extend(self._next(size))
+                bytes_value.append(self._next(size))
             else:
                 raise RuntimeError("unknown data type " + type)
         return bytes_value
