@@ -54,7 +54,7 @@ public class ExportFileIT {
   @Test
   public void checkExportImage() {
     Path dir =
-        Paths.get("src", "test", "resources", "fileReadAndWrite", "img_outfile", "downloads");
+        Paths.get("src", "test", "resources", "fileReadAndWrite", "img_outfile");
     File dirFile = dir.toFile();
 
     assertTrue(dirFile.exists());
@@ -64,7 +64,7 @@ public class ExportFileIT {
 
     filenames.sort(String::compareTo);
 
-    String expectedFilename = "large_img_jpg";
+    String expectedFilename = "downloads.large_img_jpg";
     assertEquals(expectedFilename, filenames.get(0));
     File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
     assertEquals(file.length(), 2928640);
