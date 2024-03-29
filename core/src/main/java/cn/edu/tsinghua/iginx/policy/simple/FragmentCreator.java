@@ -86,7 +86,6 @@ public class FragmentCreator {
             try {
               createFragment();
             } catch (Exception e) {
-              LOGGER.error("Error occurs when create fragment", e);
               LOGGER.error("unexpected error: ", e);
             }
           }

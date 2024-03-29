@@ -40,8 +40,7 @@ public class Annotation {
         }
       }
     } catch (Exception e) {
-      LOGGER.error("unexpected error: ", e);
-      LOGGER.error("Wrong annotation form in database");
+      LOGGER.error("Wrong annotation form in database", e);
     }
   }
 
