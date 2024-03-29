@@ -49,7 +49,6 @@ import cn.edu.tsinghua.iginx.utils.*;
 import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -794,13 +793,18 @@ public class IginxWorker implements IService.Iface {
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
-    if (!sourceFile.isFile()) {
-      errorMsg = "Register file must be a file.";
+
+    // python file
+    if (sourceFile.isFile() && !sourceFile.getName().endsWith(".py")) {
+      errorMsg = "Register file must be a python file.";
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
-    if (!sourceFile.getName().endsWith(".py")) {
-      errorMsg = "Register file must be a python file.";
+
+    // python module dir, class name must contains '.'
+    if (sourceFile.isDirectory() && !className.contains(".")) {
+      errorMsg =
+          "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.";
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
@@ -811,15 +815,15 @@ public class IginxWorker implements IService.Iface {
     File destFile = new File(destPath);
 
     if (destFile.exists()) {
-      errorMsg = String.format("Register file already exist, fileName=%s", fileName);
+      errorMsg = String.format("Register file(s) already exist, name=%s", fileName);
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     try {
-      Files.copy(sourceFile.toPath(), destFile.toPath());
+      FileUtils.copyFileOrDir(sourceFile, destFile);
     } catch (IOException e) {
-      errorMsg = String.format("Fail to copy register file, filePath=%s", filePath);
+      errorMsg = String.format("Fail to copy register file(s), path=%s", filePath);
       logger.error(errorMsg, e);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
@@ -873,11 +877,12 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE;
     }
 
-    if (file.delete()) {
+    try {
+      FileUtils.deleteFileOrDir(file);
       metaManager.dropTransformTask(name);
       logger.info(String.format("Register file has been dropped, path=%s", filePath));
       return RpcUtils.SUCCESS;
-    } else {
+    } catch (IOException e) {
       logger.error(String.format("Fail to delete register file, path=%s", filePath));
       return RpcUtils.FAILURE;
     }

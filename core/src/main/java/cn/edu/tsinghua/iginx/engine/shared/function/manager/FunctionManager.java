@@ -186,8 +186,17 @@ public class FunctionManager {
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
 
     String fileName = taskMeta.getFileName();
-    String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+    String moduleName;
     String className = taskMeta.getClassName();
+    if (fileName.endsWith(PY_SUFFIX)) {
+      // accessing a python code file
+      moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+      className = taskMeta.getClassName();
+    } else {
+      // accessing a python module dir
+      moduleName = className.substring(0, className.lastIndexOf("."));
+      className = className.substring(className.lastIndexOf(".") + 1);
+    }
 
     // init the python udf
     BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();

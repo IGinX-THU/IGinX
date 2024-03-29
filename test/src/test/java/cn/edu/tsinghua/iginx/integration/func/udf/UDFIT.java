@@ -31,6 +31,7 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -832,6 +833,45 @@ public class UDFIT {
             + "|    +--Project   |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
             + "Total line number = 3\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testImportModule() {
+    String modulePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "my_module");
+    String classPath = "my_module.sub_module.sub_class_a.SubClassA";
+    String register =
+        "register udsf python task \""
+            + classPath
+            + "\" in \""
+            + modulePath
+            + "\" as \"module_udf_test\";";
+    execute(register);
+
+    String insert = "insert into test(key, a) values (1,2);";
+    execute(insert);
+    String query = "select module_udf_test(a, 1) from test;";
+    SessionExecuteSqlResult ret = execute(query);
+
+    register = "drop python task \"module_udf_test\";";
+    execute(register);
+
+    String expected =
+        "ResultSets:\n"
+            + "+----+\n"
+            + "|col1|\n"
+            + "+----+\n"
+            + "|   1|\n"
+            + "+----+\n"
+            + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 }
