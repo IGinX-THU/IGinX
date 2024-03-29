@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.client;
 
 import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
-import static cn.edu.tsinghua.iginx.utils.FileUtils.swapChar;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
