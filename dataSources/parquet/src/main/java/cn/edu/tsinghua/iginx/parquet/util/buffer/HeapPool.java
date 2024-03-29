@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
 public class HeapPool implements BufferPool {
   @Override
   public ByteBuffer allocate(int capacity) {
-    if (capacity <= 0) throw new IllegalArgumentException("capacity must be non-negative");
+    if (capacity < 0) throw new IllegalArgumentException("capacity must be non-negative");
 
     return ByteBuffer.allocate(capacity);
   }

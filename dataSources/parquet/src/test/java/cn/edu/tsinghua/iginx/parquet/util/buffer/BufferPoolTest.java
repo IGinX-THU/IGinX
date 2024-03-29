@@ -63,7 +63,7 @@ public abstract class BufferPoolTest {
     assertAllocate(bufferPool, 1024 * 1024);
   }
 
-  @Test(expected = IllegalArgumentException.class)
+  @Test
   public void testAllocateZero() {
     BufferPool bufferPool = getBufferPool();
     assertAllocate(bufferPool, 0);

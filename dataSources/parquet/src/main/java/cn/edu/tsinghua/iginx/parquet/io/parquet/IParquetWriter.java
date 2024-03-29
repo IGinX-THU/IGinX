@@ -48,8 +48,8 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
   }
 
   public static Builder builder(
-      Path path, MessageType schema, ByteBufferAllocator fileBufferAllocator) {
-    return new Builder(new LocalOutputFile(path, fileBufferAllocator, Integer.MAX_VALUE), schema);
+      Path path, MessageType schema, ByteBufferAllocator fileBufferAllocator, int maxBufferSize) {
+    return new Builder(new LocalOutputFile(path, fileBufferAllocator, maxBufferSize), schema);
   }
 
   public static Builder builder(Path path, MessageType schema) {

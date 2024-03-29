@@ -88,7 +88,7 @@ public class RecyclePool implements BufferPool {
       return;
     }
     int capacity = byteBuffer.capacity();
-    if (capacity <= 0) {
+    if (capacity < 0) {
       throw new IllegalArgumentException("capacity must be a positive number, but got " + capacity);
     }
     int atMostCapacity = getAtMostCapacity(capacity);
