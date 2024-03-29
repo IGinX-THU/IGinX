@@ -37,10 +37,6 @@ bash -c "echo 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"du
 
 bash -c "echo 'select * from byteDummy into outfile "'"test/src/test/resources/fileReadAndWrite/byteStreamExport"'" as stream;' | ${SCRIPT_COMMAND}"
 
-bash -c "ls test/src/test/resources/fileReadAndWrite/byteStreamExport"
-
-bash -c "ls test/src/test/resources/fileReadAndWrite/byteStreamExport/byteDummy"
-
 db_name=$1
 
 # 只测FileSystem和Parquet

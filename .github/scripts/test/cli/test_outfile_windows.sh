@@ -41,10 +41,6 @@ bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e 'ADD ST
 
 bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e 'select * from byteDummy into outfile "'"test/src/test/resources/fileReadAndWrite/byteStreamExport"'" as stream;'"
 
-bash -c "ls test/src/test/resources/fileReadAndWrite/byteStreamExport"
-
-bash -c "ls test/src/test/resources/fileReadAndWrite/byteStreamExport/byteDummy"
-
 db_name=$1
 
 # 只测FileSystem和Parquet
