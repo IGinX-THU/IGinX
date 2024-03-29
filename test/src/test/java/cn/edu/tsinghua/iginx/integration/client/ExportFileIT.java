@@ -53,8 +53,7 @@ public class ExportFileIT {
 
   @Test
   public void checkExportImage() {
-    Path dir =
-        Paths.get("src", "test", "resources", "fileReadAndWrite", "img_outfile");
+    Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "img_outfile");
     File dirFile = dir.toFile();
 
     assertTrue(dirFile.exists());
