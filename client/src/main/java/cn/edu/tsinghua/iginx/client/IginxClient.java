@@ -510,7 +510,7 @@ public class IginxClient {
         finalCnt--;
         continue;
       }
-      originColumn = swapChar(originColumn, '\\', '.');
+      originColumn = originColumn.replace("\\", ".");
       Integer count = countMap.getOrDefault(originColumn, 0);
       count += 1;
       countMap.put(originColumn, count);
