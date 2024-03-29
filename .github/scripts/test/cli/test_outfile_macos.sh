@@ -26,6 +26,8 @@ sh -c "echo 'select * from test into outfile "'"test/src/test/resources/fileRead
 
 sh -c "echo 'select * from test into outfile "'"test/src/test/resources/fileReadAndWrite/csv/test.csv"'" as csv;' | ${SCRIPT_COMMAND}"
 
+mkdir -p "test/src/test/resources/fileReadAndWrite/byteDummy"
+
 # add exported dir as dummy fs storge, then test export
 bash -c "cp -r test/src/test/resources/fileReadAndWrite/byteStream/* test/src/test/resources/fileReadAndWrite/byteDummy"
 # add extension to filename

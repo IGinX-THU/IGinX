@@ -18,7 +18,7 @@ public class ExportFileIT {
     Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream");
     checkFiles(dir, "test", "");
     dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStreamExport");
-    checkFiles(dir, "byteDummy", ".ext");
+    checkFiles(dir, "byteDummy.test", ".ext");
   }
 
   public void checkFiles(Path dir, String prefix, String extension) {

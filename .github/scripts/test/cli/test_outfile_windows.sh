@@ -30,6 +30,8 @@ bash -c "sleep 10"
 
 bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMAND'"
 
+mkdir -p "test/src/test/resources/fileReadAndWrite/byteDummy"
+
 # add exported dir as dummy fs storge, then test export
 bash -c "cp -r test/src/test/resources/fileReadAndWrite/byteStream/* test/src/test/resources/fileReadAndWrite/byteDummy"
 # add extension to filename
