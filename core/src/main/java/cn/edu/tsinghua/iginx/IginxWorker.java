@@ -454,12 +454,15 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
+    // TODO: 下面两个循环疑似可以合并在一起
     StorageManager storageManager = PhysicalEngineImpl.getInstance().getStorageManager();
     for (StorageEngineMeta meta : otherMetas) {
-      IStorage storage = storageManager.initRemoteStorage(meta);
+      IStorage storage = StorageManager.initStorageInstance(meta);
       if (storage == null) {
         status.addToSubStatus(
-            RpcUtils.status(StatusCode.STATEMENT_EXECUTION_ERROR, "init storage engine failed"));
+            RpcUtils.status(
+                StatusCode.STATEMENT_EXECUTION_ERROR,
+                String.format("init storage engine %s failed", meta)));
         continue;
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
@@ -470,10 +473,18 @@ public class IginxWorker implements IService.Iface {
       storageManager.addStorage(meta, storage);
     }
     for (StorageEngineMeta meta : localMetas) {
-      IStorage storage = storageManager.initLocalStorage(meta);
+      IStorage storage = StorageManager.initStorageInstance(meta);
+      if (storage == null) {
+        status.addToSubStatus(
+            RpcUtils.status(
+                StatusCode.STATEMENT_EXECUTION_ERROR,
+                String.format("init storage engine %s failed", meta)));
+        continue;
+      }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
         logger.error("add storage engine {} failed.", meta);
         status.addToSubStatus(RpcUtils.FAILURE);
+        continue;
       }
       storageManager.addStorage(meta, storage);
     }
