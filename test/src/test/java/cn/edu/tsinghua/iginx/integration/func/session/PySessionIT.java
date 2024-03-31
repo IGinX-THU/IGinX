@@ -10,13 +10,17 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +32,8 @@ public class PySessionIT {
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
   private static String pythonCMD;
+  private static boolean dummyNoData = true;
+  private static final TestDataSection baseDataSection = buildBaseDataSection();
 
   static {
     String os = System.getProperty("os.name").toLowerCase();
@@ -52,6 +58,30 @@ public class PySessionIT {
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
   }
 
+  private static TestDataSection buildBaseDataSection() {
+    List<String> paths = Arrays.asList("a.a.a", "a.a.b", "a.b.b", "a.c.c");
+    List<DataType> types =
+        Arrays.asList(DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY);
+    List<Map<String, String>> tagsList =
+        Arrays.asList(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>());
+    List<Long> keys = Arrays.asList(0L, 1L, 2L, 3L);
+    List<List<Object>> values =
+        Arrays.asList(
+            Arrays.asList(
+                "a".getBytes(StandardCharsets.UTF_8),
+                "b".getBytes(StandardCharsets.UTF_8),
+                null,
+                null),
+            Arrays.asList(null, null, "b".getBytes(StandardCharsets.UTF_8), null),
+            Arrays.asList(null, null, null, "c".getBytes(StandardCharsets.UTF_8)),
+            Arrays.asList(
+                "Q".getBytes(StandardCharsets.UTF_8),
+                "W".getBytes(StandardCharsets.UTF_8),
+                "E".getBytes(StandardCharsets.UTF_8),
+                "R".getBytes(StandardCharsets.UTF_8)));
+    return new TestDataSection(keys, types, paths, values, tagsList);
+  }
+
   @BeforeClass
   public static void setUp() throws SessionException {
     // 清除历史数据
@@ -66,41 +96,97 @@ public class PySessionIT {
     conn.closeSession();
   }
 
+  //  @Before
+  //  public void insertBaseData() {
+  //    List<String> result = new ArrayList<>();
+  //    try {
+  //      // 设置Python脚本路径
+  //      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
+  //
+  //      // 创建ProcessBuilder以执行Python脚本
+  //      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+  //
+  //      // 启动进程并等待其终止
+  //      Process process = pb.start();
+  //      process.waitFor();
+  //
+  //      // 读取Python脚本的输出
+  //      BufferedReader reader = new BufferedReader(new
+  // InputStreamReader(process.getInputStream()));
+  //      String line;
+  //      while ((line = reader.readLine()) != null) {
+  //        System.out.println(line);
+  //        result.add(line);
+  //      }
+  //      // 检查Python脚本是否正常终止
+  //      int exitCode = process.exitValue();
+  //      if (exitCode != 0) {
+  //        for (int i = 0; i < result.size(); i++) {
+  //          logger.info(result.get(i));
+  //        }
+  //        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+  //        throw new RuntimeException("Python script terminated with non-zero exit code: " +
+  // exitCode);
+  //      }
+  //    } catch (IOException | InterruptedException e) {
+  //      e.printStackTrace();
+  //      throw new RuntimeException(e);
+  //    }
+  //    System.out.println("insert");
+  //  }
+
   @Before
   public void insertBaseData() {
-    List<String> result = new ArrayList<>();
     try {
-      // 设置Python脚本路径
-      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
-    } catch (IOException | InterruptedException e) {
+      session = new MultiConnection(new Session("127.0.0.1", 6888, "root", "root"));
+      session.openSession();
+      // insert base data using all types of insert API.
+      TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
+      insertData(subBaseData, Column);
+      dummyNoData = false;
+      session.closeSession();
+    } catch (SessionException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("insert");
+  }
+
+  private void insertData(TestDataSection data, InsertAPIType type) {
+    switch (type) {
+      case Row:
+      case NonAlignedRow:
+        Controller.writeRowsData(
+            session,
+            data.getPaths(),
+            data.getKeys(),
+            data.getTypes(),
+            data.getValues(),
+            data.getTagsList(),
+            type,
+            dummyNoData);
+        break;
+      case Column:
+      case NonAlignedColumn:
+        List<List<Object>> values =
+            IntStream.range(0, data.getPaths().size())
+                .mapToObj(
+                    col ->
+                        IntStream.range(0, data.getValues().size())
+                            .mapToObj(row -> data.getValues().get(row).get(col))
+                            .collect(Collectors.toList()))
+                .collect(Collectors.toList());
+        Controller.writeColumnsData(
+            session,
+            data.getPaths(),
+            IntStream.range(0, data.getPaths().size())
+                .mapToObj(i -> new ArrayList<>(data.getKeys()))
+                .collect(Collectors.toList()),
+            data.getTypes(),
+            values,
+            data.getTagsList(),
+            type,
+            dummyNoData);
+    }
   }
 
   @Test
