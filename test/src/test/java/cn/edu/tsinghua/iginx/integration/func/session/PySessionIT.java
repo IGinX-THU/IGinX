@@ -823,9 +823,27 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     System.out.println("load csv without header");
-    // 验证写入文件是否成功
+    // 验证写入stream是否成功
+    String streamPathPrefix = System.getProperty("user.dir") + "/../generated/";
+    List<String> streamFiles = Arrays.asList("a.a.a", "a.a.b", "a.b.b", "a.c.c");
+    result.clear();
+    for (String streamFile : streamFiles) {
+      String streamPath = streamPathPrefix + streamFile;
+      try (BufferedReader reader = new BufferedReader(new FileReader(streamPath))) {
+        String line;
+        while ((line = reader.readLine()) != null) {
+          result.add(line);
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+        throw new RuntimeException(e);
+      }
+    }
+    List<String> expected = Arrays.asList("aQ", "bW", "bE", "cR");
+    assertEquals(expected, result);
+    // 验证写入csv文件是否成功
     String outputPath = System.getProperty("user.dir") + "/../generated/output.csv";
-    List<String> expected =
+    expected =
         Arrays.asList(
             "key,a.a.a,a.a.b,a.b.b,a.c.c",
             "1970-01-01 08:00:00,a,b,None,None",

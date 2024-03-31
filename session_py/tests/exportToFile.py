@@ -16,11 +16,11 @@
 # under the License.
 #
 
-# 无法单独执行，用来测试PySessionIT
 import sys
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.iginx_pyclient.session import Session
+import traceback
 
 
 if __name__ == '__main__':
@@ -30,8 +30,9 @@ if __name__ == '__main__':
         # 将数据存入csv
         session.export_to_file("select * from a into outfile \"../generated/output.csv\" as csv with header;")
         # 将数据存入文件
-        # session.export_to_file("select * from a into outfile \"../generated\" as stream;")
+        session.export_to_file("select * from a into outfile \"../generated\" as stream;")
     except Exception as e:
+        traceback.print_exc()
         print(e)
         exit(1)
     session.close()
