@@ -62,7 +62,8 @@ public class IParquetWriter implements AutoCloseable {
     internalWriter.close();
   }
 
-  public ParquetMetadata getFooter() {
+  public ParquetMetadata flush() throws IOException {
+    internalWriter.close();
     return fileWriter.getFooter();
   }
 
