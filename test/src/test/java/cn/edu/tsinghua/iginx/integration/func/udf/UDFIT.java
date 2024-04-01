@@ -1050,7 +1050,7 @@ public class UDFIT {
             + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
-    // make sure "udf_d" is dropped and cannot be used
+    // make sure "udf_b" is dropped and cannot be used
     execute("drop python task \"udf_b\";");
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
@@ -1143,7 +1143,7 @@ public class UDFIT {
             + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
 
-    // make sure "udf_d" is dropped and cannot be used
+    // make sure "udf_b" is dropped and cannot be used
     execute("drop python task \"udf_b\";");
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
@@ -1159,6 +1159,94 @@ public class UDFIT {
             + "+---------+\n"
             + "|        1|\n"
             + "+---------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // register multiple UDFs in one python file
+  @Test
+  public void testMultiUDFRegFile() {
+    String modulePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "my_module",
+            "idle_classes.py");
+    List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
+    String type = String.join(", ", types);
+    // ClassA & ClassB in same python file, & SubClassA in same module
+    List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
+    String classPath = String.join(", ", classPaths);
+    List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
+    String name = String.join(", ", names);
+    String register =
+        "register "
+            + type
+            + " python task \""
+            + classPath
+            + "\" in \""
+            + modulePath
+            + "\" as \""
+            + name
+            + "\";";
+    execute(register);
+    assertTrue(isUDFRegistered(names));
+    taskToBeRemoved.addAll(names);
+
+    // test UDFs' usage
+    String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-----------+\n"
+            + "|key|col_outer_a|\n"
+            + "+---+-----------+\n"
+            + "|  0|          1|\n"
+            + "|  1|          1|\n"
+            + "|  2|          1|\n"
+            + "|  3|          1|\n"
+            + "|  4|          1|\n"
+            + "|  5|          1|\n"
+            + "|  6|          1|\n"
+            + "|  7|          1|\n"
+            + "|  8|          1|\n"
+            + "|  9|          1|\n"
+            + "+---+-----------+\n"
+            + "Total line number = 10\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+-----------+\n"
+            + "|col_outer_b|\n"
+            + "+-----------+\n"
+            + "|          1|\n"
+            + "+-----------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // make sure "udf_b" is dropped and cannot be used
+    execute("drop python task \"udf_b\";");
+    assertFalse(isUDFRegistered("udf_b"));
+    taskToBeRemoved.remove("udf_b");
+    executeFail(statement);
+
+    // other udfs in the same file should work normally, use new udf to avoid cache.
+    statement = "select udf_c(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+-----------+\n"
+            + "|col_outer_c|\n"
+            + "+-----------+\n"
+            + "|          1|\n"
+            + "+-----------+\n"
             + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }

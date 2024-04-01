@@ -18,6 +18,8 @@ result=$(bash -c "echo '$COMMAND' | xargs -0 -t -i ${SCRIPT_COMMAND}")
 
 if [[ $result =~ 'success' ]]; then
   echo success
+  COMMAND='DROP PYTHON TASK "'"mock_udf"'";'
+  bash -c "echo '$COMMAND' | xargs -0 -t -i ${SCRIPT_COMMAND}"
 else
   echo 'Error: failed to register udf mock_udf.'
   echo $result

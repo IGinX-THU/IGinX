@@ -14,6 +14,8 @@ result=$(bash -c "./start_cli.bat -e '$COMMAND'")
 
 if [[ $result =~ 'success' ]]; then
   echo success
+  COMMAND='DROP PYTHON TASK "'"mock_udf"'";'
+  bash -c "./start_cli.bat -e '$COMMAND'"
 else
   echo 'Error: failed to register udf mock_udf.'
   echo $result
