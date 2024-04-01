@@ -89,7 +89,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     builder.withPageSize(shared.getStorageProperties().getParquetPageSize());
     builder.withCodecFactory(
         allocator,
-        shared.getStorageProperties().getZstdLevel());
+        shared.getStorageProperties().getZstdLevel(),
+        shared.getStorageProperties().getZstdWorkers());
     builder.withCodec(shared.getStorageProperties().getParquetCompression());
     builder.withAllocator(allocator);
 
