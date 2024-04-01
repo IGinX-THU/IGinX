@@ -901,11 +901,14 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
     List<TransformTaskMeta> res = new ArrayList<>();
-    transformTaskMetaMap.values().forEach(e -> {
-      if (e.getFileName().equals(moduleName)) {
-        res.add(e);
-      }
-    });
+    transformTaskMetaMap
+        .values()
+        .forEach(
+            e -> {
+              if (e.getFileName().equals(moduleName)) {
+                res.add(e);
+              }
+            });
     return res;
   }
 }

@@ -797,19 +797,43 @@ public class IginxWorker implements IService.Iface {
     String errorMsg;
 
     if (names.length != classNames.length) {
-      errorMsg = String.format("Fail to register %d UDFs with %d classes, the number should be same.", names.length, classNames.length);
+      errorMsg =
+          String.format(
+              "Fail to register %d UDFs with %d classes, the number should be same.",
+              names.length, classNames.length);
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     boolean singleType = false;
     if (names.length != req.getTypesSize() && req.getTypesSize() > 1) {
-      errorMsg = String.format("Fail to register %d UDFs with %d types, the number should be same.", names.length, req.getTypesSize());
+      errorMsg =
+          String.format(
+              "Fail to register %d UDFs with %d types, the number should be same or use only one type.",
+              names.length, req.getTypesSize());
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } else if (req.getTypesSize() == 1) {
       // all task in one type
       singleType = true;
+    }
+
+    // fail if trying to register UDFs with same class name or name.
+    Set<String> temp = new HashSet<>();
+    for (String name : names) {
+      if (!temp.add(name)) {
+        errorMsg = String.format("Cannot register multiple UDFs with same name: %s", name);
+        logger.error(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
+    }
+    temp.clear();
+    for (String className : classNames) {
+      if (!temp.add(className)) {
+        errorMsg = String.format("Cannot register multiple UDFs with same class: %s", className);
+        logger.error(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
     }
 
     List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
@@ -844,8 +868,9 @@ public class IginxWorker implements IService.Iface {
       for (String className : classNames) {
         if (!className.contains(".")) {
           errorMsg =
-                  "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n" +
-                  className + " is an invalid class name.";
+              "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n"
+                  + className
+                  + " is an invalid class name.";
           logger.error(errorMsg);
           return RpcUtils.FAILURE.setMessage(errorMsg);
         }
@@ -881,14 +906,13 @@ public class IginxWorker implements IService.Iface {
         metaManager.updateTransformTask(transformTaskMeta);
       } else {
         metaManager.addTransformTask(
-                new TransformTaskMeta(
-                        names[i],
-                        classNames[i],
-                        fileName,
-                        new HashSet<>(Collections.singletonList(config.getIp())),
-                        type));
+            new TransformTaskMeta(
+                names[i],
+                classNames[i],
+                fileName,
+                new HashSet<>(Collections.singletonList(config.getIp())),
+                type));
       }
-
     }
     return RpcUtils.SUCCESS;
   }

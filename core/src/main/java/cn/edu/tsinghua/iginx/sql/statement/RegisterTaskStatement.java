@@ -7,10 +7,9 @@ import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.List;
 
 public class RegisterTaskStatement extends SystemStatement {
 
@@ -27,7 +26,8 @@ public class RegisterTaskStatement extends SystemStatement {
   @SuppressWarnings("unused")
   private static final Logger logger = LoggerFactory.getLogger(RegisterTaskStatement.class);
 
-  public RegisterTaskStatement(String name, String filePath, String className, List<UDFType> types) {
+  public RegisterTaskStatement(
+      String name, String filePath, String className, List<UDFType> types) {
     this.statementType = StatementType.REGISTER_TASK;
     this.name = name;
     this.filePath = filePath;
