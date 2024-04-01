@@ -41,7 +41,7 @@ public class Storer {
   public void flush(Table memTable) throws IOException {
     MessageType schema = getMessageTypeStartWithKey("test", memTable.getHeader());
     IParquetWriter.Builder writerBuilder = IParquetWriter.builder(path, schema);
-    writerBuilder.withOverwrite(true);
+//    writerBuilder
 
     try (IParquetWriter writer = writerBuilder.build()) {
       long lastKey = Long.MIN_VALUE;

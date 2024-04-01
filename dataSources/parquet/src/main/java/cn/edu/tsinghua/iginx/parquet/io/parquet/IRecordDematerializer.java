@@ -16,10 +16,10 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.format.parquet.api.RecordDematerializer;
 import java.util.Map;
 import shaded.iginx.org.apache.parquet.io.api.Binary;
 import shaded.iginx.org.apache.parquet.io.api.RecordConsumer;
+import shaded.iginx.org.apache.parquet.io.api.RecordDematerializer;
 import shaded.iginx.org.apache.parquet.schema.GroupType;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
@@ -36,7 +36,7 @@ class IRecordDematerializer extends RecordDematerializer<IRecord> {
   private RecordConsumer recordConsumer = null;
 
   @Override
-  public void prepare(RecordConsumer recordConsumer) {
+  public void setRecordConsumer(RecordConsumer recordConsumer) {
     this.recordConsumer = recordConsumer;
   }
 
@@ -47,6 +47,16 @@ class IRecordDematerializer extends RecordDematerializer<IRecord> {
       addGroup(schema, record);
       recordConsumer.endMessage();
     }
+  }
+
+  @Override
+  public MessageType getSchema() {
+    return null;
+  }
+
+  @Override
+  public Map<String, String> getExtraMetaData() {
+    return null;
   }
 
   private void addGroup(GroupType groupType, IRecord record) {

@@ -256,7 +256,7 @@ public class ParquetFormatIOTest {
                         Type.Repetition.OPTIONAL, PrimitiveType.PrimitiveTypeName.INT32, "c1"))));
 
     IParquetWriter.Builder builder = IParquetWriter.builder(FILE_PATH, schema);
-    builder.withOverwrite(true);
+//    builder.withOverwrite(true);
     try (IParquetWriter writer = builder.build()) {
       for (int i = 0; i < ROW_NUM; i++) {
         IRecord optRecord = new IRecord();
@@ -322,7 +322,7 @@ public class ParquetFormatIOTest {
                     Type.Repetition.REPEATED, PrimitiveType.PrimitiveTypeName.BINARY, "b3")));
 
     IParquetWriter.Builder builder = IParquetWriter.builder(FILE_PATH, schema);
-    builder.withOverwrite(true);
+//    builder.withOverwrite(true);
     try (IParquetWriter writer = builder.build()) {
       for (int i = 0; i < ROW_NUM; i++) {
         Object[] b1 = new Object[REPEATED_NUM];

@@ -84,15 +84,15 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
     ByteBufferAllocator allocator = new BufferAllocatorWrapper(shared.getBufferPool());
 
-    IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema, allocator, shared.getStorageProperties().getParquetMaxOutputBufferSize());
+    IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema);
     builder.withRowGroupSize(shared.getStorageProperties().getParquetRowGroupSize());
     builder.withPageSize(shared.getStorageProperties().getParquetPageSize());
-    builder.withCodecFactory(
-        allocator,
-        shared.getStorageProperties().getZstdLevel(),
-        shared.getStorageProperties().getZstdWorkers());
-    builder.withCodec(shared.getStorageProperties().getParquetCompression());
-    builder.withAllocator(allocator);
+//    builder.withCodecFactory(
+//        allocator,
+//        shared.getStorageProperties().getZstdLevel(),
+//        shared.getStorageProperties().getZstdWorkers());
+//    builder.withCodec(shared.getStorageProperties().getParquetCompression());
+//    builder.withAllocator(allocator);
 
     try (IParquetWriter writer = builder.build()) {
       while (scanner.iterate()) {
@@ -157,7 +157,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     ByteBufferAllocator bufferAllocator = new BufferAllocatorWrapper(shared.getBufferPool());
 
     IParquetReader.Builder builder = IParquetReader.builder(path);
-    builder.withAllocator(bufferAllocator);
+//    builder.withAllocator(bufferAllocator);
 
     try (IParquetReader reader = builder.build()) {
       return getParquetTableMeta(reader.getMeta());
@@ -207,9 +207,9 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     IParquetReader.Builder builder = IParquetReader.builder(path);
     builder.project(fields);
     builder.filter(unionFilter);
-    builder.withAllocator(bufferAllocator);
-    builder.withCodecFactory(
-        bufferAllocator, shared.getStorageProperties().getParquetLz4BufferSize());
+//    builder.withAllocator(bufferAllocator);
+//    builder.withCodecFactory(
+//        bufferAllocator, shared.getStorageProperties().getParquetLz4BufferSize());
 
     ParquetTableMeta parquetTableMeta = getParquetTableMeta(path.toString());
     IParquetReader reader = builder.build(parquetTableMeta.getMeta());

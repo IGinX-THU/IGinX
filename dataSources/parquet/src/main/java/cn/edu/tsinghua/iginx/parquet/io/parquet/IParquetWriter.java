@@ -16,45 +16,94 @@
 
 package cn.edu.tsinghua.iginx.parquet.io.parquet;
 
-import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
-import cn.edu.tsinghua.iginx.format.parquet.api.RecordDematerializer;
-import cn.edu.tsinghua.iginx.format.parquet.codec.DefaultCodecFactory;
-import cn.edu.tsinghua.iginx.format.parquet.io.LocalOutputFile;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.Map;
+
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
+import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
 import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
-import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
-import shaded.iginx.org.apache.parquet.hadoop.ExportedParquetRecordWriter;
-import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetFileWriter;
+import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordWriter;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
+import shaded.iginx.org.apache.parquet.io.LocalOutputFile;
 import shaded.iginx.org.apache.parquet.io.OutputFile;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
+import shaded.iginx.org.apache.parquet.schema.TypeUtil;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
+public class IParquetWriter implements AutoCloseable {
 
-public class IParquetWriter extends ParquetWriter<IRecord> {
+  private final ParquetRecordWriter<IRecord> internalWriter;
 
-  private IParquetWriter(ExportedParquetRecordWriter<IRecord> internalWriter) {
-    super(internalWriter);
-  }
+  private final ParquetFileWriter fileWriter;
 
-  public ParquetMetadata getFooter() {
-    return recordWriter.getWriter().getFooter();
-  }
-
-  public static Builder builder(
-      Path path, MessageType schema, ByteBufferAllocator fileBufferAllocator, int maxBufferSize) {
-    return new Builder(new LocalOutputFile(path, fileBufferAllocator, maxBufferSize), schema);
+  IParquetWriter(ParquetRecordWriter<IRecord> internalWriter, ParquetFileWriter fileWriter) {
+    this.internalWriter = internalWriter;
+    this.fileWriter = fileWriter;
   }
 
   public static Builder builder(Path path, MessageType schema) {
-    return builder(path, schema, new HeapByteBufferAllocator(), 8 * 1024);
+    return new Builder(
+        new LocalOutputFile(path, new HeapByteBufferAllocator(), Integer.MAX_VALUE), schema);
+  }
+
+  public void write(IRecord record) throws IOException {
+    internalWriter.write(record);
+  }
+
+  @Override
+  public void close() throws IOException {
+    internalWriter.close();
+  }
+
+  public ParquetMetadata getFooter() {
+    return fileWriter.getFooter();
+  }
+
+  public static class Builder {
+
+    private final ParquetWriteOptions.Builder optionsBuilder = ParquetWriteOptions.builder();
+
+    private final OutputFile outputFile;
+
+    private final MessageType schema;
+
+    private final Map<String, String> extraMetaData = new HashMap<>();
+
+    public Builder(OutputFile outputFile, MessageType schema) {
+      this.outputFile = outputFile;
+      this.schema = schema;
+    }
+
+    public IParquetWriter build() throws IOException {
+      ParquetWriteOptions options = optionsBuilder.build();
+      TypeUtil.checkValidWriteSchema(schema);
+      ParquetFileWriter fileWriter = new ParquetFileWriter(outputFile, options);
+      ParquetRecordWriter<IRecord> recordWriter =
+          new ParquetRecordWriter<>(fileWriter, new IRecordDematerializer(schema), options);
+      return new IParquetWriter(recordWriter, fileWriter);
+    }
+
+    public Builder withExtraMetaData(String key, String value) {
+      extraMetaData.put(key, value);
+      return this;
+    }
+
+    public Builder withRowGroupSize(long rowGroupSize) {
+      optionsBuilder.withRowGroupSize(rowGroupSize);
+      return this;
+    }
+
+    public Builder withPageSize(int pageSize) {
+      optionsBuilder.asParquetPropertiesBuilder().withPageSize(pageSize);
+      return this;
+    }
   }
 
   public static PrimitiveType getParquetType(
@@ -77,50 +126,6 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
     }
   }
 
-  public static class Builder extends ParquetWriter.Builder<IRecord, IParquetWriter, Builder> {
-
-    private final OutputFile outputFile;
-
-    private final MessageType schema;
-
-    public Builder(OutputFile outputFile, MessageType schema) {
-      this.outputFile = outputFile;
-      this.schema = schema;
-    }
-
-    @Override
-    protected Builder self() {
-      return this;
-    }
-
-    @Override
-    protected RecordDematerializer<IRecord> dematerializer() throws IOException {
-      return new IRecordDematerializer(schema);
-    }
-
-    @Override
-    public IParquetWriter build() throws IOException {
-      ExportedParquetRecordWriter<IRecord> internalWriter =
-          build(outputFile, schema, Collections.emptyMap());
-      return new IParquetWriter(internalWriter);
-    }
-
-    public Builder withCodec(String name) {
-      CompressionCodecName codecName = CompressionCodecName.fromConf(name);
-      return super.withCodec(codecName);
-    }
-
-    public Builder withCodecFactory(
-        ByteBufferAllocator compressAllocator, int zstdLevel, int zstdWorkers) {
-      CompressionCodecFactory codecFactory =
-          new DefaultCodecFactory(
-              compressAllocator,
-              DefaultCodecFactory.DEFAULT_LZ4_SEGMENT_SIZE,
-              zstdLevel,
-              zstdWorkers);
-      return super.withCodecFactory(codecFactory);
-    }
-  }
 
   public static IRecord getRecord(MessageType schema, Long key, Scanner<String, Object> value)
       throws IOException {
@@ -129,7 +134,6 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
     while (value.iterate()) {
       record.add(schema.getFieldIndex(value.key()), value.value());
     }
-    record.sort();
     return record;
   }
 }
