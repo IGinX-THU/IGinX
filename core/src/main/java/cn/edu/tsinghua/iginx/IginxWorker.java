@@ -47,6 +47,8 @@ import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.stream.Collectors;
@@ -889,7 +891,33 @@ public class IginxWorker implements IService.Iface {
     }
 
     try {
-      FileUtils.copyFileOrDir(sourceFile, destFile);
+      if (sourceFile.isFile() && destFile.isFile()) {
+        // copy file
+        Files.copy(sourceFile.toPath(), destFile.toPath());
+      } else {
+        // copy dir
+        Files.walkFileTree(
+            sourceFile.toPath(),
+            new SimpleFileVisitor<Path>() {
+              @Override
+              public FileVisitResult preVisitDirectory(
+                  final Path dir, final BasicFileAttributes attrs) throws IOException {
+                Files.createDirectories(
+                    destFile.toPath().resolve(sourceFile.toPath().relativize(dir)));
+                return FileVisitResult.CONTINUE;
+              }
+
+              @Override
+              public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs)
+                  throws IOException {
+                Files.copy(
+                    file,
+                    destFile.toPath().resolve(sourceFile.toPath().relativize(file)),
+                    StandardCopyOption.REPLACE_EXISTING);
+                return FileVisitResult.CONTINUE;
+              }
+            });
+      }
     } catch (IOException e) {
       errorMsg = String.format("Fail to copy register file(s), path=%s", filePath);
       logger.error(errorMsg, e);
