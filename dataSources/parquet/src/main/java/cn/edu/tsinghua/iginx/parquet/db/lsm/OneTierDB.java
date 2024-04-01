@@ -53,20 +53,19 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final StorageShared shared;
   private final TableStorage<K, F, T, V> tableStorage;
   private final TableIndex<K, F, T, V> tableIndex;
-  private final Prefetch prefetch;
 
   private DataBuffer<K, F, V> writeBuffer = new DataBuffer<>();
   private String previousTableName = null;
   private final AtomicLong bufferDirtiedTime = new AtomicLong(Long.MAX_VALUE);
   private final LongAdder bufferInsertedSize = new LongAdder();
-  private final Lock checkLock = new ReentrantLock(false);
+  private final Lock checkLock = new ReentrantLock(true);
   private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock storageLock = new ReentrantReadWriteLock(true);
 
+  private final ScheduledExecutorService scheduler;
   private final String name;
   private final long timeout;
-  private final ScheduledExecutorService scheduler;
 
   public OneTierDB(
       String name, StorageShared shared, ReadWriter<K, F, T, V> readerWriter, Prefetch prefetch)
@@ -75,7 +74,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     this.shared = shared;
     this.tableStorage = new TableStorage<>(name, shared, readerWriter);
     this.tableIndex = new TableIndex<>(tableStorage);
-    this.prefetch = prefetch;
 
     ThreadFactory threadFactory =
         new ThreadFactoryBuilder().setNameFormat("OneTierDB-" + name + "-%d").build();
@@ -91,7 +89,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
-  @SuppressWarnings("unchecked")
   public Scanner<K, Scanner<F, V>> query(Set<F> fields, RangeSet<K> ranges, Filter filter)
       throws StorageException {
     DataBuffer<K, F, V> readBuffer = new DataBuffer<>();
@@ -105,14 +102,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       Set<String> tables = tableIndex.find(areas);
       List<String> sortedTableNames = new ArrayList<>(tables);
       sortedTableNames.sort(Comparator.naturalOrder());
-
-      QueriedTableSequence<K, F, T, V> sequence =
-          new QueriedTableSequence<>(shared, sortedTableNames, tableStorage);
-      Prefetch.Prefetcher fetcher = prefetch.prefetch(sequence);
-      for (int i = 0; i < sequence.count(); i++) {
-        QueriedTableSequence<K, F, T, V>.Entry entry =
-            (QueriedTableSequence<K, F, T, V>.Entry) fetcher.get(i);
-        Table<K, F, T, V> table = entry.getTable();
+      for (String tableName : sortedTableNames) {
+        Table<K, F, T, V> table = tableStorage.get(tableName);
         try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, ranges)) {
           readBuffer.putRows(scanner);
         }
@@ -236,10 +227,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   private void checkBufferSize() {
-    if (bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize()) {
-      return;
-    }
-    synchronized (checkLock) {
+    checkLock.lock();
+    try {
       if (bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize()) {
         return;
       }
@@ -250,12 +239,15 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
             shared.getStorageProperties().getWriteBufferSize());
       }
       commitMemoryTable(false, new CountDownLatch(1));
+    } finally {
+      checkLock.unlock();
     }
   }
 
   private void checkBufferTimeout() {
     CountDownLatch latch = new CountDownLatch(1);
-    synchronized (checkLock) {
+    checkLock.lock();
+    try {
       long interval = System.currentTimeMillis() - bufferDirtiedTime.get();
       if (interval < timeout) {
         return;
@@ -267,6 +259,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
           timeout);
 
       commitMemoryTable(true, latch);
+    } finally {
+      checkLock.unlock();
     }
     LOGGER.debug("waiting for flushing table");
     try {
@@ -277,7 +271,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     LOGGER.debug("table is flushed");
   }
 
-  private void commitMemoryTable(boolean temp, CountDownLatch latch) {
+  private synchronized void commitMemoryTable(boolean temp, CountDownLatch latch) {
     commitLock.writeLock().lock();
     deleteLock.readLock().lock();
     try {
@@ -296,9 +290,9 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
               table,
               () -> {
                 if (toDelete != null) {
+                  LOGGER.debug("delete table {}", toDelete);
                   storageLock.writeLock().lock();
                   try {
-                    LOGGER.debug("delete table {} of {}", toDelete, name);
                     tableIndex.removeTable(toDelete);
                     tableStorage.remove(toDelete);
                   } catch (Throwable e) {
@@ -306,7 +300,6 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
                   } finally {
                     storageLock.writeLock().unlock();
                   }
-                  LOGGER.trace("table {} is deleted", toDelete);
                 }
                 latch.countDown();
               });
