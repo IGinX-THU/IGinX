@@ -18,6 +18,15 @@ public class FileUtils {
         File file = new File(columns[i]);
         FileOutputStream fos;
         if (!file.exists()) {
+          String parentPath = file.getParent();
+          if (parentPath != null) {
+            File parent = new File(parentPath);
+            if (!parent.exists() && !parent.mkdirs()) {
+              throw new RuntimeException("Cannot create dir: " + parentPath);
+            } else if (parent.exists() && parent.isFile()) {
+              throw new RuntimeException("Parent dir path " + parentPath + " is a file.");
+            }
+          }
           Files.createFile(Paths.get(file.getPath()));
           fos = new FileOutputStream(file);
         } else {
