@@ -23,6 +23,9 @@ import cn.edu.tsinghua.iginx.format.parquet.io.LocalOutputFile;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.Collections;
 import shaded.iginx.org.apache.parquet.bytes.ByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
 import shaded.iginx.org.apache.parquet.compression.CompressionCodecFactory;
@@ -33,10 +36,6 @@ import shaded.iginx.org.apache.parquet.io.OutputFile;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
-
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.Collections;
 
 public class IParquetWriter extends ParquetWriter<IRecord> {
 
@@ -54,7 +53,7 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
   }
 
   public static Builder builder(Path path, MessageType schema) {
-    return new Builder(new LocalOutputFile(path, new HeapByteBufferAllocator(), 8 * 1024), schema);
+    return builder(path, schema, new HeapByteBufferAllocator());
   }
 
   public static PrimitiveType getParquetType(
@@ -111,9 +110,13 @@ public class IParquetWriter extends ParquetWriter<IRecord> {
     }
 
     public Builder withCodecFactory(
-        ByteBufferAllocator compressAllocator, int zstdLevel) {
+        ByteBufferAllocator compressAllocator, int zstdLevel, int zstdWorkers) {
       CompressionCodecFactory codecFactory =
-          new DefaultCodecFactory(compressAllocator, zstdLevel);
+          new DefaultCodecFactory(
+              compressAllocator,
+              DefaultCodecFactory.DEFAULT_LZ4_SEGMENT_SIZE,
+              zstdLevel,
+              zstdWorkers);
       return super.withCodecFactory(codecFactory);
     }
   }
