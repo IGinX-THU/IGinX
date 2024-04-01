@@ -111,7 +111,7 @@ public class DataManager implements Manager {
     }
 
     AreaSet<Long, String> areas = new AreaSet<>();
-    if (StringUtils.allPathMatched(paths) && tagFilter == null) {
+    if (paths.stream().anyMatch("*"::equals) && tagFilter == null) {
       if (rangeSet.isEmpty()) {
         db.clear();
       } else {
