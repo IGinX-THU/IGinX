@@ -170,6 +170,10 @@ public class FunctionManager {
     return loadUDF(identifier);
   }
 
+  public void removeFunction(String identifier) {
+    functions.remove(identifier);
+  }
+
   private Function loadUDF(String identifier) {
     // load the udf & put it in cache.
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);

@@ -791,16 +791,38 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status registerTask(RegisterTaskReq req) {
-    String name = req.getName().trim();
+    String[] names = req.getName().trim().split(",");
     String filePath = req.getFilePath();
-    String className = req.getClassName();
+    String[] classNames = req.getClassName().trim().split(",");
     String errorMsg;
 
-    TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
-    if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-      errorMsg = String.format("Register task %s already exist", transformTaskMeta);
+    if (names.length != classNames.length) {
+      errorMsg = String.format("Fail to register %d UDFs with %d classes, the number should be same.", names.length, classNames.length);
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
+
+    boolean singleType = false;
+    if (names.length != req.getTypesSize() && req.getTypesSize() > 1) {
+      errorMsg = String.format("Fail to register %d UDFs with %d types, the number should be same.", names.length, req.getTypesSize());
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    } else if (req.getTypesSize() == 1) {
+      // all task in one type
+      singleType = true;
+    }
+
+    List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
+    for (int i = 0; i < names.length; i++) {
+      names[i] = names[i].trim();
+      classNames[i] = classNames[i].trim();
+      TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(names[i].trim());
+      if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
+        errorMsg = String.format("Register task %s already exist", transformTaskMeta);
+        logger.error(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
+      transformTaskMetas.add(transformTaskMeta);
     }
 
     File sourceFile = new File(filePath);
@@ -818,11 +840,16 @@ public class IginxWorker implements IService.Iface {
     }
 
     // python module dir, class name must contains '.'
-    if (sourceFile.isDirectory() && !className.contains(".")) {
-      errorMsg =
-          "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.";
-      logger.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+    if (sourceFile.isDirectory()) {
+      for (String className : classNames) {
+        if (!className.contains(".")) {
+          errorMsg =
+                  "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n" +
+                  className + " is an invalid class name.";
+          logger.error(errorMsg);
+          return RpcUtils.FAILURE.setMessage(errorMsg);
+        }
+      }
     }
 
     String fileName = sourceFile.getName();
@@ -844,17 +871,24 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    if (transformTaskMeta != null) {
-      transformTaskMeta.addIp(config.getIp());
-      metaManager.updateTransformTask(transformTaskMeta);
-    } else {
-      metaManager.addTransformTask(
-          new TransformTaskMeta(
-              name,
-              className,
-              fileName,
-              new HashSet<>(Collections.singletonList(config.getIp())),
-              req.getType()));
+    UDFType type;
+    TransformTaskMeta transformTaskMeta;
+    for (int i = 0; i < transformTaskMetas.size(); i++) {
+      type = singleType ? req.getTypes().get(0) : req.getTypes().get(i);
+      transformTaskMeta = transformTaskMetas.get(i);
+      if (transformTaskMeta != null) {
+        transformTaskMeta.addIp(config.getIp());
+        metaManager.updateTransformTask(transformTaskMeta);
+      } else {
+        metaManager.addTransformTask(
+                new TransformTaskMeta(
+                        names[i],
+                        classNames[i],
+                        fileName,
+                        new HashSet<>(Collections.singletonList(config.getIp())),
+                        type));
+      }
+
     }
     return RpcUtils.SUCCESS;
   }
@@ -894,7 +928,10 @@ public class IginxWorker implements IService.Iface {
     }
 
     try {
-      FileUtils.deleteFileOrDir(file);
+      // if module/file only used by this task, delete its file(s)
+      if (metaManager.getTransformTasksByModule(transformTaskMeta.getFileName()).size() == 1) {
+        FileUtils.deleteFileOrDir(file);
+      }
       metaManager.dropTransformTask(name);
       logger.info(String.format("Register file has been dropped, path=%s", filePath));
       return RpcUtils.SUCCESS;

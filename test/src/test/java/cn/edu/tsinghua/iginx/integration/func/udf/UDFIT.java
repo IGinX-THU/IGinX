@@ -36,6 +36,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -58,6 +60,8 @@ public class UDFIT {
   private static boolean dummyNoData = true;
 
   private static boolean needCompareResult = true;
+
+  private static List<String> taskToBeRemoved;
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -128,6 +132,24 @@ public class UDFIT {
     Controller.clearData(session);
   }
 
+  @Before
+  public void resetTaskToBeDropped() {
+    if (taskToBeRemoved == null) {
+      taskToBeRemoved = new ArrayList<>();
+    } else {
+      taskToBeRemoved.clear();
+    }
+  }
+
+  // drop unwanted UDFs no matter what
+  @After
+  public void dropTasks() {
+    for (String name : taskToBeRemoved) {
+      execute("drop python task \"" + name + "\";");
+    }
+    taskToBeRemoved.clear();
+  }
+
   private SessionExecuteSqlResult execute(String statement) {
     logger.info("Execute Statement: \"{}\"", statement);
 
@@ -146,6 +168,28 @@ public class UDFIT {
     }
 
     return res;
+  }
+
+  // execute a statement and expect failure.
+  private void executeFail(String statement) {
+    logger.info("Execute Statement: \"{}\"", statement);
+
+    SessionExecuteSqlResult res = null;
+    try {
+      res = session.executeSql(statement);
+    } catch (SessionException e) {
+      // don't want to print e because it will be confusing
+      logger.info("Statement: \"{}\" execute failed AS EXPECTED, with message: {}", statement, e.getMessage());
+      return;
+    }
+
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+      logger.info(
+              "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.", statement, res.getParseErrorMsg());
+      return;
+    }
+
+    fail("Statement: \"{}\" execute without failure, which was expected.");
   }
 
   @Test
@@ -168,6 +212,45 @@ public class UDFIT {
         execute(String.format(udsfSQLFormat, info.getName()));
       }
     }
+  }
+
+  @Test
+  public void testDropTask() {
+    String filePath =
+            String.join(File.separator, System.getProperty("user.dir"),"src","test","resources","udf","mock_udf.py");
+    String udfName = "mock_udf";
+    execute("REGISTER UDAF PYTHON TASK \"MockUDF\" IN \"" + filePath + "\" AS \"" + udfName + "\";");
+    taskToBeRemoved.add("mock_udf");
+
+    assertTrue(isUDFRegistered(udfName));
+
+    execute("DROP PYTHON TASK \"" + udfName + "\";");
+    // dropped udf cannot be queried
+    assertFalse(isUDFRegistered(udfName));
+    taskToBeRemoved.clear();
+
+    // make sure dropped udf cannot be used
+    String statement = "SELECT mock_udf(s1,1) FROM us.d1 WHERE s1 < 10;";
+    executeFail(statement);
+  }
+
+  private boolean isUDFRegistered(String udfName) {
+    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
+    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    List<String> registerUDFs = ret.getRegisterTaskInfos().stream().map(RegisterTaskInfo::getName).collect(Collectors.toList());
+    return registerUDFs.contains(udfName);
+  }
+
+  private boolean isUDFRegistered(List<String> names) {
+    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
+    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    List<String> registerUDFs = ret.getRegisterTaskInfos().stream().map(RegisterTaskInfo::getName).collect(Collectors.toList());
+    for (String udfName : names) {
+      if (!registerUDFs.contains(udfName)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   @Test
@@ -861,17 +944,191 @@ public class UDFIT {
     String query = "select module_udf_test(a, 1) from test;";
     SessionExecuteSqlResult ret = execute(query);
 
-    register = "drop python task \"module_udf_test\";";
-    execute(register);
+    taskToBeRemoved.add("module_udf_test");
 
     String expected =
-        "ResultSets:\n"
-            + "+----+\n"
-            + "|col1|\n"
-            + "+----+\n"
-            + "|   1|\n"
-            + "+----+\n"
-            + "Total line number = 1\n";
+        "ResultSets:\n" +
+            "+---------+\n" +
+            "|col_inner|\n" +
+            "+---------+\n" +
+            "|        1|\n" +
+            "+---------+\n" +
+            "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // register multiple UDFs in one statement, module/file both allowed.
+  // use same type for all UDF in statement.
+  @Test
+  public void testMultiUDFRegOmit() {
+    String modulePath =
+            String.join(
+                    File.separator,
+                    System.getProperty("user.dir"),
+                    "src",
+                    "test",
+                    "resources",
+                    "udf",
+                    "my_module");
+    // ClassA & ClassB in same python file, & SubClassA in same module
+    List<String> classPaths = new ArrayList<>(Arrays.asList(
+            "my_module.my_class_a.ClassA",
+            "my_module.my_class_a.ClassB",
+            "my_module.sub_module.sub_class_a.SubClassA"
+    ));
+    String classPath = String.join(", ", classPaths);
+    List<String> names = new ArrayList<>(Arrays.asList(
+            "udf_a",
+            "udf_b",
+            "udf_sub"
+    ));
+    String name = String.join(", ", names);
+    String register =
+            "register udsf python task \""
+                    + classPath
+                    + "\" in \""
+                    + modulePath
+                    + "\" as \""
+                    + name
+                    + "\";";
+    execute(register);
+    assertTrue(isUDFRegistered(names));
+    taskToBeRemoved.addAll(names);
+
+    // test UDFs' usage
+    String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected = "ResultSets:\n" +
+            "+-----------+\n" +
+            "|col_outer_a|\n" +
+            "+-----------+\n" +
+            "|          1|\n" +
+            "+-----------+\n" +
+            "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected = "ResultSets:\n" +
+            "+-----------+\n" +
+            "|col_outer_b|\n" +
+            "+-----------+\n" +
+            "|          1|\n" +
+            "+-----------+\n" +
+            "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // make sure "udf_d" is dropped and cannot be used
+    execute("drop python task \"udf_b\";");
+    assertFalse(isUDFRegistered("udf_b"));
+    taskToBeRemoved.remove("udf_b");
+    executeFail(statement);
+
+    // other udfs in the same module should work normally, use new udf to avoid cache.
+    statement = "select udf_sub(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected = "ResultSets:\n" +
+            "+---------+\n" +
+            "|col_inner|\n" +
+            "+---------+\n" +
+            "|        1|\n" +
+            "+---------+\n" +
+            "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // register multiple UDFs in one statement, module/file both allowed.
+  // specify different type for each UDF in statement.
+  @Test
+  public void testMultiUDFRegSep() {
+    String modulePath =
+            String.join(
+                    File.separator,
+                    System.getProperty("user.dir"),
+                    "src",
+                    "test",
+                    "resources",
+                    "udf",
+                    "my_module");
+    List<String> types = new ArrayList<>(Arrays.asList(
+            "udtf",
+            "udsf",
+            "udaf"
+    ));
+    String type = String.join(", ", types);
+    // ClassA & ClassB in same python file, & SubClassA in same module
+    List<String> classPaths = new ArrayList<>(Arrays.asList(
+            "my_module.my_class_a.ClassA",
+            "my_module.my_class_a.ClassB",
+            "my_module.sub_module.sub_class_a.SubClassA"
+    ));
+    String classPath = String.join(", ", classPaths);
+    List<String> names = new ArrayList<>(Arrays.asList(
+            "udf_a",
+            "udf_b",
+            "udf_sub"
+    ));
+    String name = String.join(", ", names);
+    String register =
+            "register " + type + " python task \""
+                    + classPath
+                    + "\" in \""
+                    + modulePath
+                    + "\" as \""
+                    + name
+                    + "\";";
+    execute(register);
+    assertTrue(isUDFRegistered(names));
+    taskToBeRemoved.addAll(names);
+
+    // test UDFs' usage
+    String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected = "ResultSets:\n" +
+            "+---+-----------+\n" +
+            "|key|col_outer_a|\n" +
+            "+---+-----------+\n" +
+            "|  0|          1|\n" +
+            "|  1|          1|\n" +
+            "|  2|          1|\n" +
+            "|  3|          1|\n" +
+            "|  4|          1|\n" +
+            "|  5|          1|\n" +
+            "|  6|          1|\n" +
+            "|  7|          1|\n" +
+            "|  8|          1|\n" +
+            "|  9|          1|\n" +
+            "+---+-----------+\n" +
+            "Total line number = 10\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected = "ResultSets:\n" +
+            "+-----------+\n" +
+            "|col_outer_b|\n" +
+            "+-----------+\n" +
+            "|          1|\n" +
+            "+-----------+\n" +
+            "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // make sure "udf_d" is dropped and cannot be used
+    execute("drop python task \"udf_b\";");
+    assertFalse(isUDFRegistered("udf_b"));
+    taskToBeRemoved.remove("udf_b");
+    executeFail(statement);
+
+    // other udfs in the same module should work normally, use new udf to avoid cache.
+    statement = "select udf_sub(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected = "ResultSets:\n" +
+            "+---------+\n" +
+            "|col_inner|\n" +
+            "+---------+\n" +
+            "|        1|\n" +
+            "+---------+\n" +
+            "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 }

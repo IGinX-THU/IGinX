@@ -11,4 +11,4 @@ class SubClassA:
     def transform(self, data, args, kvargs):
         self.print_self()
         self.print_outer()
-        return [["col1"], ["LONG"], [1]]
+        return [["col_inner"], ["LONG"], [1]]

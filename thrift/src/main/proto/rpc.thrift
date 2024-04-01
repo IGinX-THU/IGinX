@@ -567,7 +567,7 @@ struct RegisterTaskReq {
     2: required string name
     3: required string filePath
     4: required string className
-    5: required UDFType type;
+    5: required list<UDFType> types;
 }
 
 struct DropTaskReq {

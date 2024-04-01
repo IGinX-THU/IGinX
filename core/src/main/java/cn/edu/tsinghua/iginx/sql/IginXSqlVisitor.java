@@ -697,15 +697,23 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     String name = ctx.name.getText();
     name = name.substring(1, name.length() - 1);
 
-    UDFType type = UDFType.TRANSFORM;
-    if (ctx.udfType().UDTF() != null) {
-      type = UDFType.UDTF;
-    } else if (ctx.udfType().UDAF() != null) {
-      type = UDFType.UDAF;
-    } else if (ctx.udfType().UDSF() != null) {
-      type = UDFType.UDSF;
-    }
-    return new RegisterTaskStatement(name, filePath, className, type);
+    List<UDFType> types = new ArrayList<>();
+    ctx.udfType().forEach(e -> {
+      switch (e.getText().trim().toLowerCase()) {
+        case "udsf":
+          types.add(UDFType.UDSF);
+          break;
+        case "udtf":
+          types.add(UDFType.UDTF);
+          break;
+        case "udaf":
+          types.add(UDFType.UDAF);
+          break;
+        default:
+          types.add(UDFType.TRANSFORM);
+      }
+    });
+    return new RegisterTaskStatement(name, filePath, className, types);
   }
 
   @Override

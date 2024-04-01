@@ -17,7 +17,7 @@ statement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
    | SHOW REGISTER PYTHON TASK # showRegisterTaskStatement
-   | REGISTER udfType PYTHON TASK className = stringLiteral IN filePath = stringLiteral AS name = stringLiteral # registerTaskStatement
+   | REGISTER udfType (COMMA udfType)* PYTHON TASK className = stringLiteral IN filePath = stringLiteral AS name = stringLiteral # registerTaskStatement
    | DROP PYTHON TASK name = stringLiteral # dropTaskStatement
    | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement

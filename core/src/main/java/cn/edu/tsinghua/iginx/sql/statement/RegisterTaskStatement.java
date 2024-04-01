@@ -10,6 +10,8 @@ import cn.edu.tsinghua.iginx.thrift.UDFType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.List;
+
 public class RegisterTaskStatement extends SystemStatement {
 
   private final String name;
@@ -18,24 +20,24 @@ public class RegisterTaskStatement extends SystemStatement {
 
   private final String className;
 
-  private final UDFType type;
+  private final List<UDFType> types;
 
   private final IginxWorker worker = IginxWorker.getInstance();
 
   @SuppressWarnings("unused")
   private static final Logger logger = LoggerFactory.getLogger(RegisterTaskStatement.class);
 
-  public RegisterTaskStatement(String name, String filePath, String className, UDFType type) {
+  public RegisterTaskStatement(String name, String filePath, String className, List<UDFType> types) {
     this.statementType = StatementType.REGISTER_TASK;
     this.name = name;
     this.filePath = filePath;
     this.className = className;
-    this.type = type;
+    this.types = types;
   }
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    RegisterTaskReq req = new RegisterTaskReq(ctx.getSessionId(), name, filePath, className, type);
+    RegisterTaskReq req = new RegisterTaskReq(ctx.getSessionId(), name, filePath, className, types);
     Status status = worker.registerTask(req);
     ctx.setResult(new Result(status));
   }
