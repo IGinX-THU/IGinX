@@ -244,11 +244,14 @@ class StatementExecuteDataSet(object):
             return None
 
         values_buffer = self.__values_list[self.__index]
+        bitmap_buffer = self.__bitmap_list[self.__index]
         self.__index += 1
-        bytes_value = BytesParser(values_buffer).get_bytes_from_types(self.__types)
+
+        bitmap = Bitmap(len(self.__types), bitmap_buffer)
+        bytes_list = BytesParser(values_buffer).get_bytes_from_types(self.__types, bitmap)
         if remove_key:
-            bytes_value = bytes_value[8:]
-        return bytes_value
+            bytes_list = bytes_list[1:]
+        return bytes_list
 
     def close(self):
         self.__session._close_statement(query_id=self.__query_id)
