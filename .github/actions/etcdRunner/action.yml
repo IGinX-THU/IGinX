@@ -34,6 +34,7 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+              echo "METADATA_STORAGE=etcd" >> %GITHUB_ENV%
 
         - if: inputs.if-rerun=='true'
           name: ReRun ETCD
@@ -50,6 +51,7 @@ runs:
               echo "$RUNNER_OS is not supported"
               exit 1
             fi
+            echo "METADATA_STORAGE=etcd" >> %GITHUB_ENV%
 
         - if: inputs.if-stop=='true'
           name: Stop ETCD
