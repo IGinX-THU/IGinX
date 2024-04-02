@@ -119,7 +119,7 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   private final int IGINX_NODE_LENGTH = 7;
 
-  private final int STORAGE_ENGINE_NODE_LENGTH = 6;
+  private final int STORAGE_ENGINE_NODE_LENGTH = 10;
 
   private String generateID(String prefix, long idLength, long val) {
     return String.format(prefix + "%0" + idLength + "d", (int) val);
