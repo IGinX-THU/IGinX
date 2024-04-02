@@ -30,7 +30,7 @@ if __name__ == '__main__':
         session.open()
 
         # 统计每个序列的点数
-        dataset = session.aggregate_query(["a.*"], 0, 10, AggregateType.COUNT)
+        dataset = session.aggregate_query(["*"], 0, 10, AggregateType.COUNT)
         print(dataset)
         # 转换为pandas.Dataframe
         df_list = dataset.to_df()

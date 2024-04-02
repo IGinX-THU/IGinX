@@ -9,6 +9,8 @@ import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
+import cn.edu.tsinghua.iginx.pool.IginxInfo;
+import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.BufferedReader;
@@ -34,6 +36,16 @@ public class PySessionIT {
   private static String pythonCMD;
   private static boolean dummyNoData = true;
   private static final TestDataSection baseDataSection = buildBaseDataSection();
+  private static final long START_KEY = 0L;
+  private static final long END_KEY = 4L;
+  protected static boolean isForSession = true;
+  protected static boolean isForSessionPool = false;
+
+  // host info
+  protected static String defaultTestHost = "127.0.0.1";
+  protected static int defaultTestPort = 6888;
+  protected static String defaultTestUser = "root";
+  protected static String defaultTestPass = "root";
 
   static {
     String os = System.getProperty("os.name").toLowerCase();
@@ -45,11 +57,6 @@ public class PySessionIT {
     }
   }
 
-  // host info
-  protected String defaultTestHost = "127.0.0.1";
-  protected int defaultTestPort = 6888;
-  protected String defaultTestUser = "root";
-  protected String defaultTestPass = "root";
   private static boolean isAbleToDelete = true;
 
   public PySessionIT() {
@@ -89,67 +96,81 @@ public class PySessionIT {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
-    MultiConnection conn;
-    conn = new MultiConnection(new Session("127.0.0.1", 6888, "root", "root"));
-    conn.openSession();
-    clearAllData(conn);
-    conn.closeSession();
+    if (isForSession) {
+      session =
+          new MultiConnection(
+              new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
+    } else if (isForSessionPool) {
+      session =
+          new MultiConnection(
+              new SessionPool(
+                  new ArrayList<IginxInfo>() {
+                    {
+                      add(
+                          new IginxInfo.Builder()
+                              .host("0.0.0.0")
+                              .port(6888)
+                              .user("root")
+                              .password("root")
+                              .build());
+
+                      add(
+                          new IginxInfo.Builder()
+                              .host("0.0.0.0")
+                              .port(7888)
+                              .user("root")
+                              .password("root")
+                              .build());
+                    }
+                  }));
+    }
+    session.openSession();
+    clearAllData(session);
+  }
+
+  @Before
+  public void insertBaseData() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("insert");
   }
 
   //  @Before
   //  public void insertBaseData() {
-  //    List<String> result = new ArrayList<>();
-  //    try {
-  //      // 设置Python脚本路径
-  //      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
-  //
-  //      // 创建ProcessBuilder以执行Python脚本
-  //      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-  //
-  //      // 启动进程并等待其终止
-  //      Process process = pb.start();
-  //      process.waitFor();
-  //
-  //      // 读取Python脚本的输出
-  //      BufferedReader reader = new BufferedReader(new
-  // InputStreamReader(process.getInputStream()));
-  //      String line;
-  //      while ((line = reader.readLine()) != null) {
-  //        System.out.println(line);
-  //        result.add(line);
-  //      }
-  //      // 检查Python脚本是否正常终止
-  //      int exitCode = process.exitValue();
-  //      if (exitCode != 0) {
-  //        for (int i = 0; i < result.size(); i++) {
-  //          logger.info(result.get(i));
-  //        }
-  //        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-  //        throw new RuntimeException("Python script terminated with non-zero exit code: " +
-  // exitCode);
-  //      }
-  //    } catch (IOException | InterruptedException e) {
-  //      e.printStackTrace();
-  //      throw new RuntimeException(e);
-  //    }
-  //    System.out.println("insert");
+  //    TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
+  //    insertData(subBaseData, Row);
+  //    dummyNoData = false; // insert base data using all types of insert API.
   //  }
-
-  @Before
-  public void insertBaseData() {
-    try {
-      session = new MultiConnection(new Session("127.0.0.1", 6888, "root", "root"));
-      session.openSession();
-      // insert base data using all types of insert API.
-      TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
-      insertData(subBaseData, Column);
-      dummyNoData = false;
-      session.closeSession();
-    } catch (SessionException e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
-  }
 
   private void insertData(TestDataSection data, InsertAPIType type) {
     switch (type) {
@@ -982,35 +1003,46 @@ public class PySessionIT {
   }
 
   @After
-  public void tearDown() {
+  public void clearData() {
     if (!isAbleToDelete) {
       return;
     }
-    try {
-      // 设置Python脚本路径
-      String pythonScriptPath = "../session_py/tests/deleteAll.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-      }
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-    }
-    System.out.println("delete all");
+    clearAllData(session);
+    dummyNoData = true;
   }
+
+  @AfterClass
+  public static void tearDown() throws SessionException {
+    clearAllData(session);
+    session.closeSession();
+  }
+
+  //    try {
+  //      // 设置Python脚本路径
+  //      String pythonScriptPath = "../session_py/tests/deleteAll.py";
+  //
+  //      // 创建ProcessBuilder以执行Python脚本
+  //      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+  //
+  //      // 启动进程并等待其终止
+  //      Process process = pb.start();
+  //      process.waitFor();
+  //
+  //      // 读取Python脚本的输出
+  //      BufferedReader reader = new BufferedReader(new
+  // InputStreamReader(process.getInputStream()));
+  //      String line;
+  //      while ((line = reader.readLine()) != null) {
+  //        System.out.println(line);
+  //      }
+  //      // 检查Python脚本是否正常终止
+  //      int exitCode = process.exitValue();
+  //      if (exitCode != 0) {
+  //        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+  //      }
+  //    } catch (IOException | InterruptedException e) {
+  //      e.printStackTrace();
+  //    }
+  //    System.out.println("delete all");
+  //  }
 }

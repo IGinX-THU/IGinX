@@ -30,7 +30,7 @@ if __name__ == '__main__':
         session = Session('127.0.0.1', 6888, "root", "root")
         session.open()
         # 查询写入之前的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["*"], 0, 10)
         print('Before insert: ', dataset)
 
         # 写入数据
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_row_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["*"], 0, 10)
         print(dataset)
 
         session.close()

@@ -37,7 +37,7 @@ if __name__ == '__main__':
         exit(1)
     finally:
         # 查询删除后剩余的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["*"], 0, 10)
         print(dataset)
         try:
             # 删除部分数据（设置为null
@@ -51,6 +51,6 @@ if __name__ == '__main__':
             exit(1)
         finally:
             # 查询删除后剩余的数据
-            dataset = session.query(["a.*"], 0, 10)
+            dataset = session.query(["*"], 0, 10)
             print(dataset)
             session.close()
