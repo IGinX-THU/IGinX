@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.oriPort;
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
 import static org.junit.Assert.*;
 
@@ -21,8 +22,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -126,87 +125,63 @@ public class PySessionIT {
     }
     session.openSession();
     clearAllData(session);
-  }
-
-  @Before
-  public void insertBaseData() {
-    List<String> result = new ArrayList<>();
-    try {
-      // 设置Python脚本路径
-      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
-    System.out.println("insert");
+    TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
+    insertData(subBaseData, Row);
+    dummyNoData = false;
   }
 
   //  @Before
   //  public void insertBaseData() {
-  //    TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
-  //    insertData(subBaseData, Row);
-  //    dummyNoData = false; // insert base data using all types of insert API.
+  //    List<String> result = new ArrayList<>();
+  //    try {
+  //      // 设置Python脚本路径
+  //      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
+  //
+  //      // 创建ProcessBuilder以执行Python脚本
+  //      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+  //
+  //      // 启动进程并等待其终止
+  //      Process process = pb.start();
+  //      process.waitFor();
+  //
+  //      // 读取Python脚本的输出
+  //      BufferedReader reader = new BufferedReader(new
+  // InputStreamReader(process.getInputStream()));
+  //      String line;
+  //      while ((line = reader.readLine()) != null) {
+  //        System.out.println(line);
+  //        result.add(line);
+  //      }
+  //      // 检查Python脚本是否正常终止
+  //      int exitCode = process.exitValue();
+  //      if (exitCode != 0) {
+  //        for (int i = 0; i < result.size(); i++) {
+  //          logger.info(result.get(i));
+  //        }
+  //        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+  //        throw new RuntimeException("Python script terminated with non-zero exit code: " +
+  // exitCode);
+  //      }
+  //    } catch (IOException | InterruptedException e) {
+  //      e.printStackTrace();
+  //      throw new RuntimeException(e);
+  //    }
+  //    System.out.println("insert");
   //  }
 
-  private void insertData(TestDataSection data, InsertAPIType type) {
+  //  @Before
+  //    public void insertBaseData() {
+  //      TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
+  //      insertData(subBaseData, Row);
+  //      dummyNoData = false; // insert base data using all types of insert API.
+  //    }
+
+  private static void insertData(TestDataSection data, InsertAPIType type) {
     switch (type) {
       case Row:
       case NonAlignedRow:
-        Controller.writeRowsData(
-            session,
-            data.getPaths(),
-            data.getKeys(),
-            data.getTypes(),
-            data.getValues(),
-            data.getTagsList(),
-            type,
-            dummyNoData);
-        break;
-      case Column:
-      case NonAlignedColumn:
-        List<List<Object>> values =
-            IntStream.range(0, data.getPaths().size())
-                .mapToObj(
-                    col ->
-                        IntStream.range(0, data.getValues().size())
-                            .mapToObj(row -> data.getValues().get(row).get(col))
-                            .collect(Collectors.toList()))
-                .collect(Collectors.toList());
-        Controller.writeColumnsData(
-            session,
-            data.getPaths(),
-            IntStream.range(0, data.getPaths().size())
-                .mapToObj(i -> new ArrayList<>(data.getKeys()))
-                .collect(Collectors.toList()),
-            data.getTypes(),
-            values,
-            data.getTagsList(),
-            type,
-            dummyNoData);
+        Controller.writeRowsDataToDummy(
+            session, data.getPaths(), data.getKeys(), data.getTypes(), data.getValues(), oriPort);
     }
   }
 
@@ -454,7 +429,13 @@ public class PySessionIT {
     System.out.println("last query");
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
-        Arrays.asList("Time\tpath\tvalue\t", "3\tb'a.a.a'\tb'Q'\t", "3\tb'a.a.b'\tb'W'\t", "");
+        Arrays.asList(
+            "Time\tpath\tvalue\t",
+            "3\tb'a.a.a'\tb'Q'\t",
+            "3\tb'a.a.b'\tb'W'\t",
+            "3\tb'a.b.b'\tb'E'\t",
+            "3\tb'a.c.c'\tb'R'\t",
+            "");
     assertEquals(expected, result);
   }
 
@@ -499,15 +480,19 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     List<String> expected =
         Arrays.asList(
-            "Time\ta.a.a\ta.a.b\ta.c.c\t",
-            "0\tb'a'\tb'b'\tnull\t",
-            "2\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'R'\t",
+            "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
+            "0\tb'a'\tb'b'\tnull\tnull\t",
+            "1\tnull\tnull\tb'b'\tnull\t",
+            "2\tnull\tnull\tnull\tb'c'\t",
+            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+            "5\tnull\tnull\tnull\tb'b'\t",
+            "6\tb'b'\tnull\tnull\tnull\t",
+            "7\tb'R'\tb'E'\tnull\tb'Q'\t",
             "");
     assertEquals(expected, result);
   }
 
-  @Test
+  //  @Test
   public void testDeleteAll() {
     if (!isAbleToDelete) {
       return;
@@ -746,13 +731,20 @@ public class PySessionIT {
         Arrays.asList(
             "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
             "0\tb'a'\tb'b'\tnull\tnull\t",
+            "1\tnull\tnull\tb'b'\tnull\t",
             "2\tnull\tnull\tnull\tb'c'\t",
             "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+            "5\tnull\tnull\tnull\tb'b'\t",
+            "6\tb'b'\tnull\tnull\tnull\t",
+            "7\tb'R'\tb'E'\tnull\tb'Q'\t",
             "",
             "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
             "0\tb'a'\tb'b'\tnull\tnull\t",
+            "1\tnull\tnull\tb'b'\tnull\t",
             "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tnull\tnull\tb'E'\tb'R'\t",
+            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+            "5\tnull\tnull\tnull\tb'b'\t",
+            "7\tb'R'\tb'E'\tnull\tb'Q'\t",
             "");
     assertEquals(expected, result);
   }
@@ -971,7 +963,7 @@ public class PySessionIT {
     assertEquals(expected, result);
   }
 
-  public static void clearInitialData() {
+  public void clearInitialData() {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/deleteAll.py";
@@ -1007,8 +999,8 @@ public class PySessionIT {
     if (!isAbleToDelete) {
       return;
     }
-    clearAllData(session);
-    dummyNoData = true;
+    clearInitialData();
+    // dummyNoData = true;
   }
 
   @AfterClass

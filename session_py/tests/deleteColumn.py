@@ -21,6 +21,7 @@ import sys
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
 
 from iginx.iginx_pyclient.session import Session
+from iginx.iginx_pyclient.thrift.rpc.ttypes import DataType
 
 
 if __name__ == '__main__':
@@ -28,6 +29,16 @@ if __name__ == '__main__':
     session.open()
     try:
         # 删除部分数据
+        # 写入数据
+        paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
+        timestamps = [5, 6, 7]
+        values_list = [
+            [None, None, 'a', 'b'],
+            ['b', None, None, None],
+            ['R', 'E', 'W', 'Q']
+        ]
+        data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
+        session.insert_row_records(paths, timestamps, values_list, data_type_list)
         session.delete_time_series("a.b.b")
     except Exception as e:
         if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "

@@ -27,7 +27,7 @@ if __name__ == '__main__':
     session.open()
 
     # 查询写入的数据，数据由PySessionIT测试写入
-    dataset = session.query(["a.*"], 0, 10)
+    dataset = session.query(["*"], 0, 10)
     print(dataset)
     # 转换为pandas.Dataframe
     df = dataset.to_df()
@@ -40,7 +40,7 @@ if __name__ == '__main__':
     3    4  b'Q'  b'W'  b'E'  b'R'
     """
     # 使用 SQL 语句查询写入的数据
-    dataset = session.execute_statement("select * from a;", fetch_size=2)
+    dataset = session.execute_statement("select * from *;", fetch_size=2)
 
     columns = dataset.columns()
     for column in columns:
