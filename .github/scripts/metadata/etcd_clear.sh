@@ -4,6 +4,8 @@ set -e
 
 sh -c "ls go/bin"
 
+sh -c "ls ."
+
 os=$(uname -s)
 
 kill_process_on_port() {
@@ -38,3 +40,5 @@ kill_process_on_port 2379
 sh -c "sleep 2"
 
 sh -c "rm -rf go/bin/*.etcd"
+
+sh -c "rm -rf *.etcd"
