@@ -839,6 +839,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                       .getBytes()),
               ByteSequence.from(JsonUtils.toJson(storageEngine)))
           .get();
+      return id;
     } catch (ExecutionException | InterruptedException e) {
       logger.error("got error when add storage: ", e);
       throw new MetaStorageException(e);
@@ -847,7 +848,6 @@ public class ETCDMetaStorage implements IMetaStorage {
         releaseStorage();
       }
     }
-    return 0L;
   }
 
   @Override
