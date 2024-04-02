@@ -18,8 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
-
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -199,11 +197,8 @@ public class StorageManager {
     return true;
   }
 
-  public IStorage initLocalStorage(StorageEngineMeta meta) {
+  public static IStorage initStorageInstance(StorageEngineMeta meta) {
     StorageEngineType engine = meta.getStorageEngine();
-    if (!isEmbeddedStorageEngine(engine)) {
-      return null;
-    }
     String driver = drivers.get(engine);
     ClassLoader loader = classLoaders.get(engine);
     try {
