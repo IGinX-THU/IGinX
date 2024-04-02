@@ -196,6 +196,47 @@ public class UDFIT {
     fail("Statement: \"{}\" execute without failure, which was expected.");
   }
 
+  private boolean isUDFRegistered(String udfName) {
+    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
+    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    List<String> registerUDFs =
+        ret.getRegisterTaskInfos().stream()
+            .map(RegisterTaskInfo::getName)
+            .collect(Collectors.toList());
+    return registerUDFs.contains(udfName);
+  }
+
+  private boolean isUDFsRegistered(List<String> names) {
+    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
+    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    List<String> registerUDFs =
+        ret.getRegisterTaskInfos().stream()
+            .map(RegisterTaskInfo::getName)
+            .collect(Collectors.toList());
+    for (String udfName : names) {
+      if (!registerUDFs.contains(udfName)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // all udf shouldn't be registered.
+  private boolean isUDFsUnregistered(List<String> names) {
+    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
+    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    List<String> registerUDFs =
+        ret.getRegisterTaskInfos().stream()
+            .map(RegisterTaskInfo::getName)
+            .collect(Collectors.toList());
+    for (String udfName : names) {
+      if (registerUDFs.contains(udfName)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
   @Test
   public void baseTests() {
     String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
@@ -243,47 +284,6 @@ public class UDFIT {
     // make sure dropped udf cannot be used
     String statement = "SELECT mock_udf(s1,1) FROM us.d1 WHERE s1 < 10;";
     executeFail(statement);
-  }
-
-  private boolean isUDFRegistered(String udfName) {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
-    List<String> registerUDFs =
-        ret.getRegisterTaskInfos().stream()
-            .map(RegisterTaskInfo::getName)
-            .collect(Collectors.toList());
-    return registerUDFs.contains(udfName);
-  }
-
-  private boolean isUDFRegistered(List<String> names) {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
-    List<String> registerUDFs =
-        ret.getRegisterTaskInfos().stream()
-            .map(RegisterTaskInfo::getName)
-            .collect(Collectors.toList());
-    for (String udfName : names) {
-      if (!registerUDFs.contains(udfName)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // all udf shouldn't be registered.
-  private boolean UDFUnregistered(List<String> names) {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
-    List<String> registerUDFs =
-        ret.getRegisterTaskInfos().stream()
-            .map(RegisterTaskInfo::getName)
-            .collect(Collectors.toList());
-    for (String udfName : names) {
-      if (registerUDFs.contains(udfName)) {
-        return false;
-      }
-    }
-    return true;
   }
 
   @Test
@@ -971,13 +971,13 @@ public class UDFIT {
             + modulePath
             + "\" as \"module_udf_test\";";
     execute(register);
+    assertTrue(isUDFRegistered("module_udf_test"));
+    taskToBeRemoved.add("module_udf_test");
 
     String insert = "insert into test(key, a) values (1,2);";
     execute(insert);
     String query = "select module_udf_test(a, 1) from test;";
     SessionExecuteSqlResult ret = execute(query);
-
-    taskToBeRemoved.add("module_udf_test");
 
     String expected =
         "ResultSets:\n"
@@ -1022,7 +1022,7 @@ public class UDFIT {
             + name
             + "\";";
     execute(register);
-    assertTrue(isUDFRegistered(names));
+    assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
     // test UDFs' usage
@@ -1106,7 +1106,7 @@ public class UDFIT {
             + name
             + "\";";
     execute(register);
-    assertTrue(isUDFRegistered(names));
+    assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
     // test UDFs' usage
@@ -1178,7 +1178,7 @@ public class UDFIT {
             "idle_classes.py");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     String type = String.join(", ", types);
-    // ClassA & ClassB in same python file, & SubClassA in same module
+    // ClassA, ClassB & ClassC in same python file
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
     String classPath = String.join(", ", classPaths);
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
@@ -1194,7 +1194,7 @@ public class UDFIT {
             + name
             + "\";";
     execute(register);
-    assertTrue(isUDFRegistered(names));
+    assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
     // test UDFs' usage
@@ -1254,7 +1254,7 @@ public class UDFIT {
   // multiple UDFs registration should fail when:
   // 1. same class name
   // 2. same name
-  // 3. counts of classes, types, names are not same
+  // 3. counts of classes, types, names do not match
   @Test
   public void testMultiRegFail() {
     String type, classPath, name, register;
@@ -1291,6 +1291,7 @@ public class UDFIT {
             + name
             + "\";";
     executeFail(register);
+    assertTrue(isUDFsUnregistered(names));
 
     // 2 types for 3 UDFs
     classPath = String.join(", ", classPaths);
@@ -1307,6 +1308,7 @@ public class UDFIT {
             + name
             + "\";";
     executeFail(register);
+    assertTrue(isUDFsUnregistered(names));
 
     // same class name
     classPath = classPaths.get(0) + ", " + classPaths.get(1) + ", " + classPaths.get(1);
@@ -1323,6 +1325,7 @@ public class UDFIT {
             + name
             + "\";";
     executeFail(register);
+    assertTrue(isUDFsUnregistered(names));
 
     // same name
     classPath = String.join(", ", classPaths);
@@ -1339,5 +1342,6 @@ public class UDFIT {
             + name
             + "\";";
     executeFail(register);
+    assertTrue(isUDFsUnregistered(names));
   }
 }
