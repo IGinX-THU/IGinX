@@ -31,11 +31,6 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
-            - name: Write Conf
-              uses: ./.github/actions/confWriter
-              with:
-                  Metadata: ${{ matrix.metadata }}
-
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
@@ -50,6 +45,11 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
+
+            - name: Write Conf
+              uses: ./.github/actions/confWriter
+              with:
+                Metadata: ${{ matrix.metadata }}
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
