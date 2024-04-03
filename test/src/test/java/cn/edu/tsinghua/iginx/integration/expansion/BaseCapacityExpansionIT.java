@@ -623,7 +623,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // env only applies in github action currently
     String metadataStorage = System.getenv("METADATA_STORAGE");
-    if (metadataStorage == null || metadataStorage.equalsIgnoreCase("etcd")) {
+    if (metadataStorage == null || !metadataStorage.equalsIgnoreCase("etcd")) {
       metadataStorage = "zookeeper";
     } else {
       metadataStorage = "etcd";
