@@ -621,6 +621,14 @@ public abstract class BaseCapacityExpansionIT {
     int iginxPort = PORT_TO_IGINXPORT.get(port);
     int restPort = PORT_TO_RESTPORT.get(port);
 
+    // env only applies in github action currently
+    String metadataStorage = System.getenv("METADATA_STORAGE");
+    if (metadataStorage == null || metadataStorage.equalsIgnoreCase("etcd")) {
+      metadataStorage = "zookeeper";
+    } else {
+      metadataStorage = "etcd";
+    }
+
     int res =
         executeShellScript(
             scriptPath,
@@ -632,7 +640,8 @@ public abstract class BaseCapacityExpansionIT {
             DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
-            "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties");
+            "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties",
+            metadataStorage);
     if (res != 0) {
       fail("change config file fail");
     }

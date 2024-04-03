@@ -25,3 +25,9 @@ sed -i "s#chunk_size_in_bytes=1048576#chunk_size_in_bytes=8#g" $7
 sed -i "s#thrift_timeout=5000#thrift_timeout=10000#g" $7
 
 sed -i "s/#thrift_pool_max_size=100/#thrift_pool_max_size=2/g" $7
+
+if [ "$8" = "etcd" ]; then
+  sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' $7
+  sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' $7
+  sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' $7
+fi
