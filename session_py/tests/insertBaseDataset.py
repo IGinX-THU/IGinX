@@ -26,12 +26,24 @@ import traceback
 
 
 if __name__ == '__main__':
+    session = Session('127.0.0.1', 6888, "root", "root")
+    session.open()
     try:
-        session = Session('127.0.0.1', 6888, "root", "root")
-        session.open()
         # 查询写入之前的数据
         dataset = session.query(["*"], 0, 10)
         print('Before insert: ', dataset)
+        df = dataset.to_df()
+        # 检查df是否如下：
+        """
+               key a.a.a a.a.b a.b.b a.c.c
+            0    1  b'a'  b'b'  None  None
+            1    2  None  None  b'b'  None
+            2    3  None  None  None  b'c'
+            3    4  b'Q'  b'W'  b'E'  b'R'
+        """
+        if(df.size != 0):
+            print('Before insert: ', df)
+            exit(0)
 
         # 写入数据
         paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
@@ -52,8 +64,11 @@ if __name__ == '__main__':
         dataset = session.query(["*"], 0, 10)
         print(dataset)
 
-        session.close()
     except Exception as e:
         traceback.print_exc()
+        if str(e) == 'Error occurs: The query results contain overlapped keys.':
+            exit(0)
         print(e)
         exit(1)
+    finally:
+        session.close()

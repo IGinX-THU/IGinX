@@ -41,6 +41,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       Session session = new Session("127.0.0.1", port, "root", "root");
       session.open();
+      System.out.println("open session, port: " + port);
 
       for (int i = 0; i < pathList.size(); i++) {
         try {
@@ -66,6 +67,16 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
           String deviceId = path.substring(0, path.lastIndexOf("."));
           String measurementId = path.substring(path.lastIndexOf(".") + 1);
           if (valueList.get(i) != null) {
+            String a =
+                String.format(
+                    INSERT_DATA,
+                    deviceId,
+                    measurementId,
+                    hasKeys ? keyList.get(j) : timeCnt,
+                    valueList.get(i) instanceof byte[]
+                        ? "'" + new String((byte[]) valueList.get(i)) + "'"
+                        : valueList.get(i));
+            System.out.println(a);
             session.executeNonQueryStatement(
                 String.format(
                     INSERT_DATA,
@@ -73,7 +84,7 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
                     measurementId,
                     hasKeys ? keyList.get(j) : timeCnt,
                     valueList.get(i) instanceof byte[]
-                        ? new String((byte[]) valueList.get(i))
+                        ? "'" + new String((byte[]) valueList.get(i)) + "'"
                         : valueList.get(i)));
           }
         }

@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.oriPort;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
 import static org.junit.Assert.*;
 
@@ -130,44 +130,42 @@ public class PySessionIT {
     dummyNoData = false;
   }
 
-  //  @Before
-  //  public void insertBaseData() {
-  //    List<String> result = new ArrayList<>();
-  //    try {
-  //      // 设置Python脚本路径
-  //      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
-  //
-  //      // 创建ProcessBuilder以执行Python脚本
-  //      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-  //
-  //      // 启动进程并等待其终止
-  //      Process process = pb.start();
-  //      process.waitFor();
-  //
-  //      // 读取Python脚本的输出
-  //      BufferedReader reader = new BufferedReader(new
-  // InputStreamReader(process.getInputStream()));
-  //      String line;
-  //      while ((line = reader.readLine()) != null) {
-  //        System.out.println(line);
-  //        result.add(line);
-  //      }
-  //      // 检查Python脚本是否正常终止
-  //      int exitCode = process.exitValue();
-  //      if (exitCode != 0) {
-  //        for (int i = 0; i < result.size(); i++) {
-  //          logger.info(result.get(i));
-  //        }
-  //        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-  //        throw new RuntimeException("Python script terminated with non-zero exit code: " +
-  // exitCode);
-  //      }
-  //    } catch (IOException | InterruptedException e) {
-  //      e.printStackTrace();
-  //      throw new RuntimeException(e);
-  //    }
-  //    System.out.println("insert");
-  //  }
+  @Before
+  public void insertBaseData() {
+    List<String> result = new ArrayList<>();
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
+
+      // 创建ProcessBuilder以执行Python脚本
+      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
+
+      // 启动进程并等待其终止
+      Process process = pb.start();
+      process.waitFor();
+
+      // 读取Python脚本的输出
+      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+      String line;
+      while ((line = reader.readLine()) != null) {
+        System.out.println(line);
+        result.add(line);
+      }
+      // 检查Python脚本是否正常终止
+      int exitCode = process.exitValue();
+      if (exitCode != 0) {
+        for (int i = 0; i < result.size(); i++) {
+          logger.info(result.get(i));
+        }
+        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
+        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
+      }
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    System.out.println("insert");
+  }
 
   //  @Before
   //    public void insertBaseData() {
@@ -181,7 +179,10 @@ public class PySessionIT {
       case Row:
       case NonAlignedRow:
         Controller.writeRowsDataToDummy(
-            session, data.getPaths(), data.getKeys(), data.getTypes(), data.getValues(), oriPort);
+            session, data.getPaths(), data.getKeys(), data.getTypes(), data.getValues(), expPort);
+        //        Controller.writeRowsDataToDummy(
+        //                session, data.getPaths(), data.getKeys(), data.getTypes(),
+        // data.getValues(), expPort);
     }
   }
 
