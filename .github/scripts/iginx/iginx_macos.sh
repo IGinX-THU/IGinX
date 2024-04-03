@@ -30,4 +30,7 @@ while [ $elapsed_time -lt $timeout ]; do
 done
 
 echo "错误：IGinX未启动成功"
+
+sh -c "cat $log_file"
+
 exit 1
