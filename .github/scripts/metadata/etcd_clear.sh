@@ -11,14 +11,16 @@ os=$(uname -s)
 kill_process_on_port() {
     port=$1
     if [ -n "$MSYSTEM" ]; then
+        # win
         pid=$(netstat -ano | findstr :$port | awk '{print $5}' | uniq)
         if [ ! -z "$pid" ]; then
             echo "Killing etcd process $pid on port $port"
-            Taskkill /PID $pid /F
+            sh -c "taskkill -f -pid $pid"
         else
             echo "No process found listening on port $port"
         fi
     else
+        # linux mac
         pid=$(lsof -ti:$port)
         if [ ! -z "$pid" ]; then
             echo "Killing etcd process $pid on port $port"
