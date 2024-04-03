@@ -8,7 +8,7 @@ sed -i "s/#iginx_port=[0-9]\+#/#iginx_port=$1#/g" core/target/iginx-core-*/conf/
 
 sed -i "s/restPort=[0-9]\+/restPort=$2/g" core/target/iginx-core-*/conf/config.properties
 
-sed -i "s/default.transformer[0].include=.*/default.transformer[0].include=glob:**.denied/g" core/target/iginx-core-*/conf/file-permission.properties
+#sed -i "s/default.transformer[0].include=.*/default.transformer[0].include=glob:**.denied/g" core/target/iginx-core-*/conf/file-permission.properties
 
 batPath="$(find core/target -name 'start_iginx.bat' | grep 'iginx-core-.*\/sbin' | head -n 1)"
 

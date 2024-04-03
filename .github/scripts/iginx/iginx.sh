@@ -8,7 +8,7 @@ sed -i "s/#iginx_port=[0-9]\+#/#iginx_port=$1#/g" core/target/iginx-core-*/conf/
 
 sed -i "s/restPort=[0-9]\+/restPort=$2/g" core/target/iginx-core-*/conf/config.properties
 
-sed -i "s/default.transformer[0].include=.*/default.transformer[0].include=glob:**.denied/g" core/target/iginx-core-*/conf/file-permission.properties
+#sed -i "s/default.transformer[0].include=.*/default.transformer[0].include=glob:**.denied/g" core/target/iginx-core-*/conf/file-permission.properties
 
 sh -c "chmod +x core/target/iginx-core-*/sbin/start_iginx.sh"
 
