@@ -162,20 +162,19 @@ runs:
           name: Change metadata to ETCD
           shell: bash
           run: |
-            if [ "$RUNNER_OS" == "Linux" ]; then
-              sudo sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              sudo sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              sudo sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-            elif [ "$RUNNER_OS" == "Windows" ]; then
-              sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-            elif [ "$RUNNER_OS" == "macOS" ]; then
-              sudo sed -i '' 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              sudo sed -i '' 's/^zookeeperConnectionString=$/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              sudo sed -i '' 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-            else
-              echo "$RUNNER_OS is not supported"
-              exit 1
-            fi
-            
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/^zookeeperConnectionString=$/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi

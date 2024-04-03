@@ -18,9 +18,9 @@ inputs:
         required: false
         default: "false"
     metadata:
-      description: "which metadata service to use"
-      required: false
-      default: zookeeper
+        description: "which metadata service to use"
+        required: false
+        default: zookeeper
 
 runs:
     using: "composite" # Mandatory parameter

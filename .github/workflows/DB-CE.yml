@@ -24,17 +24,17 @@ jobs:
                 DB-name:
                     [
                         "IoTDB12",
-#                        "FileSystem",
-#                        "InfluxDB",
-#                        "PostgreSQL",
-#                        "Redis",
-#                        "MongoDB",
-#                        "Parquet",
+                        "FileSystem",
+                        "InfluxDB",
+                        "PostgreSQL",
+                        "Redis",
+                        "MongoDB",
+                        "Parquet",
                     ]
-                metadata: [etcd]
+                metadata: [zookeeper, etcd]
         runs-on: ${{ matrix.os }}
         env:
-          METADATA_STORAGE: ${{ matrix.metadata }}
+            METADATA_STORAGE: ${{ matrix.metadata }}
         steps:
             - uses: actions/checkout@v2
             - name: Environment dependence
@@ -46,7 +46,7 @@ jobs:
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
-                metadata: ${{ matrix.metadata }}
+                  metadata: ${{ matrix.metadata }}
 
             - name: Run DB
               uses: ./.github/actions/dbRunner

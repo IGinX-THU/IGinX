@@ -39,15 +39,15 @@ runs:
           name: ReRun ETCD
           shell: bash
           run: |
-            nohup ${GITHUB_WORKSPACE}/go/bin/etcd >> etcd_run.log 2>&1 &
+              nohup ${GITHUB_WORKSPACE}/go/bin/etcd >> etcd_run.log 2>&1 &
 
         - if: inputs.if-rerun=='true' && runner.os == 'Windows'
           name: ReRun ETCD
           shell: powershell
           run: |
-            Start-Process -FilePath 'go/bin/etcd.exe'
-            sleep 3
-            netstat -ano | findstr 2379
+              Start-Process -FilePath 'go/bin/etcd.exe'
+              sleep 3
+              netstat -ano | findstr 2379
 
         - if: inputs.if-stop=='true'
           name: Stop ETCD
@@ -55,5 +55,3 @@ runs:
           run: |
               chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_clear.sh"
               "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_clear.sh"
-
-        
