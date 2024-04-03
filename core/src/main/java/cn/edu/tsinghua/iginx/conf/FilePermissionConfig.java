@@ -23,7 +23,7 @@ import java.util.concurrent.atomic.AtomicReference;
 public class FilePermissionConfig implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(FilePermissionConfig.class);
 
-  private static final FilePermissionConfig INSTANCE = new FilePermissionConfig("filePermission.properties");
+  private static final FilePermissionConfig INSTANCE = new FilePermissionConfig("file-permission.properties");
 
   static {
     try {
@@ -75,16 +75,16 @@ public class FilePermissionConfig implements AutoCloseable {
   public synchronized void reload() throws ConfigurationException {
     LOGGER.info("Reloading permission configuration file");
 
-    Configuration config = getConfiguration();
+    ImmutableConfiguration config = getConfiguration();
     updateReloadTrigger(config.getLong(RELOAD_INTERVAL_KEY, DEFAULT_RELOAD_INTERVAL));
-    config.clearProperty(RELOAD_INTERVAL_KEY);
 
     updateFilePermissions(config);
     hooks.forEach(Runnable::run);
   }
 
-  synchronized Configuration getConfiguration() throws ConfigurationException {
+  synchronized ImmutableConfiguration getConfiguration() throws ConfigurationException {
     builder.getReloadingController().checkForReloading(null);
+    builder.resetResult();
     return builder.getConfiguration();
   }
 

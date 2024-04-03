@@ -7,9 +7,10 @@ import javax.annotation.Nullable;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.StringJoiner;
+import java.util.stream.Collectors;
 
 public class FilePermissionDescriptor {
   private final String username;
@@ -26,7 +27,10 @@ public class FilePermissionDescriptor {
     this.module = module;
     this.pattern = pattern;
     this.pathMatcher = FileSystems.getDefault().getPathMatcher(pattern);
-    this.accessMap = Collections.unmodifiableMap(new HashMap<>(accessMap));
+    this.accessMap = Collections.unmodifiableMap(accessMap.entrySet().stream().
+        filter(entry -> entry.getValue() != null).
+        collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue))
+    );
   }
 
   @Nullable
@@ -48,5 +52,28 @@ public class FilePermissionDescriptor {
 
   public Map<FileAccessType, Boolean> getAccessMap() {
     return accessMap;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    FilePermissionDescriptor that = (FilePermissionDescriptor) o;
+    return Objects.equals(username, that.username) && module == that.module && Objects.equals(pattern, that.pattern) && Objects.equals(accessMap, that.accessMap);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(username, module, pattern, accessMap);
+  }
+
+  @Override
+  public String toString() {
+    return new StringJoiner(", ", FilePermissionDescriptor.class.getSimpleName() + "[", "]")
+        .add("username='" + username + "'")
+        .add("module=" + module)
+        .add("pattern='" + pattern + "'")
+        .add("accessMap=" + accessMap)
+        .toString();
   }
 }

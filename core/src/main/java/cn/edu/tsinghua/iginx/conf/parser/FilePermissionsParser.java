@@ -43,9 +43,21 @@ public class FilePermissionsParser {
   }
 
   private static Map<String, Map<Module, SortedMap<Integer, String>>> parseKeys(ImmutableConfiguration config) {
+    Set<String> suffixes = new HashSet<>();
+    for (FileAccessType accessType : FileAccessType.values()) {
+      suffixes.add(accessType.name().toLowerCase());
+    }
+
     Map<String, Map<Module, SortedMap<Integer, String>>> descriptorPrefixes = new HashMap<>();
     for (Iterator<String> it = config.getKeys(); it.hasNext(); ) {
       String key = it.next();
+
+      int lastDotIndex = key.lastIndexOf('.');
+      String suffix = key.substring(lastDotIndex + 1);
+      if (!suffixes.contains(suffix)) {
+        continue;
+      }
+
       String[] keys = KEY_DELIMITER_PATTERN.split(key);
       if (keys.length < 3) {
         String msg = String.format("number of keys should be at least 3, but got %d: %s", keys.length, key);
@@ -81,9 +93,9 @@ public class FilePermissionsParser {
   public static FilePermissionDescriptor parse(@Nullable String username, Module module, ImmutableConfiguration config) {
     String include = config.getString(INCLUDE_KEY);
     return new FilePermissionDescriptor(username, module, include, new HashMap<FileAccessType, Boolean>() {{
-      put(FileAccessType.READ, config.getBoolean(READ_KEY));
-      put(FileAccessType.WRITE, config.getBoolean(WRITE_KEY));
-      put(FileAccessType.EXECUTE, config.getBoolean(EXECUTE_KEY));
+      put(FileAccessType.READ, config.getBoolean(FileAccessType.READ.name().toLowerCase(), null));
+      put(FileAccessType.WRITE, config.getBoolean(FileAccessType.WRITE.name().toLowerCase(), null));
+      put(FileAccessType.EXECUTE, config.getBoolean(FileAccessType.EXECUTE.name().toLowerCase(), null));
     }});
   }
 }

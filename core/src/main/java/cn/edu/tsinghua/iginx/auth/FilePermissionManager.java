@@ -86,6 +86,8 @@ public class FilePermissionManager {
     }
 
     Optional<Boolean> checkPermission(Module module, Path path, FileAccessType type) {
+      Objects.requireNonNull(module);
+
       RuleSet ruleSet = rules.get(module);
       RuleSet defaultRuleSet = rules.get(Module.DEFAULT);
 
