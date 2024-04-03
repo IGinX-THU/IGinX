@@ -697,7 +697,7 @@ public class SessionV2IT {
 
   @Test
   public void testUserClient() {
-    // skip etcd temporarily
+    // skip etcd temporarily, only works on github action currently
     String metaStorage = System.getenv("METADATA_STORAGE");
     if (metaStorage != null && metaStorage.equalsIgnoreCase("etcd")) {
       return;

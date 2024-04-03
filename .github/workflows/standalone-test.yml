@@ -134,6 +134,8 @@ jobs:
             - name: TestController IT
               if: always()
               shell: bash
+              env:
+                METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
