@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.conf;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.auth.entity.Module;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
-import org.apache.commons.configuration2.Configuration;
 import org.apache.commons.configuration2.ImmutableConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.junit.After;
@@ -23,6 +22,7 @@ import static org.junit.Assert.*;
 public class FilePermissionConfigTest {
 
   private static final String PERMISSION_CONFIG_FILE = "conf/file-permission-test.properties";
+  private static final String PERMISSION_CONFIG_FILE_CHINESE = "conf/file-permission-test-chinese.properties";
   private static final String PERMISSION_CONFIG_TEMP = "target/permission-test-temp.properties";
 
   @Before
@@ -199,10 +199,10 @@ public class FilePermissionConfigTest {
       assertEquals(expect, resultSet);
 
       Set<String> order = new HashSet<>();
-      for(FilePermissionDescriptor descriptor : permissions) {
+      for (FilePermissionDescriptor descriptor : permissions) {
         order.add(descriptor.getPattern());
-        if(descriptor.getPattern().equals("glob:**.{sh,py}")){
-          if(!order.contains("glob:**.py")){
+        if (descriptor.getPattern().equals("glob:**.{sh,py}")) {
+          if (!order.contains("glob:**.py")) {
             fail("The order of the permissions is wrong");
           }
         }
@@ -218,6 +218,19 @@ public class FilePermissionConfigTest {
       config.reload();
       List<FilePermissionDescriptor> loadedPermissions = config.getFilePermissions();
       assertNotEquals(permissions, loadedPermissions);
+    }
+  }
+
+  @Test
+  public void testChinese() throws ConfigurationException {
+    try (FilePermissionConfig config = new FilePermissionConfig(PERMISSION_CONFIG_FILE_CHINESE)) {
+      config.reload();
+      List<FilePermissionDescriptor> permissions = config.getFilePermissions();
+      assertEquals(Collections.singletonList(
+          new FilePermissionDescriptor("测试用户", Module.UDF, "glob:**/不允许.py", new HashMap<FileAccessType, Boolean>() {{
+            put(FileAccessType.EXECUTE, false);
+          }})
+      ), permissions);
     }
   }
 }

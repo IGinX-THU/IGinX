@@ -15,6 +15,7 @@ import static org.junit.Assert.*;
 public class FilePermissionManagerTest {
 
   private static final String PERMISSION_CONFIG_FILE = "conf/file-permission-test.properties";
+  private static final String PERMISSION_CONFIG_CHINESE_FILE = "conf/file-permission-test-chinese.properties";
 
   @Test
   public void testInit() throws ConfigurationException {
@@ -112,5 +113,15 @@ public class FilePermissionManagerTest {
 
     Predicate<Path> predicate = manager.getChecker(null, Module.UDF, FileAccessType.EXECUTE, FileAccessType.WRITE);
     assertFalse(predicate.test(Paths.get("test.py")));
+  }
+
+  @Test
+  public void testCheckChinese() throws ConfigurationException {
+    FilePermissionConfig config = new FilePermissionConfig(PERMISSION_CONFIG_CHINESE_FILE);
+    config.reload();
+    FilePermissionManager manager = new FilePermissionManager(config);
+
+    Predicate<Path> predicate = manager.getChecker("测试用户", Module.UDF, FileAccessType.EXECUTE, FileAccessType.WRITE);
+    assertFalse(predicate.test(Paths.get("不允许.py")));
   }
 }
