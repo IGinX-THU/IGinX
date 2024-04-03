@@ -1244,9 +1244,9 @@ public class ETCDMetaStorage implements IMetaStorage {
 
   @Override
   public List<UserMeta> loadUser(UserMeta userMeta) throws MetaStorageException {
+    Map<String, UserMeta> users = new HashMap<>();
     try {
       lockUser();
-      Map<String, UserMeta> users = new HashMap<>();
       GetResponse response =
           this.client
               .getKVClient()
@@ -1264,11 +1264,8 @@ public class ETCDMetaStorage implements IMetaStorage {
                   UserMeta user = JsonUtils.fromJson(e.getValue().getBytes(), UserMeta.class);
                   users.put(user.getUsername(), user);
                 });
-      } else {
-        addUser(userMeta);
-        users.put(userMeta.getUsername(), userMeta);
+        return new ArrayList<>(users.values());
       }
-      return new ArrayList<>(users.values());
     } catch (ExecutionException | InterruptedException e) {
       logger.error("got error when load user: ", e);
       throw new MetaStorageException(e);
@@ -1277,6 +1274,10 @@ public class ETCDMetaStorage implements IMetaStorage {
         releaseUser();
       }
     }
+    // 服务器上没有用户信息，添加本地用户信息
+    addUser(userMeta);
+    users.put(userMeta.getUsername(), userMeta);
+    return new ArrayList<>(users.values());
   }
 
   @Override
