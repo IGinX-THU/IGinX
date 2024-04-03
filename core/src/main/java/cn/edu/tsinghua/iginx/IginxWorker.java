@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx;
 
-import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.*;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
@@ -26,6 +25,7 @@ import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
+import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
@@ -48,10 +48,6 @@ import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -60,13 +56,9 @@ import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.*;
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
-import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class IginxWorker implements IService.Iface {
 
@@ -821,7 +813,9 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    Predicate<Path> sourceChecker = FilePermissionManager.getInstance().getChecker(null, Module.TRANSFORMER, FileAccessType.EXECUTE);
+    Predicate<Path> sourceChecker =
+        FilePermissionManager.getInstance()
+            .getChecker(null, Module.TRANSFORMER, FileAccessType.EXECUTE);
 
     File sourceFile = new File(filePath);
     if (!sourceChecker.test(sourceFile.toPath())) {
@@ -856,7 +850,9 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    Predicate<Path> destChecker = FilePermissionManager.getInstance().getChecker(null, Module.TRANSFORMER, FileAccessType.WRITE);
+    Predicate<Path> destChecker =
+        FilePermissionManager.getInstance()
+            .getChecker(null, Module.TRANSFORMER, FileAccessType.WRITE);
 
     if (!destChecker.test(destFile.toPath())) {
       errorMsg = String.format("Register file %s has no write permission", destPath);

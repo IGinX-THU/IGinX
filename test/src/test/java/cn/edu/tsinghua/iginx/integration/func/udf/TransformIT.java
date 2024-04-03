@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -40,8 +41,6 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
-
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -226,8 +225,7 @@ public class TransformIT {
     taskInfoList.add(iginxTask);
 
     try {
-      String outputFileName =
-          OUTPUT_DIR_PREFIX + File.separator + "output.denied";
+      String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "output.denied";
       session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
       fail("Export file without permission should fail.");
     } catch (SessionException e) {

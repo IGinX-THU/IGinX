@@ -1,21 +1,21 @@
 package cn.edu.tsinghua.iginx.auth;
 
+import static org.junit.Assert.*;
+
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.auth.entity.Module;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
-import org.apache.commons.configuration2.ex.ConfigurationException;
-import org.junit.Test;
-
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.function.Predicate;
-
-import static org.junit.Assert.*;
+import org.apache.commons.configuration2.ex.ConfigurationException;
+import org.junit.Test;
 
 public class FilePermissionManagerTest {
 
   private static final String PERMISSION_CONFIG_FILE = "conf/file-permission-test.properties";
-  private static final String PERMISSION_CONFIG_CHINESE_FILE = "conf/file-permission-test-chinese.properties";
+  private static final String PERMISSION_CONFIG_CHINESE_FILE =
+      "conf/file-permission-test-chinese.properties";
 
   @Test
   public void testInit() throws ConfigurationException {
@@ -111,7 +111,8 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate = manager.getChecker(null, Module.UDF, FileAccessType.EXECUTE, FileAccessType.WRITE);
+    Predicate<Path> predicate =
+        manager.getChecker(null, Module.UDF, FileAccessType.EXECUTE, FileAccessType.WRITE);
     assertFalse(predicate.test(Paths.get("test.py")));
   }
 
@@ -121,7 +122,8 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate = manager.getChecker("测试用户", Module.UDF, FileAccessType.EXECUTE, FileAccessType.WRITE);
+    Predicate<Path> predicate =
+        manager.getChecker("测试用户", Module.UDF, FileAccessType.EXECUTE, FileAccessType.WRITE);
     assertFalse(predicate.test(Paths.get("不允许.py")));
   }
 }

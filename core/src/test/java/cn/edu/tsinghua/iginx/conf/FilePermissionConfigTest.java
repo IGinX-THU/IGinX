@@ -1,8 +1,16 @@
 package cn.edu.tsinghua.iginx.conf;
 
+import static org.junit.Assert.*;
+
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.auth.entity.Module;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
 import org.apache.commons.configuration2.ImmutableConfiguration;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.junit.After;
@@ -10,25 +18,17 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.*;
-
-import static org.junit.Assert.*;
-
 public class FilePermissionConfigTest {
 
   private static final String PERMISSION_CONFIG_FILE = "conf/file-permission-test.properties";
-  private static final String PERMISSION_CONFIG_FILE_CHINESE = "conf/file-permission-test-chinese.properties";
+  private static final String PERMISSION_CONFIG_FILE_CHINESE =
+      "conf/file-permission-test-chinese.properties";
   private static final String PERMISSION_CONFIG_TEMP = "target/permission-test-temp.properties";
 
   @Before
   public void setup() throws IOException {
     try (InputStream stream =
-             FilePermissionConfig.class.getClassLoader().getResourceAsStream(PERMISSION_CONFIG_FILE)) {
+        FilePermissionConfig.class.getClassLoader().getResourceAsStream(PERMISSION_CONFIG_FILE)) {
       assert stream != null;
       Files.copy(stream, Paths.get(PERMISSION_CONFIG_TEMP));
     }
@@ -47,7 +47,8 @@ public class FilePermissionConfigTest {
 
   @Test(expected = ConfigurationException.class)
   public void testNoSuchFile() throws ConfigurationException {
-    try (FilePermissionConfig config = new FilePermissionConfig(PERMISSION_CONFIG_FILE + "-no-such-file")) {
+    try (FilePermissionConfig config =
+        new FilePermissionConfig(PERMISSION_CONFIG_FILE + "-no-such-file")) {
       config.reload();
     }
   }
@@ -61,11 +62,19 @@ public class FilePermissionConfigTest {
       assertEquals(
           Arrays.asList(
               "refreshInterval",
-              "default.udf[1].include", "default.udf[1].execute",
-              "default.udf[0].include", "default.udf[0].execute",
-              "default.default[0].include", "default.default[0].execute",
-              "default.default[1].include", "default.default[1].execute", "default.default[1].write",
-              "root.default[0].include", "root.default[0].read", "root.default[0].write", "root.default[0].execute"),
+              "default.udf[1].include",
+              "default.udf[1].execute",
+              "default.udf[0].include",
+              "default.udf[0].execute",
+              "default.default[0].include",
+              "default.default[0].execute",
+              "default.default[1].include",
+              "default.default[1].execute",
+              "default.default[1].write",
+              "root.default[0].include",
+              "root.default[0].read",
+              "root.default[0].write",
+              "root.default[0].execute"),
           keys);
 
       assertEquals(100, configuration.getLong("refreshInterval"));
@@ -131,7 +140,7 @@ public class FilePermissionConfigTest {
             called[2] = true;
           });
       config.reload();
-      assertArrayEquals(new boolean[]{true, true, true}, called);
+      assertArrayEquals(new boolean[] {true, true, true}, called);
     }
   }
 
@@ -176,25 +185,57 @@ public class FilePermissionConfigTest {
       config.reload();
       List<FilePermissionDescriptor> permissions = config.getFilePermissions();
       LinkedHashSet<FilePermissionDescriptor> resultSet = new LinkedHashSet<>(permissions);
-      Set<FilePermissionDescriptor> expect = new HashSet<>(Arrays.asList(
-          new FilePermissionDescriptor(null, Module.UDF, "glob:**.py", new HashMap<FileAccessType, Boolean>() {{
-            put(FileAccessType.EXECUTE, true);
-          }}),
-          new FilePermissionDescriptor(null, Module.UDF, "glob:**.{sh,py}", new HashMap<FileAccessType, Boolean>() {{
-            put(FileAccessType.EXECUTE, false);
-          }}),
-          new FilePermissionDescriptor(null, Module.DEFAULT, "glob:**.{sh,bat}", new HashMap<FileAccessType, Boolean>() {{
-            put(FileAccessType.EXECUTE, true);
-          }}),
-          new FilePermissionDescriptor(null, Module.DEFAULT, "glob:**", new HashMap<FileAccessType, Boolean>() {{
-            put(FileAccessType.EXECUTE, false);
-            put(FileAccessType.WRITE, false);
-          }}),
-          new FilePermissionDescriptor("root", Module.DEFAULT, "glob:**", new HashMap<FileAccessType, Boolean>() {{
-            put(FileAccessType.READ, true);
-            put(FileAccessType.WRITE, true);
-            put(FileAccessType.EXECUTE, true);
-          }})));
+      Set<FilePermissionDescriptor> expect =
+          new HashSet<>(
+              Arrays.asList(
+                  new FilePermissionDescriptor(
+                      null,
+                      Module.UDF,
+                      "glob:**.py",
+                      new HashMap<FileAccessType, Boolean>() {
+                        {
+                          put(FileAccessType.EXECUTE, true);
+                        }
+                      }),
+                  new FilePermissionDescriptor(
+                      null,
+                      Module.UDF,
+                      "glob:**.{sh,py}",
+                      new HashMap<FileAccessType, Boolean>() {
+                        {
+                          put(FileAccessType.EXECUTE, false);
+                        }
+                      }),
+                  new FilePermissionDescriptor(
+                      null,
+                      Module.DEFAULT,
+                      "glob:**.{sh,bat}",
+                      new HashMap<FileAccessType, Boolean>() {
+                        {
+                          put(FileAccessType.EXECUTE, true);
+                        }
+                      }),
+                  new FilePermissionDescriptor(
+                      null,
+                      Module.DEFAULT,
+                      "glob:**",
+                      new HashMap<FileAccessType, Boolean>() {
+                        {
+                          put(FileAccessType.EXECUTE, false);
+                          put(FileAccessType.WRITE, false);
+                        }
+                      }),
+                  new FilePermissionDescriptor(
+                      "root",
+                      Module.DEFAULT,
+                      "glob:**",
+                      new HashMap<FileAccessType, Boolean>() {
+                        {
+                          put(FileAccessType.READ, true);
+                          put(FileAccessType.WRITE, true);
+                          put(FileAccessType.EXECUTE, true);
+                        }
+                      })));
 
       assertEquals(expect, resultSet);
 
@@ -207,7 +248,6 @@ public class FilePermissionConfigTest {
           }
         }
       }
-
     }
   }
 
@@ -226,11 +266,18 @@ public class FilePermissionConfigTest {
     try (FilePermissionConfig config = new FilePermissionConfig(PERMISSION_CONFIG_FILE_CHINESE)) {
       config.reload();
       List<FilePermissionDescriptor> permissions = config.getFilePermissions();
-      assertEquals(Collections.singletonList(
-          new FilePermissionDescriptor("测试用户", Module.UDF, "glob:**/不允许.py", new HashMap<FileAccessType, Boolean>() {{
-            put(FileAccessType.EXECUTE, false);
-          }})
-      ), permissions);
+      assertEquals(
+          Collections.singletonList(
+              new FilePermissionDescriptor(
+                  "测试用户",
+                  Module.UDF,
+                  "glob:**/不允许.py",
+                  new HashMap<FileAccessType, Boolean>() {
+                    {
+                      put(FileAccessType.EXECUTE, false);
+                    }
+                  })),
+          permissions);
     }
   }
 }

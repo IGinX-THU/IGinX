@@ -6,9 +6,6 @@ import cn.edu.tsinghua.iginx.auth.entity.Module;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
@@ -17,6 +14,8 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileAppendWriter extends ExportWriter {
 
@@ -52,10 +51,12 @@ public class FileAppendWriter extends ExportWriter {
   }
 
   private void createFileIfNotExist(File file) {
-    Predicate<Path> pathChecker = FilePermissionManager.getInstance()
-        .getChecker(null, Module.TRANSFORMER, FileAccessType.WRITE);
+    Predicate<Path> pathChecker =
+        FilePermissionManager.getInstance()
+            .getChecker(null, Module.TRANSFORMER, FileAccessType.WRITE);
     if (!pathChecker.test(file.toPath())) {
-      throw new SecurityException(("transformer has no permission to write file: " + file.getAbsolutePath()));
+      throw new SecurityException(
+          ("transformer has no permission to write file: " + file.getAbsolutePath()));
     }
     if (!file.exists()) {
       logger.info("File not exists, create it...");

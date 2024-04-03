@@ -4,15 +4,14 @@ import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.auth.entity.Module;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FilePermissionManager {
 
@@ -54,11 +53,13 @@ public class FilePermissionManager {
     private final Map<String, ModuleRules> rules = new HashMap<>();
 
     private void put(FilePermissionDescriptor descriptor) {
-      ModuleRules moduleRules = rules.computeIfAbsent(descriptor.getUsername(), k -> new ModuleRules());
+      ModuleRules moduleRules =
+          rules.computeIfAbsent(descriptor.getUsername(), k -> new ModuleRules());
       moduleRules.put(descriptor);
     }
 
-    Optional<Boolean> checkPermission(@Nullable String user, Module module, Path path, FileAccessType type) {
+    Optional<Boolean> checkPermission(
+        @Nullable String user, Module module, Path path, FileAccessType type) {
       ModuleRules specificRules = rules.get(user);
       ModuleRules defaultRules = rules.get(null);
 
@@ -75,7 +76,6 @@ public class FilePermissionManager {
       return rules.toString();
     }
   }
-
 
   private static class ModuleRules {
     private final Map<Module, RuleSet> rules = new HashMap<>();
@@ -123,10 +123,7 @@ public class FilePermissionManager {
 
       Path absolute = path.toAbsolutePath();
       List<Rule> rules = this.rules.getOrDefault(type, Collections.emptyList());
-      return rules.stream()
-          .filter(rule -> rule.matches(absolute))
-          .map(Rule::isAllow)
-          .findFirst();
+      return rules.stream().filter(rule -> rule.matches(absolute)).map(Rule::isAllow).findFirst();
     }
 
     @Override

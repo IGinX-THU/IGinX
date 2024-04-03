@@ -2,7 +2,12 @@ package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
 import cn.edu.tsinghua.iginx.conf.parser.FilePermissionsParser;
-import org.apache.commons.configuration2.Configuration;
+import java.nio.charset.Charset;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.configuration2.ImmutableConfiguration;
 import org.apache.commons.configuration2.PropertiesConfiguration;
 import org.apache.commons.configuration2.builder.ReloadingFileBasedConfigurationBuilder;
@@ -13,17 +18,11 @@ import org.apache.commons.configuration2.reloading.ReloadingEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.nio.charset.Charset;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
-
 public class FilePermissionConfig implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(FilePermissionConfig.class);
 
-  private static final FilePermissionConfig INSTANCE = new FilePermissionConfig("file-permission.properties");
+  private static final FilePermissionConfig INSTANCE =
+      new FilePermissionConfig("file-permission.properties");
 
   static {
     try {
@@ -125,5 +124,4 @@ public class FilePermissionConfig implements AutoCloseable {
   public List<FilePermissionDescriptor> getFilePermissions() {
     return filePermissions.get();
   }
-
 }
