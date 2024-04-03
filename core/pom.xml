@@ -185,17 +185,6 @@
             <name>IGinX Pemja GitHub repository</name>
             <url>https://iginx-thu.github.io/pemjax/maven-repo</url>
         </repository>
-        <!--   repository for moquette    -->
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>bintray</id>
-            <url>https://jcenter.bintray.com</url>
-        </repository>
     </repositories>
     <build>
         <plugins>
