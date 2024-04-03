@@ -40,6 +40,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -211,21 +213,25 @@ public class TransformIT {
   }
 
   @Test
-  public void commitSingleSqlStatementTest() {
-    logger.info("commitSingleSqlStatementTest");
-    List<TaskInfo> taskInfoList = new ArrayList<>();
+  public void exportFileWithoutPermissionTest() {
+    logger.info("exportFileWithoutPermissionTest");
+
+    List<String> sqlList = new ArrayList<>();
+    sqlList.add(QUERY_SQL_2);
 
     TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
-    iginxTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
+    iginxTask.setSqlList(sqlList);
+
+    List<TaskInfo> taskInfoList = new ArrayList<>();
     taskInfoList.add(iginxTask);
 
     try {
-      long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
-
-      verifyJobState(jobId);
-    } catch (SessionException | InterruptedException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
-      fail();
+      String outputFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "output.denied";
+      session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      fail("Export file without permission should fail.");
+    } catch (SessionException e) {
+      assertEquals(RpcUtils.ACCESS_DENY.message, e.getMessage());
     }
   }
 

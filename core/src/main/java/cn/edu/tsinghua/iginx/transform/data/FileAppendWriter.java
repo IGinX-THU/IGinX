@@ -55,8 +55,7 @@ public class FileAppendWriter extends ExportWriter {
     Predicate<Path> pathChecker = FilePermissionManager.getInstance()
         .getChecker(null, Module.TRANSFORMER, FileAccessType.WRITE);
     if (!pathChecker.test(file.toPath())) {
-      logger.error("Permission check failed.");
-      return;
+      throw new SecurityException(("transformer has no permission to write file: " + file.getAbsolutePath()));
     }
     if (!file.exists()) {
       logger.info("File not exists, create it...");

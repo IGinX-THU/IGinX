@@ -740,14 +740,18 @@ public class IginxWorker implements IService.Iface {
   @Override
   public CommitTransformJobResp commitTransformJob(CommitTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    long jobId = manager.commit(req);
-
     CommitTransformJobResp resp = new CommitTransformJobResp();
-    if (jobId < 0) {
-      resp.setStatus(RpcUtils.FAILURE);
-    } else {
-      resp.setStatus(RpcUtils.SUCCESS);
-      resp.setJobId(jobId);
+    try {
+      long jobId = manager.commit(req);
+
+      if (jobId < 0) {
+        resp.setStatus(RpcUtils.FAILURE);
+      } else {
+        resp.setStatus(RpcUtils.SUCCESS);
+        resp.setJobId(jobId);
+      }
+    } catch (SecurityException e) {
+      resp.setStatus(RpcUtils.ACCESS_DENY);
     }
     return resp;
   }
