@@ -34,24 +34,20 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-              echo "METADATA_STORAGE=etcd" >> %GITHUB_ENV%
 
-        - if: inputs.if-rerun=='true'
+        - if: inputs.if-rerun=='true' && runner.os != 'Windows'
           name: ReRun ETCD
           shell: bash
           run: |
-            if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "macOS" ]]; then
-              nohup ${GITHUB_WORKSPACE}/go/bin/etcd >> etcd_run.log 2>&1 &
-            elif [ "$RUNNER_OS" == "Windows" ]; then
-              cd ${GITHUB_WORKSPACE}/go/bin
-              Start-Process -FilePath 'go/bin/etcd.exe'
-              sleep 3
-              netstat -ano | findstr 2379
-            else
-              echo "$RUNNER_OS is not supported"
-              exit 1
-            fi
-            echo "METADATA_STORAGE=etcd" >> %GITHUB_ENV%
+            nohup ${GITHUB_WORKSPACE}/go/bin/etcd >> etcd_run.log 2>&1 &
+
+        - if: inputs.if-rerun=='true' && runner.os == 'Windows'
+          name: ReRun ETCD
+          shell: powershell
+          run: |
+            Start-Process -FilePath 'go/bin/etcd.exe'
+            sleep 3
+            netstat -ano | findstr 2379
 
         - if: inputs.if-stop=='true'
           name: Stop ETCD
