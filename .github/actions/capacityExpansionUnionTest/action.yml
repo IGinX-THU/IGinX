@@ -62,6 +62,7 @@ runs:
               if-CapExp: true
               DB-name: ${{ inputs.DB-name }}
               Read-Only: ${{ inputs.Read-Only }}
+              metadata: ${{ matrix.metadata }}
 
         - name: Start IGinX
           uses: ./.github/actions/iginxRunner
