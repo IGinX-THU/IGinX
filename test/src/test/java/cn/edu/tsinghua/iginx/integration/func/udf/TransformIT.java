@@ -234,6 +234,25 @@ public class TransformIT {
   }
 
   @Test
+  public void commitSingleSqlStatementTest() {
+    logger.info("commitSingleSqlStatementTest");
+    List<TaskInfo> taskInfoList = new ArrayList<>();
+
+    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    iginxTask.setSqlList(Collections.singletonList(SHOW_TIME_SERIES_SQL));
+    taskInfoList.add(iginxTask);
+
+    try {
+      long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
+
+      verifyJobState(jobId);
+    } catch (SessionException | InterruptedException e) {
+      logger.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
   public void commitSingleSqlStatementByYamlTest() {
     logger.info("commitSingleSqlStatementByYamlTest");
     try {
