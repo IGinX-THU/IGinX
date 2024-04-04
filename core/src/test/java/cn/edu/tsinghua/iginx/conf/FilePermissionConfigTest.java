@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.RandomAccessFile;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import org.apache.commons.configuration2.ImmutableConfiguration;
@@ -151,12 +152,21 @@ public class FilePermissionConfigTest {
       assertNull(config.getReloadInterval());
       config.reload();
       Assert.assertEquals(100, config.getReloadInterval().longValue());
-      try (RandomAccessFile file = new RandomAccessFile(PERMISSION_CONFIG_TEMP, "rw")) {
+      Path temp = Files.createTempFile("permission-test-temp", ".properties");
+      Files.copy(
+          Paths.get(PERMISSION_CONFIG_TEMP),
+          temp,
+          java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+      try (RandomAccessFile file = new RandomAccessFile(temp.toString(), "rw")) {
         file.seek("refreshInterval=".length());
         file.write("010".getBytes());
       }
+      Files.move(
+          temp,
+          Paths.get(PERMISSION_CONFIG_TEMP),
+          java.nio.file.StandardCopyOption.REPLACE_EXISTING);
       Assert.assertEquals(100, config.getReloadInterval().longValue());
-      Thread.sleep(5 * 1000);
+      Thread.sleep(200);
       Assert.assertEquals(10, config.getReloadInterval().longValue());
     }
   }
