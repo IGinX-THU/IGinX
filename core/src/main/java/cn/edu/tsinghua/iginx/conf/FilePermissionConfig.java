@@ -38,7 +38,7 @@ public class FilePermissionConfig implements AutoCloseable {
 
   private static final String RELOAD_INTERVAL_KEY = "refreshInterval";
   private static final long DEFAULT_RELOAD_INTERVAL = 5 * 1000;
-  private static final String DEFAULT_CHARSET = Charset.defaultCharset().name();
+  private static final String DEFAULT_CHARSET = "UTF-8";
 
   private final ReloadingFileBasedConfigurationBuilder<PropertiesConfiguration> builder;
 
