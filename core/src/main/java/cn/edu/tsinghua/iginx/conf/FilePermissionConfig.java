@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.conf;
 
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
 import cn.edu.tsinghua.iginx.conf.parser.FilePermissionsParser;
-import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
