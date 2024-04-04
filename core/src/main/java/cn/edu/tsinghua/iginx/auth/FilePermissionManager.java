@@ -33,7 +33,7 @@ public class FilePermissionManager {
     filePermissionConfig.onReload(this::reload);
   }
 
-  public Predicate<Path> getChecker(String user, Module module, FileAccessType... type) {
+  public Predicate<Path> getChecker(@Nullable String user, Module module, FileAccessType... type) {
     return path -> {
       UserRules userRules = rules.get();
       return Stream.of(type)
