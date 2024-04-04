@@ -156,16 +156,16 @@ runs:
         - name: Change File Permission
           shell: bash
           run: |
-            if [ "$RUNNER_OS" == "Linux" ]; then
-              sudo sed -i 's/^default.transformer\[0\].include=.*$/default.transformer[0].include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-              sudo sed -i 's/^default.transformer\[0\].write=.*$/default.transformer[0].write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-            elif [ "$RUNNER_OS" == "Windows" ]; then
-              sed -i 's/^default.transformer\[0\].include=.*$/default.transformer[0].include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-              sed -i 's/^default.transformer\[0\].write=.*$/default.transformer[0].write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-            elif [ "$RUNNER_OS" == "macOS" ]; then
-              sudo sed -i '' 's/^default.transformer\[0\].include=.*$/default.transformer[0].include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-              sudo sed -i '' 's/^default.transformer\[0\].write=.*$/default.transformer[0].write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-            else
-              echo "$RUNNER_OS is not supported"
-              exit 1
-            fi
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/^default.transformer\[0\].include=.*$/default.transformer[0].include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i 's/^default.transformer\[0\].write=.*$/default.transformer[0].write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/^default.transformer\[0\].include=.*$/default.transformer[0].include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sed -i 's/^default.transformer\[0\].write=.*$/default.transformer[0].write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/^default.transformer\[0\].include=.*$/default.transformer[0].include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i '' 's/^default.transformer\[0\].write=.*$/default.transformer[0].write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
