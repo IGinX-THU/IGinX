@@ -156,7 +156,7 @@ public class FilePermissionConfigTest {
         file.write("010".getBytes());
       }
       Assert.assertEquals(100, config.getReloadInterval().longValue());
-      Thread.sleep(1000);
+      Thread.sleep(5 * 1000);
       Assert.assertEquals(10, config.getReloadInterval().longValue());
     }
   }
