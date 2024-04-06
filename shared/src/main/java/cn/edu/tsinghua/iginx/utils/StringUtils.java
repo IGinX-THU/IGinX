@@ -28,7 +28,7 @@ public class StringUtils {
 
   private static final Character MAX_CHAR = '~';
   private static final String SPECIAL_CHAR_SET =
-      "[!&()+=|'%`;,<>?\n\t][\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85][\\x00-\\x1F\\x7F]";
+      "[!&()+=|'%`;,<>?\n\t]|[\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85]|[\\x00-\\x1F\\x7F]";
   private static final String[] REGEX = {"[", "]", "(", ")", "|", "+", "?", "*", "-"};
 
   /**
@@ -155,4 +155,10 @@ public class StringUtils {
     }
     return Objects.equals(str1, str2);
   }
+
+  public static String replaceSpecialCharsWithUnderscore(String str){
+    String regex = SPECIAL_CHAR_SET+"|[\" \\.\\*\\[\\]\\-]";
+    return str.replaceAll(regex, "_" );
+  }
+
 }

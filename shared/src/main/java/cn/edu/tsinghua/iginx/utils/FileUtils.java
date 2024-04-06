@@ -9,6 +9,17 @@ import java.util.List;
 
 public class FileUtils {
 
+  // decide whether a file is a text file based on a few bytes
+  public static boolean isTextFile(byte[] bytes, int checkLen){
+    int pos = checkLen>0?checkLen:bytes.length;
+    for(int i=0;i<pos;i++)
+      //ASCII thresholds: tab, carriage, space, delete
+      if(bytes[i]<0x09 || (bytes[i]>0x0D && bytes[i]<0x20) || bytes[i]==0x7F)
+        return false;
+
+    return true;
+  }
+
   public static void exportByteStream(List<List<byte[]>> values, String[] columns) {
     for (int i = 0; i < columns.length; i++) {
       if (columns[i].isEmpty()) {
