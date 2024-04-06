@@ -107,7 +107,6 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.TagListContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeIntervalContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.TimeValueContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.WithClauseContext;
-import cn.edu.tsinghua.iginx.sql.SqlParser.InsertPathContext;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.CteFromPart;
@@ -183,15 +182,15 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     ImportFile importFile = parseImportFileClause(ctx.importFileClause());
 
     InsertStatement insertStatement = new InsertStatement(RawDataType.NonAlignedRow);
-    if(ctx.insertFullPathSpec()==null)
-      parsePartialPathSpec( ctx.path(), ctx.tagList(), insertStatement );
-    else
-      parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
+    if (ctx.insertFullPathSpec() == null)
+      parsePartialPathSpec(ctx.path(), ctx.tagList(), insertStatement);
+    else parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
 
     return new InsertFromCsvStatement(importFile, insertStatement);
   }
 
-  private void parsePartialPathSpec(PathContext pathCtx, TagListContext tagCtx, InsertStatement insertStatement){
+  private void parsePartialPathSpec(
+      PathContext pathCtx, TagListContext tagCtx, InsertStatement insertStatement) {
     insertStatement.setPrefixPath(parsePath(pathCtx));
 
     if (tagCtx != null) {
@@ -210,25 +209,27 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
     // parse paths
     Set<Pair<String, Map<String, String>>> columnsSet = new HashSet<>();
-    ctx.insertColumnsSpec().insertPath().forEach(
-              e -> {
-                String path = parsePath(e.path());
-                Map<String, String> tags;
-                if (e.tagList() != null) {
-                  if (insertStatement.hasGlobalTags()) {
-                    throw new SQLParserException(
-                        "Insert path couldn't has global tags and local tags at the same time.");
-                  }
-                  tags = parseTagList(e.tagList());
-                } else {
-                  tags = insertStatement.getGlobalTags();
-                }
-                if (!columnsSet.add(new Pair<>(path, tags))) {
+    ctx.insertColumnsSpec()
+        .insertPath()
+        .forEach(
+            e -> {
+              String path = parsePath(e.path());
+              Map<String, String> tags;
+              if (e.tagList() != null) {
+                if (insertStatement.hasGlobalTags()) {
                   throw new SQLParserException(
-                      "Insert statements should not contain duplicate paths.");
+                      "Insert path couldn't has global tags and local tags at the same time.");
                 }
-                insertStatement.setPath(path, tags);
-              });
+                tags = parseTagList(e.tagList());
+              } else {
+                tags = insertStatement.getGlobalTags();
+              }
+              if (!columnsSet.add(new Pair<>(path, tags))) {
+                throw new SQLParserException(
+                    "Insert statements should not contain duplicate paths.");
+              }
+              insertStatement.setPath(path, tags);
+            });
   }
 
   private String parsePath(PathContext ctx) {

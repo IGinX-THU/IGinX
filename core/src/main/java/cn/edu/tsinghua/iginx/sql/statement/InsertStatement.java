@@ -12,7 +12,7 @@ public class InsertStatement extends DataStatement {
   private final RawDataType rawDataType;
 
   private String prefixPath;
-  private List<String> paths;//full paths, prefixed by the above prefixPath
+  private List<String> paths; // full paths, prefixed by the above prefixPath
   private Map<String, String> globalTags;
   private List<Map<String, String>> tagsList;
   private List<Long> keys;

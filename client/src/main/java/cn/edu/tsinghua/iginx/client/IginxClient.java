@@ -608,7 +608,7 @@ public class IginxClient {
     }
 
     File file = new File(path);
-    if (!file.exists()){
+    if (!file.exists()) {
       throw new InvalidParameterException(path + " does not exist!");
     }
     if (!file.isFile()) {
@@ -616,9 +616,11 @@ public class IginxClient {
     }
 
     byte[] bytes = FileUtils.readFileToByteArray(file);
-    if(!isTextFile( bytes, 64 ))
+    if (!isTextFile(bytes, 64))
       throw new InvalidParameterException(
-              "The file must be a CSV file in plain text, " + path + " doesn't satisfy the requirement!");
+          "The file must be a CSV file in plain text, "
+              + path
+              + " doesn't satisfy the requirement!");
 
     ByteBuffer csvFile = ByteBuffer.wrap(bytes);
     Pair<List<String>, Long> pair = session.executeLoadCSV(sql, csvFile);

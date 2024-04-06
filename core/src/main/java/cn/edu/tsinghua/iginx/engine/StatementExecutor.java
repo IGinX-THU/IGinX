@@ -81,7 +81,6 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -496,22 +495,21 @@ public class StatementExecutor {
       }
 
       int pathSize = insertStatement.getPaths().size();
-      AtomicBoolean keyInFile = new AtomicBoolean( false );
-      //处理未给声明路径的情况
-      if(pathSize==0){
-        //从文件中读出列名来，并设置给insertStatement
+      AtomicBoolean keyInFile = new AtomicBoolean(false);
+      // 处理未给声明路径的情况
+      if (pathSize == 0) {
+        // 从文件中读出列名来，并设置给insertStatement
         tmp = iterator.next();
-        tmp.forEach( e->{
-          String colName = replaceSpecialCharsWithUnderscore(e);
-          if(!colName.equalsIgnoreCase( KEY_NAME ))
-            insertStatement.setPath(colName, insertStatement.getGlobalTags());
-          else
-            keyInFile.set( true );
-        } );
-        //update pathSize accordingly
+        tmp.forEach(
+            e -> {
+              String colName = replaceSpecialCharsWithUnderscore(e);
+              if (!colName.equalsIgnoreCase(KEY_NAME))
+                insertStatement.setPath(colName, insertStatement.getGlobalTags());
+              else keyInFile.set(true);
+            });
+        // update pathSize accordingly
         pathSize = insertStatement.getPaths().size();
-      }else
-        keyInFile.set( true );
+      } else keyInFile.set(true);
 
       while (iterator.hasNext()) {
         List<CSVRecord> records = new ArrayList<>(BATCH_SIZE);
@@ -564,10 +562,8 @@ public class StatementExecutor {
         // 填充 keys, values 和 bitmaps
         for (int i = 0; i < recordsSize; i++) {
           CSVRecord record = records.get(i);
-          if(keyInFile.get())
-            keys[i] = Long.parseLong(record.get(0));
-          else
-            keys[i] = (long)i+1;
+          if (keyInFile.get()) keys[i] = Long.parseLong(record.get(0));
+          else keys[i] = (long) i + 1;
           Bitmap bitmap = new Bitmap(pathSize);
 
           int index = 0;

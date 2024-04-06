@@ -156,9 +156,8 @@ public class StringUtils {
     return Objects.equals(str1, str2);
   }
 
-  public static String replaceSpecialCharsWithUnderscore(String str){
-    String regex = SPECIAL_CHAR_SET+"|[\" \\.\\*\\[\\]\\-]";
-    return str.replaceAll(regex, "_" );
+  public static String replaceSpecialCharsWithUnderscore(String str) {
+    String regex = SPECIAL_CHAR_SET + "|[\" \\.\\*\\[\\]\\-]";
+    return str.replaceAll(regex, "_");
   }
-
 }
