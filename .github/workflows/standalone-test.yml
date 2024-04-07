@@ -64,12 +64,6 @@ jobs:
                   version: ${VERSION}
                   if-test-udf: "true"
 
-            - name: Show IGinX Properties
-              if: always()
-              shell: bash
-              run: |
-                cat ${GITHUB_WORKSPACE}core/target/iginx-core-*/conf/*.properties
-
             - name: Run UDF path test
               if: always()
               shell: bash
