@@ -25,8 +25,7 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.tool.CombinedInsertTests;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
@@ -79,13 +78,12 @@ public class SessionIT extends BaseSessionIT {
     return sb.toString();
   }
 
-  private void insertTestsByFourInterfaces() throws SessionException, ExecutionException {
+  private void insertTestsByFourInterfaces() throws SessionException {
     CombinedInsertTests test = new CombinedInsertTests(session);
     test.testInserts();
   }
 
-  private void insertFakeNumRecords(List<String> insertPaths, long count)
-      throws SessionException, ExecutionException {
+  private void insertFakeNumRecords(List<String> insertPaths, long count) throws SessionException {
     int pathLen = insertPaths.size();
     long[] keys = new long[(int) KEY_PERIOD];
     for (long i = 0; i < KEY_PERIOD; i++) {
@@ -111,7 +109,7 @@ public class SessionIT extends BaseSessionIT {
 
   // the length of the insertPaths must be 6
   private void insertDataTypeRecords(List<String> insertPaths, int startPathNum)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     long[] keys = new long[(int) KEY_PERIOD];
     for (long i = 0; i < KEY_PERIOD; i++) {
       keys[(int) i] = i + START_KEY;
@@ -190,7 +188,7 @@ public class SessionIT extends BaseSessionIT {
   }
 
   @Test
-  public void sessionTest() throws ExecutionException, SessionException, InterruptedException {
+  public void sessionTest() throws SessionException, InterruptedException {
     int simpleLen = 2;
     List<String> paths = getPaths(currPath, simpleLen);
     // Simple Test(Including query,valueFilter,aggr:max/min/first/last/count/sum/avg)

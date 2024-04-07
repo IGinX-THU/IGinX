@@ -16,6 +16,12 @@ public class ExportFileIT {
   @Test
   public void checkExportByteStream() {
     Path dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStream");
+    checkFiles(dir, "test", "");
+    dir = Paths.get("src", "test", "resources", "fileReadAndWrite", "byteStreamExport");
+    checkFiles(dir, "byteDummy.test", ".ext");
+  }
+
+  public void checkFiles(Path dir, String prefix, String extension) {
     File dirFile = dir.toFile();
 
     assertTrue(dirFile.exists());
@@ -27,7 +33,7 @@ public class ExportFileIT {
 
     long[] lengths = new long[] {40, 40, 5, 15};
     for (int i = 1; i <= 4; i++) {
-      String expectedFilename = String.format("test.s%d", i);
+      String expectedFilename = String.format("%s.s%d%s", prefix, i, extension);
       assertEquals(expectedFilename, filenames.get(i - 1));
       File file = new File(Paths.get(dir.toString(), expectedFilename).toString());
       assertEquals(file.length(), lengths[i - 1]);

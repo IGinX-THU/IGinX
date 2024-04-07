@@ -4,25 +4,21 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>cn.edu.tsinghua</groupId>
-        <artifactId>iginx</artifactId>
+        <artifactId>iginx-driver</artifactId>
         <version>${revision}</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>parquet</artifactId>
     <name>IGinX Parquet</name>
 
     <properties>
+        <driver.basedir>..</driver.basedir>
+        <driver.name>parquet</driver.name>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencies>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iginx-core</artifactId>
-            <scope>provided</scope>
-        </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua.iginx</groupId>
             <artifactId>parquet-file</artifactId>
@@ -66,6 +62,10 @@
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>

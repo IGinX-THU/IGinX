@@ -1,12 +1,12 @@
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.TransformClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.Task;
 import cn.edu.tsinghua.iginx.session_v2.domain.Transform;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.util.ArrayList;
 import java.util.List;
 import org.apache.thrift.TException;
@@ -44,8 +44,8 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
       iginXClient.checkIsClosed();
       try {
         resp = client.commitTransformJob(req);
-        RpcUtils.verifySuccess(resp.getStatus());
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.getStatus());
+      } catch (TException | SessionException e) {
         throw new IginXException("commit transform job failure: ", e);
       }
     }
@@ -62,8 +62,8 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
       iginXClient.checkIsClosed();
       try {
         resp = client.queryTransformJobStatus(req);
-        RpcUtils.verifySuccess(resp.getStatus());
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.getStatus());
+      } catch (TException | SessionException e) {
         throw new IginXException("query transform job status failure: ", e);
       }
     }
@@ -79,8 +79,8 @@ public class TransformClientImpl extends AbstractFunctionClient implements Trans
       iginXClient.checkIsClosed();
       try {
         Status status = client.cancelTransformJob(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("cancel transform job failure: ", e);
       }
     }
