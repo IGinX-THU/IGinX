@@ -457,7 +457,7 @@ public class StatementExecutor {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
         ctx.getResult().setLoadCSVPath(importCsv.getFilepath());
       } else {
-        loadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement);
+        loadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement, statement.getKeyBase());
       }
 
     } else {
@@ -466,7 +466,8 @@ public class StatementExecutor {
   }
 
   private void loadValuesSpecFromCsv(
-      RequestContext ctx, ImportCsv importCsv, InsertStatement insertStatement) throws IOException {
+      RequestContext ctx, ImportCsv importCsv, InsertStatement insertStatement, long keyBase)
+      throws IOException {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
     File tmpCSV = File.createTempFile("temp", ".csv");
 
@@ -500,7 +501,6 @@ public class StatementExecutor {
 
       int pathSize = insertStatement.getPaths().size();
       AtomicBoolean keyInFile = new AtomicBoolean(false);
-      long KeyStart = 1;
       // 处理未给声明路径的情况
       if (pathSize == 0) {
         // 从文件中读出列名来，并设置给insertStatement
@@ -522,7 +522,7 @@ public class StatementExecutor {
       Set<Integer> dataTypeIndex;
 
       while (iterator.hasNext()) {
-        KeyStart = KeyStart + count;
+        long KeyStart = keyBase + count;
         List<CSVRecord> records = new ArrayList<>(BATCH_SIZE);
         // 每次从文件中取出BATCH_SIZE行数据
         for (int n = 0; n < BATCH_SIZE && iterator.hasNext(); n++) {
@@ -578,7 +578,7 @@ public class StatementExecutor {
         // 填充 keys, values 和 bitmaps
         for (int i = 0; i < recordsSize; i++) {
           CSVRecord record = records.get(i);
-          if (keyInFile.get()) keys[i] = Long.parseLong(record.get(0));
+          if (keyInFile.get()) keys[i] = Long.parseLong(record.get(0)) + keyBase;
           else keys[i] = (long) i + KeyStart;
           Bitmap bitmap = new Bitmap(pathSize);
 
