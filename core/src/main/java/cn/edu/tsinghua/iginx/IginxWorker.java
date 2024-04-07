@@ -466,7 +466,7 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        logger.error("add storage engine {} failed.", meta);
+        LOGGER.error("add storage engine {} failed.", meta);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
