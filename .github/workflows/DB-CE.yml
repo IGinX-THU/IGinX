@@ -31,7 +31,10 @@ jobs:
                         "MongoDB",
                         "Parquet",
                     ]
+                metadata: [zookeeper, etcd]
         runs-on: ${{ matrix.os }}
+        env:
+            METADATA_STORAGE: ${{ matrix.metadata }}
         steps:
             - uses: actions/checkout@v2
             - name: Environment dependence
