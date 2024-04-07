@@ -18,7 +18,7 @@ jobs:
             matrix:
                 java: [8]
                 python-version: ["3.9"]
-                os: [ubuntu-latest]
+                os: [ubuntu-latest, macos-latest, windows-latest]
                 DB-name:
                     [
 #                        "IoTDB12",
@@ -170,4 +170,4 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  cat ${GITHUB_WORKSPACE}/core/target/iginx-core-*/conf/*.properties
+                  cat ${GITHUB_WORKSPACE}core/target/iginx-core-*/conf/*.properties
