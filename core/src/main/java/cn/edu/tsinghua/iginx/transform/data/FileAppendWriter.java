@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.transform.data;
 
 import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
-import cn.edu.tsinghua.iginx.auth.entity.Module;
+import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -51,9 +51,10 @@ public class FileAppendWriter extends ExportWriter {
   }
 
   private void createFileIfNotExist(File file) {
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+
     Predicate<Path> pathChecker =
-        FilePermissionManager.getInstance()
-            .getChecker(null, Module.TRANSFORMER, FileAccessType.WRITE);
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
     if (!pathChecker.test(file.toPath())) {
       throw new SecurityException(
           ("transformer has no permission to write file: " + file.getAbsolutePath()));

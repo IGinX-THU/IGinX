@@ -29,7 +29,7 @@ import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
-import cn.edu.tsinghua.iginx.auth.entity.Module;
+import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -813,9 +813,11 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+
     Predicate<Path> sourceChecker =
         FilePermissionManager.getInstance()
-            .getChecker(null, Module.TRANSFORMER, FileAccessType.EXECUTE);
+            .getChecker(null, ruleNameFilter, FileAccessType.EXECUTE);
 
     File sourceFile = new File(filePath);
     if (!sourceChecker.test(sourceFile.toPath())) {
@@ -851,8 +853,7 @@ public class IginxWorker implements IService.Iface {
     }
 
     Predicate<Path> destChecker =
-        FilePermissionManager.getInstance()
-            .getChecker(null, Module.TRANSFORMER, FileAccessType.WRITE);
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
 
     if (!destChecker.test(destFile.toPath())) {
       errorMsg = String.format("Register file %s has no write permission", destPath);

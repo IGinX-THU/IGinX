@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.conf;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
-import cn.edu.tsinghua.iginx.auth.entity.Module;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
 import java.io.IOException;
 import java.io.InputStream;
@@ -64,35 +63,35 @@ public class FilePermissionConfigTest {
       assertEquals(
           Arrays.asList(
               "refreshInterval",
-              "default.udf[1].include",
-              "default.udf[1].execute",
-              "default.udf[0].include",
-              "default.udf[0].execute",
-              "default.default[0].include",
-              "default.default[0].execute",
-              "default.default[1].include",
-              "default.default[1].execute",
-              "default.default[1].write",
-              "root.default[0].include",
-              "root.default[0].read",
-              "root.default[0].write",
-              "root.default[0].execute"),
+              "default.udfRule1.include",
+              "default.udfRule1.execute",
+              "default.udfRule2.include",
+              "default.udfRule2.execute",
+              "default.defaultFirstRule.include",
+              "default.defaultFirstRule.execute",
+              "default.defaultSecondRule.include",
+              "default.defaultSecondRule.execute",
+              "default.defaultSecondRule.write",
+              "root.defaultRule.include",
+              "root.defaultRule.read",
+              "root.defaultRule.write",
+              "root.defaultRule.execute"),
           keys);
 
-      assertEquals(100, configuration.getLong("refreshInterval"));
-      assertEquals("glob:**.{sh,py}", configuration.getString("default.udf[1].include"));
-      assertFalse(configuration.getBoolean("default.udf[1].execute"));
-      assertEquals("glob:**.py", configuration.getString("default.udf[0].include"));
-      assertTrue(configuration.getBoolean("default.udf[0].execute"));
-      assertEquals("glob:**.{sh,bat}", configuration.getString("default.default[0].include"));
-      assertTrue(configuration.getBoolean("default.default[0].execute"));
-      assertEquals("glob:**", configuration.getString("default.default[1].include"));
-      assertFalse(configuration.getBoolean("default.default[1].execute"));
-      assertFalse(configuration.getBoolean("default.default[1].write"));
-      assertEquals("glob:**", configuration.getString("root.default[0].include"));
-      assertTrue(configuration.getBoolean("root.default[0].read"));
-      assertTrue(configuration.getBoolean("root.default[0].write"));
-      assertTrue(configuration.getBoolean("root.default[0].execute"));
+      assertEquals(100, configuration.getInt("refreshInterval"));
+      assertEquals("glob:**.py", configuration.getString("default.udfRule1.include"));
+      assertEquals(true, configuration.getBoolean("default.udfRule1.execute"));
+      assertEquals("glob:**.{sh,py}", configuration.getString("default.udfRule2.include"));
+      assertEquals(false, configuration.getBoolean("default.udfRule2.execute"));
+      assertEquals("glob:**.{sh,bat}", configuration.getString("default.defaultFirstRule.include"));
+      assertEquals(true, configuration.getBoolean("default.defaultFirstRule.execute"));
+      assertEquals("glob:**", configuration.getString("default.defaultSecondRule.include"));
+      assertEquals(false, configuration.getBoolean("default.defaultSecondRule.execute"));
+      assertEquals(false, configuration.getBoolean("default.defaultSecondRule.write"));
+      assertEquals("glob:**", configuration.getString("root.defaultRule.include"));
+      assertEquals(true, configuration.getBoolean("root.defaultRule.read"));
+      assertEquals(true, configuration.getBoolean("root.defaultRule.write"));
+      assertEquals(true, configuration.getBoolean("root.defaultRule.execute"));
     }
   }
 
@@ -187,12 +186,13 @@ public class FilePermissionConfigTest {
       config.reload();
       List<FilePermissionDescriptor> permissions = config.getFilePermissions();
       LinkedHashSet<FilePermissionDescriptor> resultSet = new LinkedHashSet<>(permissions);
+
       Set<FilePermissionDescriptor> expect =
           new HashSet<>(
               Arrays.asList(
                   new FilePermissionDescriptor(
                       null,
-                      Module.UDF,
+                      "udfRule1",
                       "glob:**.py",
                       new HashMap<FileAccessType, Boolean>() {
                         {
@@ -201,7 +201,7 @@ public class FilePermissionConfigTest {
                       }),
                   new FilePermissionDescriptor(
                       null,
-                      Module.UDF,
+                      "udfRule2",
                       "glob:**.{sh,py}",
                       new HashMap<FileAccessType, Boolean>() {
                         {
@@ -210,7 +210,7 @@ public class FilePermissionConfigTest {
                       }),
                   new FilePermissionDescriptor(
                       null,
-                      Module.DEFAULT,
+                      "defaultFirstRule",
                       "glob:**.{sh,bat}",
                       new HashMap<FileAccessType, Boolean>() {
                         {
@@ -219,7 +219,7 @@ public class FilePermissionConfigTest {
                       }),
                   new FilePermissionDescriptor(
                       null,
-                      Module.DEFAULT,
+                      "defaultSecondRule",
                       "glob:**",
                       new HashMap<FileAccessType, Boolean>() {
                         {
@@ -229,7 +229,7 @@ public class FilePermissionConfigTest {
                       }),
                   new FilePermissionDescriptor(
                       "root",
-                      Module.DEFAULT,
+                      "defaultRule",
                       "glob:**",
                       new HashMap<FileAccessType, Boolean>() {
                         {
@@ -243,9 +243,9 @@ public class FilePermissionConfigTest {
 
       Set<String> order = new HashSet<>();
       for (FilePermissionDescriptor descriptor : permissions) {
-        order.add(descriptor.getPattern());
-        if (descriptor.getPattern().equals("glob:**.{sh,py}")) {
-          if (!order.contains("glob:**.py")) {
+        order.add(descriptor.getRuleName());
+        if (descriptor.getPattern().equals("udfRule2")) {
+          if (!order.contains("udfRule1")) {
             fail("The order of the permissions is wrong");
           }
         }
@@ -272,7 +272,7 @@ public class FilePermissionConfigTest {
           Collections.singletonList(
               new FilePermissionDescriptor(
                   "测试用户",
-                  Module.UDF,
+                  "第一条规则",
                   "glob:**/不允许.py",
                   new HashMap<FileAccessType, Boolean>() {
                     {

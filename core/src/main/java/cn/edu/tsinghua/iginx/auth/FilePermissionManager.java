@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.auth;
 
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
-import cn.edu.tsinghua.iginx.auth.entity.Module;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
 import java.nio.file.Path;
@@ -33,11 +32,12 @@ public class FilePermissionManager {
     filePermissionConfig.onReload(this::reload);
   }
 
-  public Predicate<Path> getChecker(@Nullable String user, Module module, FileAccessType... type) {
+  public Predicate<Path> getChecker(
+      @Nullable String user, Predicate<String> ruleNameFilter, FileAccessType... type) {
     return path -> {
       UserRules userRules = rules.get();
       return Stream.of(type)
-          .map(t -> userRules.checkPermission(user, module, path, t))
+          .map(t -> userRules.checkPermission(user, t, ruleNameFilter, path))
           .allMatch(b -> b.orElse(true));
     };
   }
@@ -50,22 +50,22 @@ public class FilePermissionManager {
   }
 
   private static class UserRules {
-    private final Map<String, ModuleRules> rules = new HashMap<>();
+    private final Map<String, GroupedRuleList> rules = new HashMap<>();
 
     private void put(FilePermissionDescriptor descriptor) {
-      ModuleRules moduleRules =
-          rules.computeIfAbsent(descriptor.getUsername(), k -> new ModuleRules());
-      moduleRules.put(descriptor);
+      GroupedRuleList groupedRuleList =
+          rules.computeIfAbsent(descriptor.getUsername(), k -> new GroupedRuleList());
+      groupedRuleList.put(descriptor);
     }
 
     Optional<Boolean> checkPermission(
-        @Nullable String user, Module module, Path path, FileAccessType type) {
-      ModuleRules specificRules = rules.get(user);
-      ModuleRules defaultRules = rules.get(null);
+        @Nullable String user, FileAccessType type, Predicate<String> ruleNameFilter, Path path) {
+      GroupedRuleList specificRules = rules.get(user);
+      GroupedRuleList defaultRules = rules.get(null);
 
       return Stream.of(specificRules, defaultRules)
           .filter(Objects::nonNull)
-          .map(r -> r.checkPermission(module, path, type))
+          .map(r -> r.checkPermission(type, ruleNameFilter, path))
           .filter(Optional::isPresent)
           .map(Optional::get)
           .findFirst();
@@ -77,38 +77,8 @@ public class FilePermissionManager {
     }
   }
 
-  private static class ModuleRules {
-    private final Map<Module, RuleSet> rules = new HashMap<>();
-
-    void put(FilePermissionDescriptor descriptor) {
-      RuleSet ruleSet = rules.computeIfAbsent(descriptor.getModule(), k -> new RuleSet());
-      ruleSet.put(descriptor);
-    }
-
-    Optional<Boolean> checkPermission(Module module, Path path, FileAccessType type) {
-      Objects.requireNonNull(module);
-
-      RuleSet ruleSet = rules.get(module);
-      RuleSet defaultRuleSet = rules.get(Module.DEFAULT);
-
-      return Stream.of(ruleSet, defaultRuleSet)
-          .filter(Objects::nonNull)
-          .map(s -> s.checkPermission(path, type))
-          .filter(Optional::isPresent)
-          .map(Optional::get)
-          .findFirst();
-    }
-
-    @Override
-    public String toString() {
-      return rules.toString();
-    }
-  }
-
-  private static class RuleSet {
+  private static class GroupedRuleList {
     private final Map<FileAccessType, List<Rule>> rules = new HashMap<>();
-
-    public static final RuleSet EMPTY = new RuleSet();
 
     void put(FilePermissionDescriptor descriptor) {
       for (Map.Entry<FileAccessType, Boolean> entry : descriptor.getAccessMap().entrySet()) {
@@ -117,13 +87,19 @@ public class FilePermissionManager {
       }
     }
 
-    Optional<Boolean> checkPermission(Path path, FileAccessType type) {
-      Objects.requireNonNull(path);
+    Optional<Boolean> checkPermission(
+        FileAccessType type, Predicate<String> ruleNameFilter, Path path) {
       Objects.requireNonNull(type);
+      Objects.requireNonNull(ruleNameFilter);
+      Objects.requireNonNull(path);
 
       Path absolute = path.toAbsolutePath();
       List<Rule> rules = this.rules.getOrDefault(type, Collections.emptyList());
-      return rules.stream().filter(rule -> rule.matches(absolute)).map(Rule::isAllow).findFirst();
+      return rules.stream()
+          .filter(rule -> ruleNameFilter.test(rule.getName()))
+          .filter(rule -> rule.matches(absolute))
+          .map(Rule::isAllow)
+          .findFirst();
     }
 
     @Override
@@ -143,6 +119,10 @@ public class FilePermissionManager {
 
     boolean matches(Path path) {
       return descriptor.getPathMatcher().matches(path);
+    }
+
+    String getName() {
+      return descriptor.getRuleName();
     }
 
     boolean isAllow() {

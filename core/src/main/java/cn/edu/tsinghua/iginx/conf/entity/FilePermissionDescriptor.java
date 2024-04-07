@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.conf.entity;
 
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
-import cn.edu.tsinghua.iginx.auth.entity.Module;
 import java.nio.file.FileSystems;
 import java.nio.file.PathMatcher;
 import java.util.Collections;
@@ -13,21 +12,21 @@ import javax.annotation.Nullable;
 
 public class FilePermissionDescriptor {
   private final String username;
-  private final Module module;
+  private final String ruleName;
   private final String pattern;
   private final PathMatcher pathMatcher;
   private final Map<FileAccessType, Boolean> accessMap;
 
   public FilePermissionDescriptor(
       @Nullable String username,
-      Module module,
+      String ruleName,
       String pattern,
       Map<FileAccessType, Boolean> accessMap) {
-    Objects.requireNonNull(module);
+    Objects.requireNonNull(ruleName);
     Objects.requireNonNull(pattern);
     Objects.requireNonNull(accessMap);
     this.username = username;
-    this.module = module;
+    this.ruleName = ruleName;
     this.pattern = pattern;
     this.pathMatcher = FileSystems.getDefault().getPathMatcher(pattern);
     this.accessMap =
@@ -42,8 +41,8 @@ public class FilePermissionDescriptor {
     return username;
   }
 
-  public Module getModule() {
-    return module;
+  public String getRuleName() {
+    return ruleName;
   }
 
   public String getPattern() {
@@ -64,21 +63,21 @@ public class FilePermissionDescriptor {
     if (o == null || getClass() != o.getClass()) return false;
     FilePermissionDescriptor that = (FilePermissionDescriptor) o;
     return Objects.equals(username, that.username)
-        && module == that.module
+        && Objects.equals(ruleName, that.ruleName)
         && Objects.equals(pattern, that.pattern)
         && Objects.equals(accessMap, that.accessMap);
   }
 
   @Override
   public int hashCode() {
-    return Objects.hash(username, module, pattern, accessMap);
+    return Objects.hash(username, ruleName, pattern, accessMap);
   }
 
   @Override
   public String toString() {
     return new StringJoiner(", ", FilePermissionDescriptor.class.getSimpleName() + "[", "]")
         .add("username='" + username + "'")
-        .add("module=" + module)
+        .add("ruleName=" + ruleName)
         .add("pattern='" + pattern + "'")
         .add("accessMap=" + accessMap)
         .toString();
