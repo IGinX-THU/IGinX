@@ -68,7 +68,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                cat ${GITHUB_WORKSPACE}/core/target/iginx-core-*/conf/*.properties
+                cat ${GITHUB_WORKSPACE}core/target/iginx-core-*/conf/*.properties
 
             - name: Run UDF path test
               if: always()
