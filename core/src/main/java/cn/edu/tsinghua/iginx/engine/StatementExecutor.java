@@ -500,6 +500,7 @@ public class StatementExecutor {
 
       int pathSize = insertStatement.getPaths().size();
       AtomicBoolean keyInFile = new AtomicBoolean(false);
+      long KeyStart = 1;
       // 处理未给声明路径的情况
       if (pathSize == 0) {
         // 从文件中读出列名来，并设置给insertStatement
@@ -516,13 +517,18 @@ public class StatementExecutor {
       } else keyInFile.set(true);
 
       int delta = keyInFile.get() ? 1 : 0;
+      // type must be fixed once set, just like paths
+      List<DataType> types = null;
+      Set<Integer> dataTypeIndex;
+
       while (iterator.hasNext()) {
+        KeyStart = KeyStart + count;
         List<CSVRecord> records = new ArrayList<>(BATCH_SIZE);
         // 每次从文件中取出BATCH_SIZE行数据
         for (int n = 0; n < BATCH_SIZE && iterator.hasNext(); n++) {
           tmp = iterator.next();
-          if ((keyInFile.get() && tmp.size() != pathSize + 1)
-              || (!keyInFile.get() && tmp.size() != pathSize)) {
+          // more values are OK; the extra ones are skipped
+          if (tmp.size() < pathSize + delta) {
             throw new RuntimeException(
                 "The paths' size doesn't match csv data at line: " + tmp.getRecordNumber());
           }
@@ -532,36 +538,40 @@ public class StatementExecutor {
         int recordsSize = records.size();
         Long[] keys = new Long[recordsSize];
         Object[][] values = new Object[recordsSize][pathSize];
-        List<DataType> types = new ArrayList<>();
         List<Bitmap> bitmaps = new ArrayList<>();
 
         // 填充 types
-        Set<Integer> dataTypeIndex = new HashSet<>();
-        for (int i = 0; i < pathSize; i++) {
-          types.add(null);
-        }
-        for (int i = 0; i < pathSize; i++) {
-          dataTypeIndex.add(i);
-        }
-        for (CSVRecord record : records) {
-          for (int j = 0; j < pathSize; j++) {
-            if (!dataTypeIndex.contains(j)) {
-              continue;
+        // 类型推断一定可以在一个batch中完成
+        if (types == null) {
+          types = new ArrayList<>();
+          dataTypeIndex = new HashSet<>();
+          for (int i = 0; i < pathSize; i++) {
+            types.add(null);
+          }
+          for (int i = 0; i < pathSize; i++) {
+            dataTypeIndex.add(i);
+          }
+
+          for (CSVRecord record : records) {
+            if (dataTypeIndex.isEmpty()) {
+              break;
             }
-            DataType inferredDataType =
-                DataTypeInferenceUtils.getInferredDataType(record.get(j + delta));
-            if (inferredDataType != null) { // 找到每一列第一个不为 null 的值进行类型推断
-              types.set(j, inferredDataType);
-              dataTypeIndex.remove(j);
+            for (int j = 0; j < pathSize; j++) {
+              if (!dataTypeIndex.contains(j)) {
+                continue;
+              }
+              DataType inferredDataType =
+                  DataTypeInferenceUtils.getInferredDataType(record.get(j + delta));
+              if (inferredDataType != null) { // 找到每一列第一个不为 null 的值进行类型推断
+                types.set(j, inferredDataType);
+                dataTypeIndex.remove(j);
+              }
             }
           }
-          if (dataTypeIndex.isEmpty()) {
-            break;
-          }
-        }
-        if (!dataTypeIndex.isEmpty()) {
-          for (Integer index : dataTypeIndex) {
-            types.set(index, DataType.BINARY);
+          if (!dataTypeIndex.isEmpty()) {
+            for (Integer index : dataTypeIndex) {
+              types.set(index, DataType.BINARY);
+            }
           }
         }
 
@@ -569,7 +579,7 @@ public class StatementExecutor {
         for (int i = 0; i < recordsSize; i++) {
           CSVRecord record = records.get(i);
           if (keyInFile.get()) keys[i] = Long.parseLong(record.get(0));
-          else keys[i] = (long) i + 1;
+          else keys[i] = (long) i + KeyStart;
           Bitmap bitmap = new Bitmap(pathSize);
 
           int index = 0;
