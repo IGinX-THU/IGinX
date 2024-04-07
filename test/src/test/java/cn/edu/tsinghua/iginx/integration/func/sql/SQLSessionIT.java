@@ -18,9 +18,6 @@ import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
-import java.nio.charset.StandardCharsets;
-import java.text.Normalizer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -7218,13 +7215,7 @@ public class SQLSessionIT {
     statements.add("EXPLAIN SELECT * FROM us.d1 WHERE %s > 0;");
     for (String state : statements) {
       for (int i = 0; i < expressions.size(); i++) {
-        foldExpressions.set(i, new String(foldExpressions.get(i).getBytes(), StandardCharsets.UTF_8));
-
         String result = executor.execute(String.format(state, expressions.get(i)));
-
-//        result = result.replace("脳", "×").replace("梅", "÷").replace("�", "×");
-//        foldExpressions.set(i, foldExpressions.get(i).replace("脳", "×")
-//                .replace("梅", "÷").replace("�", "×"));
         if (foldExpressions.get(i).isEmpty() || foldExpressions.get(i).equals(expressions.get(i))) {
           assertFalse(result.contains("Rename"));
         } else {
