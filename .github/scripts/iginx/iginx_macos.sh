@@ -20,10 +20,9 @@ interval=2
 
 elapsed_time=0
 while [ $elapsed_time -lt $timeout ]; do
-  last_lines=$(tail -r -n 20 "$log_file")
+  last_lines=$(tail -r -n 10 "$log_file")
   if echo "$last_lines" | grep -q "IGinX is now in service......"; then
     echo "IGinX启动成功"
-    sh -c "cat $log_file"
     exit 0
   fi
   sleep $interval
@@ -31,7 +30,4 @@ while [ $elapsed_time -lt $timeout ]; do
 done
 
 echo "错误：IGinX未启动成功"
-
-sh -c "cat $log_file"
-
 exit 1
