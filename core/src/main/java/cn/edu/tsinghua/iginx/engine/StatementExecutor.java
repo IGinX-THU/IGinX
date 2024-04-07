@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.engine;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
+import static cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv.DEFAULT_CHARSET;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
 
@@ -78,6 +79,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -485,7 +487,9 @@ public class StatementExecutor {
           importCsv
               .getCSVBuilder()
               .build()
-              .parse(new InputStreamReader(Files.newInputStream(tmpCSV.toPath())));
+              .parse(
+                  new InputStreamReader(
+                      Files.newInputStream(tmpCSV.toPath()), Charset.forName(DEFAULT_CHARSET)));
 
       CSVRecord tmp;
       Iterator<CSVRecord> iterator = parser.stream().iterator();
@@ -511,12 +515,14 @@ public class StatementExecutor {
         pathSize = insertStatement.getPaths().size();
       } else keyInFile.set(true);
 
+      int delta = keyInFile.get() ? 1 : 0;
       while (iterator.hasNext()) {
         List<CSVRecord> records = new ArrayList<>(BATCH_SIZE);
         // 每次从文件中取出BATCH_SIZE行数据
         for (int n = 0; n < BATCH_SIZE && iterator.hasNext(); n++) {
           tmp = iterator.next();
-          if (tmp.size() != pathSize + 1) {
+          if ((keyInFile.get() && tmp.size() != pathSize + 1)
+              || (!keyInFile.get() && tmp.size() != pathSize)) {
             throw new RuntimeException(
                 "The paths' size doesn't match csv data at line: " + tmp.getRecordNumber());
           }
@@ -543,7 +549,7 @@ public class StatementExecutor {
               continue;
             }
             DataType inferredDataType =
-                DataTypeInferenceUtils.getInferredDataType(record.get(j + 1));
+                DataTypeInferenceUtils.getInferredDataType(record.get(j + delta));
             if (inferredDataType != null) { // 找到每一列第一个不为 null 的值进行类型推断
               types.set(j, inferredDataType);
               dataTypeIndex.remove(j);
@@ -568,31 +574,31 @@ public class StatementExecutor {
 
           int index = 0;
           for (int j = 0; j < pathSize; j++) {
-            if (!record.get(j + 1).equalsIgnoreCase("null")) {
+            if (!record.get(j + delta).equalsIgnoreCase("null")) {
               bitmap.mark(j);
               switch (types.get(j)) {
                 case BOOLEAN:
-                  values[i][index] = Boolean.parseBoolean(record.get(j + 1));
+                  values[i][index] = Boolean.parseBoolean(record.get(j + delta));
                   index++;
                   break;
                 case INTEGER:
-                  values[i][index] = Integer.parseInt(record.get(j + 1));
+                  values[i][index] = Integer.parseInt(record.get(j + delta));
                   index++;
                   break;
                 case LONG:
-                  values[i][index] = Long.parseLong(record.get(j + 1));
+                  values[i][index] = Long.parseLong(record.get(j + delta));
                   index++;
                   break;
                 case FLOAT:
-                  values[i][index] = Float.parseFloat(record.get(j + 1));
+                  values[i][index] = Float.parseFloat(record.get(j + delta));
                   index++;
                   break;
                 case DOUBLE:
-                  values[i][index] = Double.parseDouble(record.get(j + 1));
+                  values[i][index] = Double.parseDouble(record.get(j + delta));
                   index++;
                   break;
                 case BINARY:
-                  values[i][index] = record.get(j + 1).getBytes();
+                  values[i][index] = record.get(j + delta).getBytes();
                   index++;
                   break;
                 default:

@@ -6,6 +6,8 @@ import org.apache.commons.csv.CSVFormat;
 
 public class ImportCsv implements ImportFile {
 
+  public static String DEFAULT_CHARSET = "UTF-8";
+
   private boolean isSkippingImportHeader;
 
   private final CSVFile csvFile;

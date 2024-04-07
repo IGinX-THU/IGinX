@@ -51,17 +51,17 @@ public class ImportFileIT {
 
     String query1 = "SELECT * FROM t1;";
     String expected1 =
-            "ResultSets:\n"
-                    + "+---+---+---+-----+---+\n"
-                    + "|key|t1.a|t1.b|  t1._c_|t1.d_m|\n"
-                    + "+---+---+---+-----+---+\n"
-                    + "|  0|  0|0.5| true|aaa|\n"
-                    + "|  1|  1|1.5|false|bbb|\n"
-                    + "|  2|  2|2.5| true|ccc|\n"
-                    + "|  3|  3|3.5|false|ddd|\n"
-                    + "|  4|  4|4.5| true|eee|\n"
-                    + "+---+---+---+-----+---+\n"
-                    + "Total line number = 5\n";
+        "ResultSets:\n"
+            + "+---+------+----+-----+------+\n"
+            + "|key|t1._c_|t1.a| t1.b|t1.d_m|\n"
+            + "+---+------+----+-----+------+\n"
+            + "|  0|     0| 0.5| true|   aaa|\n"
+            + "|  1|     1| 1.5|FALSE|   bbb|\n"
+            + "|  2|     2| 2.5| true|   ccc|\n"
+            + "|  3|     3| 3.5|FALSE|   ddd|\n"
+            + "|  4|     4| 4.5| true|   eee|\n"
+            + "+---+------+----+-----+------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
   }
 }
