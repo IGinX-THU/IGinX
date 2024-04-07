@@ -624,7 +624,7 @@ class Session(object):
                 with open(column, mode) as fos:
                     for value in binary_data_list:
                         # 写入对应列的数据
-                        fos.write(value)
+                        fos.write(value[i-1])
             except IOError as e:
                 raise RuntimeError(f"Encounter an error when writing file {column}, because {e}")
 
