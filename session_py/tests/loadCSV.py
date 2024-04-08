@@ -38,7 +38,7 @@ if __name__ == '__main__':
         print(resp)
 
         # 使用 SQL 语句查询写入的数据
-        dataset = session.execute_statement("select * from *;", fetch_size=2)
+        dataset = session.execute_statement("select * from a;", fetch_size=2)
 
         columns = dataset.columns()
         for column in columns:
