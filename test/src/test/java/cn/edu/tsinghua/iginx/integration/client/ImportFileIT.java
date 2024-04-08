@@ -40,11 +40,11 @@ public class ImportFileIT {
             + "+---+---+---+-----+---+\n"
             + "|key|t.a|t.b|  t.c|t.d|\n"
             + "+---+---+---+-----+---+\n"
-            + "|  0|  0|0.5| true|aaa|\n"
-            + "|  1|  1|1.5|false|bbb|\n"
-            + "|  2|  2|2.5| true|ccc|\n"
-            + "|  3|  3|3.5|false|ddd|\n"
-            + "|  4|  4|4.5| true|eee|\n"
+            + "|  0|0.0|0.5| true|aaa|\n"
+            + "|  1|1.0|1.5|false|bbb|\n"
+            + "|  2|2.0|2.5| true|ccc|\n"
+            + "|  3|3.0|3.5|false|ddd|\n"
+            + "|  4|4.0|4.5| true|eee|\n"
             + "+---+---+---+-----+---+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
@@ -55,11 +55,11 @@ public class ImportFileIT {
             + "+---+------+----+-----+------+\n"
             + "|key|t1._c_|t1.a| t1.b|t1.d_m|\n"
             + "+---+------+----+-----+------+\n"
-            + "|  0|     0| 0.5| true|   aaa|\n"
-            + "|  1|     1| 1.5|FALSE|   bbb|\n"
-            + "|  2|     2| 2.5| true|   ccc|\n"
-            + "|  3|     3| 3.5|FALSE|   ddd|\n"
-            + "|  4|     4| 4.5| true|   eee|\n"
+            + "| 10|   0.0| 0.5| true|   aaa|\n"
+            + "| 11|   1.0| 1.5|false|   bbb|\n"
+            + "| 12|   2.0| 2.5| true|   ccc|\n"
+            + "| 13|   3.0| 3.5|false|   ddd|\n"
+            + "| 14|   4.0| 4.5| true|   eee|\n"
             + "+---+------+----+-----+------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
