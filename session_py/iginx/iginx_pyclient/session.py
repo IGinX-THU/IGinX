@@ -68,8 +68,8 @@ def isPyReg(statement:str):
 
 
 def process_py_reg(statement:str):
-    assert len(statement.split("\"")) == 7
-    path = statement.split("\"")[3]
+    assert len(statement.split("\"")) >= 7
+    path = statement.split("\"")[-1]
     if os.path.isabs(path):
         return statement
     else:
