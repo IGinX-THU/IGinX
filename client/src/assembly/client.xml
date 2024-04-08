@@ -23,6 +23,7 @@
     <id>client</id>
     <formats>
         <format>dir</format>
+        <format>tar.gz</format>
     </formats>
     <includeBaseDirectory>false</includeBaseDirectory>
     <dependencySets>
@@ -32,8 +33,9 @@
     </dependencySets>
     <fileSets>
         <fileSet>
-            <directory>src/assembly/resources</directory>
-            <outputDirectory>${file.separator}</outputDirectory>
+            <directory>src/assembly/resources/sbin</directory>
+            <fileMode>0755</fileMode>
+            <outputDirectory>sbin</outputDirectory>
         </fileSet>
     </fileSets>
 </assembly>
