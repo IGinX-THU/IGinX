@@ -51,9 +51,6 @@ import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
-import java.nio.file.attribute.BasicFileAttributes;
-//import java.nio.file.Files;
-//import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Predicate;
@@ -921,33 +918,7 @@ public class IginxWorker implements IService.Iface {
     }
 
     try {
-      if (sourceFile.isFile() && destFile.isFile()) {
-        // copy file
-        Files.copy(sourceFile.toPath(), destFile.toPath());
-      } else {
-        // copy dir
-        Files.walkFileTree(
-            sourceFile.toPath(),
-            new SimpleFileVisitor<Path>() {
-              @Override
-              public FileVisitResult preVisitDirectory(
-                  final Path dir, final BasicFileAttributes attrs) throws IOException {
-                Files.createDirectories(
-                    destFile.toPath().resolve(sourceFile.toPath().relativize(dir)));
-                return FileVisitResult.CONTINUE;
-              }
-
-              @Override
-              public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs)
-                  throws IOException {
-                Files.copy(
-                    file,
-                    destFile.toPath().resolve(sourceFile.toPath().relativize(file)),
-                    StandardCopyOption.REPLACE_EXISTING);
-                return FileVisitResult.CONTINUE;
-              }
-            });
-      }
+      FileUtils.copyFileOrDir(sourceFile, destFile);
     } catch (IOException e) {
       errorMsg = String.format("Fail to copy register file(s), path=%s", filePath);
       logger.error(errorMsg, e);
@@ -979,20 +950,24 @@ public class IginxWorker implements IService.Iface {
   public Status dropTask(DropTaskReq req) {
     String name = req.getName().trim();
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
+    String errorMsg = "";
     if (transformTaskMeta == null) {
-      logger.error("Register task not exist");
-      return RpcUtils.FAILURE;
+      errorMsg = "Register task not exist";
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     TransformJobManager manager = TransformJobManager.getInstance();
     if (manager.isRegisterTaskRunning(name)) {
-      logger.error("Register task is running");
-      return RpcUtils.FAILURE;
+      errorMsg = "Register task is running";
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     if (!transformTaskMeta.getIpSet().contains(config.getIp())) {
-      logger.error(String.format("Register task exists in node: %s", config.getIp()));
-      return RpcUtils.FAILURE;
+      errorMsg = String.format("Register task exists in node: %s", config.getIp());
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     String filePath =
@@ -1005,8 +980,23 @@ public class IginxWorker implements IService.Iface {
 
     if (!file.exists()) {
       metaManager.dropTransformTask(name);
-      logger.error(String.format("Register file not exist, path=%s", filePath));
-      return RpcUtils.FAILURE;
+      errorMsg = String.format("Register file not exist, path=%s", filePath);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
+
+    String pythonDir = config.getDefaultUDFDir() + File.separator + "python_scripts";
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+    Predicate<Path> destChecker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+
+    Path pythonDirPath = Paths.get(pythonDir);
+    if (!destChecker.test(pythonDirPath)) {
+      errorMsg =
+          String.format(
+              "User has no write permission in target directory, udf %s cannot be dropped.", name);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     try {

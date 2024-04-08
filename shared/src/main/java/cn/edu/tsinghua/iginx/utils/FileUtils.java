@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.List;
 
 public class FileUtils {
@@ -48,6 +49,29 @@ public class FileUtils {
             "Encounter an error when writing file " + columns[i] + ", because " + e.getMessage());
       }
     }
+  }
+
+  public static void copyFileOrDir(File source, File target) throws IOException {
+    Files.walkFileTree(
+        source.toPath(),
+        new SimpleFileVisitor<Path>() {
+          @Override
+          public FileVisitResult preVisitDirectory(final Path dir, final BasicFileAttributes attrs)
+              throws IOException {
+            Files.createDirectories(target.toPath().resolve(source.toPath().relativize(dir)));
+            return FileVisitResult.CONTINUE;
+          }
+
+          @Override
+          public FileVisitResult visitFile(final Path file, final BasicFileAttributes attrs)
+              throws IOException {
+            Files.copy(
+                file,
+                target.toPath().resolve(source.toPath().relativize(file)),
+                StandardCopyOption.REPLACE_EXISTING);
+            return FileVisitResult.CONTINUE;
+          }
+        });
   }
 
   public static void deleteFileOrDir(File file) throws IOException {

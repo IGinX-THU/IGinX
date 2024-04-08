@@ -298,8 +298,8 @@ public class Controller {
       boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
-                  || tagsList.isEmpty()
-                  || tagsList.stream().allMatch(map -> map.size() == 0))
+                      || tagsList.isEmpty()
+                      || tagsList.stream().allMatch(map -> map.size() == 0))
                   && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (keyList.size() * PARTITION_POINT)
               : keyList.size();
