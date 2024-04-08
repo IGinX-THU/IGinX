@@ -27,7 +27,7 @@ if __name__ == '__main__':
     session.open()
 
     # 查询写入的数据，数据由PySessionIT测试写入
-    dataset = session.query(["*"], 0, 10)
+    dataset = session.query(["a.*"], 0, 10)
     print(dataset)
     # 转换为pandas.Dataframe
     df = dataset.to_df()

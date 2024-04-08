@@ -13,12 +13,10 @@ import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
@@ -34,7 +32,7 @@ public class PySessionIT {
   protected static MultiConnection session;
   private static String pythonCMD;
   private static boolean dummyNoData = true;
-  private static final TestDataSection baseDataSection = buildBaseDataSection();
+  // private static final TestDataSection baseDataSection = buildBaseDataSection();
   private static final long START_KEY = 0L;
   private static final long END_KEY = 4L;
   protected static boolean isForSession = true;
@@ -64,29 +62,29 @@ public class PySessionIT {
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
   }
 
-  private static TestDataSection buildBaseDataSection() {
-    List<String> paths = Arrays.asList("a.a.a", "a.a.b", "a.b.b", "a.c.c");
-    List<DataType> types =
-        Arrays.asList(DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY);
-    List<Map<String, String>> tagsList =
-        Arrays.asList(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>());
-    List<Long> keys = Arrays.asList(0L, 1L, 2L, 3L);
-    List<List<Object>> values =
-        Arrays.asList(
-            Arrays.asList(
-                "a".getBytes(StandardCharsets.UTF_8),
-                "b".getBytes(StandardCharsets.UTF_8),
-                null,
-                null),
-            Arrays.asList(null, null, "b".getBytes(StandardCharsets.UTF_8), null),
-            Arrays.asList(null, null, null, "c".getBytes(StandardCharsets.UTF_8)),
-            Arrays.asList(
-                "Q".getBytes(StandardCharsets.UTF_8),
-                "W".getBytes(StandardCharsets.UTF_8),
-                "E".getBytes(StandardCharsets.UTF_8),
-                "R".getBytes(StandardCharsets.UTF_8)));
-    return new TestDataSection(keys, types, paths, values, tagsList);
-  }
+  //  private static TestDataSection buildBaseDataSection() {
+  //    List<String> paths = Arrays.asList("a.a.a", "a.a.b", "a.b.b", "a.c.c");
+  //    List<DataType> types =
+  //        Arrays.asList(DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY);
+  //    List<Map<String, String>> tagsList =
+  //        Arrays.asList(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>());
+  //    List<Long> keys = Arrays.asList(0L, 1L, 2L, 3L);
+  //    List<List<Object>> values =
+  //        Arrays.asList(
+  //            Arrays.asList(
+  //                "a".getBytes(StandardCharsets.UTF_8),
+  //                "b".getBytes(StandardCharsets.UTF_8),
+  //                null,
+  //                null),
+  //            Arrays.asList(null, null, "b".getBytes(StandardCharsets.UTF_8), null),
+  //            Arrays.asList(null, null, null, "c".getBytes(StandardCharsets.UTF_8)),
+  //            Arrays.asList(
+  //                "Q".getBytes(StandardCharsets.UTF_8),
+  //                "W".getBytes(StandardCharsets.UTF_8),
+  //                "E".getBytes(StandardCharsets.UTF_8),
+  //                "R".getBytes(StandardCharsets.UTF_8)));
+  //    return new TestDataSection(keys, types, paths, values, tagsList);
+  //  }
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -125,8 +123,8 @@ public class PySessionIT {
     }
     session.openSession();
     clearAllData(session);
-    TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
-    insertData(subBaseData, Row);
+    //    TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
+    //    insertData(subBaseData, Row);
     dummyNoData = false;
   }
 
@@ -479,16 +477,26 @@ public class PySessionIT {
     }
     System.out.println("delete column query");
     // 检查Python脚本的输出是否符合预期
+    //    List<String> expected =
+    //        Arrays.asList(
+    //            "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
+    //            "0\tb'a'\tb'b'\tnull\tnull\t",
+    //            "1\tnull\tnull\tb'b'\tnull\t",
+    //            "2\tnull\tnull\tnull\tb'c'\t",
+    //            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+    //            "5\tnull\tnull\tnull\tb'b'\t",
+    //            "6\tb'b'\tnull\tnull\tnull\t",
+    //            "7\tb'R'\tb'E'\tnull\tb'Q'\t",
+    //            "");
     List<String> expected =
         Arrays.asList(
-            "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\t",
-            "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
-            "5\tnull\tnull\tnull\tb'b'\t",
-            "6\tb'b'\tnull\tnull\tnull\t",
-            "7\tb'R'\tb'E'\tnull\tb'Q'\t",
+            "Time\ta.a.a\ta.a.b\ta.c.c\t",
+            "0\tb'a'\tb'b'\tnull\t",
+            "2\tnull\tnull\tb'c'\t",
+            "3\tb'Q'\tb'W'\tb'R'\t",
+            "5\tnull\tnull\tb'b'\t",
+            "6\tb'b'\tnull\tnull\t",
+            "7\tb'R'\tb'E'\tb'Q'\t",
             "");
     assertEquals(expected, result);
   }
@@ -575,26 +583,6 @@ public class PySessionIT {
     if (result.size() > 0 && "This engine is already in the cluster.".equals(result.get(0))) {
       return;
     }
-    // 检查Python脚本的输出是否符合预期
-    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
-    // dataPrefix='null'), StorageEngineInfo(id=1, ip='127.0.0.1', port=5432, type=3,
-    // schemaPrefix='null', dataPrefix='null')]",
-    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
-    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
-    // dataPrefix='null')]",
-    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
-    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
-    // dataPrefix='null'), StorageEngineInfo(id=1, ip='127.0.0.1', port=5432, type=3,
-    // schemaPrefix='null', dataPrefix='null'), StorageEngineInfo(id=3, ip='127.0.0.1', port=27017,
-    // type=4, schemaPrefix='null', dataPrefix='null')]",
-    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]",
-    //    "[IginxInfo(id=0, ip='0.0.0.0', port=6888)]",
-    //    "[StorageEngineInfo(id=0, ip='127.0.0.1', port=6667, type=0, schemaPrefix='null',
-    // dataPrefix='null')]",
-    //    "[MetaStorageInfo(ip='127.0.0.1', port=2181, type='zookeeper')]"
     assertEquals(result.size(), 12);
     assertTrue(result.get(1).contains("ip='127.0.0.1', port=5432, type=3"));
     assertFalse(result.get(1).contains("ip='127.0.0.1', port=27017, type=4"));
@@ -732,18 +720,16 @@ public class PySessionIT {
         Arrays.asList(
             "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
             "0\tb'a'\tb'b'\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\t",
             "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+            "3\tb'Q'\tb'W'\tnull\tb'R'\t",
             "5\tnull\tnull\tnull\tb'b'\t",
             "6\tb'b'\tnull\tnull\tnull\t",
             "7\tb'R'\tb'E'\tnull\tb'Q'\t",
             "",
             "Time\ta.a.a\ta.a.b\ta.b.b\ta.c.c\t",
             "0\tb'a'\tb'b'\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\t",
             "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
+            "3\tb'Q'\tb'W'\tnull\tb'R'\t",
             "5\tnull\tnull\tnull\tb'b'\t",
             "7\tb'R'\tb'E'\tnull\tb'Q'\t",
             "");
@@ -786,9 +772,6 @@ public class PySessionIT {
     }
     System.out.println("get debug info");
     // 检查Python脚本的输出是否符合预期
-    List<String> expected =
-        Arrays.asList(
-            "{\"fragments\":[{\"endKey\":9223372036854775807,\"endTs\":\"a.a.a\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":false,\"setStorageUnitId\":true,\"startKey\":0,\"storageUnitId\":\"unit0000000002\"},{\"endKey\":9223372036854775807,\"endTs\":\"a.c.c\",\"setEndKey\":true,\"setEndTs\":true,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.a.a\",\"storageUnitId\":\"unit0000000000\"},{\"endKey\":9223372036854775807,\"setEndKey\":true,\"setEndTs\":false,\"setStartKey\":true,\"setStartTs\":true,\"setStorageUnitId\":true,\"startKey\":0,\"startTs\":\"a.c.c\",\"storageUnitId\":\"unit0000000001\"}],\"fragmentsIterator\":{},\"fragmentsSize\":3,\"setFragments\":true,\"setStorageUnits\":true,\"setStorages\":true,\"storageUnits\":[{\"id\":\"unit0000000000\",\"masterId\":\"unit0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000001\",\"masterId\":\"unit0000000001\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"unit0000000002\",\"masterId\":\"unit0000000002\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0},{\"id\":\"dummy0000000000\",\"masterId\":\"dummy0000000000\",\"setId\":true,\"setMasterId\":true,\"setStorageId\":true,\"storageId\":0}],\"storageUnitsIterator\":{},\"storageUnitsSize\":4,\"storages\":[{\"id\":0,\"ip\":\"127.0.0.1\",\"port\":6667,\"setId\":true,\"setIp\":true,\"setPort\":true,\"setType\":true,\"type\":\"iotdb12\"}],\"storagesIterator\":{},\"storagesSize\":1}");
     // assertEquals(expected, result);
   }
 

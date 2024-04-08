@@ -40,7 +40,7 @@ if __name__ == '__main__':
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_row_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["*"], 0, 10)
+        dataset = session.query(["a.*"], 0, 10)
         print(dataset)
 
         paths = ["a.a.a", "a.a.b", "a.b.b"]
@@ -52,7 +52,7 @@ if __name__ == '__main__':
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_non_aligned_row_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["*"], 0, 10)
+        dataset = session.query(["a.*"], 0, 10)
         print(dataset)
 
         # 插入列
@@ -62,7 +62,7 @@ if __name__ == '__main__':
         data_type_list = [DataType.INTEGER]
         session.insert_column_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["*"], 0, 10)
+        dataset = session.query(["a.*"], 0, 10)
         print(dataset)
 
         # 插入列
@@ -72,7 +72,7 @@ if __name__ == '__main__':
         data_type_list = [DataType.INTEGER]
         session.insert_non_aligned_column_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["*"], 0, 10)
+        dataset = session.query(["a.*"], 0, 10)
         print(dataset)
 
         session.close()
