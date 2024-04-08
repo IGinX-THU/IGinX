@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import static cn.edu.tsinghua.iginx.utils.TimeUtils.convertDatetimeStrToLong;
+
+import java.time.DateTimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -159,5 +162,21 @@ public class StringUtils {
   public static String replaceSpecialCharsWithUnderscore(String str) {
     String regex = SPECIAL_CHAR_SET + "|[\" \\.\\*\\[\\]\\-]";
     return str.replaceAll(regex, "_");
+  }
+
+  // will only convert integers or time to long
+  public static Long tryParse2Key(String value) {
+    Long res = null;
+    try {
+      res = Long.parseLong(value);
+    } catch (NumberFormatException e) {
+      // now try for time
+      try {
+        res = convertDatetimeStrToLong(value);
+      } catch (DateTimeException ex) {
+        throw ex;
+      }
+    }
+    return res;
   }
 }

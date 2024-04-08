@@ -187,7 +187,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     else parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
 
     long keyBase = ctx.keyBase == null ? 0 : Long.parseLong(ctx.keyBase.getText());
-    return new InsertFromCsvStatement(importFile, insertStatement, keyBase);
+    String keyCol =
+        ctx.keyName == null
+            ? null
+            : ctx.keyName.getText().substring(1, ctx.keyName.getText().length() - 1);
+    return new InsertFromCsvStatement(importFile, insertStatement, keyBase, keyCol);
   }
 
   private void parsePartialPathSpec(

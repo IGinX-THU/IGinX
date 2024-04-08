@@ -4,6 +4,7 @@ import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAU
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -456,16 +457,24 @@ public class StatementExecutor {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
         ctx.getResult().setLoadCSVPath(importCsv.getFilepath());
       } else {
-        loadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement, statement.getKeyBase());
+        loadValuesSpecFromCsv(
+            ctx,
+            (ImportCsv) importFile,
+            insertStatement,
+            statement.getKeyBase(),
+            statement.getKeyCol());
       }
-
     } else {
       throw new RuntimeException("Unknown import file type: " + importFile.getType());
     }
   }
 
   private void loadValuesSpecFromCsv(
-      RequestContext ctx, ImportCsv importCsv, InsertStatement insertStatement, long keyBase)
+      RequestContext ctx,
+      ImportCsv importCsv,
+      InsertStatement insertStatement,
+      long keyBase,
+      String keyCol)
       throws IOException {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
     File tmpCSV = File.createTempFile("temp", ".csv");
@@ -499,26 +508,49 @@ public class StatementExecutor {
       }
 
       int pathSize = insertStatement.getPaths().size();
+      // only when the first column in the file is KEY
       AtomicBoolean keyInFile = new AtomicBoolean(false);
+      int keyIdx = 0;
       // 处理未给声明路径的情况
       if (pathSize == 0) {
+        keyIdx = -1; // 未声明路径的情况，默认就是key列不存在
         // 从文件中读出列名来，并设置给insertStatement
         tmp = iterator.next();
-        tmp.forEach(
-            e -> {
-              String colName = replaceSpecialCharsWithUnderscore(e);
-              if (!colName.equalsIgnoreCase(KEY_NAME))
-                insertStatement.setPath(colName, insertStatement.getGlobalTags());
-              else keyInFile.set(true);
-            });
+        for (int i = 0; i < tmp.size(); i++) {
+          String colName = replaceSpecialCharsWithUnderscore(tmp.get(i));
+          if (colName.equalsIgnoreCase(KEY_NAME)) {
+            keyInFile.set(true);
+            if (keyCol == null) keyIdx = i;
+          } else { // colName should only be taken as path when it is not called key
+            insertStatement.setPath(colName, insertStatement.getGlobalTags());
+          }
+          if (keyCol != null && colName.equalsIgnoreCase(keyCol)) {
+            keyIdx = i;
+          }
+        }
+        if (keyCol != null) {
+          if (keyInFile.get() && !keyCol.equalsIgnoreCase(KEY_NAME))
+            throw new StatementExecutionException("Key columns conflict. Execution aborted.");
+          if (keyIdx == -1)
+            throw new StatementExecutionException(
+                "The specified key column is not in file. Execution aborted.");
+        }
         // update pathSize accordingly
         pathSize = insertStatement.getPaths().size();
       } else keyInFile.set(true);
 
-      int delta = keyInFile.get() ? 1 : 0;
+      // sort by paths
+      List<String> iPaths = insertStatement.getPaths();
+      Integer[] idx = new Integer[iPaths.size()];
+      for (int i = 0; i < iPaths.size(); i++) {
+        idx[i] = i;
+      }
+      Arrays.sort(idx, Comparator.comparing(iPaths::get));
+      Collections.sort(iPaths);
+
+      int delta = keyInFile.get() && keyIdx == 0 ? 1 : 0;
       // type must be fixed once set, just like paths
       List<DataType> types = null;
-      Set<Integer> dataTypeIndex;
 
       while (iterator.hasNext()) {
         long KeyStart = keyBase + count;
@@ -543,7 +575,7 @@ public class StatementExecutor {
         // 类型推断一定可以在一个batch中完成
         if (types == null) {
           types = new ArrayList<>();
-          dataTypeIndex = new HashSet<>();
+          Set<Integer> dataTypeIndex = new HashSet<>();
           for (int i = 0; i < pathSize; i++) {
             types.add(null);
           }
@@ -572,20 +604,28 @@ public class StatementExecutor {
               types.set(index, DataType.BINARY);
             }
           }
+          // sort types by paths
+          List<DataType> sortedDataTypeList = new ArrayList<>();
+          for (int i = 0; i < idx.length; i++) {
+            sortedDataTypeList.add(types.get(idx[i]));
+          }
+          types = sortedDataTypeList;
         }
 
         // 填充 keys, values 和 bitmaps
         for (int i = 0; i < recordsSize; i++) {
           CSVRecord record = records.get(i);
-          if (keyInFile.get()) keys[i] = Long.parseLong(record.get(0)) + keyBase;
-          else keys[i] = (long) i + KeyStart;
+          if (keyInFile.get()) keys[i] = Long.parseLong(record.get(keyIdx)) + keyBase; // 指定了同名key列
+          else if (keyIdx != -1) keys[i] = tryParse2Key(record.get(keyIdx)) + keyBase; // 指定了非同名key列
+          else keys[i] = (long) i + KeyStart; // 需要自增key列
           Bitmap bitmap = new Bitmap(pathSize);
 
-          int index = 0;
-          for (int j = 0; j < pathSize; j++) {
+          // 按照排好序的列来处理
+          for (int index = 0; index < pathSize; ) {
+            int j = idx[index];
             if (!record.get(j + delta).equalsIgnoreCase("null")) {
-              bitmap.mark(j);
-              switch (types.get(j)) {
+              bitmap.mark(index);
+              switch (types.get(index)) { // types已经排好序了
                 case BOOLEAN:
                   values[i][index] = Boolean.parseBoolean(record.get(j + delta));
                   index++;
@@ -622,6 +662,7 @@ public class StatementExecutor {
         insertStatement.setTypes(types);
         insertStatement.setBitmaps(bitmaps);
 
+        // do the actual insert
         RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement);
         process(subInsertContext);
 

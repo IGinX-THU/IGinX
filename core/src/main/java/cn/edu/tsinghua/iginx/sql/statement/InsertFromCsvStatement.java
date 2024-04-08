@@ -10,16 +10,15 @@ public class InsertFromCsvStatement extends DataStatement {
 
   private final long keyBase;
 
+  private final String keyCol;
+
   public InsertFromCsvStatement(
-      ImportFile importFile, InsertStatement subInsertStatement, long keyBase) {
+      ImportFile importFile, InsertStatement subInsertStatement, long keyBase, String keyCol) {
     this.statementType = StatementType.INSERT_FROM_CSV;
     this.importFile = importFile;
     this.subInsertStatement = subInsertStatement;
     this.keyBase = keyBase;
-  }
-
-  public InsertFromCsvStatement(ImportFile importFile, InsertStatement subInsertStatement) {
-    this(importFile, subInsertStatement, 0);
+    this.keyCol = keyCol;
   }
 
   public ImportFile getImportFile() {
@@ -32,5 +31,9 @@ public class InsertFromCsvStatement extends DataStatement {
 
   public long getKeyBase() {
     return keyBase;
+  }
+
+  public String getKeyCol() {
+    return keyCol;
   }
 }

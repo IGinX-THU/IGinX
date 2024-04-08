@@ -6,7 +6,7 @@ sqlStatement
 
 statement
    : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
-   | LOAD DATA importFileClause INTO (path tagList? | insertFullPathSpec) (AT keyBase = INT)? # insertFromFileStatement
+   | LOAD DATA importFileClause INTO (path tagList? (SET KEY keyName = stringLiteral)? | insertFullPathSpec) (AT keyBase = INT)? # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
    | EXPLAIN? (LOGICAL | PHYSICAL)? cteClause? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
