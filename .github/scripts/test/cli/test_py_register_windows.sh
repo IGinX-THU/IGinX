@@ -6,7 +6,7 @@ cp -f test/src/test/resources/udf/mock_udf.py client/target/iginx-client-0.6.0-S
 
 ls client/target/iginx-client-0.6.0-SNAPSHOT/sbin
 
-COMMAND='CREATE FUNCTION UDAF "'"MockUDF"'" FROM "'"mock_udf"'" IN "'"mock_udf.py"'";'
+COMMAND='CREATE FUNCTION UDAF "'"mock_udf"'" FROM "'"MockUDF"'" IN "'"mock_udf.py"'";'
 
 cd client/target/iginx-client-0.6.0-SNAPSHOT/sbin
 
