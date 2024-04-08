@@ -429,7 +429,7 @@ public class IoTDBStorage implements IStorage {
     }
     if (e != null) {
       return new TaskExecuteResult(
-          null, new PhysicalException("execute insert task in iotdb12 failure", e));
+          null, new IoTDBException("execute insert task in iotdb12 failure", e));
     }
     return new TaskExecuteResult(null, null);
   }

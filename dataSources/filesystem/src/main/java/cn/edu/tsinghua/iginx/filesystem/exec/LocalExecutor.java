@@ -17,6 +17,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.filesystem.exception.FilesystemException;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
@@ -185,7 +186,7 @@ public class LocalExecutor implements Executor {
       }
     } catch (IOException e) {
       LOGGER.error("encounter error when inserting data: ", e);
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new FilesystemException(e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -296,7 +297,8 @@ public class LocalExecutor implements Executor {
         exception = e;
       }
     }
-    return new TaskExecuteResult(null, exception != null ? new PhysicalException(exception) : null);
+    return new TaskExecuteResult(
+        null, exception != null ? new FilesystemException(exception) : null);
   }
 
   @Override

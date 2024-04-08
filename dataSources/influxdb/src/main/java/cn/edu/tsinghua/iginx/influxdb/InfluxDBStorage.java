@@ -41,6 +41,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
+import cn.edu.tsinghua.iginx.influxdb.exception.InfluxdbException;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
@@ -933,7 +934,7 @@ public class InfluxDBStorage implements IStorage {
     }
     if (e != null) {
       return new TaskExecuteResult(
-          null, new PhysicalException("execute insert task in influxdb failure", e));
+          null, new InfluxdbException("execute insert task in influxdb failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
