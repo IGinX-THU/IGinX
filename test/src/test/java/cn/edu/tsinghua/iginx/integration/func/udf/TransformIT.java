@@ -76,7 +76,7 @@ public class TransformIT {
   private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK \"%s\";";
 
   private static final String REGISTER_SQL_FORMATTER =
-      "REGISTER TRANSFORM PYTHON TASK \"%s\" IN \"%s\" AS \"%s\";";
+      "CREATE FUNCTION TRANSFORM \"%s\" FROM \"%s\" IN \"%s\";";
 
   private static final String COMMIT_SQL_FORMATTER = "COMMIT TRANSFORM JOB \"%s\";";
 
@@ -188,7 +188,7 @@ public class TransformIT {
 
   private void registerTask(String task) throws SessionException {
     dropTask(task);
-    session.executeSql(String.format(REGISTER_SQL_FORMATTER, task, TASK_MAP.get(task), task));
+    session.executeSql(String.format(REGISTER_SQL_FORMATTER, task, task, TASK_MAP.get(task)));
   }
 
   private void verifyJobState(long jobId) throws SessionException, InterruptedException {

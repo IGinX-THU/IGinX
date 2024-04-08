@@ -37,6 +37,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -61,6 +62,15 @@ public class UDFIT {
   private static boolean needCompareResult = true;
 
   private static List<String> taskToBeRemoved;
+
+  private static final String SINGLE_UDF_REGISTER_SQL =
+      "CREATE FUNCTION %s \"%s\" FROM \"%s\" IN \"%s\";";
+
+  private static final String MULTI_UDF_REGISTER_SQL = "CREATE FUNCTION %s IN \"%s\";";
+
+  private static final String DROP_SQL = "DROP PYTHON TASK \"%s\";";
+
+  private static final String SHOW_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -144,7 +154,7 @@ public class UDFIT {
   @After
   public void dropTasks() {
     for (String name : taskToBeRemoved) {
-      execute("drop python task \"" + name + "\";");
+      execute(String.format(DROP_SQL, name));
     }
     taskToBeRemoved.clear();
   }
@@ -197,8 +207,7 @@ public class UDFIT {
   }
 
   private boolean isUDFRegistered(String udfName) {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
             .map(RegisterTaskInfo::getName)
@@ -207,8 +216,7 @@ public class UDFIT {
   }
 
   private boolean isUDFsRegistered(List<String> names) {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
             .map(RegisterTaskInfo::getName)
@@ -223,8 +231,7 @@ public class UDFIT {
 
   // all udf shouldn't be registered.
   private boolean isUDFsUnregistered(List<String> names) {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
             .map(RegisterTaskInfo::getName)
@@ -237,14 +244,47 @@ public class UDFIT {
     return true;
   }
 
+  /**
+   * generate multiple UDFs' registration sql command
+   *
+   * @param types UDF types
+   * @param names UDF names that will be used in sql after
+   * @param classPaths UDF class path relative to module root
+   * @param modulePath module dir position
+   * @return a sql string
+   */
+  private String concatMultiUDFReg(
+      List<String> types, List<String> names, List<String> classPaths, String modulePath) {
+    assertEquals(types.size(), names.size());
+    assertEquals(names.size(), classPaths.size());
+    String udfs =
+        IntStream.range(0, types.size())
+            .mapToObj(
+                i ->
+                    String.format(
+                        "%s \"%s\" FROM \"%s\"", types.get(i), names.get(i), classPaths.get(i)))
+            .collect(Collectors.joining(", "));
+    return String.format(MULTI_UDF_REGISTER_SQL, udfs, modulePath);
+  }
+
+  // all UDFs will be registered in one type
+  private String concatMultiUDFReg(
+      String type, List<String> names, List<String> classPaths, String modulePath) {
+    assertEquals(names.size(), classPaths.size());
+    String udfs =
+        IntStream.range(0, names.size())
+            .mapToObj(i -> String.format("\"%s\" FROM \"%s\"", names.get(i), classPaths.get(i)))
+            .collect(Collectors.joining(", "));
+    return String.format(MULTI_UDF_REGISTER_SQL, type + " " + udfs, modulePath);
+  }
+
   @Test
   public void baseTests() {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
     String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
     String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
     String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
 
     List<RegisterTaskInfo> registerUDFs = ret.getRegisterTaskInfos();
     for (RegisterTaskInfo info : registerUDFs) {
@@ -271,18 +311,17 @@ public class UDFIT {
             "udf",
             "mock_udf.py");
     String udfName = "mock_udf";
-    execute(
-        "REGISTER UDAF PYTHON TASK \"MockUDF\" IN \"" + filePath + "\" AS \"" + udfName + "\";");
+    execute(String.format(SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", filePath));
     assertTrue(isUDFRegistered(udfName));
-    taskToBeRemoved.add("mock_udf");
+    taskToBeRemoved.add(udfName);
 
-    execute("DROP PYTHON TASK \"" + udfName + "\";");
+    execute(String.format(DROP_SQL, udfName));
     // dropped udf cannot be queried
     assertFalse(isUDFRegistered(udfName));
     taskToBeRemoved.clear();
 
     // make sure dropped udf cannot be used
-    String statement = "SELECT mock_udf(s1,1) FROM us.d1 WHERE s1 < 10;";
+    String statement = "SELECT " + udfName + "(s1,1) FROM us.d1 WHERE s1 < 10;";
     executeFail(statement);
   }
 
@@ -964,19 +1003,14 @@ public class UDFIT {
             "udf",
             "my_module");
     String classPath = "my_module.sub_module.sub_class_a.SubClassA";
-    String register =
-        "register udsf python task \""
-            + classPath
-            + "\" in \""
-            + modulePath
-            + "\" as \"module_udf_test\";";
-    execute(register);
-    assertTrue(isUDFRegistered("module_udf_test"));
-    taskToBeRemoved.add("module_udf_test");
+    String udfName = "module_udf_test";
+    execute(String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, modulePath));
+    assertTrue(isUDFRegistered(udfName));
+    taskToBeRemoved.add(udfName);
 
     String insert = "insert into test(key, a) values (1,2);";
     execute(insert);
-    String query = "select module_udf_test(a, 1) from test;";
+    String query = "select " + udfName + "(a, 1) from test;";
     SessionExecuteSqlResult ret = execute(query);
 
     String expected =
@@ -1010,18 +1044,9 @@ public class UDFIT {
                 "my_module.my_class_a.ClassA",
                 "my_module.my_class_a.ClassB",
                 "my_module.sub_module.sub_class_a.SubClassA"));
-    String classPath = String.join(", ", classPaths);
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
-    String name = String.join(", ", names);
-    String register =
-        "register udsf python task \""
-            + classPath
-            + "\" in \""
-            + modulePath
-            + "\" as \""
-            + name
-            + "\";";
-    execute(register);
+    String registerSql = concatMultiUDFReg("udsf", names, classPaths, modulePath);
+    execute(registerSql);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
@@ -1084,7 +1109,6 @@ public class UDFIT {
             "udf",
             "my_module");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
-    String type = String.join(", ", types);
     // ClassA & ClassB in same python file, & SubClassA in same module
     List<String> classPaths =
         new ArrayList<>(
@@ -1092,19 +1116,8 @@ public class UDFIT {
                 "my_module.my_class_a.ClassA",
                 "my_module.my_class_a.ClassB",
                 "my_module.sub_module.sub_class_a.SubClassA"));
-    String classPath = String.join(", ", classPaths);
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
-    String name = String.join(", ", names);
-    String register =
-        "register "
-            + type
-            + " python task \""
-            + classPath
-            + "\" in \""
-            + modulePath
-            + "\" as \""
-            + name
-            + "\";";
+    String register = concatMultiUDFReg(types, names, classPaths, modulePath);
     execute(register);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
@@ -1177,22 +1190,10 @@ public class UDFIT {
             "my_module",
             "idle_classes.py");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
-    String type = String.join(", ", types);
     // ClassA, ClassB & ClassC in same python file
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
-    String classPath = String.join(", ", classPaths);
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
-    String name = String.join(", ", names);
-    String register =
-        "register "
-            + type
-            + " python task \""
-            + classPath
-            + "\" in \""
-            + modulePath
-            + "\" as \""
-            + name
-            + "\";";
+    String register = concatMultiUDFReg(types, names, classPaths, modulePath);
     execute(register);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
@@ -1254,10 +1255,11 @@ public class UDFIT {
   // multiple UDFs registration should fail when:
   // 1. same class name
   // 2. same name
-  // 3. counts of classes, types, names do not match
+  // 3. counts of classes, types, names do not match (names and classes come in pairs so count of
+  // types matters)
   @Test
   public void testMultiRegFail() {
-    String type, classPath, name, register;
+    String register;
     String modulePath =
         String.join(
             File.separator,
@@ -1276,71 +1278,45 @@ public class UDFIT {
                 "my_module.sub_module.sub_class_a.SubClassA"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
 
-    // 2 classes for 3 UDFs
-    classPath = classPaths.get(0) + ", " + classPaths.get(1);
-    type = String.join(", ", types);
-    name = String.join(", ", names);
-    register =
-        "register "
-            + type
-            + " python task \""
-            + classPath
-            + "\" in \""
-            + modulePath
-            + "\" as \""
-            + name
-            + "\";";
-    executeFail(register);
-    assertTrue(isUDFsUnregistered(names));
-
     // 2 types for 3 UDFs
-    classPath = String.join(", ", classPaths);
-    type = types.get(0) + ", " + types.get(1);
-    name = String.join(", ", names);
     register =
-        "register "
-            + type
-            + " python task \""
-            + classPath
+        "create function "
+            + types.get(0)
+            + " \""
+            + names.get(0)
+            + "\" from \""
+            + classPaths.get(0)
+            + "\", "
+            + types.get(1)
+            + " \""
+            + names.get(1)
+            + "\" from \""
+            + classPaths.get(1)
+            + "\", "
+            + "\""
+            + names.get(2)
+            + "\" from \""
+            + classPaths.get(2)
             + "\" in \""
             + modulePath
-            + "\" as \""
-            + name
             + "\";";
     executeFail(register);
     assertTrue(isUDFsUnregistered(names));
 
     // same class name
-    classPath = classPaths.get(0) + ", " + classPaths.get(1) + ", " + classPaths.get(1);
-    type = String.join(", ", types);
-    name = String.join(", ", names);
-    register =
-        "register "
-            + type
-            + " python task \""
-            + classPath
-            + "\" in \""
-            + modulePath
-            + "\" as \""
-            + name
-            + "\";";
+    List<String> classPathWrong =
+        new ArrayList<>(
+            Arrays.asList(
+                "my_module.my_class_a.ClassA",
+                "my_module.my_class_a.ClassB",
+                "my_module.my_class_a.ClassB"));
+    register = concatMultiUDFReg(types, names, classPathWrong, modulePath);
     executeFail(register);
     assertTrue(isUDFsUnregistered(names));
 
     // same name
-    classPath = String.join(", ", classPaths);
-    type = String.join(", ", types);
-    name = names.get(0) + ", " + names.get(1) + ", " + names.get(1);
-    register =
-        "register "
-            + type
-            + " python task \""
-            + classPath
-            + "\" in \""
-            + modulePath
-            + "\" as \""
-            + name
-            + "\";";
+    List<String> nameWrong = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_b"));
+    register = concatMultiUDFReg(types, nameWrong, classPaths, modulePath);
     executeFail(register);
     assertTrue(isUDFsUnregistered(names));
   }

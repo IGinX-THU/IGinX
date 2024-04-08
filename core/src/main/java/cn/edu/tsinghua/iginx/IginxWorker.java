@@ -800,26 +800,16 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public Status registerTask(RegisterTaskReq req) {
-    String[] names = req.getName().trim().split(",");
+    List<UDFClassPair> pairs = req.getUDFClassPairs();
     String filePath = req.getFilePath();
-    String[] classNames = req.getClassName().trim().split(",");
     String errorMsg;
 
-    if (names.length != classNames.length) {
-      errorMsg =
-          String.format(
-              "Fail to register %d UDFs with %d classes, the number should be same.",
-              names.length, classNames.length);
-      logger.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
-    }
-
     boolean singleType = false;
-    if (names.length != req.getTypesSize() && req.getTypesSize() > 1) {
+    if (pairs.size() != req.getTypesSize() && req.getTypesSize() > 1) {
       errorMsg =
           String.format(
               "Fail to register %d UDFs with %d types, the number should be same or use only one type.",
-              names.length, req.getTypesSize());
+              pairs.size(), req.getTypesSize());
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } else if (req.getTypesSize() == 1) {
@@ -828,34 +818,20 @@ public class IginxWorker implements IService.Iface {
     }
 
     // fail if trying to register UDFs with same class name or name.
-    Set<String> temp = new HashSet<>();
-    for (String name : names) {
-      if (!temp.add(name)) {
-        errorMsg = String.format("Cannot register multiple UDFs with same name: %s", name);
+    // this should be checked before actually put anything into system.
+    Set<String> tempName = new HashSet<>();
+    Set<String> tempClass = new HashSet<>();
+    for (UDFClassPair p : pairs) {
+      if (!tempName.add(p.name)) {
+        errorMsg = String.format("Cannot register multiple UDFs with same name: %s", p.name);
         logger.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
       }
-    }
-    temp.clear();
-    for (String className : classNames) {
-      if (!temp.add(className)) {
-        errorMsg = String.format("Cannot register multiple UDFs with same class: %s", className);
+      if (!tempClass.add(p.classPath)) {
+        errorMsg = String.format("Cannot register multiple UDFs with same class: %s", p.classPath);
         logger.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
       }
-    }
-
-    List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
-    for (int i = 0; i < names.length; i++) {
-      names[i] = names[i].trim();
-      classNames[i] = classNames[i].trim();
-      TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(names[i].trim());
-      if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-        errorMsg = String.format("Register task %s already exist", transformTaskMeta);
-        logger.error(errorMsg);
-        return RpcUtils.FAILURE.setMessage(errorMsg);
-      }
-      transformTaskMetas.add(transformTaskMeta);
     }
 
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
@@ -885,7 +861,9 @@ public class IginxWorker implements IService.Iface {
 
     // python module dir, class name must contains '.'
     if (sourceFile.isDirectory()) {
-      for (String className : classNames) {
+      String className;
+      for (UDFClassPair p : pairs) {
+        className = p.classPath;
         if (!className.contains(".")) {
           errorMsg =
               "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n"
@@ -895,6 +873,17 @@ public class IginxWorker implements IService.Iface {
           return RpcUtils.FAILURE.setMessage(errorMsg);
         }
       }
+    }
+
+    List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
+    for (UDFClassPair p : pairs) {
+      TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(p.name.trim());
+      if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
+        errorMsg = String.format("Register task %s already exist", transformTaskMeta);
+        logger.error(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
+      transformTaskMetas.add(transformTaskMeta);
     }
 
     String fileName = sourceFile.getName();
@@ -936,8 +925,8 @@ public class IginxWorker implements IService.Iface {
       } else {
         metaManager.addTransformTask(
             new TransformTaskMeta(
-                names[i],
-                classNames[i],
+                pairs.get(i).name,
+                pairs.get(i).classPath,
                 fileName,
                 new HashSet<>(Collections.singletonList(config.getIp())),
                 type));

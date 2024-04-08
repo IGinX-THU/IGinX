@@ -122,12 +122,7 @@ import cn.edu.tsinghua.iginx.sql.statement.select.CommonTableExpression;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
-import cn.edu.tsinghua.iginx.thrift.StorageEngine;
-import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.util.*;
@@ -691,11 +686,16 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     String filePath = ctx.filePath.getText();
     filePath = filePath.substring(1, filePath.length() - 1);
 
-    String className = ctx.className.getText();
-    className = className.substring(1, className.length() - 1);
-
-    String name = ctx.name.getText();
-    name = name.substring(1, name.length() - 1);
+    List<UDFClassPair> classPairs = new ArrayList<>();
+    ctx.udfClassRef()
+        .forEach(
+            e -> {
+              UDFClassPair p =
+                  new UDFClassPair(e.name.getText().trim(), e.className.getText().trim());
+              p.name = p.name.substring(1, p.name.length() - 1).trim();
+              p.classPath = p.classPath.substring(1, p.classPath.length() - 1).trim();
+              classPairs.add(p);
+            });
 
     List<UDFType> types = new ArrayList<>();
     ctx.udfType()
@@ -715,7 +715,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
                   types.add(UDFType.TRANSFORM);
               }
             });
-    return new RegisterTaskStatement(name, filePath, className, types);
+    return new RegisterTaskStatement(filePath, classPairs, types);
   }
 
   @Override

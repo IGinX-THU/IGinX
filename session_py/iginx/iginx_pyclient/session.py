@@ -64,7 +64,7 @@ logger = logging.getLogger("IginX")
 
 def isPyReg(statement:str):
     statement = statement.strip().lower()
-    return statement.startswith("register") and ("python task" in statement)
+    return statement.startswith("create") and ("function" in statement)
 
 
 def process_py_reg(statement:str):

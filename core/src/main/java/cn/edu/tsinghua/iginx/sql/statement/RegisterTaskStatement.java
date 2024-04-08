@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
+import cn.edu.tsinghua.iginx.thrift.UDFClassPair;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.util.List;
 import org.slf4j.Logger;
@@ -13,11 +14,9 @@ import org.slf4j.LoggerFactory;
 
 public class RegisterTaskStatement extends SystemStatement {
 
-  private final String name;
-
   private final String filePath;
 
-  private final String className;
+  private final List<UDFClassPair> pairs;
 
   private final List<UDFType> types;
 
@@ -26,18 +25,16 @@ public class RegisterTaskStatement extends SystemStatement {
   @SuppressWarnings("unused")
   private static final Logger logger = LoggerFactory.getLogger(RegisterTaskStatement.class);
 
-  public RegisterTaskStatement(
-      String name, String filePath, String className, List<UDFType> types) {
+  public RegisterTaskStatement(String filePath, List<UDFClassPair> pairs, List<UDFType> types) {
     this.statementType = StatementType.REGISTER_TASK;
-    this.name = name;
+    this.pairs = pairs;
     this.filePath = filePath;
-    this.className = className;
     this.types = types;
   }
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    RegisterTaskReq req = new RegisterTaskReq(ctx.getSessionId(), name, filePath, className, types);
+    RegisterTaskReq req = new RegisterTaskReq(ctx.getSessionId(), filePath, pairs, types);
     Status status = worker.registerTask(req);
     ctx.setResult(new Result(status));
   }
