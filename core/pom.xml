@@ -159,6 +159,20 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-configuration2</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-beanutils</groupId>
+            <artifactId>commons-beanutils</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>commons-collections</groupId>
+                    <artifactId>commons-collections</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
     </dependencies>
 
     <repositories>
@@ -170,17 +184,6 @@
             <id>IGinX-Pemja</id>
             <name>IGinX Pemja GitHub repository</name>
             <url>https://iginx-thu.github.io/pemjax/maven-repo</url>
-        </repository>
-        <!--   repository for moquette    -->
-        <repository>
-            <releases>
-                <enabled>true</enabled>
-            </releases>
-            <snapshots>
-                <enabled>false</enabled>
-            </snapshots>
-            <id>bintray</id>
-            <url>https://jcenter.bintray.com</url>
         </repository>
     </repositories>
     <build>
