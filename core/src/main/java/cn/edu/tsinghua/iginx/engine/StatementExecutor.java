@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.engine;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
-import static cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv.DEFAULT_CHARSET;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
 
@@ -73,13 +72,13 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.hutool.core.io.CharsetDetector;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
-import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -490,7 +489,7 @@ public class StatementExecutor {
               .build()
               .parse(
                   new InputStreamReader(
-                      Files.newInputStream(tmpCSV.toPath()), Charset.forName(DEFAULT_CHARSET)));
+                      Files.newInputStream(tmpCSV.toPath()), CharsetDetector.detect(tmpCSV)));
 
       CSVRecord tmp;
       Iterator<CSVRecord> iterator = parser.stream().iterator();
