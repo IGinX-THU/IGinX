@@ -25,8 +25,11 @@ import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
+import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
+import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
+import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -48,8 +51,10 @@ import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -753,14 +758,18 @@ public class IginxWorker implements IService.Iface {
   @Override
   public CommitTransformJobResp commitTransformJob(CommitTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    long jobId = manager.commit(req);
-
     CommitTransformJobResp resp = new CommitTransformJobResp();
-    if (jobId < 0) {
-      resp.setStatus(RpcUtils.FAILURE);
-    } else {
-      resp.setStatus(RpcUtils.SUCCESS);
-      resp.setJobId(jobId);
+    try {
+      long jobId = manager.commit(req);
+
+      if (jobId < 0) {
+        resp.setStatus(RpcUtils.FAILURE);
+      } else {
+        resp.setStatus(RpcUtils.SUCCESS);
+        resp.setJobId(jobId);
+      }
+    } catch (SecurityException e) {
+      resp.setStatus(RpcUtils.ACCESS_DENY);
     }
     return resp;
   }
@@ -804,7 +813,18 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+
+    Predicate<Path> sourceChecker =
+        FilePermissionManager.getInstance()
+            .getChecker(null, ruleNameFilter, FileAccessType.EXECUTE);
+
     File sourceFile = new File(filePath);
+    if (!sourceChecker.test(sourceFile.toPath())) {
+      errorMsg = String.format("Register file %s has no execute permission", filePath);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
     if (!sourceFile.exists()) {
       errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
       LOGGER.error(errorMsg);
@@ -829,6 +849,15 @@ public class IginxWorker implements IService.Iface {
     if (destFile.exists()) {
       errorMsg = String.format("Register file already exist, fileName=%s", fileName);
       LOGGER.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
+
+    Predicate<Path> destChecker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+
+    if (!destChecker.test(destFile.toPath())) {
+      errorMsg = String.format("Register file %s has no write permission", destPath);
+      logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 

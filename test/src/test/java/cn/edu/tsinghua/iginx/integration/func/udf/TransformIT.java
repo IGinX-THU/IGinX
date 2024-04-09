@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -208,6 +209,28 @@ public class TransformIT {
 
     List<Long> finishedJobIds = session.showEligibleJob(JobState.JOB_FINISHED);
     assertTrue(finishedJobIds.contains(jobId));
+  }
+
+  @Test
+  public void exportFileWithoutPermissionTest() {
+    logger.info("exportFileWithoutPermissionTest");
+
+    List<String> sqlList = new ArrayList<>();
+    sqlList.add(QUERY_SQL_2);
+
+    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    iginxTask.setSqlList(sqlList);
+
+    List<TaskInfo> taskInfoList = new ArrayList<>();
+    taskInfoList.add(iginxTask);
+
+    try {
+      String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "output.denied";
+      session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      fail("Export file without permission should fail.");
+    } catch (SessionException e) {
+      assertEquals(RpcUtils.ACCESS_DENY.message, e.getMessage());
+    }
   }
 
   @Test
