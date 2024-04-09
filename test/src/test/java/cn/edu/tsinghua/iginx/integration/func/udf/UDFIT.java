@@ -1163,15 +1163,15 @@ public class UDFIT {
   @Test
   public void testMultiUDFRegFile() {
     String moduleFilePath =
-            String.join(
-                    File.separator,
-                    System.getProperty("user.dir"),
-                    "src",
-                    "test",
-                    "resources",
-                    "udf",
-                    "my_module",
-                    "idle_classes.py");
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "my_module",
+            "idle_classes.py");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     // ClassA, ClassB & ClassC in same python file
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
