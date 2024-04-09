@@ -1,9 +1,9 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage.utils;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 
 public class TagKVUtils {
@@ -91,5 +91,45 @@ public class TagKVUtils {
 
   private static boolean match(Map<String, String> tags, WithoutTagFilter tagFilter) {
     return tags == null || tags.isEmpty();
+  }
+
+  public static String toColumnName(String name, Map<String, String> tags) {
+    if (tags == null || tags.isEmpty()) {
+      return name;
+    } else {
+      StringBuilder builder = new StringBuilder();
+      builder.append(name);
+      builder.append('{');
+      TreeMap<String, String> treeMap = new TreeMap<>(tags);
+
+      int cnt = 0;
+      for (String key : treeMap.keySet()) {
+        if (cnt != 0) {
+          builder.append(',');
+        }
+        builder.append(key);
+        builder.append("=");
+        builder.append(treeMap.get(key));
+        cnt++;
+      }
+      builder.append('}');
+      return builder.toString();
+    }
+  }
+
+  public static Pair<String, Map<String, String>> fromColumnName(String fullName) {
+    int index = fullName.indexOf('{');
+    if (index == -1) {
+      return new Pair<>(fullName, Collections.emptyMap());
+    } else {
+      String name = fullName.substring(0, index);
+      String[] tagKVs = fullName.substring(index + 1, fullName.length() - 1).split(",");
+      Map<String, String> tags = new HashMap<>();
+      for (String tagKV : tagKVs) {
+        String[] KV = tagKV.split("=", 2);
+        tags.put(KV[0], KV[1]);
+      }
+      return new Pair<>(name, tags);
+    }
   }
 }

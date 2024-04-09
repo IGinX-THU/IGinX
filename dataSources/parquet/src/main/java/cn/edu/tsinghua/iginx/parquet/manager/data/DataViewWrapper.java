@@ -16,13 +16,13 @@
 
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.TagKVUtils;
+import java.text.ParseException;
 import java.util.*;
 import javax.annotation.Nonnull;
 
@@ -38,7 +38,8 @@ class DataViewWrapper {
     for (int i = 0; i < dataView.getPathNum(); i++) {
       String path = dataView.getPath(i);
       Map<String, String> tags = dataView.getTags(i);
-      String name = TagKVUtils.toFullName(path, tags);
+      if (tags == null) tags = Collections.emptyMap();
+      String name = new ColumnKey(path, tags).toIdentifier();
       fullNames.add(name);
       DataType dataType = dataView.getDataType(i);
       schema.put(name, dataType);
@@ -56,8 +57,12 @@ class DataViewWrapper {
   }
 
   public static Map.Entry<String, Map<String, String>> parseFieldName(String fieldName) {
-    Pair<String, Map<String, String>> pathWithTags = TagKVUtils.fromFullName(fieldName);
-    return new AbstractMap.SimpleImmutableEntry<>(pathWithTags.getK(), pathWithTags.getV());
+    try {
+      ColumnKey columnKey = ColumnKey.parseIdentifier(fieldName);
+      return new AbstractMap.SimpleImmutableEntry<>(columnKey.getPath(), columnKey.getTags());
+    } catch (ParseException e) {
+      throw new IllegalStateException("Failed to parse fieldName: " + fieldName, e);
+    }
   }
 
   public Scanner<Long, Scanner<String, Object>> getRowsScanner() {
