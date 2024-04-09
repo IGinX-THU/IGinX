@@ -213,7 +213,7 @@ public class TransformIT {
 
   @Test
   public void exportFileWithoutPermissionTest() {
-    logger.info("exportFileWithoutPermissionTest");
+    LOGGER.info("exportFileWithoutPermissionTest");
 
     List<String> sqlList = new ArrayList<>();
     sqlList.add(QUERY_SQL_2);

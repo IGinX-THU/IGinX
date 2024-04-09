@@ -822,7 +822,7 @@ public class IginxWorker implements IService.Iface {
     File sourceFile = new File(filePath);
     if (!sourceChecker.test(sourceFile.toPath())) {
       errorMsg = String.format("Register file %s has no execute permission", filePath);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
     if (!sourceFile.exists()) {
@@ -857,7 +857,7 @@ public class IginxWorker implements IService.Iface {
 
     if (!destChecker.test(destFile.toPath())) {
       errorMsg = String.format("Register file %s has no write permission", destPath);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
