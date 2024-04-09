@@ -44,6 +44,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -329,7 +330,11 @@ public class MongoDBStorage implements IStorage {
   private static List<Field> getFields(MongoDatabase db) {
     List<Field> fields = new ArrayList<>();
     for (String collectionName : db.listCollectionNames()) {
-      fields.add(NameUtils.parseCollectionName(collectionName));
+      try {
+        fields.add(NameUtils.parseCollectionName(collectionName));
+      } catch (ParseException e) {
+        throw new IllegalStateException("failed to parse collection name: " + collectionName, e);
+      }
     }
     return fields;
   }
