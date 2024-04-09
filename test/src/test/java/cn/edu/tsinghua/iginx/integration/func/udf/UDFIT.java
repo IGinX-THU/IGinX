@@ -1162,11 +1162,21 @@ public class UDFIT {
   // register multiple UDFs in one python file
   @Test
   public void testMultiUDFRegFile() {
+    String moduleFilePath =
+            String.join(
+                    File.separator,
+                    System.getProperty("user.dir"),
+                    "src",
+                    "test",
+                    "resources",
+                    "udf",
+                    "my_module",
+                    "idle_classes.py");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     // ClassA, ClassB & ClassC in same python file
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
-    String register = concatMultiUDFReg(types, names, classPaths, MODULE_PATH);
+    String register = concatMultiUDFReg(types, names, classPaths, moduleFilePath);
     execute(register);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
