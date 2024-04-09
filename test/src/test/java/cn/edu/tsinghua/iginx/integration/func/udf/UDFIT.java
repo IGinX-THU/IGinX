@@ -72,6 +72,16 @@ public class UDFIT {
 
   private static final String SHOW_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
 
+  private static final String MODULE_PATH =
+      String.join(
+          File.separator,
+          System.getProperty("user.dir"),
+          "src",
+          "test",
+          "resources",
+          "udf",
+          "my_module");
+
   @BeforeClass
   public static void setUp() throws SessionException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
@@ -993,18 +1003,9 @@ public class UDFIT {
 
   @Test
   public void testImportModule() {
-    String modulePath =
-        String.join(
-            File.separator,
-            System.getProperty("user.dir"),
-            "src",
-            "test",
-            "resources",
-            "udf",
-            "my_module");
     String classPath = "my_module.sub_module.sub_class_a.SubClassA";
     String udfName = "module_udf_test";
-    execute(String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, modulePath));
+    execute(String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, MODULE_PATH));
     assertTrue(isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
@@ -1028,15 +1029,6 @@ public class UDFIT {
   // use same type for all UDF in statement.
   @Test
   public void testMultiUDFRegOmit() {
-    String modulePath =
-        String.join(
-            File.separator,
-            System.getProperty("user.dir"),
-            "src",
-            "test",
-            "resources",
-            "udf",
-            "my_module");
     // ClassA & ClassB in same python file, & SubClassA in same module
     List<String> classPaths =
         new ArrayList<>(
@@ -1045,7 +1037,7 @@ public class UDFIT {
                 "my_module.my_class_a.ClassB",
                 "my_module.sub_module.sub_class_a.SubClassA"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
-    String registerSql = concatMultiUDFReg("udsf", names, classPaths, modulePath);
+    String registerSql = concatMultiUDFReg("udsf", names, classPaths, MODULE_PATH);
     execute(registerSql);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
@@ -1099,15 +1091,6 @@ public class UDFIT {
   // specify different type for each UDF in statement.
   @Test
   public void testMultiUDFRegSep() {
-    String modulePath =
-        String.join(
-            File.separator,
-            System.getProperty("user.dir"),
-            "src",
-            "test",
-            "resources",
-            "udf",
-            "my_module");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     // ClassA & ClassB in same python file, & SubClassA in same module
     List<String> classPaths =
@@ -1117,7 +1100,7 @@ public class UDFIT {
                 "my_module.my_class_a.ClassB",
                 "my_module.sub_module.sub_class_a.SubClassA"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
-    String register = concatMultiUDFReg(types, names, classPaths, modulePath);
+    String register = concatMultiUDFReg(types, names, classPaths, MODULE_PATH);
     execute(register);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
@@ -1179,21 +1162,11 @@ public class UDFIT {
   // register multiple UDFs in one python file
   @Test
   public void testMultiUDFRegFile() {
-    String modulePath =
-        String.join(
-            File.separator,
-            System.getProperty("user.dir"),
-            "src",
-            "test",
-            "resources",
-            "udf",
-            "my_module",
-            "idle_classes.py");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     // ClassA, ClassB & ClassC in same python file
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
-    String register = concatMultiUDFReg(types, names, classPaths, modulePath);
+    String register = concatMultiUDFReg(types, names, classPaths, MODULE_PATH);
     execute(register);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
@@ -1260,15 +1233,6 @@ public class UDFIT {
   @Test
   public void testMultiRegFail() {
     String register;
-    String modulePath =
-        String.join(
-            File.separator,
-            System.getProperty("user.dir"),
-            "src",
-            "test",
-            "resources",
-            "udf",
-            "my_module");
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     List<String> classPaths =
         new ArrayList<>(
@@ -1298,7 +1262,7 @@ public class UDFIT {
             + "\" from \""
             + classPaths.get(2)
             + "\" in \""
-            + modulePath
+            + MODULE_PATH
             + "\";";
     executeFail(register);
     assertTrue(isUDFsUnregistered(names));
@@ -1310,14 +1274,37 @@ public class UDFIT {
                 "my_module.my_class_a.ClassA",
                 "my_module.my_class_a.ClassB",
                 "my_module.my_class_a.ClassB"));
-    register = concatMultiUDFReg(types, names, classPathWrong, modulePath);
+    register = concatMultiUDFReg(types, names, classPathWrong, MODULE_PATH);
     executeFail(register);
     assertTrue(isUDFsUnregistered(names));
 
     // same name
     List<String> nameWrong = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_b"));
-    register = concatMultiUDFReg(types, nameWrong, classPaths, modulePath);
+    register = concatMultiUDFReg(types, nameWrong, classPaths, MODULE_PATH);
     executeFail(register);
     assertTrue(isUDFsUnregistered(names));
+  }
+
+  @Test
+  public void testModuleInstall() {
+    String classPath = "my_module.dateutil_test.Test";
+    String name = "dateutil_test";
+    String type = "udsf";
+    execute(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
+    assertTrue(isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    // test UDFs' usage
+    String statement = "select " + name + "(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+---+----+------+-----+----+\n"
+            + "|day|hour|minute|month|year|\n"
+            + "+---+----+------+-----+----+\n"
+            + "|  5|  14|    30|    4|2023|\n"
+            + "+---+----+------+-----+----+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
   }
 }
