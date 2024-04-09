@@ -46,6 +46,12 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
+            - name: Run DB (PostgreSQL)
+              if: ${{ matrix.DB-name != 'PostgreSQL' }}
+              uses: ./.github/actions/dbRunner
+              with:
+                DB-name: "PostgreSQL"
+
             - name: Install IGinX with Maven
               shell: bash
               run: |

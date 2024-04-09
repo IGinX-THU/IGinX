@@ -30,7 +30,7 @@ if __name__ == '__main__':
         cluster_info = session.get_cluster_info()
         original_cluster_info = cluster_info.get_storage_engine_list()
         for storage_engine in original_cluster_info:
-            if storage_engine.port == 5432 or storage_engine.port == 27017:
+            if storage_engine.port == 5432:
                 print("This engine is already in the cluster.")
                 exit(0)
         session.add_storage_engine(
@@ -64,22 +64,12 @@ if __name__ == '__main__':
                 "is_read_only": "true"
             }
         )
-        mongo_engine = StorageEngine(
-            "127.0.0.1",
-            27017,
-            StorageEngineType.mongodb,
-            {
-                "has_data": "true",
-                "is_read_only": "true"
-            }
-        )
-        session.batch_add_storage_engine([pg_engine, mongo_engine])
+        session.batch_add_storage_engine([pg_engine])
         # 输出所有存储引擎
         cluster_info = session.get_cluster_info()
         print(cluster_info)
         # 删除加入的存储引擎
         session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 5432, "", "");')
-        session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 27017, "", "");')
         # 删除后输出所有存储引擎
         cluster_info = session.get_cluster_info()
         print(cluster_info)
