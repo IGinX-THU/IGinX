@@ -28,9 +28,9 @@ if __name__ == '__main__':
     session.open()
     try:
         # 将数据存入csv
-        session.export_to_file("select * from a into outfile \"../generated/output.csv\" as csv with header;")
+        session.export_to_file("select * from test into outfile \"../generated/output.csv\" as csv with header;")
         # 将数据存入文件
-        session.export_to_file("select * from a into outfile \"../generated\" as stream;")
+        session.export_to_file("select * from test into outfile \"../generated\" as stream;")
     except Exception as e:
         traceback.print_exc()
         print(e)

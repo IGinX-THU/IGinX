@@ -28,7 +28,7 @@ if __name__ == '__main__':
     session.open()
 
     # 获取部分序列的最后一个数据点
-    dataset = session.last_query(["a.*"], 0)
+    dataset = session.last_query(["test.*"], 0)
     print(dataset)
 
     session.close()

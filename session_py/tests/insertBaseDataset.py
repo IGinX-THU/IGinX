@@ -30,7 +30,7 @@ if __name__ == '__main__':
     session.open()
     try:
         # 查询写入之前的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print('Before insert: ', dataset)
         # df = dataset.to_df()
         # # 检查df是否如下：
@@ -46,7 +46,7 @@ if __name__ == '__main__':
         #     exit(0)
 
         # 写入数据
-        paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
+        paths = ["test.a.a", "test.a.b", "test.b.b", "test.c.c"]
         timestamps = [0, 1, 2, 3]
         values_list = [
             ['a', 'b', None, None],
@@ -61,7 +61,7 @@ if __name__ == '__main__':
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_row_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print(dataset)
 
     except Exception as e:

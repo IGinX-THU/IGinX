@@ -30,7 +30,7 @@ if __name__ == '__main__':
     try:
         # 删除部分数据
         # 写入数据
-        paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
+        paths = ["test.a.a", "test.a.b", "test.b.b", "test.c.c"]
         timestamps = [5, 6, 7]
         values_list = [
             [None, None, 'a', 'b'],
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         ]
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_row_records(paths, timestamps, values_list, data_type_list)
-        session.delete_time_series("a.b.b")
+        session.delete_time_series("test.b.b")
     except Exception as e:
         if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
                       "been cleared."):
@@ -48,6 +48,6 @@ if __name__ == '__main__':
         exit(1)
     finally:
         # 查询删除后剩余的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print(dataset)
         session.close()

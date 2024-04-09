@@ -33,12 +33,12 @@ if __name__ == '__main__':
         # print(os.getcwd())
         # 这里在用junit test运行时，对应的路径为： Iginx/test
         path = os.getcwd() + '/../session_py/tests/files/a.csv'
-        statement = f"LOAD DATA FROM INFILE '{path}' AS CSV INTO a(key, a.a, a.b, b.b, c.c);"
+        statement = f"LOAD DATA FROM INFILE '{path}' AS CSV INTO test(key, a.a, a.b, b.b, c.c);"
         resp = session.load_csv(statement)
         print(resp)
 
         # 使用 SQL 语句查询写入的数据
-        dataset = session.execute_statement("select * from a;", fetch_size=2)
+        dataset = session.execute_statement("select * from test;", fetch_size=2)
 
         columns = dataset.columns()
         for column in columns:

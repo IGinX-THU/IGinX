@@ -39,7 +39,7 @@ if __name__ == '__main__':
     finally:
         # 查询删除全部后剩余的数据
         try:
-            dataset = session.query(["a.*"], 0, 10)
+            dataset = session.query(["test.*"], 0, 10)
             print(dataset)
         except Exception as e:
             traceback.print_exc()

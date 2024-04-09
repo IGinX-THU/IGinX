@@ -30,7 +30,7 @@ if __name__ == '__main__':
         session.open()
 
         # 写入数据
-        paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
+        paths = ["test.a.a", "test.a.b", "test.b.b", "test.c.c"]
         timestamps = [5, 6, 7]
         values_list = [
             [None, None, 'a', 'b'],
@@ -40,10 +40,10 @@ if __name__ == '__main__':
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_row_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print(dataset)
 
-        paths = ["a.a.a", "a.a.b", "a.b.b"]
+        paths = ["test.a.a", "test.a.b", "test.b.b"]
         timestamps = [8, 9]
         values_list = [
             [None, 'a', 'b'],
@@ -52,27 +52,27 @@ if __name__ == '__main__':
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_non_aligned_row_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print(dataset)
 
         # 插入列
-        paths = ["a.b.c"]
+        paths = ["test.b.c"]
         timestamps = [6]
         values_list = [[1]]
         data_type_list = [DataType.INTEGER]
         session.insert_column_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print(dataset)
 
         # 插入列
-        paths = ["a.b.c"]
+        paths = ["test.b.c"]
         timestamps = [5]
         values_list = [[1]]
         data_type_list = [DataType.INTEGER]
         session.insert_non_aligned_column_records(paths, timestamps, values_list, data_type_list)
         # 查询写入的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print(dataset)
 
         session.close()

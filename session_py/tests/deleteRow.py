@@ -28,8 +28,8 @@ if __name__ == '__main__':
     session = Session('127.0.0.1', 6888, "root", "root")
     session.open()
     try:
-        # 这里因为key=1的这一行只有a.b.b有值，所以删除a.b.b这一列后这一整行数据就被删除了
-        paths = ["a.a.a", "a.a.b", "a.b.b", "a.c.c"]
+        # 这里因为key=1的这一行只有test.b.b有值，所以删除test.b.b这一列后这一整行数据就被删除了
+        paths = ["test.a.a", "test.a.b", "test.b.b", "test.c.c"]
         timestamps = [5, 6, 7]
         values_list = [
             [None, None, 'a', 'b'],
@@ -38,7 +38,7 @@ if __name__ == '__main__':
         ]
         data_type_list = [DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY]
         session.insert_row_records(paths, timestamps, values_list, data_type_list)
-        session.delete_data("a.b.b", 1, 10)
+        session.delete_data("test.b.b", 1, 10)
     except Exception as e:
         if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
                       "been cleared."):
@@ -47,11 +47,11 @@ if __name__ == '__main__':
         exit(1)
     finally:
         # 查询删除后剩余的数据
-        dataset = session.query(["a.*"], 0, 10)
+        dataset = session.query(["test.*"], 0, 10)
         print(dataset)
         try:
             # 删除部分数据（设置为null
-            session.batch_delete_data(["a.a.a", "a.a.b"], 5, 7)
+            session.batch_delete_data(["test.a.a", "test.a.b"], 5, 7)
         except Exception as e:
             if str(e) == (
             "Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
@@ -61,6 +61,6 @@ if __name__ == '__main__':
             exit(1)
         finally:
             # 查询删除后剩余的数据
-            dataset = session.query(["a.*"], 0, 10)
+            dataset = session.query(["test.*"], 0, 10)
             print(dataset)
             session.close()
