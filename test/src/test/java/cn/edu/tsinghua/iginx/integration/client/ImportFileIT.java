@@ -40,12 +40,27 @@ public class ImportFileIT {
             + "+---+---+---+-----+---+\n"
             + "|key|t.a|t.b|  t.c|t.d|\n"
             + "+---+---+---+-----+---+\n"
-            + "|  0|  0|0.5| true|aaa|\n"
-            + "|  1|  1|1.5|false|bbb|\n"
-            + "|  2|  2|2.5| true|ccc|\n"
-            + "|  3|  3|3.5|false|ddd|\n"
-            + "|  4|  4|4.5| true|eee|\n"
+            + "|  0|aaa|0.5| true|0.0|\n"
+            + "|  1|bbb|1.5|false|1.0|\n"
+            + "|  2|ccc|2.5| true|2.0|\n"
+            + "|  3|ddd|3.5|false|3.0|\n"
+            + "|  4|eee|4.5| true|4.0|\n"
             + "+---+---+---+-----+---+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
+    String query1 = "SELECT * FROM t1;";
+    String expected1 =
+        "ResultSets:\n"
+            + "+---+------+----+----+------+\n"
+            + "|key|t2._c_|t2.a|t2.b|t2.d_m|\n"
+            + "+---+------+----+----+------+\n"
+            + "| 10|  true| aaa| 0.5|   0.0|\n"
+            + "| 11| false| bbb| 1.5|   1.0|\n"
+            + "| 12|  true| ccc| 2.5|   2.0|\n"
+            + "| 13| false| ddd| 3.5|   3.0|\n"
+            + "| 14|  true| eee| 4.5|   4.0|\n"
+            + "+---+------+----+----+------+\n"
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
   }

@@ -6,7 +6,7 @@ sqlStatement
 
 statement
    : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
-   | LOAD DATA importFileClause INTO insertFullPathSpec # insertFromFileStatement
+   | LOAD DATA importFileClause INTO (path tagList? (SET KEY keyName = stringLiteral)? | insertFullPathSpec) (AT keyBase = INT)? # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
    | EXPLAIN? (LOGICAL | PHYSICAL)? cteClause? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
@@ -425,8 +425,6 @@ keyWords
    | POINTS
    | DATA
    | REPLICA
-   | IOTDB
-   | INFLUXDB
    | DROP
    | REGISTER
    | PYTHON
@@ -603,14 +601,6 @@ VALUE
 
 VALUES
    : V A L U E S
-   ;
-
-IOTDB
-   : I O T D B
-   ;
-
-INFLUXDB
-   : I N F L U X D B
    ;
 
 NOW
@@ -931,6 +921,10 @@ INFILE
 
 CSV
    : C S V
+   ;
+
+AT
+   : A T
    ;
 
 STREAM

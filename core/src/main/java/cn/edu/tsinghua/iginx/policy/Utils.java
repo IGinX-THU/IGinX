@@ -14,23 +14,17 @@ import java.util.*;
 public class Utils {
 
   public static List<String> getPathListFromStatement(DataStatement statement) {
-    List<String> retVal = Collections.emptyList();
     switch (statement.getType()) {
       case SELECT:
-        retVal = new ArrayList<>(((SelectStatement) statement).getPathSet());
-        break;
+        return new ArrayList<>(((SelectStatement) statement).getPathSet());
       case DELETE:
-        retVal = ((DeleteStatement) statement).getPaths();
-        break;
+        return ((DeleteStatement) statement).getPaths();
       case INSERT:
-        retVal = ((InsertStatement) statement).getPaths();
-        break;
+        return ((InsertStatement) statement).getPaths();
       default:
         // TODO: case label. should we return empty list for other statements?
-        break;
     }
-    if (!retVal.isEmpty()) Collections.sort(retVal);
-    return retVal;
+    return Collections.emptyList();
   }
 
   public static List<String> getNonWildCardPaths(List<String> paths) {

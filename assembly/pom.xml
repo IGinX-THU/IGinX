@@ -114,23 +114,47 @@
                         </executions>
                     </plugin>
                     <plugin>
-                        <groupId>com.coderplus.maven.plugins</groupId>
-                        <artifactId>copy-rename-maven-plugin</artifactId>
-                        <version>1.0</version>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-resources-plugin</artifactId>
+                        <version>3.3.1</version>
                         <executions>
                             <execution>
-                                <id>copy-file</id>
+                                <id>copy-conf</id>
                                 <goals>
-                                    <goal>copy</goal>
+                                    <goal>copy-resources</goal>
                                 </goals>
                                 <phase>generate-sources</phase>
                                 <configuration>
-                                    <fileSets>
-                                        <fileSet>
-                                            <sourceFile>../conf/config.properties</sourceFile>
-                                            <destinationFile>${project.build.directory}/conf/config.properties</destinationFile>
-                                        </fileSet>
-                                    </fileSets>
+                                    <outputDirectory>${project.build.directory}/conf</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>../conf</directory>
+                                            <includes>
+                                                <include>config.properties</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>copy-udf</id>
+                                <goals>
+                                    <goal>copy-resources</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <outputDirectory>${project.build.directory}/udf_funcs</outputDirectory>
+                                    <resources>
+                                        <resource>
+                                            <directory>../udf_funcs</directory>
+                                            <includes>
+                                                <include>udf_list</include>
+                                                <include>python_scripts/class_loader.py</include>
+                                                <include>python_scripts/constant.py</include>
+                                                <include>python_scripts/py_worker.py</include>
+                                            </includes>
+                                        </resource>
+                                    </resources>
                                 </configuration>
                             </execution>
                         </executions>
@@ -140,9 +164,10 @@
                         <artifactId>replacer</artifactId>
                         <version>1.5.3</version>
                         <configuration>
-                            <basedir>${project.build.directory}/conf</basedir>
+                            <basedir>${project.build.directory}</basedir>
                             <includes>
-                                <include>config.properties</include>
+                                <include>conf/config.properties</include>
+                                <include>udf_funcs/udf_list</include>
                             </includes>
                             <regex>true</regex>
                             <replacements>
@@ -153,6 +178,10 @@
                                 <replacement>
                                     <token>#storageEngineList=127.0.0.1#6667#parquet.*</token>
                                     <value>storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#iginx_port=6888</value>
+                                </replacement>
+                                <replacement>
+                                    <token>UD[ATS]F,.*,.*,.*[.]py</token>
+                                    <value/>
                                 </replacement>
                             </replacements>
                         </configuration>
