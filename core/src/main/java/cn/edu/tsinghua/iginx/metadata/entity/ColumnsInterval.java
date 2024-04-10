@@ -43,7 +43,7 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
 
   private boolean isValid(String prefix) {
     return prefix != null
-        && !prefix.contains("..")
+        && !prefix.contains("..") // why this is specially checked?
         && (prefix.isEmpty() || prefix.charAt(0) != '.');
   }
 

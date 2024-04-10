@@ -16,7 +16,6 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
-import cn.edu.tsinghua.iginx.policy.Utils;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -49,7 +48,7 @@ public class InsertGenerator extends AbstractGenerator {
 
     policy.notify(insertStatement);
 
-    List<String> pathList = Utils.getPathListFromStatement(insertStatement);
+    List<String> pathList = new ArrayList<>(insertStatement.getPaths());
 
     ColumnsInterval columnsInterval =
         new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
