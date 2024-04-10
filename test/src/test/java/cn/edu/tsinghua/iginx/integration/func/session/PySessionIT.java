@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
 import static org.junit.Assert.*;
 
@@ -17,8 +16,6 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.*;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -31,10 +28,6 @@ public class PySessionIT {
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
   private static String pythonCMD;
-  private static boolean dummyNoData = true;
-  // private static final TestDataSection baseDataSection = buildBaseDataSection();
-  private static final long START_KEY = 0L;
-  private static final long END_KEY = 4L;
   protected static boolean isForSession = true;
   protected static boolean isForSessionPool = false;
 
@@ -61,30 +54,6 @@ public class PySessionIT {
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
   }
-
-  //  private static TestDataSection buildBaseDataSection() {
-  //    List<String> paths = Arrays.asList("test.a.a", "test.a.b", "test.b.b", "test.c.c");
-  //    List<DataType> types =
-  //        Arrays.asList(DataType.BINARY, DataType.BINARY, DataType.BINARY, DataType.BINARY);
-  //    List<Map<String, String>> tagsList =
-  //        Arrays.asList(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>());
-  //    List<Long> keys = Arrays.asList(0L, 1L, 2L, 3L);
-  //    List<List<Object>> values =
-  //        Arrays.asList(
-  //            Arrays.asList(
-  //                "a".getBytes(StandardCharsets.UTF_8),
-  //                "b".getBytes(StandardCharsets.UTF_8),
-  //                null,
-  //                null),
-  //            Arrays.asList(null, null, "b".getBytes(StandardCharsets.UTF_8), null),
-  //            Arrays.asList(null, null, null, "c".getBytes(StandardCharsets.UTF_8)),
-  //            Arrays.asList(
-  //                "Q".getBytes(StandardCharsets.UTF_8),
-  //                "W".getBytes(StandardCharsets.UTF_8),
-  //                "E".getBytes(StandardCharsets.UTF_8),
-  //                "R".getBytes(StandardCharsets.UTF_8)));
-  //    return new TestDataSection(keys, types, paths, values, tagsList);
-  //  }
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -124,18 +93,12 @@ public class PySessionIT {
     }
     session.openSession();
     clearAllData(session);
-    //    TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
-    //    insertData(subBaseData, Row);
-    dummyNoData = false;
   }
 
-  @Before
-  public void insertBaseData() {
+  private List<String> runPythonScript(String pythonScriptPath)
+      throws IOException, InterruptedException {
     List<String> result = new ArrayList<>();
     try {
-      // 设置Python脚本路径
-      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
-
       // 创建ProcessBuilder以执行Python脚本
       ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
 
@@ -160,29 +123,22 @@ public class PySessionIT {
         throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
       }
     } catch (IOException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+    return result;
+  }
+
+  @Before
+  public void insertBaseData() {
+    try {
+      // 设置Python脚本路径
+      String pythonScriptPath = "../session_py/tests/insertBaseDataset.py";
+      List<String> result = runPythonScript(pythonScriptPath);
+    } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
     System.out.println("insert");
-  }
-
-  //  @Before
-  //    public void insertBaseData() {
-  //      TestDataSection subBaseData = baseDataSection.getSubDataSectionWithKey(0, 4);
-  //      insertData(subBaseData, Row);
-  //      dummyNoData = false; // insert base data using all types of insert API.
-  //    }
-
-  private static void insertData(TestDataSection data, InsertAPIType type) {
-    switch (type) {
-      case Row:
-      case NonAlignedRow:
-        Controller.writeRowsDataToDummy(
-            session, data.getPaths(), data.getKeys(), data.getTypes(), data.getValues(), expPort);
-        //        Controller.writeRowsDataToDummy(
-        //                session, data.getPaths(), data.getKeys(), data.getTypes(),
-        // data.getValues(), expPort);
-    }
   }
 
   @Test
@@ -191,30 +147,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/query.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -249,30 +182,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/downsampleQuery.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -295,40 +205,9 @@ public class PySessionIT {
   public void testShowColumnsQuery() {
     List<String> result = new ArrayList<>();
     try {
-      logger.info("111");
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/showColumns.py";
-      // 确认文件存在
-      boolean fileExists = Files.exists(Paths.get(pythonScriptPath));
-      logger.info("file exists: " + fileExists);
-      logger.info("222");
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-      logger.info("333");
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      logger.info("444");
-      process.waitFor();
-      logger.info("555");
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      logger.info("666");
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        logger.info(line);
-        result.add(line);
-      }
-      logger.info("777");
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -352,30 +231,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/aggregateQuery.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -398,30 +254,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/lastQuery.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -448,30 +281,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/deleteColumn.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -490,79 +300,13 @@ public class PySessionIT {
     assertEquals(expected, result);
   }
 
-  //  @Test
-  public void testDeleteAll() {
-    if (!isAbleToDelete) {
-      return;
-    }
-    List<String> result = new ArrayList<>();
-    try {
-      // 设置Python脚本路径
-      String pythonScriptPath = "../session_py/tests/deleteAll.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
-    } catch (IOException | InterruptedException e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
-    System.out.println("delete all");
-    // 检查Python脚本的输出是否符合预期
-    List<String> expected = Arrays.asList("Time\t", "");
-    assertEquals(expected, result);
-  }
-
   @Test
   public void testAddStorageEngine() {
     List<String> result = new ArrayList<>();
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/addStorageEngine.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -574,13 +318,9 @@ public class PySessionIT {
     }
     assertEquals(result.size(), 12);
     assertTrue(result.get(1).contains("ip='127.0.0.1', port=5432, type=3"));
-    // assertFalse(result.get(1).contains("ip='127.0.0.1', port=27017, type=4"));
     assertFalse(result.get(4).contains("ip='127.0.0.1', port=5432, type=3"));
-    // assertFalse(result.get(1).contains("ip='127.0.0.1', port=27017, type=4"));
     assertTrue(result.get(7).contains("ip='127.0.0.1', port=5432, type=3"));
-    // assertTrue(result.get(7).contains("ip='127.0.0.1', port=27017, type=4"));
     assertFalse(result.get(10).contains("ip='127.0.0.1', port=5432, type=3"));
-    // assertFalse(result.get(10).contains("ip='127.0.0.1', port=27017, type=4"));
   }
 
   @Test
@@ -589,30 +329,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/insert.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -675,30 +392,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/deleteRow.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -731,30 +425,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/getDebugInfo.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -773,30 +444,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/loadCSV.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -825,30 +473,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/loadDirectory.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -866,30 +491,7 @@ public class PySessionIT {
     try {
       // 设置Python脚本路径
       String pythonScriptPath = "../session_py/tests/exportToFile.py";
-
-      // 创建ProcessBuilder以执行Python脚本
-      ProcessBuilder pb = new ProcessBuilder(pythonCMD, pythonScriptPath);
-
-      // 启动进程并等待其终止
-      Process process = pb.start();
-      process.waitFor();
-
-      // 读取Python脚本的输出
-      BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
-      String line;
-      while ((line = reader.readLine()) != null) {
-        System.out.println(line);
-        result.add(line);
-      }
-      // 检查Python脚本是否正常终止
-      int exitCode = process.exitValue();
-      if (exitCode != 0) {
-        for (int i = 0; i < result.size(); i++) {
-          logger.info(result.get(i));
-        }
-        System.err.println("Python script terminated with non-zero exit code: " + exitCode);
-        throw new RuntimeException("Python script terminated with non-zero exit code: " + exitCode);
-      }
+      result = runPythonScript(pythonScriptPath);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
