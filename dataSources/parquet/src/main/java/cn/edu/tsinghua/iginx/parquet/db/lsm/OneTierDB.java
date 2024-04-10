@@ -362,7 +362,9 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     scheduler.shutdown();
     if (shared.getStorageProperties().toFlushOnClose()) {
       LOGGER.info("flushing is triggered when closing");
-      commitMemoryTable(false, new CountDownLatch(1));
+      CountDownLatch latch = new CountDownLatch(1);
+      commitMemoryTable(false, latch);
+      latch.await();
     }
     tableStorage.close();
     tableIndex.close();
