@@ -105,9 +105,6 @@ if __name__ == '__main__':
     print()
 
     dataset.close()
-    print("downsample_query")
-    dataset = session.downsample_query(["*"], start_time=0, end_time=10, type=AggregateType.COUNT, precision=3)
-    print(dataset)
 
     # 使用 SQL 语句查询时间序列
     dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
@@ -145,6 +142,7 @@ if __name__ == '__main__':
        COUNT(count(a.a.a))  COUNT(count(a.a.b))  COUNT(count(a.b.b))  COUNT(count(a.c.c))
     0                    2                    2                    2                    2
     """
+
     # 获取部分序列的最后一个数据点
     dataset = session.last_query(["a.a.*"], 0)
     print(dataset)

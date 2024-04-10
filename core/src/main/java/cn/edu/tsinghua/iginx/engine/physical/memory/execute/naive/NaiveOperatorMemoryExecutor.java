@@ -2119,8 +2119,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         long timestamp;
         if (rowA.getKey() == rowB.getKey()) {
           if (!containOverlappedKeys) {
-            logger.info("rowA key: " + rowA.getKey() + " rowA: " + rowA.toString());
-            logger.info("rowB key: " + rowB.getKey() + " rowB: " + rowB.toString());
             containOverlappedKeys = true;
           }
           timestamp = rowA.getKey();
@@ -2161,7 +2159,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         context = tableB.getContext();
       }
       if (context != null && containOverlappedKeys) {
-        logger.info("Naive Operator: The query results contain overlapped keys.");
         context.setWarningMsg("The query results contain overlapped keys.");
       }
       table.setContext(context);

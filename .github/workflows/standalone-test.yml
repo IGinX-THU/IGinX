@@ -46,7 +46,7 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            - name: Run DB (PostgreSQL)
+            - name: Run PostgreSQL Engine
               if: ${{ matrix.DB-name != 'PostgreSQL' }}
               uses: ./.github/actions/pysession
               with:
