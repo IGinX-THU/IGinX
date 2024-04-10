@@ -1,7 +1,10 @@
 package cn.edu.tsinghua.iginx.engine;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -70,6 +73,7 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.hutool.core.io.CharsetDetector;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -77,16 +81,8 @@ import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
@@ -461,16 +457,25 @@ public class StatementExecutor {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
         ctx.getResult().setLoadCSVPath(importCsv.getFilepath());
       } else {
-        loadValuesSpecFromCsv(ctx, (ImportCsv) importFile, insertStatement);
+        loadValuesSpecFromCsv(
+            ctx,
+            (ImportCsv) importFile,
+            insertStatement,
+            statement.getKeyBase(),
+            statement.getKeyCol());
       }
-
     } else {
       throw new RuntimeException("Unknown import file type: " + importFile.getType());
     }
   }
 
   private void loadValuesSpecFromCsv(
-      RequestContext ctx, ImportCsv importCsv, InsertStatement insertStatement) throws IOException {
+      RequestContext ctx,
+      ImportCsv importCsv,
+      InsertStatement insertStatement,
+      long keyBase,
+      String keyCol)
+      throws IOException {
     final int BATCH_SIZE = config.getBatchSizeImportCsv();
     File tmpCSV = File.createTempFile("temp", ".csv");
 
@@ -491,7 +496,9 @@ public class StatementExecutor {
           importCsv
               .getCSVBuilder()
               .build()
-              .parse(new InputStreamReader(Files.newInputStream(tmpCSV.toPath())));
+              .parse(
+                  new InputStreamReader(
+                      Files.newInputStream(tmpCSV.toPath()), CharsetDetector.detect(tmpCSV)));
 
       CSVRecord tmp;
       Iterator<CSVRecord> iterator = parser.stream().iterator();
@@ -501,12 +508,58 @@ public class StatementExecutor {
       }
 
       int pathSize = insertStatement.getPaths().size();
+      // only when the first column in the file is KEY
+      AtomicBoolean keyInFile = new AtomicBoolean(false);
+      int keyIdx = 0;
+      // 处理未给声明路径的情况
+      if (pathSize == 0) {
+        keyIdx = -1; // 未声明路径的情况，默认就是key列不存在
+        // 从文件中读出列名来，并设置给insertStatement
+        tmp = iterator.next();
+        for (int i = 0; i < tmp.size(); i++) {
+          String colName = replaceSpecialCharsWithUnderscore(tmp.get(i));
+          if (colName.equalsIgnoreCase(KEY_NAME)) {
+            keyInFile.set(true);
+            if (keyCol == null) keyIdx = i;
+          } else { // colName should only be taken as path when it is not called key
+            insertStatement.setPath(colName, insertStatement.getGlobalTags());
+          }
+          if (keyCol != null && colName.equalsIgnoreCase(keyCol)) {
+            keyIdx = i;
+          }
+        }
+        if (keyCol != null) {
+          if (keyInFile.get() && !keyCol.equalsIgnoreCase(KEY_NAME))
+            throw new StatementExecutionException("Key columns conflict. Execution aborted.");
+          if (keyIdx == -1)
+            throw new StatementExecutionException(
+                "The specified key column is not in file. Execution aborted.");
+        }
+        // update pathSize accordingly
+        pathSize = insertStatement.getPaths().size();
+      } else keyInFile.set(true);
+
+      // sort by paths
+      List<String> iPaths = insertStatement.getPaths();
+      Integer[] idx = new Integer[iPaths.size()];
+      for (int i = 0; i < iPaths.size(); i++) {
+        idx[i] = i;
+      }
+      Arrays.sort(idx, Comparator.comparing(iPaths::get));
+      Collections.sort(iPaths);
+
+      int delta = keyInFile.get() && keyIdx == 0 ? 1 : 0;
+      // type must be fixed once set, just like paths
+      List<DataType> types = null;
+
       while (iterator.hasNext()) {
+        long KeyStart = keyBase + count;
         List<CSVRecord> records = new ArrayList<>(BATCH_SIZE);
         // 每次从文件中取出BATCH_SIZE行数据
         for (int n = 0; n < BATCH_SIZE && iterator.hasNext(); n++) {
           tmp = iterator.next();
-          if (tmp.size() != pathSize + 1) {
+          // more values are OK; the extra ones are skipped
+          if (tmp.size() < pathSize + delta) {
             throw new RuntimeException(
                 "The paths' size doesn't match csv data at line: " + tmp.getRecordNumber());
           }
@@ -516,72 +569,85 @@ public class StatementExecutor {
         int recordsSize = records.size();
         Long[] keys = new Long[recordsSize];
         Object[][] values = new Object[recordsSize][pathSize];
-        List<DataType> types = new ArrayList<>();
         List<Bitmap> bitmaps = new ArrayList<>();
 
         // 填充 types
-        Set<Integer> dataTypeIndex = new HashSet<>();
-        for (int i = 0; i < pathSize; i++) {
-          types.add(null);
-        }
-        for (int i = 0; i < pathSize; i++) {
-          dataTypeIndex.add(i);
-        }
-        for (CSVRecord record : records) {
-          for (int j = 0; j < pathSize; j++) {
-            if (!dataTypeIndex.contains(j)) {
-              continue;
+        // 类型推断一定可以在一个batch中完成
+        if (types == null) {
+          types = new ArrayList<>();
+          Set<Integer> dataTypeIndex = new HashSet<>();
+          for (int i = 0; i < pathSize; i++) {
+            types.add(null);
+          }
+          for (int i = 0; i < pathSize; i++) {
+            dataTypeIndex.add(i);
+          }
+
+          for (CSVRecord record : records) {
+            if (dataTypeIndex.isEmpty()) {
+              break;
             }
-            DataType inferredDataType =
-                DataTypeInferenceUtils.getInferredDataType(record.get(j + 1));
-            if (inferredDataType != null) { // 找到每一列第一个不为 null 的值进行类型推断
-              types.set(j, inferredDataType);
-              dataTypeIndex.remove(j);
+            for (int j = 0; j < pathSize; j++) {
+              if (!dataTypeIndex.contains(j)) {
+                continue;
+              }
+              DataType inferredDataType =
+                  DataTypeInferenceUtils.getInferredDataType(record.get(j + delta));
+              if (inferredDataType != null) { // 找到每一列第一个不为 null 的值进行类型推断
+                types.set(j, inferredDataType);
+                dataTypeIndex.remove(j);
+              }
             }
           }
-          if (dataTypeIndex.isEmpty()) {
-            break;
+          if (!dataTypeIndex.isEmpty()) {
+            for (Integer index : dataTypeIndex) {
+              types.set(index, DataType.BINARY);
+            }
           }
-        }
-        if (!dataTypeIndex.isEmpty()) {
-          for (Integer index : dataTypeIndex) {
-            types.set(index, DataType.BINARY);
+          // sort types by paths
+          List<DataType> sortedDataTypeList = new ArrayList<>();
+          for (int i = 0; i < idx.length; i++) {
+            sortedDataTypeList.add(types.get(idx[i]));
           }
+          types = sortedDataTypeList;
         }
 
         // 填充 keys, values 和 bitmaps
         for (int i = 0; i < recordsSize; i++) {
           CSVRecord record = records.get(i);
-          keys[i] = Long.parseLong(record.get(0));
+          if (keyInFile.get()) keys[i] = Long.parseLong(record.get(keyIdx)) + keyBase; // 指定了同名key列
+          else if (keyIdx != -1) keys[i] = tryParse2Key(record.get(keyIdx)) + keyBase; // 指定了非同名key列
+          else keys[i] = (long) i + KeyStart; // 需要自增key列
           Bitmap bitmap = new Bitmap(pathSize);
 
-          int index = 0;
-          for (int j = 0; j < pathSize; j++) {
-            if (!record.get(j + 1).equalsIgnoreCase("null")) {
-              bitmap.mark(j);
-              switch (types.get(j)) {
+          // 按照排好序的列来处理
+          for (int index = 0; index < pathSize; ) {
+            int j = idx[index];
+            if (!record.get(j + delta).equalsIgnoreCase("null")) {
+              bitmap.mark(index);
+              switch (types.get(index)) { // types已经排好序了
                 case BOOLEAN:
-                  values[i][index] = Boolean.parseBoolean(record.get(j + 1));
+                  values[i][index] = Boolean.parseBoolean(record.get(j + delta));
                   index++;
                   break;
                 case INTEGER:
-                  values[i][index] = Integer.parseInt(record.get(j + 1));
+                  values[i][index] = Integer.parseInt(record.get(j + delta));
                   index++;
                   break;
                 case LONG:
-                  values[i][index] = Long.parseLong(record.get(j + 1));
+                  values[i][index] = Long.parseLong(record.get(j + delta));
                   index++;
                   break;
                 case FLOAT:
-                  values[i][index] = Float.parseFloat(record.get(j + 1));
+                  values[i][index] = Float.parseFloat(record.get(j + delta));
                   index++;
                   break;
                 case DOUBLE:
-                  values[i][index] = Double.parseDouble(record.get(j + 1));
+                  values[i][index] = Double.parseDouble(record.get(j + delta));
                   index++;
                   break;
                 case BINARY:
-                  values[i][index] = record.get(j + 1).getBytes();
+                  values[i][index] = record.get(j + delta).getBytes();
                   index++;
                   break;
                 default:
@@ -596,6 +662,7 @@ public class StatementExecutor {
         insertStatement.setTypes(types);
         insertStatement.setBitmaps(bitmaps);
 
+        // do the actual insert
         RequestContext subInsertContext = new RequestContext(ctx.getSessionId(), insertStatement);
         process(subInsertContext);
 

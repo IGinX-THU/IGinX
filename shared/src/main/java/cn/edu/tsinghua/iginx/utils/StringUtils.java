@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import static cn.edu.tsinghua.iginx.utils.TimeUtils.convertDatetimeStrToLong;
+
+import java.time.DateTimeException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
@@ -28,7 +31,7 @@ public class StringUtils {
 
   private static final Character MAX_CHAR = '~';
   private static final String SPECIAL_CHAR_SET =
-      "[!&()+=|'%`;,<>?\n\t][\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85][\\x00-\\x1F\\x7F]";
+      "[!&()+=|'%`;,<>?\n\t]|[\u2E80\u2E81\u2E82\u2E83\u2E84\u2E85]|[\\x00-\\x1F\\x7F]";
   private static final String[] REGEX = {"[", "]", "(", ")", "|", "+", "?", "*", "-"};
 
   /**
@@ -154,5 +157,26 @@ public class StringUtils {
       return true;
     }
     return Objects.equals(str1, str2);
+  }
+
+  public static String replaceSpecialCharsWithUnderscore(String str) {
+    String regex = SPECIAL_CHAR_SET + "|[\" \\.\\*\\[\\]\\-]";
+    return str.replaceAll(regex, "_");
+  }
+
+  // will only convert integers or time to long
+  public static Long tryParse2Key(String value) {
+    Long res = null;
+    try {
+      res = Long.parseLong(value);
+    } catch (NumberFormatException e) {
+      // now try for time
+      try {
+        res = convertDatetimeStrToLong(value);
+      } catch (DateTimeException ex) {
+        throw ex;
+      }
+    }
+    return res;
   }
 }
