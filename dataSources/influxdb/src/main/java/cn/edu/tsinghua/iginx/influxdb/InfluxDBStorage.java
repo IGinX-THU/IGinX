@@ -23,7 +23,6 @@ import static com.influxdb.client.domain.WritePrecision.NS;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -41,7 +40,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
-import cn.edu.tsinghua.iginx.influxdb.exception.InfluxdbException;
+import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBException;
+import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
@@ -170,7 +170,7 @@ public class InfluxDBStorage implements IStorage {
     List<String> bucketNames = new ArrayList<>(historyBucketMap.keySet());
     bucketNames.sort(String::compareTo);
     if (bucketNames.isEmpty()) {
-      throw new PhysicalTaskExecuteFailureException("no data!");
+      throw new InfluxDBTaskExecuteFailureException("no data!");
     }
     ColumnsInterval columnsInterval;
     if (dataPrefix == null) {
@@ -934,7 +934,7 @@ public class InfluxDBStorage implements IStorage {
     }
     if (e != null) {
       return new TaskExecuteResult(
-          null, new InfluxdbException("execute insert task in influxdb failure", e));
+          null, new InfluxDBException("execute insert task in influxdb failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -959,7 +959,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
     if (bucket == null) {
-      return new PhysicalTaskExecuteFailureException("create bucket failure!");
+      return new InfluxDBTaskExecuteFailureException("create bucket failure!");
     }
 
     List<InfluxDBSchema> schemas = new ArrayList<>();
@@ -1027,8 +1027,8 @@ public class InfluxDBStorage implements IStorage {
       LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      return new PhysicalTaskExecuteFailureException(
-          "encounter error when write points to influxdb: " + e.getMessage());
+      return new InfluxDBTaskExecuteFailureException(
+          "encounter error when write points to influxdb: ", e);
     } finally {
       LOGGER.info("数据写入完毕！");
     }
@@ -1055,7 +1055,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
     if (bucket == null) {
-      return new PhysicalTaskExecuteFailureException("create bucket failure!");
+      return new InfluxDBTaskExecuteFailureException("create bucket failure!");
     }
 
     List<Point> points = new ArrayList<>();
@@ -1118,8 +1118,8 @@ public class InfluxDBStorage implements IStorage {
       LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      return new PhysicalTaskExecuteFailureException(
-          "encounter error when write points to influxdb: " + e.getMessage());
+      return new InfluxDBTaskExecuteFailureException(
+          "encounter error when write points to influxdb: ", e);
     } finally {
       LOGGER.info("数据写入完毕！");
     }

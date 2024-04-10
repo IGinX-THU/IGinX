@@ -5,7 +5,6 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -17,6 +16,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.filesystem.exception.FileSystemTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.filesystem.exception.FilesystemException;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
@@ -142,7 +142,7 @@ public class LocalExecutor implements Executor {
       return new TaskExecuteResult(rowStream);
     } catch (IOException e) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new FileSystemTaskExecuteFailureException(
               String.format(
                   "read file error, storageUnit %s, paths(%s), tagFilter(%s), filter(%s)",
                   storageUnit, paths, tagFilter, filter),
@@ -166,7 +166,7 @@ public class LocalExecutor implements Executor {
       return new TaskExecuteResult(rowStream);
     } catch (IOException e) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new FileSystemTaskExecuteFailureException(
               String.format("read file error, paths %s filter %s", paths, filter), e));
     }
   }

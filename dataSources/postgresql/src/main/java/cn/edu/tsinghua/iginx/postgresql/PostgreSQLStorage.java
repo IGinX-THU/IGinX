@@ -27,7 +27,6 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -51,6 +50,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.postgresql.exception.PostgreSQLException;
+import cn.edu.tsinghua.iginx.postgresql.exception.PostgresqlTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.postgresql.query.entity.PostgreSQLQueryRowStream;
 import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.FilterTransformer;
@@ -100,7 +100,7 @@ public class PostgreSQLStorage implements IStorage {
       statement.executeUpdate(sql);
       statement.close();
     } catch (SQLException e) {
-      throw new StorageInitializationException("cannot connect to " + meta + " : " + e);
+      throw new StorageInitializationException(String.format("cannot connect to %s", meta), e);
     }
   }
 
@@ -116,7 +116,7 @@ public class PostgreSQLStorage implements IStorage {
       Class.forName("org.postgresql.Driver");
       DriverManager.getConnection(connUrl);
     } catch (SQLException | ClassNotFoundException e) {
-      throw new StorageInitializationException("cannot connect to " + meta + " : " + e);
+      throw new StorageInitializationException(String.format("cannot connect to %s", meta), e);
     }
   }
 
@@ -235,15 +235,18 @@ public class PostgreSQLStorage implements IStorage {
               }
             } catch (SQLException e) {
               throw new PostgreSQLException(
-                  "failed to get columns for table: " + tableName + " in " + databaseName, e);
+                  String.format(
+                      "failed to get columns for table: %s in %s ", tableName, databaseName),
+                  e);
             }
           }
         } catch (SQLException e) {
-          throw new PostgreSQLException("failed to get tables of database: " + databaseName, e);
+          throw new PostgreSQLException(
+              String.format("failed to get tables of database: %s", databaseName), e);
         }
       }
     } catch (SQLException e) {
-      throw new PostgreSQLException("failed to get databases of " + meta, e);
+      throw new PostgreSQLException(String.format("failed to get databases of ", meta), e);
     }
     return columns;
   }
@@ -288,7 +291,7 @@ public class PostgreSQLStorage implements IStorage {
     Connection connection = getConnection(databaseName);
     if (connection == null) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new PostgresqlTaskExecuteFailureException(
               String.format("cannot connect to database %s", databaseName)));
     }
 
@@ -426,7 +429,8 @@ public class PostgreSQLStorage implements IStorage {
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
+          new PostgresqlTaskExecuteFailureException(
+              "execute project task in postgresql failure", e));
     }
   }
 
@@ -806,7 +810,8 @@ public class PostgreSQLStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("execute project task in postgresql failure", e);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute project task in postgresql failure", e));
+          new PostgresqlTaskExecuteFailureException(
+              "execute project task in postgresql failure", e));
     }
   }
 
@@ -852,7 +857,7 @@ public class PostgreSQLStorage implements IStorage {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
-            new PhysicalTaskExecuteFailureException(
+            new PostgresqlTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
 
@@ -881,7 +886,7 @@ public class PostgreSQLStorage implements IStorage {
             return new TaskExecuteResult(null, null);
           } else {
             return new TaskExecuteResult(
-                new PhysicalTaskExecuteFailureException(
+                new PostgresqlTaskExecuteFailureException(
                     "cannot connect to database postgres", new SQLException()));
           }
         } else {
@@ -933,7 +938,8 @@ public class PostgreSQLStorage implements IStorage {
       return new TaskExecuteResult(null, null);
     } catch (SQLException | PhysicalException e) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute delete task in postgresql failure", e));
+          new PostgresqlTaskExecuteFailureException(
+              "execute delete task in postgresql failure", e));
     }
   }
 
@@ -944,7 +950,7 @@ public class PostgreSQLStorage implements IStorage {
     Connection conn = getConnection(databaseName);
     if (conn == null) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new PostgresqlTaskExecuteFailureException(
               String.format("cannot connect to database %s", databaseName)));
     }
     Exception e = null;

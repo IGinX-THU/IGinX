@@ -16,17 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.engine.physical.exception;
+package cn.edu.tsinghua.iginx.influxdb.exception;
 
-public class StorageInitializationException extends PhysicalException {
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 
-  private static final long serialVersionUID = -4791646726338297752L;
+public class InfluxDBTaskExecuteFailureException extends PhysicalTaskExecuteFailureException {
 
-  public StorageInitializationException(String message) {
+  public InfluxDBTaskExecuteFailureException(String message) {
     super(message);
   }
 
-  public StorageInitializationException(String message, Throwable cause) {
+  public InfluxDBTaskExecuteFailureException(String message, Throwable cause) {
     super(message, cause);
   }
 }
