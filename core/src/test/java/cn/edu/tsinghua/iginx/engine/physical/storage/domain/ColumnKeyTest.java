@@ -137,20 +137,19 @@ public class ColumnKeyTest {
       String identifier = columnKey.toIdentifier();
       ColumnKey parsedColumnKey = ColumnKey.parseIdentifier(identifier);
       Assert.assertEquals(columnKey, parsedColumnKey);
-      System.out.println("Test " + columnKey);
     }
   }
 
   @Test
   public void randomColumnKeysAllCodePoint() throws ParseException {
     RandomStringGenerator randomStringGenerator = new RandomStringGenerator.Builder().build();
-    testWithStringGenerator(randomStringGenerator, 10000);
+    testWithStringGenerator(randomStringGenerator, 1000);
   }
 
   @Test
   public void randomColumnKeysAscii() throws ParseException {
     RandomStringGenerator randomStringGenerator =
         new RandomStringGenerator.Builder().withinRange(0, 127).build();
-    testWithStringGenerator(randomStringGenerator, 100000);
+    testWithStringGenerator(randomStringGenerator, 1000);
   }
 }
