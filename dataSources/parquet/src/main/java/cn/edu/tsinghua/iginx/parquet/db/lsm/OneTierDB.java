@@ -343,6 +343,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     deleteLock.writeLock().lock();
     try {
       LOGGER.debug("start to clear {}", name);
+      previousTableName = null;
       tableStorage.clear();
       tableIndex.clear();
       writeBuffer.clear();
