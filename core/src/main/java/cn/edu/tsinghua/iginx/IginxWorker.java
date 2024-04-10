@@ -19,16 +19,17 @@
 package cn.edu.tsinghua.iginx;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.checkEmbeddedStorageExtraParams;
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isEmbeddedStorageEngine;
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.*;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isValidHost;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.isEqual;
 
+import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import cn.edu.tsinghua.iginx.auth.SessionManager;
 import cn.edu.tsinghua.iginx.auth.UserManager;
+import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
+import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
@@ -39,6 +40,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
@@ -46,12 +48,13 @@ import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
-import cn.edu.tsinghua.iginx.utils.JsonUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -456,19 +459,37 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
+    // TODO: 下面两个循环疑似可以合并在一起
     StorageManager storageManager = PhysicalEngineImpl.getInstance().getStorageManager();
-    if (!metaManager.addStorageEngines(otherMetas)) {
-      logger.error("add storage engines failed.");
-      status.addToSubStatus(RpcUtils.FAILURE);
-    }
     for (StorageEngineMeta meta : otherMetas) {
-      storageManager.addStorage(meta);
-    }
-    for (StorageEngineMeta meta : localMetas) {
-      IStorage storage = storageManager.initLocalStorage(meta);
+      IStorage storage = StorageManager.initStorageInstance(meta);
+      if (storage == null) {
+        status.addToSubStatus(
+            RpcUtils.status(
+                StatusCode.STATEMENT_EXECUTION_ERROR,
+                String.format("init storage engine %s failed", meta)));
+        continue;
+      }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
         logger.error("add storage engine {} failed.", meta);
         status.addToSubStatus(RpcUtils.FAILURE);
+        continue;
+      }
+      storageManager.addStorage(meta, storage);
+    }
+    for (StorageEngineMeta meta : localMetas) {
+      IStorage storage = StorageManager.initStorageInstance(meta);
+      if (storage == null) {
+        status.addToSubStatus(
+            RpcUtils.status(
+                StatusCode.STATEMENT_EXECUTION_ERROR,
+                String.format("init storage engine %s failed", meta)));
+        continue;
+      }
+      if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
+        logger.error("add storage engine {} failed.", meta);
+        status.addToSubStatus(RpcUtils.FAILURE);
+        continue;
       }
       storageManager.addStorage(meta, storage);
     }
@@ -737,14 +758,18 @@ public class IginxWorker implements IService.Iface {
   @Override
   public CommitTransformJobResp commitTransformJob(CommitTransformJobReq req) {
     TransformJobManager manager = TransformJobManager.getInstance();
-    long jobId = manager.commit(req);
-
     CommitTransformJobResp resp = new CommitTransformJobResp();
-    if (jobId < 0) {
-      resp.setStatus(RpcUtils.FAILURE);
-    } else {
-      resp.setStatus(RpcUtils.SUCCESS);
-      resp.setJobId(jobId);
+    try {
+      long jobId = manager.commit(req);
+
+      if (jobId < 0) {
+        resp.setStatus(RpcUtils.FAILURE);
+      } else {
+        resp.setStatus(RpcUtils.SUCCESS);
+        resp.setJobId(jobId);
+      }
+    } catch (SecurityException e) {
+      resp.setStatus(RpcUtils.ACCESS_DENY);
     }
     return resp;
   }
@@ -788,7 +813,18 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+
+    Predicate<Path> sourceChecker =
+        FilePermissionManager.getInstance()
+            .getChecker(null, ruleNameFilter, FileAccessType.EXECUTE);
+
     File sourceFile = new File(filePath);
+    if (!sourceChecker.test(sourceFile.toPath())) {
+      errorMsg = String.format("Register file %s has no execute permission", filePath);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
     if (!sourceFile.exists()) {
       errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
       logger.error(errorMsg);
@@ -812,6 +848,15 @@ public class IginxWorker implements IService.Iface {
 
     if (destFile.exists()) {
       errorMsg = String.format("Register file already exist, fileName=%s", fileName);
+      logger.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    }
+
+    Predicate<Path> destChecker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+
+    if (!destChecker.test(destFile.toPath())) {
+      errorMsg = String.format("Register file %s has no write permission", destPath);
       logger.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
