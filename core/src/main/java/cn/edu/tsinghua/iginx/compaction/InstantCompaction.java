@@ -12,7 +12,7 @@ import org.slf4j.LoggerFactory;
 /** 即时对所有分片进行合并，仅用于测试 */
 public class InstantCompaction extends Compaction {
 
-  private static final Logger logger = LoggerFactory.getLogger(InstantCompaction.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InstantCompaction.class);
   private List<List<FragmentMeta>> toCompactFragmentGroups;
 
   public InstantCompaction(PhysicalEngine physicalEngine, IMetaManager metaManager) {
@@ -28,7 +28,7 @@ public class InstantCompaction extends Compaction {
 
   @Override
   public void compact() throws Exception {
-    logger.info("start to compact all fragments");
+    LOGGER.info("start to compact all fragments");
     for (List<FragmentMeta> fragmentGroup : toCompactFragmentGroups) {
       if (fragmentGroup.size() > 1) {
         StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getMasterStorageUnit();

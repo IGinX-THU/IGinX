@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class MonitorManager implements Runnable {
 
-  private static final Logger logger = LoggerFactory.getLogger(MonitorManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MonitorManager.class);
 
   private static final int interval =
       ConfigDescriptor.getInstance().getConfig().getLoadBalanceCheckInterval();
@@ -49,7 +49,7 @@ public class MonitorManager implements Runnable {
         Map<FragmentMeta, Long> readHotspotMap = HotSpotMonitor.getInstance().getReadHotspotMap();
         metaManager.updateFragmentHeat(writeHotspotMap, readHotspotMap);
       } catch (Exception e) {
-        logger.error("monitor manager error ", e);
+        LOGGER.error("monitor manager error ", e);
       }
     }
   }
