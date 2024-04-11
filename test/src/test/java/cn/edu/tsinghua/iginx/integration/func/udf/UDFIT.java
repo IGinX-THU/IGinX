@@ -32,12 +32,15 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
+
+import cn.edu.tsinghua.iginx.utils.FileUtils;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -1316,5 +1319,35 @@ public class UDFIT {
             + "+---+----+------+-----+----+\n"
             + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @After
+
+  @Test
+  public void testModuleInstallFail() {
+    String newFileName = "requirements_backup.txt";
+    String classPath = "my_module.dateutil_test.Test";
+    String name = "dateutil_test";
+    String type = "udsf";
+    File reqFile = new File(String.join(File.separator, MODULE_PATH, "requirements.txt"));
+    File renamedFile = new File(String.join(File.separator, MODULE_PATH, newFileName));
+    String statement = String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH);
+    try {
+      FileUtils.copyFileOrDir(reqFile, renamedFile);
+    } catch (IOException e) {
+      logger.error("Can't rename file:{}.", reqFile, e);
+      fail();
+    }
+
+    // append an illegal package(wrong name)
+    try {
+      FileUtils.appendFile(reqFile, "illegal-package");
+      executeFail(statement);
+      assertFalse(isUDFRegistered(name));
+    } catch (IOException e) {
+      logger.error("Append content to file:{} failed.", reqFile, e);
+      fail();
+    }
+
   }
 }
