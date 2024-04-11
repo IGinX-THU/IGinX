@@ -19,6 +19,7 @@ public class MockClassGenerator {
   private static final Logger logger = LoggerFactory.getLogger(MockClassGenerator.class);
 
   public static DataView genRowDataViewNoKey(
+      long keyStart,
       List<String> pathList,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
@@ -52,7 +53,7 @@ public class MockClassGenerator {
     // generate bitmaps and key
     List<Bitmap> bitmapList = new ArrayList<>();
     List<Long> keys = new ArrayList<>();
-    long keyIndex = 0L;
+    long keyIndex = keyStart;
     for (Object o : valuesList) {
       Object[] values = (Object[]) o;
       keys.add(keyIndex++);
