@@ -30,7 +30,7 @@ import org.slf4j.LoggerFactory;
 
 public class UserManager {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(UserManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UserManager.class);
 
   private static UserManager instance;
 

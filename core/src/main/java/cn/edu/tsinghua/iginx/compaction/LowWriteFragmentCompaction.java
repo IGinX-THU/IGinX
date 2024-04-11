@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class LowWriteFragmentCompaction extends Compaction {
 
-  private static final Logger logger = LoggerFactory.getLogger(LowWriteFragmentCompaction.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LowWriteFragmentCompaction.class);
 
   private List<List<FragmentMeta>> toCompactFragmentGroups;
 
@@ -79,7 +79,7 @@ public class LowWriteFragmentCompaction extends Compaction {
 
   @Override
   public void compact() throws Exception {
-    logger.info("start to compact low write fragments");
+    LOGGER.info("start to compact low write fragments");
     Map<FragmentMeta, Long> fragmentMetaPointsMap = metaManager.loadFragmentPoints();
     executeCompaction(toCompactFragmentGroups, fragmentMetaPointsMap);
   }
@@ -108,7 +108,7 @@ public class LowWriteFragmentCompaction extends Compaction {
 
         compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, totalPoints);
       } else {
-        logger.info("fragmentGroup size = {}", fragmentGroup.size());
+        LOGGER.info("fragmentGroup size = {}", fragmentGroup.size());
       }
     }
   }

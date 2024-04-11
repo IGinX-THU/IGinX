@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public class ResourceManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(ResourceManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ResourceManager.class);
 
   private final SystemMetricsService systemMetrics;
 
@@ -45,7 +45,7 @@ public class ResourceManager {
         systemMetrics = new DefaultSystemMetricsService();
         break;
       default:
-        logger.info("use DefaultSystemMetrics as default");
+        LOGGER.info("use DefaultSystemMetrics as default");
         systemMetrics = new DefaultSystemMetricsService();
         break;
     }

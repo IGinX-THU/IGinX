@@ -13,7 +13,7 @@ import redis.clients.jedis.Jedis;
 
 public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(RedisHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RedisHistoryDataGenerator.class);
 
   private static final String LOCAL_IP = "127.0.0.1";
 
@@ -40,7 +40,7 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
           }
         });
     jedis.close();
-    logger.info("write data to 127.0.0.1:{} success!", port);
+    LOGGER.info("write data to 127.0.0.1:{} success!", port);
   }
 
   @Override
@@ -67,6 +67,6 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
     Jedis jedis = new Jedis(LOCAL_IP, port);
     jedis.flushDB();
     jedis.close();
-    logger.info("clear data on 127.0.0.1:{} success!", port);
+    LOGGER.info("clear data on 127.0.0.1:{} success!", port);
   }
 }
