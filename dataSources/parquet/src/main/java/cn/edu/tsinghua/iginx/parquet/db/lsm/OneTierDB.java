@@ -251,8 +251,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
           "flushing is triggered when write buffer dirtied time {}ms reaching {}ms",
           interval,
           timeout);
-
-      commitMemoryTable(true, latch);
+      boolean temp = bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize();
+      commitMemoryTable(temp, latch);
     } finally {
       checkLock.unlock();
     }
