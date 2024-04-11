@@ -58,7 +58,7 @@ public class ShellRunner {
       int i = p.exitValue();
       if (i != 0) {
         throw new Exception(
-                "process exited with value: " + i + "; command: " + Arrays.toString(command));
+            "process exited with value: " + i + "; command: " + Arrays.toString(command));
       }
     } catch (IOException | SecurityException e) {
       throw new Exception("run command failed: " + e.getMessage());

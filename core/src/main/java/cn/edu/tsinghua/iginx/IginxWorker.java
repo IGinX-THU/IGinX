@@ -919,7 +919,10 @@ public class IginxWorker implements IService.Iface {
       LOGGER.error(errorMsg, e);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } catch (Exception e) {
-      errorMsg = String.format("Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.", fileName);
+      errorMsg =
+          String.format(
+              "Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.",
+              fileName);
       LOGGER.error(errorMsg, e);
       LOGGER.debug("deleting {} due to failure in installing dependencies.", filePath);
       try {
