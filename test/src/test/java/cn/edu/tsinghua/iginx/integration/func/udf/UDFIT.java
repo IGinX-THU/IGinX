@@ -216,7 +216,7 @@ public class UDFIT {
       return;
     }
 
-    fail("Statement: \"{}\" execute without failure, which was expected.");
+    fail("Statement: \"{}\" execute without failure, which was not expected.");
   }
 
   private boolean isUDFRegistered(String udfName) {
@@ -1321,8 +1321,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
-  @After
-
+  // module with illegal requirements.txt cannot be registered.
   @Test
   public void testModuleInstallFail() {
     String newFileName = "requirements_backup.txt";
@@ -1341,13 +1340,19 @@ public class UDFIT {
 
     // append an illegal package(wrong name)
     try {
-      FileUtils.appendFile(reqFile, "illegal-package");
+      FileUtils.appendFile(reqFile, "\nillegal-package");
       executeFail(statement);
       assertFalse(isUDFRegistered(name));
     } catch (IOException e) {
       logger.error("Append content to file:{} failed.", reqFile, e);
       fail();
+    } finally {
+      try {
+        FileUtils.deleteFileOrDir(reqFile);
+        FileUtils.moveFile(renamedFile, reqFile);
+      } catch (IOException ee) {
+        logger.error("Fail to recover requirement.txt .", ee);
+      }
     }
-
   }
 }

@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
-import static cn.edu.tsinghua.iginx.utils.CMDRunner.runShellCommand;
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
@@ -202,13 +202,6 @@ public class FunctionManager {
       // accessing a python module dir
       moduleName = className.substring(0, className.lastIndexOf("."));
       className = className.substring(className.lastIndexOf(".") + 1);
-      try {
-        installReqsByPip(fileName);
-      } catch (Exception e) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Install requirements for module %s failed: %s", fileName, e.getMessage()));
-      }
     }
 
     // init the python udf
@@ -246,7 +239,7 @@ public class FunctionManager {
     String reqFilePath = String.join(File.separator, PATH, rootPath, "requirements.txt");
     File file = new File(reqFilePath);
     if (file.exists()) {
-      runShellCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
+      runCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
     } else {
       logger.warn("No requirement document provided for python module {}.", rootPath);
     }

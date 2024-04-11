@@ -40,6 +40,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -908,9 +909,24 @@ public class IginxWorker implements IService.Iface {
 
     try {
       FileUtils.copyFileOrDir(sourceFile, destFile);
+      if (sourceFile.isDirectory()) {
+        // try to install module dependencies
+        FunctionManager fm = FunctionManager.getInstance();
+        fm.installReqsByPip(fileName);
+      }
     } catch (IOException e) {
       errorMsg = String.format("Fail to copy register file(s), path=%s", filePath);
       logger.error(errorMsg, e);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    } catch (Exception e) {
+      errorMsg = String.format("Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.", fileName);
+      logger.error(errorMsg, e);
+      logger.debug("deleting {} due to failure in installing dependencies.", filePath);
+      try {
+        FileUtils.deleteFolder(destFile);
+      } catch (IOException ee) {
+        logger.error("fail to delete udf module {}.", destPath, ee);
+      }
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
