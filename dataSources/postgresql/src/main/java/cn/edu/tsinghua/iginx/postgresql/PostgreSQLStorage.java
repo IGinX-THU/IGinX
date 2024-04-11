@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.postgresql;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer.fromPostgreSQL;
-import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
 
@@ -979,8 +978,6 @@ public class PostgreSQLStorage implements IStorage {
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PostgreSQLException {
     ColumnsInterval columnsInterval;
-    long minKey = Long.MAX_VALUE;
-    long maxKey = 0;
     List<String> paths = new ArrayList<>();
     try {
       Statement stmt = connection.createStatement();
@@ -1009,25 +1006,6 @@ public class PostgreSQLStorage implements IStorage {
             }
             paths.add(path);
           }
-          columnNames =
-              new StringBuilder(columnNames.substring(0, columnNames.length() - 2)); // c1, c2, c3
-
-          // 获取 key 的范围
-          String statement =
-              String.format(
-                  CONCAT_QUERY_STATEMENT,
-                  getQuotColumnNames(columnNames.toString()),
-                  getQuotName(tableName));
-          Statement concatStmt = conn.createStatement();
-          ResultSet concatSet = concatStmt.executeQuery(statement);
-          while (concatSet.next()) {
-            String concatValue = concatSet.getString("concat");
-            long key = toHash(concatValue);
-            minKey = Math.min(key, minKey);
-            maxKey = Math.max(key, maxKey);
-          }
-          concatSet.close();
-          concatStmt.close();
         }
         tableSet.close();
         conn.close();
@@ -1050,14 +1028,7 @@ public class PostgreSQLStorage implements IStorage {
           new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     }
 
-    if (minKey == Long.MAX_VALUE) {
-      minKey = 0;
-    }
-    if (maxKey == 0) {
-      maxKey = Long.MAX_VALUE - 1;
-    }
-
-    return new Pair<>(columnsInterval, new KeyInterval(minKey, maxKey + 1));
+    return new Pair<>(columnsInterval, new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE));
   }
 
   private List<Pattern> getRegexPatternByName(
