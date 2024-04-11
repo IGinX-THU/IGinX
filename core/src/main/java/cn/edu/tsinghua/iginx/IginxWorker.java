@@ -50,6 +50,7 @@ import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -746,6 +747,15 @@ public class IginxWorker implements IService.Iface {
     ctx.setLoadCSVFileByteBuffer(req.csvFile);
     executor.execute(ctx);
     return ctx.getResult().getLoadCSVResp();
+  }
+
+  @Override
+  public Status loadUDF(LoadUDFReq req) {
+    StatementExecutor executor = StatementExecutor.getInstance();
+    RequestContext ctx = contextBuilder.build(req);
+    ctx.setUDFModuleByteBuffer(req.udfFile);
+    executor.execute(ctx);
+    return ctx.getResult().getStatus();
   }
 
   @Override

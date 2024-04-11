@@ -386,6 +386,7 @@ struct ExecuteSqlResp {
     26: optional string loadCsvPath
     27: optional list<i64> sessionIDList
     28: optional map<string, bool> rules
+    29: optional string UDFModulePath
 }
 
 struct UpdateUserReq {
@@ -520,6 +521,17 @@ struct LoadCSVResp {
     2: optional list<string> columns
     3: optional i64 recordsNum
     4: optional string parseErrorMsg
+}
+
+struct LoadUDFReq {
+    1: required i64 sessionId
+    2: required string statement
+    3: required binary udfFile
+}
+
+struct LoadUDFResp {
+    1: required Status status
+    2: optional string parseErrorMsg
 }
 
 struct TaskInfo {
@@ -742,6 +754,8 @@ service IService {
     FetchResultsResp fetchResults(1: FetchResultsReq req);
 
     LoadCSVResp loadCSV(1: LoadCSVReq req);
+
+    Status loadUDF(1: LoadUDFReq req);
 
     Status closeStatement(1: CloseStatementReq req);
 

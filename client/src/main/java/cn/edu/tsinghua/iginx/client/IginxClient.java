@@ -325,6 +325,20 @@ public class IginxClient {
         System.out.println(res.getParseErrorMsg());
         return;
       }
+      String path = res.getUDFModulePath();
+
+      File file = new File(path);
+      if (!file.exists()) {
+        throw new InvalidParameterException(path + " does not exist!");
+      }
+      if (!file.isFile()) {
+        throw new InvalidParameterException(path + " is not a file!");
+      }
+
+      byte[] bytes = FileUtils.readFileToByteArray(file);
+      ByteBuffer csvFile = ByteBuffer.wrap(bytes);
+      Pair<List<String>, Long> pair = session.executeLoadCSV(sql, csvFile);
+
       System.out.println("success");
     } catch (SessionException e) {
       System.out.println(e.getMessage());

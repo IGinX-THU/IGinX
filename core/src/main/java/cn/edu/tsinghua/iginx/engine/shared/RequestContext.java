@@ -41,6 +41,8 @@ public class RequestContext {
 
   private ByteBuffer loadCSVFileByteBuffer;
 
+  private ByteBuffer UDFModuleByteBuffer;
+
   private String warningMsg;
 
   private void init() {

@@ -210,6 +210,10 @@ public class ContextBuilder {
     return new RequestContext(req.getSessionId(), req.getStatement());
   }
 
+  public RequestContext build(LoadUDFReq req) {
+    return new RequestContext(req.getSessionId(), req.getStatement());
+  }
+
   public RequestContext build(LastQueryReq req) {
     UnarySelectStatement statement =
         new UnarySelectStatement(

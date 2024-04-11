@@ -39,6 +39,7 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.thrift.TException;
+import org.apache.thrift.annotation.Nullable;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
@@ -922,7 +923,7 @@ public class Session {
     return new SessionExecuteSqlResult(ref.resp);
   }
 
-  public SessionExecuteSqlResult executePythonRegister(String statement) throws SessionException {
+  public SessionExecuteSqlResult executePythonRegister(String statement, @Nullable ByteBuffer moduleFile) throws SessionException {
     Pattern pattern = Pattern.compile("\"([^\"]*)\"");
     Matcher matcher = pattern.matcher(statement);
 
@@ -1102,6 +1103,12 @@ public class Session {
     executeWithCheck(() -> (ref.resp = client.loadCSV(req)).status);
 
     return new Pair<>(ref.resp.getColumns(), ref.resp.getRecordsNum());
+  }
+
+  public void executeRegisterTask(String statement, ByteBuffer UDFModule) throws SessionException {
+    LoadUDFReq req = new LoadUDFReq(sessionId, statement, UDFModule);
+    Reference<ExecuteSqlResp> ref = new Reference<>();
+    executeWithCheck(() -> client.loadUDF(req));
   }
 
   void closeQuery(long queryId) throws SessionException {
