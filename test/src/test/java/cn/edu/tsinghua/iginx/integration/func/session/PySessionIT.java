@@ -102,8 +102,7 @@ public class PySessionIT {
     clearAllData(session);
   }
 
-  private String runPythonScript(String fileName, String className)
-      throws IOException, InterruptedException {
+  private String runPythonScript(String functionName) throws IOException, InterruptedException {
     try {
       PythonInterpreterConfig config =
           PythonInterpreterConfig.newBuilder()
@@ -112,10 +111,10 @@ public class PySessionIT {
               .build();
       PythonInterpreter interpreter = new PythonInterpreter(config);
 
-      interpreter.exec("import " + fileName);
-      interpreter.exec("t = " + fileName + "." + className + "()");
+      interpreter.exec("import tests");
+      interpreter.exec("t = tests.Tests()");
 
-      String res = (String) interpreter.invokeMethod("t", "test");
+      String res = (String) interpreter.invokeMethod("t", functionName);
       System.out.println(res);
       return res;
     } catch (RuntimeException e) {
@@ -126,7 +125,7 @@ public class PySessionIT {
   @Before
   public void insertBaseData() {
     try {
-      String output = runPythonScript("insertBaseDataset", "InsertBaseDataset");
+      String output = runPythonScript("insertBaseDataset");
       System.out.println(output);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
@@ -139,7 +138,7 @@ public class PySessionIT {
   public void testAQuery() {
     String result = "";
     try {
-      result = runPythonScript("query", "Query");
+      result = runPythonScript("query");
       System.out.println(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
@@ -175,7 +174,7 @@ public class PySessionIT {
     String result = "";
     try {
       // 设置Python脚本路径
-      result = runPythonScript("downsampleQuery", "DownsampleQuery");
+      result = runPythonScript("downsampleQuery");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -199,7 +198,7 @@ public class PySessionIT {
   public void testShowColumnsQuery() {
     String result = "";
     try {
-      result = runPythonScript("showColumns", "ShowColumns");
+      result = runPythonScript("showColumns");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -221,7 +220,7 @@ public class PySessionIT {
   public void testAggregateQuery() {
     String result = "";
     try {
-      result = runPythonScript("aggregateQuery", "AggregateQuery");
+      result = runPythonScript("aggregateQuery");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -241,7 +240,7 @@ public class PySessionIT {
   public void testLastQuery() {
     String result = "";
     try {
-      result = runPythonScript("lastQuery", "LastQuery");
+      result = runPythonScript("lastQuery");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -267,7 +266,7 @@ public class PySessionIT {
     }
     String result = "";
     try {
-      result = runPythonScript("deleteColumn", "DeleteColumn");
+      result = runPythonScript("deleteColumn");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -291,7 +290,7 @@ public class PySessionIT {
   public void testAddStorageEngine() {
     String output = "";
     try {
-      output = runPythonScript("addStorageEngine", "AddStorageEngine");
+      output = runPythonScript("addStorageEngine");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -316,7 +315,7 @@ public class PySessionIT {
   public void testInsert() {
     String result = "";
     try {
-      result = runPythonScript("insert", "Insert");
+      result = runPythonScript("insert");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -375,7 +374,7 @@ public class PySessionIT {
     }
     String result = "";
     try {
-      result = runPythonScript("deleteRow", "DeleteRow");
+      result = runPythonScript("deleteRow");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -406,7 +405,7 @@ public class PySessionIT {
   public void testDebugInfo() {
     String result = "";
     try {
-      result = runPythonScript("getDebugInfo", "GetDebugInfo");
+      result = runPythonScript("getDebugInfo");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -423,7 +422,7 @@ public class PySessionIT {
     }
     String result = "";
     try {
-      result = runPythonScript("loadCSV", "LoadCSV");
+      result = runPythonScript("loadCSV");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -451,7 +450,7 @@ public class PySessionIT {
   public void testLoadDirectory() {
     String result = "";
     try {
-      result = runPythonScript("loadDirectory", "LoadDirectory");
+      result = runPythonScript("loadDirectory");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -472,7 +471,7 @@ public class PySessionIT {
   public void testExport() {
     List<String> result = new ArrayList<>();
     try {
-      String tmp = runPythonScript("exportToFile", "ExportToFile");
+      String tmp = runPythonScript("exportToFile");
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
@@ -525,7 +524,7 @@ public class PySessionIT {
       return;
     }
     try {
-      String output = runPythonScript("deleteAll", "DeleteAll");
+      String output = runPythonScript("deleteAll");
       System.out.println(output);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
