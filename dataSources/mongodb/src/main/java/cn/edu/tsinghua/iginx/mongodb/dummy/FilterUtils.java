@@ -4,10 +4,15 @@ import static com.mongodb.client.model.Filters.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import org.bson.BsonString;
 import org.bson.BsonValue;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -95,8 +100,15 @@ public class FilterUtils {
     String path = filter.getPath();
     checkPath(path);
     BsonValue value = TypeUtils.convert(filter.getValue());
-    return cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(
-        filter.getOp(), path, value);
+    Bson filterBson =
+        cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(filter.getOp(), path, value);
+    if (filter.getValue().getDataType() == DataType.BINARY && !value.isString()) {
+      Bson rawFilter =
+          cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils.fieldValueOp(
+              filter.getOp(), path, new BsonString(Arrays.toString(value.asBinary().getData())));
+      return or(rawFilter, filterBson);
+    }
+    return filterBson;
   }
 
   private static Bson toBson(PathFilter filter) {
