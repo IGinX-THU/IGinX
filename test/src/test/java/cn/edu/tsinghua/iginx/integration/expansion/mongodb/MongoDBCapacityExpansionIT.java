@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
-  private static final Logger logger = LoggerFactory.getLogger(MongoDBCapacityExpansionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBCapacityExpansionIT.class);
 
   public MongoDBCapacityExpansionIT() {
     super(mongodb, null);

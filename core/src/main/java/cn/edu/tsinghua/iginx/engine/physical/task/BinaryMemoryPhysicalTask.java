@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
-  private static final Logger logger = LoggerFactory.getLogger(BinaryMemoryPhysicalTask.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BinaryMemoryPhysicalTask.class);
 
   private final PhysicalTask parentTaskA;
 
@@ -98,7 +98,7 @@ public class BinaryMemoryPhysicalTask extends MemoryPhysicalTask {
         stream = executor.executeUnaryOperator((UnaryOperator) op, stream, getContext());
       }
     } catch (PhysicalException e) {
-      logger.error("encounter error when execute operator in memory: ", e);
+      LOGGER.error("encounter error when execute operator in memory: ", e);
       return new TaskExecuteResult(e);
     }
     return new TaskExecuteResult(stream);

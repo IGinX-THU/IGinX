@@ -9,10 +9,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class LogWriter extends ExportWriter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(LogWriter.class);
 
   private boolean hasWriteHeader;
-
-  private static final Logger logger = LoggerFactory.getLogger(LogWriter.class);
 
   @Override
   public void write(BatchData batchData) {
@@ -23,14 +22,14 @@ public class LogWriter extends ExportWriter {
         headerList.add(GlobalConstant.KEY_NAME);
       }
       header.getFields().forEach(field -> headerList.add(field.getFullName()));
-      logger.info(String.join(",", headerList));
+      LOGGER.info(String.join(",", headerList));
       hasWriteHeader = true;
     }
 
     List<Row> rowList = batchData.getRowList();
     rowList.forEach(
         row -> {
-          logger.info(row.toCSVTypeString());
+          LOGGER.info(row.toCSVTypeString());
         });
   }
 }

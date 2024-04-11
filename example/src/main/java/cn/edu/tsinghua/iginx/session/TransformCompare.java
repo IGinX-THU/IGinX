@@ -5,8 +5,12 @@ import cn.edu.tsinghua.iginx.thrift.*;
 import java.io.File;
 import java.util.*;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransformCompare {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformCompare.class);
 
   private static Session session;
 
@@ -153,7 +157,7 @@ public class TransformCompare {
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
   }
@@ -165,7 +169,7 @@ public class TransformCompare {
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
   }

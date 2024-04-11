@@ -45,10 +45,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UDFIT {
+  private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
 
   private static final double delta = 0.01d;
-
-  private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
 
   private static boolean isScaling;
 
@@ -128,18 +127,18 @@ public class UDFIT {
   }
 
   private SessionExecuteSqlResult execute(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
     }

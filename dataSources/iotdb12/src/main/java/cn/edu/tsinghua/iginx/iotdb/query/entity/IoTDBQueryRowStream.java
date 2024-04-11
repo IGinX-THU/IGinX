@@ -45,14 +45,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IoTDBQueryRowStream implements RowStream {
+  private static final Logger LOGGER = LoggerFactory.getLogger(IoTDBQueryRowStream.class);
 
   enum State {
     HAS_NEXT,
     NO_NEXT,
     UNKNOWN,
   }
-
-  private static final Logger logger = LoggerFactory.getLogger(IoTDBQueryRowStream.class);
 
   private static final String PREFIX = "root.";
 
@@ -164,7 +163,7 @@ public class IoTDBQueryRowStream implements RowStream {
       }
       return state == State.HAS_NEXT;
     } catch (SQLException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       throw new RowFetchException(e);
     }
   }
@@ -181,7 +180,7 @@ public class IoTDBQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       throw new RowFetchException(e);
     }
   }
@@ -214,7 +213,7 @@ public class IoTDBQueryRowStream implements RowStream {
         cachedRow = null;
       }
     } catch (StatementExecutionException | IoTDBConnectionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       throw new RowFetchException(e);
     }
   }
