@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class RuleCollection {
 
-  private static final Logger logger = LoggerFactory.getLogger(RuleCollection.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RuleCollection.class);
 
   private final Map<String, Rule> rules = new HashMap<>();
 
@@ -47,7 +47,7 @@ public class RuleCollection {
     for (String ruleSetting : ruleSettingList) {
       String[] ruleInfo = ruleSetting.split("=");
       if (ruleInfo.length != 2) {
-        logger.error("Rule setting error: " + ruleSetting);
+        LOGGER.error("Rule setting error: {}", ruleSetting);
         continue;
       }
 
@@ -83,7 +83,7 @@ public class RuleCollection {
 
   public boolean banRules(Rule rule) {
     if (!rules.containsKey(rule.getRuleName())) {
-      logger.error("IGinX rule collection does not include rule: " + rule.getRuleName());
+      LOGGER.error("IGinX rule collection does not include rule: {}", rule.getRuleName());
       return false;
     }
     bannedRules.put(rule.getRuleName(), rule);
@@ -93,7 +93,7 @@ public class RuleCollection {
   public boolean banRulesByName(Collection<String> ruleNames) {
     for (String ruleName : ruleNames) {
       if (!rules.containsKey(ruleName)) {
-        logger.error("IGinX rule collection does not include rule: " + ruleName);
+        LOGGER.error("IGinX rule collection does not include rule: {}", ruleName);
         return false;
       }
       bannedRules.put(ruleName, rules.get(ruleName));
@@ -103,7 +103,7 @@ public class RuleCollection {
 
   public boolean banRuleByName(String ruleName) {
     if (!rules.containsKey(ruleName)) {
-      logger.error("IGinX rule collection does not include rule: " + ruleName);
+      LOGGER.error("IGinX rule collection does not include rule: {}", ruleName);
       return false;
     }
     bannedRules.put(ruleName, rules.get(ruleName));
@@ -115,7 +115,7 @@ public class RuleCollection {
     // 先检查是否有不存在的规则，再进行设置
     for (String ruleName : rulesChange.keySet()) {
       if (!rules.containsKey(ruleName)) {
-        logger.error("IGinX rule collection does not include rule: " + ruleName);
+        LOGGER.error("IGinX rule collection does not include rule: {}", ruleName);
         return false;
       }
     }

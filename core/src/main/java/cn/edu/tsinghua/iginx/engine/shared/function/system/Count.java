@@ -30,10 +30,10 @@ import org.slf4j.LoggerFactory;
 
 public class Count implements SetMappingFunction {
 
-  public static final String COUNT = "count";
-
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(Count.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Count.class);
+
+  public static final String COUNT = "count";
 
   private static final Count INSTANCE = new Count();
 

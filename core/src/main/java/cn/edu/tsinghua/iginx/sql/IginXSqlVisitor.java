@@ -182,9 +182,26 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     ImportFile importFile = parseImportFileClause(ctx.importFileClause());
 
     InsertStatement insertStatement = new InsertStatement(RawDataType.NonAlignedRow);
-    parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
+    if (ctx.insertFullPathSpec() == null)
+      parsePartialPathSpec(ctx.path(), ctx.tagList(), insertStatement);
+    else parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
 
-    return new InsertFromCsvStatement(importFile, insertStatement);
+    long keyBase = ctx.keyBase == null ? 0 : Long.parseLong(ctx.keyBase.getText());
+    String keyCol =
+        ctx.keyName == null
+            ? null
+            : ctx.keyName.getText().substring(1, ctx.keyName.getText().length() - 1);
+    return new InsertFromCsvStatement(importFile, insertStatement, keyBase, keyCol);
+  }
+
+  private void parsePartialPathSpec(
+      PathContext pathCtx, TagListContext tagCtx, InsertStatement insertStatement) {
+    insertStatement.setPrefixPath(parsePath(pathCtx));
+
+    if (tagCtx != null) {
+      Map<String, String> globalTags = parseTagList(tagCtx);
+      insertStatement.setGlobalTags(globalTags);
+    }
   }
 
   private void parseInsertFullPathSpec(
