@@ -299,8 +299,10 @@ public class PySessionIT {
     System.out.println("add and delete storage engine");
     String[] lines = output.split("\n");
     List<String> result = Arrays.asList(lines);
-    // 如果是mongo或者pg
-    if (result.size() > 0 && "This engine is already in the cluster.".equals(result.get(0))) {
+    System.out.println(result);
+    // 如果是pg
+    if (result.size() > 0
+        && "The storage engine has been added, please delete it first".equals(result.get(0))) {
       return;
     }
     assertEquals(result.size(), 12);
