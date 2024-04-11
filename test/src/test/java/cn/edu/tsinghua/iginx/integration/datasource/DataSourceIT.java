@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -87,7 +88,12 @@ public class DataSourceIT {
       throws PhysicalException {
     int count = 0;
     while (rowStream.hasNext()) {
-      rowStream.next();
+      Row row = rowStream.next();
+      Assert.assertNotNull(row);
+      Assert.assertNotNull(row.getValues());
+      for (Object value : row.getValues()) {
+        Assert.assertNotNull(value);
+      }
       count++;
     }
     rowStream.close();
