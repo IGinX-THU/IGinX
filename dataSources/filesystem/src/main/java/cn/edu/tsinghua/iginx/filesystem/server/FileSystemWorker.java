@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class FileSystemWorker implements FileSystemService.Iface {
 
-  private static final Logger logger = LoggerFactory.getLogger(FileSystemWorker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemWorker.class);
 
   private static final Status SUCCESS = new Status(200, "success");
 
@@ -84,7 +84,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
                 tagsList.add(tags);
               });
     } catch (PhysicalException e) {
-      logger.error("encounter error when getting header from RowStream {}", e.getMessage());
+      LOGGER.error("encounter error when getting header from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
     FSHeader fsHeader = new FSHeader(names, types, tagsList, hasKey);
@@ -110,7 +110,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
         fsRows.add(fsRow);
       }
     } catch (PhysicalException e) {
-      logger.error("encounter error when getting result from RowStream {}", e.getMessage());
+      LOGGER.error("encounter error when getting result from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
 
@@ -215,7 +215,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
       resp.setPathList(ret);
       return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when geColumnsOfStorageUnit ", e);
+      LOGGER.error("encounter error when geColumnsOfStorageUnit ", e);
       return new GetColumnsOfStorageUnitResp(GET_COLUMNS_FAIL);
     }
   }
@@ -231,7 +231,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
       resp.setEndColumn(pair.getK().getEndColumn());
       return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getBoundaryOfStorage ", e);
+      LOGGER.error("encounter error when getBoundaryOfStorage ", e);
       return new GetBoundaryOfStorageResp(GET_BOUNDARY_FAIL);
     }
   }
@@ -269,7 +269,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
         }
       default:
         {
-          logger.error("unknown tag filter type: {}", rawTagFilter.getType());
+          LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
           return null;
         }
     }

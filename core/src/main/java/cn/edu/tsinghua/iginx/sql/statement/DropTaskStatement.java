@@ -13,12 +13,12 @@ import org.slf4j.LoggerFactory;
 
 public class DropTaskStatement extends SystemStatement {
 
+  @SuppressWarnings("unused")
+  private static final Logger LOGGER = LoggerFactory.getLogger(DropTaskStatement.class);
+
   private final String name;
 
   private final IginxWorker worker = IginxWorker.getInstance();
-
-  @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(DropTaskStatement.class);
 
   private static final FunctionManager functionManager = FunctionManager.getInstance();
 

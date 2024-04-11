@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public class DefaultMetaCache implements IMetaCache {
 
-  private static final Logger logger = LoggerFactory.getLogger(DefaultMetaCache.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(DefaultMetaCache.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -253,7 +253,7 @@ public class DefaultMetaCache implements IMetaCache {
       }
     }
     if (nextMinKey == 0L || nextMinKey == Long.MAX_VALUE) {
-      logger.error("unexpected next min key " + nextMinKey + "!");
+      LOGGER.error("unexpected next min key {}!", nextMinKey);
       System.exit(-1);
     }
     minKey = nextMinKey;
@@ -648,7 +648,7 @@ public class DefaultMetaCache implements IMetaCache {
     fragmentLock.writeLock().lock();
 
     if (!storageEngineMetaMap.containsKey(storageEngineId)) {
-      logger.error("unexpected dummy storage engine {} to be removed", storageEngineId);
+      LOGGER.error("unexpected dummy storage engine {} to be removed", storageEngineId);
       return false;
     }
     String dummyStorageUnitId = generateDummyStorageUnitId(storageEngineId);

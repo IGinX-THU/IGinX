@@ -51,10 +51,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UDFIT {
+  private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
 
   private static final double delta = 0.01d;
-
-  private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
 
   private static boolean isScaling;
 
@@ -173,18 +172,18 @@ public class UDFIT {
   }
 
   private SessionExecuteSqlResult execute(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
     }
@@ -194,14 +193,14 @@ public class UDFIT {
 
   // execute a statement and expect failure.
   private void executeFail(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException e) {
       // don't want to print e because it will be confusing
-      logger.info(
+      LOGGER.info(
           "Statement: \"{}\" execute failed AS EXPECTED, with message: {}",
           statement,
           e.getMessage());
@@ -209,7 +208,7 @@ public class UDFIT {
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.info(
+      LOGGER.info(
           "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.",
           statement,
           res.getParseErrorMsg());
@@ -1334,7 +1333,7 @@ public class UDFIT {
     try {
       FileUtils.copyFileOrDir(reqFile, renamedFile);
     } catch (IOException e) {
-      logger.error("Can't rename file:{}.", reqFile, e);
+      LOGGER.error("Can't rename file:{}.", reqFile, e);
       fail();
     }
 
@@ -1344,14 +1343,14 @@ public class UDFIT {
       executeFail(statement);
       assertFalse(isUDFRegistered(name));
     } catch (IOException e) {
-      logger.error("Append content to file:{} failed.", reqFile, e);
+      LOGGER.error("Append content to file:{} failed.", reqFile, e);
       fail();
     } finally {
       try {
         FileUtils.deleteFileOrDir(reqFile);
         FileUtils.moveFile(renamedFile, reqFile);
       } catch (IOException ee) {
-        logger.error("Fail to recover requirement.txt .", ee);
+        LOGGER.error("Fail to recover requirement.txt .", ee);
       }
     }
   }

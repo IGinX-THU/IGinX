@@ -26,6 +26,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StreamStageRunner implements Runner {
+  @SuppressWarnings("unused")
+  private static final Logger LOGGER = LoggerFactory.getLogger(StreamStageRunner.class);
 
   private final StreamStage streamStage;
 
@@ -46,9 +48,6 @@ public class StreamStageRunner implements Runner {
   private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(StreamStageRunner.class);
 
   public StreamStageRunner(StreamStage stage) {
     this.streamStage = stage;

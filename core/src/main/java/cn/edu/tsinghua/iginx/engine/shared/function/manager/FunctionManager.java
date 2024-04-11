@@ -59,6 +59,8 @@ import pemja.core.PythonInterpreterConfig;
 
 public class FunctionManager {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
+
   private static final int INTERPRETER_NUM = 5;
 
   private final Map<String, Function> functions;
@@ -66,8 +68,6 @@ public class FunctionManager {
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
 
   private static final String PY_SUFFIX = ".py";
 
@@ -106,7 +106,7 @@ public class FunctionManager {
     for (String udf : udfList) {
       String[] udfInfo = udf.split(",");
       if (udfInfo.length != 4) {
-        logger.error("udf info len must be 4.");
+        LOGGER.error("udf info len must be 4.");
         continue;
       }
       UDFType udfType;
@@ -124,7 +124,7 @@ public class FunctionManager {
           udfType = UDFType.TRANSFORM;
           break;
         default:
-          logger.error("unknown udf type: " + udfInfo[0]);
+          LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
       metaList.add(
@@ -241,7 +241,7 @@ public class FunctionManager {
     if (file.exists()) {
       runCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
     } else {
-      logger.warn("No requirement document provided for python module {}.", rootPath);
+      LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
   }
 
