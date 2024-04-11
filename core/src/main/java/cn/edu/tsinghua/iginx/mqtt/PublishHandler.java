@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public class PublishHandler extends AbstractInterceptHandler {
 
-  private static final Logger logger = LoggerFactory.getLogger(PublishHandler.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PublishHandler.class);
 
   private final IginxWorker worker = IginxWorker.getInstance();
 
@@ -66,7 +66,7 @@ public class PublishHandler extends AbstractInterceptHandler {
     String username = msg.getUsername();
     MqttQoS qos = msg.getQos();
 
-    logger.debug(
+    LOGGER.debug(
         "Receive publish message. clientId: {}, username: {}, qos = {}, topic: {}, payload: {}",
         clientId,
         username,
@@ -102,7 +102,7 @@ public class PublishHandler extends AbstractInterceptHandler {
     for (Message message : events) {
       if (dataTypeMap.containsKey(message.getPath())) {
         if (dataTypeMap.get(message.getPath()) != message.getDataType()) {
-          logger.error(
+          LOGGER.error(
               "meet error when process message, data type conflict: {} with type {} and {}",
               message.getPath(),
               dataTypeMap.get(message.getPath()),
@@ -154,7 +154,7 @@ public class PublishHandler extends AbstractInterceptHandler {
     req.setBitmapList(bitmapList);
 
     Status status = worker.insertNonAlignedRowRecords(req);
-    logger.debug("event process result: {}", status);
+    LOGGER.debug("event process result: {}", status);
     msg.getPayload().release();
   }
 }

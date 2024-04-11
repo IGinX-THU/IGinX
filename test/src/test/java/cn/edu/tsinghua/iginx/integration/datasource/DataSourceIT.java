@@ -32,7 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DataSourceIT {
-  protected static final Logger logger = LoggerFactory.getLogger(DataSourceIT.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(DataSourceIT.class);
 
   private IStorage storage = null;
 
@@ -50,7 +50,7 @@ public class DataSourceIT {
         | ClassNotFoundException
         | InvocationTargetException
         | NoSuchMethodException e) {
-      logger.error("get current storage failed, caused by: {}", e.getMessage());
+      LOGGER.error("get current storage failed, caused by: ", e);
       throw new RuntimeException(e);
     }
   }
@@ -78,7 +78,7 @@ public class DataSourceIT {
 
   private static void checkResult(TaskExecuteResult result) {
     if (result.getException() != null) {
-      logger.error("execute task failed, caused by: ", result.getException());
+      LOGGER.error("execute task failed, caused by: ", result.getException());
       fail();
     }
   }
@@ -115,7 +115,7 @@ public class DataSourceIT {
     try {
       storage.executeInsert(insert, MockClassGenerator.genDataArea());
     } catch (Exception e) {
-      logger.error("insert empty body fail, caused by: ", e);
+      LOGGER.error("insert empty body fail, caused by: ", e);
       fail();
     }
   }

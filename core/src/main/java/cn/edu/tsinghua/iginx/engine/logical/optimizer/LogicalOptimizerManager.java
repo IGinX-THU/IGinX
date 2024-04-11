@@ -6,7 +6,7 @@ import org.slf4j.LoggerFactory;
 
 public class LogicalOptimizerManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(LogicalOptimizerManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LogicalOptimizerManager.class);
 
   private static final LogicalOptimizerManager instance = new LogicalOptimizerManager();
 
@@ -28,7 +28,7 @@ public class LogicalOptimizerManager {
     if (name == null || name.equals("")) {
       return null;
     }
-    logger.info("use {} as logical optimizer.", name);
+    LOGGER.info("use {} as logical optimizer.", name);
 
     switch (name) {
       case REMOVE_NOT:

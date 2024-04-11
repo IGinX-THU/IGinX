@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
   public ParquetCapacityExpansionIT() {
     super(parquet, null);

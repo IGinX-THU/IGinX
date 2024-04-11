@@ -13,7 +13,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(PostgreSQLCapacityExpansionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLCapacityExpansionIT.class);
 
   public PostgreSQLCapacityExpansionIT() {
     super(postgresql, "username:postgres, password:postgres");

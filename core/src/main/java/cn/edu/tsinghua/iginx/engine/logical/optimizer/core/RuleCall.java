@@ -14,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class RuleCall {
 
-  private static final Logger logger = LoggerFactory.getLogger(RuleCall.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RuleCall.class);
 
   private final Operator matchedRoot;
 
@@ -61,7 +61,7 @@ public abstract class RuleCall {
       } else if (childB == matchedRoot) {
         binaryOperator.setSourceB(new OperatorSource(newRoot));
       } else {
-        logger.error("child and parent mismatch.");
+        LOGGER.error("child and parent mismatch.");
       }
     } else {
       MultipleOperator multipleOp = (MultipleOperator) parent;
@@ -75,7 +75,7 @@ public abstract class RuleCall {
         }
       }
       if (childIndex == -1) {
-        logger.error("child and parent mismatch.");
+        LOGGER.error("child and parent mismatch.");
       } else {
         multipleOp.getSources().set(childIndex, new OperatorSource(newRoot));
       }

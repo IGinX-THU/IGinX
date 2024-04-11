@@ -16,7 +16,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class MockClassGenerator {
-  private static final Logger logger = LoggerFactory.getLogger(MockClassGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MockClassGenerator.class);
 
   public static DataView genRowDataViewNoKey(
       long keyStart,
@@ -58,7 +58,7 @@ public class MockClassGenerator {
       Object[] values = (Object[]) o;
       keys.add(keyIndex++);
       if (values.length != pathList.size()) {
-        logger.error("The sizes of paths and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return null;
       }
       Bitmap bitmap = new Bitmap(values.length);
