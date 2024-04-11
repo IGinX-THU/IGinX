@@ -50,7 +50,7 @@ public class PySessionIT {
     if (os.contains("windows")) {
       pythonCMD = "python";
     } else {
-      pythonCMD = "python3"; // /opt/homebrew/anaconda3/envs/iginx/bin/python
+      pythonCMD = "python3";
     }
   }
 
