@@ -652,31 +652,39 @@ public class LogicalFilterUtils {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        for (int i = 0; i < orChildren.size(); i++) {
-          Filter childFilter = mergeTrue(orChildren.get(i));
-          orChildren.set(i, childFilter);
-        }
+        orChildren.replaceAll(LogicalFilterUtils::mergeTrue);
+        List<Filter> orRemovedList = new ArrayList<>();
         for (Filter childFilter : orChildren) {
-          if (childFilter.getType() == FilterType.Bool && ((BoolFilter) childFilter).isTrue()) {
-            return new BoolFilter(true);
+          if (childFilter.getType() == FilterType.Bool) {
+            if (((BoolFilter) childFilter).isTrue()) {
+              return new BoolFilter(true);
+            } else {
+              orRemovedList.add(childFilter);
+            }
           }
         }
-        return new OrFilter(orChildren);
+        orChildren.removeAll(orRemovedList);
+        if (orChildren.size() == 0) {
+          return new BoolFilter(false);
+        } else if (orChildren.size() == 1) {
+          return orChildren.get(0);
+        } else {
+          return new OrFilter(orChildren);
+        }
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        for (int i = 0; i < andChildren.size(); i++) {
-          Filter childFilter = mergeTrue(andChildren.get(i));
-          andChildren.set(i, childFilter);
-        }
-        List<Filter> removedList = new ArrayList<>();
+        andChildren.replaceAll(LogicalFilterUtils::mergeTrue);
+        List<Filter> andRemovedList = new ArrayList<>();
         for (Filter childFilter : andChildren) {
-          if (childFilter.getType() == FilterType.Bool && ((BoolFilter) childFilter).isTrue()) {
-            removedList.add(childFilter);
+          if (childFilter.getType() == FilterType.Bool) {
+            if (((BoolFilter) childFilter).isTrue()) {
+              andRemovedList.add(childFilter);
+            } else {
+              return new BoolFilter(false);
+            }
           }
         }
-        for (Filter removed : removedList) {
-          andChildren.remove(removed);
-        }
+        andChildren.removeAll(andRemovedList);
         if (andChildren.size() == 0) {
           return new BoolFilter(true);
         } else if (andChildren.size() == 1) {

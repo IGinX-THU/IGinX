@@ -67,9 +67,10 @@ public class RuleBasedPlanner implements Planner {
   @Override
   public Operator findBest() {
     Set<Rule> onceRules = new HashSet<>(); // 一次性规则执行后加入此集合，不再执行
-    boolean hasMatched = false;
+    boolean hasMatched;
     while (!reachLimit()) {
       TreeIterator treeIt = getTreeIterator();
+      hasMatched = false;
       while (treeIt.hasNext()) {
         Operator op = treeIt.next();
         Iterator<Rule> rulesIt = ruleCollection.iterator();
@@ -97,7 +98,10 @@ public class RuleBasedPlanner implements Planner {
 
           rule.onMatch(ruleCall);
           matchCount++;
+
+          treeIt = getTreeIterator();
           updateIndex();
+          hasMatched = true;
           break;
         }
       }

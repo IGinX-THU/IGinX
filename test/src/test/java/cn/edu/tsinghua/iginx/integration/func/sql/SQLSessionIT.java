@@ -7111,6 +7111,59 @@ public class SQLSessionIT {
     executor.executeAndCompare(sql6, expect6);
   }
 
+  @Test
+  public void testConstantPropagation() {
+    String openRule = "SET RULES ConstantPropagationRule=on;";
+    String closeRule = "SET RULES ConstantPropagationRule=off;";
+
+    String statement = "EXPLAIN SELECT * FROM us.d1 WHERE %s;";
+    List<String> filters =
+        Arrays.asList(
+            "s1 = 1 and s1 < s2",
+            "s1 < s2 and s2 = 3",
+            "s2 = 3 and s3 = 0 and s1 < s2 + s3",
+            "s2 = 3 or s1 = 4 or s3 < s2",
+            "s2 = 3 and s2 < 4",
+            "s2 = 3 or (s2 = 2 and s1 < s2)",
+            "s1 = 3 and (s1 < 4 or s2 > 5)",
+            "s1 = 3 and s1 < 2 and s2 > 5");
+
+    List<String> expectsClosedResult =
+        Arrays.asList(
+            "us.d1.s1 == 1 && us.d1.s1 < us.d1.s2",
+            "us.d1.s1 < us.d1.s2 && us.d1.s2 == 3",
+            "us.d1.s2 == 3 && us.d1.s3 == 0 && us.d1.s1 < us.d1.s2 + us.d1.s3",
+            "us.d1.s2 == 3 || us.d1.s1 == 4 || us.d1.s3 < us.d1.s2",
+            "us.d1.s2 == 3 && us.d1.s2 < 4",
+            "us.d1.s2 == 3 || (us.d1.s2 == 2 && us.d1.s1 < us.d1.s2)",
+            "us.d1.s1 == 3 && (us.d1.s1 < 4 || us.d1.s2 > 5)",
+            "us.d1.s1 == 3 && us.d1.s1 < 2 && us.d1.s2 > 5");
+
+    List<String> expectsOpenedResult =
+        Arrays.asList(
+            "us.d1.s1 == 1 && us.d1.s2 > 1",
+            "us.d1.s1 < 3 && us.d1.s2 == 3",
+            "us.d1.s2 == 3 && us.d1.s3 == 0 && us.d1.s1 < 3",
+            "us.d1.s2 == 3 || us.d1.s1 == 4 || us.d1.s3 < us.d1.s2",
+            "us.d1.s2 == 3",
+            "us.d1.s2 == 3 || (us.d1.s2 == 2 && us.d1.s1 < 2)",
+            "us.d1.s1 == 3",
+            "False");
+
+    executor.execute(closeRule);
+
+    for (int i = 0; i < filters.size(); i++) {
+      String result = executor.execute(String.format(statement, filters.get(i)));
+      assertTrue(result.contains(expectsClosedResult.get(i)));
+    }
+
+    executor.execute(openRule);
+    for (int i = 0; i < filters.size(); i++) {
+      String result = executor.execute(String.format(statement, filters.get(i)));
+      assertTrue(result.contains(expectsOpenedResult.get(i)));
+    }
+  }
+
   /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
   @Test
   public void testConstantFolding() {
@@ -7174,6 +7227,7 @@ public class SQLSessionIT {
     }
 
     // 下面EXPLAIN一下，测试Filter和RowTransform的常量折叠，还是用上面的语句
+    // 这里标注为空字符串的是因为表达式不可折叠，测试时碰到空字符串，会检查是否确实没有折叠（即缺少Rename算子）。
     List<String> foldExpressions =
         Arrays.asList(
             "1720.53535 + 93.65612 × us.d1.s1 × us.d1.s2",

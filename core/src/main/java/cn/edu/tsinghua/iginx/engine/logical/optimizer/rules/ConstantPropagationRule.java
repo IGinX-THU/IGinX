@@ -298,7 +298,7 @@ public class ConstantPropagationRule extends Rule {
       case Base:
         BaseExpression baseExpr = (BaseExpression) expr;
         if (baseExpr.getPathName().equals(path)) {
-          return new ConstantExpression(value);
+          return new ConstantExpression(value.getValue());
         }
         return baseExpr;
       case Binary:
