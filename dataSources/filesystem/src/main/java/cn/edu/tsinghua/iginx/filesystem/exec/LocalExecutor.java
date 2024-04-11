@@ -101,7 +101,7 @@ public class LocalExecutor implements Executor {
         this.root = file.getCanonicalPath() + SEPARATOR;
       }
     } catch (IOException e) {
-      LOGGER.error("get dir or dummy dir failure:", e);
+      LOGGER.error("get dir or dummy dir failure: ", e);
     }
     this.hasData = hasData;
     this.fileSystemManager = new FileSystemManager(extraParams);
@@ -140,7 +140,13 @@ public class LocalExecutor implements Executor {
       }
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, filter);
       return new TaskExecuteResult(rowStream);
-    } catch (IOException e) {
+    } catch (Exception e) {
+      LOGGER.error(
+          "read file error, storageUnit {}, paths({}), tagFilter({}), filter({})",
+          storageUnit,
+          paths,
+          tagFilter,
+          filter);
       return new TaskExecuteResult(
           new FileSystemTaskExecuteFailureException(
               String.format(
@@ -164,7 +170,8 @@ public class LocalExecutor implements Executor {
           new FileSystemHistoryQueryRowStream(
               result, dummyRoot, filter, fileSystemManager.getMemoryPool());
       return new TaskExecuteResult(rowStream);
-    } catch (IOException e) {
+    } catch (Exception e) {
+      LOGGER.error("read file error, paths {} filter {}", paths, filter);
       return new TaskExecuteResult(
           new FileSystemTaskExecuteFailureException(
               String.format("read file error, paths %s filter %s", paths, filter), e));
@@ -220,6 +227,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
+      LOGGER.error("encounter error when inserting row records to fileSystem: ", e);
       throw e;
     }
   }
@@ -252,6 +260,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
+      LOGGER.error("encounter error when inserting column records to fileSystem: ", e);
       throw e;
     }
   }
@@ -267,7 +276,6 @@ public class LocalExecutor implements Executor {
           fileSystemManager.deleteFile(
               new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (IOException e) {
-          exception = e;
           LOGGER.error("encounter error when clearing data: ", e);
         }
       } else {
@@ -292,7 +300,7 @@ public class LocalExecutor implements Executor {
                 fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
           }
         }
-      } catch (Exception e) {
+      } catch (IOException e) {
         LOGGER.error("encounter error when deleting data: ", e);
         exception = e;
       }

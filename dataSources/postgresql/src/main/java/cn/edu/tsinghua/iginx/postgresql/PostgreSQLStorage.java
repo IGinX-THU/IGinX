@@ -156,7 +156,7 @@ public class PostgreSQLStorage implements IStorage {
       connectionPoolMap.put(databaseName, connectionPool);
       return connectionPool.getConnection();
     } catch (SQLException e) {
-      LOGGER.error("cannot get connection for database {}", databaseName, e);
+      LOGGER.error("cannot get connection for database {}: ", databaseName, e);
       return null;
     }
   }
@@ -325,7 +325,7 @@ public class PostgreSQLStorage implements IStorage {
             rs = stmt.executeQuery(statement);
             LOGGER.info("[Query] execute query: {}", statement);
           } catch (SQLException e) {
-            LOGGER.error("meet error when executing query {}", statement, e);
+            LOGGER.error("meet error when executing query {}: ", statement, e);
             continue;
           }
           if (rs != null) {
@@ -409,7 +409,7 @@ public class PostgreSQLStorage implements IStorage {
           rs = stmt.executeQuery(statement);
           LOGGER.info("[Query] execute query: {}", statement);
         } catch (SQLException e) {
-          LOGGER.error("meet error when executing query {}", statement, e);
+          LOGGER.error("meet error when executing query {}: ", statement, e);
         }
         if (rs != null) {
           databaseNameList.add(databaseName);
@@ -689,7 +689,7 @@ public class PostgreSQLStorage implements IStorage {
               rs = stmt.executeQuery(statement);
               LOGGER.info("[Query] execute query: {}", statement);
             } catch (SQLException e) {
-              LOGGER.error("meet error when executing query {}", statement, e);
+              LOGGER.error("meet error when executing query {}: ", statement, e);
               continue;
             }
             databaseNameList.add(databaseName);
@@ -793,7 +793,7 @@ public class PostgreSQLStorage implements IStorage {
             rs = stmt.executeQuery(statement);
             LOGGER.info("[Query] execute query: {}", statement);
           } catch (SQLException e) {
-            LOGGER.error("meet error when executing query {}", statement, e);
+            LOGGER.error("meet error when executing query {}: ", statement, e);
           }
           if (rs != null) {
             databaseNameList.add(databaseName);
@@ -1036,7 +1036,7 @@ public class PostgreSQLStorage implements IStorage {
       databaseSet.close();
       stmt.close();
     } catch (SQLException e) {
-      LOGGER.error("encounter error when getting boundary of storage", e);
+      LOGGER.error("encounter error when getting boundary of storage: ", e);
     }
     paths.sort(String::compareTo);
 
@@ -1352,7 +1352,7 @@ public class PostgreSQLStorage implements IStorage {
         tableSet.close();
         stmt.close();
       } catch (SQLException e) {
-        LOGGER.error("create or alter table {} field {} error", tableName, columnName, e);
+        LOGGER.error("create or alter table {} field {} error: ", tableName, columnName, e);
       }
     }
   }
@@ -1456,6 +1456,7 @@ public class PostgreSQLStorage implements IStorage {
       }
       stmt.close();
     } catch (SQLException e) {
+      LOGGER.error("unexpected error: ", e);
       return e;
     }
 

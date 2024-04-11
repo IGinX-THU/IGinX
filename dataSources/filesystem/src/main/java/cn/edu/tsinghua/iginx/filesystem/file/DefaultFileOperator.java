@@ -182,7 +182,6 @@ public class DefaultFileOperator implements IFileOperator {
 
       replaceFile(file, tempFile);
     } catch (IOException e) {
-      LOGGER.error("write iginx file {} failure: ", file.getAbsolutePath(), e);
       throw new IOException(
           String.format("write iginx file %s failure", file.getAbsolutePath()), e);
     }
@@ -199,7 +198,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return true;
     } catch (IOException e) {
-      LOGGER.error("cannot read file {}", file.getAbsolutePath(), e);
+      LOGGER.error("cannot read file {} ", file.getAbsolutePath(), e);
       return false;
     }
   }
@@ -257,7 +256,7 @@ public class DefaultFileOperator implements IFileOperator {
       }
       return -1L;
     } catch (IOException e) {
-      LOGGER.error("get max key of iginx file {} failure:", file.getAbsolutePath(), e);
+      LOGGER.error("get max key of iginx file {} failure: ", file.getAbsolutePath(), e);
       return -1L;
     }
   }
@@ -293,10 +292,10 @@ public class DefaultFileOperator implements IFileOperator {
         movedSuccessfully = true;
       } catch (Exception e) {
         LOGGER.error(
-            "move file from {} to {} failure: {} and wait",
+            "move file from {} to {} failure and wait",
             source.getAbsolutePath(),
             target.getAbsoluteFile(),
-            e.getMessage());
+            e);
         try {
           Thread.sleep(1);
         } catch (InterruptedException interruptedException) {

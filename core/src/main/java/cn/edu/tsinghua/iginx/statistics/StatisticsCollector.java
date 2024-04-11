@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class StatisticsCollector implements IStatisticsCollector {
 
-  private static final Logger logger = LoggerFactory.getLogger(StatisticsCollector.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StatisticsCollector.class);
 
   private final AtomicBoolean broadcast = new AtomicBoolean(false);
 
@@ -82,7 +82,7 @@ public class StatisticsCollector implements IStatisticsCollector {
                       .getStatisticsLogInterval()); // 每隔 10 秒播报一次统计信息
             }
           } catch (InterruptedException e) {
-            logger.error("encounter error when broadcasting statistics: ", e);
+            LOGGER.error("encounter error when broadcasting statistics: ", e);
           }
         });
   }

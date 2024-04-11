@@ -397,7 +397,7 @@ public class FileSystemManager {
             }
           });
     } catch (IOException e) {
-      LOGGER.error("get all files of {} failure", dir.getAbsolutePath(), e);
+      LOGGER.error("get all files of {} failure: ", dir.getAbsolutePath(), e);
     }
     return res;
   }

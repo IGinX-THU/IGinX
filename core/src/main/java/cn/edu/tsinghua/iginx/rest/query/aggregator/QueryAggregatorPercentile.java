@@ -27,8 +27,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryAggregatorPercentile extends QueryAggregator {
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryAggregatorPercentile.class);
+
   public QueryAggregatorPercentile() {
     super(QueryAggregatorType.PERCENTILE);
   }
@@ -96,7 +100,7 @@ public class QueryAggregatorPercentile extends QueryAggregator {
       }
       queryResultDataset.setSampleSize(datapoints);
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return queryResultDataset;
   }

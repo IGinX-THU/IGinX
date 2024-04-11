@@ -106,7 +106,7 @@ import org.slf4j.LoggerFactory;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
