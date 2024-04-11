@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -24,6 +25,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -81,6 +83,17 @@ public class DataSourceIT {
     }
   }
 
+  private static void checkRowCount(RowStream rowStream, int expectedCount)
+      throws PhysicalException {
+    int count = 0;
+    while (rowStream.hasNext()) {
+      rowStream.next();
+      count++;
+    }
+    rowStream.close();
+    Assert.assertEquals(expectedCount, count);
+  }
+
   private void clear() {
     TaskExecuteResult result =
         storage.executeDelete(
@@ -97,7 +110,7 @@ public class DataSourceIT {
   public void insertEmptyBody() {
     DataView EmptyDataView =
         MockClassGenerator.genRowDataViewNoKey(
-            new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
+            0, new ArrayList<>(), new ArrayList<>(), new ArrayList<>(), new Object[0]);
     Insert insert = new Insert(MockClassGenerator.genFragmentSource(), EmptyDataView);
     try {
       storage.executeInsert(insert, MockClassGenerator.genDataArea());
@@ -107,8 +120,8 @@ public class DataSourceIT {
     }
   }
 
-  private void insertData(int rows) {
-    List<String> pathList = Arrays.asList("us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4");
+  private void insertData(long start, int rows, String... paths) {
+    List<String> pathList = Arrays.asList(paths);
     List<Map<String, String>> tagsList =
         Arrays.asList(
             Collections.emptyMap(),
@@ -119,46 +132,96 @@ public class DataSourceIT {
         Arrays.asList(DataType.LONG, DataType.LONG, DataType.BINARY, DataType.DOUBLE);
     Object[] values = new Object[rows];
     for (int i = 0; i < rows; i++) {
-      values[i] =
-          new Object[] {
-            (long) i,
-            (long) i + 1,
-            ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
-            (i + 0.1d)
-          };
+      long key = start + (long) i;
+      Object[] row = new Object[paths.length];
+      for (int j = 0; j < paths.length; j++) {
+        switch (j % 4) {
+          case 0:
+            row[j] = key;
+            break;
+          case 1:
+            row[j] = key + 1;
+            break;
+          case 2:
+            row[j] = RandomStringUtils.randomAlphabetic(10);
+            break;
+          case 3:
+            row[j] = Math.random();
+            break;
+        }
+      }
+      values[i] = row;
     }
 
     DataView data =
-        MockClassGenerator.genRowDataViewNoKey(pathList, tagsList, dataTypeList, values);
+        MockClassGenerator.genRowDataViewNoKey(start, pathList, tagsList, dataTypeList, values);
     Insert insert = new Insert(MockClassGenerator.genFragmentSource(), data);
     TaskExecuteResult result = storage.executeInsert(insert, MockClassGenerator.genDataArea());
+
     checkResult(result);
   }
 
   @Test
-  public void insertCleanInsertReopenRead() throws PhysicalException {
+  public void insertClearInsert() throws PhysicalException {
     FragmentSource source = MockClassGenerator.genFragmentSource();
     DataArea dataArea = MockClassGenerator.genDataArea();
     Project project = new Project(source, Collections.singletonList("*"), null);
 
-    insertData(10);
+    insertData(0, 10, "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4");
     clear();
-    insertData(20);
+    insertData(0, 20, "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4");
     close();
     open();
 
     TaskExecuteResult result = storage.executeProject(project, dataArea);
     checkResult(result);
+    checkRowCount(result.getRowStream(), 20);
+  }
 
-    RowStream rowStream = result.getRowStream();
-    int count = 0;
-    while (rowStream.hasNext()) {
-      rowStream.next();
-      count++;
-    }
-    rowStream.close();
-    if (count != 20) {
-      fail();
-    }
+  @Test
+  public void deleteClearInsert() throws PhysicalException {
+    FragmentSource source = MockClassGenerator.genFragmentSource();
+    DataArea dataArea = MockClassGenerator.genDataArea();
+
+    insertData(0, 10, "us.d1.s1");
+    Delete delete =
+        new Delete(
+            source,
+            Collections.singletonList(new KeyRange(5, 10)),
+            Collections.singletonList("us.d1.*"),
+            null);
+    checkResult(storage.executeDelete(delete, dataArea));
+    clear();
+    close();
+    open();
+    insertData(0, 500000, "us.d1.s1");
+    insertData(0, 500000, "us.d1.s2");
+
+    Project project = new Project(source, Collections.singletonList("us.d1.s1"), null);
+    TaskExecuteResult result = storage.executeProject(project, dataArea);
+    checkResult(result);
+    checkRowCount(result.getRowStream(), 500000);
+  }
+
+  @Test
+  public void deleteRowsInMultiPart() throws PhysicalException {
+    FragmentSource source = MockClassGenerator.genFragmentSource();
+    DataArea dataArea = MockClassGenerator.genDataArea();
+
+    insertData(0, 500000, "us.d2.s2");
+    insertData(0, 500005, "us.d1.s3");
+
+    Delete delete =
+        new Delete(
+            source,
+            Collections.singletonList(new KeyRange(5, 10)),
+            Collections.singletonList("us.d1.*"),
+            null);
+    checkResult(storage.executeDelete(delete, dataArea));
+
+    Project project = new Project(source, Collections.singletonList("us.d1.*"), null);
+    TaskExecuteResult result = storage.executeProject(project, dataArea);
+    checkResult(result);
+    checkRowCount(result.getRowStream(), 500000);
   }
 }
