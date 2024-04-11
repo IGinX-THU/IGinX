@@ -30,6 +30,8 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -329,7 +331,8 @@ public class InfluxDBStorage implements IStorage {
             keyInterval.getEndKey());
 
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
-    InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, filter);
+    RowStream rowStream = new InfluxDBQueryRowStream(tables, project, filter);
+    rowStream = new ClearEmptyRowStreamWrapper(rowStream);
     return new TaskExecuteResult(rowStream);
   }
 
