@@ -25,10 +25,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,8 +34,12 @@ public class DataSourceIT {
 
   private IStorage storage = null;
 
-  private IStorage getCurrentStorage(ConfLoader conf) {
-    DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+  private final ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+  private final DBConf dbConf = conf.loadDBConf(conf.getStorageType());
+
+  private final boolean isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+
+  private IStorage getCurrentStorage() {
     String instance = dbConf.getClassName();
     try {
       Class<?> clazz = Class.forName(instance); // 获取类对象
@@ -69,7 +70,7 @@ public class DataSourceIT {
 
   private void open() {
     assertNull(storage);
-    storage = getCurrentStorage(new ConfLoader(Controller.CONFIG_FILE));
+    storage = getCurrentStorage();
   }
 
   private void close() throws PhysicalException {
@@ -101,6 +102,7 @@ public class DataSourceIT {
   }
 
   private void clear() {
+    LOGGER.info("clear data");
     TaskExecuteResult result =
         storage.executeDelete(
             new Delete(
@@ -110,6 +112,11 @@ public class DataSourceIT {
                 null),
             MockClassGenerator.genDataArea());
     checkResult(result);
+  }
+
+  private void assumeAbleToDelete() {
+    Assume.assumeTrue(
+        "delete is not supported in datasource: " + dbConf.getClassName(), isAbleToDelete);
   }
 
   @Test
@@ -186,6 +193,8 @@ public class DataSourceIT {
 
   @Test
   public void deleteClearInsert() throws PhysicalException {
+    assumeAbleToDelete();
+
     FragmentSource source = MockClassGenerator.genFragmentSource();
     DataArea dataArea = MockClassGenerator.genDataArea();
 
@@ -211,6 +220,8 @@ public class DataSourceIT {
 
   @Test
   public void deleteRowsInMultiPart() throws PhysicalException {
+    assumeAbleToDelete();
+
     FragmentSource source = MockClassGenerator.genFragmentSource();
     DataArea dataArea = MockClassGenerator.genDataArea();
 
