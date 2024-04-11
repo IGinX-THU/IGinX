@@ -3,6 +3,8 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.*;
 
+import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -28,7 +30,6 @@ public class PySessionIT {
 
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
-  private static String pythonCMD;
   private static final String PATH = String.join(File.separator, getHomePath(), "tests");
   protected static boolean isForSession = true;
   protected static boolean isForSessionPool = false;
@@ -44,22 +45,21 @@ public class PySessionIT {
     return Paths.get(iginxHomePath, "..", "session_py").toString();
   }
 
-  static {
-    String os = System.getProperty("os.name").toLowerCase();
-    System.out.println(os);
-    if (os.contains("windows")) {
-      pythonCMD = "python";
-    } else {
-      pythonCMD = "python3";
-    }
-  }
+  private static final Config config = ConfigDescriptor.getInstance().getConfig();
+  private static String pythonCMD = config.getPythonCMD();
 
   private static boolean isAbleToDelete = true;
+  private static PythonInterpreter interpreter;
 
   public PySessionIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     isAbleToDelete = dbConf.getEnumValue(DBConf.DBConfType.isAbleToDelete);
+    PythonInterpreterConfig config =
+        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
+    interpreter = new PythonInterpreter(config);
+    interpreter.exec("import tests");
+    interpreter.exec("t = tests.Tests()");
   }
 
   @BeforeClass
@@ -104,18 +104,7 @@ public class PySessionIT {
 
   private String runPythonScript(String functionName) throws IOException, InterruptedException {
     try {
-      PythonInterpreterConfig config =
-          PythonInterpreterConfig.newBuilder()
-              .setPythonExec(pythonCMD)
-              .addPythonPaths(PATH)
-              .build();
-      PythonInterpreter interpreter = new PythonInterpreter(config);
-
-      interpreter.exec("import tests");
-      interpreter.exec("t = tests.Tests()");
-
       String res = (String) interpreter.invokeMethod("t", functionName);
-      System.out.println(res);
       return res;
     } catch (RuntimeException e) {
       throw new RuntimeException(e);
@@ -125,26 +114,26 @@ public class PySessionIT {
   @Before
   public void insertBaseData() {
     try {
+      logger.info("Insert base data before executing pysession tests.");
       String output = runPythonScript("insertBaseDataset");
-      System.out.println(output);
+      logger.info(output);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("insert");
   }
 
   @Test
   public void testAQuery() {
     String result = "";
     try {
+      logger.info("Test A query");
       result = runPythonScript("query");
-      System.out.println(result);
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("query");
     String expected =
         String.join(
             "\n",
@@ -174,12 +163,13 @@ public class PySessionIT {
     String result = "";
     try {
       // 设置Python脚本路径
+      logger.info("Test downsample query");
       result = runPythonScript("downsampleQuery");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("downsample query");
     // 检查Python脚本的输出是否符合预期
     String expected =
         String.join(
@@ -198,12 +188,13 @@ public class PySessionIT {
   public void testShowColumnsQuery() {
     String result = "";
     try {
+      logger.info("Test show columns query");
       result = runPythonScript("showColumns");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("show columns query");
     // 检查Python脚本的输出是否符合预期
     assertTrue(result.contains("path\ttype\t"));
     assertTrue(result.contains("b'test.a.a'\t\tb'BINARY'\t\t"));
@@ -220,12 +211,13 @@ public class PySessionIT {
   public void testAggregateQuery() {
     String result = "";
     try {
+      logger.info("Test aggregate query");
       result = runPythonScript("aggregateQuery");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("aggregate query");
     // 检查Python脚本的输出是否符合预期
     String expected =
         String.join(
@@ -240,12 +232,13 @@ public class PySessionIT {
   public void testLastQuery() {
     String result = "";
     try {
+      logger.info("Test last query");
       result = runPythonScript("lastQuery");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("last query");
     // 检查Python脚本的输出是否符合预期
     String expected =
         String.join(
@@ -266,12 +259,13 @@ public class PySessionIT {
     }
     String result = "";
     try {
+      logger.info("Test delete column query");
       result = runPythonScript("deleteColumn");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("delete column query");
     String expected =
         String.join(
             "\n",
@@ -290,15 +284,15 @@ public class PySessionIT {
   public void testAddStorageEngine() {
     String output = "";
     try {
+      logger.info("add storage engine");
       output = runPythonScript("addStorageEngine");
+      logger.info(output);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("add and delete storage engine");
     String[] lines = output.split("\n");
     List<String> result = Arrays.asList(lines);
-    System.out.println(result);
     // 如果是pg
     if (result.size() > 0
         && "The storage engine has been added, please delete it first".equals(result.get(0))) {
@@ -315,12 +309,13 @@ public class PySessionIT {
   public void testInsert() {
     String result = "";
     try {
+      logger.info("insert data");
       result = runPythonScript("insert");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("insert");
     // 检查Python脚本的输出是否符合预期
     String expected =
         String.join(
@@ -374,12 +369,13 @@ public class PySessionIT {
     }
     String result = "";
     try {
+      logger.info("delete row");
       result = runPythonScript("deleteRow");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("delete row");
     // 检查Python脚本的输出是否符合预期
     String expected =
         String.join(
@@ -405,12 +401,13 @@ public class PySessionIT {
   public void testDebugInfo() {
     String result = "";
     try {
+      logger.info("get debug info");
       result = runPythonScript("getDebugInfo");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("get debug info");
     // 检查Python脚本的输出是否符合预期
     // assertEquals(expected, result);
   }
@@ -422,12 +419,13 @@ public class PySessionIT {
     }
     String result = "";
     try {
+      logger.info("load csv");
       result = runPythonScript("loadCSV");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("load csv without header");
     // 检查Python脚本的输出是否符合预期
     String expected =
         String.join(
@@ -450,19 +448,19 @@ public class PySessionIT {
   public void testLoadDirectory() {
     String result = "";
     try {
+      logger.info("load directory");
       result = runPythonScript("loadDirectory");
+      logger.info(result);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("load csv without header");
     // 检查Python脚本的输出是否符合预期
     List<String> expected = Arrays.asList("key\tdir.a\tdir.b\t", "0\t\tb'1'\t\tb'4'\t\t");
     // keep result[-3:] to check if the data is loaded successfully
-    System.out.println(result);
     String[] lines = result.split("\n");
     List<String> resultLines = Arrays.asList(lines);
-    System.out.println(resultLines);
+    logger.info(resultLines.toString());
     assertTrue(resultLines.size() >= 2);
     assertEquals(resultLines.subList(resultLines.size() - 2, resultLines.size()), expected);
   }
@@ -471,18 +469,20 @@ public class PySessionIT {
   public void testExport() {
     List<String> result = new ArrayList<>();
     try {
+      logger.info("export to file");
       String tmp = runPythonScript("exportToFile");
+      logger.info(tmp);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("load csv without header");
     // 验证写入stream是否成功
-    String streamPathPrefix = System.getProperty("user.dir") + "/../generated/";
+    String streamPathPrefix =
+        String.join(File.separator, System.getProperty("user.dir"), "..", "generated");
     List<String> streamFiles = Arrays.asList("test.a.a", "test.a.b", "test.b.b", "test.c.c");
     result.clear();
     for (String streamFile : streamFiles) {
-      String streamPath = streamPathPrefix + streamFile;
+      String streamPath = streamPathPrefix + File.separator + streamFile;
       try (BufferedReader reader = new BufferedReader(new FileReader(streamPath))) {
         String line;
         while ((line = reader.readLine()) != null) {
@@ -496,7 +496,9 @@ public class PySessionIT {
     List<String> expected = Arrays.asList("aQ", "bW", "bE", "cR");
     assertEquals(expected, result);
     // 验证写入csv文件是否成功
-    String outputPath = System.getProperty("user.dir") + "/../generated/output.csv";
+    String outputPath =
+        String.join(
+            File.separator, System.getProperty("user.dir"), "..", "generated", "output.csv");
     expected =
         Arrays.asList(
             "key,test.a.a,test.a.b,test.b.b,test.c.c",
@@ -524,13 +526,12 @@ public class PySessionIT {
       return;
     }
     try {
+      logger.info("Clear all data after executing pysession tests.");
       String output = runPythonScript("deleteAll");
-      System.out.println(output);
     } catch (IOException | InterruptedException e) {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
-    System.out.println("delete all");
   }
 
   @AfterClass
