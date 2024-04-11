@@ -25,7 +25,7 @@ import org.slf4j.LoggerFactory;
 
 public class RpcUtils {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(RpcUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RpcUtils.class);
 
   public static Status WRONG_USERNAME_OR_PASSWORD =
       new Status(StatusCode.WRONG_USERNAME_OR_PASSWORD.getStatusCode());

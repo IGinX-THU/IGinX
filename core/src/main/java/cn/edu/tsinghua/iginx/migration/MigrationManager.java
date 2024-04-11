@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class MigrationManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(MigrationManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MigrationManager.class);
 
   private static final MigrationManager instance = new MigrationManager();
 
@@ -38,7 +38,7 @@ public class MigrationManager {
           policy = clazz.getConstructor().newInstance();
           policies.put(policyClassName, policy);
         } catch (Exception e) {
-          logger.error(e.getMessage());
+          LOGGER.error("Failed to load policy: {}", policyClassName, e);
         }
       }
     }
