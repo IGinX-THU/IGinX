@@ -205,15 +205,15 @@ public class PySessionIT {
     }
     System.out.println("show columns query");
     // 检查Python脚本的输出是否符合预期
-    //    assertTrue(result.contains("path\ttype\t"));
-    //    assertTrue(result.contains("b'test.a.a'\t\tb'BINARY'\t\t"));
-    //    assertTrue(result.contains("b'test.a.b'\t\tb'BINARY'\t\t"));
-    //    assertTrue(result.contains("b'test.b.b'\t\tb'BINARY'\t\t"));
-    //    assertTrue(result.contains("b'test.c.c'\t\tb'BINARY'\t\t"));
-    //    assertTrue(result.contains("test.a.a BINARY"));
-    //    assertTrue(result.contains("test.a.b BINARY"));
-    //    assertTrue(result.contains("test.b.b BINARY"));
-    //    assertTrue(result.contains("test.c.c BINARY"));
+    assertTrue(result.contains("path\ttype\t"));
+    assertTrue(result.contains("b'test.a.a'\t\tb'BINARY'\t\t"));
+    assertTrue(result.contains("b'test.a.b'\t\tb'BINARY'\t\t"));
+    assertTrue(result.contains("b'test.b.b'\t\tb'BINARY'\t\t"));
+    assertTrue(result.contains("b'test.c.c'\t\tb'BINARY'\t\t"));
+    assertTrue(result.contains("test.a.a BINARY"));
+    assertTrue(result.contains("test.a.b BINARY"));
+    assertTrue(result.contains("test.b.b BINARY"));
+    assertTrue(result.contains("test.c.c BINARY"));
   }
 
   @Test
