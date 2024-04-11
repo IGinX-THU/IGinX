@@ -24,11 +24,17 @@ from iginx.iginx_pyclient.session import Session
 from iginx.iginx_pyclient.thrift.rpc.ttypes import DebugInfoType
 
 
-if __name__ == '__main__':
-    session = Session('127.0.0.1', 6888, "root", "root")
-    session.open()
+class GetDebugInfo:
+    def __init__(self):
+        pass
 
-    dataset = session.get_debug_info("".encode(), DebugInfoType.GET_META)
-    print(dataset.decode())
+    def test(self):
+        retStr = ""
+        session = Session('127.0.0.1', 6888, "root", "root")
+        session.open()
 
-    session.close()
+        dataset = session.get_debug_info("".encode(), DebugInfoType.GET_META)
+        retStr += dataset.decode() + "\n"
+
+        session.close()
+        return retStr

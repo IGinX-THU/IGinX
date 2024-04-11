@@ -25,15 +25,21 @@ from iginx.iginx_pyclient.session import Session
 from iginx.iginx_pyclient.thrift.rpc.ttypes import AggregateType
 
 
-if __name__ == '__main__':
-    session = Session('127.0.0.1', 6888, "root", "root")
-    session.open()
+class DownsampleQuery:
+    def __init__(self):
+        pass
 
-    try:
-        dataset = session.downsample_query(["test.*"], start_time=0, end_time=10, type=AggregateType.COUNT, precision=3)
-        print(dataset)
-    except Exception as e:
-        print(e)
-        exit(1)
+    def test(self):
+        retStr = ""
+        session = Session('127.0.0.1', 6888, "root", "root")
+        session.open()
 
-    session.close()
+        try:
+            dataset = session.downsample_query(["test.*"], start_time=0, end_time=10, type=AggregateType.COUNT, precision=3)
+            retStr += str(dataset)
+        except Exception as e:
+            print(e)
+            exit(1)
+
+        session.close()
+        return retStr

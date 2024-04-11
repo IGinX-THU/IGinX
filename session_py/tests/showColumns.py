@@ -25,34 +25,40 @@ except ImportError:
     print("Please use `pip install -e .` to install this package.")
     exit(1)
 
-if __name__ == '__main__':
-    try:
-        session = Session('127.0.0.1', 6888, "root", "root")
-        session.open()
+class ShowColumns:
+    def __init__(self):
+        pass
 
-        # 使用 SQL 语句查询时间序列
-        dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
+    def test(self):
+        retStr = ""
+        try:
+            session = Session('127.0.0.1', 6888, "root", "root")
+            session.open()
 
-        columns = dataset.columns()
-        for column in columns:
-            print(column, end="\t")
-        print()
+            # 使用 SQL 语句查询时间序列
+            dataset = session.execute_statement("SHOW COLUMNS;", fetch_size=2)
 
-        while dataset.has_more():
-            row = dataset.next()
-            for field in row:
-                print(str(field), end="\t\t")
-            print()
-        print()
+            columns = dataset.columns()
+            for column in columns:
+                retStr += str(column) + "\t"
+            retStr += "\n"
 
-        dataset.close()
+            while dataset.has_more():
+                row = dataset.next()
+                for field in row:
+                    retStr += str(field) + "\t\t"
+                retStr += "\n"
+            retStr += "\n"
 
-        # 使用 list_time_series() 接口查询时间序列
-        timeSeries = session.list_time_series()
-        for ts in timeSeries:
-            print(ts)
+            dataset.close()
 
-        session.close()
-    except Exception as e:
-        print(e)
-        exit(1)
+            # 使用 list_time_series() 接口查询时间序列
+            timeSeries = session.list_time_series()
+            for ts in timeSeries:
+                retStr += str(ts) + "\n"
+
+            session.close()
+            return retStr
+        except Exception as e:
+            print(e)
+            exit(1)

@@ -23,16 +23,21 @@ from iginx.iginx_pyclient.session import Session
 import traceback
 
 
-if __name__ == '__main__':
-    session = Session('127.0.0.1', 6888, "root", "root")
-    session.open()
-    try:
-        # 将数据存入csv
-        session.export_to_file("select * from test into outfile \"../generated/output.csv\" as csv with header;")
-        # 将数据存入文件
-        session.export_to_file("select * from test into outfile \"../generated\" as stream;")
-    except Exception as e:
-        traceback.print_exc()
-        print(e)
-        exit(1)
-    session.close()
+class ExportToFile:
+    def __init__(self):
+        pass
+
+    def test(self):
+        session = Session('127.0.0.1', 6888, "root", "root")
+        session.open()
+        try:
+            # 将数据存入csv
+            session.export_to_file("select * from test into outfile \"../generated/output.csv\" as csv with header;")
+            # 将数据存入文件
+            session.export_to_file("select * from test into outfile \"../generated\" as stream;")
+        except Exception as e:
+            traceback.print_exc()
+            print(e)
+            exit(1)
+        session.close()
+        return ""

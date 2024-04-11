@@ -24,22 +24,21 @@ from iginx.iginx_pyclient.session import Session
 from iginx.iginx_pyclient.thrift.rpc.ttypes import AggregateType
 import pandas as pd
 
-if __name__ == '__main__':
-    try:
-        session = Session('127.0.0.1', 6888, "root", "root")
-        session.open()
+class AggregateQuery:
+    def __init__(self):
+        pass
 
-        # 统计每个序列的点数
-        dataset = session.aggregate_query(["test.*"], 0, 10, AggregateType.COUNT)
-        print(dataset)
-        # 转换为pandas.Dataframe
-        df_list = dataset.to_df()
-        pd.set_option('display.max_columns', None)
-        pd.set_option('display.width', None)
-        for df in df_list:
-            print(df)
+    def test(self):
+        retStr = ""
+        try:
+            session = Session('127.0.0.1', 6888, "root", "root")
+            session.open()
 
-        session.close()
-    except Exception as e:
-        print(e)
-        exit(1)
+            # 统计每个序列的点数
+            dataset = session.aggregate_query(["test.*"], 0, 10, AggregateType.COUNT)
+            retStr += str(dataset)
+            session.close()
+            return retStr
+        except Exception as e:
+            print(e)
+            exit(1)

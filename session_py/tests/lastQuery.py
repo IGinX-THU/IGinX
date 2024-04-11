@@ -23,12 +23,18 @@ sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜�
 from iginx.iginx_pyclient.session import Session
 
 
-if __name__ == '__main__':
-    session = Session('127.0.0.1', 6888, "root", "root")
-    session.open()
+class LastQuery:
+    def __init__(self):
+        pass
 
-    # 获取部分序列的最后一个数据点
-    dataset = session.last_query(["test.*"], 0)
-    print(dataset)
+    def test(self):
+        retStr = ""
+        session = Session('127.0.0.1', 6888, "root", "root")
+        session.open()
 
-    session.close()
+        # 获取部分序列的最后一个数据点
+        dataset = session.last_query(["test.*"], 0)
+        retStr += str(dataset)
+
+        session.close()
+        return retStr

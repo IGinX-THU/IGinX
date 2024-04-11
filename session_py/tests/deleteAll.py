@@ -24,26 +24,31 @@ from iginx.iginx_pyclient.session import Session
 import traceback
 
 
-if __name__ == '__main__':
-    session = Session('127.0.0.1', 6888, "root", "root")
-    session.open()
-    try:
-        session.batch_delete_time_series(["*"])
-    except Exception as e:
-        if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
-                      "been cleared."):
-            exit(0)
-        traceback.print_exc()
-        print(e)
-        exit(1)
-    finally:
-        # 查询删除全部后剩余的数据
+class DeleteAll:
+    def __init__(self):
+        pass
+
+    def test(self):
+        session = Session('127.0.0.1', 6888, "root", "root")
+        session.open()
         try:
-            dataset = session.query(["test.*"], 0, 10)
-            print(dataset)
+            session.batch_delete_time_series(["*"])
         except Exception as e:
+            if str(e) == ("Error occurs: Unable to delete data from read-only nodes. The data of the writable nodes has "
+                          "been cleared."):
+                exit(0)
             traceback.print_exc()
             print(e)
             exit(1)
         finally:
-            session.close()
+            # 查询删除全部后剩余的数据
+            try:
+                dataset = session.query(["test.*"], 0, 10)
+                print(dataset)
+            except Exception as e:
+                traceback.print_exc()
+                print(e)
+                exit(1)
+            finally:
+                session.close()
+                return ""

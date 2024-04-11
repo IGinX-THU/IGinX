@@ -23,38 +23,43 @@ sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜�
 from iginx.iginx_pyclient.session import Session
 
 
-if __name__ == '__main__':
-    try:
-        session = Session('127.0.0.1', 6888, "root", "root")
-        session.open()
+class LoadCSV:
+    def __init__(self):
+        pass
 
-        # calculate file path
-        import os
-        # print(os.getcwd())
-        # 这里在用junit test运行时，对应的路径为： Iginx/test
-        path = os.getcwd() + '/../session_py/tests/files/a.csv'
-        statement = f"LOAD DATA FROM INFILE '{path}' AS CSV INTO test(key, a.a, a.b, b.b, c.c);"
-        resp = session.load_csv(statement)
-        print(resp)
+    def test(self):
+        retStr = ""
+        try:
+            session = Session('127.0.0.1', 6888, "root", "root")
+            session.open()
 
-        # 使用 SQL 语句查询写入的数据
-        dataset = session.execute_statement("select * from test;", fetch_size=2)
+            # calculate file path
+            import os
+            # print(os.getcwd())
+            # 这里在用junit test运行时，对应的路径为： Iginx/test
+            path = os.getcwd() + '/../session_py/tests/files/a.csv'
+            statement = f"LOAD DATA FROM INFILE '{path}' AS CSV INTO test(key, a.a, a.b, b.b, c.c);"
+            resp = session.load_csv(statement)
+            retStr += str(resp) + "\n"
 
-        columns = dataset.columns()
-        for column in columns:
-            print(column, end="\t")
-        print()
+            # 使用 SQL 语句查询写入的数据
+            dataset = session.execute_statement("select * from test;", fetch_size=2)
 
-        while dataset.has_more():
-            row = dataset.next()
-            for field in row:
-                print(str(field), end="\t\t")
-            print()
-        print()
+            columns = dataset.columns()
+            for column in columns:
+                retStr += column + "\t"
+            retStr += "\n"
 
-        dataset.close()
+            while dataset.has_more():
+                row = dataset.next()
+                for field in row:
+                    retStr += str(field) + "\t\t"
+                retStr += "\n"
 
-        session.close()
-    except Exception as e:
-        print(e)
-        exit(1)
+            dataset.close()
+
+            session.close()
+            return retStr
+        except Exception as e:
+            print(e)
+            exit(1)
