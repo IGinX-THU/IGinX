@@ -808,7 +808,6 @@ public class PostgreSQLStorage implements IStorage {
                   databaseNameList, resultSets, true, filter, project.getTagFilter(), connList));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
-      LOGGER.error("execute project task in postgresql failure", e);
       return new TaskExecuteResult(
           new PostgresqlTaskExecuteFailureException(
               "execute project task in postgresql failure", e));
@@ -1567,8 +1566,7 @@ public class PostgreSQLStorage implements IStorage {
       }
       stmt.close();
     } catch (SQLException e) {
-      LOGGER.error("encounter error when inserting non-aligned column records", e);
-      return e;
+      return new SQLException("encounter error when inserting non-aligned column records", e);
     }
 
     return null;

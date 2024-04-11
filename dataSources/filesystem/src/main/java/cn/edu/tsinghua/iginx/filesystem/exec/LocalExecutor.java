@@ -192,8 +192,8 @@ public class LocalExecutor implements Executor {
           break;
       }
     } catch (IOException e) {
-      LOGGER.error("encounter error when inserting data: ", e);
-      return new TaskExecuteResult(null, new FilesystemException(e));
+      return new TaskExecuteResult(
+          null, new FilesystemException("encounter error when inserting data: ", e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -227,8 +227,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      LOGGER.error("encounter error when inserting row records to fileSystem: ", e);
-      throw e;
+      throw new IOException("encounter error when inserting row records to fileSystem: ", e);
     }
   }
 
@@ -260,8 +259,7 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      LOGGER.error("encounter error when inserting column records to fileSystem: ", e);
-      throw e;
+      throw new IOException("encounter error when inserting column records to fileSystem: ", e);
     }
   }
 
