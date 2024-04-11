@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Set;
 
 public class PathUnionLazyStream extends BinaryLazyStream {
+
   private final PathUnion union;
 
   private boolean hasInitialized = false;
