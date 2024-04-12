@@ -11,7 +11,7 @@ public class Escaper {
 
   public Escaper(char escapePrefix, Map<Character, Character> replacementMap) {
     this.escapePrefix = escapePrefix;
-    this.replacementMap = replacementMap;
+    this.replacementMap = new HashMap<>(replacementMap);
     this.reverseReplacementMap = new HashMap<>();
     for (Map.Entry<Character, Character> entry : replacementMap.entrySet()) {
       if (reverseReplacementMap.containsKey(entry.getValue())) {
@@ -19,6 +19,21 @@ public class Escaper {
       }
       reverseReplacementMap.put(entry.getValue(), entry.getKey());
     }
+    if (escape(escapePrefix) == null) {
+      throw new IllegalArgumentException("replacementMap should contain escapePrefix");
+    }
+  }
+
+  public char getEscapePrefix() {
+    return escapePrefix;
+  }
+
+  public Character escape(char c) {
+    return replacementMap.get(c);
+  }
+
+  public Character unescape(char c) {
+    return reverseReplacementMap.get(c);
   }
 
   public String escape(CharSequence input) {
@@ -34,23 +49,25 @@ public class Escaper {
         sb.append(escapePrefix);
         sb.append(replacementMap.get(c));
       } else {
-        if (c == escapePrefix) {
-          throw new IllegalArgumentException("replacementMap should contain escape character");
-        }
         sb.append(c);
       }
     }
   }
 
   public String unescape(CharSequence input) throws ParseException {
+    return unescape(input, 0, input.length());
+  }
+
+  public String unescape(CharSequence input, int start, int end) throws ParseException {
     StringBuilder sb = new StringBuilder();
-    unescape(input, sb);
+    unescape(input, start, end, sb);
     return sb.toString();
   }
 
-  public void unescape(CharSequence input, StringBuilder sb) throws ParseException {
+  public void unescape(CharSequence input, int start, int end, StringBuilder sb)
+      throws ParseException {
     boolean escaped = false;
-    for (int i = 0; i < input.length(); i++) {
+    for (int i = start; i < end; i++) {
       char c = input.charAt(i);
       if (escaped) {
         Character replacement = reverseReplacementMap.get(c);

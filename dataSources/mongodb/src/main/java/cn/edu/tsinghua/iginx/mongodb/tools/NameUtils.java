@@ -1,6 +1,7 @@
 package cn.edu.tsinghua.iginx.mongodb.tools;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.ColumnKeyTranslator;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -18,20 +19,22 @@ public class NameUtils {
 
   private static final char NAME_SEPARATOR = '/';
 
+  private static final ColumnKeyTranslator COLUMN_KEY_TRANSLATOR =
+      new ColumnKeyTranslator(',', '=', getEscaper());
+
   private static Escaper getEscaper() {
     Map<Character, Character> replacementMap = new HashMap<>();
     replacementMap.put('\\', '\\');
+    replacementMap.put(',', ',');
+    replacementMap.put('=', '=');
     replacementMap.put('$', '!');
     replacementMap.put('\0', 'b');
     return new Escaper('\\', replacementMap);
   }
 
-  private static final Escaper ESCAPER = getEscaper();
-
   public static String getCollectionName(Field field) {
     ColumnKey columnKey = new ColumnKey(field.getName(), field.getTags());
-    String name = columnKey.toIdentifier();
-    String escapedName = ESCAPER.escape(name);
+    String escapedName = COLUMN_KEY_TRANSLATOR.translate(columnKey);
     return NAME_SEPARATOR + escapedName + NAME_SEPARATOR + field.getType().name();
   }
 
@@ -52,8 +55,7 @@ public class NameUtils {
     String typeName = collectionName.substring(lastSepIndex + 1);
     DataType type = DataType.valueOf(typeName);
     String name = collectionName.substring(1, lastSepIndex);
-    String unescapedName = ESCAPER.unescape(name);
-    ColumnKey columnKey = ColumnKey.parseIdentifier(unescapedName);
+    ColumnKey columnKey = COLUMN_KEY_TRANSLATOR.translate(name);
     return new Field(columnKey.getPath(), type, columnKey.getTags());
   }
 

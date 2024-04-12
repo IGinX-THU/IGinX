@@ -1,42 +1,83 @@
-package cn.edu.tsinghua.iginx.engine.physical.storage.domain;
+package cn.edu.tsinghua.iginx.engine.physical.storage.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
+import cn.edu.tsinghua.iginx.utils.Escaper;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
-import org.apache.commons.text.RandomStringGenerator;
+import java.util.function.Supplier;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
-public class ColumnKeyTest {
+public class ColumnKeyTranslatorTest {
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSameSeparator() {
+    Map<Character, Character> map = new HashMap<>();
+    map.put('\\', '\\');
+    map.put('a', 'a');
+    map.put('b', 'b');
+    new ColumnKeyTranslator('a', 'a', new Escaper('\\', map));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSameEscapePrefixWithTagSep() {
+    Map<Character, Character> map = new HashMap<>();
+    map.put('\\', '\\');
+    map.put('b', 'b');
+    new ColumnKeyTranslator('\\', 'b', new Escaper('\\', map));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testSameEscapePrefixWithKvSep() {
+    Map<Character, Character> map = new HashMap<>();
+    map.put('\\', '\\');
+    map.put('a', 'a');
+    new ColumnKeyTranslator('a', '\\', new Escaper('\\', map));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testCannotEscapeTagSep() {
+    Map<Character, Character> map = new HashMap<>();
+    map.put('\\', '\\');
+    map.put('b', 'b');
+    new ColumnKeyTranslator('a', 'b', new Escaper('\\', map));
+  }
+
+  @Test(expected = IllegalArgumentException.class)
+  public void testCannotEscapeKvSep() {
+    Map<Character, Character> map = new HashMap<>();
+    map.put('\\', '\\');
+    map.put('a', 'a');
+    new ColumnKeyTranslator('a', 'b', new Escaper('\\', map));
+  }
+
+  private static ColumnKeyTranslator getTranslator() {
+    Map<Character, Character> map = new HashMap<>();
+    map.put('\\', '\\');
+    map.put(',', ',');
+    map.put('=', '=');
+    return new ColumnKeyTranslator(',', '=', new Escaper('\\', map));
+  }
+
+  @Test
+  public void testConstructor() {
+    getTranslator();
+  }
 
   @Test
   public void toIdentifier() {
-    // When tag is null
-    try {
-      String path = "path";
-      Map<String, String> tags = null;
-      new ColumnKey(path, tags);
-      Assert.fail("Should throw NullPointerException");
-    } catch (NullPointerException ignored) {
-    }
-
-    // When path is null
-    try {
-      String path = null;
-      Map<String, String> tags = Collections.emptyMap();
-      new ColumnKey(path, tags);
-      Assert.fail("Should throw NullPointerException");
-    } catch (NullPointerException ignored) {
-    }
+    ColumnKeyTranslator translator = getTranslator();
 
     // When tag is empty
     {
       String path = "path";
       Map<String, String> tags = Collections.emptyMap();
       ColumnKey columnKey = new ColumnKey(path, tags);
-      String identifier = columnKey.toIdentifier();
+      String identifier = translator.translate(columnKey);
       Assert.assertEquals(path, identifier);
     }
 
@@ -45,7 +86,7 @@ public class ColumnKeyTest {
       String path = "path";
       Map<String, String> tags = Collections.singletonMap("tag", "value");
       ColumnKey columnKey = new ColumnKey(path, tags);
-      String identifier = columnKey.toIdentifier();
+      String identifier = translator.translate(columnKey);
       Assert.assertEquals("path,tag=value", identifier);
     }
 
@@ -56,7 +97,7 @@ public class ColumnKeyTest {
       tags.put("tag1", "value1");
       tags.put("tag2", "value2");
       ColumnKey columnKey = new ColumnKey(path, tags);
-      String identifier = columnKey.toIdentifier();
+      String identifier = translator.translate(columnKey);
       Assert.assertEquals("path,tag1=value1,tag2=value2", identifier);
     }
 
@@ -68,7 +109,7 @@ public class ColumnKeyTest {
       tags.put("=ta=g2==", "==val=ue=");
       tags.put("\\ta\\g3\\\\", "\\\\val\\ue\\");
       ColumnKey columnKey = new ColumnKey(path, tags);
-      String identifier = columnKey.toIdentifier();
+      String identifier = translator.translate(columnKey);
       Assert.assertEquals(
           "\\\\p\\,a\\=t\\\\h\\,,\\,\\,ta\\,g1\\,=\\,val\\,ue\\,\\,,\\=ta\\=g2\\=\\==\\=\\=val\\=ue\\=,\\\\ta\\\\g3\\\\\\\\=\\\\\\\\val\\\\ue\\\\",
           identifier);
@@ -77,12 +118,14 @@ public class ColumnKeyTest {
 
   @Test
   public void parse() throws ParseException {
+    ColumnKeyTranslator translator = getTranslator();
+
     // When tag is empty
     {
       String path = "path";
       Map<String, String> tags = Collections.emptyMap();
       ColumnKey columnKey = new ColumnKey(path, tags);
-      ColumnKey parsedColumnKey = ColumnKey.parseIdentifier(path);
+      ColumnKey parsedColumnKey = translator.translate(translator.translate(columnKey));
       Assert.assertEquals(columnKey, parsedColumnKey);
     }
 
@@ -91,7 +134,7 @@ public class ColumnKeyTest {
       String path = "path";
       Map<String, String> tags = Collections.singletonMap("tag", "value");
       ColumnKey columnKey = new ColumnKey(path, tags);
-      ColumnKey parsedColumnKey = ColumnKey.parseIdentifier("path,tag=value");
+      ColumnKey parsedColumnKey = translator.translate("path,tag=value");
       Assert.assertEquals(columnKey, parsedColumnKey);
     }
 
@@ -102,7 +145,7 @@ public class ColumnKeyTest {
       tags.put("tag1", "value1");
       tags.put("tag2", "value2");
       ColumnKey columnKey = new ColumnKey(path, tags);
-      ColumnKey parsedColumnKey = ColumnKey.parseIdentifier("path,tag1=value1,tag2=value2");
+      ColumnKey parsedColumnKey = translator.translate("path,tag1=value1,tag2=value2");
       Assert.assertEquals(columnKey, parsedColumnKey);
     }
 
@@ -115,41 +158,39 @@ public class ColumnKeyTest {
       tags.put("\\ta\\g3\\\\", "\\\\val\\ue\\");
       ColumnKey columnKey = new ColumnKey(path, tags);
       ColumnKey parsedColumnKey =
-          ColumnKey.parseIdentifier(
+          translator.translate(
               "\\\\p\\,a\\=t\\\\h\\,,\\,\\,ta\\,g1\\,=\\,val\\,ue\\,\\,,\\=ta\\=g2\\=\\==\\=\\=val\\=ue\\=,\\\\ta\\\\g3\\\\\\\\=\\\\\\\\val\\\\ue\\\\");
       Assert.assertEquals(columnKey, parsedColumnKey);
     }
   }
 
-  private static void testWithStringGenerator(
-      RandomStringGenerator randomStringGenerator, int times) throws ParseException {
+  private static void testWithStringGenerator(Supplier<String> stringSupplier, int times)
+      throws ParseException {
+    ColumnKeyTranslator translator = getTranslator();
     Random random = new Random();
     for (int i = 0; i < times; i++) {
-      String path = randomStringGenerator.generate(0, 20);
+      String path = stringSupplier.get();
       Map<String, String> tags = new HashMap<>();
       int tagCount = random.nextInt(10);
       for (int j = 0; j < tagCount; j++) {
-        String tag = randomStringGenerator.generate(0, 10);
-        String value = randomStringGenerator.generate(0, 10);
+        String tag = stringSupplier.get();
+        String value = stringSupplier.get();
         tags.put(tag, value);
       }
       ColumnKey columnKey = new ColumnKey(path, tags);
-      String identifier = columnKey.toIdentifier();
-      ColumnKey parsedColumnKey = ColumnKey.parseIdentifier(identifier);
+      String identifier = translator.translate(columnKey);
+      ColumnKey parsedColumnKey = translator.translate(identifier);
       Assert.assertEquals(columnKey, parsedColumnKey);
     }
   }
 
   @Test
   public void randomColumnKeysAllCodePoint() throws ParseException {
-    RandomStringGenerator randomStringGenerator = new RandomStringGenerator.Builder().build();
-    testWithStringGenerator(randomStringGenerator, 1000);
+    testWithStringGenerator(() -> RandomStringUtils.random(10), 1000);
   }
 
   @Test
   public void randomColumnKeysAscii() throws ParseException {
-    RandomStringGenerator randomStringGenerator =
-        new RandomStringGenerator.Builder().withinRange(0, 127).build();
-    testWithStringGenerator(randomStringGenerator, 1000);
+    testWithStringGenerator(() -> RandomStringUtils.randomAscii(10), 2000);
   }
 }

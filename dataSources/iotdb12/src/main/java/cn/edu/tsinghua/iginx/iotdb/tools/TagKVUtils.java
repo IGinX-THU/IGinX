@@ -19,13 +19,12 @@
 package cn.edu.tsinghua.iginx.iotdb.tools;
 
 import cn.edu.tsinghua.iginx.conf.Config;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.ColumnKeyTranslator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.utils.Escaper;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -35,11 +34,44 @@ public class TagKVUtils {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(TagKVUtils.class);
 
+  private static final ColumnKeyTranslator COLUMN_KEY_TRANSLATOR =
+      new ColumnKeyTranslator(',', '=', getEscaper());
+
+  private static Escaper getEscaper() {
+    Map<Character, Character> replacementMap = new HashMap<>();
+    replacementMap.put('\\', '\\');
+    replacementMap.put(',', ',');
+    replacementMap.put('=', '=');
+    return new Escaper('\\', replacementMap);
+  }
+
   public static final String tagNameAnnotation = Config.tagNameAnnotation;
 
   public static final String tagPrefix = Config.tagPrefix;
 
   public static final String tagSuffix = Config.tagSuffix;
+
+  public static String toFullName(String path, Map<String, String> tags) {
+    path += '.';
+    path += tagPrefix;
+    if (tags != null && !tags.isEmpty()) {
+      TreeMap<String, String> sortedTags = new TreeMap<>(tags);
+      StringBuilder pathBuilder = new StringBuilder();
+      sortedTags.forEach(
+          (tagKey, tagValue) -> {
+            pathBuilder
+                .append('.')
+                .append(tagNameAnnotation)
+                .append(tagKey)
+                .append('.')
+                .append(tagValue);
+          });
+      path += pathBuilder.toString();
+    }
+    path += '.';
+    path += tagSuffix;
+    return path;
+  }
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
     if (!fullName.contains(tagPrefix)) {

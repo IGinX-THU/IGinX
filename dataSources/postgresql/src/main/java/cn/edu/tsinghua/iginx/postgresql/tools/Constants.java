@@ -1,9 +1,9 @@
 package cn.edu.tsinghua.iginx.postgresql.tools;
 
 public class Constants {
-  public static final String TAGKV_EQUAL = "=";
+  public static final char TAGKV_EQUAL = '=';
 
-  public static final String TAGKV_SEPARATOR = "-";
+  public static final char TAGKV_SEPARATOR = '-';
 
   public static final int BATCH_SIZE = 10000;
 

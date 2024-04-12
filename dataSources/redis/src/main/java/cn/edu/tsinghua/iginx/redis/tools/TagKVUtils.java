@@ -19,11 +19,14 @@
 package cn.edu.tsinghua.iginx.redis.tools;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.ColumnKeyTranslator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.utils.Escaper;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.text.ParseException;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
@@ -34,16 +37,28 @@ public class TagKVUtils {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(TagKVUtils.class);
 
+  private static final ColumnKeyTranslator COLUMN_KEY_TRANSLATOR =
+      new ColumnKeyTranslator(',', '=', getEscaper());
+
+  private static Escaper getEscaper() {
+    Map<Character, Character> replacementMap = new HashMap<>();
+    replacementMap.put('\\', '\\');
+    replacementMap.put(',', ',');
+    replacementMap.put('=', '=');
+    return new Escaper('\\', replacementMap);
+  }
+
   public static String toFullName(String name, Map<String, String> tags) {
     if (tags == null) {
       tags = Collections.emptyMap();
     }
-    return new ColumnKey(name, tags).toIdentifier();
+    ColumnKey columnKey = new ColumnKey(name, tags);
+    return COLUMN_KEY_TRANSLATOR.translate(columnKey);
   }
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
     try {
-      ColumnKey columnKey = ColumnKey.parseIdentifier(fullName);
+      ColumnKey columnKey = COLUMN_KEY_TRANSLATOR.translate(fullName);
       return new Pair<>(columnKey.getPath(), columnKey.getTags());
     } catch (ParseException e) {
       throw new IllegalStateException("Failed to parse identifier: " + fullName, e);
@@ -51,7 +66,7 @@ public class TagKVUtils {
   }
 
   public static String getPattern(String name) {
-    String escaped = ColumnKey.escape(name);
+    String escaped = COLUMN_KEY_TRANSLATOR.getEscaper().escape(name);
     return escaped.replaceAll("[?^{}\\[\\]\\\\]", "\\\\$0");
   }
 
