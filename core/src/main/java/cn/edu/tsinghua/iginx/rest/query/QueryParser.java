@@ -37,7 +37,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class QueryParser {
-  private static final Logger logger = LoggerFactory.getLogger(QueryParser.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryParser.class);
   private final ObjectMapper mapper = new ObjectMapper();
 
   public QueryParser() {}
@@ -48,7 +48,7 @@ public class QueryParser {
       Date date = df.parse(oldDateStr);
       return date.getTime() + 28800000L;
     } catch (ParseException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return null;
   }
@@ -86,7 +86,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getGrafanaQuery(node);
     } catch (Exception e) {
-      logger.error("Error occurred during parsing query ", e);
+      LOGGER.error("Error occurred during parsing query ", e);
       throw e;
     }
     return ret;
@@ -98,7 +98,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getQuery(node);
     } catch (Exception e) {
-      logger.error("Error occurred during parsing query ", e);
+      LOGGER.error("Error occurred during parsing query ", e);
       throw e;
     }
     return ret;
@@ -110,7 +110,7 @@ public class QueryParser {
       JsonNode node = mapper.readTree(json);
       ret = getAnnotationQuery(node, isGrafana);
     } catch (Exception e) {
-      logger.error("Error occurred during parsing query ", e);
+      LOGGER.error("Error occurred during parsing query ", e);
       throw e;
     }
     return ret;

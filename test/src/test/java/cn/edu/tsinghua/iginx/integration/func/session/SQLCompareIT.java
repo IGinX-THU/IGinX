@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class SQLCompareIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SQLCompareIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SQLCompareIT.class);
 
   protected static MultiConnection conn;
   protected static boolean isForSession = true;
@@ -77,7 +77,7 @@ public class SQLCompareIT {
         }
       }
     } catch (IOException e) {
-      logger.error("read file failed, filename: {}, cause: {}", filename, e.getMessage());
+      LOGGER.error("read file failed, filename: {}, cause: ", filename, e);
       fail();
     }
   }
@@ -125,7 +125,7 @@ public class SQLCompareIT {
     for (String insertSQL : insertSQLGroup) {
       SessionExecuteSqlResult res = conn.executeSql(insertSQL);
       if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-        logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
+        LOGGER.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
         fail();
       }
     }
@@ -144,19 +144,19 @@ public class SQLCompareIT {
 
   private String execute(String statement) {
     if (!statement.toLowerCase().startsWith("insert")) {
-      logger.info("Execute Statement: \"{}\"", statement);
+      LOGGER.info("Execute Statement: \"{}\"", statement);
     }
 
     SessionExecuteSqlResult res = null;
     try {
       res = conn.executeSql(statement);
     } catch (SessionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
       return "";
@@ -168,7 +168,7 @@ public class SQLCompareIT {
   @Test
   public void compareTest() {
     if (testSQLGroupA.size() != testSQLGroupB.size()) {
-      logger.error("two test groups' size are not equal.");
+      LOGGER.error("two test groups' size are not equal.");
       fail();
     }
 

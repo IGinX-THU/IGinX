@@ -50,7 +50,7 @@ import org.slf4j.LoggerFactory;
 
 public class ETCDMetaStorage implements IMetaStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(ETCDMetaStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ETCDMetaStorage.class);
 
   private static final String IGINX_ID = "/id/iginx";
 
@@ -166,7 +166,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                         case DELETE:
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                       ETCDMetaStorage.this.schemaMappingChangeHook.onChange(schema, schemaMapping);
@@ -203,7 +203,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           iginx =
                               JsonUtils.fromJson(
                                   event.getKeyValue().getValue().getBytes(), IginxMeta.class);
-                          logger.info(
+                          LOGGER.info(
                               "new iginx comes to cluster: id = "
                                   + iginx.getId()
                                   + " ,ip = "
@@ -216,7 +216,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           iginx =
                               JsonUtils.fromJson(
                                   event.getPrevKV().getValue().getBytes(), IginxMeta.class);
-                          logger.info(
+                          LOGGER.info(
                               "iginx leave from cluster: id = "
                                   + iginx.getId()
                                   + " ,ip = "
@@ -226,7 +226,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           iginxChangeHook.onChange(iginx.getId(), null);
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -272,7 +272,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           storageChangeHook.onChange(storageEngine.getId(), null);
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -312,7 +312,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           break;
                         case DELETE:
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -354,7 +354,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           break;
                         case DELETE:
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -399,7 +399,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           userChangeHook.onChange(userMeta.getUsername(), null);
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -445,7 +445,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           transformChangeHook.onChange(taskMeta.getName(), null);
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -490,7 +490,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           reshardStatusChangeHook.onChange(status);
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -535,7 +535,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           reshardCounterChangeHook.onChange(counter);
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -581,7 +581,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           maxActiveEndKeyStatisticsChangeHook.onChange(endTime);
                           break;
                         default:
-                          logger.error("unexpected watchEvent: " + event.getEventType());
+                          LOGGER.error("unexpected watchEvent: {}", event.getEventType());
                           break;
                       }
                     }
@@ -646,7 +646,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               });
       return schemaMappings;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when load schema mapping: ", e);
+      LOGGER.error("got error when load schema mapping: ", e);
       throw new MetaStorageException(e);
     }
   }
@@ -674,7 +674,7 @@ public class ETCDMetaStorage implements IMetaStorage {
             .get();
       }
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when update schema mapping: ", e);
+      LOGGER.error("got error when update schema mapping: ", e);
       throw new MetaStorageException(e);
     }
   }
@@ -703,7 +703,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               });
       return iginxMap;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when load schema mapping: ", e);
+      LOGGER.error("got error when load schema mapping: ", e);
       throw new MetaStorageException(e);
     }
   }
@@ -720,12 +720,12 @@ public class ETCDMetaStorage implements IMetaStorage {
           new StreamObserver<LeaseKeepAliveResponse>() {
             @Override
             public void onNext(LeaseKeepAliveResponse leaseKeepAliveResponse) {
-              logger.info("send heart beat to etcd succeed.");
+              LOGGER.info("send heart beat to etcd succeed.");
             }
 
             @Override
             public void onError(Throwable throwable) {
-              logger.error("got error when send heart beat to etcd: ", throwable);
+              LOGGER.error("got error when send heart beat to etcd: ", throwable);
             }
 
             @Override
@@ -740,7 +740,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .get();
       return id;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when register iginx meta: ", e);
+      LOGGER.error("got error when register iginx meta: ", e);
       throw new MetaStorageException(e);
     }
   }
@@ -816,7 +816,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
       return storageEngines;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when load storage: ", e);
+      LOGGER.error("got error when load storage: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (storageLease != -1) {
@@ -841,7 +841,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .get();
       return id;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when add storage: ", e);
+      LOGGER.error("got error when add storage: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (storageLease != -1) {
@@ -862,7 +862,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                           STORAGE_ENGINE_NODE_PREFIX, STORAGE_ENGINE_NODE_LENGTH, storageEngineId)
                       .getBytes()));
     } catch (Exception e) {
-      logger.error("got error when removing dummy storage engine: {}", e.getMessage());
+      LOGGER.error("got error when removing dummy storage engine: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (storageLease != -1) {
@@ -897,7 +897,7 @@ public class ETCDMetaStorage implements IMetaStorage {
         if (!storageUnit.isMaster()) { // 需要加入到主节点的子节点列表中
           StorageUnitMeta masterStorageUnit = storageUnitMap.get(storageUnit.getMasterId());
           if (masterStorageUnit == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-            logger.error(
+            LOGGER.error(
                 "unexpected storage unit "
                     + new String(kv.getValue().getBytes())
                     + ", because it does not has a master storage unit");
@@ -909,7 +909,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
       return storageUnitMap;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when load storage unit: ", e);
+      LOGGER.error("got error when load storage unit: ", e);
       throw new MetaStorageException(e);
     }
   }
@@ -992,7 +992,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
       return fragmentsMap;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when load fragments: ", e);
+      LOGGER.error("got error when load fragments: ", e);
       throw new MetaStorageException(e);
     }
   }
@@ -1038,7 +1038,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           });
       return fragments;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when get fragments by columnName and keyInterval: ", e);
+      LOGGER.error("got error when get fragments by columnName and keyInterval: ", e);
     }
     return new ArrayList<>();
   }
@@ -1078,7 +1078,7 @@ public class ETCDMetaStorage implements IMetaStorage {
                       }));
       return fragmentsMap;
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when get fragments by columnName and keyInterval: ", e);
+      LOGGER.error("got error when get fragments by columnName and keyInterval: ", e);
     }
     return new HashMap<>();
   }
@@ -1267,7 +1267,7 @@ public class ETCDMetaStorage implements IMetaStorage {
         return new ArrayList<>(users.values());
       }
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when load user: ", e);
+      LOGGER.error("got error when load user: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (userLease != -1) {
@@ -1301,7 +1301,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(JsonUtils.toJson(userMeta)))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when add/update user: ", e);
+      LOGGER.error("got error when add/update user: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (userLease != -1) {
@@ -1322,7 +1322,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .delete(ByteSequence.from((USER_NODE_PREFIX + username).getBytes()))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when remove user: ", e);
+      LOGGER.error("got error when remove user: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (userLease != -1) {
@@ -2215,7 +2215,7 @@ public class ETCDMetaStorage implements IMetaStorage {
       }
       return new ArrayList<>(taskMetaMap.values());
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when load transform: ", e);
+      LOGGER.error("got error when load transform: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (transformLease != -1) {
@@ -2240,7 +2240,7 @@ public class ETCDMetaStorage implements IMetaStorage {
               ByteSequence.from(JsonUtils.toJson(transformTask)))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when add/update transform: ", e);
+      LOGGER.error("got error when add/update transform: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (transformLease != -1) {
@@ -2261,7 +2261,7 @@ public class ETCDMetaStorage implements IMetaStorage {
           .delete(ByteSequence.from((TRANSFORM_NODE_PREFIX + name).getBytes()))
           .get();
     } catch (ExecutionException | InterruptedException e) {
-      logger.error("got error when remove transform: ", e);
+      LOGGER.error("got error when remove transform: ", e);
       throw new MetaStorageException(e);
     } finally {
       if (transformLease != -1) {
