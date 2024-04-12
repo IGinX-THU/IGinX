@@ -837,16 +837,16 @@ public class IginxWorker implements IService.Iface {
 
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
 
-    Predicate<Path> sourceChecker =
+    FilePermissionManager.Checker sourceChecker =
         FilePermissionManager.getInstance()
             .getChecker(null, ruleNameFilter, FileAccessType.EXECUTE);
-
-    File sourceFile = new File(filePath);
-    if (!sourceChecker.test(sourceFile.toPath())) {
+    if (!sourceChecker.test(filePath)) {
       errorMsg = String.format("Register file %s has no execute permission", filePath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
+
+    File sourceFile = new File(filePath);
     if (!sourceFile.exists()) {
       errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
       LOGGER.error(errorMsg);
@@ -890,19 +890,19 @@ public class IginxWorker implements IService.Iface {
     String fileName = sourceFile.getName();
     String destPath =
         String.join(File.separator, config.getDefaultUDFDir(), "python_scripts", fileName);
-    File destFile = new File(destPath);
 
-    if (destFile.exists()) {
-      errorMsg = String.format("Register file(s) already exist, name=%s", fileName);
+    FilePermissionManager.Checker destChecker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+    if (!destChecker.test(destPath)) {
+      errorMsg = String.format("Register file %s has no write permission", destPath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    Predicate<Path> destChecker =
-        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+    File destFile = new File(destPath);
 
-    if (!destChecker.test(destFile.toPath())) {
-      errorMsg = String.format("Register file %s has no write permission", destPath);
+    if (destFile.exists()) {
+      errorMsg = String.format("Register file(s) already exist, name=%s", fileName);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }

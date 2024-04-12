@@ -10,7 +10,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
@@ -27,8 +26,19 @@ public class FileAppendWriter extends ExportWriter {
   public FileAppendWriter(String fileName) {
     this.fileName = fileName;
     this.hasWriteHeader = false;
+    checkFilePermission(fileName);
     File file = new File(fileName);
     createFileIfNotExist(file);
+  }
+
+  private void checkFilePermission(String fileName) {
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+
+    FilePermissionManager.Checker checker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+    if (!checker.test(fileName)) {
+      throw new SecurityException(("transformer has no permission to write file: " + fileName));
+    }
   }
 
   @Override
@@ -50,14 +60,6 @@ public class FileAppendWriter extends ExportWriter {
   }
 
   private void createFileIfNotExist(File file) {
-    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
-
-    Predicate<Path> pathChecker =
-        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
-    if (!pathChecker.test(file.toPath())) {
-      throw new SecurityException(
-          ("transformer has no permission to write file: " + file.getAbsolutePath()));
-    }
     if (!file.exists()) {
       LOGGER.info("File not exists, create it...");
       // get and create parent dir

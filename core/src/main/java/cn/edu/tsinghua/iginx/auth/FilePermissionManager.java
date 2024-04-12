@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -32,7 +33,15 @@ public class FilePermissionManager {
     filePermissionConfig.onReload(this::reload);
   }
 
-  public Predicate<Path> getChecker(
+  public interface Checker {
+    boolean test(Path path);
+
+    default boolean test(String path) {
+      return test(Paths.get(path));
+    }
+  }
+
+  public Checker getChecker(
       @Nullable String user, Predicate<String> ruleNameFilter, FileAccessType... type) {
     return path -> {
       UserRules userRules = rules.get();
