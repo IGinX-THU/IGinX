@@ -5535,7 +5535,6 @@ public class SQLSessionIT {
               + "|  3|                  3|                 4|\n"
               + "+---+-------------------+------------------+\n"
               + "Total line number = 3\n";
-      System.out.println(executor.execute(query));
       executor.executeAndCompare(query, expected);
 
       query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
@@ -5549,7 +5548,6 @@ public class SQLSessionIT {
               + "|  4|                  4|\n"
               + "+---+-------------------+\n"
               + "Total line number = 3\n";
-      System.out.println(executor.execute(query));
       executor.executeAndCompare(query, expected);
     } else {
       // :, \\ can't be used in filesystem in windows
@@ -5628,8 +5626,6 @@ public class SQLSessionIT {
               + "|  5|                            5|\n"
               + "+---+-----------------------------+\n"
               + "Total line number = 5\n";
-      System.out.println(expected);
-      System.out.println(executor.execute(query));
       executor.executeAndCompare(query, expected);
     } else {
       // :, \\ can't be used in filesystem in windows
