@@ -19,6 +19,7 @@ public class MockClassGenerator {
   private static final Logger LOGGER = LoggerFactory.getLogger(MockClassGenerator.class);
 
   public static DataView genRowDataViewNoKey(
+      long keyStart,
       List<String> pathList,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
@@ -52,10 +53,10 @@ public class MockClassGenerator {
     // generate bitmaps and key
     List<Bitmap> bitmapList = new ArrayList<>();
     List<Long> keys = new ArrayList<>();
-    long keyIndex = 0L;
-    for (int i = 0; i < valuesList.length; i++) {
-      Object[] values = (Object[]) valuesList[i];
-      keys.set(i, keyIndex++);
+    long keyIndex = keyStart;
+    for (Object o : valuesList) {
+      Object[] values = (Object[]) o;
+      keys.add(keyIndex++);
       if (values.length != pathList.size()) {
         LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return null;
