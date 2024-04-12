@@ -14,10 +14,10 @@ import org.slf4j.LoggerFactory;
 
 public class GreedyMigrationPolicy extends MigrationPolicy {
 
-  private static final Logger logger = LoggerFactory.getLogger(GreedyMigrationPolicy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(GreedyMigrationPolicy.class);
 
   public GreedyMigrationPolicy() {
-    super(logger);
+    super(LOGGER);
   }
 
   @Override
@@ -28,21 +28,21 @@ public class GreedyMigrationPolicy extends MigrationPolicy {
       Map<FragmentMeta, Long> fragmentReadLoadMap) {
     long startTime = System.currentTimeMillis();
 
-    logger.error("start to migrate and calculateNodeLoadMap");
+    LOGGER.error("start to migrate and calculateNodeLoadMap");
     Map<Long, Long> nodeLoadMap =
         calculateNodeLoadMap(nodeFragmentMap, fragmentWriteLoadMap, fragmentReadLoadMap);
-    logger.error("start to createParallelQueueByPriority");
+    LOGGER.error("start to createParallelQueueByPriority");
     List<Queue<MigrationTask>> migrationTaskQueueList =
         createParallelQueueByPriority(migrationTasks);
 
     executor = Executors.newCachedThreadPool();
 
     while (!isAllQueueEmpty(migrationTaskQueueList)) {
-      logger.error("start to executeOneRoundMigration");
+      LOGGER.error("start to executeOneRoundMigration");
       executeOneRoundMigration(migrationTaskQueueList, nodeLoadMap);
     }
 
-    logger.error(
+    LOGGER.error(
         "complete all migration task with time consumption: {} ms",
         System.currentTimeMillis() - startTime);
   }

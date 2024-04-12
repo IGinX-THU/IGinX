@@ -44,7 +44,7 @@ import redis.clients.jedis.JedisPoolConfig;
 
 public class RedisStorage implements IStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(RedisStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RedisStorage.class);
 
   private static final String KEY_DATA_TYPE = "data:type";
 
@@ -104,7 +104,7 @@ public class RedisStorage implements IStorage {
     try {
       queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
     } catch (PhysicalException e) {
-      logger.error("encounter error when delete path: " + e.getMessage());
+      LOGGER.error("encounter error when delete path: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
     }
@@ -209,9 +209,9 @@ public class RedisStorage implements IStorage {
                     queryPath + SUFFIX_VALUE, new ArrayList<>(hashValues.values())));
             break;
           case "none":
-            logger.warn("key {} not exists", queryPath);
+            LOGGER.warn("key {} not exists", queryPath);
           default:
-            logger.warn("unknown key type, type={}", type);
+            LOGGER.warn("unknown key type, type={}", type);
         }
       }
     } catch (Exception e) {
@@ -231,7 +231,7 @@ public class RedisStorage implements IStorage {
     try {
       queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
     } catch (PhysicalException e) {
-      logger.error("encounter error when delete path: " + e.getMessage());
+      LOGGER.error("encounter error when delete path: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
     }
@@ -305,9 +305,9 @@ public class RedisStorage implements IStorage {
                     queryPath + SUFFIX_VALUE, new ArrayList<>(hashValues.values())));
             break;
           case "none":
-            logger.warn("key {} not exists", queryPath);
+            LOGGER.warn("key {} not exists", queryPath);
           default:
-            logger.warn("unknown key type, type={}", type);
+            LOGGER.warn("unknown key type, type={}", type);
         }
       }
     } catch (Exception e) {
@@ -325,7 +325,7 @@ public class RedisStorage implements IStorage {
     try {
       deletedPaths = determinePathList(storageUnit, delete.getPatterns(), delete.getTagFilter());
     } catch (PhysicalException e) {
-      logger.warn("encounter error when delete path: " + e.getMessage());
+      LOGGER.warn("encounter error when delete path: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
     }
@@ -348,7 +348,7 @@ public class RedisStorage implements IStorage {
         jedis.del(deletedPathArray);
         jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
       } catch (Exception e) {
-        logger.warn("encounter error when delete path: " + e.getMessage());
+        LOGGER.warn("encounter error when delete path: ", e);
         return new TaskExecuteResult(
             new PhysicalException("execute delete path in redis failure", e));
       }
@@ -373,7 +373,7 @@ public class RedisStorage implements IStorage {
           }
         }
       } catch (Exception e) {
-        logger.warn("encounter error when delete path: " + e.getMessage());
+        LOGGER.warn("encounter error when delete path: ", e);
         return new TaskExecuteResult(
             new PhysicalException("execute delete data in redis failure", e));
       }
@@ -399,7 +399,7 @@ public class RedisStorage implements IStorage {
             });
       }
     } catch (Exception e) {
-      logger.error("get du time series error, cause by: ", e);
+      LOGGER.error("get du time series error, cause by: ", e);
       return Collections.emptyList();
     }
     if (!hasTagFilter) {
@@ -457,7 +457,7 @@ public class RedisStorage implements IStorage {
             ret.add(new Column(pair.k, type, pair.v));
           });
     } catch (Exception e) {
-      logger.error("get time series error, cause by: ", e);
+      LOGGER.error("get time series error, cause by: ", e);
       return ret;
     }
     return ret;
@@ -505,13 +505,13 @@ public class RedisStorage implements IStorage {
             maxTime = Math.max(maxTime, jedis.hlen(path));
             break;
           case "none":
-            logger.warn("key {} not exists", path);
+            LOGGER.warn("key {} not exists", path);
           default:
-            logger.warn("unknown key type, type={}", type);
+            LOGGER.warn("unknown key type, type={}", type);
         }
       }
     } catch (Exception e) {
-      logger.error("get keys' length error, cause by: ", e);
+      LOGGER.error("get keys' length error, cause by: ", e);
     }
     if (maxTime == Long.MIN_VALUE) {
       maxTime = Long.MAX_VALUE - 1;
@@ -526,7 +526,7 @@ public class RedisStorage implements IStorage {
       Set<String> keys = jedis.keys(pattern);
       paths.addAll(keys);
     } catch (Exception e) {
-      logger.error("get keys error, cause by: ", e);
+      LOGGER.error("get keys error, cause by: ", e);
     }
     return paths;
   }

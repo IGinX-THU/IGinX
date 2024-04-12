@@ -26,12 +26,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class PythonDriver implements Driver {
+  private static final Logger LOGGER = LoggerFactory.getLogger(PythonDriver.class);
 
   private final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger logger = LoggerFactory.getLogger(PythonDriver.class);
 
   private static final String PYTHON_CMD = config.getPythonCMD();
 
@@ -49,7 +48,7 @@ public class PythonDriver implements Driver {
   private PythonDriver() {
     File file = new File(PYTHON_DIR + PY_WORKER);
     if (!file.exists()) {
-      logger.error("Python driver file didn't exists.");
+      LOGGER.error("Python driver file didn't exists.");
     }
   }
 
@@ -128,7 +127,7 @@ public class PythonDriver implements Driver {
                   Constants.getWorkerStatusInfo(status)));
         } else {
           IPCWorker IPCWorker = new IPCWorker(pid, javaPort, pyPort, process, serverSocket, writer);
-          logger.info(IPCWorker.toString() + " has started.");
+          LOGGER.info("{} has started.", IPCWorker);
           return IPCWorker;
         }
       }
@@ -170,15 +169,15 @@ public class PythonDriver implements Driver {
         socket.close();
 
         if (pid < 0) {
-          logger.error(String.format("Failed to launch python worker with code=%d", pid));
+          LOGGER.error("Failed to launch python worker with code={}", pid);
           return false;
         } else {
-          logger.info(String.format("Worker(pid=%d) has started.", pid));
+          LOGGER.info("Worker(pid={}) has started.", pid);
           return true;
         }
       }
     } catch (IOException e) {
-      logger.error("Failed to launch python worker", e);
+      LOGGER.error("Failed to launch python worker", e);
       return false;
     } finally {
       if (process != null && process.isAlive()) {
@@ -188,7 +187,7 @@ public class PythonDriver implements Driver {
         try {
           serverSocket.close();
         } catch (IOException e) {
-          logger.error("Fail to close server socket, because ", e);
+          LOGGER.error("Fail to close server socket, because ", e);
         }
       }
     }
