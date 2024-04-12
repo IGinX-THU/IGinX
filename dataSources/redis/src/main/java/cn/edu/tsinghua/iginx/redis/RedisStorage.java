@@ -484,39 +484,7 @@ public class RedisStorage implements IStorage {
         columnsInterval = new ColumnsInterval(null, null);
       }
     }
-    long minTime = 0, maxTime = Long.MIN_VALUE;
-    try (Jedis jedis = jedisPool.getResource()) {
-      for (String path : paths) {
-        String type = jedis.type(path);
-        switch (type) {
-          case "string":
-            maxTime = Math.max(maxTime, 1);
-            break;
-          case "list":
-            maxTime = Math.max(maxTime, jedis.llen(path));
-            break;
-          case "set":
-            maxTime = Math.max(maxTime, jedis.scard(path));
-            break;
-          case "zset":
-            maxTime = Math.max(maxTime, jedis.zcard(path));
-            break;
-          case "hash":
-            maxTime = Math.max(maxTime, jedis.hlen(path));
-            break;
-          case "none":
-            LOGGER.warn("key {} not exists", path);
-          default:
-            LOGGER.warn("unknown key type, type={}", type);
-        }
-      }
-    } catch (Exception e) {
-      LOGGER.error("get keys' length error, cause by: ", e);
-    }
-    if (maxTime == Long.MIN_VALUE) {
-      maxTime = Long.MAX_VALUE - 1;
-    }
-    KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     return new Pair<>(columnsInterval, keyInterval);
   }
 
