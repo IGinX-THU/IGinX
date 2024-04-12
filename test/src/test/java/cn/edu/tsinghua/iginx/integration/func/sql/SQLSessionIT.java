@@ -5524,19 +5524,6 @@ public class SQLSessionIT {
               + "Total line number = 5\n";
       executor.executeAndCompare(query, expected);
 
-      query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-------------------+------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
-              + "+---+-------------------+------------------+\n"
-              + "|  1|                  1|                 2|\n"
-              + "|  2|                  2|                 3|\n"
-              + "|  3|                  3|                 4|\n"
-              + "+---+-------------------+------------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-
       query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
       expected =
           "ResultSets:\n"
@@ -5547,6 +5534,19 @@ public class SQLSessionIT {
               + "|  3|                  3|\n"
               + "|  4|                  4|\n"
               + "+---+-------------------+\n"
+              + "Total line number = 3\n";
+      executor.executeAndCompare(query, expected);
+
+      query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
+      expected =
+          "ResultSets:\n"
+              + "+---+-------------------+------------------+\n"
+              + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
+              + "+---+-------------------+------------------+\n"
+              + "|  1|                  1|                 2|\n"
+              + "|  2|                  2|                 3|\n"
+              + "|  3|                  3|                 4|\n"
+              + "+---+-------------------+------------------+\n"
               + "Total line number = 3\n";
       executor.executeAndCompare(query, expected);
     } else {
