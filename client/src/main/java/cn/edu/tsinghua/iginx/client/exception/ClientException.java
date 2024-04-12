@@ -24,6 +24,8 @@ package cn.edu.tsinghua.iginx.client.exception;
  */
 public class ClientException extends Exception {
 
+  private static final long serialVersionUID = 1747821121898717874L;
+
   public ClientException(String message) {
     super(message);
   }
