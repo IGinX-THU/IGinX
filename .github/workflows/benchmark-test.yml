@@ -1,6 +1,10 @@
 name: Benchmark Tests
 
-on: [pull_request]
+on:
+  pull_request:
+    types: [opened, reopened]
+    branches:
+      - main
 
 env:
   VERSION: 0.6.0-SNAPSHOT
