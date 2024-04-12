@@ -180,25 +180,25 @@ public class LocalExecutor implements Executor {
 
   @Override
   public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
-    try {
-      switch (dataView.getRawDataType()) {
-        case Row:
-        case NonAlignedRow:
-          insertRowRecords((RowDataView) dataView, storageUnit);
-          break;
-        case Column:
-        case NonAlignedColumn:
-          insertColumnRecords((ColumnDataView) dataView, storageUnit);
-          break;
-      }
-    } catch (IOException e) {
+    Exception e = null;
+    switch (dataView.getRawDataType()) {
+      case Row:
+      case NonAlignedRow:
+        e = insertRowRecords((RowDataView) dataView, storageUnit);
+        break;
+      case Column:
+      case NonAlignedColumn:
+        e = insertColumnRecords((ColumnDataView) dataView, storageUnit);
+        break;
+    }
+    if (e != null) {
       return new TaskExecuteResult(
           null, new FilesystemException("encounter error when inserting data: ", e));
     }
     return new TaskExecuteResult(null, null);
   }
 
-  private void insertRowRecords(RowDataView data, String storageUnit) throws IOException {
+  private Exception insertRowRecords(RowDataView data, String storageUnit) {
     List<List<Record>> recordsList = new ArrayList<>();
     List<File> fileList = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
@@ -227,11 +227,12 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      throw new IOException("encounter error when inserting row records to fileSystem: ", e);
+      return new IOException("encounter error when inserting row records to fileSystem: ", e);
     }
+    return null;
   }
 
-  private void insertColumnRecords(ColumnDataView data, String storageUnit) throws IOException {
+  private Exception insertColumnRecords(ColumnDataView data, String storageUnit) {
     List<List<Record>> recordsList = new ArrayList<>();
     List<File> fileList = new ArrayList<>();
     List<Map<String, String>> tagsList = new ArrayList<>();
@@ -259,14 +260,14 @@ public class LocalExecutor implements Executor {
       LOGGER.info("begin to write data");
       fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (IOException e) {
-      throw new IOException("encounter error when inserting column records to fileSystem: ", e);
+      return new IOException("encounter error when inserting column records to fileSystem: ", e);
     }
+    return null;
   }
 
   @Override
   public TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
-    Exception exception = null;
     List<File> fileList = new ArrayList<>();
     if (keyRanges == null || keyRanges.isEmpty()) {
       if (paths.size() == 1 && paths.get(0).equals(WILDCARD) && tagFilter == null) {
@@ -274,7 +275,8 @@ public class LocalExecutor implements Executor {
           fileSystemManager.deleteFile(
               new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (IOException e) {
-          LOGGER.error("encounter error when clearing data: ", e);
+          return new TaskExecuteResult(
+              new FilesystemException("encounter error when clearing data: ", e));
         }
       } else {
         for (String path : paths) {
@@ -283,8 +285,8 @@ public class LocalExecutor implements Executor {
         try {
           fileSystemManager.deleteFiles(fileList, tagFilter);
         } catch (IOException e) {
-          LOGGER.error("encounter error when clearing data: ", e);
-          exception = e;
+          return new TaskExecuteResult(
+              new FilesystemException("encounter error when clearing data: ", e));
         }
       }
     } else {
@@ -299,12 +301,11 @@ public class LocalExecutor implements Executor {
           }
         }
       } catch (IOException e) {
-        LOGGER.error("encounter error when deleting data: ", e);
-        exception = e;
+        return new TaskExecuteResult(
+            new FilesystemException("encounter error when deleting data: ", e));
       }
     }
-    return new TaskExecuteResult(
-        null, exception != null ? new FilesystemException(exception) : null);
+    return new TaskExecuteResult(null, null);
   }
 
   @Override
