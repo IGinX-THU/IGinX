@@ -20,6 +20,10 @@ package cn.edu.tsinghua.iginx.exception;
 
 import cn.edu.tsinghua.iginx.thrift.Status;
 
+/**
+ * For more detailed information, please refer to
+ * shared/src/main/java/cn/edu/tsinghua/iginx/exception/package-info.java
+ */
 public class SessionException extends Exception {
 
   private static final long serialVersionUID = -2811585771984779297L;
