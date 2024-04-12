@@ -376,7 +376,7 @@ public class MongoDBStorage implements IStorage {
     ColumnsInterval columnsInterval =
         new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
 
-    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     return new Pair<>(columnsInterval, keyInterval);
   }
 
