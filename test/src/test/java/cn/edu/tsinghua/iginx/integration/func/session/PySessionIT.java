@@ -299,10 +299,16 @@ public class PySessionIT {
       return;
     }
     assertEquals(result.size(), 12);
+    System.out.println(result.size());
+    System.out.println(result);
     assertTrue(result.get(1).contains("ip='127.0.0.1', port=6670, type=2"));
+    assertFalse(result.get(1).contains("ip='127.0.0.1', port=6671, type=6"));
     assertFalse(result.get(4).contains("ip='127.0.0.1', port=6670, type=2"));
+    assertFalse(result.get(4).contains("ip='127.0.0.1', port=6671, type=6"));
     assertTrue(result.get(7).contains("ip='127.0.0.1', port=6670, type=2"));
+    assertTrue(result.get(7).contains("ip='127.0.0.1', port=6671, type=6"));
     assertFalse(result.get(10).contains("ip='127.0.0.1', port=6670, type=2"));
+    assertFalse(result.get(10).contains("ip='127.0.0.1', port=6671, type=6"));
   }
 
   @Test

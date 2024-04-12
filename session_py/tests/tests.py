@@ -37,8 +37,10 @@ class Tests:
         retStr = ""
         try:
             import os
-            os.makedirs('parquet/data', mode=0o777, exist_ok=True)
-            os.makedirs('parquet/dummy', mode=0o777, exist_ok=True)
+            os.makedirs('pq/data', mode=0o777, exist_ok=True)
+            os.makedirs('pq/dummy', mode=0o777, exist_ok=True)
+            os.makedirs('fs/data', mode=0o777, exist_ok=True)
+            os.makedirs('fs/dummy', mode=0o777, exist_ok=True)
             cluster_info = self.session.get_cluster_info()
             original_cluster_info = cluster_info.get_storage_engine_list()
             for storage_engine in original_cluster_info:
@@ -50,14 +52,14 @@ class Tests:
                 6670,
                 StorageEngineType.parquet,
                 {
-                    "dir": f"{os.getcwd()}/parquet/data",
-                    "dummy_dir": f"{os.getcwd()}/parquet/dummy",
+                    "dir": f"{os.getcwd()}/pq/data",
+                    "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
                     "thrift_timeout": "30000",
                     "thrift_pool_max_size": "10",
-                    "_thrift_pool_min_evictable_idle_time_millis": "600000",
+                    "thrift_pool_min_evictable_idle_time_millis": "600000",
                     "write_buffer_size": "104857600",
                     "write_batch_size": "1048576",
                     "flusher_permits": "16",
@@ -77,19 +79,19 @@ class Tests:
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 批量加入存储引擎
-            pg_engine = StorageEngine(
+            pq_engine = StorageEngine(
                 "127.0.0.1",
                 6670,
                 StorageEngineType.parquet,
                 {
-                    "dir": f"{os.getcwd()}/parquet/data",
-                    "dummy_dir": f"{os.getcwd()}/parquet/dummy",
+                    "dir": f"{os.getcwd()}/pq/data",
+                    "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
                     "thrift_timeout": "30000",
                     "thrift_pool_max_size": "10",
-                    "_thrift_pool_min_evictable_idle_time_millis": "600000",
+                    "thrift_pool_min_evictable_idle_time_millis": "600000",
                     "write_buffer_size": "104857600",
                     "write_batch_size": "1048576",
                     "flusher_permits": "16",
@@ -100,16 +102,37 @@ class Tests:
                     "parquet.page_size": "8192"
                 }
             )
-            self.session.batch_add_storage_engine([pg_engine])
+            fs_engine = StorageEngine(
+                "127.0.0.1",
+                6671,
+                StorageEngineType.filesystem,
+                {
+                    "dir": f"{os.getcwd()}/fs/data",
+                    "dummy_dir": f"{os.getcwd()}/fs/dummy",
+                    "iginx_port": "6888",
+                    "has_data": "true",
+                    "is_read_only": "true",
+                    "thrift_timeout": "5000",
+                    "thrift_pool_max_size": "100",
+                    "memory_pool_size": "100",
+                    "chunk_size_in_bytes": "1048576",
+                    "thrift_pool_min_evictable_idle_time_millis": "600000"
+                }
+            )
+            self.session.batch_add_storage_engine([pq_engine, fs_engine])
             # 输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 删除加入的存储引擎
             self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6670, "", "");')
+            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6671, "", "");')
             # 删除新建的文件夹
-            os.rmdir('parquet/data')
-            os.rmdir('parquet/dummy')
-            os.rmdir('parquet')
+            os.rmdir('pq/data')
+            os.rmdir('pq/dummy')
+            os.rmdir('pq')
+            os.rmdir('fs/data')
+            os.rmdir('fs/dummy')
+            os.rmdir('fs')
             # 删除后输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
@@ -358,11 +381,8 @@ class Tests:
     def loadCSV(self):
         retStr = ""
         try:
-            # calculate file path
             import os
-            # print(os.getcwd())
-            # 这里在用junit test运行时，对应的路径为： Iginx/test
-            path = os.getcwd() + '/../session_py/tests/files/a.csv'
+            path = f"{os.getcwd()}/src/test/resources/pySessionIT/files/a.csv"
             statement = f"LOAD DATA FROM INFILE '{path}' AS CSV INTO test(key, a.a, a.b, b.b, c.c);"
             resp = self.session.load_csv(statement)
             retStr += str(resp) + "\n"
@@ -394,8 +414,7 @@ class Tests:
         try:
             # calculate file path
             import os
-            path = os.getcwd() + '/../session_py/tests/dir'
-            # path = 'dir/'
+            path = f"{os.getcwd()}/src/test/resources/pySessionIT/dir"
             self.session.load_directory(path)
 
             # 使用 SQL 语句查询写入的数据
