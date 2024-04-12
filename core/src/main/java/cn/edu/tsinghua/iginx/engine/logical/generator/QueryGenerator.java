@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 
 public class QueryGenerator extends AbstractGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(QueryGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryGenerator.class);
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static final QueryGenerator instance = new QueryGenerator();
   private static final FunctionManager functionManager = FunctionManager.getInstance();

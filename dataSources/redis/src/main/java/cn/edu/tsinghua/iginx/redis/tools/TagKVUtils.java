@@ -32,7 +32,7 @@ import org.slf4j.LoggerFactory;
 
 public class TagKVUtils {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TagKVUtils.class);
 
   public static String toFullName(String name, Map<String, String> tags) {
     if (tags == null) {
