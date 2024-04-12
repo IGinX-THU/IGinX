@@ -176,7 +176,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      throw new PostgreSQLException("unexpected error: ", e);
+      throw new RowFetchException("unexpected error: ", e);
     }
 
     return cachedRow != null;
