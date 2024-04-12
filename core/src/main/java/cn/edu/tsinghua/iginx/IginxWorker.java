@@ -840,13 +840,16 @@ public class IginxWorker implements IService.Iface {
     FilePermissionManager.Checker sourceChecker =
         FilePermissionManager.getInstance()
             .getChecker(null, ruleNameFilter, FileAccessType.EXECUTE);
-    if (!sourceChecker.test(filePath)) {
+
+    Optional<Path> sourceCheckedPath = sourceChecker.normalize(filePath);
+
+    if (!sourceCheckedPath.isPresent()) {
       errorMsg = String.format("Register file %s has no execute permission", filePath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    File sourceFile = new File(filePath);
+    File sourceFile = sourceCheckedPath.get().toFile();
     if (!sourceFile.exists()) {
       errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
       LOGGER.error(errorMsg);
@@ -893,13 +896,15 @@ public class IginxWorker implements IService.Iface {
 
     FilePermissionManager.Checker destChecker =
         FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
-    if (!destChecker.test(destPath)) {
+
+    Optional<Path> destCheckedPath = destChecker.normalize(destPath);
+    if (!destCheckedPath.isPresent()) {
       errorMsg = String.format("Register file %s has no write permission", destPath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    File destFile = new File(destPath);
+    File destFile = destCheckedPath.get().toFile();
 
     if (destFile.exists()) {
       errorMsg = String.format("Register file(s) already exist, name=%s", fileName);

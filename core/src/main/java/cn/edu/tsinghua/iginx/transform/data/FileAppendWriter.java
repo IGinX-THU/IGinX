@@ -23,22 +23,20 @@ public class FileAppendWriter extends ExportWriter {
 
   private boolean hasWriteHeader;
 
-  public FileAppendWriter(String fileName) {
-    this.fileName = fileName;
+  public FileAppendWriter(String name) {
+    this.fileName = normalizeFileName(name);
     this.hasWriteHeader = false;
-    checkFilePermission(fileName);
     File file = new File(fileName);
     createFileIfNotExist(file);
   }
 
-  private void checkFilePermission(String fileName) {
+  private String normalizeFileName(String fileName) {
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
 
     FilePermissionManager.Checker checker =
         FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
-    if (!checker.test(fileName)) {
-      throw new SecurityException(("transformer has no permission to write file: " + fileName));
-    }
+
+    return checker.normalize(fileName).orElseThrow(() -> new SecurityException("transformer has no permission to write file: " + fileName)).toString();
   }
 
   @Override
