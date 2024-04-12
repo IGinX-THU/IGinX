@@ -19,9 +19,7 @@
 package cn.edu.tsinghua.iginx.iotdb.tools;
 
 import cn.edu.tsinghua.iginx.conf.Config;
-import cn.edu.tsinghua.iginx.engine.physical.storage.utils.ColumnKeyTranslator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
-import cn.edu.tsinghua.iginx.utils.Escaper;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -30,20 +28,10 @@ import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO: 由于IGinX支持除了反引号和换行符之外的所有字符，因此需要TagKVUtils的实现
 public class TagKVUtils {
   @SuppressWarnings("unused")
   private static final Logger LOGGER = LoggerFactory.getLogger(TagKVUtils.class);
-
-  private static final ColumnKeyTranslator COLUMN_KEY_TRANSLATOR =
-      new ColumnKeyTranslator(',', '=', getEscaper());
-
-  private static Escaper getEscaper() {
-    Map<Character, Character> replacementMap = new HashMap<>();
-    replacementMap.put('\\', '\\');
-    replacementMap.put(',', ',');
-    replacementMap.put('=', '=');
-    return new Escaper('\\', replacementMap);
-  }
 
   public static final String tagNameAnnotation = Config.tagNameAnnotation;
 
