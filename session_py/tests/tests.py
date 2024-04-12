@@ -36,41 +36,68 @@ class Tests:
     def addStorageEngine(self):
         retStr = ""
         try:
+            import os
+            os.makedirs('parquet/data', mode=0o777, exist_ok=True)
+            os.makedirs('parquet/dummy', mode=0o777, exist_ok=True)
             cluster_info = self.session.get_cluster_info()
             original_cluster_info = cluster_info.get_storage_engine_list()
             for storage_engine in original_cluster_info:
-                if storage_engine.port == 5432:
+                if storage_engine.port == 6670:
                     retStr = "The storage engine has been added, please delete it first\n"
                     return retStr
             self.session.add_storage_engine(
                 "127.0.0.1",
-                5432,
-                StorageEngineType.postgresql,
+                6670,
+                StorageEngineType.parquet,
                 {
-                    "username": "postgres",
-                    "password": "postgres",
+                    "dir": f"{os.getcwd()}/parquet/data",
+                    "dummy_dir": f"{os.getcwd()}/parquet/dummy",
+                    "iginx_port": "6888",
                     "has_data": "true",
-                    "is_read_only": "true"
+                    "is_read_only": "true",
+                    "thrift_timeout": "30000",
+                    "thrift_pool_max_size": "10",
+                    "_thrift_pool_min_evictable_idle_time_millis": "600000",
+                    "write_buffer_size": "104857600",
+                    "write_batch_size": "1048576",
+                    "flusher_permits": "16",
+                    "cache.capacity": "1073741824",
+                    "cache.timeout": "PT1H",
+                    "cache.soft_values": "false",
+                    "parquet.row_group_size": "134217728",
+                    "parquet.page_size": "8192"
                 }
             )
             # 输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 删除加入的存储引擎
-            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 5432, "", "");')
+            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6670, "", "");')
             # 删除后输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 批量加入存储引擎
             pg_engine = StorageEngine(
                 "127.0.0.1",
-                5432,
-                StorageEngineType.postgresql,
+                6670,
+                StorageEngineType.parquet,
                 {
-                    "username": "postgres",
-                    "password": "postgres",
+                    "dir": f"{os.getcwd()}/parquet/data",
+                    "dummy_dir": f"{os.getcwd()}/parquet/dummy",
+                    "iginx_port": "6888",
                     "has_data": "true",
-                    "is_read_only": "true"
+                    "is_read_only": "true",
+                    "thrift_timeout": "30000",
+                    "thrift_pool_max_size": "10",
+                    "_thrift_pool_min_evictable_idle_time_millis": "600000",
+                    "write_buffer_size": "104857600",
+                    "write_batch_size": "1048576",
+                    "flusher_permits": "16",
+                    "cache.capacity": "1073741824",
+                    "cache.timeout": "PT1H",
+                    "cache.soft_values": "false",
+                    "parquet.row_group_size": "134217728",
+                    "parquet.page_size": "8192"
                 }
             )
             self.session.batch_add_storage_engine([pg_engine])
@@ -78,7 +105,11 @@ class Tests:
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
             # 删除加入的存储引擎
-            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 5432, "", "");')
+            self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6670, "", "");')
+            # 删除新建的文件夹
+            os.rmdir('parquet/data')
+            os.rmdir('parquet/dummy')
+            os.rmdir('parquet')
             # 删除后输出所有存储引擎
             cluster_info = self.session.get_cluster_info()
             retStr += str(cluster_info) + "\n"
@@ -86,6 +117,7 @@ class Tests:
             return retStr
         except Exception as e:
             print(e)
+            retStr += str(e) + "\n"
             exit(1)
 
     def aggregateQuery(self):

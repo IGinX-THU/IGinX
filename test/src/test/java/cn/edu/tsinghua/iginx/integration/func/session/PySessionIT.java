@@ -293,16 +293,16 @@ public class PySessionIT {
     }
     String[] lines = output.split("\n");
     List<String> result = Arrays.asList(lines);
-    // 如果是pg
+    // 如果是该端口已被占用
     if (result.size() > 0
         && "The storage engine has been added, please delete it first".equals(result.get(0))) {
       return;
     }
     assertEquals(result.size(), 12);
-    assertTrue(result.get(1).contains("ip='127.0.0.1', port=5432, type=3"));
-    assertFalse(result.get(4).contains("ip='127.0.0.1', port=5432, type=3"));
-    assertTrue(result.get(7).contains("ip='127.0.0.1', port=5432, type=3"));
-    assertFalse(result.get(10).contains("ip='127.0.0.1', port=5432, type=3"));
+    assertTrue(result.get(1).contains("ip='127.0.0.1', port=6670, type=2"));
+    assertFalse(result.get(4).contains("ip='127.0.0.1', port=6670, type=2"));
+    assertTrue(result.get(7).contains("ip='127.0.0.1', port=6670, type=2"));
+    assertFalse(result.get(10).contains("ip='127.0.0.1', port=6670, type=2"));
   }
 
   @Test
