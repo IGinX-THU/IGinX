@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.client;
 
 import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -319,7 +320,7 @@ public class IginxClient {
 
   private static void processPythonRegister(String sql) {
     try {
-      SessionExecuteSqlResult res = session.executePythonRegister(sql);
+      SessionExecuteSqlResult res = session.executeSql(sql);
       String parseErrorMsg = res.getParseErrorMsg();
       if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
         System.out.println(res.getParseErrorMsg());

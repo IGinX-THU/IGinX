@@ -526,7 +526,8 @@ struct LoadCSVResp {
 struct LoadUDFReq {
     1: required i64 sessionId
     2: required string statement
-    3: required binary udfFile
+    3: optional binary udfFile
+    4: required bool isRemote
 }
 
 struct LoadUDFResp {

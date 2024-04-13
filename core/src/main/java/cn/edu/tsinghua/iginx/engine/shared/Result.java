@@ -62,6 +62,8 @@ public class Result {
   private List<String> loadCSVColumns;
   private Long loadCSVRecordNum;
 
+  private String UDFModulePath;
+
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
@@ -174,6 +176,8 @@ public class Result {
     resp.setLoadCsvPath(loadCSVPath);
     resp.setSessionIDList(sessionIDs);
     resp.setRules(rules);
+    // import udf
+    resp.setUDFModulePath(UDFModulePath);
     return resp;
   }
 

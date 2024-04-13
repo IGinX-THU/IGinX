@@ -37,6 +37,8 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import com.sun.istack.internal.NotNull;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.thrift.TException;
 import org.apache.thrift.annotation.Nullable;
@@ -923,31 +925,32 @@ public class Session {
     return new SessionExecuteSqlResult(ref.resp);
   }
 
-  public SessionExecuteSqlResult executePythonRegister(String statement, @Nullable ByteBuffer moduleFile) throws SessionException {
-    Pattern pattern = Pattern.compile("\"([^\"]*)\"");
-    Matcher matcher = pattern.matcher(statement);
-
-    // 1st "": sql name
-    if (!matcher.find()) {
-      throw new SessionException("Error: function name should be surrounded by DOUBLE-QUOTES");
-    }
-    // 2nd "": class name
-    if (!matcher.find()) {
-      throw new SessionException("Error: python class name should be surrounded by DOUBLE-QUOTES");
-    }
-    // 3rd "": script(s) file path
-    if (matcher.find()) {
-      // 提取python文件路径
-      String filePathStr = matcher.group(1);
-
-      File filePath = new File(filePathStr);
-      if (!filePath.isAbsolute()) {
-        statement = statement.replace(filePathStr, filePath.getAbsolutePath());
-      }
+  public SessionExecuteSqlResult executePythonRegister(String statement, @NotNull ByteBuffer moduleFile, boolean isRemote) throws SessionException {
+//    Pattern pattern = Pattern.compile("\"([^\"]*)\"");
+//    Matcher matcher = pattern.matcher(statement);
+//
+//    // 1st "": sql name
+//    if (!matcher.find()) {
+//      throw new SessionException("Error: function name should be surrounded by DOUBLE-QUOTES");
+//    }
+//    // 2nd "": class name
+//    if (!matcher.find()) {
+//      throw new SessionException("Error: python class name should be surrounded by DOUBLE-QUOTES");
+//    }
+//    // 3rd "": script(s) file path
+//    if (matcher.find()) {
+//      // 提取python文件路径
+//      String filePathStr = matcher.group(1);
+//
+//      File filePath = new File(filePathStr);
+//      if (!filePath.isAbsolute()) {
+//        statement = statement.replace(filePathStr, filePath.getAbsolutePath());
+//      }
       return executeSql(statement);
-    } else {
-      throw new SessionException("Error: python file path should be surrounded by DOUBLE-QUOTES");
-    }
+//    } else {
+//      throw new SessionException("Error: python file path should be surrounded by DOUBLE-QUOTES");
+//    }
+
   }
 
   public SessionQueryDataSet queryLast(

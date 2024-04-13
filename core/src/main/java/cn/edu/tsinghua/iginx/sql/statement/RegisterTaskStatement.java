@@ -9,6 +9,8 @@ import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.UDFClassPair;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import java.util.List;
+
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,6 +22,8 @@ public class RegisterTaskStatement extends SystemStatement {
 
   private final List<UDFType> types;
 
+  private boolean isRemote;
+
   private final IginxWorker worker = IginxWorker.getInstance();
 
   @SuppressWarnings("unused")
@@ -30,10 +34,16 @@ public class RegisterTaskStatement extends SystemStatement {
     this.pairs = pairs;
     this.filePath = filePath;
     this.types = types;
+    this.isRemote = false;
   }
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
+    if (ctx.getUDFModuleByteBuffer() == null) {
+      ctx.setResult(new Result(RpcUtils.SUCCESS));
+      ctx.getResult().setUDFModulePath(filePath);
+      return;
+    }
     RegisterTaskReq req = new RegisterTaskReq(ctx.getSessionId(), filePath, pairs, types);
     Status status = worker.registerTask(req);
     ctx.setResult(new Result(status));
