@@ -17,14 +17,13 @@ import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreter;
 
 public class PemjaWorker {
+  private static final Logger LOGGER = LoggerFactory.getLogger(PemjaWorker.class);
 
   private final String identifier;
 
   private final PythonInterpreter interpreter;
 
   private final Writer writer;
-
-  private static final Logger logger = LoggerFactory.getLogger(PemjaWorker.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -68,7 +67,7 @@ public class PemjaWorker {
         writer.writeBatch(nextBatchData);
       }
     } catch (WriteBatchException e) {
-      logger.error(String.format("PemjaWorker identifier=%s fail to writer data.", identifier));
+      LOGGER.error("PemjaWorker identifier={} fail to writer data.", identifier, e);
     }
   }
 

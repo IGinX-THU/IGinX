@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.transform.data;
 
+import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
+import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
+import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -7,18 +10,19 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileAppendWriter extends ExportWriter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileAppendWriter.class);
 
   private final String fileName;
 
   private boolean hasWriteHeader;
-
-  private static final Logger logger = LoggerFactory.getLogger(FileAppendWriter.class);
 
   public FileAppendWriter(String fileName) {
     this.fileName = fileName;
@@ -46,8 +50,16 @@ public class FileAppendWriter extends ExportWriter {
   }
 
   private void createFileIfNotExist(File file) {
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+
+    Predicate<Path> pathChecker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+    if (!pathChecker.test(file.toPath())) {
+      throw new SecurityException(
+          ("transformer has no permission to write file: " + file.getAbsolutePath()));
+    }
     if (!file.exists()) {
-      logger.info("File not exists, create it...");
+      LOGGER.info("File not exists, create it...");
       // get and create parent dir
       if (!file.getParentFile().exists()) {
         System.out.println("Parent dir not exists, create it...");
@@ -57,7 +69,7 @@ public class FileAppendWriter extends ExportWriter {
         // create file
         file.createNewFile();
       } catch (IOException e) {
-        e.printStackTrace();
+        LOGGER.error("unexpected error: ", e);
       }
     }
   }
@@ -72,7 +84,7 @@ public class FileAppendWriter extends ExportWriter {
         out.flush();
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
   }
 }

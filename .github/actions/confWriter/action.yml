@@ -148,11 +148,27 @@ runs:
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/^rootLogger[.]level=.*$/rootLogger.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+                sudo sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/^rootLogger[.]level=.*$/rootLogger.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+                sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/^rootLogger[.]level=.*$/rootLogger.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+                sudo sed -i '' 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+        - name: Change File Permission
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i '' 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1

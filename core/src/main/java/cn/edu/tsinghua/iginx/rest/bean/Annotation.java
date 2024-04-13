@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 @Data
 public class Annotation {
-  private static final Logger logger = LoggerFactory.getLogger(Annotation.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Annotation.class);
   private List<String> tags = new ArrayList<>();
   private String text;
   private String title;
@@ -40,8 +40,7 @@ public class Annotation {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
-      logger.error("Wrong annotation form in database");
+      LOGGER.error("Wrong annotation form in database", e);
     }
   }
 

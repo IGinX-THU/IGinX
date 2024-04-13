@@ -44,8 +44,11 @@ public class DeletedTableMeta<K extends Comparable<K>, F, T, V> implements Table
     rangeSetMap.values().forEach(rangeSet -> rangeSet.removeAll(tombstone.getKeys()));
     for (Map.Entry<F, RangeSet<K>> entry : tombstone.getSegments().entrySet()) {
       F field = entry.getKey();
-      RangeSet<K> rangeSet = entry.getValue();
-      rangeSetMap.get(field).removeAll(rangeSet);
+      RangeSet<K> rangeSetDeleted = entry.getValue();
+      RangeSet<K> rangeSet = rangeSetMap.get(field);
+      if (rangeSet != null) {
+        rangeSet.removeAll(rangeSetDeleted);
+      }
     }
     for (Map.Entry<F, RangeSet<K>> entry : rangeSetMap.entrySet()) {
       F field = entry.getKey();
