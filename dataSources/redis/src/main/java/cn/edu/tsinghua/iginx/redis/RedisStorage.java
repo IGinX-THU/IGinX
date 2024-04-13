@@ -18,23 +18,12 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
-import cn.edu.tsinghua.iginx.redis.tools.DataCoder;
-import cn.edu.tsinghua.iginx.redis.tools.DataTransformer;
-import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
-import cn.edu.tsinghua.iginx.redis.tools.FilterUtils;
-import cn.edu.tsinghua.iginx.redis.tools.TagKVUtils;
+import cn.edu.tsinghua.iginx.redis.tools.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.ListIterator;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -387,15 +376,19 @@ public class RedisStorage implements IStorage {
     List<String> paths = new ArrayList<>();
     try (Jedis jedis = jedisPool.getResource()) {
       for (String pattern : patterns) {
-        String queryPattern = String.format(KEY_FORMAT_STRING_PATH, storageUnit, pattern);
+        String escapedPattern = TagKVUtils.getPattern(pattern);
+        String queryPattern = String.format(KEY_FORMAT_STRING_PATH, storageUnit, escapedPattern);
         queryPattern += TAG_SUFFIX;
         Set<String> set = jedis.keys(queryPattern);
         set.forEach(
             key -> {
-              String[] splits = key.split(KEY_SPLIT);
-              if (splits.length == 3) {
-                paths.add(splits[2]);
+              int firstColonIndex = key.indexOf(KEY_SPLIT);
+              int secondColonIndex = key.indexOf(KEY_SPLIT, firstColonIndex + 1);
+              if (secondColonIndex == -1) {
+                return;
               }
+              String path = key.substring(secondColonIndex + 1);
+              paths.add(path);
             });
       }
     } catch (Exception e) {
@@ -484,39 +477,7 @@ public class RedisStorage implements IStorage {
         columnsInterval = new ColumnsInterval(null, null);
       }
     }
-    long minTime = 0, maxTime = Long.MIN_VALUE;
-    try (Jedis jedis = jedisPool.getResource()) {
-      for (String path : paths) {
-        String type = jedis.type(path);
-        switch (type) {
-          case "string":
-            maxTime = Math.max(maxTime, 1);
-            break;
-          case "list":
-            maxTime = Math.max(maxTime, jedis.llen(path));
-            break;
-          case "set":
-            maxTime = Math.max(maxTime, jedis.scard(path));
-            break;
-          case "zset":
-            maxTime = Math.max(maxTime, jedis.zcard(path));
-            break;
-          case "hash":
-            maxTime = Math.max(maxTime, jedis.hlen(path));
-            break;
-          case "none":
-            LOGGER.warn("key {} not exists", path);
-          default:
-            LOGGER.warn("unknown key type, type={}", type);
-        }
-      }
-    } catch (Exception e) {
-      LOGGER.error("get keys' length error, cause by: ", e);
-    }
-    if (maxTime == Long.MIN_VALUE) {
-      maxTime = Long.MAX_VALUE - 1;
-    }
-    KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     return new Pair<>(columnsInterval, keyInterval);
   }
 

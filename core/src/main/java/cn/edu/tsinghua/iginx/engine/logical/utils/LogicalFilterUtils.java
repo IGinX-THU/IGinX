@@ -9,7 +9,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class ExprUtils {
+public class LogicalFilterUtils {
 
   public static Filter toDNF(Filter filter) {
     filter = removeNot(filter);
@@ -652,31 +652,39 @@ public class ExprUtils {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
-        for (int i = 0; i < orChildren.size(); i++) {
-          Filter childFilter = mergeTrue(orChildren.get(i));
-          orChildren.set(i, childFilter);
-        }
+        orChildren.replaceAll(LogicalFilterUtils::mergeTrue);
+        List<Filter> orRemovedList = new ArrayList<>();
         for (Filter childFilter : orChildren) {
-          if (childFilter.getType() == FilterType.Bool && ((BoolFilter) childFilter).isTrue()) {
-            return new BoolFilter(true);
+          if (childFilter.getType() == FilterType.Bool) {
+            if (((BoolFilter) childFilter).isTrue()) {
+              return new BoolFilter(true);
+            } else {
+              orRemovedList.add(childFilter);
+            }
           }
         }
-        return new OrFilter(orChildren);
+        orChildren.removeAll(orRemovedList);
+        if (orChildren.size() == 0) {
+          return new BoolFilter(false);
+        } else if (orChildren.size() == 1) {
+          return orChildren.get(0);
+        } else {
+          return new OrFilter(orChildren);
+        }
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
-        for (int i = 0; i < andChildren.size(); i++) {
-          Filter childFilter = mergeTrue(andChildren.get(i));
-          andChildren.set(i, childFilter);
-        }
-        List<Filter> removedList = new ArrayList<>();
+        andChildren.replaceAll(LogicalFilterUtils::mergeTrue);
+        List<Filter> andRemovedList = new ArrayList<>();
         for (Filter childFilter : andChildren) {
-          if (childFilter.getType() == FilterType.Bool && ((BoolFilter) childFilter).isTrue()) {
-            removedList.add(childFilter);
+          if (childFilter.getType() == FilterType.Bool) {
+            if (((BoolFilter) childFilter).isTrue()) {
+              andRemovedList.add(childFilter);
+            } else {
+              return new BoolFilter(false);
+            }
           }
         }
-        for (Filter removed : removedList) {
-          andChildren.remove(removed);
-        }
+        andChildren.removeAll(andRemovedList);
         if (andChildren.size() == 0) {
           return new BoolFilter(true);
         } else if (andChildren.size() == 1) {
@@ -783,5 +791,44 @@ public class ExprUtils {
     }
 
     return new AndFilter(andChildren);
+  }
+
+  /**
+   * 获取filter中的所有ExprFilter
+   *
+   * @param filter 给定的大filter
+   * @return filter中的所有ExprFilter的List
+   */
+  public static List<ExprFilter> getExprFilters(Filter filter) {
+    List<ExprFilter> exprFilters = new ArrayList<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {}
+
+          @Override
+          public void visit(PathFilter filter) {}
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter exprFilter) {
+            exprFilters.add(exprFilter);
+          }
+        });
+    return exprFilters;
   }
 }

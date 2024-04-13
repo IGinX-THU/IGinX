@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
@@ -170,6 +172,10 @@ public class FunctionManager {
     return loadUDF(identifier);
   }
 
+  public void removeFunction(String identifier) {
+    functions.remove(identifier);
+  }
+
   private Function loadUDF(String identifier) {
     // load the udf & put it in cache.
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
@@ -186,8 +192,17 @@ public class FunctionManager {
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
 
     String fileName = taskMeta.getFileName();
-    String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+    String moduleName;
     String className = taskMeta.getClassName();
+    if (fileName.endsWith(PY_SUFFIX)) {
+      // accessing a python code file
+      moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+      className = taskMeta.getClassName();
+    } else {
+      // accessing a python module dir
+      moduleName = className.substring(0, className.lastIndexOf("."));
+      className = className.substring(className.lastIndexOf(".") + 1);
+    }
 
     // init the python udf
     BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
@@ -216,6 +231,17 @@ public class FunctionManager {
       }
       throw new IllegalArgumentException(
           String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
+    }
+  }
+
+  // use pip to install requirements.txt in module root dir
+  public void installReqsByPip(String rootPath) throws Exception {
+    String reqFilePath = String.join(File.separator, PATH, rootPath, "requirements.txt");
+    File file = new File(reqFilePath);
+    if (file.exists()) {
+      runCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
+    } else {
+      LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
   }
 

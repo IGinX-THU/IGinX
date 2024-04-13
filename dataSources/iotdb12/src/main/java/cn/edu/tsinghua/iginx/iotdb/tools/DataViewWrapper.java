@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 public class DataViewWrapper {
 
@@ -50,24 +49,7 @@ public class DataViewWrapper {
     }
     String path = dataView.getPath(index);
     Map<String, String> tags = dataView.getTags(index);
-    path += '.';
-    path += TagKVUtils.tagPrefix;
-    if (tags != null && !tags.isEmpty()) {
-      TreeMap<String, String> sortedTags = new TreeMap<>(tags);
-      StringBuilder pathBuilder = new StringBuilder();
-      sortedTags.forEach(
-          (tagKey, tagValue) -> {
-            pathBuilder
-                .append('.')
-                .append(TagKVUtils.tagNameAnnotation)
-                .append(tagKey)
-                .append('.')
-                .append(tagValue);
-          });
-      path += pathBuilder.toString();
-    }
-    path += '.';
-    path += TagKVUtils.tagSuffix;
+    path = TagKVUtils.toFullName(path, tags);
     pathCache.put(index, path);
     return path;
   }

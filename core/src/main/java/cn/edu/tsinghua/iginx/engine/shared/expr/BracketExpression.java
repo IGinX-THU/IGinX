@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 public class BracketExpression implements Expression {
 
-  private final Expression expression;
+  private Expression expression;
   private String alias;
 
   public BracketExpression(Expression expression) {
@@ -16,6 +16,10 @@ public class BracketExpression implements Expression {
 
   public Expression getExpression() {
     return expression;
+  }
+
+  public void setExpression(Expression expression) {
+    this.expression = expression;
   }
 
   @Override
