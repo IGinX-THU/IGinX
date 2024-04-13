@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 #
+
+from iginx_pyclient.thrift.rpc.ttypes import StorageEngineType
 class ClusterInfo(object):
 
     def __init__(self, resp):
         self.__iginx_list = resp.iginxInfos
-        self.__storage_engine_list = resp.storageEngineInfos
+        self.__storage_engine_list = StorageEngineInfosWrapper(resp.storageEngineInfos)
         self.__meta_storage_list = resp.metaStorageInfos
         self.__local_meta_storage = resp.localMetaStorageInfo
 
@@ -51,3 +53,16 @@ class ClusterInfo(object):
         else:
             value += str(self.__local_meta_storage)
         return value
+
+
+class StorageEngineInfosWrapper:
+    def __init__(self, storage_engine_infos):
+        self.storage_engine_infos = storage_engine_infos
+
+    def __repr__(self):
+        res = []
+        for sei in self.storage_engine_infos:
+            L = ['%s=%r' % (key, value if key != "type" else StorageEngineType._VALUES_TO_NAMES.get(int(value)))
+                 for key, value in sei.__dict__.items()]
+            res.append('%s(%s)' % (sei.__class__.__name__, ', '.join(L)))
+        return '[%s]' % (', '.join(res))

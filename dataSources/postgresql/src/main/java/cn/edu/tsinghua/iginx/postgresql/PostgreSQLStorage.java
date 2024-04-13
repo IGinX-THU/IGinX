@@ -24,7 +24,7 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer.fromPos
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.toFullName;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -390,7 +390,7 @@ public class PostgreSQLStorage implements IStorage {
                 return newColumnNames;
               });
           filter = generateWildCardsFilter(filter, fullColumnNamesList);
-          filter = ExprUtils.mergeTrue(filter);
+          filter = LogicalFilterUtils.mergeTrue(filter);
         }
 
         String filterStr = FilterTransformer.toString(filter);
@@ -774,7 +774,7 @@ public class PostgreSQLStorage implements IStorage {
                   return newColumnNames;
                 });
             copyFilter = generateWildCardsFilter(copyFilter, fullColumnNamesList);
-            copyFilter = ExprUtils.mergeTrue(copyFilter);
+            copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
           }
 
           String filterStr = FilterTransformer.toString(copyFilter);

@@ -45,6 +45,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -66,7 +67,7 @@ public class MongoDBStorage implements IStorage {
   public static final String SCHEMA_SAMPLE_SIZE = "schema.sample.size";
   public static final String QUERY_SAMPLE_SIZE = "dummy.sample.size";
   public static final String SCHEMA_SAMPLE_SIZE_DEFAULT = "1000";
-  public static final String QUERY_SAMPLE_SIZE_DEFAULT = "100";
+  public static final String QUERY_SAMPLE_SIZE_DEFAULT = "0";
 
   private final MongoClient client;
 
@@ -343,7 +344,11 @@ public class MongoDBStorage implements IStorage {
   private static List<Field> getFields(MongoDatabase db) {
     List<Field> fields = new ArrayList<>();
     for (String collectionName : db.listCollectionNames()) {
-      fields.add(NameUtils.parseCollectionName(collectionName));
+      try {
+        fields.add(NameUtils.parseCollectionName(collectionName));
+      } catch (ParseException e) {
+        throw new IllegalStateException("failed to parse collection name: " + collectionName, e);
+      }
     }
     return fields;
   }
@@ -376,7 +381,7 @@ public class MongoDBStorage implements IStorage {
     ColumnsInterval columnsInterval =
         new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
 
-    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     return new Pair<>(columnsInterval, keyInterval);
   }
 

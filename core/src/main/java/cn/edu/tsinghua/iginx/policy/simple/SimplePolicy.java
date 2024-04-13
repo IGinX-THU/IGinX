@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
+import cn.edu.tsinghua.iginx.policy.AbstractPolicy;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.Utils;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
@@ -20,7 +21,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimplePolicy implements IPolicy {
+public class SimplePolicy extends AbstractPolicy implements IPolicy {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(SimplePolicy.class);
 
@@ -276,15 +277,6 @@ public class SimplePolicy implements IPolicy {
     return new Pair<>(fragment, storageUnit);
   }
 
-  private List<Long> generateStorageEngineIdList(int startIndex, int num) {
-    List<Long> storageEngineIdList = new ArrayList<>();
-    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
-    for (int i = startIndex; i < startIndex + num; i++) {
-      storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
-    }
-    return storageEngineIdList;
-  }
-
   @Override
   public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
       DataStatement statement) {
@@ -405,14 +397,6 @@ public class SimplePolicy implements IPolicy {
     }
     Collections.reverse(ret);
     return ret;
-  }
-
-  public boolean isNeedReAllocate() {
-    return needReAllocate.getAndSet(false);
-  }
-
-  public void setNeedReAllocate(boolean needReAllocate) {
-    this.needReAllocate.set(needReAllocate);
   }
 
   public boolean checkSuccess(Map<String, Double> columnsData) {

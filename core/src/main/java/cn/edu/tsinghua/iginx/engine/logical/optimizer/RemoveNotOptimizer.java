@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -53,7 +53,7 @@ public class RemoveNotOptimizer implements Optimizer {
 
   private void removeNot(Select selectOperator) {
     // remove not filter.
-    Filter filter = ExprUtils.removeNot(selectOperator.getFilter());
+    Filter filter = LogicalFilterUtils.removeNot(selectOperator.getFilter());
     selectOperator.setFilter(filter);
   }
 }

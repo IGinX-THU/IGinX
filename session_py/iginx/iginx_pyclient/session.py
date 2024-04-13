@@ -64,12 +64,12 @@ logger = logging.getLogger("IginX")
 
 def isPyReg(statement:str):
     statement = statement.strip().lower()
-    return statement.startswith("register") and ("python task" in statement)
+    return statement.startswith("create") and ("function" in statement)
 
 
 def process_py_reg(statement:str):
-    assert len(statement.split("\"")) == 7
-    path = statement.split("\"")[3]
+    assert len(statement.split("\"")) >= 7
+    path = statement.split("\"")[-1]
     if os.path.isabs(path):
         return statement
     else:

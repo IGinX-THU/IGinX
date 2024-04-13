@@ -40,6 +40,7 @@
         <build-plugin.jacoco.version>0.8.6</build-plugin.jacoco.version>
         <deploy.repo.dir>${project.basedir}</deploy.repo.dir>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <revision>0.6.0-SNAPSHOT</revision>
     </properties>
 
@@ -195,6 +196,16 @@
                 <artifactId>jetcd-core</artifactId>
                 <version>0.5.7</version>
                 <optional>true</optional>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.slf4j</groupId>
+                        <artifactId>slf4j-log4j12</artifactId>
+                    </exclusion>
+                    <exclusion>
+                        <groupId>log4j</groupId>
+                        <artifactId>log4j</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
             <dependency>
                 <groupId>com.influxdb</groupId>
@@ -242,6 +253,9 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>2.12.4</version>
+                    <configuration>
+                        <argLine>-Dfile.encoding=UTF-8</argLine>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>

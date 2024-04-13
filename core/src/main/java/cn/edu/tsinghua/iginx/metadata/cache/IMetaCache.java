@@ -142,4 +142,6 @@ public interface IMetaCache {
   TransformTaskMeta getTransformTask(String name);
 
   List<TransformTaskMeta> getTransformTasks();
+
+  List<TransformTaskMeta> getTransformTasksByModule(String moduleName);
 }
