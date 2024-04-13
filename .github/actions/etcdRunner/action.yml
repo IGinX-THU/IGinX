@@ -1,10 +1,24 @@
 name: "etcd-runner"
 description: "etcd runner"
+inputs:
+    os:
+        description: "etcd runner environment"
+        required: false
+        default: ubuntu-latest
+    if-stop:
+        description: "to stop the etcd"
+        required: false
+        default: "false"
+    if-rerun:
+        description: "to rerun the etcd"
+        required: false
+        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - name: Start ETCD
+        - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
+          name: Start ETCD
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
@@ -20,3 +34,24 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - if: inputs.if-rerun=='true' && runner.os != 'Windows'
+          name: ReRun ETCD
+          shell: bash
+          run: |
+              nohup ${GITHUB_WORKSPACE}/go/bin/etcd >> etcd_run.log 2>&1 &
+
+        - if: inputs.if-rerun=='true' && runner.os == 'Windows'
+          name: ReRun ETCD
+          shell: powershell
+          run: |
+              Start-Process -FilePath 'go/bin/etcd.exe'
+              sleep 3
+              netstat -ano | findstr 2379
+
+        - if: inputs.if-stop=='true'
+          name: Stop ETCD
+          shell: bash
+          run: |
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_clear.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_clear.sh"

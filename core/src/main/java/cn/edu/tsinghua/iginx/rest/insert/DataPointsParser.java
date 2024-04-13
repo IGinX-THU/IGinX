@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.rest.bean.*;
 import cn.edu.tsinghua.iginx.rest.query.QueryExecutor;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
+import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -321,32 +322,8 @@ public class DataPointsParser {
 
   private void sendMetricsData() throws Exception {
     for (Metric metric : metricList) {
-      List<Map<String, String>> tagsList = new ArrayList<>();
-      tagsList.add(metric.getTags());
-
-      List<String> paths = new ArrayList<>();
-      paths.add(metric.getName());
-
-      int size = metric.getKeys().size();
-      List<DataType> type = new ArrayList<>();
-      type.add(findType(metric.getValues()));
-
-      Object[] valuesList = new Object[1];
-      Object[] values = new Object[size];
-      for (int i = 0; i < size; i++) {
-        values[i] = getType(metric.getValues().get(i), type.get(0));
-      }
-      valuesList[0] = values;
       try {
-        session.insertNonAlignedColumnRecords(
-            paths,
-            metric.getKeys().stream().mapToLong(Long::longValue).toArray(),
-            valuesList,
-            type,
-            tagsList);
-        if (!metric.getAnno().isEmpty()) {
-          insertAnno(paths, tagsList, metric.getAnno(), type.get(0));
-        }
+        insertExe(metric, TimeUtils.DEFAULT_TIMESTAMP_PRECISION);
       } catch (StatementExecutionException e) {
         LOGGER.error("Error occurred during insert ", e);
         throw e;
@@ -356,22 +333,7 @@ public class DataPointsParser {
 
   private Map<String, String> getTagsFromPaths(String path, StringBuilder name) { // LHZ确认下是否传入了引用
     Map<String, String> ret = new TreeMap<>(); // LHZ这里要再次确认下tag的顺序是否和底层存储一样
-    int firstBrace = path.indexOf("{");
-    int lastBrace = path.indexOf("}");
-    if (firstBrace == -1 || lastBrace == -1) {
-      name.append(path);
-      return ret;
-    }
-    name.append(path, 0, firstBrace);
-    String tagLists = path.substring(firstBrace + 1, lastBrace);
-    String[] splitPaths = tagLists.split(",");
-    for (String tag : splitPaths) {
-      int equalPos = tag.indexOf("=");
-      String tagKey = tag.substring(0, equalPos);
-      String tagVal = tag.substring(equalPos + 1);
-      ret.put(tagKey, tagVal);
-    }
-
+    TagKVUtils.fillNameAndTagMap(path, name, ret);
     return ret;
   }
 

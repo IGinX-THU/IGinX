@@ -31,7 +31,10 @@ jobs:
                         "MongoDB",
                         "Parquet",
                     ]
+                metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
+        env:
+            METADATA_STORAGE: ${{ matrix.metadata }}
         steps:
             - uses: actions/checkout@v2
             - name: Environment dependence
@@ -40,8 +43,10 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
-            - name: Run ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
