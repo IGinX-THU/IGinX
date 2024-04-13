@@ -333,7 +333,7 @@ For more interfaces, please refer to the official IGinX manual.
 
 ### RPC Interface
 
-In addition to the RESTful interface, IGinX also provides RPC data access interface. For that specific interface, please refer to the official[IGinX Official Manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf). At the same time, IGinX also provides some [official examples](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
+In addition to the RESTful interface, IGinX also provides RPC data access interface. For that specific interface, please refer to the official[IGinX Official Manual](../pdf/userManualC.pdf). At the same time, IGinX also provides some [official examples](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session), showing the most common usage of the RPC interface.
 
 Below is a short tutorial on how to use it.
 
