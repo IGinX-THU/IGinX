@@ -55,6 +55,10 @@ jobs:
                       -P !format \
                       -DskipTests=true \
                       -Ddeploy.repo.dir=$(pwd)/pages
+            - name: sync README.md and docs
+              run: |
+                  cp README.md pages/README.md
+                  cp -r docs pages/docs
             - name: create pull request
               uses: peter-evans/create-pull-request@v6
               with:
@@ -62,6 +66,8 @@ jobs:
                   add-paths: |
                       maven-repo
                       maven-snapshot-repo
+                      README.md
+                      docs
                   branch: release-bot/pages
                   delete-branch: true
                   commit-message: "chore(repo): update maven repository"
