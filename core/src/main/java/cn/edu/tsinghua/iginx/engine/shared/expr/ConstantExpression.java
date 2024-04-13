@@ -20,6 +20,10 @@ public class ConstantExpression implements Expression {
 
   @Override
   public String getColumnName() {
+    // 如果是小数，保留小数点后5位
+    if (value instanceof Double || value instanceof Float) {
+      return String.format("%.5f", value);
+    }
     return value.toString();
   }
 

@@ -64,32 +64,32 @@ class InfluxDBFilterTransformer {
   }
 }
 
-public class ExprUtilsTest {
+public class LogicalFilterUtilsTest {
   @Test
   public void testRemoveNot() {
     String select = "SELECT a FROM root WHERE !(a != 10);";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.removeNot(filter).toString());
+    System.out.println(LogicalFilterUtils.removeNot(filter).toString());
 
     select = "SELECT a FROM root WHERE !(!(a != 10));";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.removeNot(filter).toString());
+    System.out.println(LogicalFilterUtils.removeNot(filter).toString());
 
     select = "SELECT a FROM root WHERE !(a > 5 AND b <= 10 AND c > 7 AND d == 8);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.removeNot(filter).toString());
+    System.out.println(LogicalFilterUtils.removeNot(filter).toString());
 
     select = "SELECT a FROM root WHERE !(a > 5 AND b <= 10 or c > 7 AND d == 8);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.removeNot(filter).toString());
+    System.out.println(LogicalFilterUtils.removeNot(filter).toString());
   }
 
   @Test
@@ -98,26 +98,26 @@ public class ExprUtilsTest {
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     Filter filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.toDNF(filter).toString());
+    System.out.println(LogicalFilterUtils.toDNF(filter).toString());
 
     select = "SELECT a FROM root WHERE (a > 5 OR b <= 10) AND (c > 7 OR d == 8);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.toDNF(filter).toString());
+    System.out.println(LogicalFilterUtils.toDNF(filter).toString());
 
     select =
         "SELECT a FROM root WHERE (a > 5 OR b <= 10) AND (c > 7 OR d == 8) AND (e < 3 OR f != 2);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.toDNF(filter).toString());
+    System.out.println(LogicalFilterUtils.toDNF(filter).toString());
 
     select = "SELECT a FROM root WHERE (a > 5 AND b <= 10) AND (c > 7 OR d == 8);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
-    System.out.println(ExprUtils.toDNF(filter).toString());
+    System.out.println(LogicalFilterUtils.toDNF(filter).toString());
   }
 
   @Test
@@ -127,16 +127,16 @@ public class ExprUtilsTest {
     Filter filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
-    System.out.println(ExprUtils.toCNF(filter).toString());
-    System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
+    System.out.println(LogicalFilterUtils.toCNF(filter).toString());
+    System.out.println(InfluxDBFilterTransformer.toString(LogicalFilterUtils.toCNF(filter)));
 
     select = "SELECT a FROM root WHERE (a > 5 AND b <= 10) OR (c > 7 AND d == 8);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
-    System.out.println(ExprUtils.toCNF(filter).toString());
-    System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
+    System.out.println(LogicalFilterUtils.toCNF(filter).toString());
+    System.out.println(InfluxDBFilterTransformer.toString(LogicalFilterUtils.toCNF(filter)));
 
     select =
         "SELECT a FROM root WHERE (a > 5 AND b <= 10) OR (c > 7 OR d == 8) OR (e < 3 AND f != 2);";
@@ -144,16 +144,16 @@ public class ExprUtilsTest {
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
-    System.out.println(ExprUtils.toCNF(filter).toString());
-    System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
+    System.out.println(LogicalFilterUtils.toCNF(filter).toString());
+    System.out.println(InfluxDBFilterTransformer.toString(LogicalFilterUtils.toCNF(filter)));
 
     select = "SELECT a FROM root WHERE (a > 5 OR b <= 10) OR (c > 7 AND d == 8);";
     statement = (UnarySelectStatement) TestUtils.buildStatement(select);
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(InfluxDBFilterTransformer.toString(filter));
-    System.out.println(ExprUtils.toCNF(filter).toString());
-    System.out.println(InfluxDBFilterTransformer.toString(ExprUtils.toCNF(filter)));
+    System.out.println(LogicalFilterUtils.toCNF(filter).toString());
+    System.out.println(InfluxDBFilterTransformer.toString(LogicalFilterUtils.toCNF(filter)));
   }
 
   @Test
@@ -207,7 +207,7 @@ public class ExprUtilsTest {
         filter.toString());
     assertEquals(
         "(key > 10 && key <= 100)",
-        ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.a", "root.c"))
+        LogicalFilterUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.a", "root.c"))
             .toString());
 
     // sub2
@@ -220,7 +220,7 @@ public class ExprUtilsTest {
         filter.toString());
     assertEquals(
         "(root.e >= 27 && key > 10 && key <= 100)",
-        ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.c", "root.z"))
+        LogicalFilterUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.c", "root.z"))
             .toString());
 
     // whole
@@ -232,7 +232,7 @@ public class ExprUtilsTest {
         filter.toString());
     assertEquals(
         "((root.a > 5 || root.d < 15) && root.e >= 27 && (root.c < 10 || root.b > 2))",
-        ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.a", "root.z"))
+        LogicalFilterUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.a", "root.z"))
             .toString());
 
     // empty
@@ -244,7 +244,7 @@ public class ExprUtilsTest {
         filter.toString());
     assertEquals(
         "True",
-        ExprUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.h", "root.z"))
+        LogicalFilterUtils.getSubFilterFromFragment(filter, new ColumnsInterval("root.h", "root.z"))
             .toString());
   }
 }

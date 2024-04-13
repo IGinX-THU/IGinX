@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -101,7 +101,8 @@ public class FragmentPruningByFilterRule extends Rule {
         });
 
     List<String> pathList = OperatorUtils.findPathList(selectOperator);
-    List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(selectOperator.getFilter());
+    List<KeyRange> keyRanges =
+        LogicalFilterUtils.getKeyRangesFromFilter(selectOperator.getFilter());
 
     ColumnsInterval columnsInterval = null;
     if (!pathList.isEmpty()) {
@@ -157,7 +158,7 @@ public class FragmentPruningByFilterRule extends Rule {
     List<FragmentMeta> dummyFragments = pair.v;
 
     Filter filter = selectOperator.getFilter();
-    List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(filter);
+    List<KeyRange> keyRanges = LogicalFilterUtils.getKeyRangesFromFilter(filter);
 
     // 将符合Key范围的Fragment Project节点用Join(ByKey)合成一个新的子树并设置为Select Operator的子节点
     List<Operator> unionList = new ArrayList<>();

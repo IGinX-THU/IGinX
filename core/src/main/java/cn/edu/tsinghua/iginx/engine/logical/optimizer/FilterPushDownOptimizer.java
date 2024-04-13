@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -97,11 +97,12 @@ public class FilterPushDownOptimizer implements Optimizer {
       if (cache.containsKey(fragmentMeta.getMasterStorageUnitId())) {
         subFilter = cache.get(fragmentMeta.getMasterStorageUnitId()).copy();
       } else {
-        subFilter = ExprUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsInterval());
-        subFilter = ExprUtils.removeWildCardOrFilterByFragment(subFilter, fragmentMetaSet);
+        subFilter =
+            LogicalFilterUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsInterval());
+        subFilter = LogicalFilterUtils.removeWildCardOrFilterByFragment(subFilter, fragmentMetaSet);
         cache.put(fragmentMeta.getMasterStorageUnitId(), subFilter);
       }
-      subFilter = ExprUtils.removePathByPatterns(subFilter, project.getPatterns());
+      subFilter = LogicalFilterUtils.removePathByPatterns(subFilter, project.getPatterns());
 
       if (subFilter.getType() == FilterType.Bool && ((BoolFilter) subFilter).isTrue()) {
         // need to scan whole scope.
@@ -146,7 +147,8 @@ public class FilterPushDownOptimizer implements Optimizer {
         if (fatherOperator.getType() == OperatorType.Select
             && OperatorType.isUnaryOperator(selectOperator.getType())) {
           Select fatherSelect = (Select) fatherOperator;
-          fatherSelect.setFilter(ExprUtils.mergeFilter(fatherSelect.getFilter(), subFilter));
+          fatherSelect.setFilter(
+              LogicalFilterUtils.mergeFilter(fatherSelect.getFilter(), subFilter));
           fatherSelect.setSource(new OperatorSource(project));
         }
       }
