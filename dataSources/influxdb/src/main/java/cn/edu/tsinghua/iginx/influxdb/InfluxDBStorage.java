@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.influxdb;
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 import static com.influxdb.client.domain.WritePrecision.NS;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
@@ -243,10 +243,16 @@ public class InfluxDBStorage implements IStorage {
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
       // query all the series by querying all the data with first()
-      if (!bucket.getName().contains("unit")) {
+
+      boolean isUnit = bucket.getName().startsWith("unit");
+      boolean isDummy =
+          meta.isHasData()
+              && (meta.getDataPrefix() == null
+                  || bucket.getName().startsWith(meta.getDataPrefix()));
+      if (bucket.getType() == Bucket.TypeEnum.SYSTEM || (!isUnit && !isDummy)) {
         continue;
       }
-      // TODO 没有show dummy columns
+
       String statement = String.format(SHOW_TIME_SERIES, bucket.getName());
       tables.addAll(client.getQueryApi().query(statement, organization.getId()));
     }
@@ -381,6 +387,7 @@ public class InfluxDBStorage implements IStorage {
             null,
             keyInterval.getStartKey(),
             keyInterval.getEndKey());
+
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
     InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, null);
     return new TaskExecuteResult(rowStream);
@@ -870,7 +877,7 @@ public class InfluxDBStorage implements IStorage {
           matchFilter = setTrueByMeasurement(matchFilter, measurementName);
         }
 
-        matchFilter = ExprUtils.mergeTrue(matchFilter);
+        matchFilter = LogicalFilterUtils.mergeTrue(matchFilter);
 
         if (matchFilter.getType() == FilterType.Bool) {
           return "";

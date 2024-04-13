@@ -33,10 +33,8 @@ import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
-import cn.edu.tsinghua.iginx.parquet.util.exception.InvalidFieldNameException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
@@ -76,11 +74,6 @@ public class DataManager implements Manager {
   @Override
   public void insert(DataView data) throws PhysicalException {
     DataViewWrapper wrappedData = new DataViewWrapper(data);
-    for (String fullName : wrappedData.getSchema().keySet()) {
-      if (StringUtils.isPattern(fullName)) {
-        throw new InvalidFieldNameException(fullName, "name is a pattern");
-      }
-    }
     try {
       if (wrappedData.isRowData()) {
         try (Scanner<Long, Scanner<String, Object>> scanner = wrappedData.getRowsScanner()) {
