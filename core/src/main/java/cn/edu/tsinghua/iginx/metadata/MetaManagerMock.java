@@ -316,6 +316,11 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
+    return null;
+  }
+
+  @Override
   public void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
       throws Exception {}

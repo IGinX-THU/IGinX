@@ -210,6 +210,8 @@ public interface IMetaManager {
 
   List<TransformTaskMeta> getTransformTasks();
 
+  List<TransformTaskMeta> getTransformTasksByModule(String moduleName);
+
   void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
       throws Exception;

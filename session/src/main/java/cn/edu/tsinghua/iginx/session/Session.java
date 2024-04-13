@@ -926,9 +926,15 @@ public class Session {
     Pattern pattern = Pattern.compile("\"([^\"]*)\"");
     Matcher matcher = pattern.matcher(statement);
 
+    // 1st "": sql name
+    if (!matcher.find()) {
+      throw new SessionException("Error: function name should be surrounded by DOUBLE-QUOTES");
+    }
+    // 2nd "": class name
     if (!matcher.find()) {
       throw new SessionException("Error: python class name should be surrounded by DOUBLE-QUOTES");
     }
+    // 3rd "": script(s) file path
     if (matcher.find()) {
       // 提取python文件路径
       String filePathStr = matcher.group(1);

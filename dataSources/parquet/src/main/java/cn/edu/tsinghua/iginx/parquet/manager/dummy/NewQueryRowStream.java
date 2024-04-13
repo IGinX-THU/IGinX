@@ -17,15 +17,13 @@
 package cn.edu.tsinghua.iginx.parquet.manager.dummy;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
@@ -46,9 +44,11 @@ public class NewQueryRowStream implements RowStream {
     Set<Long> timeSet = new TreeSet<>();
     List<Field> fields = new ArrayList<>();
     for (Column column : columns) {
-      Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(column.getPathName());
+      ColumnKey key =
+          cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils.splitFullName(
+              column.getPathName());
       Field field;
-      field = new Field(pair.getK(), column.getType(), pair.getV());
+      field = new Field(key.getPath(), column.getType(), key.getTags());
       fields.add(field);
       timeSet.addAll(column.getData().keySet());
     }

@@ -39,12 +39,25 @@ public class FragmentPruningByPatternRule extends Rule {
   @Override
   public boolean matches(RuleCall call) {
     Project project = (Project) call.getMatchedRoot();
-    return project.getSource() instanceof FragmentSource;
+    if (!(project.getSource() instanceof FragmentSource)) {
+      return false;
+    }
+
+    return getValidPatterns(project).size() != project.getPatterns().size();
   }
 
   @Override
   public void onMatch(RuleCall call) {
     Project project = (Project) call.getMatchedRoot();
+    List<String> validPatterns = getValidPatterns(project);
+    project.setPatterns(validPatterns);
+
+    if (validPatterns.size() == 0) {
+      PruningFragment(call);
+    }
+  }
+
+  private static List<String> getValidPatterns(Project project) {
     FragmentSource fragmentSource = (FragmentSource) project.getSource();
 
     List<String> patterns = project.getPatterns();
@@ -56,12 +69,7 @@ public class FragmentPruningByPatternRule extends Rule {
         validPatterns.add(pattern);
       }
     }
-
-    project.setPatterns(validPatterns);
-
-    if (validPatterns.size() == 0) {
-      PruningFragment(call);
-    }
+    return validPatterns;
   }
 
   /**
