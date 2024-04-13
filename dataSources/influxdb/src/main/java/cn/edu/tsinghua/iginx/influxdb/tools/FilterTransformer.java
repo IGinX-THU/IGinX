@@ -86,7 +86,7 @@ public class FilterTransformer {
   private static String toString(ValueFilter filter) {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
-    String path = schema.getField();
+    String path = schema.getFieldString();
     String value =
         filter.getValue().getDataType() == DataType.BINARY
             ? "\"" + filter.getValue().getBinaryVAsString() + "\""
@@ -124,8 +124,8 @@ public class FilterTransformer {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schemaA = new InfluxDBSchema(filter.getPathA());
     InfluxDBSchema schemaB = new InfluxDBSchema(filter.getPathB());
-    String pathA = schemaA.getField();
-    String pathB = schemaB.getField();
+    String pathA = schemaA.getFieldString();
+    String pathB = schemaB.getFieldString();
 
     return "r[\""
         + pathA
