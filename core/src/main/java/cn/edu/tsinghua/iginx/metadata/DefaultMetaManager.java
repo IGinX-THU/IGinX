@@ -1453,6 +1453,11 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
+    return cache.getTransformTasksByModule(moduleName);
+  }
+
+  @Override
   public void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap) {
     try {

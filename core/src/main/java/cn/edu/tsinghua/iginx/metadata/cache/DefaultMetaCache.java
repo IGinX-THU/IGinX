@@ -897,4 +897,18 @@ public class DefaultMetaCache implements IMetaCache {
         .map(TransformTaskMeta::copy)
         .collect(Collectors.toList());
   }
+
+  @Override
+  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
+    List<TransformTaskMeta> res = new ArrayList<>();
+    transformTaskMetaMap
+        .values()
+        .forEach(
+            e -> {
+              if (e.getFileName().equals(moduleName)) {
+                res.add(e);
+              }
+            });
+    return res;
+  }
 }
