@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils.keyFromColumnsIntervalToKeyInterval;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -97,7 +97,7 @@ public class FilterFragmentOptimizer implements Optimizer {
     List<FragmentMeta> dummyFragments = pair.v;
 
     Filter filter = selectOperator.getFilter();
-    List<KeyRange> keyRanges = ExprUtils.getKeyRangesFromFilter(filter);
+    List<KeyRange> keyRanges = LogicalFilterUtils.getKeyRangesFromFilter(filter);
 
     // 因为该optimizer是针对key范围进行优化，所以如果select operator没有对key进行过滤，那么就不需要进行优化，直接返回
     if (keyRanges.isEmpty()) {

@@ -44,6 +44,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class OperatorUtils {
 
@@ -78,7 +79,10 @@ public class OperatorUtils {
     if (projectList.isEmpty()) {
       return new ArrayList<>();
     } else {
-      return projectList.get(0).getPatterns();
+      return projectList.stream()
+          .flatMap(p -> p.getPatterns().stream())
+          .distinct()
+          .collect(Collectors.toList());
     }
   }
 
