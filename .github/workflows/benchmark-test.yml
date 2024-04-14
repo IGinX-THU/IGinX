@@ -29,8 +29,53 @@ jobs:
                         "Redis",
                         "MongoDB",
                     ]
-            runs-on: ${{ matrix.os }}
+        runs-on: ${{ matrix.os }}
 
-            steps:
-                - name: Print DB name
-                  run: echo ${{ matrix.DB-name }}
+        steps:
+            - name: Print DB name
+              run: echo ${{ matrix.DB-name }}
+
+            - uses: actions/checkout@v2
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
+
+            # start udf path test first to avoid being effected
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-test-udf: "true"
+
+            - name: Start data cleaning
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
