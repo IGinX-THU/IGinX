@@ -2,7 +2,7 @@ name: Benchmark Tests
 
 on:
     push:
-        branches: [main]
+        branches: [feat-benchmark]
 
 env:
     VERSION: 0.6.0-SNAPSHOT
