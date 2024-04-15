@@ -18,6 +18,10 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.exception;
 
+/**
+ * For more detailed information, please refer to
+ * shared/src/main/java/cn/edu/tsinghua/iginx/exception/package-info.java
+ */
 public class PhysicalException extends Exception {
 
   private static final long serialVersionUID = -1547005178512213280L;

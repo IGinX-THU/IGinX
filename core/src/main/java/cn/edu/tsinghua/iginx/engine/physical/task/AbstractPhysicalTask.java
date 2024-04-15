@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractPhysicalTask implements PhysicalTask {
 
-  private static final Logger logger = LoggerFactory.getLogger(AbstractPhysicalTask.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPhysicalTask.class);
 
   private final RequestContext context;
 
@@ -82,7 +82,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     try {
       this.resultLatch.await();
     } catch (InterruptedException e) {
-      logger.error("unexpected interrupted when get result: ", e);
+      LOGGER.error("unexpected interrupted when get result: ", e);
     }
     return result;
   }

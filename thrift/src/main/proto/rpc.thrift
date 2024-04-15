@@ -584,7 +584,7 @@ struct RegisterTaskReq {
     1: required i64 sessionId
     2: required string filePath
     3: required list<UDFClassPair> UDFClassPairs
-    4: required list<UDFType> types;
+    4: required list<UDFType> types
 }
 
 struct DropTaskReq {

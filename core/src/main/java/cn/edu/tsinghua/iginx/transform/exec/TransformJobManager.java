@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TransformJobManager {
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformJobManager.class);
 
   private final Map<Long, Job> jobMap;
 
@@ -32,8 +33,6 @@ public class TransformJobManager {
   private final Checker checker = JobValidationChecker.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger logger = LoggerFactory.getLogger(TransformJobManager.class);
 
   private TransformJobManager() {
     this.jobMap = new ConcurrentHashMap<>();
@@ -64,7 +63,7 @@ public class TransformJobManager {
       threadPool.submit(() -> processWithRetry(job, config.getTransformMaxRetryTimes()));
       return job.getJobId();
     } else {
-      logger.error("Committed job is illegal.");
+      LOGGER.error("Committed job is illegal.");
       return -1;
     }
   }
@@ -76,7 +75,7 @@ public class TransformJobManager {
         process(job);
         processCnt = retryTimes; // don't retry
       } catch (Exception e) {
-        logger.error("retry process, executed times: " + (processCnt + 1));
+        LOGGER.error("retry process, executed times: {}", (processCnt + 1));
       }
     }
   }
@@ -90,8 +89,7 @@ public class TransformJobManager {
       runner.run();
       jobRunnerMap.remove(job.getJobId()); // since we will retry, we can't do this in finally
     } catch (Exception e) {
-      logger.error(
-          String.format("Fail to process transform job id=%d, because", job.getJobId()), e);
+      LOGGER.error("Fail to process transform job id={}, because", job.getJobId(), e);
       throw e;
     } finally {
       // TODO: is it legal to retry after runner.close()???
@@ -102,9 +100,7 @@ public class TransformJobManager {
     }
     // TODO: should we set end time and log time cost for failed jobs?
     job.setEndTime(System.currentTimeMillis());
-    logger.info(
-        String.format(
-            "Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
   }
 
   public boolean cancel(long jobId) {
@@ -145,9 +141,7 @@ public class TransformJobManager {
     job.setState(JobState.JOB_CLOSED);
     jobRunnerMap.remove(jobId);
     job.setEndTime(System.currentTimeMillis());
-    logger.info(
-        String.format(
-            "Job id=%s cost %s ms.", job.getJobId(), job.getEndTime() - job.getStartTime()));
+    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
     return true;
   }
 

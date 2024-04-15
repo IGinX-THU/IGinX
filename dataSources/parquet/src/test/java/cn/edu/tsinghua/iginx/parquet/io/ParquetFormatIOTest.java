@@ -42,14 +42,14 @@ public class ParquetFormatIOTest {
   @Before
   public void setUp() throws Exception {
     if (new File(FILE_PATH.toString()).createNewFile()) {
-      LOGGER.info("Create file: " + FILE_PATH.toString());
+      LOGGER.info("Create file: {}", FILE_PATH);
     }
   }
 
   @After
   public void tearDown() throws Exception {
     if (Files.deleteIfExists(FILE_PATH)) {
-      LOGGER.info("Delete file: " + FILE_PATH.toString());
+      LOGGER.info("Delete file: {}", FILE_PATH);
     }
   }
 

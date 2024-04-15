@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -20,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public class FilterPushDownOptimizer implements Optimizer {
 
-  private static final Logger logger = LoggerFactory.getLogger(FilterPushDownOptimizer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FilterPushDownOptimizer.class);
 
   private static FilterPushDownOptimizer instance;
 
@@ -47,7 +47,7 @@ public class FilterPushDownOptimizer implements Optimizer {
     OperatorUtils.findSelectOperators(selectOperatorList, root);
 
     if (selectOperatorList.isEmpty()) {
-      logger.info("There is no filter in logical tree.");
+      LOGGER.info("There is no filter in logical tree.");
       return root;
     }
 
@@ -63,7 +63,7 @@ public class FilterPushDownOptimizer implements Optimizer {
     findProjectUpperFragment(projectAndFatherOperatorList, stack, selectOperator);
 
     if (projectAndFatherOperatorList.size() == 0) {
-      logger.error("There is no project operator just upper fragment in select tree.");
+      LOGGER.error("There is no project operator just upper fragment in select tree.");
       return;
     }
 
@@ -97,11 +97,12 @@ public class FilterPushDownOptimizer implements Optimizer {
       if (cache.containsKey(fragmentMeta.getMasterStorageUnitId())) {
         subFilter = cache.get(fragmentMeta.getMasterStorageUnitId()).copy();
       } else {
-        subFilter = ExprUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsInterval());
-        subFilter = ExprUtils.removeWildCardOrFilterByFragment(subFilter, fragmentMetaSet);
+        subFilter =
+            LogicalFilterUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsInterval());
+        subFilter = LogicalFilterUtils.removeWildCardOrFilterByFragment(subFilter, fragmentMetaSet);
         cache.put(fragmentMeta.getMasterStorageUnitId(), subFilter);
       }
-      subFilter = ExprUtils.removePathByPatterns(subFilter, project.getPatterns());
+      subFilter = LogicalFilterUtils.removePathByPatterns(subFilter, project.getPatterns());
 
       if (subFilter.getType() == FilterType.Bool && ((BoolFilter) subFilter).isTrue()) {
         // need to scan whole scope.
@@ -146,7 +147,8 @@ public class FilterPushDownOptimizer implements Optimizer {
         if (fatherOperator.getType() == OperatorType.Select
             && OperatorType.isUnaryOperator(selectOperator.getType())) {
           Select fatherSelect = (Select) fatherOperator;
-          fatherSelect.setFilter(ExprUtils.mergeFilter(fatherSelect.getFilter(), subFilter));
+          fatherSelect.setFilter(
+              LogicalFilterUtils.mergeFilter(fatherSelect.getFilter(), subFilter));
           fatherSelect.setSource(new OperatorSource(project));
         }
       }

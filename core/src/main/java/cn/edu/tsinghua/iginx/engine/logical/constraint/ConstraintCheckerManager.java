@@ -5,7 +5,7 @@ import org.slf4j.LoggerFactory;
 
 public class ConstraintCheckerManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConstraintCheckerManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConstraintCheckerManager.class);
 
   private static final ConstraintCheckerManager instance = new ConstraintCheckerManager();
 
@@ -21,7 +21,7 @@ public class ConstraintCheckerManager {
     if (name == null || name.equals("")) {
       return null;
     }
-    logger.info("use {} as constraint checker.", name);
+    LOGGER.info("use {} as constraint checker.", name);
 
     switch (name) {
       case NAIVE:

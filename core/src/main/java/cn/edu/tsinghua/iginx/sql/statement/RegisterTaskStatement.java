@@ -15,6 +15,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RegisterTaskStatement extends SystemStatement {
+  @SuppressWarnings("unused")
+  private static final Logger LOGGER = LoggerFactory.getLogger(RegisterTaskStatement.class);
 
   private final String filePath;
 
@@ -25,9 +27,6 @@ public class RegisterTaskStatement extends SystemStatement {
   private boolean isRemote;
 
   private final IginxWorker worker = IginxWorker.getInstance();
-
-  @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(RegisterTaskStatement.class);
 
   public RegisterTaskStatement(String filePath, List<UDFClassPair> pairs, List<UDFType> types) {
     this.statementType = StatementType.REGISTER_TASK;

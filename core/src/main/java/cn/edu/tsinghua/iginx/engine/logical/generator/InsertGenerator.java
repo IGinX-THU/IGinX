@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class InsertGenerator extends AbstractGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InsertGenerator.class);
   private static final InsertGenerator instance = new InsertGenerator();
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
   private final IPolicy policy =
@@ -69,7 +69,7 @@ public class InsertGenerator extends AbstractGenerator {
       fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     } else if (policy.isNeedReAllocate()) {
       // on scale-out or any events requiring reallocation
-      logger.debug("Trig ReAllocate!");
+      LOGGER.debug("Trig ReAllocate!");
       Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
           policy.generateFragmentsAndStorageUnits(insertStatement);
       metaManager.createFragmentsAndStorageUnits(

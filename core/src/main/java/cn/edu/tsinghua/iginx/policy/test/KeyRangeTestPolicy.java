@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class KeyRangeTestPolicy extends NaivePolicy {
 
-  private static final Logger logger = LoggerFactory.getLogger(KeyRangeTestPolicy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(KeyRangeTestPolicy.class);
 
   @Override
   public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateInitialFragmentsAndStorageUnits(

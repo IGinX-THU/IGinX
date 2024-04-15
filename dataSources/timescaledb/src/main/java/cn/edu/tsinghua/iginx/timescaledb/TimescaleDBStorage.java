@@ -74,7 +74,7 @@ import org.slf4j.LoggerFactory;
 
 public class TimescaleDBStorage implements IStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(TimescaleDBStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TimescaleDBStorage.class);
 
   private static final int BATCH_SIZE = 10000;
 
@@ -342,7 +342,7 @@ public class TimescaleDBStorage implements IStorage {
         }
       }
     } catch (SQLException e) {
-      logger.error("create timeseries error", e);
+      LOGGER.error("create timeseries error", e);
     }
   }
 
@@ -351,7 +351,7 @@ public class TimescaleDBStorage implements IStorage {
       Statement stmt = connection.createStatement();
       stmt.execute(String.format("create database %s", dbname));
     } catch (SQLException e) {
-      logger.info("create database error", e);
+      LOGGER.info("create database error", e);
     }
     try {
       Map<String, String> extraParams = meta.getExtraParams();
@@ -364,7 +364,7 @@ public class TimescaleDBStorage implements IStorage {
       Statement stmt = connection.createStatement();
       stmt.execute("CREATE EXTENSION IF NOT EXISTS timescaledb CASCADE");
     } catch (SQLException e) {
-      logger.info("change database error", e);
+      LOGGER.info("change database error", e);
     }
   }
 
@@ -478,7 +478,7 @@ public class TimescaleDBStorage implements IStorage {
       }
       stmt.executeBatch();
     } catch (SQLException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
       return e;
     }
 

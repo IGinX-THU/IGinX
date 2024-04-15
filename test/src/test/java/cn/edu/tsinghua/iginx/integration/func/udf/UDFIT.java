@@ -31,7 +31,9 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.utils.FileUtils;
 import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -48,10 +50,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UDFIT {
+  private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
 
   private static final double delta = 0.01d;
-
-  private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
 
   private static boolean isScaling;
 
@@ -170,18 +171,18 @@ public class UDFIT {
   }
 
   private SessionExecuteSqlResult execute(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
     }
@@ -191,14 +192,14 @@ public class UDFIT {
 
   // execute a statement and expect failure.
   private void executeFail(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException e) {
       // don't want to print e because it will be confusing
-      logger.info(
+      LOGGER.info(
           "Statement: \"{}\" execute failed AS EXPECTED, with message: {}",
           statement,
           e.getMessage());
@@ -206,14 +207,14 @@ public class UDFIT {
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.info(
+      LOGGER.info(
           "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.",
           statement,
           res.getParseErrorMsg());
       return;
     }
 
-    fail("Statement: \"{}\" execute without failure, which was expected.");
+    fail("Statement: \"{}\" execute without failure, which was not expected.");
   }
 
   private boolean isUDFRegistered(String udfName) {
@@ -1316,5 +1317,40 @@ public class UDFIT {
             + "+---+----+------+-----+----+\n"
             + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // module with illegal requirements.txt cannot be registered.
+  @Test
+  public void testModuleInstallFail() {
+    String newFileName = "requirements_backup.txt";
+    String classPath = "my_module.dateutil_test.Test";
+    String name = "dateutil_test";
+    String type = "udsf";
+    File reqFile = new File(String.join(File.separator, MODULE_PATH, "requirements.txt"));
+    File renamedFile = new File(String.join(File.separator, MODULE_PATH, newFileName));
+    String statement = String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH);
+    try {
+      FileUtils.copyFileOrDir(reqFile, renamedFile);
+    } catch (IOException e) {
+      LOGGER.error("Can't rename file:{}.", reqFile, e);
+      fail();
+    }
+
+    // append an illegal package(wrong name)
+    try {
+      FileUtils.appendFile(reqFile, "\nillegal-package");
+      executeFail(statement);
+      assertFalse(isUDFRegistered(name));
+    } catch (IOException e) {
+      LOGGER.error("Append content to file:{} failed.", reqFile, e);
+      fail();
+    } finally {
+      try {
+        FileUtils.deleteFileOrDir(reqFile);
+        FileUtils.moveFile(renamedFile, reqFile);
+      } catch (IOException ee) {
+        LOGGER.error("Fail to recover requirement.txt .", ee);
+      }
+    }
   }
 }

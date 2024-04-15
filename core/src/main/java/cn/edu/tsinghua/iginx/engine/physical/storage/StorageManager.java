@@ -36,7 +36,7 @@ import org.slf4j.LoggerFactory;
 
 public class StorageManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(StorageManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StorageManager.class);
 
   private static final Map<StorageEngineType, ClassLoader> classLoaders = new ConcurrentHashMap<>();
 
@@ -82,16 +82,16 @@ public class StorageManager {
       }
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}:", engine, e);
+      LOGGER.error("unexpected error when process engine {}:", engine, e);
     } finally {
       try {
         if (needRelease) {
           storage.release();
         }
       } catch (Exception e) {
-        logger.error("release session pool failure!");
+        LOGGER.error("release session pool failure!");
       }
     }
     return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
@@ -110,10 +110,10 @@ public class StorageManager {
         return initStorage(meta, storage);
       }
     } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return false;
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}: ", engine, e);
+      LOGGER.error("unexpected error when process engine {}: ", engine, e);
       return false;
     }
     return true;
@@ -137,7 +137,7 @@ public class StorageManager {
         storageMap.put(meta.getId(), new Pair<>(storage, dispatcher));
       }
     } catch (Exception e) {
-      logger.error("unexpected error when process engine {}: {}", engine, e);
+      LOGGER.error("unexpected error when process engine {}: {}", engine, e);
       return false;
     }
     return true;
@@ -151,7 +151,7 @@ public class StorageManager {
     for (String part : parts) {
       String[] kAndV = part.split("=");
       if (kAndV.length != 2) {
-        logger.error("unexpected database class names: {}", part);
+        LOGGER.error("unexpected database class names: {}", part);
         System.exit(-1);
       }
       String storage = kAndV[0];
@@ -162,7 +162,7 @@ public class StorageManager {
         classLoaders.put(type, classLoader);
         drivers.put(type, driver);
       } catch (IOException e) {
-        logger.error("encounter error when init class loader for {}: {}", storage, e);
+        LOGGER.error("encounter error when init class loader for {}: {}", storage, e);
         System.exit(-1);
       }
     }
@@ -179,20 +179,20 @@ public class StorageManager {
 
   public boolean addStorage(StorageEngineMeta meta) {
     if (!initStorage(meta)) {
-      logger.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      logger.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
 
   public boolean addStorage(StorageEngineMeta meta, IStorage storage) {
     if (!initStorage(meta, storage)) {
-      logger.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return false;
     } else {
-      logger.info("add storage " + meta + " success.");
+      LOGGER.info("add storage {} success.", meta);
     }
     return true;
   }
@@ -205,10 +205,10 @@ public class StorageManager {
       return (IStorage)
           loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
     } catch (ClassNotFoundException e) {
-      logger.error("load class {} for engine {} failure: {}", driver, engine, e);
+      LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;
     } catch (Exception e) {
-      logger.error("add storage " + meta + " failure!");
+      LOGGER.error("add storage {} failure!", meta);
       return null;
     }
   }

@@ -40,6 +40,7 @@ import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -62,7 +63,7 @@ import org.slf4j.LoggerFactory;
 
 public class IginxWorker implements IService.Iface {
 
-  private static final Logger logger = LoggerFactory.getLogger(IginxWorker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IginxWorker.class);
 
   private static final IginxWorker instance = new IginxWorker();
 
@@ -83,7 +84,7 @@ public class IginxWorker implements IService.Iface {
   private IginxWorker() {
     // if there are new local parquets/file systems in conf, add them to cluster.
     if (!addLocalStorageEngineMetas()) {
-      logger.error("there are no valid storage engines!");
+      LOGGER.error("there are no valid storage engines!");
       System.exit(-1);
     }
   }
@@ -99,7 +100,7 @@ public class IginxWorker implements IService.Iface {
       }
       Map<String, String> extraParams = metaFromConf.getExtraParams();
       if (!checkEmbeddedStorageExtraParams(metaFromConf.getStorageEngine(), extraParams)) {
-        logger.error(
+        LOGGER.error(
             "missing params or providing invalid ones for {} in config file.", metaFromConf);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
@@ -169,7 +170,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
+      LOGGER.error("Insert paths must have more than one sub paths.");
       return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -183,7 +184,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
+      LOGGER.error("Insert paths must have more than one sub paths.");
       return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -197,7 +198,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
+      LOGGER.error("Insert paths must have more than one sub paths.");
       return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -211,7 +212,7 @@ public class IginxWorker implements IService.Iface {
       return RpcUtils.ACCESS_DENY;
     }
     if (!StringUtils.allHasMoreThanOneSubPath(req.getPaths())) {
-      logger.error("Insert paths must have more than one sub paths.");
+      LOGGER.error("Insert paths must have more than one sub paths.");
       return RpcUtils.FAILURE;
     }
     RequestContext ctx = contextBuilder.build(req);
@@ -277,23 +278,23 @@ public class IginxWorker implements IService.Iface {
       if (storageEngineMeta == null
           || storageEngineMeta.getDummyFragment() == null
           || storageEngineMeta.getDummyStorageUnit() == null) {
-        logger.error("dummy storage engine {} does not exist.", info);
+        LOGGER.error("dummy storage engine {} does not exist.", info);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
       if (!storageEngineMeta.isHasData()) {
-        logger.error("dummy storage engine {} has no data.", info);
+        LOGGER.error("dummy storage engine {} has no data.", info);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
       if (!storageEngineMeta.isReadOnly()) {
-        logger.error("dummy storage engine {} is not read-only.", info);
+        LOGGER.error("dummy storage engine {} is not read-only.", info);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
       // 更新 zk 以及缓存中的元数据信息
       if (!metaManager.removeDummyStorageEngine(storageEngineMeta.getId())) {
-        logger.error("unexpected error during removing dummy storage engine {}.", info);
+        LOGGER.error("unexpected error during removing dummy storage engine {}.", info);
         status.addToSubStatus(RpcUtils.FAILURE);
       }
     }
@@ -334,17 +335,17 @@ public class IginxWorker implements IService.Iface {
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
 
       if (!isValidHost(ip)) { // IP 不合法
-        logger.error("ip {} is invalid.", ip);
+        LOGGER.error("ip {} is invalid.", ip);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
       if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
-        logger.error("normal storage engine {} should not be read-only.", storageEngine);
+        LOGGER.error("normal storage engine {} should not be read-only.", storageEngine);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
       if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
-        logger.error(
+        LOGGER.error(
             "missing params or providing invalid ones for {} in statement.", storageEngine);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
@@ -382,7 +383,7 @@ public class IginxWorker implements IService.Iface {
   private void addStorageEngineMetas(List<StorageEngineMeta> storageEngineMetas, Status status) {
     addStorageEngineMetas(storageEngineMetas, status, true);
     if (status.code != RpcUtils.SUCCESS.code) {
-      logger.error("add local storage engines failed when initializing IginxWorker!");
+      LOGGER.error("add local storage engines failed when initializing IginxWorker!");
     }
   }
 
@@ -396,7 +397,7 @@ public class IginxWorker implements IService.Iface {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
           if (isDuplicated(storageEngine, currentStorageEngine)) {
             duplicatedStorageEngines.add(storageEngine);
-            logger.error("repeatedly add storage engine {}.", storageEngine);
+            LOGGER.error("repeatedly add storage engine {}.", storageEngine);
             status.addToSubStatus(RpcUtils.FAILURE);
             break;
           }
@@ -449,7 +450,7 @@ public class IginxWorker implements IService.Iface {
     for (StorageEngineMeta meta : storageEngineMetas) {
       if (isEmbeddedStorageEngine(meta.getStorageEngine())) {
         if (!isLocal(meta)) {
-          logger.error("storage engine {} needs to be local.", meta);
+          LOGGER.error("storage engine {} needs to be local.", meta);
           status.addToSubStatus(RpcUtils.FAILURE);
         } else {
           localMetas.add(meta);
@@ -471,7 +472,7 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        logger.error("add storage engine {} failed.", meta);
+        LOGGER.error("add storage engine {} failed.", meta);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
@@ -487,7 +488,7 @@ public class IginxWorker implements IService.Iface {
         continue;
       }
       if (!metaManager.addStorageEngines(Collections.singletonList(meta))) {
-        logger.error("add storage engine {} failed.", meta);
+        LOGGER.error("add storage engine {} failed.", meta);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
@@ -711,7 +712,7 @@ public class IginxWorker implements IService.Iface {
         }
         break;
       default:
-        logger.error("unexpected meta storage: " + config.getMetaStorage());
+        LOGGER.error("unexpected meta storage: " + config.getMetaStorage());
     }
 
     if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
@@ -820,7 +821,7 @@ public class IginxWorker implements IService.Iface {
           String.format(
               "Fail to register %d UDFs with %d types, the number should be same or use only one type.",
               pairs.size(), req.getTypesSize());
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } else if (req.getTypesSize() == 1) {
       // all task in one type
@@ -834,12 +835,12 @@ public class IginxWorker implements IService.Iface {
     for (UDFClassPair p : pairs) {
       if (!tempName.add(p.name)) {
         errorMsg = String.format("Cannot register multiple UDFs with same name: %s", p.name);
-        logger.error(errorMsg);
+        LOGGER.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
       }
       if (!tempClass.add(p.classPath)) {
         errorMsg = String.format("Cannot register multiple UDFs with same class: %s", p.classPath);
-        logger.error(errorMsg);
+        LOGGER.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
       }
     }
@@ -853,19 +854,19 @@ public class IginxWorker implements IService.Iface {
     File sourceFile = new File(filePath);
     if (!sourceChecker.test(sourceFile.toPath())) {
       errorMsg = String.format("Register file %s has no execute permission", filePath);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
     if (!sourceFile.exists()) {
       errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     // python file
     if (sourceFile.isFile() && !sourceFile.getName().endsWith(".py")) {
       errorMsg = "Register file must be a python file.";
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -879,7 +880,7 @@ public class IginxWorker implements IService.Iface {
               "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n"
                   + className
                   + " is an invalid class name.";
-          logger.error(errorMsg);
+          LOGGER.error(errorMsg);
           return RpcUtils.FAILURE.setMessage(errorMsg);
         }
       }
@@ -890,7 +891,7 @@ public class IginxWorker implements IService.Iface {
       TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(p.name.trim());
       if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
         errorMsg = String.format("Register task %s already exist", transformTaskMeta);
-        logger.error(errorMsg);
+        LOGGER.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
       }
       transformTaskMetas.add(transformTaskMeta);
@@ -903,7 +904,7 @@ public class IginxWorker implements IService.Iface {
 
     if (destFile.exists()) {
       errorMsg = String.format("Register file(s) already exist, name=%s", fileName);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -912,15 +913,33 @@ public class IginxWorker implements IService.Iface {
 
     if (!destChecker.test(destFile.toPath())) {
       errorMsg = String.format("Register file %s has no write permission", destPath);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     try {
       FileUtils.copyFileOrDir(sourceFile, destFile);
+      if (sourceFile.isDirectory()) {
+        // try to install module dependencies
+        FunctionManager fm = FunctionManager.getInstance();
+        fm.installReqsByPip(fileName);
+      }
     } catch (IOException e) {
       errorMsg = String.format("Fail to copy register file(s), path=%s", filePath);
-      logger.error(errorMsg, e);
+      LOGGER.error(errorMsg, e);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
+    } catch (Exception e) {
+      errorMsg =
+          String.format(
+              "Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.",
+              fileName);
+      LOGGER.error(errorMsg, e);
+      LOGGER.debug("deleting {} due to failure in installing dependencies.", filePath);
+      try {
+        FileUtils.deleteFolder(destFile);
+      } catch (IOException ee) {
+        LOGGER.error("fail to delete udf module {}.", destPath, ee);
+      }
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -952,20 +971,20 @@ public class IginxWorker implements IService.Iface {
     String errorMsg = "";
     if (transformTaskMeta == null) {
       errorMsg = "Register task not exist";
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     TransformJobManager manager = TransformJobManager.getInstance();
     if (manager.isRegisterTaskRunning(name)) {
       errorMsg = "Register task is running";
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     if (!transformTaskMeta.getIpSet().contains(config.getIp())) {
       errorMsg = String.format("Register task exists in node: %s", config.getIp());
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -980,7 +999,7 @@ public class IginxWorker implements IService.Iface {
     if (!file.exists()) {
       metaManager.dropTransformTask(name);
       errorMsg = String.format("Register file not exist, path=%s", filePath);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -994,7 +1013,7 @@ public class IginxWorker implements IService.Iface {
       errorMsg =
           String.format(
               "User has no write permission in target directory, udf %s cannot be dropped.", name);
-      logger.error(errorMsg);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
@@ -1004,10 +1023,10 @@ public class IginxWorker implements IService.Iface {
         FileUtils.deleteFileOrDir(file);
       }
       metaManager.dropTransformTask(name);
-      logger.info(String.format("Register file has been dropped, path=%s", filePath));
+      LOGGER.info(String.format("Register file has been dropped, path=%s", filePath));
       return RpcUtils.SUCCESS;
     } catch (IOException e) {
-      logger.error(String.format("Fail to delete register file, path=%s", filePath));
+      LOGGER.error(String.format("Fail to delete register file, path=%s", filePath));
       return RpcUtils.FAILURE;
     }
   }
@@ -1043,7 +1062,7 @@ public class IginxWorker implements IService.Iface {
 
     for (DataType type : queryDataResp.getDataTypeList()) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
-        logger.error(String.format("Unsupported data type: %s", type));
+        LOGGER.error(String.format("Unsupported data type: %s", type));
         return new CurveMatchResp(RpcUtils.FAILURE);
       }
     }
@@ -1125,7 +1144,7 @@ public class IginxWorker implements IService.Iface {
         try {
           getMetaReq = JsonUtils.fromJson(req.getPayload(), GetMetaReq.class);
         } catch (RuntimeException e) {
-          logger.error("parse request failure: ", e);
+          LOGGER.error("parse request failure: ", e);
           parseFailure = true;
           break;
         }

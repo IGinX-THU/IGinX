@@ -20,6 +20,7 @@ import static cn.edu.tsinghua.iginx.parquet.util.Constants.SUFFIX_FILE_PARQUET;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -28,9 +29,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
-import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import cn.edu.tsinghua.iginx.utils.TagKVUtils;
 import com.google.common.collect.Range;
 import com.google.common.collect.TreeRangeSet;
 import java.io.IOException;
@@ -107,16 +107,16 @@ public class DummyManager implements Manager {
     List<String> ret = new ArrayList<>();
     for (String path : paths) {
       for (String pattern : patterns) {
-        Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(path);
+        ColumnKey columnKey = TagKVUtils.splitFullName(path);
         if (tagFilter == null) {
-          if (StringUtils.match(pair.getK(), pattern)) {
+          if (StringUtils.match(columnKey.getPath(), pattern)) {
             ret.add(path);
             break;
           }
         } else {
-          if (StringUtils.match(pair.getK(), pattern)
+          if (StringUtils.match(columnKey.getPath(), pattern)
               && cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils.match(
-                  pair.getV(), tagFilter)) {
+                  columnKey.getTags(), tagFilter)) {
             ret.add(path);
             break;
           }
@@ -144,8 +144,10 @@ public class DummyManager implements Manager {
       try {
         List<Field> fields = new Loader(path).getHeader();
         for (Field field : fields) {
-          Pair<String, Map<String, String>> pair = TagKVUtils.fromFullName(field.getName());
-          Column column = new Column(prefix + "." + pair.k, field.getType(), pair.v, true);
+          ColumnKey columnKey = TagKVUtils.splitFullName(field.getName());
+          Column column =
+              new Column(
+                  prefix + "." + columnKey.getPath(), field.getType(), columnKey.getTags(), true);
           columns.add(column);
         }
       } catch (IOException e) {

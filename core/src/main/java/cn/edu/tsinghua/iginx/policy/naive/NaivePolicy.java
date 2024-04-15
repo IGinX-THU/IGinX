@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
+import cn.edu.tsinghua.iginx.policy.AbstractPolicy;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.Utils;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
@@ -12,18 +13,15 @@ import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class NaivePolicy implements IPolicy {
+public class NaivePolicy extends AbstractPolicy implements IPolicy {
 
-  private static final Logger logger = LoggerFactory.getLogger(NaivePolicy.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NaivePolicy.class);
 
-  protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
-  private IMetaManager iMetaManager;
   private Sampler sampler;
 
   @Override
@@ -54,7 +52,7 @@ public class NaivePolicy implements IPolicy {
           && after.getCreatedBy() == iMetaManager.getIginxId()
           && after.isNeedReAllocate()) {
         needReAllocate.set(true);
-        logger.info("新的可写节点进入集群，集群需要重新分片");
+        LOGGER.info("新的可写节点进入集群，集群需要重新分片");
       }
       // TODO: 针对节点退出的情况缩容
     };
@@ -383,15 +381,6 @@ public class NaivePolicy implements IPolicy {
     return new Pair<>(fragmentList, storageUnitList);
   }
 
-  private List<Long> generateStorageEngineIdList(int startIndex, int num) {
-    List<Long> storageEngineIdList = new ArrayList<>();
-    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
-    for (int i = startIndex; i < startIndex + num; i++) {
-      storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
-    }
-    return storageEngineIdList;
-  }
-
   public Pair<FragmentMeta, StorageUnitMeta>
       generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
           String startPath,
@@ -409,15 +398,5 @@ public class NaivePolicy implements IPolicy {
               RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId, false));
     }
     return new Pair<>(fragment, storageUnit);
-  }
-
-  @Override
-  public boolean isNeedReAllocate() {
-    return needReAllocate.getAndSet(false);
-  }
-
-  @Override
-  public void setNeedReAllocate(boolean needReAllocate) {
-    this.needReAllocate.set(needReAllocate);
   }
 }

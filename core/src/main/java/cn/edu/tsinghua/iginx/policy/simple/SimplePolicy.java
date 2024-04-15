@@ -5,6 +5,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
+import cn.edu.tsinghua.iginx.policy.AbstractPolicy;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.Utils;
 import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
@@ -20,13 +21,14 @@ import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SimplePolicy implements IPolicy {
+public class SimplePolicy extends AbstractPolicy implements IPolicy {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(SimplePolicy.class);
 
   protected AtomicBoolean needReAllocate = new AtomicBoolean(false);
   private IMetaManager iMetaManager;
   private FragmentCreator fragmentCreator;
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static final Logger logger = LoggerFactory.getLogger(SimplePolicy.class);
 
   @Override
   public void notify(DataStatement statement) {
@@ -275,15 +277,6 @@ public class SimplePolicy implements IPolicy {
     return new Pair<>(fragment, storageUnit);
   }
 
-  private List<Long> generateStorageEngineIdList(int startIndex, int num) {
-    List<Long> storageEngineIdList = new ArrayList<>();
-    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
-    for (int i = startIndex; i < startIndex + num; i++) {
-      storageEngineIdList.add(storageEngines.get(i % storageEngines.size()).getId());
-    }
-    return storageEngineIdList;
-  }
-
   @Override
   public Pair<List<FragmentMeta>, List<StorageUnitMeta>> generateFragmentsAndStorageUnits(
       DataStatement statement) {
@@ -406,14 +399,6 @@ public class SimplePolicy implements IPolicy {
     return ret;
   }
 
-  public boolean isNeedReAllocate() {
-    return needReAllocate.getAndSet(false);
-  }
-
-  public void setNeedReAllocate(boolean needReAllocate) {
-    this.needReAllocate.set(needReAllocate);
-  }
-
   public boolean checkSuccess(Map<String, Double> columnsData) {
     Map<ColumnsInterval, FragmentMeta> latestFragments = iMetaManager.getLatestFragmentMap();
     Map<ColumnsInterval, Double> fragmentValue =
@@ -430,7 +415,7 @@ public class SimplePolicy implements IPolicy {
     List<Double> value = fragmentValue.values().stream().sorted().collect(Collectors.toList());
     int num = 0;
     for (Double v : value) {
-      logger.info("fragment value num : {}, value : {}", num++, v);
+      LOGGER.info("fragment value num : {}, value : {}", num++, v);
     }
     if (value.size() > 0) {
       return !(value.get(new Double(Math.ceil(value.size() - 1) * 0.9).intValue())

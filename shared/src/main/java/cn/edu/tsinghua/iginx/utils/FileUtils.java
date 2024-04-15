@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.utils;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -86,5 +87,30 @@ public class FileUtils {
 
   public static void deleteFolder(File folder) throws IOException {
     org.apache.commons.io.FileUtils.deleteDirectory(folder);
+  }
+
+  public static void moveFile(File sourceFile, File targetFile) throws IOException {
+    org.apache.commons.io.FileUtils.moveFile(sourceFile, targetFile);
+  }
+
+  // contents will be written one per line, cover original file
+  public static void writeFile(File file, String... contents) throws IOException {
+    writeFileOpe(false, file, contents);
+  }
+
+  // contents will be written one per line, append to original file
+  public static void appendFile(File file, String... contents) throws IOException {
+    writeFileOpe(true, file, contents);
+  }
+
+  // module: 0:cover; 1:append
+  private static void writeFileOpe(boolean mode, File file, String... contents) throws IOException {
+    FileWriter fw = new FileWriter(file, mode);
+    for (String line : contents) {
+      fw.write(line);
+      fw.write("\n");
+    }
+    fw.flush();
+    fw.close();
   }
 }

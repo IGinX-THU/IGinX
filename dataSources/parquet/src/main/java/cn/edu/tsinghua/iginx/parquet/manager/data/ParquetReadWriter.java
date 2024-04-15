@@ -254,8 +254,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
           shared.getCachePool().asMap().remove(fileName);
         }
       }
-      Files.deleteIfExists(dir);
       tombstoneStorage.clear();
+      Files.deleteIfExists(dir);
     } catch (NoSuchFileException e) {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {

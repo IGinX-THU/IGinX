@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class ZooKeeperSyncProtocolTest extends SyncProtocolTest {
 
-  private static final Logger logger = LoggerFactory.getLogger(ZooKeeperSyncProtocolTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ZooKeeperSyncProtocolTest.class);
 
   public static final String CONNECT_STRING = "127.0.0.1:2181";
 
@@ -27,7 +27,7 @@ public class ZooKeeperSyncProtocolTest extends SyncProtocolTest {
     try {
       return new ZooKeeperSyncProtocolImpl(category, client, null);
     } catch (NetworkException e) {
-      logger.error("[newSyncProtocol] create sync protocol failure: ", e);
+      LOGGER.error("[newSyncProtocol] create sync protocol failure: ", e);
     }
     return null;
   }

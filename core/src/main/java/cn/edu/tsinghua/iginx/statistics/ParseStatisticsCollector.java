@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 public class ParseStatisticsCollector extends AbstractStageStatisticsCollector
     implements IParseStatisticsCollector {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParseStatisticsCollector.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParseStatisticsCollector.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock();
   private long count = 0;
   private long span = 0;
@@ -31,10 +31,10 @@ public class ParseStatisticsCollector extends AbstractStageStatisticsCollector
   @Override
   public void broadcastStatistics() {
     lock.readLock().lock();
-    logger.info("Parse Stage Statistics Info: ");
-    logger.info("\tcount: " + count + ", span: " + span + "μs");
+    LOGGER.info("Parse Stage Statistics Info: ");
+    LOGGER.info("\tcount: {}, span: {}μs", count, span);
     if (count != 0) {
-      logger.info("\taverage-span: " + (1.0 * span) / count + "μs");
+      LOGGER.info("\taverage-span: {}μs", (1.0 * span) / count);
     }
     lock.readLock().unlock();
   }

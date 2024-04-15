@@ -92,7 +92,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -106,7 +105,7 @@ import org.slf4j.LoggerFactory;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -459,56 +458,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header header = table.getHeader();
     Map<String, String> aliasMap = rename.getAliasMap();
 
-    List<Field> fields = new ArrayList<>();
     List<String> ignorePatterns = rename.getIgnorePatterns();
-    header
-        .getFields()
-        .forEach(
-            field -> {
-              // 如果列名在ignorePatterns中，对该列不执行rename
-              for (String ignorePattern : ignorePatterns) {
-                if (StringUtils.match(field.getName(), ignorePattern)) {
-                  fields.add(field);
-                  return;
-                }
-              }
-              String alias = "";
-              for (String oldPattern : aliasMap.keySet()) {
-                String newPattern = aliasMap.get(oldPattern);
-                if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
-                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                  alias = newPrefix + field.getName();
-                } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
-                  String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
-                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                  if (field.getName().startsWith(oldPrefix)) {
-                    alias = field.getName().replaceFirst(oldPrefix, newPrefix);
-                  }
-                  break;
-                } else if (oldPattern.equals(field.getFullName())) {
-                  alias = newPattern;
-                  break;
-                } else {
-                  if (StringUtils.match(field.getName(), oldPattern)) {
-                    if (newPattern.endsWith("." + oldPattern)) {
-                      String prefix =
-                          newPattern.substring(0, newPattern.length() - oldPattern.length());
-                      alias = prefix + field.getName();
-                    } else {
-                      alias = newPattern;
-                    }
-                    break;
-                  }
-                }
-              }
-              if (alias.isEmpty()) {
-                fields.add(field);
-              } else {
-                fields.add(new Field(alias, field.getType(), field.getTags()));
-              }
-            });
-
-    Header newHeader = new Header(header.getKey(), fields);
+    Header newHeader = header.renamedHeader(aliasMap, ignorePatterns);
 
     List<Row> rows = new ArrayList<>();
     table
@@ -572,41 +523,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeReorder(Reorder reorder, Table table) {
     Header header = table.getHeader();
-    List<Field> targetFields = new ArrayList<>();
-    Map<Integer, Integer> reorderMap = new HashMap<>();
 
-    for (int index = 0; index < reorder.getPatterns().size(); index++) {
-      String pattern = reorder.getPatterns().get(index);
-      List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
-      if (StringUtils.isPattern(pattern)) {
-        for (int i = 0; i < header.getFields().size(); i++) {
-          Field field = header.getField(i);
-          if (StringUtils.match(field.getName(), pattern)) {
-            matchedFields.add(new Pair<>(field, i));
-          }
-        }
-      } else {
-        for (int i = 0; i < header.getFields().size(); i++) {
-          Field field = header.getField(i);
-          if (pattern.equals(field.getName())) {
-            matchedFields.add(new Pair<>(field, i));
-          }
-        }
-      }
-      if (!matchedFields.isEmpty()) {
-        // 不对同一个UDF里返回的多列进行重新排序
-        if (!reorder.getIsPyUDF().get(index)) {
-          matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
-        }
-        matchedFields.forEach(
-            pair -> {
-              reorderMap.put(targetFields.size(), pair.getV());
-              targetFields.add(pair.getK());
-            });
-      }
-    }
-
-    Header newHeader = new Header(header.getKey(), targetFields);
+    Header.ReorderedHeaderWrapped res =
+        header.reorderedHeaderWrapped(reorder.getPatterns(), reorder.getIsPyUDF());
+    Header newHeader = res.getHeader();
+    List<Field> targetFields = res.getTargetFields();
+    Map<Integer, Integer> reorderMap = res.getReorderMap();
     List<Row> rows = new ArrayList<>();
     table
         .getRows()
