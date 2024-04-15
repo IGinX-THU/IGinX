@@ -16,7 +16,7 @@ public class UDFExample {
   private static final String S3 = "udf.value3";
   private static final String S4 = "udf.value4";
 
-  private static final String CREATE_FUNCTION_SQL_FORMATTER = "CREATE FUNCTION %s %s FROM %s IN %s";
+  private static final String CREATE_SQL_FORMATTER = "CREATE FUNCTION %s %s FROM %s IN %s";
   private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
   private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
 
@@ -43,7 +43,7 @@ public class UDFExample {
     // 注册UDTF
     String registerSQL =
         String.format(
-            CREATE_FUNCTION_SQL_FORMATTER,
+            CREATE_SQL_FORMATTER,
             "UDTF",
             "\"sin\"",
             "\"UDFSin\"",
@@ -51,7 +51,7 @@ public class UDFExample {
     session.executeSql(registerSQL);
     registerSQL =
         String.format(
-            CREATE_FUNCTION_SQL_FORMATTER,
+            CREATE_SQL_FORMATTER,
             "UDAF",
             "\"py_count\"",
             "\"UDFCount\"",

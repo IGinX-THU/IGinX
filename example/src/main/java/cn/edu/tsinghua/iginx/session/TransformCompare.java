@@ -23,8 +23,7 @@ public class TransformCompare {
   private static final List<String> FUNC_LIST = Arrays.asList("min", "max", "sum", "avg", "count");
 
   private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
-  private static final String CREATE_FUNCTION_SQL_FORMATTER =
-      "CREATE FUNCTION TRANSFORM %s FROM %s IN %s";
+  private static final String CREATE_SQL_FORMATTER = "CREATE FUNCTION TRANSFORM %s FROM %s IN %s";
   private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
 
   private static final String OUTPUT_DIR_PREFIX =
@@ -153,7 +152,7 @@ public class TransformCompare {
   private static void registerTask() {
     TASK_MAP.forEach(
         (k, v) -> {
-          String registerSQL = String.format(CREATE_FUNCTION_SQL_FORMATTER, k, k, v);
+          String registerSQL = String.format(CREATE_SQL_FORMATTER, k, k, v);
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
