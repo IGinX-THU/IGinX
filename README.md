@@ -8,7 +8,7 @@ IGinX (Intelligent enGine X) aims to facilitate users in profiting from their da
 
 ## Installation
 
-See the [getting started](https://github.com/IGinX-THU/IGinX/blob/main/docs/getting_started.md) documentation to start a IGinX in various ways.
+See the [getting started](./docs/getting_started.md) documentation to start a IGinX in various ways.
 
 ## Team and Contributions
 
