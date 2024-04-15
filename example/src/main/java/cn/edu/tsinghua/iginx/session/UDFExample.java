@@ -16,9 +16,9 @@ public class UDFExample {
   private static final String S3 = "udf.value3";
   private static final String S4 = "udf.value4";
 
-  private static final String REGISTER_SQL_FORMATTER = "CREATE FUNCTION %s %s FROM %s IN %s";
+  private static final String CREATE_FUNCTION_SQL_FORMATTER = "CREATE FUNCTION %s %s FROM %s IN %s";
   private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
-  private static final String SHOW_REGISTER_TASK_SQL = "SHOW FUNCTIONS;";
+  private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
 
   private static final String FILE_DIR =
       String.join(
@@ -43,7 +43,7 @@ public class UDFExample {
     // 注册UDTF
     String registerSQL =
         String.format(
-            REGISTER_SQL_FORMATTER,
+            CREATE_FUNCTION_SQL_FORMATTER,
             "UDTF",
             "\"sin\"",
             "\"UDFSin\"",
@@ -51,7 +51,7 @@ public class UDFExample {
     session.executeSql(registerSQL);
     registerSQL =
         String.format(
-            REGISTER_SQL_FORMATTER,
+            CREATE_FUNCTION_SQL_FORMATTER,
             "UDAF",
             "\"py_count\"",
             "\"UDFCount\"",
@@ -59,7 +59,7 @@ public class UDFExample {
     session.executeSql(registerSQL);
 
     // 查询已注册的UDF
-    result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
 
     // 使用已注册的UDF
@@ -76,7 +76,7 @@ public class UDFExample {
     session.executeSql(dropSQL);
 
     // 查询已注册的UDF
-    result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
   }
 
