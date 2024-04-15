@@ -280,6 +280,16 @@ public class Result {
     return resp;
   }
 
+  public LoadUDFResp getLoadUDFResp() {
+    LoadUDFResp resp = new LoadUDFResp(status);
+
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
+      resp.setParseErrorMsg(status.getMessage());
+      return resp;
+    }
+    return resp;
+  }
+
   public FetchResultsResp fetch(int fetchSize) {
     FetchResultsResp resp = new FetchResultsResp(status, false);
 

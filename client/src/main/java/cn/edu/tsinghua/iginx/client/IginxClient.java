@@ -28,6 +28,8 @@ import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
+import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
+import cn.edu.tsinghua.iginx.utils.CompressionUtils;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.BufferedReader;
@@ -320,6 +322,7 @@ public class IginxClient {
 
   private static void processPythonRegister(String sql) {
     try {
+      boolean isRemote = !isLocalHost(host);
       SessionExecuteSqlResult res = session.executeSql(sql);
       String parseErrorMsg = res.getParseErrorMsg();
       if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
@@ -327,18 +330,28 @@ public class IginxClient {
         return;
       }
       String path = res.getUDFModulePath();
-
       File file = new File(path);
+      if (!file.isAbsolute()) {
+        sql = sql.replace(path, file.getAbsolutePath());
+      }
+
       if (!file.exists()) {
         throw new InvalidParameterException(path + " does not exist!");
       }
-      if (!file.isFile()) {
-        throw new InvalidParameterException(path + " is not a file!");
+
+      ByteBuffer moduleBuffer;
+      if (isRemote) {
+        moduleBuffer = CompressionUtils.zipToByteBuffer(file);
+      } else {
+        moduleBuffer = ByteBuffer.allocate(0);
       }
 
-      byte[] bytes = FileUtils.readFileToByteArray(file);
-      ByteBuffer csvFile = ByteBuffer.wrap(bytes);
-      Pair<List<String>, Long> pair = session.executeLoadCSV(sql, csvFile);
+      LoadUDFResp resp = session.executeRegisterTask(sql, moduleBuffer, isRemote);
+      parseErrorMsg = resp.getParseErrorMsg();
+      if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+        System.out.println(resp.getParseErrorMsg());
+        return;
+      }
 
       System.out.println("success");
     } catch (SessionException e) {

@@ -585,6 +585,8 @@ struct RegisterTaskReq {
     2: required string filePath
     3: required list<UDFClassPair> UDFClassPairs
     4: required list<UDFType> types
+    5: required binary moduleFile
+    6: required bool isRemote
 }
 
 struct DropTaskReq {
@@ -756,7 +758,7 @@ service IService {
 
     LoadCSVResp loadCSV(1: LoadCSVReq req);
 
-    Status loadUDF(1: LoadUDFReq req);
+    LoadUDFResp loadUDF(1: LoadUDFReq req);
 
     Status closeStatement(1: CloseStatementReq req);
 

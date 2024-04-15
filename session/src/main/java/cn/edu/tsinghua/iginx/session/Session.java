@@ -40,7 +40,6 @@ import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.thrift.TException;
-import org.apache.thrift.annotation.Nullable;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TSocket;
 import org.apache.thrift.transport.TTransport;
@@ -1107,11 +1106,13 @@ public class Session {
     return new Pair<>(ref.resp.getColumns(), ref.resp.getRecordsNum());
   }
 
-  public void executeRegisterTask(String statement, ByteBuffer UDFModule, boolean isRemote) throws SessionException {
+  public LoadUDFResp executeRegisterTask(String statement, ByteBuffer UDFModule, boolean isRemote) throws SessionException {
     LoadUDFReq req = new LoadUDFReq(sessionId, statement, isRemote);
     req.setUdfFile(UDFModule);
-    Reference<ExecuteSqlResp> ref = new Reference<>();
-    executeWithCheck(() -> client.loadUDF(req));
+    Reference<LoadUDFResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.loadUDF(req)).status);
+
+    return ref.resp;
   }
 
   void closeQuery(long queryId) throws SessionException {
