@@ -26,20 +26,20 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigDescriptor {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConfigDescriptor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigDescriptor.class);
 
   private final Config config;
 
   private ConfigDescriptor() {
     config = new Config();
-    logger.info("load parameters from config.properties.");
+    LOGGER.info("load parameters from config.properties.");
     loadPropsFromFile();
     if (config.isEnableEnvParameter()) {
-      logger.info("load parameters from env.");
+      LOGGER.info("load parameters from env.");
       loadPropsFromEnv(); // 如果在环境变量中设置了相关参数，则会覆盖配置文件中设置的参数
     }
     if (config.isNeedInitBasicUDFFunctions()) {
-      logger.info("load UDF list from file.");
+      LOGGER.info("load UDF list from file.");
       loadUDFListFromFile();
     }
   }
@@ -238,7 +238,7 @@ public class ConfigDescriptor {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
       loadPropsFromEnv();
-      logger.warn(
+      LOGGER.warn(
           "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
           e);
     }
@@ -379,7 +379,7 @@ public class ConfigDescriptor {
         }
       }
     } catch (IOException e) {
-      logger.error("Fail to load udf list: ", e);
+      LOGGER.error("Fail to load udf list: ", e);
     }
   }
 

@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
 
 public class SessionConcurrencyIT extends BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(SessionConcurrencyIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionConcurrencyIT.class);
 
   // TODO: a very suspicious test; somebody should do something
   // TODO: The following test must be added after bug fix
@@ -81,7 +81,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
       fail();
     }
     // Test max function
@@ -560,7 +560,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
             localSession.insertNonAlignedColumnRecords(
                 path, timestamps, valuesList, dataTypeList, null);
           } catch (SessionException e) {
-            logger.error(e.getMessage());
+            LOGGER.error("unexpected error: ", e);
           }
           break;
           // delete
@@ -568,7 +568,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
           try {
             localSession.deleteDataInColumns(path, startKey, endKey);
           } catch (SessionException e) {
-            logger.error(e.getMessage());
+            LOGGER.error("unexpected error: ", e);
           }
           break;
           // query
@@ -580,7 +580,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
               queryDataSet = localSession.aggregateQuery(path, startKey, endKey, aggregateType);
             }
           } catch (SessionException e) {
-            logger.error(e.getMessage());
+            LOGGER.error("unexpected error: ", e);
           }
           break;
         default:
@@ -589,7 +589,7 @@ public class SessionConcurrencyIT extends BaseSessionIT {
       try {
         if (localSession.isSession()) this.localSession.closeSession();
       } catch (SessionException e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
       }
     }
 

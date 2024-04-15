@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class DeleteGenerator extends AbstractGenerator {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(DeleteGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(DeleteGenerator.class);
 
   private static final DeleteGenerator instance = new DeleteGenerator();
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();

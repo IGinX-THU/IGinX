@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 /** 原始节点相关的变量命名统一用 ori 扩容节点相关的变量命名统一用 exp */
 public abstract class BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(BaseCapacityExpansionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BaseCapacityExpansionIT.class);
 
   protected static Session session;
 
@@ -89,19 +89,19 @@ public abstract class BaseCapacityExpansionIT {
       }
       statement.append("\");");
 
-      logger.info("Execute Statement: \"{}\"", statement);
+      LOGGER.info("Execute Statement: \"{}\"", statement);
       session.executeSql(statement.toString());
       return null;
     } catch (SessionException e) {
-      logger.warn(
-          "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: {}",
+      LOGGER.warn(
+          "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: ",
           type.name(),
           port,
           hasData,
           isReadOnly,
           dataPrefix,
           schemaPrefix,
-          e.getMessage());
+          e);
       return e.getMessage();
     }
   }
@@ -112,7 +112,7 @@ public abstract class BaseCapacityExpansionIT {
       session = new Session("127.0.0.1", 6888, "root", "root");
       session.openSession();
     } catch (SessionException e) {
-      logger.error("open session error: {}", e.getMessage());
+      LOGGER.error("open session error: ", e);
     }
   }
 
@@ -121,7 +121,7 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.closeSession();
     } catch (SessionException e) {
-      logger.error("close session error: {}", e.getMessage());
+      LOGGER.error("close session error: ", e);
     }
   }
 
@@ -286,7 +286,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql("insert into ln.wf02 (key, version) values (800, \"v8\");");
       queryNewData();
     } catch (SessionException e) {
-      logger.error("insert new data error: {}", e.getMessage());
+      LOGGER.error("insert new data error: ", e);
     }
   }
 
@@ -321,7 +321,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql("insert into ln.wf02 (key, version) values (1600, \"v48\");");
       queryAllNewData();
     } catch (SessionException e) {
-      logger.error("insert new data after capacity expansion error: {}", e.getMessage());
+      LOGGER.error("insert new data after capacity expansion error: ", e);
     }
   }
 
@@ -418,7 +418,7 @@ public abstract class BaseCapacityExpansionIT {
       session.removeHistoryDataSource(removedStorageEngineList);
       testShowClusterInfo(5);
     } catch (SessionException e) {
-      logger.error("remove history data source through session api error: {}", e.getMessage());
+      LOGGER.error("remove history data source through session api error: ", e);
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";
@@ -442,7 +442,7 @@ public abstract class BaseCapacityExpansionIT {
       session.executeSql(String.format(removeStatement, expPort, "", dataPrefix1));
       testShowClusterInfo(2);
     } catch (SessionException e) {
-      logger.error("remove history data source through sql error: {}", e.getMessage());
+      LOGGER.error("remove history data source through sql error: ", e);
     }
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 + schemaPrefixSuffix 后再查询
     statement = "select * from p1.nt.wf03;";
@@ -454,7 +454,7 @@ public abstract class BaseCapacityExpansionIT {
           String.format(removeStatement, expPort, "p1" + schemaPrefixSuffix, dataPrefix1));
     } catch (SessionException e) {
       if (!e.getMessage().contains("remove history data source failed")) {
-        logger.error(
+        LOGGER.error(
             "remove history data source should throw error when removing the node that does not exist");
         fail();
       }
@@ -467,7 +467,7 @@ public abstract class BaseCapacityExpansionIT {
       ClusterInfo clusterInfo = session.getClusterInfo();
       assertEquals(expected, clusterInfo.getStorageEngineInfos().size());
     } catch (SessionException e) {
-      logger.error("encounter error when showing cluster info: {}", e.getMessage());
+      LOGGER.error("encounter error when showing cluster info: ", e);
     }
   }
 
@@ -508,7 +508,7 @@ public abstract class BaseCapacityExpansionIT {
               + "Total line number = 1\n";
       SQLTestTools.executeAndCompare(session, statement, expect);
     } catch (SessionException e) {
-      logger.error("test query for file system failed {}", e.getMessage());
+      LOGGER.error("test query for file system failed ", e);
       fail();
     }
   }
@@ -574,7 +574,7 @@ public abstract class BaseCapacityExpansionIT {
       if ((res.getWarningMsg() == null || res.getWarningMsg().isEmpty())
           && !res.getWarningMsg().contains("The query results contain overlapped keys.")
           && SUPPORT_KEY.get(type.name())) {
-        logger.error("未抛出重叠key的警告");
+        LOGGER.error("未抛出重叠key的警告");
         fail();
       }
 
@@ -582,11 +582,11 @@ public abstract class BaseCapacityExpansionIT {
 
       res = session.executeQuery(statement);
       if (res.getWarningMsg() != null && SUPPORT_KEY.get(type.name())) {
-        logger.error("不应抛出重叠key的警告");
+        LOGGER.error("不应抛出重叠key的警告");
         fail();
       }
     } catch (SessionException e) {
-      logger.error("query data error: {}", e.getMessage());
+      LOGGER.error("query data error: ", e);
     }
   }
 
@@ -621,6 +621,14 @@ public abstract class BaseCapacityExpansionIT {
     int iginxPort = PORT_TO_IGINXPORT.get(port);
     int restPort = PORT_TO_RESTPORT.get(port);
 
+    // env only applies in github action currently
+    String metadataStorage = System.getenv("METADATA_STORAGE");
+    if (metadataStorage == null || !metadataStorage.equalsIgnoreCase("etcd")) {
+      metadataStorage = "zookeeper";
+    } else {
+      metadataStorage = "etcd";
+    }
+
     int res =
         executeShellScript(
             scriptPath,
@@ -632,7 +640,8 @@ public abstract class BaseCapacityExpansionIT {
             DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
-            "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties");
+            "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties",
+            metadataStorage);
     if (res != 0) {
       fail("change config file fail");
     }

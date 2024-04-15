@@ -302,7 +302,7 @@ public class IginxClient {
   }
 
   private static boolean isRegisterPy(String sql) {
-    return sql.startsWith("register") && sql.contains("python task");
+    return sql.startsWith("create") && sql.contains("function");
   }
 
   private static boolean isQuery(String sql) {
@@ -652,7 +652,7 @@ public class IginxClient {
             Arrays.asList("delete", "columns"),
             Arrays.asList("explain", "select"),
             Arrays.asList("add", "storageengine"),
-            Arrays.asList("register", "python", "task"),
+            Arrays.asList("create", "function"),
             Arrays.asList("drop", "python", "task"),
             Arrays.asList("commit", "transform", "job"),
             Arrays.asList("show", "transform", "job", "status"),

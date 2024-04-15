@@ -48,6 +48,11 @@ public class AndFilter implements Filter {
     return type;
   }
 
+  public void setChildren(List<Filter> children) {
+    this.children.clear();
+    this.children.addAll(children);
+  }
+
   @Override
   public Filter copy() {
     List<Filter> newChildren = new ArrayList<>();

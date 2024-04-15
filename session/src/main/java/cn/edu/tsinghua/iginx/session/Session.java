@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 
 public class Session {
 
-  private static final Logger logger = LoggerFactory.getLogger(Session.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Session.class);
 
   private static final int MAX_REDIRECT_TIME = 3;
 
@@ -121,7 +121,7 @@ public class Session {
         if (targetAddress.length != 2) {
           throw new SessionException("unexpected redirect address " + status.getMessage());
         }
-        logger.info("当前请求将被重定向到：" + status.getMessage());
+        LOGGER.info("当前请求将被重定向到：{}", status.getMessage());
         this.host = targetAddress[0];
         this.port = Integer.parseInt(targetAddress[1]);
 
@@ -199,7 +199,7 @@ public class Session {
         if (targetAddress.length != 2) {
           throw new SessionException("unexpected redirect address " + resp.status.getMessage());
         }
-        logger.info("当前请求将被重定向到：" + resp.status.getMessage());
+        LOGGER.info("当前请求将被重定向到：{}", resp.status.getMessage());
 
         this.host = targetAddress[0];
         this.port = Integer.parseInt(targetAddress[1]);
@@ -335,15 +335,15 @@ public class Session {
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != valuesList.length || paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList and dataTypeList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -388,7 +388,7 @@ public class Session {
     for (int i = 0; i < sortedValuesList.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedTimestamps.length) {
-        logger.error("The sizes of timestamps and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of timestamps and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
@@ -442,15 +442,15 @@ public class Session {
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != valuesList.length || paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths, valuesList and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList and dataTypeList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -495,7 +495,7 @@ public class Session {
     for (int i = 0; i < sortedValuesList.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedTimestamps.length) {
-        logger.error("The sizes of timestamps and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of timestamps and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
@@ -543,19 +543,19 @@ public class Session {
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths and dataTypeList should be equal.");
       return;
     }
     if (timestamps.length != valuesList.length) {
-      logger.error("The sizes of timestamps and valuesList should be equal.");
+      LOGGER.error("The sizes of timestamps and valuesList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -602,7 +602,7 @@ public class Session {
     for (int i = 0; i < sortedTimestamps.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedPaths.size()) {
-        logger.error("The sizes of paths and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
@@ -656,19 +656,19 @@ public class Session {
         || timestamps.length == 0
         || valuesList.length == 0
         || dataTypeList.isEmpty()) {
-      logger.error("Invalid insert request!");
+      LOGGER.error("Invalid insert request!");
       return;
     }
     if (paths.size() != dataTypeList.size()) {
-      logger.error("The sizes of paths and dataTypeList should be equal.");
+      LOGGER.error("The sizes of paths and dataTypeList should be equal.");
       return;
     }
     if (timestamps.length != valuesList.length) {
-      logger.error("The sizes of timestamps and valuesList should be equal.");
+      LOGGER.error("The sizes of timestamps and valuesList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
-      logger.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
+      LOGGER.error("The sizes of paths, valuesList, dataTypeList and tagsList should be equal.");
       return;
     }
 
@@ -715,7 +715,7 @@ public class Session {
     for (int i = 0; i < sortedTimestamps.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedPaths.size()) {
-        logger.error("The sizes of paths and the element of valuesList should be equal.");
+        LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
@@ -790,7 +790,7 @@ public class Session {
       TimePrecision timePrecision)
       throws SessionException {
     if (paths.isEmpty() || startKey > endKey) {
-      logger.error("Invalid query request!");
+      LOGGER.error("Invalid query request!");
       return null;
     }
     QueryDataReq req = new QueryDataReq(sessionId, mergeAndSortPaths(paths), startKey, endKey);
@@ -926,9 +926,15 @@ public class Session {
     Pattern pattern = Pattern.compile("\"([^\"]*)\"");
     Matcher matcher = pattern.matcher(statement);
 
+    // 1st "": sql name
+    if (!matcher.find()) {
+      throw new SessionException("Error: function name should be surrounded by DOUBLE-QUOTES");
+    }
+    // 2nd "": class name
     if (!matcher.find()) {
       throw new SessionException("Error: python class name should be surrounded by DOUBLE-QUOTES");
     }
+    // 3rd "": script(s) file path
     if (matcher.find()) {
       // 提取python文件路径
       String filePathStr = matcher.group(1);
@@ -965,7 +971,7 @@ public class Session {
       TimePrecision timePrecision)
       throws SessionException {
     if (paths.isEmpty()) {
-      logger.error("Invalid query request!");
+      LOGGER.error("Invalid query request!");
       return null;
     }
 

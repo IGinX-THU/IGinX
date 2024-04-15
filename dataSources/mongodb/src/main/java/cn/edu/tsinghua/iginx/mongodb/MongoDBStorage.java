@@ -45,6 +45,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -57,7 +58,7 @@ import org.slf4j.LoggerFactory;
 
 public class MongoDBStorage implements IStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(MongoDBStorage.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBStorage.class);
 
   private static final long MAX_WAIT_TIME = 5;
   private static final int SESSION_POOL_MAX_SIZE = 200;
@@ -66,7 +67,7 @@ public class MongoDBStorage implements IStorage {
   public static final String SCHEMA_SAMPLE_SIZE = "schema.sample.size";
   public static final String QUERY_SAMPLE_SIZE = "dummy.sample.size";
   public static final String SCHEMA_SAMPLE_SIZE_DEFAULT = "1000";
-  public static final String QUERY_SAMPLE_SIZE_DEFAULT = "100";
+  public static final String QUERY_SAMPLE_SIZE_DEFAULT = "0";
 
   private final MongoClient client;
 
@@ -90,7 +91,7 @@ public class MongoDBStorage implements IStorage {
       this.client = connect(meta.getIp(), meta.getPort());
     } catch (Exception e) {
       String message = "fail to connect " + meta.getIp() + ":" + meta.getPort();
-      logger.error(message, e);
+      LOGGER.error(message, e);
       throw new StorageInitializationException(message);
     }
   }
@@ -151,8 +152,8 @@ public class MongoDBStorage implements IStorage {
       }
       return new TaskExecuteResult(result);
     } catch (Exception e) {
-      logger.error("dummy project {} where {}", patterns, filter);
-      logger.error("failed to dummy query ", e);
+      LOGGER.error("dummy project {} where {}", patterns, filter);
+      LOGGER.error("failed to dummy query ", e);
       return new TaskExecuteResult(new PhysicalException("failed to query dummy", e));
     }
   }
@@ -181,7 +182,7 @@ public class MongoDBStorage implements IStorage {
       if (tagFilter != null) {
         message += " with " + tagFilter;
       }
-      logger.error(message, e);
+      LOGGER.error(message, e);
       return new TaskExecuteResult(new PhysicalException("failed to project", e));
     }
   }
@@ -215,8 +216,8 @@ public class MongoDBStorage implements IStorage {
         }
       }
     } catch (Exception e) {
-      logger.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
-      logger.error("failed to delete", e);
+      LOGGER.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
+      LOGGER.error("failed to delete", e);
       return new TaskExecuteResult(new PhysicalException("failed to delete", e));
     }
     return new TaskExecuteResult();
@@ -281,7 +282,7 @@ public class MongoDBStorage implements IStorage {
         }
       }
     } catch (Exception e) {
-      logger.error("failed to insert", e);
+      LOGGER.error("failed to insert", e);
       return new TaskExecuteResult(new PhysicalException("failed to insert", e));
     }
     return new TaskExecuteResult();
@@ -343,7 +344,11 @@ public class MongoDBStorage implements IStorage {
   private static List<Field> getFields(MongoDatabase db) {
     List<Field> fields = new ArrayList<>();
     for (String collectionName : db.listCollectionNames()) {
-      fields.add(NameUtils.parseCollectionName(collectionName));
+      try {
+        fields.add(NameUtils.parseCollectionName(collectionName));
+      } catch (ParseException e) {
+        throw new IllegalStateException("failed to parse collection name: " + collectionName, e);
+      }
     }
     return fields;
   }
@@ -376,7 +381,7 @@ public class MongoDBStorage implements IStorage {
     ColumnsInterval columnsInterval =
         new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
 
-    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     return new Pair<>(columnsInterval, keyInterval);
   }
 

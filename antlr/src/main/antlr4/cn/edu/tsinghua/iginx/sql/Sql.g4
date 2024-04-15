@@ -17,7 +17,7 @@ statement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
    | SHOW REGISTER PYTHON TASK # showRegisterTaskStatement
-   | REGISTER udfType PYTHON TASK className = stringLiteral IN filePath = stringLiteral AS name = stringLiteral # registerTaskStatement
+   | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
    | DROP PYTHON TASK name = stringLiteral # dropTaskStatement
    | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
@@ -30,6 +30,10 @@ statement
    | COMPACT # compactStatement
    | SHOW RULES # showRulesStatement
    | SET RULES ruleAssignment (COMMA ruleAssignment)* # setRulesStatement
+   ;
+
+udfClassRef
+   : name = stringLiteral FROM className = stringLiteral
    ;
 
 insertFullPathSpec
@@ -745,6 +749,14 @@ UNKNOWN
 
 FINISHED
    : F I N I S H E D
+   ;
+
+CREATE
+   : C R E A T E
+   ;
+
+FUNCTION
+   : F U N C T I O N
    ;
 
 CREATED

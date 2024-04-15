@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class AbstractStageStatisticsCollector {
   @SuppressWarnings("unused")
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(AbstractStageStatisticsCollector.class);
 
   protected static final String BEGIN = "begin";

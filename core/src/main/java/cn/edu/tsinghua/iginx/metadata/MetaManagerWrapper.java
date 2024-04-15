@@ -321,6 +321,11 @@ public class MetaManagerWrapper implements IMetaManager {
   }
 
   @Override
+  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
+    return metaManager.getTransformTasksByModule(moduleName);
+  }
+
+  @Override
   public void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)
       throws Exception {

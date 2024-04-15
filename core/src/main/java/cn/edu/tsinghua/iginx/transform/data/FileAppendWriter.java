@@ -18,12 +18,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class FileAppendWriter extends ExportWriter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileAppendWriter.class);
 
   private final String fileName;
 
   private boolean hasWriteHeader;
-
-  private static final Logger logger = LoggerFactory.getLogger(FileAppendWriter.class);
 
   public FileAppendWriter(String fileName) {
     this.fileName = fileName;
@@ -60,7 +59,7 @@ public class FileAppendWriter extends ExportWriter {
           ("transformer has no permission to write file: " + file.getAbsolutePath()));
     }
     if (!file.exists()) {
-      logger.info("File not exists, create it...");
+      LOGGER.info("File not exists, create it...");
       // get and create parent dir
       if (!file.getParentFile().exists()) {
         System.out.println("Parent dir not exists, create it...");
@@ -70,7 +69,7 @@ public class FileAppendWriter extends ExportWriter {
         // create file
         file.createNewFile();
       } catch (IOException e) {
-        e.printStackTrace();
+        LOGGER.error("unexpected error: ", e);
       }
     }
   }
@@ -85,7 +84,7 @@ public class FileAppendWriter extends ExportWriter {
         out.flush();
       }
     } catch (IOException e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
   }
 }

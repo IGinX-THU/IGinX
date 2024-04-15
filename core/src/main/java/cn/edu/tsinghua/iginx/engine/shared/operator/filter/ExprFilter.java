@@ -6,9 +6,9 @@ public class ExprFilter implements Filter {
 
   private final FilterType type = FilterType.Expr;
 
-  private final Expression expressionA;
+  private Expression expressionA;
 
-  private final Expression expressionB;
+  private Expression expressionB;
 
   private Op op;
 
@@ -26,8 +26,16 @@ public class ExprFilter implements Filter {
     return expressionA;
   }
 
+  public void setExpressionA(Expression expressionA) {
+    this.expressionA = expressionA;
+  }
+
   public Expression getExpressionB() {
     return expressionB;
+  }
+
+  public void setExpressionB(Expression expressionB) {
+    this.expressionB = expressionB;
   }
 
   public Op getOp() {
@@ -51,6 +59,6 @@ public class ExprFilter implements Filter {
 
   @Override
   public String toString() {
-    return expressionA.toString() + " " + Op.op2Str(op) + " " + expressionB.toString();
+    return expressionA.getColumnName() + " " + Op.op2Str(op) + " " + expressionB.getColumnName();
   }
 }

@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestServer implements Runnable {
-  private static final Logger logger = LoggerFactory.getLogger(RestServer.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RestServer.class);
   private static Config config = ConfigDescriptor.getInstance().getConfig();
   private static URI baseURI;
 
@@ -51,14 +51,14 @@ public class RestServer implements Runnable {
     try {
       server = startServer();
     } catch (Exception e) {
-      logger.error("启动Rest服务失败，请检查是否启动了IoTDB服务以及相关配置参数是否正确", e);
+      LOGGER.error("启动Rest服务失败，请检查是否启动了IoTDB服务以及相关配置参数是否正确", e);
       System.exit(1);
     }
-    logger.info("Iginx REST server has been available at {}.", baseURI);
+    LOGGER.info("Iginx REST server has been available at {}.", baseURI);
     try {
       Thread.currentThread().join();
     } catch (InterruptedException e) {
-      logger.error("Rest主线程出现异常", e);
+      LOGGER.error("Rest主线程出现异常", e);
       Thread.currentThread().interrupt();
     }
     server.shutdown();

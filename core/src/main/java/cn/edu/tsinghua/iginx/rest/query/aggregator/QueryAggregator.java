@@ -27,8 +27,11 @@ import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class QueryAggregator {
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryAggregator.class);
   private Double divisor;
   private Long dur;
   private double percentile;
@@ -131,7 +134,7 @@ public abstract class QueryAggregator {
       }
     } catch (Exception e) {
       // TODO: more precise exception catch
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
       return new QueryResultDataset();
     }
     if (sessionQueryDataSet == null) {

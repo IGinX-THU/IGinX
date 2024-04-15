@@ -1,11 +1,12 @@
 import cn.edu.tsinghua.iginx.jdbc.IginXPreparedStatement;
+import java.sql.SQLException;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class PreparedStatementTest {
 
   @Test
-  public void testSetParams() {
+  public void testSetParams() throws SQLException {
     String preSQL =
         "SELECT a, b, c, d FROM root.sg WHERE TIME > ? AND TIME < ? AND a > ? OR b < ? AND c = ? AND d = ?;";
     IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
@@ -24,7 +25,7 @@ public class PreparedStatementTest {
   }
 
   @Test
-  public void testSetParamsWithSkipDoubleQuotes() {
+  public void testSetParamsWithSkipDoubleQuotes() throws SQLException {
     String preSQL =
         "SELECT a, b FROM root.sg WHERE TIME > 10 AND TIME < 25 AND a > ? AND b = \"asda?asd\";";
     IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);
@@ -38,7 +39,7 @@ public class PreparedStatementTest {
   }
 
   @Test
-  public void testSetParamsWithSkipSingleQuote() {
+  public void testSetParamsWithSkipSingleQuote() throws SQLException {
     String preSQL =
         "SELECT a, b FROM root.sg WHERE TIME > 10 AND < 25 AND a > ? AND b = \'asda?asd\';";
     IginXPreparedStatement ps = new IginXPreparedStatement(null, null, preSQL);

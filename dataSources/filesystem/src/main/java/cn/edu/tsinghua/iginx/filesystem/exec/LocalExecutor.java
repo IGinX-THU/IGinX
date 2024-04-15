@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils.getKeyRangesFromFilter;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils.getKeyRangesFromFilter;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
@@ -38,7 +38,7 @@ import org.slf4j.LoggerFactory;
 
 public class LocalExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(LocalExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(LocalExecutor.class);
 
   private String root;
 
@@ -100,7 +100,7 @@ public class LocalExecutor implements Executor {
         this.root = file.getCanonicalPath() + SEPARATOR;
       }
     } catch (IOException e) {
-      logger.error("get dir or dummy dir failure: {}", e.getMessage());
+      LOGGER.error("get dir or dummy dir failure: ", e);
     }
     this.hasData = hasData;
     this.fileSystemManager = new FileSystemManager(extraParams);
@@ -115,7 +115,7 @@ public class LocalExecutor implements Executor {
       boolean isDummyStorageUnit) {
     if (isDummyStorageUnit) {
       if (tagFilter != null) {
-        logger.error("dummy storage query should not contain tag filter");
+        LOGGER.error("dummy storage query should not contain tag filter");
         return new TaskExecuteResult(new EmptyRowStream());
       }
       return executeDummyProjectTask(paths, filter);
@@ -127,7 +127,7 @@ public class LocalExecutor implements Executor {
       String storageUnit, List<String> paths, TagFilter tagFilter, Filter filter) {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute query file: {}", paths);
+      LOGGER.info("[Query] execute query file: {}", paths);
       List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
         result.addAll(
@@ -140,7 +140,7 @@ public class LocalExecutor implements Executor {
       RowStream rowStream = new FileSystemQueryRowStream(result, storageUnit, root, filter);
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
-      logger.error(
+      LOGGER.error(
           "read file error, storageUnit {}, paths({}), tagFilter({}), filter({})",
           storageUnit,
           paths,
@@ -154,7 +154,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeDummyProjectTask(List<String> paths, Filter filter) {
     try {
       List<FileSystemResultTable> result = new ArrayList<>();
-      logger.info("[Query] execute dummy query file: {}", paths);
+      LOGGER.info("[Query] execute dummy query file: {}", paths);
       List<KeyRange> keyRanges = getKeyRangesFromFilter(filter);
       for (String path : paths) {
         result.addAll(
@@ -166,7 +166,7 @@ public class LocalExecutor implements Executor {
               result, dummyRoot, filter, fileSystemManager.getMemoryPool());
       return new TaskExecuteResult(rowStream);
     } catch (Exception e) {
-      logger.error("read file error, paths {} filter {}", paths, filter);
+      LOGGER.error("read file error, paths {} filter {}", paths, filter);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
               "execute dummy project task in fileSystem failure", e));
@@ -219,10 +219,10 @@ public class LocalExecutor implements Executor {
       }
     }
     try {
-      logger.info("begin to write data");
+      LOGGER.info("begin to write data");
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      logger.error("encounter error when inserting row records to fileSystem: {}", e.getMessage());
+      LOGGER.error("encounter error when inserting row records to fileSystem: ", e);
       return e;
     }
   }
@@ -252,11 +252,10 @@ public class LocalExecutor implements Executor {
     }
 
     try {
-      logger.info("begin to write data");
+      LOGGER.info("begin to write data");
       return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
     } catch (Exception e) {
-      logger.error(
-          "encounter error when inserting column records to fileSystem: {}", e.getMessage());
+      LOGGER.error("encounter error when inserting column records to fileSystem: ", e);
       return e;
     }
   }
@@ -273,7 +272,7 @@ public class LocalExecutor implements Executor {
               fileSystemManager.deleteFile(
                   new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
         } catch (Exception e) {
-          logger.error("encounter error when clearing data: {}", e.getMessage());
+          LOGGER.error("encounter error when clearing data: ", e);
           exception = e;
         }
       } else {
@@ -283,7 +282,7 @@ public class LocalExecutor implements Executor {
         try {
           exception = fileSystemManager.deleteFiles(fileList, tagFilter);
         } catch (Exception e) {
-          logger.error("encounter error when clearing data: {}", e.getMessage());
+          LOGGER.error("encounter error when clearing data: ", e);
           exception = e;
         }
       }
@@ -300,7 +299,7 @@ public class LocalExecutor implements Executor {
           }
         }
       } catch (IOException e) {
-        logger.error("encounter error when deleting data: {}", e.getMessage());
+        LOGGER.error("encounter error when deleting data: ", e);
         exception = e;
       }
     }

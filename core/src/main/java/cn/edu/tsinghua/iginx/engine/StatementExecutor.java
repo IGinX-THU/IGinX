@@ -91,7 +91,7 @@ import org.slf4j.LoggerFactory;
 
 public class StatementExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(StatementExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StatementExecutor.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -167,7 +167,7 @@ public class StatementExecutor {
         | IllegalAccessException
         | NoSuchMethodException
         | InvocationTargetException e) {
-      logger.error("initial statistics collector error: ", e);
+      LOGGER.error("initial statistics collector error: ", e);
     }
   }
 
@@ -268,7 +268,7 @@ public class StatementExecutor {
       StatusCode statusCode = StatusCode.STATEMENT_PARSE_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       String errMsg =
           "Execute Error: encounter error(s) when executing sql statement, "
@@ -321,7 +321,7 @@ public class StatementExecutor {
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
     } catch (Exception e) {
-      logger.error(
+      LOGGER.error(
           "unexpected exception during dispatcher memory task, please contact developer to check: ",
           e);
       StatusCode statusCode = StatusCode.SYSTEM_ERROR;
@@ -889,11 +889,11 @@ public class StatementExecutor {
         paths.add(new String((byte[]) rowValues[0]));
         DataType type = DataTypeUtils.getDataTypeFromString(new String((byte[]) rowValues[1]));
         if (type == null) {
-          logger.warn("unknown data type [{}]", rowValues[1]);
+          LOGGER.warn("unknown data type [{}]", rowValues[1]);
         }
         types.add(type);
       } else {
-        logger.warn("show columns result col size = {}", rowValues.length);
+        LOGGER.warn("show columns result col size = {}", rowValues.length);
       }
     }
 

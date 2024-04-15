@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class IoTDBAfterDilatationExample {
 
-  private static final Logger logger = LoggerFactory.getLogger(IoTDBAfterDilatationExample.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IoTDBAfterDilatationExample.class);
   private static final String COLUMN_C1_S1 = "root.sg1.c1.s1";
   private static final String COLUMN_D1_S2 = "root.sg1.d1.s2";
   private static final String COLUMN_E2_S1 = "root.sg1.e2.s1";
@@ -76,7 +76,7 @@ public class IoTDBAfterDilatationExample {
       session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
       Thread.sleep(1);
       if ((i + 1) % 10 == 0) {
-        logger.info("insert progress: " + (i + 1) + "/1000.");
+        LOGGER.info("insert progress: {}/1000.", (i + 1));
       }
     }
   }

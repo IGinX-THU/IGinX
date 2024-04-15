@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 public class SnowFlakeUtils {
 
-  private static final Logger logger = LoggerFactory.getLogger(SnowFlakeUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SnowFlakeUtils.class);
 
   // 起始的时间戳
   private static final long START_STAMP = 0L;
@@ -49,7 +49,7 @@ public class SnowFlakeUtils {
   private long lastStamp = -1L; // 上一次时间戳
 
   public SnowFlakeUtils(long datacenterId, long machineId) {
-    logger.info("data center id: " + datacenterId + ", machine id: " + machineId);
+    LOGGER.info("data center id: {}, machine id: {}", datacenterId, machineId);
     if (datacenterId > MAX_DATACENTER_NUM || datacenterId < 0) {
       throw new IllegalArgumentException(
           "datacenterId can't be greater than MAX_DATACENTER_NUM or less than 0");
@@ -78,7 +78,7 @@ public class SnowFlakeUtils {
     long currStamp = getNewTimestamp();
     // 如果当前时间小于上一次ID生成的时间戳，说明系统时钟回退过  这个时候应当抛出异常
     if (currStamp < lastStamp) {
-      logger.error("Clock moved backwards. Refusing to generate id");
+      LOGGER.error("Clock moved backwards. Refusing to generate id");
       return 0L;
     }
 

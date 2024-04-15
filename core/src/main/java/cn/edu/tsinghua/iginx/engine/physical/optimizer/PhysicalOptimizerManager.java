@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class PhysicalOptimizerManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(PhysicalOptimizerManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PhysicalOptimizerManager.class);
 
   private static final String NAIVE = "naive";
 
@@ -46,11 +46,11 @@ public class PhysicalOptimizerManager {
     PhysicalOptimizer optimizer = null;
     switch (name) {
       case NAIVE:
-        logger.info("use {} as physical optimizer.", name);
+        LOGGER.info("use {} as physical optimizer.", name);
         optimizer = NaivePhysicalOptimizer.getInstance();
         break;
       default:
-        logger.error("unknown physical optimizer {}, use {} as default.", name, NAIVE);
+        LOGGER.error("unknown physical optimizer {}, use {} as default.", name, NAIVE);
         optimizer = NaivePhysicalOptimizer.getInstance();
     }
     optimizer.setRules(getRules());

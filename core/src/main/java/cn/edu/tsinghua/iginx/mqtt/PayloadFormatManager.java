@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class PayloadFormatManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(PayloadFormatManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PayloadFormatManager.class);
 
   private static final PayloadFormatManager instance = new PayloadFormatManager();
 
@@ -58,7 +58,7 @@ public class PayloadFormatManager {
             | IllegalAccessException
             | NoSuchMethodException
             | InvocationTargetException e) {
-          logger.error(e.getMessage());
+          LOGGER.error("Failed to load formatter: {}", formatterClassName, e);
         }
       }
     }

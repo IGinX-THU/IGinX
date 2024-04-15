@@ -15,7 +15,7 @@ import org.slf4j.LoggerFactory;
 
 public class FragmentDeletionCompaction extends Compaction {
 
-  private static final Logger logger = LoggerFactory.getLogger(FragmentDeletionCompaction.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FragmentDeletionCompaction.class);
   private List<FragmentMeta> toDeletionFragments = new ArrayList<>();
 
   public FragmentDeletionCompaction(PhysicalEngine physicalEngine, IMetaManager metaManager) {

@@ -11,14 +11,13 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class IginXWriter extends ExportWriter {
+  private static final Logger LOGGER = LoggerFactory.getLogger(IginXWriter.class);
 
   private final long sessionId;
 
   private final StatementExecutor executor = StatementExecutor.getInstance();
 
   private final ContextBuilder contextBuilder = ContextBuilder.getInstance();
-
-  private static final Logger logger = LoggerFactory.getLogger(IginXWriter.class);
 
   public IginXWriter(long sessionId) {
     this.sessionId = sessionId;
@@ -27,14 +26,14 @@ public class IginXWriter extends ExportWriter {
   @Override
   public void write(BatchData batchData) {
     String insertSQL = buildSQL(batchData);
-    logger.info("Insert statement: " + insertSQL);
+    LOGGER.info("Insert statement: {}", insertSQL);
 
     if (!insertSQL.equals("")) {
       ExecuteStatementReq req = new ExecuteStatementReq(sessionId, insertSQL);
       RequestContext context = contextBuilder.build(req);
       executor.execute(context);
     } else {
-      logger.error("Fail to execute insert statement.");
+      LOGGER.error("Fail to execute insert statement.");
     }
   }
 

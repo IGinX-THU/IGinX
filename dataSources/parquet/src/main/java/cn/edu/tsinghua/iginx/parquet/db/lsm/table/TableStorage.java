@@ -43,7 +43,7 @@ import org.slf4j.LoggerFactory;
 // TODO: merge TableStorage, TableIndex and TombstoneStorage to control concurrent access to the
 // storage
 public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoCloseable {
-  private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final SequenceGenerator seqGen = new SequenceGenerator();
 

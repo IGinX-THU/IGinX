@@ -29,6 +29,7 @@ jobs:
                         "Redis",
                         "MongoDB",
                     ]
+                metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
         steps:
             - uses: actions/checkout@v2
@@ -38,8 +39,10 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
-            - name: Run ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
@@ -56,6 +59,7 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
 
             # start udf path test first to avoid being effected
             - name: Start IGinX
@@ -83,7 +87,8 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
-                  work-name: restart-iginx-zk
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -103,10 +108,11 @@ jobs:
                       mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
                   fi
 
-            - name: Stop IGinX and ZK, Clear ZK Data, then Start Them
+            - name: Stop IGinX and Metadata, Clear Metadata Data, then Start Them
               uses: ./.github/actions/context
               with:
-                  work-name: restart-iginx-zk
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -119,14 +125,17 @@ jobs:
               run: |
                   mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
 
-            - name: clean zk data and restart IGinX
+            - name: clean metadata and restart IGinX
               uses: ./.github/actions/context
               with:
-                  work-name: restart-iginx-zk
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
 
             - name: TestController IT
               if: always()
               shell: bash
+              env:
+                  METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
@@ -136,10 +145,11 @@ jobs:
               with:
                   Set-Key-Range-Test-Policy: "true"
 
-            - name: clean zk data and restart IGinX
+            - name: clean metadata and restart IGinX
               uses: ./.github/actions/context
               with:
-                  work-name: restart-iginx-zk
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
 
             - name: FilterFragmentRuleTest IT
               if: always()
