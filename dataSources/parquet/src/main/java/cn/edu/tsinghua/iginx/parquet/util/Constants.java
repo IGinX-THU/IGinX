@@ -38,7 +38,7 @@ public final class Constants {
 
   public static final long SIZE_INSERT_BATCH = 4096;
 
-  public static final String KEY_FIELD_NAME = "*";
+  public static final String KEY_FIELD_NAME = cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 
   public static final String RECORD_FIELD_NAME = "iginx";
   public static final String DIR_DB_LSM = "lsm";

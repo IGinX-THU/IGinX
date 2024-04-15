@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
 import cn.edu.tsinghua.iginx.format.parquet.example.ExampleParquetWriter;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
@@ -176,7 +177,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  public static final String KEY_FIELD_NAME = "*";
+  public static final String KEY_FIELD_NAME = ColumnKey.KEY.getPath();
 
   private static void flushRows(
       List<String> pathList,
