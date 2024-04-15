@@ -19,7 +19,7 @@
 package cn.edu.tsinghua.iginx.utils;
 
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import java.text.ParseException;
+import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -383,6 +383,26 @@ public class TimeUtils {
           .appendOptional(ISO_DATE_TIME_WITH_DOT_WITH_SPACE_NS)
           .toFormatter();
 
+  public static final DateTimeFormatter formatterU =
+      new DateTimeFormatterBuilder()
+          .appendOptional(ISO_DATE_TIME_WITH_US)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_US)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_US)
+          .appendOptional(ISO_DATE_TIME_WITH_SPACE_US)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_WITH_SPACE_US)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_WITH_SPACE_US)
+          .toFormatter();
+
+  public static final DateTimeFormatter formatterN =
+      new DateTimeFormatterBuilder()
+          .appendOptional(ISO_DATE_TIME_WITH_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_SPACE_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_SLASH_WITH_SPACE_NS)
+          .appendOptional(ISO_DATE_TIME_WITH_DOT_WITH_SPACE_NS)
+          .toFormatter();
+
   public static final TimePrecision DEFAULT_TIMESTAMP_PRECISION = TimePrecision.NS;
 
   public static long getTimeInMs(long timestamp, String timePrecision) {
@@ -497,8 +517,21 @@ public class TimeUtils {
     return currentTime + (nanoTime - nanoTime / 1000000 * 1000000) / 1000;
   }
 
-  public static long convertDatetimeStrToLong(String timestampStr) throws ParseException {
-    LocalDateTime localDateTime = LocalDateTime.parse(timestampStr, formatter);
+  public static long convertDatetimeStrToLong(String timestampStr) throws DateTimeException {
+    LocalDateTime localDateTime = null;
+    try {
+      localDateTime = LocalDateTime.parse(timestampStr, formatter);
+    } catch (DateTimeException e) {
+      try {
+        localDateTime = LocalDateTime.parse(timestampStr, formatterU);
+      } catch (DateTimeException eU) {
+        try {
+          localDateTime = LocalDateTime.parse(timestampStr, formatterN);
+        } catch (DateTimeException eN) {
+          throw eN;
+        }
+      }
+    }
     Instant time = LocalDateTime.from(localDateTime).atZone(ZoneId.systemDefault()).toInstant();
     return time.getEpochSecond() * 1_000_000_000L + time.getNano();
   }

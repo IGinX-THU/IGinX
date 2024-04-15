@@ -2,12 +2,20 @@ package cn.edu.tsinghua.iginx.mongodb.dummy;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.StringWriter;
 import java.math.BigDecimal;
 import java.text.DateFormat;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
 import org.bson.*;
+import org.bson.codecs.BsonDocumentCodec;
+import org.bson.codecs.BsonValueCodecProvider;
+import org.bson.codecs.DecoderContext;
+import org.bson.codecs.EncoderContext;
+import org.bson.codecs.configuration.CodecRegistries;
+import org.bson.codecs.configuration.CodecRegistry;
+import org.bson.json.*;
 import org.bson.types.Decimal128;
 
 class TypeUtils {
@@ -95,12 +103,7 @@ class TypeUtils {
       case BINARY:
         {
           try {
-            BsonDocument doc = BsonDocument.parse(value.getBinaryVAsString());
-            BsonValue v = doc.get(MAGIK_STR);
-            if (v == null) {
-              v = new BsonString(value.getBinaryVAsString());
-            }
-            return v;
+            return parseJson(value.getBinaryVAsString());
           } catch (Exception ignored) {
             return new BsonString(value.getBinaryVAsString());
           }
@@ -111,8 +114,43 @@ class TypeUtils {
   }
 
   public static byte[] convertToBinary(BsonValue value) {
-    BsonDocument doc = new BsonDocument(MAGIK_STR, value);
-    return doc.toJson().getBytes();
+    if (value.getBsonType().equals(BsonType.STRING)) {
+      return value.asString().getValue().getBytes();
+    }
+
+    return toJson(value).getBytes();
+  }
+
+  public static String toJson(BsonValue value) {
+    StringWriter writer = new StringWriter();
+    JsonWriterSettings settings =
+        JsonWriterSettings.builder()
+            .outputMode(JsonMode.SHELL)
+            .int64Converter((v, w) -> w.writeNumber(v.toString()))
+            .build();
+    EncoderContext context = EncoderContext.builder().build();
+    new BsonDocumentCodec()
+        .encode(new JsonWriter(writer, settings), new BsonDocument(MAGIK_STR, value), context);
+    if (value.isString()) {
+      return writer.getBuffer().substring(7, writer.getBuffer().length() - 2);
+    }
+    return writer.getBuffer().substring(6, writer.getBuffer().length() - 1);
+  }
+
+  public static BsonValue parseJson(String json) {
+    try {
+      String toParse = "{\"" + MAGIK_STR + "\":" + json + "}";
+      CodecRegistry codecRegistry = CodecRegistries.fromProviders(new BsonValueCodecProvider());
+      BsonReader reader = new JsonReader(toParse);
+      DecoderContext context = DecoderContext.builder().build();
+      return new BsonDocumentCodec(codecRegistry).decode(reader, context).get(MAGIK_STR);
+    } catch (JsonParseException e) {
+      String toParse = "{\"" + MAGIK_STR + "\":\"" + json + "\"}";
+      CodecRegistry codecRegistry = CodecRegistries.fromProviders(new BsonValueCodecProvider());
+      BsonReader reader = new JsonReader(toParse);
+      DecoderContext context = DecoderContext.builder().build();
+      return new BsonDocumentCodec(codecRegistry).decode(reader, context).get(MAGIK_STR);
+    }
   }
 
   public static BsonValue convertTo(BsonValue value, BsonType type) {
@@ -246,5 +284,27 @@ class TypeUtils {
         return new BsonSymbol(String.valueOf(number));
     }
     throw new IllegalArgumentException("can't convert " + number + " to " + type);
+  }
+
+  public static Object convertToNotBinaryWithIgnore(BsonValue value, DataType type) {
+    if (type == DataType.BINARY || type == DataType.FLOAT) {
+      throw new IllegalArgumentException("can't convert " + value + " to " + type);
+    }
+    try {
+      switch (type) {
+        case BOOLEAN:
+          return convertTo(value, BsonType.BOOLEAN).asBoolean().getValue();
+        case INTEGER:
+          return convertTo(value, BsonType.INT32).asInt32().getValue();
+        case LONG:
+          return convertTo(value, BsonType.INT64).asInt64().getValue();
+        case DOUBLE:
+          return convertTo(value, BsonType.DOUBLE).asDouble().getValue();
+        default:
+          return null;
+      }
+    } catch (Exception e) {
+      return null;
+    }
   }
 }

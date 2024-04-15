@@ -35,10 +35,6 @@
                         <outputDirectory>sbin</outputDirectory>
                     </fileSet>
                     <fileSet>
-                        <directory>${project.build.directory}/iginx-core-${project.version}/udf_funcs</directory>
-                        <outputDirectory>udf_funcs</outputDirectory>
-                    </fileSet>
-                    <fileSet>
                         <directory>${project.build.directory}/iginx-core-${project.version}/lib</directory>
                         <outputDirectory>lib</outputDirectory>
                     </fileSet>
@@ -50,6 +46,10 @@
         <fileSet>
             <directory>${project.build.directory}/conf</directory>
             <outputDirectory>conf</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>${project.build.directory}/udf_funcs</directory>
+            <outputDirectory>udf_funcs</outputDirectory>
         </fileSet>
     </fileSets>
 </component>

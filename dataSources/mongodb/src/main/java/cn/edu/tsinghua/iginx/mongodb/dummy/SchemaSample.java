@@ -21,41 +21,56 @@ import com.mongodb.client.AggregateIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoCursor;
 import com.mongodb.client.model.Aggregates;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import org.bson.BsonDocument;
 import org.bson.conversions.Bson;
 
 public class SchemaSample {
 
-  private final int schemaSampleSize;
-  private final PathTree tree = new PathTree();
+  private final int sampleSize;
+  private final PathTree tree;
 
-  public SchemaSample(int schemaSampleSize) {
-    this.schemaSampleSize = schemaSampleSize;
-    this.tree.put(Collections.singletonList("*").iterator());
+  public SchemaSample(int sampleSize) {
+    this.sampleSize = sampleSize;
+    PathTree tree = new PathTree();
+    tree.put(Collections.singletonList("*").iterator());
+    this.tree = tree;
   }
 
-  public Map<String, DataType> query(MongoCollection<BsonDocument> collection) {
+  public SchemaSample(int sampleSize, PathTree tree) {
+    this.sampleSize = sampleSize;
+    this.tree = tree;
+  }
+
+  public Map<String, DataType> query(MongoCollection<BsonDocument> collection, boolean hasPrefix) {
     AggregateIterable<BsonDocument> sampleResult =
         collection.aggregate(Collections.singletonList(getSampleStage()));
 
-    int count = 0;
+    long count = 0;
     ResultTable.Builder builder = new ResultTable.Builder();
 
     try (MongoCursor<BsonDocument> cursor = sampleResult.cursor()) {
       while (cursor.hasNext()) {
         BsonDocument doc = cursor.next();
-        builder.add(count++, doc, tree);
+        builder.add(count << 32, doc, tree);
+        count++;
       }
     }
 
-    String[] prefixes =
-        new String[] {
-          collection.getNamespace().getDatabaseName(),
-          collection.getNamespace().getCollectionName(),
-        };
+    String[] prefixes;
+    if (hasPrefix) {
+      prefixes =
+          new String[] {
+            collection.getNamespace().getDatabaseName(),
+            collection.getNamespace().getCollectionName(),
+          };
+    } else {
+      prefixes = new String[0];
+    }
 
-    ResultTable sampleTable = builder.build(prefixes);
+    ResultTable sampleTable = builder.build(prefixes, null);
 
     Map<String, ResultColumn> columns = sampleTable.getColumns();
     Map<String, DataType> schema = new HashMap<>(columns.size());
@@ -71,6 +86,6 @@ public class SchemaSample {
   }
 
   private Bson getSampleStage() {
-    return Aggregates.sample(this.schemaSampleSize);
+    return Aggregates.sample(this.sampleSize);
   }
 }
