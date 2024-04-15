@@ -26,10 +26,10 @@ public class TransformExample {
 
   private static final String QUERY_SQL = "select value1, value2, value3, value4 from transform;";
   private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
-  private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
+  private static final String SHOW_REGISTER_TASK_SQL = "SHOW FUNCTIONS;";
   private static final String REGISTER_SQL_FORMATTER =
-      "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
-  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
+      "CREATE FUNCTION TRANSFORM %s FROM %s IN %s";
+  private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
 
   private static final String OUTPUT_DIR_PREFIX =
       System.getProperty("user.dir")
@@ -134,7 +134,7 @@ public class TransformExample {
   private static void registerTask() {
     TASK_MAP.forEach(
         (k, v) -> {
-          String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, v, k);
+          String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, k, v);
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {

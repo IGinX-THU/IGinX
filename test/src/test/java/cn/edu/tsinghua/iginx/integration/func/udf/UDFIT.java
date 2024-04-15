@@ -69,9 +69,9 @@ public class UDFIT {
 
   private static final String MULTI_UDF_REGISTER_SQL = "CREATE FUNCTION %s IN \"%s\";";
 
-  private static final String DROP_SQL = "DROP PYTHON TASK \"%s\";";
+  private static final String DROP_SQL = "DROP FUNCTION \"%s\";";
 
-  private static final String SHOW_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
+  private static final String SHOW_TASK_SQL = "SHOW FUNCTIONS;";
 
   private static final String MODULE_PATH =
       String.join(

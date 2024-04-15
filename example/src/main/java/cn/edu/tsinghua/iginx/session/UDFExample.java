@@ -17,8 +17,8 @@ public class UDFExample {
   private static final String S4 = "udf.value4";
 
   private static final String REGISTER_SQL_FORMATTER = "CREATE FUNCTION %s %s FROM %s IN %s";
-  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
-  private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
+  private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
+  private static final String SHOW_REGISTER_TASK_SQL = "SHOW FUNCTIONS;";
 
   private static final String FILE_DIR =
       String.join(
