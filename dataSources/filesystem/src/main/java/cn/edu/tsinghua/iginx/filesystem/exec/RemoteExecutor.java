@@ -14,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.filesystem.exception.FilesystemException;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FileSystemService.Client;
 import cn.edu.tsinghua.iginx.filesystem.thrift.TagFilterType;
@@ -111,10 +112,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(rowStream, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote project task error"));
+            null, new FilesystemException("execute remote project task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new FilesystemException(e));
     }
   }
 
@@ -162,10 +163,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(null, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote insert task error"));
+            null, new FilesystemException("execute remote insert task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new FilesystemException(e));
     }
   }
 
@@ -198,10 +199,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(null, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote delete task error"));
+            null, new FilesystemException("execute remote delete task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new FilesystemException(e));
     }
   }
 
@@ -224,7 +225,7 @@ public class RemoteExecutor implements Executor {
                           column.isDummy())));
       return columns;
     } catch (TException e) {
-      throw new PhysicalException(
+      throw new FilesystemException(
           "encounter error when executing remote getColumnsOfStorageUnit task", e);
     }
   }
@@ -241,7 +242,7 @@ public class RemoteExecutor implements Executor {
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
     } catch (TException e) {
-      throw new PhysicalException(
+      throw new FilesystemException(
           "encounter error when executing remote getBoundaryOfStorage task", e);
     }
   }

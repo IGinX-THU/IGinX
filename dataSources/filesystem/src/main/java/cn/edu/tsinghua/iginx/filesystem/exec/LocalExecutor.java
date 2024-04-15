@@ -5,7 +5,6 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
@@ -17,6 +16,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.filesystem.exception.FileSystemTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.filesystem.exception.FilesystemException;
 import cn.edu.tsinghua.iginx.filesystem.file.entity.FileMeta;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.filesystem.query.entity.FileSystemQueryRowStream;
@@ -85,7 +86,7 @@ public class LocalExecutor implements Executor {
                   String.format("dir %s cannot be equal to dummy directory %s", dir, dummyDir));
             }
           } catch (IOException e) {
-            throw new RuntimeException(
+            throw new IOException(
                 String.format("get canonical path failed for dir %s dummy_dir %s", dir, dummyDir));
           }
         }
@@ -147,7 +148,11 @@ public class LocalExecutor implements Executor {
           tagFilter,
           filter);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute project task in fileSystem failure", e));
+          new FileSystemTaskExecuteFailureException(
+              String.format(
+                  "read file error, storageUnit %s, paths(%s), tagFilter(%s), filter(%s)",
+                  storageUnit, paths, tagFilter, filter),
+              e));
     }
   }
 
@@ -168,8 +173,8 @@ public class LocalExecutor implements Executor {
     } catch (Exception e) {
       LOGGER.error("read file error, paths {} filter {}", paths, filter);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
-              "execute dummy project task in fileSystem failure", e));
+          new FileSystemTaskExecuteFailureException(
+              String.format("read file error, paths %s filter %s", paths, filter), e));
     }
   }
 
@@ -188,7 +193,7 @@ public class LocalExecutor implements Executor {
     }
     if (e != null) {
       return new TaskExecuteResult(
-          null, new PhysicalException("execute insert task in fileSystem failure", e));
+          null, new FilesystemException("encounter error when inserting data: ", e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -220,11 +225,11 @@ public class LocalExecutor implements Executor {
     }
     try {
       LOGGER.info("begin to write data");
-      return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
-    } catch (Exception e) {
-      LOGGER.error("encounter error when inserting row records to fileSystem: ", e);
-      return e;
+      fileSystemManager.writeFiles(fileList, recordsList, tagsList);
+    } catch (IOException e) {
+      return new IOException("encounter error when inserting row records to fileSystem: ", e);
     }
+    return null;
   }
 
   private Exception insertColumnRecords(ColumnDataView data, String storageUnit) {
@@ -253,37 +258,35 @@ public class LocalExecutor implements Executor {
 
     try {
       LOGGER.info("begin to write data");
-      return fileSystemManager.writeFiles(fileList, recordsList, tagsList);
-    } catch (Exception e) {
-      LOGGER.error("encounter error when inserting column records to fileSystem: ", e);
-      return e;
+      fileSystemManager.writeFiles(fileList, recordsList, tagsList);
+    } catch (IOException e) {
+      return new IOException("encounter error when inserting column records to fileSystem: ", e);
     }
+    return null;
   }
 
   @Override
   public TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
-    Exception exception = null;
     List<File> fileList = new ArrayList<>();
     if (keyRanges == null || keyRanges.isEmpty()) {
       if (paths.size() == 1 && paths.get(0).equals(WILDCARD) && tagFilter == null) {
         try {
-          exception =
-              fileSystemManager.deleteFile(
-                  new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
-        } catch (Exception e) {
-          LOGGER.error("encounter error when clearing data: ", e);
-          exception = e;
+          fileSystemManager.deleteFile(
+              new File(FilePathUtils.toIginxPath(root, storageUnit, null)));
+        } catch (IOException e) {
+          return new TaskExecuteResult(
+              new FilesystemException("encounter error when clearing data: ", e));
         }
       } else {
         for (String path : paths) {
           fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
         }
         try {
-          exception = fileSystemManager.deleteFiles(fileList, tagFilter);
-        } catch (Exception e) {
-          LOGGER.error("encounter error when clearing data: ", e);
-          exception = e;
+          fileSystemManager.deleteFiles(fileList, tagFilter);
+        } catch (IOException e) {
+          return new TaskExecuteResult(
+              new FilesystemException("encounter error when clearing data: ", e));
         }
       }
     } else {
@@ -293,17 +296,16 @@ public class LocalExecutor implements Executor {
             fileList.add(new File(FilePathUtils.toIginxPath(root, storageUnit, path)));
           }
           for (KeyRange keyRange : keyRanges) {
-            exception =
-                fileSystemManager.trimFilesContent(
-                    fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
+            fileSystemManager.trimFilesContent(
+                fileList, tagFilter, keyRange.getActualBeginKey(), keyRange.getActualEndKey());
           }
         }
       } catch (IOException e) {
-        LOGGER.error("encounter error when deleting data: ", e);
-        exception = e;
+        return new TaskExecuteResult(
+            new FilesystemException("encounter error when deleting data: ", e));
       }
     }
-    return new TaskExecuteResult(null, exception != null ? new PhysicalException(exception) : null);
+    return new TaskExecuteResult(null, null);
   }
 
   @Override
