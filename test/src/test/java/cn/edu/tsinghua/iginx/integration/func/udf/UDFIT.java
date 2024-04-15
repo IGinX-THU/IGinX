@@ -1069,7 +1069,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute("drop python task \"udf_b\";");
+    execute(String.format(DROP_SQL, "udf_b"));
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
     executeFail(statement);
@@ -1141,7 +1141,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute("drop python task \"udf_b\";");
+    execute(String.format(DROP_SQL, "udf_b"));
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
     executeFail(statement);
@@ -1217,7 +1217,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute("drop python task \"udf_b\";");
+    execute(String.format(DROP_SQL, "udf_b"));
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
     executeFail(statement);
