@@ -23,8 +23,7 @@ public class TransformCompare {
   private static final List<String> FUNC_LIST = Arrays.asList("min", "max", "sum", "avg", "count");
 
   private static final String SHOW_REGISTER_TASK_SQL = "SHOW FUNCTIONS;";
-  private static final String REGISTER_SQL_FORMATTER =
-      "CREATE FUNCTION TRANSFORM %s FROM %s IN %s";
+  private static final String REGISTER_SQL_FORMATTER = "CREATE FUNCTION TRANSFORM %s FROM %s IN %s";
   private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
 
   private static final String OUTPUT_DIR_PREFIX =
