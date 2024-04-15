@@ -109,12 +109,12 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   @Override
-  public Exception writeIginxFile(File file, List<Record> records) {
+  public void writeIginxFile(File file, List<Record> records) throws IOException {
     if (file.exists() && file.isDirectory()) {
-      return new IOException(String.format("cannot write to directory %s", file.getAbsolutePath()));
+      throw new IOException(String.format("cannot write to directory %s", file.getAbsolutePath()));
     }
     if (!file.exists()) {
-      return new IOException(
+      throw new IOException(
           String.format(
               "cannot write to file %s because it does not exist", file.getAbsolutePath()));
     }
@@ -123,15 +123,11 @@ public class DefaultFileOperator implements IFileOperator {
     if (file.exists() && file.length() > 0) {
       long lastKey = getIginxFileMaxKey(file);
       if (lastKey == -1L || lastKey < records.get(0).getKey()) {
-        return appendRecordsToIginxFile(file, records, 0, records.size());
+        appendRecordsToIginxFile(file, records, 0, records.size());
       }
     }
 
-    try {
-      flushAppendWriter(file);
-    } catch (IOException e) {
-      return e;
-    }
+    flushAppendWriter(file);
 
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
@@ -180,18 +176,14 @@ public class DefaultFileOperator implements IFileOperator {
       tempWriter.close();
 
       if (recordIndex < maxLen) {
-        Exception exception =
-            appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
+        appendRecordsToIginxFile(tempFile, records, recordIndex, records.size());
         updateLastKey(file, records.get(records.size() - 1).getKey());
-        if (exception != null) {
-          return exception;
-        }
       }
 
-      return replaceFile(file, tempFile);
+      replaceFile(file, tempFile);
     } catch (IOException e) {
-      LOGGER.error("write iginx file {} failure: ", file.getAbsolutePath(), e);
-      return e;
+      throw new IOException(
+          String.format("write iginx file %s failure", file.getAbsolutePath()), e);
     }
   }
 
@@ -212,15 +204,16 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   // 直接将数据append到文件
-  private Exception appendRecordsToIginxFile(File file, List<Record> records, int begin, int end) {
+  private void appendRecordsToIginxFile(File file, List<Record> records, int begin, int end)
+      throws IOException {
     BufferedWriter writer = null;
     if (!appendWriterMap.containsKey(file)) {
       try {
         writer = new BufferedWriter(new FileWriter(file, true), 262144);
         appendWriterMap.put(file, writer);
       } catch (IOException e) {
-        LOGGER.error("cannot create writer for file {} ", file.getAbsolutePath(), e);
-        return e;
+        throw new IOException(
+            String.format("cannot create writer for file %s", file.getAbsolutePath()), e);
       }
     } else {
       writer = appendWriterMap.get(file);
@@ -232,10 +225,9 @@ public class DefaultFileOperator implements IFileOperator {
         writer.write("\n");
       }
       updateLastKey(file, records.get(end - 1).getKey());
-      return null;
     } catch (IOException e) {
-      LOGGER.error("append records to iginx file {} failure: ", file.getAbsolutePath(), e);
-      return e;
+      throw new IOException(
+          String.format("append records to iginx file %s failure", file.getAbsolutePath()), e);
     }
   }
 
@@ -269,43 +261,32 @@ public class DefaultFileOperator implements IFileOperator {
     }
   }
 
-  private Exception replaceFile(File file, File tempFile) {
+  private void replaceFile(File file, File tempFile) throws IOException {
     if (!tempFile.exists()) {
-      return new IOException(
+      throw new IOException(
           String.format("temporary file %s does not exist", tempFile.getAbsoluteFile()));
     }
     if (!file.exists()) {
-      return new IOException(
+      throw new IOException(
           String.format("original file %s does not exist", file.getAbsoluteFile()));
     }
     try {
-      Exception e = moveFileWithLock(tempFile, file);
-      if (e != null) {
-        return e;
-      }
-      return null;
+      moveFileWithLock(tempFile, file);
     } catch (IOException e) {
-      LOGGER.error(
-          "replace file from {} to {} failure: ",
-          tempFile.getAbsolutePath(),
-          file.getAbsoluteFile(),
+      throw new IOException(
+          String.format(
+              "replace file from %s to %s failure",
+              tempFile.getAbsolutePath(), file.getAbsoluteFile()),
           e);
-      return e;
     }
   }
 
-  private Exception moveFileWithLock(File source, File target) throws IOException {
+  private void moveFileWithLock(File source, File target) throws IOException {
     boolean movedSuccessfully = false;
 
     while (!movedSuccessfully) {
-      Exception exception = closeAppendWriter(target);
-      if (exception != null) {
-        return exception;
-      }
-      exception = closeAppendWriter(source);
-      if (exception != null) {
-        return exception;
-      }
+      closeAppendWriter(target);
+      closeAppendWriter(source);
       try {
         Files.move(source.toPath(), target.toPath(), StandardCopyOption.REPLACE_EXISTING);
         movedSuccessfully = true;
@@ -322,7 +303,6 @@ public class DefaultFileOperator implements IFileOperator {
         }
       }
     }
-    return null;
   }
 
   @Override
@@ -356,30 +336,21 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   @Override
-  public Exception delete(File file) {
+  public void delete(File file) throws IOException {
     if (!file.exists()) {
-      return new IOException(
+      throw new IOException(
           String.format("cannot delete file %s because it does not exist", file.getAbsolutePath()));
     }
-    Exception exception = closeAppendWriter(file);
-    if (exception != null) {
-      return exception;
-    }
+    closeAppendWriter(file);
     if (!file.delete()) {
-      return new IOException(String.format("cannot delete file %s", file.getAbsolutePath()));
+      throw new IOException(String.format("cannot delete file %s", file.getAbsolutePath()));
     }
-    return null;
   }
 
   // 删除对应key范围内的数据
   @Override
-  public Exception trimFile(File file, long begin, long end) {
-    try {
-      flushAppendWriter(file);
-    } catch (IOException e) {
-      return e;
-    }
-
+  public void trimFile(File file, long begin, long end) throws IOException {
+    flushAppendWriter(file);
     // Create temporary file
     File tempFile = new File(file.getParentFile(), file.getName() + ".tmp");
     try (BufferedWriter tempWriter = new BufferedWriter(new FileWriter(tempFile))) {
@@ -411,10 +382,9 @@ public class DefaultFileOperator implements IFileOperator {
 
       tempWriter.close();
 
-      return replaceFile(file, tempFile);
+      replaceFile(file, tempFile);
     } catch (IOException e) {
-      LOGGER.error("trim file {} failure: ", file.getAbsolutePath(), e);
-      return e;
+      throw new IOException(String.format("trim file %s failure", file.getAbsolutePath()), e);
     }
   }
 
@@ -482,7 +452,7 @@ public class DefaultFileOperator implements IFileOperator {
     return files == null ? new ArrayList<>() : Arrays.asList(files);
   }
 
-  private Exception closeAppendWriter(File file) {
+  private void closeAppendWriter(File file) throws IOException {
     LOGGER.debug("close writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
@@ -490,11 +460,10 @@ public class DefaultFileOperator implements IFileOperator {
         appendWriterMap.remove(file);
         writer.close();
       } catch (IOException e) {
-        LOGGER.error("close writer for file {} failure: ", file.getAbsolutePath(), e);
-        return e;
+        throw new IOException(
+            String.format("close writer for file %s failure", file.getAbsolutePath()), e);
       }
     }
-    return null;
   }
 
   private void flushAppendWriter(File file) throws IOException {
