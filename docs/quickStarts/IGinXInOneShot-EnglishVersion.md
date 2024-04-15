@@ -239,11 +239,11 @@ The command will return information about the data point just inserted:
 
 If you see the following information returned, it means you are able to successfully use RESTful interface to write and query data to IGinX.
 
-For more interfaces, please refer to the official [IGinX manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf).
+For more interfaces, please refer to the official [IGinX manual](../pdf/userManualC.pdf).
 
 If you want to use a different interface, there is another option.
 
-In addition to the RESTful interface, IGinX also provides the RPC data access interface. For this specific interface, please refer to the official [IGinX manual](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf).
+In addition to the RESTful interface, IGinX also provides the RPC data access interface. For this specific interface, please refer to the official [IGinX manual](../pdf/userManualC.pdf).
 
 At the same time, IGinX also provides some official examples, showing the most common usage of the RPC interface.
 
