@@ -63,6 +63,7 @@ public class RegisterTaskStatement extends SystemStatement {
             ctx.isRemoteUDF());
     status = worker.registerTask(req);
     ctx.setResult(new Result(status));
+    ctx.getResult().setUDFModulePath(filePath);
   }
 
   private Status metadataValidate() {

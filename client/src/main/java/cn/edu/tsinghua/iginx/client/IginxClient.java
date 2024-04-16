@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.client;
 
 import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
-import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -321,9 +320,8 @@ public class IginxClient {
 
   private static void processPythonRegister(String sql) {
     try {
-      boolean isRemote = !isLocalHost(host);
       String parseErrorMsg;
-      LoadUDFResp resp = session.executeRegisterTask(sql, isRemote);
+      LoadUDFResp resp = session.executeRegisterTask(sql);
       parseErrorMsg = resp.getParseErrorMsg();
       if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
         System.out.println(resp.getParseErrorMsg());

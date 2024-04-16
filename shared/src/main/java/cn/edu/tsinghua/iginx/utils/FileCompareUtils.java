@@ -43,7 +43,6 @@ public class FileCompareUtils {
         List<Path> list1 = stream1.collect(Collectors.toList());
         List<Path> list2 = stream2.collect(Collectors.toList());
 
-        // Check if the two directories have the same number of files/directories
         if (list1.size() != list2.size()) {
           return false;
         }
@@ -54,14 +53,12 @@ public class FileCompareUtils {
           Path relativePath1 = folder1.toPath().relativize(path1);
           Path relativePath2 = folder2.toPath().relativize(path2);
 
-          // Compare paths to ensure they are pointing to the same relative location
           if (!relativePath1.equals(relativePath2)
               || Files.isDirectory(path1) != Files.isDirectory(path2)
               || Files.isRegularFile(path1) != Files.isRegularFile(path2)) {
             return false;
           }
 
-          // If both are regular files, compare their contents
           if (Files.isRegularFile(path1) && Files.isRegularFile(path2)) {
             if (!compareFile(path1.toFile(), path2.toFile())) {
               return false;

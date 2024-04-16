@@ -182,12 +182,12 @@ public class UDFIT {
     taskToBeRemoved.clear();
   }
 
-  private LoadUDFResp executeRemoteReg(String statement) {
-    LOGGER.info("Execute remote function registration statement: {}", statement);
-
+  private void executeReg(String statement, boolean isRemote) {
+    LOGGER.info(
+        "Execute {} registration Statement: \"{}\"", isRemote ? "remote" : "local", statement);
     LoadUDFResp res = null;
     try {
-      res = session.executeRegisterTask(statement, true);
+      res = session.executeRegisterTask(statement, isRemote);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
@@ -198,8 +198,33 @@ public class UDFIT {
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
     }
+  }
 
-    return res;
+  // register UDF and expect failure
+  private void executeRegFail(String statement, boolean isRemote) {
+    LOGGER.info(
+        "Execute {} registration Statement: \"{}\"", isRemote ? "remote" : "local", statement);
+    LoadUDFResp res = null;
+    try {
+      res = session.executeRegisterTask(statement, isRemote);
+    } catch (SessionException e) {
+      // don't want to print e because it will be confusing
+      LOGGER.info(
+          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}",
+          statement,
+          e.getMessage());
+      return;
+    }
+
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+      LOGGER.info(
+          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.",
+          statement,
+          res.getParseErrorMsg());
+      return;
+    }
+
+    fail("Statement: \"{}\" execute without failure, which was not expected.");
   }
 
   private SessionExecuteSqlResult execute(String statement) {
@@ -354,7 +379,7 @@ public class UDFIT {
             "udf",
             "mock_udf.py");
     String udfName = "mock_udf";
-    execute(String.format(SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", filePath));
+    executeReg(String.format(SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", filePath), false);
     assertTrue(isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
@@ -1038,7 +1063,8 @@ public class UDFIT {
   public void testImportModule() {
     String classPath = "my_module.sub_module.sub_class_a.SubClassA";
     String udfName = "module_udf_test";
-    execute(String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, MODULE_PATH));
+    executeReg(
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, MODULE_PATH), false);
     assertTrue(isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
@@ -1071,7 +1097,7 @@ public class UDFIT {
                 "my_module.sub_module.sub_class_a.SubClassA"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
     String registerSql = concatMultiUDFReg("udsf", names, classPaths, MODULE_PATH);
-    execute(registerSql);
+    executeReg(registerSql, false);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
@@ -1134,7 +1160,7 @@ public class UDFIT {
                 "my_module.sub_module.sub_class_a.SubClassA"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
     String register = concatMultiUDFReg(types, names, classPaths, MODULE_PATH);
-    execute(register);
+    executeReg(register, false);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
@@ -1210,11 +1236,7 @@ public class UDFIT {
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
     String register = concatMultiUDFReg(types, names, classPaths, MODULE_FILE_PATH);
-    if (!isRemote) {
-      execute(register);
-    } else {
-      executeRemoteReg(register);
-    }
+    executeReg(register, isRemote);
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
@@ -1311,7 +1333,7 @@ public class UDFIT {
             + "\" in \""
             + MODULE_PATH
             + "\";";
-    executeFail(register);
+    executeRegFail(register, false);
     assertTrue(isUDFsUnregistered(names));
 
     // same class name
@@ -1322,13 +1344,13 @@ public class UDFIT {
                 "my_module.my_class_a.ClassB",
                 "my_module.my_class_a.ClassB"));
     register = concatMultiUDFReg(types, names, classPathWrong, MODULE_PATH);
-    executeFail(register);
+    executeRegFail(register, false);
     assertTrue(isUDFsUnregistered(names));
 
     // same name
     List<String> nameWrong = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_b"));
     register = concatMultiUDFReg(types, nameWrong, classPaths, MODULE_PATH);
-    executeFail(register);
+    executeRegFail(register, false);
     assertTrue(isUDFsUnregistered(names));
   }
 
@@ -1346,11 +1368,8 @@ public class UDFIT {
     String classPath = "my_module.dateutil_test.Test";
     String name = "dateutil_test";
     String type = "udsf";
-    if (!isRemote) {
-      execute(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
-    } else {
-      executeRemoteReg(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
-    }
+    executeReg(
+        String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH), isRemote);
     assertTrue(isUDFRegistered(name));
     taskToBeRemoved.add(name);
 
@@ -1388,7 +1407,7 @@ public class UDFIT {
     // append an illegal package(wrong name)
     try {
       FileUtils.appendFile(reqFile, "\nillegal-package");
-      executeFail(statement);
+      executeRegFail(statement, false);
       assertFalse(isUDFRegistered(name));
     } catch (IOException e) {
       LOGGER.error("Append content to file:{} failed.", reqFile, e);

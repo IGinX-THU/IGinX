@@ -31,7 +31,7 @@ public class CompressionUtilsTest {
     }
   }
 
-  // test compress file and uncompress
+  // test compress file and decompress
   @Test
   public void testCompressFile() throws IOException {
     String testName = "compressionFileTest";
@@ -63,7 +63,7 @@ public class CompressionUtilsTest {
     FileUtils.deleteFolder(new File(String.join(File.separator, resourcePath, testName)));
   }
 
-  // test compress folder and uncompress
+  // test compress folder and decompress
   @Test
   public void testCompressFolder() throws IOException {
     String testName = "compressionFolderTest";
@@ -103,7 +103,7 @@ public class CompressionUtilsTest {
     FileUtils.deleteFolder(new File(String.join(File.separator, resourcePath, testName)));
   }
 
-  // test compress empty folder and uncompress
+  // test compress empty folder and decompress
   @Test
   public void testCompressEmptyFolder() throws IOException {
     String testName = "compressionFolderTest";
