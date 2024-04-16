@@ -42,7 +42,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
   public TableIndex(TableStorage<K, F, T, V> tableStorage) {
     try {
       for (String tableName : tableStorage.tableNames()) {
-        TableMeta<K, F, T, V> meta = tableStorage.get(tableName).getMeta();
+        TableMeta<K, F, T, V> meta = tableStorage.getMeta(tableName);
         declareFields(meta.getSchema());
         addTable(tableName, meta);
       }

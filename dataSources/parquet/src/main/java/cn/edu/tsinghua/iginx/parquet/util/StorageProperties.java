@@ -16,15 +16,20 @@
 
 package cn.edu.tsinghua.iginx.parquet.util;
 
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.IndexedChunk;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.IndexedChunkType;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
 import java.util.StringJoiner;
+import org.apache.arrow.vector.BaseValueVector;
 
 /** The properties of storage engine */
 public class StorageProperties {
   private final boolean flushOnClose;
   private final long writeBufferSize;
+  private final int writeBufferChunkValues;
+  private final IndexedChunk.Factory writeBufferChunkFactory;
   private final Duration writeBufferTimeout;
   private final long writeBatchSize;
   private final int compactPermits;
@@ -38,22 +43,11 @@ public class StorageProperties {
   private final int zstdWorkers;
   private final int parquetLz4BufferSize;
 
-  /**
-   * Construct a StorageProperties
-   *
-   * @param flushOnClose whether to flush on close
-   * @param writeBufferSize the size of write buffer, bytes
-   * @param writeBatchSize the size of write batch, bytes
-   * @param compactPermits the number of flusher permits
-   * @param cacheCapacity the capacity of cache, bytes
-   * @param cacheTimeout the expiry timeout of cache
-   * @param cacheSoftValues whether to enable soft values of cache
-   * @param parquetRowGroupSize the size of parquet row group, bytes
-   * @param parquetPageSize the size of parquet page, bytes
-   */
   private StorageProperties(
       boolean flushOnClose,
       long writeBufferSize,
+      int writeBufferChunkValues,
+      IndexedChunk.Factory writeBufferChunkFactory,
       Duration writeBufferTimeout,
       long writeBatchSize,
       int compactPermits,
@@ -68,6 +62,8 @@ public class StorageProperties {
       int parquetLz4BufferSize) {
     this.flushOnClose = flushOnClose;
     this.writeBufferSize = writeBufferSize;
+    this.writeBufferChunkValues = writeBufferChunkValues;
+    this.writeBufferChunkFactory = writeBufferChunkFactory;
     this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
     this.compactPermits = compactPermits;
@@ -98,6 +94,24 @@ public class StorageProperties {
    */
   public long getWriteBufferSize() {
     return writeBufferSize;
+  }
+
+  /**
+   * Get the max number of write buffer chunk values
+   *
+   * @return the number of write buffer chunk values
+   */
+  public int getWriteBufferChunkValues() {
+    return writeBufferChunkValues;
+  }
+
+  /**
+   * Get the write buffer chunk factory
+   *
+   * @return the write buffer chunk factory
+   */
+  public IndexedChunk.Factory getWriteBufferChunkFactory() {
+    return writeBufferChunkFactory;
   }
 
   /**
@@ -241,6 +255,8 @@ public class StorageProperties {
   public static class Builder {
     public static final String FLUSH_ON_CLOSE = "close.flush";
     public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
+    public static final String WRITE_BUFFER_CHUNK_VALUES = "write.buffer.chunk.values";
+    public static final String WRITE_BUFFER_CHUNK_INDEX = "write.buffer.chunk.index";
     public static final String WRITE_BUFFER_TIMEOUT = "write.buffer.timeout";
     public static final String WRITE_BATCH_SIZE = "write.batch.size";
     public static final String COMPACT_PERMITS = "compact.permits";
@@ -256,6 +272,8 @@ public class StorageProperties {
 
     private boolean flushOnClose = true;
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
+    private int writeBufferChunkValues = BaseValueVector.INITIAL_VALUE_ALLOCATION;
+    private IndexedChunk.Factory writeBufferChunkIndex = IndexedChunkType.NONE.factory();
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
     private long cacheCapacity = 16 * 1024 * 1024; // BYTE
@@ -291,6 +309,29 @@ public class StorageProperties {
     public Builder setWriteBufferSize(long writeBufferSize) {
       ParseUtils.checkPositive(writeBufferSize);
       this.writeBufferSize = writeBufferSize;
+      return this;
+    }
+
+    /**
+     * Set the max number of write buffer chunk values
+     *
+     * @param writeBufferChunkValues the size of write buffer chunk values
+     * @return this builder
+     */
+    public Builder setWriteBufferChunkValues(int writeBufferChunkValues) {
+      ParseUtils.checkPositive(writeBufferChunkValues);
+      this.writeBufferChunkValues = writeBufferChunkValues;
+      return this;
+    }
+
+    /**
+     * Set the write buffer chunk index
+     *
+     * @param writeBufferChunkIndexName the write buffer chunk index name
+     * @return this builder
+     */
+    public Builder setWriteBufferChunkIndex(String writeBufferChunkIndexName) {
+      this.writeBufferChunkIndex = IndexedChunkType.valueOf(writeBufferChunkIndexName).factory();
       return this;
     }
 
@@ -464,6 +505,10 @@ public class StorageProperties {
     public Builder parse(Map<String, String> properties) {
       ParseUtils.getOptionalBoolean(properties, FLUSH_ON_CLOSE).ifPresent(this::setFlushOnClose);
       ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
+      ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_CHUNK_VALUES)
+          .ifPresent(this::setWriteBufferChunkValues);
+      ParseUtils.getOptionalString(properties, WRITE_BUFFER_CHUNK_INDEX)
+          .ifPresent(this::setWriteBufferChunkIndex);
       ParseUtils.getOptionalDuration(properties, WRITE_BUFFER_TIMEOUT)
           .ifPresent(this::setWriteBufferTimeout);
       ParseUtils.getOptionalLong(properties, WRITE_BATCH_SIZE).ifPresent(this::setWriteBatchSize);
@@ -494,6 +539,8 @@ public class StorageProperties {
       return new StorageProperties(
           flushOnClose,
           writeBufferSize,
+          writeBufferChunkValues,
+          writeBufferChunkIndex,
           writeBufferTimeout,
           writeBatchSize,
           compactPermits,

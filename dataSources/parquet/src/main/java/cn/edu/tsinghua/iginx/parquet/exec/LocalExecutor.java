@@ -288,7 +288,8 @@ public class LocalExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     if (storageUnit.equals("*")) {
       List<Column> columns = new ArrayList<>();
-      for (Manager manager : getAllManagers()) {
+      for (Manager manager :
+          Iterables.concat(managers.values(), Collections.singleton(dummyManager))) {
         columns.addAll(manager.getColumns());
       }
       return columns;
@@ -300,20 +301,8 @@ public class LocalExecutor implements Executor {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
-    List<String> paths = new ArrayList<>();
-    long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
-    for (Manager manager : getAllManagers()) {
-      for (Column column : manager.getColumns()) {
-        paths.add(column.getPath());
-      }
-      KeyInterval interval = manager.getKeyInterval();
-      if (interval.getStartKey() < start) {
-        start = interval.getStartKey();
-      }
-      if (interval.getEndKey() > end) {
-        end = interval.getEndKey();
-      }
-    }
+    List<String> paths =
+        dummyManager.getColumns().stream().map(Column::getPath).collect(Collectors.toList());
     if (dataPrefix != null) {
       paths =
           paths.stream().filter(path -> path.startsWith(dataPrefix)).collect(Collectors.toList());
@@ -322,17 +311,9 @@ public class LocalExecutor implements Executor {
     if (paths.isEmpty()) {
       throw new PhysicalTaskExecuteFailureException("no data");
     }
-    if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
-      throw new PhysicalTaskExecuteFailureException("time range error");
-    }
     ColumnsInterval columnsInterval =
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
-    KeyInterval keyInterval = new KeyInterval(start, end);
-    return new Pair<>(columnsInterval, keyInterval);
-  }
-
-  private Iterable<Manager> getAllManagers() {
-    return Iterables.concat(managers.values(), Collections.singleton(dummyManager));
+    return new Pair<>(columnsInterval, KeyInterval.getDefaultKeyInterval());
   }
 
   @Override

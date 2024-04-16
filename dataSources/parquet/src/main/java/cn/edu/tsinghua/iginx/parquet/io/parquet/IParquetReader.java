@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import shaded.iginx.org.apache.parquet.ParquetReadOptions;
@@ -179,7 +178,6 @@ public class IParquetReader implements AutoCloseable {
       return build(footer, optionsBuilder.build());
     }
 
-    
     private IParquetReader build(ParquetMetadata footer, ParquetReadOptions options)
         throws IOException {
       MessageType schema = footer.getFileMetaData().getSchema();

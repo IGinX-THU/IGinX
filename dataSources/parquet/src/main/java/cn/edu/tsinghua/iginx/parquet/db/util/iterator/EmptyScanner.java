@@ -18,7 +18,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.NoSuchElementException;
-import javax.annotation.Nonnull;
 
 public class EmptyScanner<K, V> implements Scanner<K, V> {
 
@@ -29,13 +28,11 @@ public class EmptyScanner<K, V> implements Scanner<K, V> {
     return (Scanner<K, V>) EMPTY;
   }
 
-  
   @Override
   public K key() {
     throw new NoSuchElementException();
   }
 
-  
   @Override
   public V value() {
     throw new NoSuchElementException();

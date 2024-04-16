@@ -17,13 +17,11 @@
 package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
-import javax.annotation.Nonnull;
 
 public interface Scanner<K, V> extends AutoCloseable {
-  
+
   K key();
 
-  
   V value();
 
   boolean iterate() throws StorageException;

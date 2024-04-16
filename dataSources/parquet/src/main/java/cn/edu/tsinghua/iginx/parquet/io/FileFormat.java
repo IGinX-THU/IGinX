@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.io;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import java.io.IOException;
 import java.nio.file.Path;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public interface FileFormat {
@@ -35,8 +34,7 @@ public interface FileFormat {
    * @return meta data
    * @throws IOException if an I/O error occurs
    */
-  
-  FileMeta getMeta( Path path) throws IOException;
+  FileMeta getMeta(Path path) throws IOException;
 
   /**
    * load data index from file
@@ -46,7 +44,7 @@ public interface FileFormat {
    * @throws IOException if an I/O error occurs
    */
   @Nullable
-  FileIndex getIndex( Path path,  FileMeta meta) throws IOException;
+  FileIndex getIndex(Path path, FileMeta meta) throws IOException;
 
   /**
    * get reader of specified file
@@ -58,10 +56,7 @@ public interface FileFormat {
    * @return file reader
    * @throws IOException if an I/O error occurs
    */
-  
-  FileReader getReader(
-       Path path,  FileMeta meta,  FileIndex index,  Filter filter)
-      throws IOException;
+  FileReader getReader(Path path, FileMeta meta, FileIndex index, Filter filter) throws IOException;
 
   /**
    * get writer of specified file
@@ -71,6 +66,5 @@ public interface FileFormat {
    * @return file writer
    * @throws IOException if an I/O error occurs
    */
-  
-  FileWriter getWriter( Path path,  FileMeta meta) throws IOException;
+  FileWriter getWriter(Path path, FileMeta meta) throws IOException;
 }

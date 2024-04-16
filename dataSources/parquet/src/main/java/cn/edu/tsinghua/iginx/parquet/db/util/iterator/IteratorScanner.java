@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.NoSuchElementException;
-import javax.annotation.Nonnull;
 
 public class IteratorScanner<K, V> implements Scanner<K, V> {
 
@@ -33,7 +32,6 @@ public class IteratorScanner<K, V> implements Scanner<K, V> {
     this.iterator = iterator;
   }
 
-  
   @Override
   public K key() throws NoSuchElementException {
     if (key == null) {
@@ -42,7 +40,6 @@ public class IteratorScanner<K, V> implements Scanner<K, V> {
     return key;
   }
 
-  
   @Override
   public V value() throws NoSuchElementException {
     if (value == null) {

@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.io;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import java.io.IOException;
-import javax.annotation.Nonnull;
 
 public interface FileIndex {
 
@@ -37,6 +36,5 @@ public interface FileIndex {
    * @return row ranges. key is start row offset, value is row number.
    * @throws IOException if an I/O error occurs
    */
-  
-  Scanner<Long, Long> detect( Filter filter) throws IOException;
+  Scanner<Long, Long> detect(Filter filter) throws IOException;
 }

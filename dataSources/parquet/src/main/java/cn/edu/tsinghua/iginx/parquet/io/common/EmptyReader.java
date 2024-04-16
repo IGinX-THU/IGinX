@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 
 public class EmptyReader implements FileReader {
   private EmptyReader() {}
@@ -32,9 +31,8 @@ public class EmptyReader implements FileReader {
 
   private static final EmptyReader INSTANCE = new EmptyReader();
 
-  
   @Override
-  public Map<String, DataChunk> load( Set<String> fields, long limit) throws IOException {
+  public Map<String, DataChunk> load(Set<String> fields, long limit) throws IOException {
     Map<String, DataChunk> result = new HashMap<>();
     for (String field : fields) {
       result.put(field, DataChunks.empty());

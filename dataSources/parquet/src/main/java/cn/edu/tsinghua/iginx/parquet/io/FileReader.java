@@ -21,7 +21,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public interface FileReader extends Closeable {
@@ -41,5 +40,5 @@ public interface FileReader extends Closeable {
    * @return data chunks of each field, null if reader has no more data
    */
   @Nullable
-  Map<String, DataChunk> load( Set<String> fields, long limit) throws IOException;
+  Map<String, DataChunk> load(Set<String> fields, long limit) throws IOException;
 }

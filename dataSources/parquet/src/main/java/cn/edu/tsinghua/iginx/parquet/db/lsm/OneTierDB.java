@@ -19,59 +19,70 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.MemTable;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.UnorderedChunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableIndex;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.WriteBatches;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.BatchPlaneScanner;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
+import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
+import cn.edu.tsinghua.iginx.parquet.util.CloseableHolders;
+import cn.edu.tsinghua.iginx.parquet.util.CloseableHolders.NoexceptAutoCloseableHolder;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
-import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+import javax.annotation.WillClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
-  private final Shared shared;
-  private final TableStorage<K, F, T, V> tableStorage;
-  private final TableIndex<K, F, T, V> tableIndex;
 
-  private DataBuffer<K, F, V> writeBuffer = new DataBuffer<>();
-  private String previousTableName = null;
-  private final AtomicLong bufferDirtiedTime = new AtomicLong(Long.MAX_VALUE);
-  private final LongAdder bufferInsertedSize = new LongAdder();
   private final Lock checkLock = new ReentrantLock(true);
   private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock storageLock = new ReentrantReadWriteLock(true);
-
-  private final ScheduledExecutorService scheduler;
   private final String name;
   private final long timeout;
+  private final Shared shared;
+
+  private final ScheduledExecutorService scheduler;
+  private final BufferAllocator allocator;
+  private final TableStorage<K, F, T, V> tableStorage;
+  private final TableIndex<K, F, T, V> tableIndex;
+
+  private MemTable memtable;
+  private String previousTableName = null;
 
   public OneTierDB(String name, Shared shared, ReadWriter<K, F, T, V> readerWriter)
       throws IOException {
     this.name = name;
     this.shared = shared;
+    this.allocator = shared.getAllocator().newChildAllocator(name, 0, Long.MAX_VALUE);
     this.tableStorage = new TableStorage<>(shared, readerWriter);
     this.tableIndex = new TableIndex<>(tableStorage);
+    this.memtable = nextMemTable();
 
     ThreadFactory threadFactory =
         new ThreadFactoryBuilder().setNameFormat("OneTierDB-" + name + "-%d").build();
@@ -86,29 +97,48 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     }
   }
 
+  private MemTable nextMemTable() {
+    return new MemTable(
+        tableStorage.nextTableId(),
+        shared.getStorageProperties().getWriteBufferChunkFactory(),
+        this.allocator,
+        shared.getStorageProperties().getWriteBufferChunkValues(),
+        shared.getStorageProperties().getWriteBufferSize(),
+        shared.getStorageProperties().getWriteBufferTimeout().toMillis());
+  }
+
   @Override
-  public Scanner<K, Scanner<F, V>> query(Set<F> fields, RangeSet<K> ranges, Filter filter)
+  public Scanner<K, Scanner<F, V>> query(Set<Field> fields, RangeSet<K> ranges, Filter filter)
       throws StorageException {
     DataBuffer<K, F, V> readBuffer = new DataBuffer<>();
+
+    Set<F> innerFields =
+        fields.stream()
+            .map(field -> (F) TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
+            .collect(Collectors.toSet());
+    AreaSet<K, F> areas = new AreaSet<>();
+    areas.add(innerFields, ranges);
 
     commitLock.readLock().lock();
     deleteLock.readLock().lock();
     storageLock.readLock().lock();
     try {
-      AreaSet<K, F> areas = new AreaSet<>();
-      areas.add(fields, ranges);
       Set<String> tables = tableIndex.find(areas);
       List<String> sortedTableNames = new ArrayList<>(tables);
       sortedTableNames.sort(Comparator.naturalOrder());
+
       for (String tableName : sortedTableNames) {
-        Table<K, F, T, V> table = tableStorage.get(tableName);
-        try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, ranges)) {
+        try (Scanner<K, Scanner<F, V>> scanner =
+            tableStorage.scan(tableName, innerFields, ranges)) {
           readBuffer.putRows(scanner);
         }
       }
 
-      for (Range<K> range : ranges.asRanges()) {
-        readBuffer.putRows(writeBuffer.scanRows(fields, range));
+      try (MemoryTable<K, F, T, V> activeTable =
+          memtable.snapshot(new ArrayList<>(fields), (RangeSet<Long>) ranges, allocator)) {
+        try (Scanner<K, Scanner<F, V>> scanner = activeTable.scan(innerFields, ranges, filter)) {
+          readBuffer.putRows(scanner);
+        }
       }
     } catch (IOException | StorageException e) {
       throw new RuntimeException(e);
@@ -118,37 +148,13 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       commitLock.readLock().unlock();
     }
 
-    return readBuffer.scanRows(fields, Range.all());
+    return readBuffer.scanRows(innerFields, Range.all());
   }
 
   @Override
-  public Optional<Range<K>> range() throws StorageException {
-    commitLock.readLock().lock();
-    deleteLock.readLock().lock();
-    storageLock.readLock().lock();
-    try {
-      TreeRangeSet<K> rangeSet = TreeRangeSet.create();
-      for (Range<K> range : tableIndex.ranges().values()) {
-        rangeSet.add(range);
-      }
-      for (Range<K> range : writeBuffer.ranges().values()) {
-        rangeSet.add(range);
-      }
-      if (rangeSet.isEmpty()) {
-        return Optional.empty();
-      } else {
-        return Optional.of(rangeSet.span());
-      }
-    } finally {
-      storageLock.readLock().unlock();
-      deleteLock.readLock().unlock();
-      commitLock.readLock().unlock();
-    }
-  }
-
-  @Override
-  public Map<F, T> schema() throws StorageException {
-    return tableIndex.getType();
+  public Set<Field> schema() throws StorageException {
+    Map<String, DataType> types = (Map) tableIndex.getType();
+    return ArrowFields.of(types);
   }
 
   @Override
@@ -157,21 +163,10 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
         new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
-        beforeWriting();
-        try {
-          tableIndex.declareFields(schema);
-          try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
-            writeBuffer.putRows(batch);
-            bufferInsertedSize.add(batchScanner.key());
-          }
-        } finally {
-          afterWriting();
+        try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
+          putAll(WriteBatches.recordOfRows(batch, schema, allocator), schema);
         }
       }
-    }
-    updateDirty();
-    if (timeout <= 0) {
-      checkBufferTimeout();
     }
   }
 
@@ -181,55 +176,44 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
         new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
-        beforeWriting();
-        try {
-          tableIndex.declareFields(schema);
-          try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
-            writeBuffer.putColumns(batch);
-            bufferInsertedSize.add(batchScanner.key());
-          }
-        } finally {
-          afterWriting();
+        try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
+          putAll(WriteBatches.recordOfColumns(batch, schema, allocator), schema);
         }
       }
     }
-    updateDirty();
+  }
+
+  private void putAll(@WillClose Iterable<UnorderedChunk.Snapshot> chunks, Map<F, T> schema)
+      throws StorageException {
+    try {
+      checkBufferSize();
+      commitLock.readLock().lock();
+      deleteLock.readLock().lock();
+      storageLock.readLock().lock();
+      try {
+        tableIndex.declareFields(schema);
+        memtable.store(chunks);
+      } finally {
+        storageLock.readLock().unlock();
+        deleteLock.readLock().unlock();
+        commitLock.readLock().unlock();
+      }
+    } finally {
+      chunks.forEach(UnorderedChunk.Snapshot::close);
+    }
     if (timeout <= 0) {
       checkBufferTimeout();
     }
   }
 
-  private void updateDirty() {
-    long currentTime = System.currentTimeMillis();
-    bufferDirtiedTime.updateAndGet(oldTime -> Math.min(oldTime, currentTime));
-  }
-
-  private void beforeWriting() {
-    checkBufferSize();
-    commitLock.readLock().lock();
-    deleteLock.readLock().lock();
-    storageLock.readLock().lock();
-  }
-
-  private void afterWriting() {
-    storageLock.readLock().unlock();
-    deleteLock.readLock().unlock();
-    commitLock.readLock().unlock();
-  }
-
   private void checkBufferSize() {
     checkLock.lock();
     try {
-      if (bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize()) {
+      if (!memtable.isOverloaded()) {
         return;
       }
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
-            "flushing is triggered when write buffer size {} reaching {}",
-            bufferInsertedSize.sum(),
-            shared.getStorageProperties().getWriteBufferSize());
-      }
-      commitMemoryTable(false, new CountDownLatch(1));
+      LOGGER.info("commit overloaded memtable");
+      commitMemoryTable(true, false);
     } finally {
       checkLock.unlock();
     }
@@ -239,73 +223,70 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     CountDownLatch latch = new CountDownLatch(1);
     checkLock.lock();
     try {
-      long interval = System.currentTimeMillis() - bufferDirtiedTime.get();
-      if (interval < timeout) {
+      if (!memtable.isExpired()) {
         return;
       }
 
-      LOGGER.debug(
-          "flushing is triggered when write buffer dirtied time {}ms reaching {}ms",
-          interval,
-          timeout);
-      boolean temp = bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize();
-      commitMemoryTable(temp, latch);
+      LOGGER.info("commit expired memtable");
+      commitMemoryTable(memtable.isOverloaded(), true);
     } finally {
       checkLock.unlock();
     }
-    LOGGER.debug("waiting for flushing table");
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
-    }
-    LOGGER.debug("table is flushed");
   }
 
-  private synchronized void commitMemoryTable(boolean temp, CountDownLatch latch) {
+  private synchronized void commitMemoryTable(boolean switchTable, boolean sync) {
     commitLock.writeLock().lock();
     deleteLock.readLock().lock();
     try {
-      Map<F, T> types =
-          tableIndex.getType(
-              writeBuffer.fields(),
-              f -> {
-                throw new NotIntegrityException("field " + f + " is not found in schema");
-              });
 
-      MemoryTable<K, F, T, V> table = new MemoryTable<>(writeBuffer, types);
+      MemoryTable snapshot =
+          memtable.snapshot(
+              new ArrayList<>(memtable.getFields()), ImmutableRangeSet.of(Range.all()), allocator);
 
-      String toDelete = previousTableName;
-      String committedTableName =
-          tableStorage.flush(
-              table,
-              () -> {
-                if (toDelete != null) {
-                  LOGGER.debug("delete table {}", toDelete);
-                  storageLock.writeLock().lock();
-                  try {
-                    tableIndex.removeTable(toDelete);
-                    tableStorage.remove(toDelete);
-                  } catch (Throwable e) {
-                    LOGGER.error("failed to delete table {}", toDelete, e);
-                  } finally {
-                    storageLock.writeLock().unlock();
+      CountDownLatch latch = new CountDownLatch(sync ? 1 : 0);
+
+      try (NoexceptAutoCloseableHolder<MemoryTable> holder = CloseableHolders.hold(snapshot)) {
+        TableMeta<K, F, T, V> tableMeta = holder.peek().getMeta();
+
+        String toDelete = previousTableName;
+        String committedTableName =
+            tableStorage.flush(
+                holder.transfer(),
+                () -> {
+                  if (toDelete != null) {
+                    LOGGER.debug("delete table {}", toDelete);
+                    storageLock.writeLock().lock();
+                    try {
+                      tableIndex.removeTable(toDelete);
+                      tableStorage.remove(toDelete);
+                    } catch (Throwable e) {
+                      LOGGER.error("failed to delete table {}", toDelete, e);
+                    } finally {
+                      storageLock.writeLock().unlock();
+                    }
                   }
-                }
-                latch.countDown();
-              });
+                  latch.countDown();
+                });
 
-      LOGGER.debug(
-          "submit table {} to flush, with temp={}, latch={}", committedTableName, temp, latch);
-      tableIndex.addTable(committedTableName, table.getMeta());
-      this.bufferDirtiedTime.set(Long.MAX_VALUE);
-      previousTableName = committedTableName;
-      if (!temp) {
+        LOGGER.debug(
+            "submit table {} to flush, with switch={}, latch={}",
+            committedTableName,
+            switchTable,
+            latch);
+        tableIndex.addTable(committedTableName, tableMeta);
+        previousTableName = committedTableName;
+      }
+
+      memtable.setUntouched();
+
+      if (switchTable) {
         LOGGER.info("reset write buffer");
-        this.writeBuffer = new DataBuffer<>();
-        bufferInsertedSize.reset();
+        memtable.close();
+        memtable = nextMemTable();
         previousTableName = null;
       }
+
+      latch.await();
     } catch (InterruptedException e) {
       throw new StorageRuntimeException(e);
     } finally {
@@ -315,16 +296,17 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
-  public void delete(AreaSet<K, F> areas) throws StorageException {
+  public void delete(AreaSet<K, Field> areas) throws StorageException {
     commitLock.readLock().lock();
     deleteLock.writeLock().lock();
     storageLock.readLock().lock();
     try {
       LOGGER.info("start to delete {} in {}", areas, name);
-      writeBuffer.remove(areas);
-      Set<String> tables = tableIndex.find(areas);
-      tableStorage.delete(tables, areas);
-      tableIndex.delete(areas);
+      memtable.delete((AreaSet) areas);
+      AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas((AreaSet) areas);
+      Set<String> tables = tableIndex.find((AreaSet) innerAreas);
+      tableStorage.delete(tables, (AreaSet) innerAreas);
+      tableIndex.delete((AreaSet) innerAreas);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     } finally {
@@ -340,12 +322,11 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     deleteLock.writeLock().lock();
     try {
       LOGGER.debug("start to clear {}", name);
-      previousTableName = null;
       tableStorage.clear();
       tableIndex.clear();
-      writeBuffer.clear();
-      bufferDirtiedTime.set(Long.MAX_VALUE);
-      bufferInsertedSize.reset();
+      memtable.close();
+      memtable = nextMemTable();
+      previousTableName = null;
     } catch (InterruptedException e) {
       throw new StorageRuntimeException(e);
     } finally {
@@ -358,12 +339,12 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   public void close() throws Exception {
     scheduler.shutdown();
     if (shared.getStorageProperties().toFlushOnClose()) {
-      LOGGER.info("flushing is triggered when closing");
-      CountDownLatch latch = new CountDownLatch(1);
-      commitMemoryTable(false, latch);
-      latch.await();
+      LOGGER.info("commit memtable before close");
+      commitMemoryTable(false, true);
     }
     tableStorage.close();
     tableIndex.close();
+    memtable.close();
+    allocator.close();
   }
 }

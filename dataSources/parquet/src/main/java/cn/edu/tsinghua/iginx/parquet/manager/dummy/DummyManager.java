@@ -26,7 +26,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
@@ -152,11 +151,6 @@ public class DummyManager implements Manager {
       }
     }
     return columns;
-  }
-
-  @Override
-  public KeyInterval getKeyInterval() {
-    return KeyInterval.getDefaultKeyInterval();
   }
 
   @Override

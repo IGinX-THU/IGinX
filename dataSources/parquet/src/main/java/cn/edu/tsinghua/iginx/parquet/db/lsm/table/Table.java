@@ -22,21 +22,16 @@ import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public interface Table<K extends Comparable<K>, F, T, V> {
-  
+
   TableMeta<K, F, T, V> getMeta() throws IOException;
 
-  
   Scanner<K, Scanner<F, V>> scan(
-       Set<F> fields,  RangeSet<K> range, @Nullable Filter predicate)
-      throws IOException;
+      Set<F> fields, RangeSet<K> range, @Nullable Filter superSetPredicate) throws IOException;
 
-  
-  default Scanner<K, Scanner<F, V>> scan( Set<F> fields,  RangeSet<K> ranges)
-      throws IOException {
+  default Scanner<K, Scanner<F, V>> scan(Set<F> fields, RangeSet<K> ranges) throws IOException {
     return scan(fields, ranges, null);
   }
 }

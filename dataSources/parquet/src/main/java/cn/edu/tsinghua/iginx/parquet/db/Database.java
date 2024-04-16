@@ -16,18 +16,28 @@
 
 package cn.edu.tsinghua.iginx.parquet.db;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import com.google.common.collect.RangeSet;
 import java.util.Map;
+import java.util.Set;
+import org.apache.arrow.vector.types.pojo.Field;
 
-public interface Database<K extends Comparable<K>, F, T, V> extends ImmutableDatabase<K, F, T, V> {
+// TODO: 删除泛型
+public interface Database<K extends Comparable<K>, F, T, V> extends AutoCloseable {
+
+  Scanner<K, Scanner<F, V>> query(Set<Field> fields, RangeSet<K> ranges, Filter filter)
+      throws StorageException;
+
+  Set<Field> schema() throws StorageException;
 
   void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema) throws StorageException;
 
   void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema) throws StorageException;
 
-  void delete(AreaSet<K, F> areas) throws StorageException;
+  void delete(AreaSet<K, Field> areas) throws StorageException;
 
   void clear() throws StorageException;
 }

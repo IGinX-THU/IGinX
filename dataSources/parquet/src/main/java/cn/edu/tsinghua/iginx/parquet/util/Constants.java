@@ -51,4 +51,5 @@ public final class Constants {
   public static final String DIR_NAME_TOMBSTONE = "tombstones";
   public static final String DIR_NAME_TABLE = "tables";
   public static final String LOCK_FILE_NAME = "LOCK";
+  public static final String INDICES_VECTOR_NAME = "indices";
 }

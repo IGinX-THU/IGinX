@@ -17,7 +17,6 @@
 package cn.edu.tsinghua.iginx.parquet.io.common;
 
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
-import javax.annotation.Nonnull;
 
 public interface DataChunk extends AutoCloseable {
 
@@ -34,6 +33,5 @@ public interface DataChunk extends AutoCloseable {
    * @param start begin row offset
    * @return scanner of this data chunk
    */
-  
   Scanner<Long, Object> scan(long start);
 }

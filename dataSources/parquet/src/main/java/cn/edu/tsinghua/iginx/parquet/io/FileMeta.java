@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.io;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Map;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public interface FileMeta {
@@ -39,7 +38,7 @@ public interface FileMeta {
    * @return type of specified field. null if not existed
    */
   @Nullable
-  DataType getType( String field);
+  DataType getType(String field);
 
   /**
    * get extra information of file

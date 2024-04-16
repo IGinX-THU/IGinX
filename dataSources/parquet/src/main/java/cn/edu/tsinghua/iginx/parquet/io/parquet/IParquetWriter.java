@@ -100,6 +100,7 @@ public class IParquetWriter implements AutoCloseable {
     while (value.iterate()) {
       record.add(schema.getFieldIndex(value.key()), value.value());
     }
+    record.sort();
     return record;
   }
 }

@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
+import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -82,6 +83,10 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     return String.format("%019d", seq);
   }
 
+  public long nextTableId() {
+    return seqGen.next();
+  }
+
   public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush)
       throws InterruptedException {
     shared.getFlusherPermits().acquire();
@@ -124,11 +129,13 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   private void commitMemoryTable(String name) throws IOException {
     lock.writeLock().lock();
     try {
-      if (memTables.remove(name) != null) {
+      MemoryTable<K, F, T, V> table = memTables.remove(name);
+      if (table != null) {
         AreaSet<K, F> tombstone = memTombstones.remove(name);
         if (tombstone != null) {
           readWriter.delete(name, tombstone);
         }
+        table.close();
       } else {
         readWriter.delete(name);
       }
@@ -137,11 +144,13 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     }
   }
 
-  public void remove(String name) {
+  public void remove(String name) throws IOException {
     lock.writeLock().lock();
     try {
-      if (memTables.remove(name) != null) {
+      MemoryTable<K, F, T, V> table = memTables.remove(name);
+      if (table != null) {
         memTombstones.remove(name);
+        table.close();
       } else {
         readWriter.delete(name);
       }
@@ -166,18 +175,37 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     }
   }
 
-  public Table<K, F, T, V> get(String tableName) throws IOException {
+  public Scanner<K, Scanner<F, V>> scan(String tableName, Set<F> fields, RangeSet<K> ranges)
+      throws IOException {
     lock.readLock().lock();
     try {
       MemoryTable<K, F, T, V> table = memTables.get(tableName);
       if (table != null) {
         AreaSet<K, F> tombstone = memTombstones.get(tableName);
         if (tombstone == null) {
-          return table;
+          return table.scan(fields, ranges);
         }
-        return new DeletedTable<>(table, tombstone);
+        return new DeletedTable<>(table, tombstone).scan(fields, ranges);
       }
-      return new FileTable<>(tableName, readWriter);
+      return new FileTable<>(tableName, readWriter).scan(fields, ranges);
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  public TableMeta<K, F, T, V> getMeta(String tableName) throws IOException {
+    lock.readLock().lock();
+    try {
+      MemoryTable<K, F, T, V> table = memTables.get(tableName);
+      if (table != null) {
+        TableMeta<K, F, T, V> meta = table.getMeta();
+        AreaSet<K, F> tombstone = memTombstones.get(tableName);
+        if (tombstone == null) {
+          return meta;
+        }
+        return new DeletedTableMeta<>(meta, tombstone);
+      }
+      return new FileTable<>(tableName, readWriter).getMeta();
     } finally {
       lock.readLock().unlock();
     }
@@ -187,8 +215,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     lock.writeLock().lock();
     try {
       for (String tableName : tables) {
-        MemoryTable<K, F, T, V> table = memTables.get(tableName);
-        if (table != null) {
+        if (memTables.containsKey(tableName)) {
           memTombstones.computeIfAbsent(tableName, k -> new AreaSet<>()).addAll(areas);
         } else {
           readWriter.delete(tableName, areas);

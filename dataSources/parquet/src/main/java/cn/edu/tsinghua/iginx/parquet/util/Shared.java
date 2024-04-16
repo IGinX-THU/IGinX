@@ -17,6 +17,8 @@
 package cn.edu.tsinghua.iginx.parquet.util;
 
 import java.util.concurrent.Semaphore;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 
 public class Shared {
   private final StorageProperties storageProperties;
@@ -25,17 +27,24 @@ public class Shared {
 
   private final CachePool cachePool;
 
+  private final BufferAllocator allocator;
+
   public Shared(
-      StorageProperties storageProperties, Semaphore flusherPermits, CachePool cachePool) {
+      StorageProperties storageProperties,
+      Semaphore flusherPermits,
+      CachePool cachePool,
+      BufferAllocator allocator) {
     this.storageProperties = storageProperties;
     this.flusherPermits = flusherPermits;
     this.cachePool = cachePool;
+    this.allocator = allocator;
   }
 
   public static Shared of(StorageProperties storageProperties) {
     Semaphore flusherPermits = new Semaphore(storageProperties.getCompactPermits(), true);
     CachePool cachePool = new CachePool(storageProperties);
-    return new Shared(storageProperties, flusherPermits, cachePool);
+    BufferAllocator allocator = new RootAllocator();
+    return new Shared(storageProperties, flusherPermits, cachePool, allocator);
   }
 
   public StorageProperties getStorageProperties() {
@@ -48,5 +57,9 @@ public class Shared {
 
   public CachePool getCachePool() {
     return cachePool;
+  }
+
+  public BufferAllocator getAllocator() {
+    return allocator;
   }
 }

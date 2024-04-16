@@ -24,7 +24,6 @@ import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Set;
 import java.util.StringJoiner;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -41,18 +40,15 @@ public class FileTable<K extends Comparable<K>, F, T, V> implements Table<K, F, 
   }
 
   @Override
-
   public TableMeta<K, F, T, V> getMeta() throws IOException {
     return readWriter.readMeta(tableName);
   }
 
   @Override
-
   public Scanner<K, Scanner<F, V>> scan(
-       Set<F> fields,  RangeSet<K> ranges, @Nullable Filter predicate)
-      throws IOException {
-    LOGGER.debug("read {} where {} & {} from {}", fields, ranges, predicate, tableName);
-    return readWriter.scanData(tableName, fields, ranges, predicate);
+      Set<F> fields, RangeSet<K> ranges, @Nullable Filter superSetPredicate) throws IOException {
+    LOGGER.debug("read {} where {} & {} from {}", fields, ranges, superSetPredicate, tableName);
+    return readWriter.scanData(tableName, fields, ranges, superSetPredicate);
   }
 
   @Override
