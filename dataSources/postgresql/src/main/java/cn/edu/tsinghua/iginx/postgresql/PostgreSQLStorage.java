@@ -24,6 +24,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationExce
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLDataTypeTransformer;
+import cn.edu.tsinghua.iginx.postgresql.exception.PostgreSQLException;
+import cn.edu.tsinghua.iginx.postgresql.exception.PostgresqlTaskExecuteFailureException;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -106,7 +108,7 @@ public class PostgreSQLStorage extends RelationAbstractStorage implements IStora
       connectionPoolMap.put(databaseName, connectionPool);
       return connectionPool.getConnection();
     } catch (SQLException e) {
-      LOGGER.error("cannot get connection for database {}: ", databaseName, e);
+      throw new PostgreSQLException(String.format("cannot get connection for database {}: ", databaseName), e);
       return null;
     }
   }
@@ -121,7 +123,7 @@ public class PostgreSQLStorage extends RelationAbstractStorage implements IStora
         databaseNames.add(databaseSet.getString("DATNAME"));
       }
     } catch (SQLException e) {
-      LOGGER.error("cannot get database names: ", e);
+      throw new PostgreSQLException(String.format("failed to get databases of ", meta), e);
     }
 
     return databaseNames;

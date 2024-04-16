@@ -161,12 +161,12 @@ public class RelationQueryRowStream implements RowStream {
         conn.close();
       }
     } catch (SQLException e) {
-      LOGGER.error("unexpected error: ", e);
+      LOGGER.error("error occurred when closing resultSets or connections", e);
     }
   }
 
   @Override
-  public boolean hasNext() {
+  public boolean hasNext() throws PhysicalException {
     if (resultSets.isEmpty()) {
       return false;
     }
@@ -176,7 +176,7 @@ public class RelationQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      LOGGER.error("unexpected error: ", e);
+      throw new RowFetchException("unexpected error: ", e);
     }
 
     return cachedRow != null;
@@ -194,8 +194,7 @@ public class RelationQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      LOGGER.error("unexpected error: ", e);
-      throw new RowFetchException(e);
+      throw new RowFetchException("unexpected error: ", e);
     }
   }
 
@@ -301,23 +300,19 @@ public class RelationQueryRowStream implements RowStream {
    * columnLabel)是因为：在pg的filter下推中，可能会存在column名字相同，但是table不同的情况 这时候用resultSet.getObject(String
    * columnLabel)就只能取到第一个column的值
    */
-  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName) {
-    try {
-      if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
-        return resultSet.getObject(columnName);
-      }
-      ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-      for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-        String tempColumnName = resultSetMetaData.getColumnName(j);
-        String tempTableName = resultSetMetaData.getTableName(j);
-        if (tempColumnName.equals(columnName) && tempTableName.equals(tableName)) {
-          return resultSet.getObject(j);
-        }
-      }
-    } catch (SQLException e) {
-      LOGGER.error("unexpected error: ", e);
+  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName)
+      throws SQLException {
+    if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
+      return resultSet.getObject(columnName);
     }
-
+    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+    for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
+      String tempColumnName = resultSetMetaData.getColumnName(j);
+      String tempTableName = resultSetMetaData.getTableName(j);
+      if (tempColumnName.equals(columnName) && tempTableName.equals(tableName)) {
+        return resultSet.getObject(j);
+      }
+    }
     return null;
   }
 }
