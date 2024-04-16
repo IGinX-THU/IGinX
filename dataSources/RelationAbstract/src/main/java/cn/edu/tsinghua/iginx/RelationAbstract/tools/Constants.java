@@ -1,6 +1,6 @@
-package cn.edu.tsinghua.iginx.postgresql.tools;
+package cn.edu.tsinghua.iginx.RelationAbstract.tools;
 
-public class Constants {
+public abstract class Constants {
   public static final String TAGKV_EQUAL = "=";
 
   public static final String TAGKV_SEPARATOR = "-";
@@ -11,40 +11,16 @@ public class Constants {
 
   public static final String PASSWORD = "password";
 
-  public static final String DEFAULT_USERNAME = "postgres";
-
-  public static final String DEFAULT_PASSWORD = "postgres";
+  public static final String KEY_NAME = "postgresql+key";
 
   public static final String DATABASE_PREFIX = "unit";
 
-  public static final String KEY_NAME = "postgresql+key";
-
-  public static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
-
   public static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE %s;";
-
-  public static final String QUERY_KEY_STATEMENT =
-      "SELECT \"" + KEY_NAME + "\" FROM %s ORDER BY \"" + KEY_NAME + "\";";
-
-  public static final String CONCAT_QUERY_STATEMENT = "SELECT concat(%s) FROM %s;";
 
   public static final String QUERY_STATEMENT =
       "SELECT \"" + KEY_NAME + "\", %s FROM %s %s ORDER BY \"" + KEY_NAME + "\";";
 
   public static final String QUERY_STATEMENT_WITHOUT_KEYNAME = "SELECT %s FROM %s %s ORDER BY %s;";
-
-  public static final String QUERY_KEY_STATEMENT_WITHOUT_WHERE_CLAUSE =
-      "SELECT %s FROM %s ORDER BY \"" + KEY_NAME + "\";";
-
-  public static final String CONCAT_QUERY_STATEMENT_WITHOUT_WHERE_CLAUSE =
-      "SELECT concat(%s) AS \"" + KEY_NAME + "\", %s FROM %s ORDER BY \"" + KEY_NAME + "\";";
-
-  public static final String CONCAT_QUERY_STATEMENT_WITH_WHERE_CLAUSE =
-      "SELECT concat(%s) AS \""
-          + KEY_NAME
-          + "\", %s FROM %s WHERE %s ORDER BY \""
-          + KEY_NAME
-          + "\";";
 
   public static final String CONCAT_QUERY_STATEMENT_AND_CONCAT_KEY =
       "SELECT concat(%s) AS \"" + KEY_NAME + "\", %s FROM %s %s ORDER BY concat(%s);";

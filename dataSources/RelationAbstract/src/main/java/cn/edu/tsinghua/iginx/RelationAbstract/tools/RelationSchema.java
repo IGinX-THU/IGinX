@@ -1,9 +1,8 @@
-package cn.edu.tsinghua.iginx.postgresql.tools;
+package cn.edu.tsinghua.iginx.RelationAbstract.tools;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 
-public class PostgreSQLSchema {
+public class RelationSchema {
 
   private final String databaseName;
 
@@ -11,11 +10,11 @@ public class PostgreSQLSchema {
 
   private final String columnName;
 
-  public PostgreSQLSchema(String path) {
+  public RelationSchema(String path) {
     this(path, false);
   }
 
-  public PostgreSQLSchema(String path, boolean isDummy) {
+  public RelationSchema(String path, boolean isDummy) {
     int firstSeparator = path.indexOf(".");
     if (isDummy) {
       databaseName = path.substring(0, firstSeparator);
@@ -28,7 +27,7 @@ public class PostgreSQLSchema {
     columnName = path.substring(lastSeparator + 1);
   }
 
-  public PostgreSQLSchema(String tableName, String columnName) {
+  public RelationSchema(String tableName, String columnName) {
     this.databaseName = "";
     this.tableName = tableName;
     this.columnName = columnName;

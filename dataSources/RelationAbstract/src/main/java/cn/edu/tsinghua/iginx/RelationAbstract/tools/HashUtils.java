@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.postgresql.tools;
+package cn.edu.tsinghua.iginx.RelationAbstract.tools;
 
 public class HashUtils {
 

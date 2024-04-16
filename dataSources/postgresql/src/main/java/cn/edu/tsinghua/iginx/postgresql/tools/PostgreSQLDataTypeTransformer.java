@@ -2,11 +2,18 @@ package cn.edu.tsinghua.iginx.postgresql.tools;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 
+import cn.edu.tsinghua.iginx.RelationAbstract.tools.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
-public class DataTypeTransformer {
+public class PostgreSQLDataTypeTransformer implements IDataTypeTransformer {
 
-  public static DataType fromPostgreSQL(String dataType) {
+  private static final PostgreSQLDataTypeTransformer INSTANCE = new PostgreSQLDataTypeTransformer();
+
+  public static PostgreSQLDataTypeTransformer getInstance() {
+    return INSTANCE;
+  }
+
+  public DataType fromEngineType(String dataType) {
     if (dataType.equalsIgnoreCase("bool")) {
       return BOOLEAN;
     } else if (dataType.equalsIgnoreCase("int")
@@ -26,7 +33,7 @@ public class DataTypeTransformer {
     }
   }
 
-  public static String toPostgreSQL(DataType dataType) {
+  public String toEngineType(DataType dataType) {
     switch (dataType) {
       case BOOLEAN:
         return "BOOLEAN";

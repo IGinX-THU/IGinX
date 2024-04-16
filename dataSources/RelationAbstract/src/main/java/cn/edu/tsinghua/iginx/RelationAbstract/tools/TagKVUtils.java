@@ -1,9 +1,11 @@
-package cn.edu.tsinghua.iginx.postgresql.tools;
+package cn.edu.tsinghua.iginx.RelationAbstract.tools;
 
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.RelationAbstract.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.TreeMap;
 
 // TODO: 由于IGinX支持除了反引号和换行符之外的所有字符，因此需要TagKVUtils的实现
 public class TagKVUtils {

@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.postgresql.tools;
+package cn.edu.tsinghua.iginx.RelationAbstract.tools;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;

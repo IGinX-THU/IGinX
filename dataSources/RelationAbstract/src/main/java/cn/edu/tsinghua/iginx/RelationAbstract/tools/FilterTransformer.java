@@ -16,10 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.postgresql.tools;
+package cn.edu.tsinghua.iginx.RelationAbstract.tools;
 
+import static cn.edu.tsinghua.iginx.RelationAbstract.tools.Constants.*;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -82,7 +82,7 @@ public class FilterTransformer {
   }
 
   private static String toString(ValueFilter filter) {
-    PostgreSQLSchema schema = new PostgreSQLSchema(filter.getPath());
+    RelationSchema schema = new RelationSchema(filter.getPath());
     String path = schema.getQuotFullName();
 
     String op =
@@ -118,8 +118,8 @@ public class FilterTransformer {
   }
 
   private static String toString(PathFilter filter) {
-    PostgreSQLSchema schemaA = new PostgreSQLSchema(filter.getPathA());
-    PostgreSQLSchema schemaB = new PostgreSQLSchema(filter.getPathB());
+    RelationSchema schemaA = new RelationSchema(filter.getPathA());
+    RelationSchema schemaB = new RelationSchema(filter.getPathB());
     String pathA = schemaA.getQuotFullName();
     String pathB = schemaB.getQuotFullName();
 

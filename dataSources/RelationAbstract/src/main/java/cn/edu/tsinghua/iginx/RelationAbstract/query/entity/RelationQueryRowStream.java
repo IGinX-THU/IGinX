@@ -1,12 +1,13 @@
-package cn.edu.tsinghua.iginx.postgresql.query.entity;
+package cn.edu.tsinghua.iginx.RelationAbstract.query.entity;
 
+import static cn.edu.tsinghua.iginx.RelationAbstract.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.RelationAbstract.tools.HashUtils.toHash;
+import static cn.edu.tsinghua.iginx.RelationAbstract.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
-import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
-import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 
+import cn.edu.tsinghua.iginx.RelationAbstract.tools.IDataTypeTransformer;
+import cn.edu.tsinghua.iginx.RelationAbstract.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.RowFetchException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
@@ -16,8 +17,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
-import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.sql.Connection;
@@ -28,9 +27,9 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostgreSQLQueryRowStream implements RowStream {
+public class RelationQueryRowStream implements RowStream {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RelationQueryRowStream.class);
 
   private final List<ResultSet> resultSets;
 
@@ -58,13 +57,14 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
   private List<Connection> connList;
 
-  public PostgreSQLQueryRowStream(
+  public RelationQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
       TagFilter tagFilter,
-      List<Connection> connList)
+      List<Connection> connList,
+      IDataTypeTransformer dataTypeTransformer)
       throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
@@ -108,13 +108,13 @@ public class PostgreSQLQueryRowStream implements RowStream {
           field =
               new Field(
                   databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
-                  DataTypeTransformer.fromPostgreSQL(typeName),
+                  dataTypeTransformer.fromEngineType(typeName),
                   namesAndTags.v);
         } else {
           field =
               new Field(
                   tableName + SEPARATOR + namesAndTags.k,
-                  DataTypeTransformer.fromPostgreSQL(typeName),
+                  dataTypeTransformer.fromEngineType(typeName),
                   namesAndTags.v);
         }
 
@@ -226,8 +226,8 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
             for (int j = 0; j < resultSetSizes[i]; j++) {
               String columnName = fieldToColumnName.get(header.getField(startIndex + j));
-              PostgreSQLSchema schema =
-                  new PostgreSQLSchema(header.getField(startIndex + j).getName(), isDummy);
+              RelationSchema schema =
+                  new RelationSchema(header.getField(startIndex + j).getName(), isDummy);
               String tableName = schema.getTableName();
 
               tableNameSet.add(tableName);
