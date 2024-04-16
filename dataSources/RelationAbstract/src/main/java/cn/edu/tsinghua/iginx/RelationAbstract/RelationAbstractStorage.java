@@ -165,7 +165,7 @@ public abstract class RelationAbstractStorage implements IStorage {
     try {
       connection = DriverManager.getConnection(connUrl);
       Statement statement = connection.createStatement();
-
+      setConnectionTimeout(statement);
       statement.close();
     } catch (SQLException e) {
       throw new StorageInitializationException("cannot connect to " + meta);

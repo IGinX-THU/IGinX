@@ -21,7 +21,6 @@
         <module>example</module>
         <module>test</module>
         <module>assembly</module>
-        <module>dataSources/RelationAbstract</module>
     </modules>
 
     <distributionManagement>
