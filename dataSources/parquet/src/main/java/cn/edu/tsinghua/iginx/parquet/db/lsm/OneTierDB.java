@@ -154,55 +154,41 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   @Override
   public void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema)
       throws StorageException {
-    beforeWriting();
-    commitLock.readLock().lock();
-    deleteLock.readLock().lock();
-    storageLock.readLock().lock();
-    try {
-      tableIndex.declareFields(schema);
-      try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
-          new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
-        while (batchScanner.iterate()) {
+    try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
+        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+      while (batchScanner.iterate()) {
+        beforeWriting();
+        try {
+          tableIndex.declareFields(schema);
           try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
             writeBuffer.putRows(batch);
             bufferInsertedSize.add(batchScanner.key());
           }
+        } finally {
+          afterWriting();
         }
       }
-    } finally {
-      updateDirty();
-      storageLock.readLock().unlock();
-      deleteLock.readLock().unlock();
-      commitLock.readLock().unlock();
     }
-    afterWriting();
   }
 
   @Override
   public void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema)
       throws StorageException {
-    beforeWriting();
-    commitLock.readLock().lock();
-    deleteLock.readLock().lock();
-    storageLock.readLock().lock();
-    try {
-      tableIndex.declareFields(schema);
-      try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
-          new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
-        while (batchScanner.iterate()) {
+    try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
+        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+      while (batchScanner.iterate()) {
+        beforeWriting();
+        try {
+          tableIndex.declareFields(schema);
           try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
             writeBuffer.putColumns(batch);
             bufferInsertedSize.add(batchScanner.key());
           }
+        } finally {
+          afterWriting();
         }
       }
-    } finally {
-      updateDirty();
-      storageLock.readLock().unlock();
-      deleteLock.readLock().unlock();
-      commitLock.readLock().unlock();
     }
-    afterWriting();
   }
 
   private void updateDirty() {
@@ -212,9 +198,16 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
 
   private void beforeWriting() {
     checkBufferSize();
+    commitLock.readLock().lock();
+    deleteLock.readLock().lock();
+    storageLock.readLock().lock();
   }
 
   private void afterWriting() {
+    updateDirty();
+    storageLock.readLock().unlock();
+    deleteLock.readLock().unlock();
+    commitLock.readLock().unlock();
     if (timeout <= 0) {
       checkBufferTimeout();
     }
