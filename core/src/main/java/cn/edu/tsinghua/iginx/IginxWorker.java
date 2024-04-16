@@ -712,7 +712,7 @@ public class IginxWorker implements IService.Iface {
         }
         break;
       default:
-        LOGGER.error("unexpected meta storage: " + config.getMetaStorage());
+        LOGGER.error("unexpected meta storage: {}", config.getMetaStorage());
     }
 
     if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
@@ -1020,10 +1020,10 @@ public class IginxWorker implements IService.Iface {
         FileUtils.deleteFileOrDir(file);
       }
       metaManager.dropTransformTask(name);
-      LOGGER.info(String.format("Register file has been dropped, path=%s", filePath));
+      LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
     } catch (IOException e) {
-      LOGGER.error(String.format("Fail to delete register file, path=%s", filePath));
+      LOGGER.error("Fail to delete register file, path={}", filePath);
       return RpcUtils.FAILURE;
     }
   }
@@ -1059,7 +1059,7 @@ public class IginxWorker implements IService.Iface {
 
     for (DataType type : queryDataResp.getDataTypeList()) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
-        LOGGER.error(String.format("Unsupported data type: %s", type));
+        LOGGER.error("Unsupported data type: {}", type);
         return new CurveMatchResp(RpcUtils.FAILURE);
       }
     }
