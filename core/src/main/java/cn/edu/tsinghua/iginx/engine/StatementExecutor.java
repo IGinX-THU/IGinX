@@ -436,11 +436,6 @@ public class StatementExecutor {
     }
   }
 
-  private void processRegisterTask(RequestContext ctx) {
-    RegisterTaskStatement statement = (RegisterTaskStatement) ctx.getStatement();
-
-  }
-
   private void processInsertFromFile(RequestContext ctx)
       throws StatementExecutionException, PhysicalException, IOException {
     InsertFromCsvStatement statement = (InsertFromCsvStatement) ctx.getStatement();

@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.FileUtils;
@@ -82,6 +83,17 @@ public class UDFIT {
           "resources",
           "udf",
           "my_module");
+
+  private static final String MODULE_FILE_PATH =
+      String.join(
+          File.separator,
+          System.getProperty("user.dir"),
+          "src",
+          "test",
+          "resources",
+          "udf",
+          "my_module",
+          "idle_classes.py");
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -168,6 +180,26 @@ public class UDFIT {
       execute(String.format(DROP_SQL, name));
     }
     taskToBeRemoved.clear();
+  }
+
+  private LoadUDFResp executeRemoteReg(String statement) {
+    LOGGER.info("Execute remote function registration statement: {}", statement);
+
+    LoadUDFResp res = null;
+    try {
+      res = session.executeRegisterTask(statement, true);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      fail();
+    }
+
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+      LOGGER.error(
+          "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
+      fail();
+    }
+
+    return res;
   }
 
   private SessionExecuteSqlResult execute(String statement) {
@@ -1160,25 +1192,29 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
-  // register multiple UDFs in one python file
+  // register multiple UDFs in one local python file
   @Test
-  public void testMultiUDFRegFile() {
-    String moduleFilePath =
-        String.join(
-            File.separator,
-            System.getProperty("user.dir"),
-            "src",
-            "test",
-            "resources",
-            "udf",
-            "my_module",
-            "idle_classes.py");
+  public void testMultiUDFRegLocalFile() {
+    multiUDFRegFileTest(false);
+  }
+
+  // register multiple UDFs in one remote python file
+  @Test
+  public void testMultiUDFRegRemoteFile() {
+    multiUDFRegFileTest(true);
+  }
+
+  private void multiUDFRegFileTest(boolean isRemote) {
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     // ClassA, ClassB & ClassC in same python file
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
-    String register = concatMultiUDFReg(types, names, classPaths, moduleFilePath);
-    execute(register);
+    String register = concatMultiUDFReg(types, names, classPaths, MODULE_FILE_PATH);
+    if (!isRemote) {
+      execute(register);
+    } else {
+      executeRemoteReg(register);
+    }
     assertTrue(isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
@@ -1297,11 +1333,24 @@ public class UDFIT {
   }
 
   @Test
-  public void testModuleInstall() {
+  public void testLocalModuleInstall() {
+    moduleInstallTest(false);
+  }
+
+  @Test
+  public void testRemoteModuleInstall() {
+    moduleInstallTest(true);
+  }
+
+  private void moduleInstallTest(boolean isRemote) {
     String classPath = "my_module.dateutil_test.Test";
     String name = "dateutil_test";
     String type = "udsf";
-    execute(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
+    if (!isRemote) {
+      execute(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
+    } else {
+      executeRemoteReg(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
+    }
     assertTrue(isUDFRegistered(name));
     taskToBeRemoved.add(name);
 
@@ -1353,4 +1402,8 @@ public class UDFIT {
       }
     }
   }
+
+  // register local UDF script into iginx that runs on different host
+  @Test
+  public void testRemoteFileReg() {}
 }

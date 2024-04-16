@@ -8,13 +8,11 @@ import cn.edu.tsinghua.iginx.thrift.RegisterTaskReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.UDFClassPair;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
-
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.io.File;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +39,8 @@ public class RegisterTaskStatement extends SystemStatement {
   public void execute(RequestContext ctx) throws StatementExecutionException {
     File file = new File(filePath);
     // in two conditions we need extra information: remote && no buffer; local && relative filepath
-    if ((ctx.getUDFModuleByteBuffer() == null && ctx.isRemoteUDF()) || (!ctx.isRemoteUDF() && !file.isAbsolute())) {
+    if ((ctx.getUDFModuleByteBuffer() == null && ctx.isRemoteUDF())
+        || (!ctx.isRemoteUDF() && !file.isAbsolute())) {
       ctx.setResult(new Result(RpcUtils.SUCCESS));
       ctx.getResult().setUDFModulePath(filePath);
       return;
@@ -54,7 +53,14 @@ public class RegisterTaskStatement extends SystemStatement {
       return;
     }
 
-    RegisterTaskReq req = new RegisterTaskReq(ctx.getSessionId(), filePath, pairs, types, ctx.getUDFModuleByteBuffer(), ctx.isRemoteUDF());
+    RegisterTaskReq req =
+        new RegisterTaskReq(
+            ctx.getSessionId(),
+            filePath,
+            pairs,
+            types,
+            ctx.getUDFModuleByteBuffer(),
+            ctx.isRemoteUDF());
     status = worker.registerTask(req);
     ctx.setResult(new Result(status));
   }
@@ -64,9 +70,9 @@ public class RegisterTaskStatement extends SystemStatement {
     // fail if type's count doesn't match names.
     if (pairs.size() != types.size() && types.size() > 1) {
       errorMsg =
-              String.format(
-                      "Fail to register %d UDFs with %d types, the number should be same or use only one type.",
-                      pairs.size(), types.size());
+          String.format(
+              "Fail to register %d UDFs with %d types, the number should be same or use only one type.",
+              pairs.size(), types.size());
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }

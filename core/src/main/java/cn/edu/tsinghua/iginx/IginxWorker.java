@@ -850,9 +850,9 @@ public class IginxWorker implements IService.Iface {
           className = p.classPath;
           if (!className.contains(".")) {
             errorMsg =
-                    "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n"
-                            + className
-                            + " is an invalid class name.";
+                "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n"
+                    + className
+                    + " is an invalid class name.";
             LOGGER.error(errorMsg);
             return RpcUtils.FAILURE.setMessage(errorMsg);
           }
@@ -863,7 +863,6 @@ public class IginxWorker implements IService.Iface {
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
-
 
     List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
     for (UDFClassPair p : pairs) {
@@ -911,14 +910,16 @@ public class IginxWorker implements IService.Iface {
         fm.installReqsByPip(sourceFile.getName());
       }
     } catch (IOException e) {
-      errorMsg = String.format("Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", destPath);
+      errorMsg =
+          String.format(
+              "Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", destPath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } catch (Exception e) {
       errorMsg =
-              String.format(
-                      "Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.",
-                      sourceFile.getName());
+          String.format(
+              "Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.",
+              sourceFile.getName());
       LOGGER.error(errorMsg, e);
       LOGGER.debug("deleting {} due to failure in installing dependencies.", sourceFile.getPath());
       try {

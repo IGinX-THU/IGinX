@@ -533,6 +533,7 @@ struct LoadUDFReq {
 struct LoadUDFResp {
     1: required Status status
     2: optional string parseErrorMsg
+    3: optional string UDFModulePath
 }
 
 struct TaskInfo {

@@ -5,7 +5,14 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.zip.*;
 
+/** tools for file compression and decompression. */
 public class CompressionUtils {
+  /**
+   * compress a file or a folder into ByteBuffer
+   *
+   * @param fileOrFolder a file or a folder to be compressed
+   * @return compressed ByteBuffer
+   */
   public static ByteBuffer zipToByteBuffer(File fileOrFolder) throws IOException {
     ByteArrayOutputStream byteStream = new ByteArrayOutputStream();
     ZipOutputStream zipStream = new ZipOutputStream(byteStream);
@@ -18,7 +25,8 @@ public class CompressionUtils {
     return ByteBuffer.wrap(bytes);
   }
 
-  private static void compressFile(File file, String path, ZipOutputStream zipOut) throws IOException {
+  private static void compressFile(File file, String path, ZipOutputStream zipOut)
+      throws IOException {
     if (file.isDirectory()) {
       if (path.endsWith("/")) {
         zipOut.putNextEntry(new ZipEntry(path));
@@ -47,6 +55,13 @@ public class CompressionUtils {
     zipOut.closeEntry();
   }
 
+  /**
+   * decompress a file or a folder from ByteBuffer
+   *
+   * @param buffer ByteBuffer that holds the file content
+   * @param destination a folder to place the decompressed file or folder. The file or folder uses
+   *     original name.
+   */
   public static void unzipFromByteBuffer(ByteBuffer buffer, File destination) throws IOException {
     InputStream inputStream = new ByteArrayInputStream(buffer.array());
     ZipInputStream zipIn = new ZipInputStream(inputStream);

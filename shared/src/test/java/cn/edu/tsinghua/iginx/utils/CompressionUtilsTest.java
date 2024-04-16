@@ -1,30 +1,26 @@
 package cn.edu.tsinghua.iginx.utils;
 
-import org.apache.commons.io.IOUtils;
+import static org.junit.Assert.fail;
+
+import java.io.*;
+import java.nio.ByteBuffer;
 import org.junit.AfterClass;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
-import java.io.FileReader;
-import java.nio.ByteBuffer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
-
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 public class CompressionUtilsTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(CompressionUtilsTest.class);
 
-  private static final String resourcePath = String.join(File.separator, System.getProperty("user.dir"), "src", "test", "resources", "compressionTest");
+  private static final String resourcePath =
+      String.join(
+          File.separator,
+          System.getProperty("user.dir"),
+          "src",
+          "test",
+          "resources",
+          "compressionTest");
 
   @AfterClass
   public static void deleteTestFolder() {
@@ -35,7 +31,6 @@ public class CompressionUtilsTest {
     }
   }
 
-
   // test compress file and uncompress
   @Test
   public void testCompressFile() throws IOException {
@@ -43,7 +38,9 @@ public class CompressionUtilsTest {
     File sourceFile = new File(String.join(File.separator, resourcePath, testName, "source"));
     File destFolder = new File(String.join(File.separator, resourcePath, testName, "dest"));
 
-    if (!sourceFile.exists() && !sourceFile.getParentFile().mkdirs() && !sourceFile.createNewFile()) {
+    if (!sourceFile.exists()
+        && !sourceFile.getParentFile().mkdirs()
+        && !sourceFile.createNewFile()) {
       fail();
     }
 
@@ -57,7 +54,10 @@ public class CompressionUtilsTest {
         fail("unzipped file doesn't match original file");
       }
     } catch (IOException e) {
-      LOGGER.error("Failed to compare contents of file: {} and file: {}", sourceFile.getPath(), destFile.getPath());
+      LOGGER.error(
+          "Failed to compare contents of file: {} and file: {}",
+          sourceFile.getPath(),
+          destFile.getPath());
     }
 
     FileUtils.deleteFolder(new File(String.join(File.separator, resourcePath, testName)));
@@ -75,10 +75,14 @@ public class CompressionUtilsTest {
     File sourceFile1 = new File(String.join(File.separator, sourceFolderPath, "file1"));
     File sourceFile2 = new File(String.join(File.separator, sourceFolderPath, "folder1", "file2"));
     try {
-      if (!sourceFile1.exists() && !sourceFile1.getParentFile().mkdirs() && !sourceFile1.createNewFile()) {
+      if (!sourceFile1.exists()
+          && !sourceFile1.getParentFile().mkdirs()
+          && !sourceFile1.createNewFile()) {
         fail();
       }
-      if (!sourceFile2.exists() && !sourceFile2.getParentFile().mkdirs() && !sourceFile2.createNewFile()) {
+      if (!sourceFile2.exists()
+          && !sourceFile2.getParentFile().mkdirs()
+          && !sourceFile2.createNewFile()) {
         fail();
       }
     } catch (IOException e) {
@@ -91,11 +95,12 @@ public class CompressionUtilsTest {
     ByteBuffer buffer = CompressionUtils.zipToByteBuffer(sourceFolder);
     CompressionUtils.unzipFromByteBuffer(buffer, destFolder);
 
-    if (!FileCompareUtils.compareFolder(sourceFolder, new File(String.join(File.separator, destFolderPath, "source")))) {
+    if (!FileCompareUtils.compareFolder(
+        sourceFolder, new File(String.join(File.separator, destFolderPath, "source")))) {
       fail("unzipped folder doesn't match original folder");
     }
 
-//    FileUtils.deleteFolder(new File(String.join(File.separator, resourcePath, testName)));
+    FileUtils.deleteFolder(new File(String.join(File.separator, resourcePath, testName)));
   }
 
   // test compress empty folder and uncompress
@@ -116,7 +121,8 @@ public class CompressionUtilsTest {
     ByteBuffer buffer = CompressionUtils.zipToByteBuffer(sourceFolder);
     CompressionUtils.unzipFromByteBuffer(buffer, destFolder);
 
-    if (!FileCompareUtils.compareFolder(sourceFolder, new File(String.join(File.separator, destFolderPath, "source")))) {
+    if (!FileCompareUtils.compareFolder(
+        sourceFolder, new File(String.join(File.separator, destFolderPath, "source")))) {
       fail("unzipped folder doesn't match original folder");
     }
 

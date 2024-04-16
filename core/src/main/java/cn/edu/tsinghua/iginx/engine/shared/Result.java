@@ -287,6 +287,7 @@ public class Result {
       resp.setParseErrorMsg(status.getMessage());
       return resp;
     }
+    resp.setUDFModulePath(UDFModulePath);
     return resp;
   }
 
