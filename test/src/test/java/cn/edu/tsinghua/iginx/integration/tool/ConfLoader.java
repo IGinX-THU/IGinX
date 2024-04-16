@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration.tool;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.FileReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -35,6 +36,8 @@ public class ConfLoader {
 
   private static final String DBCE_TEST_WAY = "./src/test/resources/dbce-test-way.txt";
 
+  private static final String DEFAULT_DB = "IoTDB12";
+
   private static List<String> storageEngines = new ArrayList<>();
 
   private Map<StorageEngineType, List<String>> taskMap = new HashMap<>();
@@ -50,7 +53,13 @@ public class ConfLoader {
   }
 
   public String getStorageType() {
-    String storageType = FileReader.convertToString(RUNNING_STORAGE);
+    String storageType = DEFAULT_DB;
+    File file = new File(RUNNING_STORAGE);
+    if (file.exists()) {
+      storageType = FileReader.convertToString(RUNNING_STORAGE);
+    } else {
+      logInfo(RUNNING_STORAGE + "does not exist!");
+    }
     logInfo("run the test on {}", storageType);
     return storageType;
   }
