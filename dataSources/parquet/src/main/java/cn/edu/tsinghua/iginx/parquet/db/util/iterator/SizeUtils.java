@@ -35,7 +35,7 @@ public class SizeUtils {
     sizeMap.put(byte[].class, (obj) -> (long) ((byte[]) obj).length);
   }
 
-  public static long sizeOf(@Nonnull Object obj) {
+  public static long sizeOf( Object obj) {
     Function<Object, Long> sizeGetter = sizeMap.get(obj.getClass());
     if (sizeGetter == null) {
       throw new UnsupportedOperationException(obj.getClass() + " is not supported");

@@ -39,7 +39,7 @@ public interface FileMeta {
    * @return type of specified field. null if not existed
    */
   @Nullable
-  DataType getType(@Nonnull String field);
+  DataType getType( String field);
 
   /**
    * get extra information of file

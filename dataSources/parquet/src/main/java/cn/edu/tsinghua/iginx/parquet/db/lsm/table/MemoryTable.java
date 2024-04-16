@@ -50,16 +50,16 @@ public class MemoryTable<K extends Comparable<K>, F, T, V> implements Table<K, F
         .toString();
   }
 
-  @Nonnull
+  
   @Override
   public TableMeta<K, F, T, V> getMeta() {
     return meta;
   }
 
-  @Nonnull
+  
   @Override
   public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges, @Nullable Filter predicate)
+       Set<F> fields,  RangeSet<K> ranges, @Nullable Filter predicate)
       throws IOException {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("read {} where {} from {},{}", fields, ranges, buffer.fields(), buffer.ranges());

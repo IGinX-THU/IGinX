@@ -35,8 +35,8 @@ public interface FileFormat {
    * @return meta data
    * @throws IOException if an I/O error occurs
    */
-  @Nonnull
-  FileMeta getMeta(@Nonnull Path path) throws IOException;
+  
+  FileMeta getMeta( Path path) throws IOException;
 
   /**
    * load data index from file
@@ -46,7 +46,7 @@ public interface FileFormat {
    * @throws IOException if an I/O error occurs
    */
   @Nullable
-  FileIndex getIndex(@Nonnull Path path, @Nonnull FileMeta meta) throws IOException;
+  FileIndex getIndex( Path path,  FileMeta meta) throws IOException;
 
   /**
    * get reader of specified file
@@ -58,9 +58,9 @@ public interface FileFormat {
    * @return file reader
    * @throws IOException if an I/O error occurs
    */
-  @Nonnull
+  
   FileReader getReader(
-      @Nonnull Path path, @Nonnull FileMeta meta, @Nonnull FileIndex index, @Nonnull Filter filter)
+       Path path,  FileMeta meta,  FileIndex index,  Filter filter)
       throws IOException;
 
   /**
@@ -71,6 +71,6 @@ public interface FileFormat {
    * @return file writer
    * @throws IOException if an I/O error occurs
    */
-  @Nonnull
-  FileWriter getWriter(@Nonnull Path path, @Nonnull FileMeta meta) throws IOException;
+  
+  FileWriter getWriter( Path path,  FileMeta meta) throws IOException;
 }

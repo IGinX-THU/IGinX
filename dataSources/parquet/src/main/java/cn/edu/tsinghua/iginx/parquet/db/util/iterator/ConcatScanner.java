@@ -31,7 +31,7 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
     this.scannerIterator = iterator;
   }
 
-  @Nonnull
+  
   @Override
   public K key() throws NoSuchElementException {
     if (currentScanner == null) {
@@ -40,7 +40,7 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
     return currentScanner.key();
   }
 
-  @Nonnull
+  
   @Override
   public V value() throws NoSuchElementException {
     if (currentScanner == null) {

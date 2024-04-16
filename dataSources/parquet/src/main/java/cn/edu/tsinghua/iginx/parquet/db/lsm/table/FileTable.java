@@ -41,15 +41,15 @@ public class FileTable<K extends Comparable<K>, F, T, V> implements Table<K, F, 
   }
 
   @Override
-  @Nonnull
+
   public TableMeta<K, F, T, V> getMeta() throws IOException {
     return readWriter.readMeta(tableName);
   }
 
   @Override
-  @Nonnull
+
   public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges, @Nullable Filter predicate)
+       Set<F> fields,  RangeSet<K> ranges, @Nullable Filter predicate)
       throws IOException {
     LOGGER.debug("read {} where {} & {} from {}", fields, ranges, predicate, tableName);
     return readWriter.scanData(tableName, fields, ranges, predicate);

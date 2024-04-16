@@ -33,7 +33,7 @@ public class IteratorScanner<K, V> implements Scanner<K, V> {
     this.iterator = iterator;
   }
 
-  @Nonnull
+  
   @Override
   public K key() throws NoSuchElementException {
     if (key == null) {
@@ -42,7 +42,7 @@ public class IteratorScanner<K, V> implements Scanner<K, V> {
     return key;
   }
 
-  @Nonnull
+  
   @Override
   public V value() throws NoSuchElementException {
     if (value == null) {

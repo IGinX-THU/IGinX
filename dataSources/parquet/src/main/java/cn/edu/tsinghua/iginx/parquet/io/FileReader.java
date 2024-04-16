@@ -41,5 +41,5 @@ public interface FileReader extends Closeable {
    * @return data chunks of each field, null if reader has no more data
    */
   @Nullable
-  Map<String, DataChunk> load(@Nonnull Set<String> fields, long limit) throws IOException;
+  Map<String, DataChunk> load( Set<String> fields, long limit) throws IOException;
 }

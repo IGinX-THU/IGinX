@@ -34,16 +34,16 @@ public class EmptyTable<K extends Comparable<K>, F, T, V> implements Table<K, F,
     return (EmptyTable<K, F, T, V>) EMPTY;
   }
 
-  @Nonnull
+
   @Override
   public MemoryTable.MemoryTableMeta<K, F, T, V> getMeta() {
     return new MemoryTable.MemoryTableMeta<>(new HashMap<>(), new HashMap<>());
   }
 
-  @Nonnull
+
   @Override
   public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges, @Nullable Filter predicate)
+       Set<F> fields,  RangeSet<K> ranges, @Nullable Filter predicate)
       throws IOException {
     return EmptyScanner.getInstance();
   }

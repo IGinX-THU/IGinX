@@ -35,13 +35,13 @@ public class AreaFilterScanner<K extends Comparable<K>, F, V> implements Scanner
   private K currentKey = null;
   private Scanner<F, V> currentValue = null;
 
-  @Nonnull
+  
   @Override
   public K key() {
     return currentKey;
   }
 
-  @Nonnull
+  
   @Override
   public Scanner<F, V> value() {
     return currentValue;
@@ -88,13 +88,13 @@ public class AreaFilterScanner<K extends Comparable<K>, F, V> implements Scanner
     private F currentField = null;
     private V currentValue = null;
 
-    @Nonnull
+    
     @Override
     public F key() {
       return currentField;
     }
 
-    @Nonnull
+    
     @Override
     public V value() {
       return currentValue;

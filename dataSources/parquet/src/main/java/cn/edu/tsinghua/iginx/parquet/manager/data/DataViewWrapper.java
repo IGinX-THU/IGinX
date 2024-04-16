@@ -83,7 +83,7 @@ class DataViewWrapper {
       }
     }
 
-    @Nonnull
+    
     @Override
     public Long key() throws NoSuchElementException {
       if (key == null) {
@@ -92,7 +92,7 @@ class DataViewWrapper {
       return key;
     }
 
-    @Nonnull
+    
     @Override
     public Scanner<String, Object> value() throws NoSuchElementException {
       if (rowScanner == null) {
@@ -134,7 +134,7 @@ class DataViewWrapper {
         this.keyIndex = keyIndex;
       }
 
-      @Nonnull
+      
       @Override
       public String key() throws NoSuchElementException {
         if (fieldName == null) {
@@ -143,7 +143,7 @@ class DataViewWrapper {
         return fieldName;
       }
 
-      @Nonnull
+      
       @Override
       public Object value() throws NoSuchElementException {
         if (fieldName == null) {
@@ -188,7 +188,7 @@ class DataViewWrapper {
       }
     }
 
-    @Nonnull
+    
     @Override
     public String key() throws NoSuchElementException {
       if (fieldName == null) {
@@ -197,7 +197,7 @@ class DataViewWrapper {
       return fieldName;
     }
 
-    @Nonnull
+    
     @Override
     public Scanner<Long, Object> value() throws NoSuchElementException {
       if (columnScanner == null) {
@@ -240,7 +240,7 @@ class DataViewWrapper {
         this.bitmapView = dataView.getBitmapView(fieldIndex);
       }
 
-      @Nonnull
+      
       @Override
       public Long key() throws NoSuchElementException {
         if (key == null) {
@@ -249,7 +249,7 @@ class DataViewWrapper {
         return key;
       }
 
-      @Nonnull
+      
       @Override
       public Object value() throws NoSuchElementException {
         if (key == null) {

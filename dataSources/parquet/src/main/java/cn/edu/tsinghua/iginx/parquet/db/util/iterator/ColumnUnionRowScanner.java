@@ -47,7 +47,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     }
   }
 
-  @Nonnull
+  
   @Override
   public K key() throws NoSuchElementException {
     if (currentScanner == null) {
@@ -57,7 +57,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     return queue.peek().getValue().key();
   }
 
-  @Nonnull
+  
   @Override
   public Scanner<F, V> value() throws NoSuchElementException {
     if (currentScanner == null) {
@@ -95,7 +95,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
 
     private K currentKey = null;
 
-    @Nonnull
+    
     @Override
     public F key() throws NoSuchElementException {
       if (queue.peek() == null) {
@@ -104,7 +104,7 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
       return queue.peek().getKey();
     }
 
-    @Nonnull
+    
     @Override
     public V value() throws NoSuchElementException {
       if (queue.peek() == null) {

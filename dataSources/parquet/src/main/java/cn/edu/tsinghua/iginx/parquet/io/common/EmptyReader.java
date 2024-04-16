@@ -32,9 +32,9 @@ public class EmptyReader implements FileReader {
 
   private static final EmptyReader INSTANCE = new EmptyReader();
 
-  @Nonnull
+  
   @Override
-  public Map<String, DataChunk> load(@Nonnull Set<String> fields, long limit) throws IOException {
+  public Map<String, DataChunk> load( Set<String> fields, long limit) throws IOException {
     Map<String, DataChunk> result = new HashMap<>();
     for (String field : fields) {
       result.put(field, DataChunks.empty());

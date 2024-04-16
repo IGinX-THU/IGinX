@@ -26,16 +26,16 @@ import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public interface Table<K extends Comparable<K>, F, T, V> {
-  @Nonnull
+  
   TableMeta<K, F, T, V> getMeta() throws IOException;
 
-  @Nonnull
+  
   Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull RangeSet<K> range, @Nullable Filter predicate)
+       Set<F> fields,  RangeSet<K> range, @Nullable Filter predicate)
       throws IOException;
 
-  @Nonnull
-  default Scanner<K, Scanner<F, V>> scan(@Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges)
+  
+  default Scanner<K, Scanner<F, V>> scan( Set<F> fields,  RangeSet<K> ranges)
       throws IOException {
     return scan(fields, ranges, null);
   }

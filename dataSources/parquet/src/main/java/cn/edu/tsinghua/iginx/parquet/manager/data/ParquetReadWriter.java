@@ -100,7 +100,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
   }
 
-  @Nonnull
+  
   private static MessageType getMessageType(Map<String, DataType> schema) {
     List<Type> fields = new ArrayList<>();
     fields.add(
@@ -129,7 +129,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     shared.getCachePool().asMap().put(fileName, tableMeta);
   }
 
-  @Nonnull
+  
   private ParquetTableMeta getParquetTableMeta(String fileName) {
     CachePool.Cacheable cacheable =
         shared.getCachePool().asMap().computeIfAbsent(fileName, this::doReadMeta);
@@ -139,7 +139,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     return (ParquetTableMeta) cacheable;
   }
 
-  @Nonnull
+  
   private ParquetTableMeta doReadMeta(String fileName) {
     Path path = Paths.get(fileName);
 
@@ -274,7 +274,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       this.reader = reader;
     }
 
-    @Nonnull
+    
     @Override
     public Long key() throws NoSuchElementException {
       if (key == null) {
@@ -283,7 +283,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
       return key;
     }
 
-    @Nonnull
+    
     @Override
     public Scanner<String, Object> value() throws NoSuchElementException {
       if (rowScanner == null) {

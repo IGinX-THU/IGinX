@@ -29,13 +29,13 @@ public class EmptyScanner<K, V> implements Scanner<K, V> {
     return (Scanner<K, V>) EMPTY;
   }
 
-  @Nonnull
+  
   @Override
   public K key() {
     throw new NoSuchElementException();
   }
 
-  @Nonnull
+  
   @Override
   public V value() {
     throw new NoSuchElementException();

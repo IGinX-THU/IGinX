@@ -30,7 +30,7 @@ public class DataChunks {
       return 0;
     }
 
-    @Nonnull
+
     @Override
     public Scanner<Long, Object> scan(long position) {
       return EmptyScanner.getInstance();

@@ -34,6 +34,6 @@ public interface DataChunk extends AutoCloseable {
    * @param start begin row offset
    * @return scanner of this data chunk
    */
-  @Nonnull
+  
   Scanner<Long, Object> scan(long start);
 }

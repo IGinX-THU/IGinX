@@ -179,7 +179,7 @@ public class IParquetReader implements AutoCloseable {
       return build(footer, optionsBuilder.build());
     }
 
-    @Nonnull
+    
     private IParquetReader build(ParquetMetadata footer, ParquetReadOptions options)
         throws IOException {
       MessageType schema = footer.getFileMetaData().getSchema();

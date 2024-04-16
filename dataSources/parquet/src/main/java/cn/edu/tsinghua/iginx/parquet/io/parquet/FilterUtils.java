@@ -30,8 +30,8 @@ import shaded.iginx.org.apache.parquet.filter2.predicate.Operators;
 
 class FilterUtils {
 
-  @Nonnull
-  public static Pair<FilterPredicate, Boolean> toFilterPredicate(@Nonnull Filter filter) {
+  
+  public static Pair<FilterPredicate, Boolean> toFilterPredicate( Filter filter) {
     switch (filter.getType()) {
       case Key:
         return toFilterPredicate((KeyFilter) filter);

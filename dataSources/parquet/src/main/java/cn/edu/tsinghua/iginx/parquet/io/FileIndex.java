@@ -37,6 +37,6 @@ public interface FileIndex {
    * @return row ranges. key is start row offset, value is row number.
    * @throws IOException if an I/O error occurs
    */
-  @Nonnull
-  Scanner<Long, Long> detect(@Nonnull Filter filter) throws IOException;
+  
+  Scanner<Long, Long> detect( Filter filter) throws IOException;
 }

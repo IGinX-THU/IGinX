@@ -41,16 +41,16 @@ public class DeletedTable<K extends Comparable<K>, F, T, V> implements Table<K, 
     this.meta = new DeletedTableMeta<>(table.getMeta(), deleted);
   }
 
-  @Nonnull
+
   @Override
   public TableMeta<K, F, T, V> getMeta() throws IOException {
     return meta;
   }
 
-  @Nonnull
+
   @Override
   public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull RangeSet<K> range, @Nullable Filter predicate)
+       Set<F> fields,  RangeSet<K> range, @Nullable Filter predicate)
       throws IOException {
     return new AreaFilterScanner<>(table.scan(fields, range, predicate), deletedAreaSet);
   }
