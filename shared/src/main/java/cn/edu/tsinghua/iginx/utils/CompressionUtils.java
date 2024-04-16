@@ -60,7 +60,8 @@ public class CompressionUtils {
    *
    * @param buffer ByteBuffer that holds the file content
    * @param destination a folder to place the decompressed file or folder. The file or folder uses
-   *     original name. The write permission of destination must be checked before this method is called
+   *     original name. The write permission of destination must be checked before this method is
+   *     called
    */
   public static void unzipFromByteBuffer(ByteBuffer buffer, File destination) throws IOException {
     assert !destination.getPath().contains("..");
