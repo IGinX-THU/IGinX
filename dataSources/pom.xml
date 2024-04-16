@@ -36,6 +36,7 @@
         <module>parquet</module>
         <module>postgresql</module>
         <module>redis</module>
+        <module>RelationAbstract</module>
     </modules>
 
     <properties>
