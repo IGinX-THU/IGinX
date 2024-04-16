@@ -42,11 +42,9 @@ class Tests:
             os.makedirs('fs/data', mode=0o777, exist_ok=True)
             os.makedirs('fs/dummy', mode=0o777, exist_ok=True)
             cluster_info = self.session.get_cluster_info()
-            original_cluster_info = cluster_info.get_storage_engine_list()
-            for storage_engine in original_cluster_info:
-                if storage_engine.port == 6670:
-                    retStr = "The storage engine has been added, please delete it first\n"
-                    return retStr
+            if "port=6670" in str(cluster_info) or "port=6671" in str(cluster_info):
+                retStr = "The storage engine has been added, please delete it first\n"
+                return retStr
             self.session.add_storage_engine(
                 "127.0.0.1",
                 6670,
@@ -139,6 +137,7 @@ class Tests:
 
             return retStr
         except Exception as e:
+            traceback.print_exc()
             print(e)
             retStr += str(e) + "\n"
             exit(1)
