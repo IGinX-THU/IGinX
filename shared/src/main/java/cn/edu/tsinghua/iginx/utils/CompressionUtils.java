@@ -70,8 +70,9 @@ public class CompressionUtils {
 
     ZipEntry entry = zipIn.getNextEntry();
     while (entry != null) {
-      assert !entry.getName().contains("..");
       File fileDest = new File(destination, entry.getName());
+      if (!fileDest.toPath().normalize().startsWith(destination.toPath()))
+        throw new IOException("Illegal file path found during unzipping operation.");
       if (entry.isDirectory()) {
         fileDest.mkdirs();
       } else {
