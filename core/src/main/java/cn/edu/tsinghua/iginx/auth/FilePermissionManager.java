@@ -43,10 +43,10 @@ public class FilePermissionManager {
     boolean test(Path path);
 
     default Optional<Path> normalize(String path) {
-      if (DEFAULT_DENY_LIST.contains(path)) {
+      Path p = Paths.get(path).toAbsolutePath();
+      if (DEFAULT_DENY_LIST.contains(p.toString())) {
         return Optional.empty();
       }
-      Path p = Paths.get(path).toAbsolutePath();
       if (!test(p)) {
         return Optional.empty();
       } else {
