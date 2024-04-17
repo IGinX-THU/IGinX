@@ -70,8 +70,8 @@ public class CompressionUtils {
 
     ZipEntry entry = zipIn.getNextEntry();
     while (entry != null) {
+      assert !entry.getName().contains("..");
       File fileDest = new File(destination, entry.getName());
-      assert !fileDest.getPath().contains("..");
       if (entry.isDirectory()) {
         fileDest.mkdirs();
       } else {

@@ -831,10 +831,12 @@ public class IginxWorker implements IService.Iface {
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
-    if (!sourceFile.exists() && !req.isRemote) {
-      errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
-      LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
+    if (!sourceFile.exists()) {
+      if (!req.isRemote) {
+        errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
+        LOGGER.error(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
     } else if (!req.isRemote) {
       // python file
       if (sourceFile.isFile() && !sourceFile.getName().endsWith(".py")) {
