@@ -36,7 +36,11 @@ public class ConfLoader {
 
   private static final String DBCE_TEST_WAY = "./src/test/resources/dbce-test-way.txt";
 
-  private static final String DEFAULT_DB = "IoTDB12";
+  private static final String DEFAULT_DB = "stand_alone_DB";
+
+  private static final String DEFAULT_IS_SCALING = "is_scaling";
+
+  private static final String DEFAULT_DBCE_TEST_WAY = "DBCE_test_way";
 
   private static List<String> storageEngines = new ArrayList<>();
 
@@ -52,28 +56,37 @@ public class ConfLoader {
     }
   }
 
-  public String getStorageType() {
-    String storageType = DEFAULT_DB;
-    File file = new File(RUNNING_STORAGE);
+  private String getTestProperty(String path, String defaultProperty) {
+    String result = null;
+    File file = new File(path);
     if (file.exists()) {
-      storageType = FileReader.convertToString(RUNNING_STORAGE);
+      result = FileReader.convertToString(path);
     } else {
-      logInfo(RUNNING_STORAGE + "does not exist!");
+      logInfo(path + "does not exist and use default storage type");
+      Properties properties = null;
+      try {
+        InputStream in = Files.newInputStream(Paths.get(confPath));
+        properties = new Properties();
+        properties.load(in);
+      } catch (IOException e) {
+        LOGGER.error("load conf failure: ", e);
+      }
+      result = properties.getProperty(defaultProperty);
+      logInfo("default property: {}", result);
     }
-    logInfo("run the test on {}", storageType);
-    return storageType;
+    return result;
+  }
+
+  public String getStorageType() {
+    return getTestProperty(RUNNING_STORAGE, DEFAULT_DB);
   }
 
   public boolean isScaling() {
-    String isScaling = FileReader.convertToString(IS_SCALING);
-    logInfo("isScaling: {}", isScaling);
-    return Boolean.parseBoolean(isScaling == null ? "false" : isScaling);
+    return Boolean.parseBoolean(getTestProperty(IS_SCALING, DEFAULT_IS_SCALING));
   }
 
   public String getDBCETestWay() {
-    String dbceTestWay = FileReader.convertToString(DBCE_TEST_WAY);
-    logInfo("dbceTestWay: {}", dbceTestWay);
-    return dbceTestWay;
+    return getTestProperty(DBCE_TEST_WAY, DEFAULT_DBCE_TEST_WAY);
   }
 
   public ConfLoader(String confPath) {
