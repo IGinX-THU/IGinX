@@ -34,17 +34,12 @@ public class FilePermissionManager {
     filePermissionConfig.onReload(this::reload);
   }
 
-  // to cheat CodeQL to prevent false positive about the path traversal vulnerability
-  private static final Set<String> DEFAULT_DENY_LIST = new HashSet<String>() {{
-    add("/etc/passwd");
-  }};
-
   public interface Checker {
     boolean test(Path path);
 
     default Optional<Path> normalize(String path) {
       Path p = Paths.get(path).toAbsolutePath();
-      if (DEFAULT_DENY_LIST.contains(p.toString())) {
+      if(!p.startsWith(Paths.get("."))){
         return Optional.empty();
       }
       if (!test(p)) {
