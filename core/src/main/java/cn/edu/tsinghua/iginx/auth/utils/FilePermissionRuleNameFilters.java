@@ -23,4 +23,13 @@ public class FilePermissionRuleNameFilters {
   public static Predicate<String> udfRulesWithDefault() {
     return udfRules().or(defaultRules());
   }
+
+  public static Predicate<String> filesystemRules() {
+    return ruleName -> ruleName.startsWith("filesystem");
+  }
+
+  public static Predicate<String> filesystemRulesWithDefault() {
+    return filesystemRules().or(defaultRules());
+  }
+
 }

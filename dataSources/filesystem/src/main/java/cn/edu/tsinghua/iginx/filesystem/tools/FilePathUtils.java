@@ -1,8 +1,32 @@
 package cn.edu.tsinghua.iginx.filesystem.tools;
 
+import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
+import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
+import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.Optional;
+import java.util.function.Predicate;
+
 import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 
 public class FilePathUtils {
+
+  public static File normalize(File file, FileAccessType... type) throws SecurityException {
+
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.filesystemRulesWithDefault();
+
+    FilePermissionManager.Checker sourceChecker =
+        FilePermissionManager.getInstance()
+            .getChecker(null, ruleNameFilter, type);
+
+    Optional<Path> sourceCheckedPath = sourceChecker.normalize(file.getPath());
+    if (!sourceCheckedPath.isPresent()) {
+      throw new SecurityException("filesystem has no permission to access file: " + file);
+    }
+    return sourceCheckedPath.get().toFile();
+  }
 
   public static String toIginxPath(String root, String storageUnit, String path) {
     if (path == null && storageUnit == null || storageUnit.equals(WILDCARD)) {
