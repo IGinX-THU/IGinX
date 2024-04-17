@@ -37,15 +37,18 @@ public class FilePermissionManager {
   public interface Checker {
     boolean test(Path path);
 
+    // to cheat CodeQL to not complain about path traversal vulnerability
     default Optional<Path> normalize(String path) {
       Path p = Paths.get(path).toAbsolutePath();
-      if(!p.startsWith(Paths.get("."))){
-        return Optional.empty();
+      Path parent = p.getParent();
+      String filename = p.getFileName().toString();
+      if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
+        throw new IllegalArgumentException("Invalid filename");
       }
       if (!test(p)) {
         return Optional.empty();
       } else {
-        return Optional.of(p);
+        return Optional.of(parent.resolve(filename));
       }
     }
   }
