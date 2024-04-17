@@ -18,14 +18,16 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import static cn.edu.tsinghua.iginx.utils.TimeUtils.convertDatetimeStrToLong;
-
 import java.time.DateTimeException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+import static cn.edu.tsinghua.iginx.utils.TimeUtils.convertDatetimeStrToLong;
 
 public class StringUtils {
 
@@ -35,8 +37,8 @@ public class StringUtils {
   private static final String[] REGEX = {"[", "]", "(", ")", "|", "+", "?", "*", "-"};
 
   /**
-   * @param ts 时间序列(可能等于/含有*，不可能为null)
-   * @param border 分片的开始/结束边界(不可能等于/含有*，可能为null)
+   * @param ts      时间序列(可能等于/含有*，不可能为null)
+   * @param border  分片的开始/结束边界(不可能等于/含有*，可能为null)
    * @param isStart 是否为开始边界
    */
   public static int compare(String ts, String border, boolean isStart) {
@@ -61,9 +63,9 @@ public class StringUtils {
   }
 
   /**
-   * @return 返回值为 0 表示包含，>0 表示在这个序列在 border 前，<0 表示 ts 在 border 后
-   * @param ts 时间序列(可能等于/含有*，不可能为null)
+   * @param ts     时间序列(可能等于/含有*，不可能为null)
    * @param border 前缀式时间范围
+   * @return 返回值为 0 表示包含，>0 表示在这个序列在 border 前，<0 表示 ts 在 border 后
    */
   public static int compare(String ts, String border) {
     // *.*.*
@@ -118,18 +120,20 @@ public class StringUtils {
   }
 
   private static String reformatColumnName(String name) {
-    if (!name.contains("*")) return Pattern.quote(name);
-    name = name.replaceAll("[.]", "[.]");
-    name = name.replaceAll("[*]", ".*");
-    name = name.replaceAll("[(]", "[(]");
-    name = name.replaceAll("[)]", "[)]");
-    name = name.replaceAll("[{]", "[{]");
-    name = name.replaceAll("[}]", "[}]");
-    name = name.replaceAll("[+]", "[\\\\+]");
-    name = name.replaceAll("\\$", "[\\$]");
-    name = name.replaceAll("\\^", "[\\\\^]");
-    name = name.replaceAll("\\\\", "\\\\\\\\");
-    return name;
+    return Arrays.stream(name.split("\\."))
+        .map(StringUtils::reformatPathNode)
+        .collect(Collectors.joining("\\."));
+  }
+
+  private static String reformatPathNode(String node) {
+    if (!node.contains("*")) {
+      return Pattern.quote(node);
+    } else {
+      return Arrays.stream(node.split("\\*"))
+          .filter(String::isEmpty)
+          .map(Pattern::quote)
+          .collect(Collectors.joining(".*"));
+    }
   }
 
   public static boolean isContainSpecialChar(String str) {
