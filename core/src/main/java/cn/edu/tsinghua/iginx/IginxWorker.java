@@ -1000,7 +1000,7 @@ public class IginxWorker implements IService.Iface {
 
     String pythonDir = config.getDefaultUDFDir() + File.separator + "python_scripts";
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
-    Predicate<Path> destChecker =
+    FilePermissionManager.Checker destChecker =
         FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
 
     Path pythonDirPath = Paths.get(pythonDir);

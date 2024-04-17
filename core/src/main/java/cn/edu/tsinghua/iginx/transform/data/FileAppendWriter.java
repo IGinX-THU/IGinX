@@ -37,7 +37,11 @@ public class FileAppendWriter extends ExportWriter {
     FilePermissionManager.Checker checker =
         FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
 
-    return checker.normalize(fileName).orElseThrow(() -> new SecurityException("transformer has no permission to write file: " + fileName));
+    return checker
+        .normalize(fileName)
+        .orElseThrow(
+            () ->
+                new SecurityException("transformer has no permission to write file: " + fileName));
   }
 
   @Override

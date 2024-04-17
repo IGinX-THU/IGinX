@@ -31,5 +31,4 @@ public class FilePermissionRuleNameFilters {
   public static Predicate<String> filesystemRulesWithDefault() {
     return filesystemRules().or(defaultRules());
   }
-
 }

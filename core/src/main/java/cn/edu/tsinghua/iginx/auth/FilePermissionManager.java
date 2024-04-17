@@ -3,16 +3,15 @@ package cn.edu.tsinghua.iginx.auth;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FilePermissionManager {
 
@@ -36,16 +35,17 @@ public class FilePermissionManager {
 
   public interface Checker {
     boolean test(Path path);
+
     default Optional<Path> normalize(String path) {
       Path abs = Paths.get(path).toAbsolutePath();
       String fileName = abs.getFileName().toString();
-      if(fileName.contains("..")) { // to cheat CodeQL to avoid false positive about path traversal
+      if (fileName.contains("..")) { // to cheat CodeQL to avoid false positive about path traversal
         return Optional.empty();
-      }else {
+      } else {
         Path p = Paths.get(fileName);
-        if(!test(p)) {
+        if (!test(p)) {
           return Optional.empty();
-        }else{
+        } else {
           return Optional.of(p);
         }
       }
