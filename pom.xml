@@ -103,8 +103,8 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>RelationAbstract</artifactId>
-                <version>${project.version}</version>
+                <artifactId>relational</artifactId>
+                <version>0.6.0-SNAPSHOT</version>
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
