@@ -169,6 +169,10 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
         }
       }
     }
+    updateDirty();
+    if (timeout <= 0) {
+      checkBufferTimeout();
+    }
   }
 
   @Override
@@ -189,6 +193,10 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
         }
       }
     }
+    updateDirty();
+    if (timeout <= 0) {
+      checkBufferTimeout();
+    }
   }
 
   private void updateDirty() {
@@ -204,13 +212,9 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   private void afterWriting() {
-    updateDirty();
     storageLock.readLock().unlock();
     deleteLock.readLock().unlock();
     commitLock.readLock().unlock();
-    if (timeout <= 0) {
-      checkBufferTimeout();
-    }
   }
 
   private void checkBufferSize() {
