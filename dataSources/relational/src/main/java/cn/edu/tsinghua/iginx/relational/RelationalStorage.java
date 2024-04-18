@@ -48,9 +48,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
-import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -63,73 +64,17 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class RelationAbstractStorage implements IStorage {
+public class RelationalStorage implements IStorage {
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(RelationAbstractStorage.class);
+  protected static final Logger LOGGER = LoggerFactory.getLogger(RelationalStorage.class);
 
   protected final StorageEngineMeta meta;
 
   protected final Connection connection;
 
-  /**
-   * 获取ENGINE的默认用户名
-   *
-   * @return ENGINE的默认用户名
-   */
-  protected abstract String getDefaultUsername();
+  private AbstractRelationalMeta relationalMeta;
 
-  /**
-   * 获取ENGINE的默认密码
-   *
-   * @return ENGINE的默认密码
-   */
-  protected abstract String getDefaultPassword();
-
-  /**
-   * 获取ENGINE的默认数据库名称
-   *
-   * @return ENGINE的默认数据库名称
-   */
-  protected abstract String getDefaultDatabaseName();
-
-  /**
-   * 获取ENGINE的名称
-   *
-   * @return ENGINE的名称
-   */
-  protected abstract String getEngineName();
-
-  /**
-   * 获取ENGINE的驱动类
-   *
-   * @return ENGINE的驱动类
-   */
-  protected abstract String getDriverClass();
-
-  /** 对ENGINE设置连接超时 */
-  protected abstract void setConnectionTimeout(Statement stmt) throws SQLException;
-
-  /**
-   * 获取ENGINE的数据类型转换器
-   *
-   * @return ENGINE的数据类型转换器
-   */
-  protected abstract IDataTypeTransformer getDataTypeTransformer();
-
-  /**
-   * 该函数要求子类维护一个数据库连接池，根据数据库名称获取一个数据库连接
-   *
-   * @param databaseName 数据库名称
-   * @return 数据库连接
-   */
-  protected abstract Connection getConnectionFromPool(String databaseName);
-
-  /**
-   * 使用JDBC获取该ENGINE的所有数据库名称
-   *
-   * @return 数据库名称列表
-   */
-  protected abstract List<String> getDatabaseNames();
+  private final String engineName;
 
   private Connection getConnection(String databaseName) {
     if (databaseName.startsWith("dummy")) {
@@ -143,59 +88,66 @@ public abstract class RelationAbstractStorage implements IStorage {
       Statement stmt = connection.createStatement();
       stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
       stmt.close();
-    } catch (SQLException e) {
-
+    } catch (SQLException ignored) {
     }
 
-    return getConnectionFromPool(databaseName);
+    return relationalMeta.getConnectionFromPool(databaseName, meta);
   }
 
-  public RelationAbstractStorage(StorageEngineMeta meta) throws StorageInitializationException {
+  public RelationalStorage(StorageEngineMeta meta) throws StorageInitializationException {
     this.meta = meta;
+    try {
+      buildRelationalMeta();
+    } catch (RelationalTaskExecuteFailureException e) {
+      throw new StorageInitializationException("cannot build relational meta: ", e);
+    }
     if (!testConnection()) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
     Map<String, String> extraParams = meta.getExtraParams();
-    String username = extraParams.getOrDefault(USERNAME, getDefaultUsername());
-    String password = extraParams.getOrDefault(PASSWORD, getDefaultPassword());
+    String username = extraParams.get(USERNAME);
+    String password = extraParams.get(PASSWORD);
+    engineName = extraParams.get("engine");
     String connUrl =
         String.format(
             "jdbc:%s://%s:%s/?user=%s&password=%s",
-            getEngineName(), meta.getIp(), meta.getPort(), username, password);
+                engineName, meta.getIp(), meta.getPort(), username, password);
     try {
       connection = DriverManager.getConnection(connUrl);
       Statement statement = connection.createStatement();
-      setConnectionTimeout(statement);
+      relationalMeta.setConnectionTimeout(statement);
       statement.close();
     } catch (SQLException e) {
-      throw new StorageInitializationException("cannot connect to " + meta);
+      throw new StorageInitializationException("cannot connect to " + meta + ":", e);
+    }
+  }
+
+  private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
+    String engineName = meta.getExtraParams().get("engine");
+    try {
+      Class<?> clazz = Class.forName(classMap.get(engineName));
+      relationalMeta = (AbstractRelationalMeta) clazz.getConstructor().newInstance();
+    } catch (Exception e) {
+      throw new RelationalTaskExecuteFailureException(String.format("engine %s is not supported:", engineName), e);
     }
   }
 
   private boolean testConnection() {
     Map<String, String> extraParams = meta.getExtraParams();
-    String username = extraParams.getOrDefault(USERNAME, getDefaultUsername());
-    String password = extraParams.getOrDefault(PASSWORD, getDefaultPassword());
+    String username = extraParams.get(USERNAME);
+    String password = extraParams.get(PASSWORD);
+    String engine = meta.getExtraParams().get("engine");
     String connUrl =
         String.format(
             "jdbc:%s://%s:%s/?user=%s&password=%s",
-            getEngineName(), meta.getIp(), meta.getPort(), username, password);
+                engine, meta.getIp(), meta.getPort(), username, password);
     try {
-      Class.forName(getDriverClass());
+      Class.forName(relationalMeta.getDriverClass());
       DriverManager.getConnection(connUrl);
       return true;
     } catch (SQLException | ClassNotFoundException e) {
       return false;
     }
-  }
-
-  protected String getUrl(String databaseName) {
-    Map<String, String> extraParams = meta.getExtraParams();
-    String username = extraParams.getOrDefault(USERNAME, getDefaultUsername());
-    String password = extraParams.getOrDefault(PASSWORD, getDefaultPassword());
-    return String.format(
-        "jdbc:%s://%s:%s/%s?user=%s&password=%s",
-        getEngineName(), meta.getIp(), meta.getPort(), databaseName, username, password);
   }
 
   private boolean filterContainsType(List<FilterType> types, Filter filter) {
@@ -232,7 +184,7 @@ public abstract class RelationAbstractStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     try {
       Statement stmt = connection.createStatement();
-      for (String databaseName : getDatabaseNames()) {
+      for (String databaseName : relationalMeta.getDatabaseNames(meta, connection)) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
             && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
@@ -261,13 +213,13 @@ public abstract class RelationAbstractStorage implements IStorage {
                 columns.add(
                     new Column(
                         tableName + SEPARATOR + nameAndTags.k,
-                        getDataTypeTransformer().fromEngineType(typeName),
+                            relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                         nameAndTags.v));
               } else {
                 columns.add(
                     new Column(
                         databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k,
-                        getDataTypeTransformer().fromEngineType(typeName),
+                            relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                         nameAndTags.v));
               }
             }
@@ -460,13 +412,13 @@ public abstract class RelationAbstractStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   Collections.singletonList(conn),
-                  getDataTypeTransformer()));
+                      relationalMeta.getDataTypeTransformer()));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in %s failure", getEngineName()), e));
+              String.format("execute project task in %s failure", engineName), e));
     }
   }
 
@@ -847,13 +799,13 @@ public abstract class RelationAbstractStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   connList,
-                  getDataTypeTransformer()));
+                      relationalMeta.getDataTypeTransformer()));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute project task in %s failure", getEngineName()), e));
+              String.format("execute project task in %s failure", engineName), e));
     }
   }
 
@@ -917,7 +869,7 @@ public abstract class RelationAbstractStorage implements IStorage {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
           conn.close();
           Connection defaultConn =
-              getConnection(getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
+              getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
           if (defaultConn != null) {
             stmt = defaultConn.createStatement();
             statement = String.format(DROP_DATABASE_STATEMENT, databaseName);
@@ -929,7 +881,7 @@ public abstract class RelationAbstractStorage implements IStorage {
           } else {
             return new TaskExecuteResult(
                 new PhysicalTaskExecuteFailureException(
-                    String.format("cannot connect to database %s", getDefaultDatabaseName()),
+                    String.format("cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
                     new SQLException()));
           }
         } else {
@@ -983,7 +935,7 @@ public abstract class RelationAbstractStorage implements IStorage {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
           new PhysicalTaskExecuteFailureException(
-              String.format("execute delete task in %s failure", getEngineName()), e));
+              String.format("execute delete task in %s failure", engineName), e));
     }
   }
 
@@ -1017,7 +969,7 @@ public abstract class RelationAbstractStorage implements IStorage {
       return new TaskExecuteResult(
           null,
           new PhysicalException(
-              String.format("execute insert task in %s failure", getEngineName()), e));
+              String.format("execute insert task in %s failure", engineName), e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -1028,7 +980,7 @@ public abstract class RelationAbstractStorage implements IStorage {
     ColumnsInterval columnsInterval;
     List<String> paths = new ArrayList<>();
     try {
-      for (String databaseName : getDatabaseNames()) {
+      for (String databaseName : relationalMeta.getDatabaseNames(meta, connection)) {
         Connection conn = getConnection(databaseName);
         if (conn == null) {
           continue;
@@ -1227,7 +1179,7 @@ public abstract class RelationAbstractStorage implements IStorage {
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
 
       if (databaseName.equals("%")) {
-        for (String tempDatabaseName : getDatabaseNames()) {
+        for (String tempDatabaseName : relationalMeta.getDatabaseNames(meta, connection)) {
           if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
             continue;
           }
@@ -1341,7 +1293,7 @@ public abstract class RelationAbstractStorage implements IStorage {
                   CREATE_TABLE_STATEMENT,
                   getQuotName(tableName),
                   getQuotName(columnName),
-                  getDataTypeTransformer().toEngineType(dataType));
+                      relationalMeta.getDataTypeTransformer().toEngineType(dataType));
           LOGGER.info("[Create] execute create: {}", statement);
           stmt.execute(statement);
         } else {
@@ -1353,7 +1305,7 @@ public abstract class RelationAbstractStorage implements IStorage {
                     ADD_COLUMN_STATEMENT,
                     getQuotName(tableName),
                     getQuotName(columnName),
-                    getDataTypeTransformer().toEngineType(dataType));
+                        relationalMeta.getDataTypeTransformer().toEngineType(dataType));
             LOGGER.info("[Create] execute create: {}", statement);
             stmt.execute(statement);
           }

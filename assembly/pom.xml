@@ -60,7 +60,7 @@
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>postgresql</artifactId>
+            <artifactId>relational</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>

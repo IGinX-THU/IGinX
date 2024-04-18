@@ -16,10 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.relational;
+package cn.edu.tsinghua.iginx.relational.meta;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
-import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.PostgreSQLDataTypeTransformer;
@@ -35,9 +34,9 @@ import org.postgresql.ds.PGConnectionPoolDataSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostgreSQLStorage extends RelationAbstractStorage implements IStorage {
+public class PostgreSQLMeta extends AbstractRelationalMeta {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLMeta.class);
 
   private final Map<String, PGConnectionPoolDataSource> connectionPoolMap =
       new ConcurrentHashMap<>();
@@ -47,66 +46,45 @@ public class PostgreSQLStorage extends RelationAbstractStorage implements IStora
 
   private static final String DRIVER_CLASS = "org.postgresql.Driver";
 
-  private static final String DEFAULT_USERNAME = "postgres";
-
-  private static final String DEFAULT_PASSWORD = "postgres";
-
   private static final String DEFAULT_DATABASE_NAME = "postgres";
-
-  private static final String ENGINE_NAME = "postgresql";
 
   public static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
 
   private static final PostgreSQLDataTypeTransformer dataTypeTransformer =
       PostgreSQLDataTypeTransformer.getInstance();
 
-  public PostgreSQLStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    super(meta);
+  public PostgreSQLMeta() {
+    super();
   }
 
   @Override
-  protected String getDefaultUsername() {
-    return DEFAULT_USERNAME;
-  }
-
-  @Override
-  protected String getDefaultPassword() {
-    return DEFAULT_PASSWORD;
-  }
-
-  @Override
-  protected String getDefaultDatabaseName() {
+  public String getDefaultDatabaseName() {
     return DEFAULT_DATABASE_NAME;
   }
 
   @Override
-  protected String getEngineName() {
-    return ENGINE_NAME;
-  }
-
-  @Override
-  protected String getDriverClass() {
+  public String getDriverClass() {
     return DRIVER_CLASS;
   }
 
   @Override
-  protected void setConnectionTimeout(Statement statement) throws SQLException {
+  public void setConnectionTimeout(Statement statement) throws SQLException {
     statement.executeUpdate(TIMEOUT_SETTING_SQL);
   }
 
   @Override
-  protected IDataTypeTransformer getDataTypeTransformer() {
+  public IDataTypeTransformer getDataTypeTransformer() {
     return dataTypeTransformer;
   }
 
   @Override
-  protected Connection getConnectionFromPool(String databaseName) {
+  public Connection getConnectionFromPool(String databaseName, StorageEngineMeta meta) {
     try {
       if (connectionPoolMap.containsKey(databaseName)) {
         return connectionPoolMap.get(databaseName).getConnection();
       }
       PGConnectionPoolDataSource connectionPool = new PGConnectionPoolDataSource();
-      connectionPool.setUrl(getUrl(databaseName));
+      connectionPool.setUrl(getUrl(databaseName, meta));
       connectionPoolMap.put(databaseName, connectionPool);
       return connectionPool.getConnection();
     } catch (SQLException e) {
@@ -116,7 +94,7 @@ public class PostgreSQLStorage extends RelationAbstractStorage implements IStora
   }
 
   @Override
-  protected List<String> getDatabaseNames() {
+  public List<String> getDatabaseNames(StorageEngineMeta meta, Connection connection) {
     List<String> databaseNames = new ArrayList<>();
     try {
       Statement stmt = connection.createStatement();
