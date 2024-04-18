@@ -87,7 +87,7 @@ jobs:
               "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
 
           - name: Show IGinX log
-            if: always()
+            if: ${{ success() && contains(run.outputs, 'iginx-*.log') }}
             shell: bash
             run: |
               cat iginx-*.log
