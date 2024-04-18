@@ -3,16 +3,15 @@ package cn.edu.tsinghua.iginx.auth;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FilePermissionManager {
 
@@ -39,17 +38,23 @@ public class FilePermissionManager {
 
     default Optional<Path> normalize(String path) {
       Optional<Path> p = cheatNormalize(Paths.get(path));
-      if(!p.isPresent()) {
+      if (!p.isPresent()) {
         return Optional.empty();
       }
       Path cheated = p.get();
-      if(!test(cheated)) {
+      if (!test(cheated)) {
         return Optional.empty();
       }
       return Optional.of(cheated);
     }
 
-    // cheat CodeQL to not complain about path traversal vulnerability
+    /**
+     * cheat CodeQL to not complain about path traversal vulnerability. This method should not be
+     * used except you know what you are doing.
+     *
+     * @param path the path to normalize
+     * @return the normalized path if it is safe, otherwise empty
+     */
     @Deprecated
     default Optional<Path> cheatNormalize(Path path) {
       Path p = path.toAbsolutePath();
@@ -65,11 +70,11 @@ public class FilePermissionManager {
         }
       }
       // check if path is empty
-      if(nodes.length == 0) {
+      if (nodes.length == 0) {
         return Optional.empty();
       }
       // rebuild path
-      Path rebuiltPath = Paths.get(nodes[0],Arrays.copyOfRange(nodes,1,nodes.length));
+      Path rebuiltPath = Paths.get(nodes[0], Arrays.copyOfRange(nodes, 1, nodes.length));
       return Optional.of(rebuiltPath);
     }
   }
