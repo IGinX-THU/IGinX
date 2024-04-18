@@ -284,8 +284,8 @@ public class Controller {
       boolean needWriteHistoryData) {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
-//    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
-//    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
+    Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
+    Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     // medium 为划分数据的分界点，即前 medium 个数据写入非 dummy 数据库，后 medium 个数据写入 dummy 数据库
     int medium = 0;
     if (!conf.isScaling() || !NEED_SEPARATE_WRITING.get(conf.getStorageType())) {

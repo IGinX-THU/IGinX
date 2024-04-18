@@ -48,8 +48,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
@@ -111,7 +111,7 @@ public class RelationalStorage implements IStorage {
     String connUrl =
         String.format(
             "jdbc:%s://%s:%s/?user=%s&password=%s",
-                engineName, meta.getIp(), meta.getPort(), username, password);
+            engineName, meta.getIp(), meta.getPort(), username, password);
     try {
       connection = DriverManager.getConnection(connUrl);
       Statement statement = connection.createStatement();
@@ -128,7 +128,8 @@ public class RelationalStorage implements IStorage {
       Class<?> clazz = Class.forName(classMap.get(engineName));
       relationalMeta = (AbstractRelationalMeta) clazz.getConstructor().newInstance();
     } catch (Exception e) {
-      throw new RelationalTaskExecuteFailureException(String.format("engine %s is not supported:", engineName), e);
+      throw new RelationalTaskExecuteFailureException(
+          String.format("engine %s is not supported:", engineName), e);
     }
   }
 
@@ -140,7 +141,7 @@ public class RelationalStorage implements IStorage {
     String connUrl =
         String.format(
             "jdbc:%s://%s:%s/?user=%s&password=%s",
-                engine, meta.getIp(), meta.getPort(), username, password);
+            engine, meta.getIp(), meta.getPort(), username, password);
     try {
       Class.forName(relationalMeta.getDriverClass());
       DriverManager.getConnection(connUrl);
@@ -213,13 +214,13 @@ public class RelationalStorage implements IStorage {
                 columns.add(
                     new Column(
                         tableName + SEPARATOR + nameAndTags.k,
-                            relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                        relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                         nameAndTags.v));
               } else {
                 columns.add(
                     new Column(
                         databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k,
-                            relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                        relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                         nameAndTags.v));
               }
             }
@@ -412,7 +413,7 @@ public class RelationalStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   Collections.singletonList(conn),
-                      relationalMeta.getDataTypeTransformer()));
+                  relationalMeta.getDataTypeTransformer()));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
@@ -799,7 +800,7 @@ public class RelationalStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   connList,
-                      relationalMeta.getDataTypeTransformer()));
+                  relationalMeta.getDataTypeTransformer()));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
@@ -881,7 +882,8 @@ public class RelationalStorage implements IStorage {
           } else {
             return new TaskExecuteResult(
                 new PhysicalTaskExecuteFailureException(
-                    String.format("cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
+                    String.format(
+                        "cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
                     new SQLException()));
           }
         } else {
@@ -968,8 +970,7 @@ public class RelationalStorage implements IStorage {
     if (e != null) {
       return new TaskExecuteResult(
           null,
-          new PhysicalException(
-              String.format("execute insert task in %s failure", engineName), e));
+          new PhysicalException(String.format("execute insert task in %s failure", engineName), e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -1293,7 +1294,7 @@ public class RelationalStorage implements IStorage {
                   CREATE_TABLE_STATEMENT,
                   getQuotName(tableName),
                   getQuotName(columnName),
-                      relationalMeta.getDataTypeTransformer().toEngineType(dataType));
+                  relationalMeta.getDataTypeTransformer().toEngineType(dataType));
           LOGGER.info("[Create] execute create: {}", statement);
           stmt.execute(statement);
         } else {
@@ -1305,7 +1306,7 @@ public class RelationalStorage implements IStorage {
                     ADD_COLUMN_STATEMENT,
                     getQuotName(tableName),
                     getQuotName(columnName),
-                        relationalMeta.getDataTypeTransformer().toEngineType(dataType));
+                    relationalMeta.getDataTypeTransformer().toEngineType(dataType));
             LOGGER.info("[Create] execute create: {}", statement);
             stmt.execute(statement);
           }

@@ -45,6 +45,7 @@ public abstract class Constants {
       "UPDATE %s SET %s = null WHERE (\"" + KEY_NAME + "\" >= %d AND \"" + KEY_NAME + "\" < %d);";
 
   public static final Map<String, String> classMap = new HashMap<>();
+
   static {
     classMap.put("postgresql", "cn.edu.tsinghua.iginx.relational.meta.PostgreSQLMeta");
     classMap.put("mysql", "cn.edu.tsinghua.iginx.relational.meta.MySQLMeta");

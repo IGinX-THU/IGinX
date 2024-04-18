@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.relational.meta;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.PostgreSQLDataTypeTransformer;
