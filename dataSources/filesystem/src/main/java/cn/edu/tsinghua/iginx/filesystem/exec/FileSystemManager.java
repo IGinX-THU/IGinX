@@ -56,8 +56,6 @@ public class FileSystemManager {
   public List<FileSystemResultTable> readFile(
       File file, TagFilter tagFilter, List<KeyRange> keyRanges, boolean isDummy)
       throws IOException {
-    file = FilePathUtils.normalize(file, FileAccessType.READ);
-
     List<FileSystemResultTable> res = new ArrayList<>();
     // 首先通过tagFilter和file，找到所有有关的文件列表
     List<File> files = getFilesWithTagFilter(file, tagFilter, isDummy);
@@ -288,11 +286,6 @@ public class FileSystemManager {
    * @return 如果删除操作失败则抛出异常
    */
   public void deleteFiles(List<File> files, TagFilter filter) throws IOException {
-    files =
-        files.stream()
-            .map(f -> FilePathUtils.normalize(f, FileAccessType.WRITE))
-            .collect(Collectors.toList());
-
     for (File file : files) {
       try {
         for (File f : getFilesWithTagFilter(file, filter, false)) {
@@ -313,10 +306,6 @@ public class FileSystemManager {
         LOGGER.warn("cant trim the file that not exist!");
         continue;
       }
-      fileList =
-          fileList.stream()
-              .map(f -> FilePathUtils.normalize(f, FileAccessType.WRITE))
-              .collect(Collectors.toList());
       for (File f : fileList) {
         fileOperator.trimFile(f, startKey, endKey);
       }
@@ -376,7 +365,9 @@ public class FileSystemManager {
       throw new IOException(
           String.format("get associated files of %s failure: %s", file.getAbsolutePath(), e));
     }
-    return associatedFiles;
+    return associatedFiles.stream()
+        .map(f -> FilePathUtils.normalize(f, FileAccessType.WRITE))
+        .collect(Collectors.toList());
   }
 
   public List<File> getAllFiles(File dir, boolean containsEmptyDir) {
