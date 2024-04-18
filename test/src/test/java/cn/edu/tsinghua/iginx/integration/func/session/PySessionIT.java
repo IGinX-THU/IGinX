@@ -28,22 +28,22 @@ public class PySessionIT {
 
   private static final Logger logger = LoggerFactory.getLogger(PySessionIT.class);
 
-  // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
-  private static final String PATH = String.join(File.separator, getHomePath(), "tests");
+  private static final String PATH =
+      Paths.get(
+              EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir")),
+              "src",
+              "test",
+              "resources",
+              "pySessionIT")
+          .toString();
   protected static boolean isForSession = true;
   protected static boolean isForSessionPool = false;
 
-  // host info
   protected static String defaultTestHost = "127.0.0.1";
   protected static int defaultTestPort = 6888;
   protected static String defaultTestUser = "root";
   protected static String defaultTestPass = "root";
-
-  private static String getHomePath() {
-    String iginxHomePath = EnvUtils.loadEnv(Constants.IGINX_HOME, System.getProperty("user.dir"));
-    return Paths.get(iginxHomePath, "..", "session_py").toString();
-  }
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static String pythonCMD = config.getPythonCMD();
@@ -461,7 +461,6 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     List<String> expected = Arrays.asList("key\tdir.a\tdir.b\t", "0\t\tb'1'\t\tb'4'\t\t");
-    // keep result[-3:] to check if the data is loaded successfully
     String[] lines = result.split("\n");
     List<String> resultLines = Arrays.asList(lines);
     logger.info(resultLines.toString());
