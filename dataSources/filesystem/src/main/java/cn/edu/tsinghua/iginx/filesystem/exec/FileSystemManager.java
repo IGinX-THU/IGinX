@@ -1,8 +1,5 @@
 package cn.edu.tsinghua.iginx.filesystem.exec;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.MAX_CHAR;
-import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
-
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
@@ -16,6 +13,9 @@ import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -26,8 +26,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.MAX_CHAR;
+import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.*;
 
 /*
  * 缓存，索引以及优化策略都在这里执行
@@ -52,7 +53,9 @@ public class FileSystemManager {
     fileOperator = new DefaultFileOperator();
   }
 
-  /** ******************* 查询相关 ******************** */
+  /**
+   * ****************** 查询相关 ********************
+   */
   public List<FileSystemResultTable> readFile(
       File file, TagFilter tagFilter, List<KeyRange> keyRanges, boolean isDummy)
       throws IOException {
@@ -189,7 +192,9 @@ public class FileSystemManager {
     return records;
   }
 
-  /** ******************** 写入相关 ******************** */
+  /**
+   * ******************* 写入相关 ********************
+   */
   public synchronized void writeFiles(
       List<File> files, List<List<Record>> recordsList, List<Map<String, String>> tagsList)
       throws IOException {
@@ -276,7 +281,9 @@ public class FileSystemManager {
     return Collections.max(nums);
   }
 
-  /** ******************** 删除相关 ******************** */
+  /**
+   * ******************* 删除相关 ********************
+   */
   public void deleteFile(File file) throws IOException {
     deleteFiles(Collections.singletonList(file), null);
   }
@@ -307,6 +314,11 @@ public class FileSystemManager {
 
   public void trimFilesContent(List<File> files, TagFilter tagFilter, long startKey, long endKey)
       throws IOException {
+    files =
+        files.stream()
+            .map(f -> FilePathUtils.normalize(f, FileAccessType.WRITE))
+            .collect(Collectors.toList());
+
     for (File file : files) {
       List<File> fileList = getFilesWithTagFilter(file, tagFilter, false);
       if (fileList.isEmpty()) {
@@ -457,7 +469,9 @@ public class FileSystemManager {
     }
   }
 
-  /** ******************* 资源控制 ******************** */
+  /**
+   * ****************** 资源控制 ********************
+   */
   public MemoryPool getMemoryPool() {
     return memoryPool;
   }
