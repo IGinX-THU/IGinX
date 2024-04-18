@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -116,13 +117,25 @@ public class StringUtils {
   }
 
   public static boolean match(String string, String iginxPattern) {
-    return Pattern.matches(toRegexExpr(iginxPattern), string);
+    return toColumnMatcher(iginxPattern).test(string);
+  }
+
+  public static Predicate<String> toColumnMatcher(String iginxPattern) {
+    Objects.requireNonNull(iginxPattern);
+
+    if (iginxPattern.equals("*")) {
+      return s -> true;
+    }
+    if (!iginxPattern.contains("*")) {
+      return iginxPattern::equals;
+    }
+    Pattern pattern = Pattern.compile(toRegexExpr(iginxPattern));
+    return s -> pattern.matcher(s).matches();
   }
 
   public static String toRegexExpr(String iginxPattern) {
-    if (!iginxPattern.contains("*")) {
-      return Pattern.quote(iginxPattern);
-    }
+    Objects.requireNonNull(iginxPattern);
+
     return Arrays.stream(iginxPattern.split("[*]+", -1))
         .map(s -> s.isEmpty() ? "" : Pattern.quote(s))
         .collect(Collectors.joining(".*"));
