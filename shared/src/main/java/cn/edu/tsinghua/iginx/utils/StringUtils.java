@@ -120,20 +120,10 @@ public class StringUtils {
   }
 
   private static String reformatColumnName(String name) {
-    return Arrays.stream(name.split("\\."))
-        .map(StringUtils::reformatPathNode)
-        .collect(Collectors.joining("\\."));
-  }
-
-  private static String reformatPathNode(String node) {
-    if (!node.contains("*")) {
-      return Pattern.quote(node);
-    } else {
-      return Arrays.stream(node.split("\\*"))
-          .filter(String::isEmpty)
-          .map(Pattern::quote)
-          .collect(Collectors.joining(".*"));
+    if (!name.contains("*")) {
+      return Pattern.quote(name);
     }
+    return Arrays.stream(name.split("\\*")).map(Pattern::quote).collect(Collectors.joining(".*"));
   }
 
   public static boolean isContainSpecialChar(String str) {
