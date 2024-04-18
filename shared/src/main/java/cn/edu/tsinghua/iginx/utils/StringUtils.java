@@ -115,15 +115,17 @@ public class StringUtils {
     return path;
   }
 
-  public static boolean match(String string, String regex) {
-    return Pattern.matches(StringUtils.reformatColumnName(regex), string);
+  public static boolean match(String string, String iginxPattern) {
+    return Pattern.matches(toRegexExpr(iginxPattern), string);
   }
 
-  private static String reformatColumnName(String name) {
-    if (!name.contains("*")) {
-      return Pattern.quote(name);
+  public static String toRegexExpr(String iginxPattern) {
+    if (!iginxPattern.contains("*")) {
+      return Pattern.quote(iginxPattern);
     }
-    return Arrays.stream(name.split("\\*")).map(Pattern::quote).collect(Collectors.joining(".*"));
+    return Arrays.stream(iginxPattern.split("[*]+", -1))
+        .map(s -> s.isEmpty() ? "" : Pattern.quote(s))
+        .collect(Collectors.joining(".*"));
   }
 
   public static boolean isContainSpecialChar(String str) {
