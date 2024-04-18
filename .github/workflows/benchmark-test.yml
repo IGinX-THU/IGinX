@@ -68,6 +68,18 @@ jobs:
               version: ${VERSION}
               if-test-udf: "true"
 
+          - name: set client test context
+            uses: ./.github/actions/context
+            with:
+              work-name: restart-iginx-meta
+              metadata: ${{ matrix.metadata }}
+
+          - name: set client test context
+            uses: ./.github/actions/context
+            with:
+              DB-name: ${{ matrix.DB-name }}
+              shell: client-before
+
           - name: Start data cleaning
             shell: bash
             run: |
