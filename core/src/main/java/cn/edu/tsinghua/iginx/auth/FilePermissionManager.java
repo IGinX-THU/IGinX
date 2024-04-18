@@ -48,6 +48,10 @@ public class FilePermissionManager {
       return Optional.of(cheated);
     }
 
+    default boolean testRelativePath(String path) {
+      return !path.contains("..");
+    }
+
     /**
      * cheat CodeQL to not complain about path traversal vulnerability. This method should not be
      * used except you know what you are doing.
@@ -58,23 +62,23 @@ public class FilePermissionManager {
     @Deprecated
     default Optional<Path> cheatNormalize(Path path) {
       Path p = path.toAbsolutePath();
-      // split path node
+      // split path nodes
+      String root = p.getRoot().toString();
       String[] nodes = new String[p.getNameCount()];
       for (int i = 0; i < p.getNameCount(); i++) {
         nodes[i] = p.getName(i).toString();
       }
-      // check if any node contains ".." or "/" or "\"
+      // check if any node contains "."
+      if (!testRelativePath(root)) {
+        return Optional.empty();
+      }
       for (String node : nodes) {
-        if (node.contains("..") || node.contains("/") || node.contains("\\")) {
+        if (!testRelativePath(node)) {
           return Optional.empty();
         }
       }
-      // check if path is empty
-      if (nodes.length == 0) {
-        return Optional.empty();
-      }
       // rebuild path
-      Path rebuiltPath = Paths.get(nodes[0], Arrays.copyOfRange(nodes, 1, nodes.length));
+      Path rebuiltPath = Paths.get(root, nodes);
       return Optional.of(rebuiltPath);
     }
   }

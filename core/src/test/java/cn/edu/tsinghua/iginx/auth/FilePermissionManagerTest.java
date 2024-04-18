@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Optional;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.junit.Test;
 
@@ -136,5 +137,14 @@ public class FilePermissionManagerTest {
             FileAccessType.EXECUTE,
             FileAccessType.WRITE);
     assertFalse(predicate.test(Paths.get("不允许.py")));
+  }
+
+  @Test
+  public void testNormalize() {
+    FilePermissionManager.Checker checker = path -> true;
+
+    Optional<Path> p = checker.normalize("test");
+    assertTrue(p.isPresent());
+    assertEquals(Paths.get("test").toAbsolutePath(), p.get());
   }
 }
