@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-if [ "$RUNNER_OS" == "Linux" ]; then
+if [ "$RUNNER_OS" = "Linux" ]; then
   sed -i "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
   sed -i "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
   sh -c "sudo sh -c 'echo \"deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\" > /etc/apt/sources.list.d/pgdg.list'"
@@ -21,7 +21,7 @@ if [ "$RUNNER_OS" == "Linux" ]; then
   sh -c "sudo su - postgres -c '/usr/lib/postgresql-5432/15/bin/initdb -D /var/lib/postgresql-5432/15/main --auth trust --no-instructions'"
   sh -c "sudo su - postgres -c '/usr/lib/postgresql-5432/15/bin/pg_ctl -D /var/lib/postgresql-5432/15/main -o \"-F -p 5432\" start'"
   sh -c "sudo su - postgres -c '/usr/lib/postgresql-5432/15/bin/psql -c \"ALTER USER postgres WITH PASSWORD '\''postgres'\'';\"'"
-elif [ "$RUNNER_OS" == "Windows" ]; then
+elif [ "$RUNNER_OS" = "Windows" ]; then
   echo "Downloading zip archive. This may take a few minutes..."
   sh -c "curl -LJO https://get.enterprisedb.com/postgresql/postgresql-15.5-1-windows-x64-binaries.zip -o postgresql-15.5-1-windows-x64-binaries.zip"
   sh -c "unzip -qq postgresql-15.5-1-windows-x64-binaries.zip"
@@ -44,7 +44,7 @@ elif [ "$RUNNER_OS" == "Windows" ]; then
   sqlarguments="-ArgumentList '-c', $sql"
   sqlredirect="-RedirectStandardOutput '$filePrefix/logs/psql.log' -RedirectStandardError '$filePrefix/logs/psql-error.log'"
   powershell -command "Start-Process -FilePath '$filePrefix/bin/psql' -NoNewWindow $sqlarguments $sqlredirect"
-elif [ "$RUNNER_OS" == "macOS" ]; then
+elif [ "$RUNNER_OS" = "macOS" ]; then
   sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
   sed -i "" "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
   sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
