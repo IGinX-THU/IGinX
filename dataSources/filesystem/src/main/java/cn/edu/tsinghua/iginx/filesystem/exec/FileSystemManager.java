@@ -307,17 +307,16 @@ public class FileSystemManager {
 
   public void trimFilesContent(List<File> files, TagFilter tagFilter, long startKey, long endKey)
       throws IOException {
-    files =
-        files.stream()
-            .map(f -> FilePathUtils.normalize(f, FileAccessType.WRITE))
-            .collect(Collectors.toList());
-
     for (File file : files) {
       List<File> fileList = getFilesWithTagFilter(file, tagFilter, false);
       if (fileList.isEmpty()) {
         LOGGER.warn("cant trim the file that not exist!");
         continue;
       }
+      fileList =
+          fileList.stream()
+              .map(f -> FilePathUtils.normalize(f, FileAccessType.WRITE))
+              .collect(Collectors.toList());
       for (File f : fileList) {
         fileOperator.trimFile(f, startKey, endKey);
       }
