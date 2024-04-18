@@ -170,7 +170,7 @@ public class InfluxDBStorage implements IStorage {
     List<String> bucketNames = new ArrayList<>(historyBucketMap.keySet());
     bucketNames.sort(String::compareTo);
     if (bucketNames.isEmpty()) {
-      throw new InfluxDBTaskExecuteFailureException("no data!");
+      throw new InfluxDBTaskExecuteFailureException("InfluxDB has no bucket!");
     }
     ColumnsInterval columnsInterval;
     if (dataPrefix == null) {
@@ -240,7 +240,6 @@ public class InfluxDBStorage implements IStorage {
   public List<Column> getColumns() {
     List<Column> timeseries = new ArrayList<>();
 
-    List<FluxTable> tables = new ArrayList<>();
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
       // query all the series by querying all the data with first()
@@ -255,49 +254,52 @@ public class InfluxDBStorage implements IStorage {
       }
 
       String statement = String.format(SHOW_TIME_SERIES, bucket.getName());
-      tables.addAll(client.getQueryApi().query(statement, organization.getId()));
-    }
+      List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
 
-    for (FluxTable table : tables) {
-      List<FluxColumn> column = table.getColumns();
-      // get the path
-      String path =
-          table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getField();
-      Map<String, String> tag = new HashMap<>();
-      int len = column.size();
-      // get the tag cause the 8 is the begin index of the tag information
-      for (int i = 8; i < len; i++) {
-        String key = column.get(i).getLabel();
-        String val = (String) table.getRecords().get(0).getValues().get(key);
-        tag.put(key, val);
-      }
+      for (FluxTable table : tables) {
+        List<FluxColumn> column = table.getColumns();
+        // get the path
+        String path =
+            table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getField();
+        Map<String, String> tag = new HashMap<>();
+        int len = column.size();
+        // get the tag cause the 8 is the begin index of the tag information
+        for (int i = 8; i < len; i++) {
+          String key = column.get(i).getLabel();
+          String val = (String) table.getRecords().get(0).getValues().get(key);
+          tag.put(key, val);
+        }
 
-      DataType dataType = null;
-      switch (column.get(5).getDataType()) { // the index 1 is the type of the data
-        case "boolean":
-          dataType = DataType.BOOLEAN;
-          break;
-        case "float":
-          dataType = DataType.FLOAT;
-          break;
-        case "string":
-          dataType = DataType.BINARY;
-          break;
-        case "double":
-          dataType = DataType.DOUBLE;
-          break;
-        case "int":
-          dataType = DataType.INTEGER;
-          break;
-        case "long":
-          dataType = DataType.LONG;
-          break;
-        default:
-          dataType = DataType.BINARY;
-          LOGGER.warn("DataType don't match and default is String");
-          break;
+        DataType dataType = null;
+        switch (column.get(5).getDataType()) { // the index 1 is the type of the data
+          case "boolean":
+            dataType = DataType.BOOLEAN;
+            break;
+          case "float":
+            dataType = DataType.FLOAT;
+            break;
+          case "string":
+            dataType = DataType.BINARY;
+            break;
+          case "double":
+            dataType = DataType.DOUBLE;
+            break;
+          case "int":
+            dataType = DataType.INTEGER;
+            break;
+          case "long":
+            dataType = DataType.LONG;
+            break;
+          default:
+            dataType = DataType.BINARY;
+            LOGGER.warn("DataType don't match and default is String");
+            break;
+        }
+        if (isDummy) {
+          path = bucket.getName() + "." + path;
+        }
+        timeseries.add(new Column(path, dataType, tag));
       }
-      timeseries.add(new Column(path, dataType, tag));
     }
 
     return timeseries;
