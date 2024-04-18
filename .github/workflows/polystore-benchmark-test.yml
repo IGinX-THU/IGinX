@@ -22,9 +22,6 @@ jobs:
         runs-on: ${{ matrix.os }}
 
         steps:
-          - name: Print DB name
-            run: echo ${{ matrix.DB-name }}
-
           - uses: actions/checkout@v2
           - name: Environment dependence
             uses: ./.github/actions/dependence
