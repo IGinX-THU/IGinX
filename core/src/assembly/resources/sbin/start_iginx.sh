@@ -98,12 +98,12 @@ calculate_heap_sizes() {
   # pick the max
   half_system_memory_in_mb=$((${system_memory_in_mb} / 2))
   quarter_system_memory_in_mb=$((${half_system_memory_in_mb} / 2))
-  if (( ${half_system_memory_in_mb} > 1024 )); then
-    half_system_memory_in_mb=1024
-  fi
-  if (( ${quarter_system_memory_in_mb} > 65536 )); then
-    quarter_system_memory_in_mb=65536
-  fi
+#  if (( ${half_system_memory_in_mb} > 1024 )); then
+#    half_system_memory_in_mb=1024
+#  fi
+#  if (( ${quarter_system_memory_in_mb} > 65536 )); then
+#    quarter_system_memory_in_mb=65536
+#  fi
   if (( ${half_system_memory_in_mb} > ${quarter_system_memory_in_mb} )); then
     max_heap_size_in_mb=$half_system_memory_in_mb
   else
