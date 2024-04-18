@@ -43,8 +43,7 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public static Builder builder(Path path, MessageType schema) {
-    return new Builder(
-        new LocalOutputFile(path, new HeapByteBufferAllocator(), Integer.MAX_VALUE), schema);
+    return new Builder(new LocalOutputFile(path, new HeapByteBufferAllocator(), 8 * 1024), schema);
   }
 
   public void write(IRecord record) throws IOException {
