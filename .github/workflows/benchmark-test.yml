@@ -86,8 +86,3 @@ jobs:
               chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
               "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
 
-          - name: Show IGinX log
-            if: ${{ success() && contains(run.outputs, 'iginx-*.log') }}
-            shell: bash
-            run: |
-              cat iginx-*.log
