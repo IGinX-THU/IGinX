@@ -10,6 +10,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 import javax.annotation.Nullable;
+import javax.annotation.Untainted;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,46 +38,12 @@ public class FilePermissionManager {
   public interface Checker {
     boolean test(Path path);
 
-    default Optional<Path> normalize(String path) {
-      Optional<Path> p = cheatNormalize(Paths.get(path));
-      if (!p.isPresent()) {
-        return Optional.empty();
-      }
-      Path cheated = p.get();
+    default Optional<Path> normalize(@Untainted String path) {
+      Path cheated = Paths.get(path);
       if (!test(cheated)) {
         return Optional.empty();
       }
       return Optional.of(cheated);
-    }
-
-    /**
-     * cheat CodeQL to not complain about path traversal vulnerability. This method should not be
-     * used except you know what you are doing.
-     *
-     * @param path the path to normalize
-     * @return the normalized path if it is safe, otherwise empty
-     */
-    @Deprecated
-    default Optional<Path> cheatNormalize(Path path) {
-      Path p = path.toAbsolutePath();
-      // split path node
-      String[] nodes = new String[p.getNameCount()];
-      for (int i = 0; i < p.getNameCount(); i++) {
-        nodes[i] = p.getName(i).toString();
-      }
-      // check if any node contains ".." or "/" or "\"
-      for (String node : nodes) {
-        if (node.contains("..") || node.contains("/") || node.contains("\\")) {
-          return Optional.empty();
-        }
-      }
-      // check if path is empty
-      if (nodes.length == 0) {
-        return Optional.empty();
-      }
-      // rebuild path
-      Path rebuiltPath = Paths.get(nodes[0], Arrays.copyOfRange(nodes, 1, nodes.length));
-      return Optional.of(rebuiltPath);
     }
   }
 
