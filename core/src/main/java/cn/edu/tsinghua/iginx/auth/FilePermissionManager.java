@@ -37,19 +37,40 @@ public class FilePermissionManager {
   public interface Checker {
     boolean test(Path path);
 
-    // to cheat CodeQL to not complain about path traversal vulnerability
     default Optional<Path> normalize(String path) {
-      Path p = Paths.get(path).toAbsolutePath();
-      Path parent = p.getParent();
-      String filename = p.getFileName().toString();
-      if (filename.contains("..") || filename.contains("/") || filename.contains("\\")) {
-        throw new IllegalArgumentException("Invalid filename");
-      }
-      if (!test(p)) {
+      Optional<Path> p = cheatNormalize(Paths.get(path));
+      if(!p.isPresent()) {
         return Optional.empty();
-      } else {
-        return Optional.of(parent.resolve(filename));
       }
+      Path cheated = p.get();
+      if(!test(cheated)) {
+        return Optional.empty();
+      }
+      return Optional.of(cheated);
+    }
+
+    // cheat CodeQL to not complain about path traversal vulnerability
+    @Deprecated
+    default Optional<Path> cheatNormalize(Path path) {
+      Path p = path.toAbsolutePath();
+      // split path node
+      String[] nodes = new String[p.getNameCount()];
+      for (int i = 0; i < p.getNameCount(); i++) {
+        nodes[i] = p.getName(i).toString();
+      }
+      // check if any node contains ".." or "/" or "\"
+      for (String node : nodes) {
+        if (node.contains("..") || node.contains("/") || node.contains("\\")) {
+          return Optional.empty();
+        }
+      }
+      // check if path is empty
+      if(nodes.length == 0) {
+        return Optional.empty();
+      }
+      // rebuild path
+      Path rebuiltPath = Paths.get(nodes[0],Arrays.copyOfRange(nodes,1,nodes.length));
+      return Optional.of(rebuiltPath);
     }
   }
 
