@@ -463,7 +463,7 @@ public class Controller {
     envir.setTestTasks(
         testConfLoader
             .getTaskMap()
-            .get(StorageEngineType.valueOf(testConfLoader.getStorageType().toLowerCase())),
+            .get(StorageEngineType.valueOf(testConfLoader.getStorageType(false).toLowerCase())),
         TEST_TASK_FILE);
     // run the test together
     shellRunner.runShellCommand(MVN_RUN_TEST);

@@ -56,6 +56,15 @@ public class ConfLoader {
   public String getStorageType() {
     String storageType = FileReader.convertToString(RUNNING_STORAGE);
     logInfo("run the test on {}", storageType);
+    return storageType;
+  }
+
+  public String getStorageType(boolean needSpecific) {
+    String storageType = FileReader.convertToString(RUNNING_STORAGE);
+    logInfo("run the test on {}", storageType);
+    if (needSpecific) {
+      return storageType;
+    }
 
     try {
       InputStream in = Files.newInputStream(Paths.get(confPath));
