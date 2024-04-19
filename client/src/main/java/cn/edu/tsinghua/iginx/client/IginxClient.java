@@ -243,7 +243,7 @@ public class IginxClient {
       }
       System.out.println("Goodbye");
     } catch (RuntimeException e) {
-      System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error.");
+      System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error: " + e.getMessage());
       System.out.println(IGINX_CLI_PREFIX + "Use -help for more information");
     } catch (Exception e) {
       System.out.println(IGINX_CLI_PREFIX + "exit cli with error " + e.getMessage());
@@ -302,7 +302,7 @@ public class IginxClient {
   }
 
   private static boolean isRegisterPy(String sql) {
-    return sql.startsWith("register") && sql.contains("python task");
+    return sql.startsWith("create") && sql.contains("function");
   }
 
   private static boolean isQuery(String sql) {
@@ -607,12 +607,11 @@ public class IginxClient {
     }
 
     File file = new File(path);
+    if (!file.exists()) {
+      throw new InvalidParameterException(path + " does not exist!");
+    }
     if (!file.isFile()) {
       throw new InvalidParameterException(path + " is not a file!");
-    }
-    if (!path.endsWith(".csv")) {
-      throw new InvalidParameterException(
-          "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
     }
 
     byte[] bytes = FileUtils.readFileToByteArray(file);
@@ -653,7 +652,7 @@ public class IginxClient {
             Arrays.asList("delete", "columns"),
             Arrays.asList("explain", "select"),
             Arrays.asList("add", "storageengine"),
-            Arrays.asList("register", "python", "task"),
+            Arrays.asList("create", "function"),
             Arrays.asList("drop", "python", "task"),
             Arrays.asList("commit", "transform", "job"),
             Arrays.asList("show", "transform", "job", "status"),

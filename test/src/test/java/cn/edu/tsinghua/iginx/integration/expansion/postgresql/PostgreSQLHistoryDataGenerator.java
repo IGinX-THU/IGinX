@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(PostgreSQLHistoryDataGenerator.class);
 
   private static final char SEPARATOR = '.';
@@ -61,7 +61,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       connection = connect(port, true, null);
       if (connection == null) {
-        logger.error("cannot connect to 127.0.0.1:{}!", port);
+        LOGGER.error("cannot connect to 127.0.0.1:{}!", port);
         return;
       }
 
@@ -85,10 +85,10 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         Statement stmt = connection.createStatement();
         String createDatabaseSql = String.format(CREATE_DATABASE_STATEMENT, databaseName);
         try {
-          logger.info("create database with stmt: {}", createDatabaseSql);
+          LOGGER.info("create database with stmt: {}", createDatabaseSql);
           stmt.execute(createDatabaseSql);
         } catch (SQLException e) {
-          logger.info("database {} exists!", databaseName);
+          LOGGER.info("database {} exists!", databaseName);
         }
         stmt.close();
 
@@ -137,17 +137,16 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
       connection.close();
 
-      logger.info("write data to 127.0.0.1:{} success!", port);
+      LOGGER.info("write data to 127.0.0.1:{} success!", port);
     } catch (RuntimeException | SQLException e) {
-      logger.error("write data to 127.0.0.1:{} failure: {}", port, e.getMessage());
-      e.printStackTrace();
+      LOGGER.error("write data to 127.0.0.1:{} failure: ", port, e);
     } finally {
       try {
         if (connection != null) {
           connection.close();
         }
       } catch (SQLException e) {
-        logger.error("close connection failure: {}", e.getMessage());
+        LOGGER.error("close connection failure: ", e);
       }
     }
   }
@@ -182,16 +181,16 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       databaseSet.close();
       stmt.close();
       conn.close();
-      logger.info("clear data on 127.0.0.1:{} success!", port);
+      LOGGER.info("clear data on 127.0.0.1:{} success!", port);
     } catch (SQLException e) {
-      logger.warn("clear data on 127.0.0.1:{} failure: {}", port, e.getMessage());
+      LOGGER.warn("clear data on 127.0.0.1:{} failure: ", port, e);
     } finally {
       try {
         if (conn != null) {
           conn.close();
         }
       } catch (SQLException e) {
-        logger.error("close connection failure: {}", e.getMessage());
+        LOGGER.error("close connection failure: ", e);
       }
     }
   }

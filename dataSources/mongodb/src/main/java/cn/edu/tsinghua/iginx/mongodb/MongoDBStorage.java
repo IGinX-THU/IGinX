@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
@@ -24,9 +25,9 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.mongodb.dummy.DummyQuery;
+import cn.edu.tsinghua.iginx.mongodb.dummy.SampleQuery;
 import cn.edu.tsinghua.iginx.mongodb.dummy.SchemaSample;
 import cn.edu.tsinghua.iginx.mongodb.entity.ColumnQuery;
-import cn.edu.tsinghua.iginx.mongodb.entity.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.mongodb.entity.JoinQuery;
 import cn.edu.tsinghua.iginx.mongodb.entity.SourceTable;
 import cn.edu.tsinghua.iginx.mongodb.tools.FilterUtils;
@@ -44,6 +45,7 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.*;
+import java.text.ParseException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -56,18 +58,21 @@ import org.slf4j.LoggerFactory;
 
 public class MongoDBStorage implements IStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(MongoDBStorage.class.getName());
+  private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBStorage.class);
 
   private static final long MAX_WAIT_TIME = 5;
   private static final int SESSION_POOL_MAX_SIZE = 200;
   public static final String VALUE_FIELD = "v";
   public static final String[] SYSTEM_DBS = new String[] {"admin", "config", "local"};
   public static final String SCHEMA_SAMPLE_SIZE = "schema.sample.size";
+  public static final String QUERY_SAMPLE_SIZE = "dummy.sample.size";
   public static final String SCHEMA_SAMPLE_SIZE_DEFAULT = "1000";
+  public static final String QUERY_SAMPLE_SIZE_DEFAULT = "0";
 
   private final MongoClient client;
 
   private final int schemaSampleSize;
+  private final int querySampleSize;
 
   public MongoDBStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(StorageEngineType.mongodb)) {
@@ -78,11 +83,15 @@ public class MongoDBStorage implements IStorage {
         meta.getExtraParams().getOrDefault(SCHEMA_SAMPLE_SIZE, SCHEMA_SAMPLE_SIZE_DEFAULT);
     this.schemaSampleSize = Integer.parseInt(sampleSize);
 
+    String querySampleSize =
+        meta.getExtraParams().getOrDefault(QUERY_SAMPLE_SIZE, QUERY_SAMPLE_SIZE_DEFAULT);
+    this.querySampleSize = Integer.parseInt(querySampleSize);
+
     try {
       this.client = connect(meta.getIp(), meta.getPort());
     } catch (Exception e) {
       String message = "fail to connect " + meta.getIp() + ":" + meta.getPort();
-      logger.error(message, e);
+      LOGGER.error(message, e);
       throw new StorageInitializationException(message);
     }
   }
@@ -135,11 +144,16 @@ public class MongoDBStorage implements IStorage {
 
     try {
       Filter unionFilter = rangeUnionWithFilter(range, filter);
-      RowStream result = new DummyQuery(this.client).query(patterns, unionFilter);
+      RowStream result;
+      if (querySampleSize > 0) {
+        result = new SampleQuery(this.client, this.querySampleSize).query(patterns, unionFilter);
+      } else {
+        result = new DummyQuery(this.client).query(patterns, unionFilter);
+      }
       return new TaskExecuteResult(result);
     } catch (Exception e) {
-      logger.error("dummy project {} where {}", patterns, filter);
-      logger.error("failed to dummy query ", e);
+      LOGGER.error("dummy project {} where {}", patterns, filter);
+      LOGGER.error("failed to dummy query ", e);
       return new TaskExecuteResult(new PhysicalException("failed to query dummy", e));
     }
   }
@@ -168,7 +182,7 @@ public class MongoDBStorage implements IStorage {
       if (tagFilter != null) {
         message += " with " + tagFilter;
       }
-      logger.error(message, e);
+      LOGGER.error(message, e);
       return new TaskExecuteResult(new PhysicalException("failed to project", e));
     }
   }
@@ -202,8 +216,8 @@ public class MongoDBStorage implements IStorage {
         }
       }
     } catch (Exception e) {
-      logger.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
-      logger.error("failed to delete", e);
+      LOGGER.error("delete {} from {} where {} with {}", patterns, unit, ranges, tagFilter);
+      LOGGER.error("failed to delete", e);
       return new TaskExecuteResult(new PhysicalException("failed to delete", e));
     }
     return new TaskExecuteResult();
@@ -268,7 +282,7 @@ public class MongoDBStorage implements IStorage {
         }
       }
     } catch (Exception e) {
-      logger.error("failed to insert", e);
+      LOGGER.error("failed to insert", e);
       return new TaskExecuteResult(new PhysicalException("failed to insert", e));
     }
     return new TaskExecuteResult();
@@ -298,7 +312,8 @@ public class MongoDBStorage implements IStorage {
         if (schemaSampleSize > 0) {
           MongoCollection<BsonDocument> collection =
               db.getCollection(collectionName, BsonDocument.class);
-          Map<String, DataType> sampleSchema = new SchemaSample(schemaSampleSize).query(collection);
+          Map<String, DataType> sampleSchema =
+              new SchemaSample(schemaSampleSize).query(collection, true);
           for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
             columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
           }
@@ -329,7 +344,11 @@ public class MongoDBStorage implements IStorage {
   private static List<Field> getFields(MongoDatabase db) {
     List<Field> fields = new ArrayList<>();
     for (String collectionName : db.listCollectionNames()) {
-      fields.add(NameUtils.parseCollectionName(collectionName));
+      try {
+        fields.add(NameUtils.parseCollectionName(collectionName));
+      } catch (ParseException e) {
+        throw new IllegalStateException("failed to parse collection name: " + collectionName, e);
+      }
     }
     return fields;
   }
@@ -362,7 +381,7 @@ public class MongoDBStorage implements IStorage {
     ColumnsInterval columnsInterval =
         new ColumnsInterval(first.getStartColumn(), last.getEndColumn());
 
-    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     return new Pair<>(columnsInterval, keyInterval);
   }
 

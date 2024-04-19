@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 
 public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
 
   public FileSystemCapacityExpansionIT() {
     super(filesystem, "chunk_size_in_bytes:8");

@@ -1,10 +1,7 @@
 package cn.edu.tsinghua.iginx.mongodb.dummy;
 
 import cn.edu.tsinghua.iginx.mongodb.tools.NameUtils;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 class PathTree {
 
@@ -15,6 +12,41 @@ class PathTree {
   public PathTree() {
     this.children = new HashMap<>();
     this.leaf = false;
+  }
+
+  public static PathTree of(Iterable<String> patterns) {
+    PathTree pathTree = new PathTree();
+    if (patterns != null) {
+      for (String pattern : patterns) {
+        pathTree.put(Arrays.stream(pattern.split("\\.")).iterator());
+      }
+    }
+    return pathTree;
+  }
+
+  public boolean match(ListIterator<String> nodes) {
+    if (!nodes.hasNext()) {
+      return leaf;
+    }
+    String node = nodes.next();
+    try {
+      if (children.containsKey(node)) {
+        if (children.get(node).match(nodes)) {
+          return true;
+        }
+      }
+      if (children.containsKey(null)) {
+        if (this.match(nodes)) {
+          return true;
+        }
+        if (children.get(null).match(nodes)) {
+          return true;
+        }
+      }
+    } finally {
+      nodes.previous();
+    }
+    return false;
   }
 
   public void put(Iterator<String> nodes) {

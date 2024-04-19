@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class HotSpotMonitor implements IMonitor {
 
-  private static final Logger logger = LoggerFactory.getLogger(HotSpotMonitor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(HotSpotMonitor.class);
 
   private final boolean isEnableMonitor =
       ConfigDescriptor.getInstance().getConfig().isEnableMonitor();

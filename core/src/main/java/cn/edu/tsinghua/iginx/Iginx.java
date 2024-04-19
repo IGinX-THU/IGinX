@@ -35,7 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class Iginx {
 
-  private static final Logger logger = LoggerFactory.getLogger(Iginx.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Iginx.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -64,7 +64,7 @@ public class Iginx {
             .maxWorkerThreads(config.getMaxThriftWrokerThreadNum());
     args.protocolFactory(new TBinaryProtocol.Factory());
     TServer server = new TThreadPoolServer(args);
-    logger.info("iginx starts successfully!");
+    LOGGER.info("iginx starts successfully!");
     System.out.print("\n\nIGinX is now in service......\n\n");
     server.serve();
   }

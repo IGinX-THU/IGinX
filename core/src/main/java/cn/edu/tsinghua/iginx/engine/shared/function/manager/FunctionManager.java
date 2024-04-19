@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
@@ -57,6 +59,8 @@ import pemja.core.PythonInterpreterConfig;
 
 public class FunctionManager {
 
+  private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
+
   private static final int INTERPRETER_NUM = 5;
 
   private final Map<String, Function> functions;
@@ -64,8 +68,6 @@ public class FunctionManager {
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-
-  private static final Logger logger = LoggerFactory.getLogger(FunctionManager.class);
 
   private static final String PY_SUFFIX = ".py";
 
@@ -104,7 +106,7 @@ public class FunctionManager {
     for (String udf : udfList) {
       String[] udfInfo = udf.split(",");
       if (udfInfo.length != 4) {
-        logger.error("udf info len must be 4.");
+        LOGGER.error("udf info len must be 4.");
         continue;
       }
       UDFType udfType;
@@ -122,7 +124,7 @@ public class FunctionManager {
           udfType = UDFType.TRANSFORM;
           break;
         default:
-          logger.error("unknown udf type: " + udfInfo[0]);
+          LOGGER.error("unknown udf type: {}", udfInfo[0]);
           continue;
       }
       metaList.add(
@@ -170,6 +172,10 @@ public class FunctionManager {
     return loadUDF(identifier);
   }
 
+  public void removeFunction(String identifier) {
+    functions.remove(identifier);
+  }
+
   private Function loadUDF(String identifier) {
     // load the udf & put it in cache.
     TransformTaskMeta taskMeta = metaManager.getTransformTask(identifier);
@@ -186,8 +192,17 @@ public class FunctionManager {
         PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
 
     String fileName = taskMeta.getFileName();
-    String moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+    String moduleName;
     String className = taskMeta.getClassName();
+    if (fileName.endsWith(PY_SUFFIX)) {
+      // accessing a python code file
+      moduleName = fileName.substring(0, fileName.indexOf(PY_SUFFIX));
+      className = taskMeta.getClassName();
+    } else {
+      // accessing a python module dir
+      moduleName = className.substring(0, className.lastIndexOf("."));
+      className = className.substring(className.lastIndexOf(".") + 1);
+    }
 
     // init the python udf
     BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
@@ -216,6 +231,17 @@ public class FunctionManager {
       }
       throw new IllegalArgumentException(
           String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
+    }
+  }
+
+  // use pip to install requirements.txt in module root dir
+  public void installReqsByPip(String rootPath) throws Exception {
+    String reqFilePath = String.join(File.separator, PATH, rootPath, "requirements.txt");
+    File file = new File(reqFilePath);
+    if (file.exists()) {
+      runCommand(config.getPythonCMD(), "-m", "pip", "install", "-r", reqFilePath);
+    } else {
+      LOGGER.warn("No requirement document provided for python module {}.", rootPath);
     }
   }
 

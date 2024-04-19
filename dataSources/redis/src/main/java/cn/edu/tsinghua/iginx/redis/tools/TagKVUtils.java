@@ -18,85 +18,56 @@
  */
 package cn.edu.tsinghua.iginx.redis.tools;
 
-import cn.edu.tsinghua.iginx.conf.Config;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.ColumnKeyTranslator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.utils.Escaper;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.Arrays;
+import java.text.ParseException;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TagKVUtils {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TagKVUtils.class);
 
-  public static final String tagNameAnnotation = Config.tagNameAnnotation;
+  private static final ColumnKeyTranslator COLUMN_KEY_TRANSLATOR =
+      new ColumnKeyTranslator(',', '=', getEscaper());
 
-  public static final String tagPrefix = Config.tagPrefix;
-
-  public static final String tagSuffix = Config.tagSuffix;
+  private static Escaper getEscaper() {
+    Map<Character, Character> replacementMap = new HashMap<>();
+    replacementMap.put('\\', '\\');
+    replacementMap.put(',', ',');
+    replacementMap.put('=', '=');
+    return new Escaper('\\', replacementMap);
+  }
 
   public static String toFullName(String name, Map<String, String> tags) {
-    if (tags != null && !tags.isEmpty()) {
-      TreeMap<String, String> sortedTags = new TreeMap<>(tags);
-      StringBuilder pathBuilder = new StringBuilder();
-      sortedTags.forEach(
-          (tagKey, tagValue) -> {
-            pathBuilder
-                .append('.')
-                .append(TagKVUtils.tagNameAnnotation)
-                .append(tagKey)
-                .append('.')
-                .append(tagValue);
-          });
-      name += pathBuilder.toString();
+    if (tags == null) {
+      tags = Collections.emptyMap();
     }
-    return name;
+    ColumnKey columnKey = new ColumnKey(name, tags);
+    return COLUMN_KEY_TRANSLATOR.translate(columnKey);
   }
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
-    if (!fullName.contains(tagNameAnnotation)) {
-      return new Pair<>(fullName, null);
+    try {
+      ColumnKey columnKey = COLUMN_KEY_TRANSLATOR.translate(fullName);
+      return new Pair<>(columnKey.getPath(), columnKey.getTags());
+    } catch (ParseException e) {
+      throw new IllegalStateException("Failed to parse identifier: " + fullName, e);
     }
+  }
 
-    String[] parts = fullName.split(tagNameAnnotation, 2);
-    assert parts.length == 2;
-    String name = parts[0].substring(0, parts[0].length() - 1);
-
-    List<String> tagKVList =
-        Arrays.stream(parts[1].split("\\."))
-            .map(
-                e -> {
-                  if (e.startsWith(tagNameAnnotation)) {
-                    return e.substring(tagNameAnnotation.length());
-                  } else {
-                    return e;
-                  }
-                })
-            .collect(Collectors.toList());
-    assert tagKVList.size() % 2 == 0;
-    Map<String, String> tags = new HashMap<>();
-    for (int i = 0; i < tagKVList.size(); i++) {
-      if (i % 2 == 0) {
-        continue;
-      }
-      String tagKey = tagKVList.get(i - 1);
-      String tagValue = tagKVList.get(i);
-      tags.put(tagKey, tagValue);
-    }
-    return new Pair<>(name, tags);
+  public static String getPattern(String name) {
+    String escaped = COLUMN_KEY_TRANSLATOR.getEscaper().escape(name);
+    return escaped.replaceAll("[?^{}\\[\\]\\\\]", "\\\\$0");
   }
 
   public static boolean match(Map<String, String> tags, TagFilter tagFilter) {

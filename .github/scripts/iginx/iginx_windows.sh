@@ -24,7 +24,7 @@ interval=2
 
 elapsed_time=0
 while [ $elapsed_time -lt $timeout ]; do
-  last_lines=$(tail -n 10 "$log_file")
+  last_lines=$(tail -n 20 "$log_file")
   if echo "$last_lines" | grep -q "IGinX is now in service......"; then
     echo "IGinX started successfully"
     exit 0

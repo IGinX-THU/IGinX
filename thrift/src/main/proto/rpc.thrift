@@ -158,6 +158,11 @@ struct Status {
     3: optional list<Status> subStatus
 }
 
+struct UDFClassPair {
+    1: required string name
+    2: required string classPath
+}
+
 struct OpenSessionReq {
     1: optional string username
     2: optional string password
@@ -564,10 +569,9 @@ struct CancelTransformJobReq {
 
 struct RegisterTaskReq {
     1: required i64 sessionId
-    2: required string name
-    3: required string filePath
-    4: required string className
-    5: required UDFType type;
+    2: required string filePath
+    3: required list<UDFClassPair> UDFClassPairs
+    4: required list<UDFType> types
 }
 
 struct DropTaskReq {

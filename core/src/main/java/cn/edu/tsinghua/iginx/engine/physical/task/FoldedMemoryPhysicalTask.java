@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
 
-  private static final Logger logger = LoggerFactory.getLogger(FoldedMemoryPhysicalTask.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FoldedMemoryPhysicalTask.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -154,7 +154,7 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
               }
             }
           } catch (PhysicalException e) {
-            logger.error("encounter error when execute operator in memory: ", e);
+            LOGGER.error("encounter error when execute operator in memory: ", e);
             throw new RuntimeException(e);
           }
         });

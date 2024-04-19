@@ -34,7 +34,7 @@ import org.slf4j.LoggerFactory;
 
 public class MeasurementMapper {
 
-  private static final Logger logger = LoggerFactory.getLogger(MeasurementMapper.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MeasurementMapper.class);
 
   private static final ConcurrentMap<String, ConcurrentMap<String, java.lang.reflect.Field>>
       CLASS_FIELD_CACHE = new ConcurrentHashMap<>();
@@ -70,7 +70,7 @@ public class MeasurementMapper {
               }
 
               if (value == null) {
-                logger.debug("Field {} of {} has null value", field.getName(), measurement);
+                LOGGER.debug("Field {} of {} has null value", field.getName(), measurement);
                 return;
               }
 
@@ -105,7 +105,7 @@ public class MeasurementMapper {
 
     Record record = recordBuilder.build();
 
-    logger.debug("Mapped measurement: {} to record: {}", measurement, record);
+    LOGGER.debug("Mapped measurement: {} to record: {}", measurement, record);
 
     return record;
   }

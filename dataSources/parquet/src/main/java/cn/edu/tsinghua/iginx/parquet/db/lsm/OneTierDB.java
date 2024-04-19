@@ -251,8 +251,8 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
           "flushing is triggered when write buffer dirtied time {}ms reaching {}ms",
           interval,
           timeout);
-
-      commitMemoryTable(true, latch);
+      boolean temp = bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize();
+      commitMemoryTable(temp, latch);
     } finally {
       checkLock.unlock();
     }
@@ -343,6 +343,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     deleteLock.writeLock().lock();
     try {
       LOGGER.debug("start to clear {}", name);
+      previousTableName = null;
       tableStorage.clear();
       tableIndex.clear();
       writeBuffer.clear();
@@ -358,9 +359,13 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
 
   @Override
   public void close() throws Exception {
-    LOGGER.info("flushing is triggered when closing");
     scheduler.shutdown();
-    commitMemoryTable(false, new CountDownLatch(1));
+    if (shared.getStorageProperties().toFlushOnClose()) {
+      LOGGER.info("flushing is triggered when closing");
+      CountDownLatch latch = new CountDownLatch(1);
+      commitMemoryTable(false, latch);
+      latch.await();
+    }
     tableStorage.close();
     tableIndex.close();
   }

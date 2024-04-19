@@ -23,6 +23,7 @@ import java.util.StringJoiner;
 
 /** The properties of storage engine */
 public class StorageProperties {
+  private final boolean flushOnClose;
   private final long writeBufferSize;
   private final Duration writeBufferTimeout;
   private final long writeBatchSize;
@@ -40,6 +41,7 @@ public class StorageProperties {
   /**
    * Construct a StorageProperties
    *
+   * @param flushOnClose whether to flush on close
    * @param writeBufferSize the size of write buffer, bytes
    * @param writeBatchSize the size of write batch, bytes
    * @param compactPermits the number of flusher permits
@@ -50,6 +52,7 @@ public class StorageProperties {
    * @param parquetPageSize the size of parquet page, bytes
    */
   private StorageProperties(
+      boolean flushOnClose,
       long writeBufferSize,
       Duration writeBufferTimeout,
       long writeBatchSize,
@@ -63,6 +66,7 @@ public class StorageProperties {
       int zstdLevel,
       int zstdWorkers,
       int parquetLz4BufferSize) {
+    this.flushOnClose = flushOnClose;
     this.writeBufferSize = writeBufferSize;
     this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
@@ -76,6 +80,15 @@ public class StorageProperties {
     this.zstdLevel = zstdLevel;
     this.zstdWorkers = zstdWorkers;
     this.parquetLz4BufferSize = parquetLz4BufferSize;
+  }
+
+  /**
+   * Get whether to flush on close
+   *
+   * @return whether to flush on close
+   */
+  public boolean toFlushOnClose() {
+    return flushOnClose;
   }
 
   /**
@@ -226,6 +239,7 @@ public class StorageProperties {
 
   /** A builder of StorageProperties */
   public static class Builder {
+    public static final String FLUSH_ON_CLOSE = "close.flush";
     public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
     public static final String WRITE_BUFFER_TIMEOUT = "write.buffer.timeout";
     public static final String WRITE_BATCH_SIZE = "write.batch.size";
@@ -240,6 +254,7 @@ public class StorageProperties {
     public static final String ZSTD_WORKERS = "zstd.workers";
     public static final String PARQUET_LZ4_BUFFER_SIZE = "parquet.lz4.buffer.size";
 
+    private boolean flushOnClose = true;
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
@@ -255,6 +270,17 @@ public class StorageProperties {
     private int parquetLz4BufferSize = 256 * 1024; // BYTE
 
     private Builder() {}
+
+    /**
+     * Set whether to flush on close
+     *
+     * @param flushOnClose whether to flush on close
+     * @return this builder
+     */
+    public Builder setFlushOnClose(boolean flushOnClose) {
+      this.flushOnClose = flushOnClose;
+      return this;
+    }
 
     /**
      * Set the size of write buffer in bytes
@@ -417,6 +443,7 @@ public class StorageProperties {
      * @param properties the properties to be parsed
      *     <p>Supported keys:
      *     <ul>
+     *       <li>close.flush: whether to flush on close
      *       <li>write.buffer.size: the size of write buffer, bytes
      *       <li>write.buffer.timeout: the timeout of write buffer to flush, iso-8601
      *       <li>write.batch.size: the size of write batch, bytes
@@ -435,6 +462,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder parse(Map<String, String> properties) {
+      ParseUtils.getOptionalBoolean(properties, FLUSH_ON_CLOSE).ifPresent(this::setFlushOnClose);
       ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
       ParseUtils.getOptionalDuration(properties, WRITE_BUFFER_TIMEOUT)
           .ifPresent(this::setWriteBufferTimeout);
@@ -464,6 +492,7 @@ public class StorageProperties {
      */
     public StorageProperties build() {
       return new StorageProperties(
+          flushOnClose,
           writeBufferSize,
           writeBufferTimeout,
           writeBatchSize,

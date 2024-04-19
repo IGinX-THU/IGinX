@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ExtraParamTest {
-  public static final Logger logger = LoggerFactory.getLogger(ExtraParamTest.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(ExtraParamTest.class);
 
   private static final Map<String, String> extraParam = new HashMap<>();
 
@@ -100,7 +100,7 @@ public class ExtraParamTest {
   public void invalidLinuxDirPathTest() {
     assumeTrue(isOnOs("linux") || isOnOs("mac"));
 
-    logger.info("Testing invalid paths in linux/macOS...");
+    LOGGER.info("Testing invalid paths in linux/macOS...");
 
     // [<dataDir, dummyDir>...]
     List<Pair<String, String>> pathPairList =
@@ -117,7 +117,7 @@ public class ExtraParamTest {
   public void invalidWindowsDirPathTest() {
     assumeTrue(isOnOs("win"));
 
-    logger.info("Testing invalid paths in windows...");
+    LOGGER.info("Testing invalid paths in windows...");
 
     // [<dataDir, dummyDir>...]
     List<Pair<String, String>> pathPairList =

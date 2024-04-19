@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 public class EnvUtils {
 
-  private static final Logger logger = LoggerFactory.getLogger(EnvUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(EnvUtils.class);
 
   public static boolean loadEnv(String name, boolean defaultValue) {
     String env = System.getProperty(name);
@@ -34,7 +34,7 @@ public class EnvUtils {
     try {
       return Boolean.parseBoolean(env);
     } catch (NumberFormatException e) {
-      logger.error("unexpected boolean env: {} = {}", name, env);
+      LOGGER.error("unexpected boolean env: {} = {}", name, env);
       return defaultValue;
     }
   }
@@ -48,7 +48,7 @@ public class EnvUtils {
     try {
       return Long.parseLong(env);
     } catch (NumberFormatException e) {
-      logger.error("unexpected long env: {} = {}", name, env);
+      LOGGER.error("unexpected long env: {} = {}", name, env);
       return defaultValue;
     }
   }
@@ -62,7 +62,7 @@ public class EnvUtils {
     try {
       return Integer.parseInt(env);
     } catch (NumberFormatException e) {
-      logger.error("unexpected int env: {} = {}", name, env);
+      LOGGER.error("unexpected int env: {} = {}", name, env);
       return defaultValue;
     }
   }
@@ -76,7 +76,7 @@ public class EnvUtils {
     try {
       return Double.parseDouble(env);
     } catch (NumberFormatException e) {
-      logger.error("unexpected double env: {} = {}", name, env);
+      LOGGER.error("unexpected double env: {} = {}", name, env);
       return defaultValue;
     }
   }
@@ -90,7 +90,7 @@ public class EnvUtils {
     try {
       return Float.parseFloat(env);
     } catch (NumberFormatException e) {
-      logger.error("unexpected float env: {} = {}", name, env);
+      LOGGER.error("unexpected float env: {} = {}", name, env);
       return defaultValue;
     }
   }

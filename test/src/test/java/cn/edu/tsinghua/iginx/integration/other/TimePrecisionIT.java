@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 public class TimePrecisionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TimePrecisionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TimePrecisionIT.class);
 
   private static Session session;
 

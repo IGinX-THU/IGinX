@@ -4,7 +4,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUs
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
@@ -122,12 +122,7 @@ import cn.edu.tsinghua.iginx.sql.statement.select.CommonTableExpression;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
-import cn.edu.tsinghua.iginx.thrift.StorageEngine;
-import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.TimeUtils;
 import java.util.*;
@@ -182,9 +177,26 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     ImportFile importFile = parseImportFileClause(ctx.importFileClause());
 
     InsertStatement insertStatement = new InsertStatement(RawDataType.NonAlignedRow);
-    parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
+    if (ctx.insertFullPathSpec() == null)
+      parsePartialPathSpec(ctx.path(), ctx.tagList(), insertStatement);
+    else parseInsertFullPathSpec(ctx.insertFullPathSpec(), insertStatement);
 
-    return new InsertFromCsvStatement(importFile, insertStatement);
+    long keyBase = ctx.keyBase == null ? 0 : Long.parseLong(ctx.keyBase.getText());
+    String keyCol =
+        ctx.keyName == null
+            ? null
+            : ctx.keyName.getText().substring(1, ctx.keyName.getText().length() - 1);
+    return new InsertFromCsvStatement(importFile, insertStatement, keyBase, keyCol);
+  }
+
+  private void parsePartialPathSpec(
+      PathContext pathCtx, TagListContext tagCtx, InsertStatement insertStatement) {
+    insertStatement.setPrefixPath(parsePath(pathCtx));
+
+    if (tagCtx != null) {
+      Map<String, String> globalTags = parseTagList(tagCtx);
+      insertStatement.setGlobalTags(globalTags);
+    }
   }
 
   private void parseInsertFullPathSpec(
@@ -386,7 +398,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     // parse where clause
     if (ctx.whereClause() != null) {
       FilterData filterData = parseOrExpression(ctx.whereClause().orExpression(), selectStatement);
-      Filter filter = ExprUtils.removeSingleFilter(filterData.getFilter());
+      Filter filter = LogicalFilterUtils.removeSingleFilter(filterData.getFilter());
       selectStatement.setFilter(filter);
       selectStatement.setHasValueFilter(true);
       filterData.getPathList().forEach(selectStatement::addWherePath);
@@ -691,21 +703,36 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     String filePath = ctx.filePath.getText();
     filePath = filePath.substring(1, filePath.length() - 1);
 
-    String className = ctx.className.getText();
-    className = className.substring(1, className.length() - 1);
+    List<UDFClassPair> classPairs = new ArrayList<>();
+    ctx.udfClassRef()
+        .forEach(
+            e -> {
+              UDFClassPair p =
+                  new UDFClassPair(e.name.getText().trim(), e.className.getText().trim());
+              p.name = p.name.substring(1, p.name.length() - 1).trim();
+              p.classPath = p.classPath.substring(1, p.classPath.length() - 1).trim();
+              classPairs.add(p);
+            });
 
-    String name = ctx.name.getText();
-    name = name.substring(1, name.length() - 1);
-
-    UDFType type = UDFType.TRANSFORM;
-    if (ctx.udfType().UDTF() != null) {
-      type = UDFType.UDTF;
-    } else if (ctx.udfType().UDAF() != null) {
-      type = UDFType.UDAF;
-    } else if (ctx.udfType().UDSF() != null) {
-      type = UDFType.UDSF;
-    }
-    return new RegisterTaskStatement(name, filePath, className, type);
+    List<UDFType> types = new ArrayList<>();
+    ctx.udfType()
+        .forEach(
+            e -> {
+              switch (e.getText().trim().toLowerCase()) {
+                case "udsf":
+                  types.add(UDFType.UDSF);
+                  break;
+                case "udtf":
+                  types.add(UDFType.UDTF);
+                  break;
+                case "udaf":
+                  types.add(UDFType.UDAF);
+                  break;
+                default:
+                  types.add(UDFType.TRANSFORM);
+              }
+            });
+    return new RegisterTaskStatement(filePath, classPairs, types);
   }
 
   @Override
@@ -1103,25 +1130,19 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   // like standard SQL, limit N, M means limit M offset N
   private void parseLimitClause(LimitClauseContext ctx, SelectStatement selectStatement) {
-    int limit = Integer.MAX_VALUE;
-    int offset = 0;
-    if (ctx.INT().size() == 1) {
-      limit = Integer.parseInt(ctx.INT(0).getText());
-      if (ctx.offsetClause() != null) {
-        offset = Integer.parseInt(ctx.offsetClause().INT().getText());
-      }
-    } else if (ctx.INT().size() == 2) {
-      offset = Integer.parseInt(ctx.INT(0).getText());
-      limit = Integer.parseInt(ctx.INT(1).getText());
-    } else {
-      throw new SQLParserException(
-          "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
-    }
-    selectStatement.setLimit(limit);
-    selectStatement.setOffset(offset);
+    Pair<Integer, Integer> p = getLimitAndOffsetFromCtx(ctx);
+    selectStatement.setLimit(p.k);
+    selectStatement.setOffset(p.v);
   }
 
   private void parseLimitClause(LimitClauseContext ctx, ShowColumnsStatement statement) {
+    Pair<Integer, Integer> p = getLimitAndOffsetFromCtx(ctx);
+    statement.setLimit(p.k);
+    statement.setOffset(p.v);
+  }
+
+  private Pair<Integer, Integer> getLimitAndOffsetFromCtx(LimitClauseContext ctx)
+      throws SQLParserException {
     int limit = Integer.MAX_VALUE;
     int offset = 0;
     if (ctx.INT().size() == 1) {
@@ -1136,8 +1157,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       throw new SQLParserException(
           "Parse limit clause error. Limit clause should like LIMIT M OFFSET N or LIMIT N, M.");
     }
-    statement.setLimit(limit);
-    statement.setOffset(offset);
+    return new Pair<>(limit, offset);
   }
 
   private void parseOrderByClause(OrderByClauseContext ctx, SelectStatement selectStatement) {

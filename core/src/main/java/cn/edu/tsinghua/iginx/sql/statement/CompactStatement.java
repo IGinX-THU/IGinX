@@ -8,7 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class CompactStatement extends SystemStatement {
-  private static final Logger logger = LoggerFactory.getLogger(CompactStatement.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(CompactStatement.class);
 
   public CompactStatement() {
     this.statementType = StatementType.COMPACT;
@@ -21,7 +21,7 @@ public class CompactStatement extends SystemStatement {
       CompactionManager.getInstance().clearFragment();
       ctx.setResult(result);
     } catch (Exception e) {
-      logger.error("execute compact failed", e);
+      LOGGER.error("execute compact failed", e);
       ctx.setResult(new Result(RpcUtils.FAILURE));
     }
   }

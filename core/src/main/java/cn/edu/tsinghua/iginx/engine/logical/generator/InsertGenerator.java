@@ -16,7 +16,6 @@ import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
-import cn.edu.tsinghua.iginx.policy.Utils;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.Statement;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -28,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class InsertGenerator extends AbstractGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(InsertGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InsertGenerator.class);
   private static final InsertGenerator instance = new InsertGenerator();
   private static final IMetaManager metaManager = DefaultMetaManager.getInstance();
   private final IPolicy policy =
@@ -49,7 +48,7 @@ public class InsertGenerator extends AbstractGenerator {
 
     policy.notify(insertStatement);
 
-    List<String> pathList = Utils.getPathListFromStatement(insertStatement);
+    List<String> pathList = new ArrayList<>(insertStatement.getPaths());
 
     ColumnsInterval columnsInterval =
         new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
@@ -70,7 +69,7 @@ public class InsertGenerator extends AbstractGenerator {
       fragments = metaManager.getFragmentMapByColumnsInterval(columnsInterval);
     } else if (policy.isNeedReAllocate()) {
       // on scale-out or any events requiring reallocation
-      logger.debug("Trig ReAllocate!");
+      LOGGER.debug("Trig ReAllocate!");
       Pair<List<FragmentMeta>, List<StorageUnitMeta>> fragmentsAndStorageUnits =
           policy.generateFragmentsAndStorageUnits(insertStatement);
       metaManager.createFragmentsAndStorageUnits(

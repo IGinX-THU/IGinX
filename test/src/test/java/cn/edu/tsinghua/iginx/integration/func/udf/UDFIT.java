@@ -31,10 +31,15 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import cn.edu.tsinghua.iginx.utils.FileUtils;
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -45,10 +50,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class UDFIT {
+  private static final Logger LOGGER = LoggerFactory.getLogger(UDFIT.class);
 
   private static final double delta = 0.01d;
-
-  private static final Logger logger = LoggerFactory.getLogger(UDFIT.class);
 
   private static boolean isScaling;
 
@@ -57,6 +61,27 @@ public class UDFIT {
   private static boolean dummyNoData = true;
 
   private static boolean needCompareResult = true;
+
+  private static List<String> taskToBeRemoved;
+
+  private static final String SINGLE_UDF_REGISTER_SQL =
+      "CREATE FUNCTION %s \"%s\" FROM \"%s\" IN \"%s\";";
+
+  private static final String MULTI_UDF_REGISTER_SQL = "CREATE FUNCTION %s IN \"%s\";";
+
+  private static final String DROP_SQL = "DROP PYTHON TASK \"%s\";";
+
+  private static final String SHOW_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
+
+  private static final String MODULE_PATH =
+      String.join(
+          File.separator,
+          System.getProperty("user.dir"),
+          "src",
+          "test",
+          "resources",
+          "udf",
+          "my_module");
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -127,19 +152,37 @@ public class UDFIT {
     Controller.clearData(session);
   }
 
+  @Before
+  public void resetTaskToBeDropped() {
+    if (taskToBeRemoved == null) {
+      taskToBeRemoved = new ArrayList<>();
+    } else {
+      taskToBeRemoved.clear();
+    }
+  }
+
+  // drop unwanted UDFs no matter what
+  @After
+  public void dropTasks() {
+    for (String name : taskToBeRemoved) {
+      execute(String.format(DROP_SQL, name));
+    }
+    taskToBeRemoved.clear();
+  }
+
   private SessionExecuteSqlResult execute(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
     } catch (SessionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
     }
@@ -147,14 +190,112 @@ public class UDFIT {
     return res;
   }
 
+  // execute a statement and expect failure.
+  private void executeFail(String statement) {
+    LOGGER.info("Execute Statement: \"{}\"", statement);
+
+    SessionExecuteSqlResult res = null;
+    try {
+      res = session.executeSql(statement);
+    } catch (SessionException e) {
+      // don't want to print e because it will be confusing
+      LOGGER.info(
+          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}",
+          statement,
+          e.getMessage());
+      return;
+    }
+
+    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
+      LOGGER.info(
+          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.",
+          statement,
+          res.getParseErrorMsg());
+      return;
+    }
+
+    fail("Statement: \"{}\" execute without failure, which was not expected.");
+  }
+
+  private boolean isUDFRegistered(String udfName) {
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
+    List<String> registerUDFs =
+        ret.getRegisterTaskInfos().stream()
+            .map(RegisterTaskInfo::getName)
+            .collect(Collectors.toList());
+    return registerUDFs.contains(udfName);
+  }
+
+  private boolean isUDFsRegistered(List<String> names) {
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
+    List<String> registerUDFs =
+        ret.getRegisterTaskInfos().stream()
+            .map(RegisterTaskInfo::getName)
+            .collect(Collectors.toList());
+    for (String udfName : names) {
+      if (!registerUDFs.contains(udfName)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // all udf shouldn't be registered.
+  private boolean isUDFsUnregistered(List<String> names) {
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
+    List<String> registerUDFs =
+        ret.getRegisterTaskInfos().stream()
+            .map(RegisterTaskInfo::getName)
+            .collect(Collectors.toList());
+    for (String udfName : names) {
+      if (registerUDFs.contains(udfName)) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * generate multiple UDFs' registration sql command
+   *
+   * @param types UDF types
+   * @param names UDF names that will be used in sql after
+   * @param classPaths UDF class path relative to module root
+   * @param modulePath module dir position
+   * @return a sql string
+   */
+  private String concatMultiUDFReg(
+      List<String> types, List<String> names, List<String> classPaths, String modulePath) {
+    assertEquals(types.size(), names.size());
+    assertEquals(names.size(), classPaths.size());
+    String udfs =
+        IntStream.range(0, types.size())
+            .mapToObj(
+                i ->
+                    String.format(
+                        "%s \"%s\" FROM \"%s\"", types.get(i), names.get(i), classPaths.get(i)))
+            .collect(Collectors.joining(", "));
+    return String.format(MULTI_UDF_REGISTER_SQL, udfs, modulePath);
+  }
+
+  // all UDFs will be registered in one type
+  private String concatMultiUDFReg(
+      String type, List<String> names, List<String> classPaths, String modulePath) {
+    assertEquals(names.size(), classPaths.size());
+    String udfs =
+        IntStream.range(0, names.size())
+            .mapToObj(i -> String.format("\"%s\" FROM \"%s\"", names.get(i), classPaths.get(i)))
+            .collect(Collectors.joining(", "));
+    return String.format(MULTI_UDF_REGISTER_SQL, type + " " + udfs, modulePath);
+  }
+
   @Test
   public void baseTests() {
-    String showRegisterUDF = "SHOW REGISTER PYTHON TASK;";
     String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
     String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
     String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
-    SessionExecuteSqlResult ret = execute(showRegisterUDF);
+    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
 
     List<RegisterTaskInfo> registerUDFs = ret.getRegisterTaskInfos();
     for (RegisterTaskInfo info : registerUDFs) {
@@ -167,6 +308,32 @@ public class UDFIT {
         execute(String.format(udsfSQLFormat, info.getName()));
       }
     }
+  }
+
+  @Test
+  public void testDropTask() {
+    String filePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "mock_udf.py");
+    String udfName = "mock_udf";
+    execute(String.format(SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", filePath));
+    assertTrue(isUDFRegistered(udfName));
+    taskToBeRemoved.add(udfName);
+
+    execute(String.format(DROP_SQL, udfName));
+    // dropped udf cannot be queried
+    assertFalse(isUDFRegistered(udfName));
+    taskToBeRemoved.clear();
+
+    // make sure dropped udf cannot be used
+    String statement = "SELECT " + udfName + "(s1,1) FROM us.d1 WHERE s1 < 10;";
+    executeFail(statement);
   }
 
   @Test
@@ -833,5 +1000,357 @@ public class UDFIT {
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
             + "Total line number = 3\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  @Test
+  public void testImportModule() {
+    String classPath = "my_module.sub_module.sub_class_a.SubClassA";
+    String udfName = "module_udf_test";
+    execute(String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, MODULE_PATH));
+    assertTrue(isUDFRegistered(udfName));
+    taskToBeRemoved.add(udfName);
+
+    String insert = "insert into test(key, a) values (1,2);";
+    execute(insert);
+    String query = "select " + udfName + "(a, 1) from test;";
+    SessionExecuteSqlResult ret = execute(query);
+
+    String expected =
+        "ResultSets:\n"
+            + "+---------+\n"
+            + "|col_inner|\n"
+            + "+---------+\n"
+            + "|        1|\n"
+            + "+---------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // register multiple UDFs in one statement, module/file both allowed.
+  // use same type for all UDF in statement.
+  @Test
+  public void testMultiUDFRegOmit() {
+    // ClassA & ClassB in same python file, & SubClassA in same module
+    List<String> classPaths =
+        new ArrayList<>(
+            Arrays.asList(
+                "my_module.my_class_a.ClassA",
+                "my_module.my_class_a.ClassB",
+                "my_module.sub_module.sub_class_a.SubClassA"));
+    List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
+    String registerSql = concatMultiUDFReg("udsf", names, classPaths, MODULE_PATH);
+    execute(registerSql);
+    assertTrue(isUDFsRegistered(names));
+    taskToBeRemoved.addAll(names);
+
+    // test UDFs' usage
+    String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+-----------+\n"
+            + "|col_outer_a|\n"
+            + "+-----------+\n"
+            + "|          1|\n"
+            + "+-----------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+-----------+\n"
+            + "|col_outer_b|\n"
+            + "+-----------+\n"
+            + "|          1|\n"
+            + "+-----------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // make sure "udf_b" is dropped and cannot be used
+    execute("drop python task \"udf_b\";");
+    assertFalse(isUDFRegistered("udf_b"));
+    taskToBeRemoved.remove("udf_b");
+    executeFail(statement);
+
+    // other udfs in the same module should work normally, use new udf to avoid cache.
+    statement = "select udf_sub(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+---------+\n"
+            + "|col_inner|\n"
+            + "+---------+\n"
+            + "|        1|\n"
+            + "+---------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // register multiple UDFs in one statement, module/file both allowed.
+  // specify different type for each UDF in statement.
+  @Test
+  public void testMultiUDFRegSep() {
+    List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
+    // ClassA & ClassB in same python file, & SubClassA in same module
+    List<String> classPaths =
+        new ArrayList<>(
+            Arrays.asList(
+                "my_module.my_class_a.ClassA",
+                "my_module.my_class_a.ClassB",
+                "my_module.sub_module.sub_class_a.SubClassA"));
+    List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
+    String register = concatMultiUDFReg(types, names, classPaths, MODULE_PATH);
+    execute(register);
+    assertTrue(isUDFsRegistered(names));
+    taskToBeRemoved.addAll(names);
+
+    // test UDFs' usage
+    String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-----------+\n"
+            + "|key|col_outer_a|\n"
+            + "+---+-----------+\n"
+            + "|  0|          1|\n"
+            + "|  1|          1|\n"
+            + "|  2|          1|\n"
+            + "|  3|          1|\n"
+            + "|  4|          1|\n"
+            + "|  5|          1|\n"
+            + "|  6|          1|\n"
+            + "|  7|          1|\n"
+            + "|  8|          1|\n"
+            + "|  9|          1|\n"
+            + "+---+-----------+\n"
+            + "Total line number = 10\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+-----------+\n"
+            + "|col_outer_b|\n"
+            + "+-----------+\n"
+            + "|          1|\n"
+            + "+-----------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // make sure "udf_b" is dropped and cannot be used
+    execute("drop python task \"udf_b\";");
+    assertFalse(isUDFRegistered("udf_b"));
+    taskToBeRemoved.remove("udf_b");
+    executeFail(statement);
+
+    // other udfs in the same module should work normally, use new udf to avoid cache.
+    statement = "select udf_sub(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+---------+\n"
+            + "|col_inner|\n"
+            + "+---------+\n"
+            + "|        1|\n"
+            + "+---------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // register multiple UDFs in one python file
+  @Test
+  public void testMultiUDFRegFile() {
+    String moduleFilePath =
+        String.join(
+            File.separator,
+            System.getProperty("user.dir"),
+            "src",
+            "test",
+            "resources",
+            "udf",
+            "my_module",
+            "idle_classes.py");
+    List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
+    // ClassA, ClassB & ClassC in same python file
+    List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
+    List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
+    String register = concatMultiUDFReg(types, names, classPaths, moduleFilePath);
+    execute(register);
+    assertTrue(isUDFsRegistered(names));
+    taskToBeRemoved.addAll(names);
+
+    // test UDFs' usage
+    String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+---+-----------+\n"
+            + "|key|col_outer_a|\n"
+            + "+---+-----------+\n"
+            + "|  0|          1|\n"
+            + "|  1|          1|\n"
+            + "|  2|          1|\n"
+            + "|  3|          1|\n"
+            + "|  4|          1|\n"
+            + "|  5|          1|\n"
+            + "|  6|          1|\n"
+            + "|  7|          1|\n"
+            + "|  8|          1|\n"
+            + "|  9|          1|\n"
+            + "+---+-----------+\n"
+            + "Total line number = 10\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+-----------+\n"
+            + "|col_outer_b|\n"
+            + "+-----------+\n"
+            + "|          1|\n"
+            + "+-----------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
+    // make sure "udf_b" is dropped and cannot be used
+    execute("drop python task \"udf_b\";");
+    assertFalse(isUDFRegistered("udf_b"));
+    taskToBeRemoved.remove("udf_b");
+    executeFail(statement);
+
+    // other udfs in the same file should work normally, use new udf to avoid cache.
+    statement = "select udf_c(s1,1) from us.d1 where s1 < 10;";
+    ret = execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+-----------+\n"
+            + "|col_outer_c|\n"
+            + "+-----------+\n"
+            + "|          1|\n"
+            + "+-----------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // multiple UDFs registration should fail when:
+  // 1. same class name
+  // 2. same name
+  // 3. counts of classes, types, names do not match (names and classes come in pairs so count of
+  // types matters)
+  @Test
+  public void testMultiRegFail() {
+    String register;
+    List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
+    List<String> classPaths =
+        new ArrayList<>(
+            Arrays.asList(
+                "my_module.my_class_a.ClassA",
+                "my_module.my_class_a.ClassB",
+                "my_module.sub_module.sub_class_a.SubClassA"));
+    List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
+
+    // 2 types for 3 UDFs
+    register =
+        "create function "
+            + types.get(0)
+            + " \""
+            + names.get(0)
+            + "\" from \""
+            + classPaths.get(0)
+            + "\", "
+            + types.get(1)
+            + " \""
+            + names.get(1)
+            + "\" from \""
+            + classPaths.get(1)
+            + "\", "
+            + "\""
+            + names.get(2)
+            + "\" from \""
+            + classPaths.get(2)
+            + "\" in \""
+            + MODULE_PATH
+            + "\";";
+    executeFail(register);
+    assertTrue(isUDFsUnregistered(names));
+
+    // same class name
+    List<String> classPathWrong =
+        new ArrayList<>(
+            Arrays.asList(
+                "my_module.my_class_a.ClassA",
+                "my_module.my_class_a.ClassB",
+                "my_module.my_class_a.ClassB"));
+    register = concatMultiUDFReg(types, names, classPathWrong, MODULE_PATH);
+    executeFail(register);
+    assertTrue(isUDFsUnregistered(names));
+
+    // same name
+    List<String> nameWrong = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_b"));
+    register = concatMultiUDFReg(types, nameWrong, classPaths, MODULE_PATH);
+    executeFail(register);
+    assertTrue(isUDFsUnregistered(names));
+  }
+
+  @Test
+  public void testModuleInstall() {
+    String classPath = "my_module.dateutil_test.Test";
+    String name = "dateutil_test";
+    String type = "udsf";
+    execute(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
+    assertTrue(isUDFRegistered(name));
+    taskToBeRemoved.add(name);
+
+    // test UDFs' usage
+    String statement = "select " + name + "(s1,1) from us.d1 where s1 < 10;";
+    SessionExecuteSqlResult ret = execute(statement);
+    String expected =
+        "ResultSets:\n"
+            + "+---+----+------+-----+----+\n"
+            + "|day|hour|minute|month|year|\n"
+            + "+---+----+------+-----+----+\n"
+            + "|  5|  14|    30|    4|2023|\n"
+            + "+---+----+------+-----+----+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+  }
+
+  // module with illegal requirements.txt cannot be registered.
+  @Test
+  public void testModuleInstallFail() {
+    String newFileName = "requirements_backup.txt";
+    String classPath = "my_module.dateutil_test.Test";
+    String name = "dateutil_test";
+    String type = "udsf";
+    File reqFile = new File(String.join(File.separator, MODULE_PATH, "requirements.txt"));
+    File renamedFile = new File(String.join(File.separator, MODULE_PATH, newFileName));
+    String statement = String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH);
+    try {
+      FileUtils.copyFileOrDir(reqFile, renamedFile);
+    } catch (IOException e) {
+      LOGGER.error("Can't rename file:{}.", reqFile, e);
+      fail();
+    }
+
+    // append an illegal package(wrong name)
+    try {
+      FileUtils.appendFile(reqFile, "\nillegal-package");
+      executeFail(statement);
+      assertFalse(isUDFRegistered(name));
+    } catch (IOException e) {
+      LOGGER.error("Append content to file:{} failed.", reqFile, e);
+      fail();
+    } finally {
+      try {
+        FileUtils.deleteFileOrDir(reqFile);
+        FileUtils.moveFile(renamedFile, reqFile);
+      } catch (IOException ee) {
+        LOGGER.error("Fail to recover requirement.txt .", ee);
+      }
+    }
   }
 }

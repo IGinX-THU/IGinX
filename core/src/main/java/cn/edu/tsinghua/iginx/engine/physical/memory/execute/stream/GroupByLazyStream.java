@@ -28,7 +28,7 @@ public class GroupByLazyStream extends UnaryLazyStream {
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
-  private static final Logger logger = LoggerFactory.getLogger(GroupByLazyStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(GroupByLazyStream.class);
 
   private static final ExecutorService pool = Executors.newCachedThreadPool();
 
@@ -165,7 +165,7 @@ public class GroupByLazyStream extends UnaryLazyStream {
                 list.clear();
               }
             } catch (PhysicalException e) {
-              logger.error("encounter error when parallel calculate hash: ", e);
+              LOGGER.error("encounter error when parallel calculate hash: ", e);
             } finally {
               latch.countDown();
             }
