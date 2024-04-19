@@ -21,11 +21,8 @@ package cn.edu.tsinghua.iginx.relational.meta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.PostgreSQLDataTypeTransformer;
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -47,13 +44,14 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
 
   private static final String DEFAULT_DATABASE_NAME = "postgres";
 
-  public static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
-
   private static final PostgreSQLDataTypeTransformer dataTypeTransformer =
       PostgreSQLDataTypeTransformer.getInstance();
 
-  public PostgreSQLMeta() {
-    super();
+  private static final List<String> SYSTEM_DATABASE_NAME =
+      new ArrayList<>(Arrays.asList("template0", "template1"));
+
+  public PostgreSQLMeta(StorageEngineMeta meta) {
+    super(meta);
   }
 
   @Override
@@ -67,44 +65,12 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
   }
 
   @Override
-  public void setConnectionTimeout(Statement statement) throws SQLException {
-    statement.executeUpdate(TIMEOUT_SETTING_SQL);
-  }
-
-  @Override
   public IDataTypeTransformer getDataTypeTransformer() {
     return dataTypeTransformer;
   }
 
   @Override
-  public Connection getConnectionFromPool(String databaseName, StorageEngineMeta meta) {
-    try {
-      if (connectionPoolMap.containsKey(databaseName)) {
-        return connectionPoolMap.get(databaseName).getConnection();
-      }
-      PGConnectionPoolDataSource connectionPool = new PGConnectionPoolDataSource();
-      connectionPool.setUrl(getUrl(databaseName, meta));
-      connectionPoolMap.put(databaseName, connectionPool);
-      return connectionPool.getConnection();
-    } catch (SQLException e) {
-      LOGGER.error(String.format("cannot get connection for database {}: %s", databaseName));
-      return null;
-    }
-  }
-
-  @Override
-  public List<String> getDatabaseNames(StorageEngineMeta meta, Connection connection) {
-    List<String> databaseNames = new ArrayList<>();
-    try {
-      Statement stmt = connection.createStatement();
-      ResultSet databaseSet = stmt.executeQuery(QUERY_DATABASES_STATEMENT);
-      while (databaseSet.next()) {
-        databaseNames.add(databaseSet.getString("DATNAME"));
-      }
-    } catch (SQLException e) {
-      LOGGER.error(String.format("failed to get databases of %s", meta));
-    }
-
-    return databaseNames;
+  public List<String> getSystemDatabaseName() {
+    return SYSTEM_DATABASE_NAME;
   }
 }

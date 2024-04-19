@@ -56,9 +56,12 @@ import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.zaxxer.hikari.HikariConfig;
+import com.zaxxer.hikari.HikariDataSource;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -76,11 +79,14 @@ public class RelationalStorage implements IStorage {
 
   private final String engineName;
 
+  private static final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
+
   private Connection getConnection(String databaseName) {
     if (databaseName.startsWith("dummy")) {
       return null;
     }
-    if (databaseName.equalsIgnoreCase("template0") || databaseName.equalsIgnoreCase("template1")) {
+
+    if (relationalMeta.getSystemDatabaseName().stream().anyMatch(databaseName::equalsIgnoreCase)) {
       return null;
     }
 
@@ -91,7 +97,42 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException ignored) {
     }
 
-    return relationalMeta.getConnectionFromPool(databaseName, meta);
+    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
+    if (dataSource != null) {
+      try {
+        return dataSource.getConnection();
+      } catch (SQLException e) {
+        LOGGER.error("Cannot get connection for database " + databaseName, e);
+        return null;
+      }
+    }
+
+    try {
+      HikariConfig config = new HikariConfig();
+      config.setJdbcUrl(getUrl(databaseName, meta));
+      config.setUsername(meta.getExtraParams().get(USERNAME));
+      config.setPassword(meta.getExtraParams().get(PASSWORD));
+      config.addDataSourceProperty(
+          "cachePrepStmts", "true"); // Example of performance tuning property
+      config.addDataSourceProperty("prepStmtCacheSize", "250");
+      config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+
+      HikariDataSource newDataSource = new HikariDataSource(config);
+      connectionPoolMap.put(databaseName, newDataSource);
+      return newDataSource.getConnection();
+    } catch (SQLException e) {
+      LOGGER.error("Cannot get connection for database " + databaseName, e);
+      return null;
+    }
+  }
+
+  protected String getUrl(String databaseName, StorageEngineMeta meta) {
+    Map<String, String> extraParams = meta.getExtraParams();
+    String username = extraParams.getOrDefault(USERNAME, "");
+    String password = extraParams.getOrDefault(PASSWORD, "");
+    return String.format(
+        "jdbc:postgresql://%s:%s/%s?user=%s&password=%s",
+        meta.getIp(), meta.getPort(), databaseName, username, password);
   }
 
   public RelationalStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -115,7 +156,6 @@ public class RelationalStorage implements IStorage {
     try {
       connection = DriverManager.getConnection(connUrl);
       Statement statement = connection.createStatement();
-      relationalMeta.setConnectionTimeout(statement);
       statement.close();
     } catch (SQLException e) {
       throw new StorageInitializationException("cannot connect to " + meta + ":", e);
@@ -126,7 +166,8 @@ public class RelationalStorage implements IStorage {
     String engineName = meta.getExtraParams().get("engine");
     try {
       Class<?> clazz = Class.forName(classMap.get(engineName));
-      relationalMeta = (AbstractRelationalMeta) clazz.getConstructor().newInstance();
+      relationalMeta =
+          (AbstractRelationalMeta) clazz.getConstructor(StorageEngineMeta.class).newInstance(meta);
     } catch (Exception e) {
       throw new RelationalTaskExecuteFailureException(
           String.format("engine %s is not supported:", engineName), e);
@@ -149,6 +190,20 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException | ClassNotFoundException e) {
       return false;
     }
+  }
+
+  /**
+   * 通过JDBC获取ENGINE的所有数据库名称
+   *
+   * @return 数据库名称列表
+   */
+  private List<String> getDatabaseNames() throws SQLException {
+    List<String> databaseNames = new ArrayList<>();
+    ResultSet rs = connection.getMetaData().getCatalogs();
+    while (rs.next()) {
+      databaseNames.add(rs.getString("TABLE_CAT"));
+    }
+    return databaseNames;
   }
 
   private boolean filterContainsType(List<FilterType> types, Filter filter) {
@@ -185,7 +240,7 @@ public class RelationalStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     try {
       Statement stmt = connection.createStatement();
-      for (String databaseName : relationalMeta.getDatabaseNames(meta, connection)) {
+      for (String databaseName : getDatabaseNames()) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
             && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
@@ -981,7 +1036,7 @@ public class RelationalStorage implements IStorage {
     ColumnsInterval columnsInterval;
     List<String> paths = new ArrayList<>();
     try {
-      for (String databaseName : relationalMeta.getDatabaseNames(meta, connection)) {
+      for (String databaseName : getDatabaseNames()) {
         Connection conn = getConnection(databaseName);
         if (conn == null) {
           continue;
@@ -1180,7 +1235,7 @@ public class RelationalStorage implements IStorage {
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);
 
       if (databaseName.equals("%")) {
-        for (String tempDatabaseName : relationalMeta.getDatabaseNames(meta, connection)) {
+        for (String tempDatabaseName : getDatabaseNames()) {
           if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
             continue;
           }
