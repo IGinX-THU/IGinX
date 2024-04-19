@@ -69,11 +69,11 @@ import org.slf4j.LoggerFactory;
 
 public class RelationalStorage implements IStorage {
 
-  protected static final Logger LOGGER = LoggerFactory.getLogger(RelationalStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RelationalStorage.class);
 
-  protected final StorageEngineMeta meta;
+  private final StorageEngineMeta meta;
 
-  protected final Connection connection;
+  private final Connection connection;
 
   private AbstractRelationalMeta relationalMeta;
 
