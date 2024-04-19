@@ -17,6 +17,10 @@ public class ConfLoader {
 
   private static final String STORAGE_ENGINE_LIST = "storageEngineList";
 
+  private static final String RELATIONAL_STORAGE_ENGINE_LIST = "relationalStorageEngineList";
+
+  private static final String RELATIONAL = "Relational";
+
   private static final String TEST_LIST = "test-list";
 
   private static final String DBCONF = "%s-config";
@@ -52,6 +56,18 @@ public class ConfLoader {
   public String getStorageType() {
     String storageType = FileReader.convertToString(RUNNING_STORAGE);
     logInfo("run the test on {}", storageType);
+
+    try {
+      InputStream in = Files.newInputStream(Paths.get(confPath));
+      Properties properties = new Properties();
+      properties.load(in);
+      if (Arrays.asList(properties.getProperty(RELATIONAL_STORAGE_ENGINE_LIST).split(","))
+          .contains(storageType)) {
+        storageType = RELATIONAL;
+      }
+    } catch (IOException e) {
+      LOGGER.error("load conf failure: ", e);
+    }
     return storageType;
   }
 

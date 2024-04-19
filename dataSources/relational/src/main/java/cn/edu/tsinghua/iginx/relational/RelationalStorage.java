@@ -126,7 +126,7 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private void closeConnection(String databaseName){
+  private void closeConnection(String databaseName) {
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       dataSource.close();
