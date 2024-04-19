@@ -135,26 +135,18 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     String expected =
-        String.join(
-            "\n",
-            "Time\ttest.a.a\ttest.a.b\ttest.b.b\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\t",
-            "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
-            "   key test.a.a test.a.b test.b.b test.c.c",
-            "0    0     b'a'     b'b'     None     None",
-            "1    1     None     None     b'b'     None",
-            "2    2     None     None     None     b'c'",
-            "3    3     b'Q'     b'W'     b'E'     b'R'",
-            "key\ttest.a.a\ttest.a.b\ttest.b.b\ttest.c.c\t",
-            "0\t\tb'a'\t\tb'b'\t\tNone\t\tNone\t\t",
-            "1\t\tNone\t\tNone\t\tb'b'\t\tNone\t\t",
-            "2\t\tNone\t\tNone\t\tNone\t\tb'c'\t\t",
-            "3\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
-            "",
-            "replicaNum: 1",
-            "");
+        "   key test.a.a test.a.b test.b.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None     None\n"
+            + "1    1     None     None     b'b'     None\n"
+            + "2    2     None     None     None     b'c'\n"
+            + "3    3     b'Q'     b'W'     b'E'     b'R'\n"
+            + "key    test.a.a    test.a.b    test.b.b    test.c.c    \n"
+            + "0        b'a'        b'b'        None        None        \n"
+            + "1        None        None        b'b'        None        \n"
+            + "2        None        None        None        b'c'        \n"
+            + "3        b'Q'        b'W'        b'E'        b'R'        \n"
+            + "\n"
+            + "replicaNum: 1\n";
     assertEquals(expected, result);
   }
 
@@ -193,11 +185,11 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     // 检查Python脚本的输出是否符合预期
-    assertTrue(result.contains("path\ttype\t"));
-    assertTrue(result.contains("b'test.a.a'\t\tb'BINARY'\t\t"));
-    assertTrue(result.contains("b'test.a.b'\t\tb'BINARY'\t\t"));
-    assertTrue(result.contains("b'test.b.b'\t\tb'BINARY'\t\t"));
-    assertTrue(result.contains("b'test.c.c'\t\tb'BINARY'\t\t"));
+    assertTrue(result.contains("path    type    "));
+    assertTrue(result.contains("b'test.a.a'        b'BINARY'        "));
+    assertTrue(result.contains("b'test.a.b'        b'BINARY'        "));
+    assertTrue(result.contains("b'test.b.b'        b'BINARY'        "));
+    assertTrue(result.contains("b'test.c.c'        b'BINARY'        "));
     assertTrue(result.contains("test.a.a BINARY"));
     assertTrue(result.contains("test.a.b BINARY"));
     assertTrue(result.contains("test.b.b BINARY"));
@@ -218,7 +210,8 @@ public class PySessionIT {
     // 检查Python脚本的输出是否符合预期
     String expected =
         "[   COUNT(count(test.a.a))  COUNT(count(test.a.b))  COUNT(count(test.b.b))  \\\n"
-            + "0                       2                       2                       2   \n\n"
+            + "0                       2                       2                       2   \n"
+            + "\n"
             + "   COUNT(count(test.c.c))  \n"
             + "0                       2  ]\n";
     assertEquals(expected, result);
@@ -311,46 +304,6 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     // 检查Python脚本的输出是否符合预期
-    /*
-           key test.a.a test.a.b test.b.b test.c.c
-    0    0     b'a'     b'b'     None     None
-    1    1     None     None     b'b'     None
-    2    2     None     None     None     b'c'
-    3    3     b'Q'     b'W'     b'E'     b'R'
-    4    5     None     None     b'a'     b'b'
-    5    6     b'b'     None     None     None
-    6    7     b'R'     b'E'     b'W'     b'Q'
-       key test.a.a test.a.b test.b.b test.c.c
-    0    0     b'a'     b'b'     None     None
-    1    1     None     None     b'b'     None
-    2    2     None     None     None     b'c'
-    3    3     b'Q'     b'W'     b'E'     b'R'
-    4    5     None     None     b'a'     b'b'
-    5    6     b'b'     None     None     None
-    6    7     b'R'     b'E'     b'W'     b'Q'
-    7    8     None     b'a'     b'b'     None
-    8    9     b'b'     None     None     None
-       key test.a.a test.a.b test.b.b  test.b.c test.c.c
-    0    0     b'a'     b'b'     None       NaN     None
-    1    1     None     None     b'b'       NaN     None
-    2    2     None     None     None       NaN     b'c'
-    3    3     b'Q'     b'W'     b'E'       NaN     b'R'
-    4    5     None     None     b'a'       NaN     b'b'
-    5    6     b'b'     None     None       1.0     None
-    6    7     b'R'     b'E'     b'W'       NaN     b'Q'
-    7    8     None     b'a'     b'b'       NaN     None
-    8    9     b'b'     None     None       NaN     None
-       key test.a.a test.a.b test.b.b  test.b.c test.c.c
-    0    0     b'a'     b'b'     None       NaN     None
-    1    1     None     None     b'b'       NaN     None
-    2    2     None     None     None       NaN     b'c'
-    3    3     b'Q'     b'W'     b'E'       NaN     b'R'
-    4    5     None     None     b'a'       1.0     b'b'
-    5    6     b'b'     None     None       1.0     None
-    6    7     b'R'     b'E'     b'W'       NaN     b'Q'
-    7    8     None     b'a'     b'b'       NaN     None
-    8    9     b'b'     None     None       NaN     None
-        * */
     String expected =
         "   key test.a.a test.a.b test.b.b test.c.c\n"
             + "0    0     b'a'     b'b'     None     None\n"

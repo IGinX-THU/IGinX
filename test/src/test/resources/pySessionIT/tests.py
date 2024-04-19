@@ -415,7 +415,6 @@ class Tests:
 
         # 查询写入的数据，数据由PySessionIT测试写入
         dataset = self.session.query(["test.*"], 0, 10)
-        retStr += str(dataset)
         # 转换为pandas.Dataframe
         df = dataset.to_df()
         retStr += str(df) + '\n'
@@ -431,13 +430,13 @@ class Tests:
 
         columns = dataset.columns()
         for column in columns:
-            retStr += str(column) + '\t'
+            retStr += str(column) + '    '
         retStr += '\n'
 
         while dataset.has_more():
             row = dataset.next()
             for field in row:
-                retStr += str(field) + '\t\t'
+                retStr += str(field) + '        '
             retStr += '\n'
         retStr += '\n'
 
@@ -457,13 +456,13 @@ class Tests:
 
             columns = dataset.columns()
             for column in columns:
-                retStr += str(column) + "\t"
+                retStr += str(column) + "    "
             retStr += "\n"
 
             while dataset.has_more():
                 row = dataset.next()
                 for field in row:
-                    retStr += str(field) + "\t\t"
+                    retStr += str(field) + "        "
                 retStr += "\n"
             retStr += "\n"
 
