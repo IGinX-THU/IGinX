@@ -205,7 +205,7 @@ public class Controller {
           LOGGER.error("write data fail, caused by generator is null");
           return;
         }
-        if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
+        if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == parquet) {
           ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
           String path = pathList.get(i);
           String tableName = path.substring(0, path.indexOf("."));
@@ -249,7 +249,7 @@ public class Controller {
       LOGGER.error("write data fail, caused by generator is null");
       return;
     }
-    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
+    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == parquet) {
       ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
       String path = pathList.get(0);
       String tableName = path.substring(0, path.indexOf("."));
