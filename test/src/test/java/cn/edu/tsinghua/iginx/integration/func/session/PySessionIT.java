@@ -172,12 +172,9 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        String.join(
-            "\n",
-            "Time\tcount(test.a.a)\tcount(test.a.b)\tcount(test.b.b)\tcount(test.c.c)\t",
-            "0\t1\t1\t1\t1\t",
-            "3\t1\t1\t1\t1\t",
-            "");
+        "   key  count(test.a.a)  count(test.a.b)  count(test.b.b)  count(test.c.c)\n"
+            + "0    0                1                1                1                1\n"
+            + "1    3                1                1                1                1\n";
     assertEquals(expected, result);
   }
 
@@ -220,11 +217,10 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        String.join(
-            "\n",
-            "COUNT(count(test.a.a))\tCOUNT(count(test.a.b))\tCOUNT(count(test.b.b))\tCOUNT(count(test.c.c))\t",
-            "2\t2\t2\t2\t",
-            "");
+        "[   COUNT(count(test.a.a))  COUNT(count(test.a.b))  COUNT(count(test.b.b))  \\\n"
+            + "0                       2                       2                       2   \n\n"
+            + "   COUNT(count(test.c.c))  \n"
+            + "0                       2  ]\n";
     assertEquals(expected, result);
   }
 
@@ -241,14 +237,11 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        String.join(
-            "\n",
-            "Time\tpath\tvalue\t",
-            "3\tb'test.a.a'\tb'Q'\t",
-            "3\tb'test.a.b'\tb'W'\t",
-            "3\tb'test.b.b'\tb'E'\t",
-            "3\tb'test.c.c'\tb'R'\t",
-            "");
+        "   key         path value\n"
+            + "0    3  b'test.a.a'  b'Q'\n"
+            + "1    3  b'test.a.b'  b'W'\n"
+            + "2    3  b'test.b.b'  b'E'\n"
+            + "3    3  b'test.c.c'  b'R'\n";
     assertEquals(expected, result);
   }
 
@@ -267,16 +260,13 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     String expected =
-        String.join(
-            "\n",
-            "Time\ttest.a.a\ttest.a.b\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\t",
-            "2\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'R'\t",
-            "5\tnull\tnull\tb'b'\t",
-            "6\tb'b'\tnull\tnull\t",
-            "7\tb'R'\tb'E'\tb'Q'\t",
-            "");
+        "   key test.a.a test.a.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None\n"
+            + "1    2     None     None     b'c'\n"
+            + "2    3     b'Q'     b'W'     b'R'\n"
+            + "3    5     None     None     b'b'\n"
+            + "4    6     b'b'     None     None\n"
+            + "5    7     b'R'     b'E'     b'Q'\n";
     assertEquals(expected, result);
   }
 
@@ -321,48 +311,86 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     // 检查Python脚本的输出是否符合预期
+    /*
+           key test.a.a test.a.b test.b.b test.c.c
+    0    0     b'a'     b'b'     None     None
+    1    1     None     None     b'b'     None
+    2    2     None     None     None     b'c'
+    3    3     b'Q'     b'W'     b'E'     b'R'
+    4    5     None     None     b'a'     b'b'
+    5    6     b'b'     None     None     None
+    6    7     b'R'     b'E'     b'W'     b'Q'
+       key test.a.a test.a.b test.b.b test.c.c
+    0    0     b'a'     b'b'     None     None
+    1    1     None     None     b'b'     None
+    2    2     None     None     None     b'c'
+    3    3     b'Q'     b'W'     b'E'     b'R'
+    4    5     None     None     b'a'     b'b'
+    5    6     b'b'     None     None     None
+    6    7     b'R'     b'E'     b'W'     b'Q'
+    7    8     None     b'a'     b'b'     None
+    8    9     b'b'     None     None     None
+       key test.a.a test.a.b test.b.b  test.b.c test.c.c
+    0    0     b'a'     b'b'     None       NaN     None
+    1    1     None     None     b'b'       NaN     None
+    2    2     None     None     None       NaN     b'c'
+    3    3     b'Q'     b'W'     b'E'       NaN     b'R'
+    4    5     None     None     b'a'       NaN     b'b'
+    5    6     b'b'     None     None       1.0     None
+    6    7     b'R'     b'E'     b'W'       NaN     b'Q'
+    7    8     None     b'a'     b'b'       NaN     None
+    8    9     b'b'     None     None       NaN     None
+       key test.a.a test.a.b test.b.b  test.b.c test.c.c
+    0    0     b'a'     b'b'     None       NaN     None
+    1    1     None     None     b'b'       NaN     None
+    2    2     None     None     None       NaN     b'c'
+    3    3     b'Q'     b'W'     b'E'       NaN     b'R'
+    4    5     None     None     b'a'       1.0     b'b'
+    5    6     b'b'     None     None       1.0     None
+    6    7     b'R'     b'E'     b'W'       NaN     b'Q'
+    7    8     None     b'a'     b'b'       NaN     None
+    8    9     b'b'     None     None       NaN     None
+        * */
     String expected =
-        String.join(
-            "\n",
-            "Time\ttest.a.a\ttest.a.b\ttest.b.b\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\t",
-            "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
-            "5\tnull\tnull\tb'a'\tb'b'\t",
-            "6\tb'b'\tnull\tnull\tnull\t",
-            "7\tb'R'\tb'E'\tb'W'\tb'Q'\t",
-            "Time\ttest.a.a\ttest.a.b\ttest.b.b\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\t",
-            "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tb'R'\t",
-            "5\tnull\tnull\tb'a'\tb'b'\t",
-            "6\tb'b'\tnull\tnull\tnull\t",
-            "7\tb'R'\tb'E'\tb'W'\tb'Q'\t",
-            "8\tnull\tb'a'\tb'b'\tnull\t",
-            "9\tb'b'\tnull\tnull\tnull\t",
-            "Time\ttest.a.a\ttest.a.b\ttest.b.b\ttest.b.c\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\tnull\t",
-            "2\tnull\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tnull\tb'R'\t",
-            "5\tnull\tnull\tb'a'\tnull\tb'b'\t",
-            "6\tb'b'\tnull\tnull\t1\tnull\t",
-            "7\tb'R'\tb'E'\tb'W'\tnull\tb'Q'\t",
-            "8\tnull\tb'a'\tb'b'\tnull\tnull\t",
-            "9\tb'b'\tnull\tnull\tnull\tnull\t",
-            "Time\ttest.a.a\ttest.a.b\ttest.b.b\ttest.b.c\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\tnull\t",
-            "1\tnull\tnull\tb'b'\tnull\tnull\t",
-            "2\tnull\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tb'E'\tnull\tb'R'\t",
-            "5\tnull\tnull\tb'a'\t1\tb'b'\t",
-            "6\tb'b'\tnull\tnull\t1\tnull\t",
-            "7\tb'R'\tb'E'\tb'W'\tnull\tb'Q'\t",
-            "8\tnull\tb'a'\tb'b'\tnull\tnull\t",
-            "9\tb'b'\tnull\tnull\tnull\tnull\t",
-            "");
+        "   key test.a.a test.a.b test.b.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None     None\n"
+            + "1    1     None     None     b'b'     None\n"
+            + "2    2     None     None     None     b'c'\n"
+            + "3    3     b'Q'     b'W'     b'E'     b'R'\n"
+            + "4    5     None     None     b'a'     b'b'\n"
+            + "5    6     b'b'     None     None     None\n"
+            + "6    7     b'R'     b'E'     b'W'     b'Q'\n"
+            + "   key test.a.a test.a.b test.b.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None     None\n"
+            + "1    1     None     None     b'b'     None\n"
+            + "2    2     None     None     None     b'c'\n"
+            + "3    3     b'Q'     b'W'     b'E'     b'R'\n"
+            + "4    5     None     None     b'a'     b'b'\n"
+            + "5    6     b'b'     None     None     None\n"
+            + "6    7     b'R'     b'E'     b'W'     b'Q'\n"
+            + "7    8     None     b'a'     b'b'     None\n"
+            + "8    9     b'b'     None     None     None\n"
+            + "   key test.a.a test.a.b test.b.b  test.b.c test.c.c\n"
+            + "0    0     b'a'     b'b'     None       NaN     None\n"
+            + "1    1     None     None     b'b'       NaN     None\n"
+            + "2    2     None     None     None       NaN     b'c'\n"
+            + "3    3     b'Q'     b'W'     b'E'       NaN     b'R'\n"
+            + "4    5     None     None     b'a'       NaN     b'b'\n"
+            + "5    6     b'b'     None     None       1.0     None\n"
+            + "6    7     b'R'     b'E'     b'W'       NaN     b'Q'\n"
+            + "7    8     None     b'a'     b'b'       NaN     None\n"
+            + "8    9     b'b'     None     None       NaN     None\n"
+            + "   key test.a.a test.a.b test.b.b  test.b.c test.c.c\n"
+            + "0    0     b'a'     b'b'     None       NaN     None\n"
+            + "1    1     None     None     b'b'       NaN     None\n"
+            + "2    2     None     None     None       NaN     b'c'\n"
+            + "3    3     b'Q'     b'W'     b'E'       NaN     b'R'\n"
+            + "4    5     None     None     b'a'       1.0     b'b'\n"
+            + "5    6     b'b'     None     None       1.0     None\n"
+            + "6    7     b'R'     b'E'     b'W'       NaN     b'Q'\n"
+            + "7    8     None     b'a'     b'b'       NaN     None\n"
+            + "8    9     b'b'     None     None       NaN     None\n";
+
     assertEquals(expected, result);
   }
 
@@ -382,22 +410,19 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        String.join(
-            "\n",
-            "Time\ttest.a.a\ttest.a.b\ttest.b.b\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\t",
-            "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tnull\tb'R'\t",
-            "5\tnull\tnull\tnull\tb'b'\t",
-            "6\tb'b'\tnull\tnull\tnull\t",
-            "7\tb'R'\tb'E'\tnull\tb'Q'\t",
-            "Time\ttest.a.a\ttest.a.b\ttest.b.b\ttest.c.c\t",
-            "0\tb'a'\tb'b'\tnull\tnull\t",
-            "2\tnull\tnull\tnull\tb'c'\t",
-            "3\tb'Q'\tb'W'\tnull\tb'R'\t",
-            "5\tnull\tnull\tnull\tb'b'\t",
-            "7\tb'R'\tb'E'\tnull\tb'Q'\t",
-            "");
+        "   key test.a.a test.a.b test.b.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None     None\n"
+            + "1    2     None     None     None     b'c'\n"
+            + "2    3     b'Q'     b'W'     None     b'R'\n"
+            + "3    5     None     None     None     b'b'\n"
+            + "4    6     b'b'     None     None     None\n"
+            + "5    7     b'R'     b'E'     None     b'Q'\n"
+            + "   key test.a.a test.a.b test.b.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None     None\n"
+            + "1    2     None     None     None     b'c'\n"
+            + "2    3     b'Q'     b'W'     None     b'R'\n"
+            + "3    5     None     None     None     b'b'\n"
+            + "4    7     b'R'     b'E'     None     b'Q'\n";
     assertEquals(expected, result);
   }
 
@@ -432,19 +457,16 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        String.join(
-            "\n",
-            "LoadCSVResp(status=Status(code=200, message=None, subStatus=None), columns=['test.a.a', 'test.a.b', 'test.b.b', 'test.c.c'], recordsNum=4, parseErrorMsg=None)",
-            "key\ttest.a.a\ttest.a.b\ttest.b.b\ttest.c.c\t",
-            "0\t\tb'a'\t\tb'b'\t\tNone\t\tNone\t\t",
-            "1\t\tNone\t\tNone\t\tb'b'\t\tNone\t\t",
-            "2\t\tNone\t\tNone\t\tNone\t\tb'c'\t\t",
-            "3\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
-            "4\t\tb'a'\t\tb'b'\t\tb''\t\tb''\t\t",
-            "5\t\tb''\t\tb''\t\tb'b'\t\tb''\t\t",
-            "6\t\tb''\t\tb''\t\tb''\t\tb'c'\t\t",
-            "7\t\tb'Q'\t\tb'W'\t\tb'E'\t\tb'R'\t\t",
-            "");
+        "LoadCSVResp(status=Status(code=200, message=None, subStatus=None), columns=['test.a.a', 'test.a.b', 'test.b.b', 'test.c.c'], recordsNum=4, parseErrorMsg=None)\n"
+            + "   key test.a.a test.a.b test.b.b test.c.c\n"
+            + "0    0     b'a'     b'b'     None     None\n"
+            + "1    1     None     None     b'b'     None\n"
+            + "2    2     None     None     None     b'c'\n"
+            + "3    3     b'Q'     b'W'     b'E'     b'R'\n"
+            + "4    4     b'a'     b'b'      b''      b''\n"
+            + "5    5      b''      b''     b'b'      b''\n"
+            + "6    6      b''      b''      b''     b'c'\n"
+            + "7    7     b'Q'     b'W'     b'E'     b'R'\n";
     assertEquals(expected, result);
   }
 
@@ -460,12 +482,12 @@ public class PySessionIT {
       throw new RuntimeException(e);
     }
     // 检查Python脚本的输出是否符合预期
-    List<String> expected = Arrays.asList("key\tdir.a\tdir.b\t", "0\t\tb'1'\t\tb'4'\t\t");
+    List<String> expected = Arrays.asList("   key dir.a dir.b", "0    0  b'1'  b'4'");
     String[] lines = result.split("\n");
     List<String> resultLines = Arrays.asList(lines);
     logger.info(resultLines.toString());
     assertTrue(resultLines.size() >= 2);
-    assertEquals(resultLines.subList(resultLines.size() - 2, resultLines.size()), expected);
+    assertEquals(expected, resultLines.subList(resultLines.size() - 2, resultLines.size()));
   }
 
   @Test

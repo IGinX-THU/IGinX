@@ -146,8 +146,11 @@ class Tests:
         retStr = ""
         try:
             # 统计每个序列的点数
+            # 设置显示所有列
+            import pandas as pd
+            pd.set_option('display.max_columns', None)
             dataset = self.session.aggregate_query(["test.*"], 0, 10, AggregateType.COUNT)
-            retStr += str(dataset)
+            retStr += str(dataset.to_df()) + "\n"
 
             return retStr
         except Exception as e:
@@ -202,7 +205,7 @@ class Tests:
         finally:
             # 查询删除后剩余的数据
             dataset = self.session.query(["test.*"], 0, 10)
-            retStr += str(dataset)
+            retStr += str(dataset.to_df()) + "\n"
 
             return retStr
 
@@ -230,7 +233,7 @@ class Tests:
         finally:
             # 查询删除后剩余的数据
             dataset = self.session.query(["test.*"], 0, 10)
-            retStr += str(dataset)
+            retStr += str(dataset.to_df()) + "\n"
             try:
                 # 删除部分数据（设置为null
                 self.session.batch_delete_data(["test.a.a", "test.a.b"], 5, 7)
@@ -244,17 +247,15 @@ class Tests:
             finally:
                 # 查询删除后剩余的数据
                 dataset = self.session.query(["test.*"], 0, 10)
-                retStr += str(dataset)
+                retStr += str(dataset.to_df()) + "\n"
 
                 return retStr
 
     def downsampleQuery(self):
-        retStr = ""
-
         try:
             dataset = self.session.downsample_query(["test.*"], start_time=0, end_time=10, type=AggregateType.COUNT,
                                                precision=3)
-            retStr += str(dataset)
+            retStr = str(dataset.to_df()) + "\n"
         except Exception as e:
             print(e)
             exit(1)
@@ -296,7 +297,7 @@ class Tests:
             self.session.insert_row_records(paths, timestamps, values_list, data_type_list)
             # 查询写入的数据
             dataset = self.session.query(["test.*"], 0, 10)
-            retStr += str(dataset)
+            retStr += str(dataset.to_df()) + "\n"
 
             paths = ["test.a.a", "test.a.b", "test.b.b"]
             timestamps = [8, 9]
@@ -308,7 +309,7 @@ class Tests:
             self.session.insert_non_aligned_row_records(paths, timestamps, values_list, data_type_list)
             # 查询写入的数据
             dataset = self.session.query(["test.*"], 0, 10)
-            retStr += str(dataset)
+            retStr += str(dataset.to_df()) + "\n"
 
             # 插入列
             paths = ["test.b.c"]
@@ -318,7 +319,7 @@ class Tests:
             self.session.insert_column_records(paths, timestamps, values_list, data_type_list)
             # 查询写入的数据
             dataset = self.session.query(["test.*"], 0, 10)
-            retStr += str(dataset)
+            retStr += str(dataset.to_df()) + "\n"
 
             # 插入列
             paths = ["test.b.c"]
@@ -328,9 +329,7 @@ class Tests:
             self.session.insert_non_aligned_column_records(paths, timestamps, values_list, data_type_list)
             # 查询写入的数据
             dataset = self.session.query(["test.*"], 0, 10)
-            retStr += str(dataset)
-
-
+            retStr += str(dataset.to_df()) + "\n"
             return retStr
         except Exception as e:
             print(e)
@@ -369,12 +368,9 @@ class Tests:
 
     def lastQuery(self):
         retStr = ""
-
         # 获取部分序列的最后一个数据点
         dataset = self.session.last_query(["test.*"], 0)
-        retStr += str(dataset)
-
-
+        retStr = str(dataset.to_df()) + "\n"
         return retStr
 
     def loadCSV(self):
@@ -387,21 +383,10 @@ class Tests:
             retStr += str(resp) + "\n"
 
             # 使用 SQL 语句查询写入的数据
-            dataset = self.session.execute_statement("select * from test;", fetch_size=2)
-
-            columns = dataset.columns()
-            for column in columns:
-                retStr += column + "\t"
-            retStr += "\n"
-
-            while dataset.has_more():
-                row = dataset.next()
-                for field in row:
-                    retStr += str(field) + "\t\t"
-                retStr += "\n"
-
-            dataset.close()
-
+            dataset = self.session.query(["test.*"], 0, 10)
+            # 转换为pandas.Dataframe
+            df = dataset.to_df()
+            retStr += str(df) + '\n'
 
             return retStr
         except Exception as e:
@@ -416,21 +401,9 @@ class Tests:
             path = f"{os.getcwd()}/src/test/resources/pySessionIT/dir"
             self.session.load_directory(path)
 
-            # 使用 SQL 语句查询写入的数据
-            dataset = self.session.execute_statement("select * from dir;", fetch_size=2)
-
-            columns = dataset.columns()
-            for column in columns:
-                retStr += column + "\t"
-            retStr += "\n"
-
-            while dataset.has_more():
-                row = dataset.next()
-                for field in row:
-                    retStr += str(field) + "\t\t"
-                retStr += "\n"
-            retStr += "\n"
-            dataset.close()
+            dataset = self.session.query(["dir.*"], 0, 10)
+            # 转换为pandas.Dataframe
+            retStr += str(dataset.to_df()) + '\n'
 
             return retStr
         except Exception as e:
@@ -472,11 +445,7 @@ class Tests:
 
         # 使用 SQL 语句查询副本数量
         replicaNum = self.session.get_replica_num()
-
         retStr += ('replicaNum: ' + str(replicaNum) + '\n')
-
-        dataset.close()
-
         
         return retStr
 
