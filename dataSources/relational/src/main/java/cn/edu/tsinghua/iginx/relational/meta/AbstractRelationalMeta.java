@@ -39,4 +39,11 @@ public abstract class AbstractRelationalMeta {
    * @return 系统数据库名称
    */
   public abstract List<String> getSystemDatabaseName();
+
+  /**
+   * 获取数据库列表查询SQL
+   *
+   * @return 数据库列表查询SQL
+   */
+  public abstract String getDatabaseQuerySql();
 }

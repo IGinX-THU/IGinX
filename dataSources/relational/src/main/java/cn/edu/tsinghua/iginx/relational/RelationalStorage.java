@@ -207,9 +207,9 @@ public class RelationalStorage implements IStorage {
    */
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
-    ResultSet rs = connection.getMetaData().getCatalogs();
+    ResultSet rs = connection.createStatement().executeQuery(relationalMeta.getDatabaseQuerySql());
     while (rs.next()) {
-      databaseNames.add(rs.getString("TABLE_CAT"));
+      databaseNames.add(rs.getString("DATNAME"));
     }
     return databaseNames;
   }

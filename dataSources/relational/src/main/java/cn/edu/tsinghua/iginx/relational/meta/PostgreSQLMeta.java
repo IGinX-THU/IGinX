@@ -73,4 +73,9 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
   public List<String> getSystemDatabaseName() {
     return SYSTEM_DATABASE_NAME;
   }
+
+  @Override
+  public String getDatabaseQuerySql() {
+    return "SELECT datname FROM pg_database;";
+  }
 }

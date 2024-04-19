@@ -29,4 +29,9 @@ public class JDBCMeta extends AbstractRelationalMeta {
   public List<String> getSystemDatabaseName() {
     return null;
   }
+
+  @Override
+  public String getDatabaseQuerySql() {
+    return null;
+  }
 }
