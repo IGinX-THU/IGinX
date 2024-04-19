@@ -68,8 +68,7 @@ jobs:
           - name: set client test context
             uses: ./.github/actions/context
             with:
-              work-name: restart-iginx-meta
-              metadata: ${{ matrix.metadata }}
+              work-name: restart-iginx-zk
 
           - name: set client test context
             uses: ./.github/actions/context

@@ -11,7 +11,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    Benchmark-Test:
+  PolyStore-Benchmark-Test:
         timeout-minutes: 35
         strategy:
             fail-fast: false
@@ -57,7 +57,7 @@ jobs:
           - name: Change IGinX config
             uses: ./.github/actions/confWriter
             with:
-              DB-name: ${{ matrix.DB-name }}
+              DB-name: "IoTDB12"
               Set-Filter-Fragment-OFF: "true"
 
           # start udf path test first to avoid being effected
@@ -70,13 +70,12 @@ jobs:
           - name: set client test context
             uses: ./.github/actions/context
             with:
-              work-name: restart-iginx-meta
-              metadata: ${{ matrix.metadata }}
+              work-name: restart-iginx-zk
 
           - name: set client test context
             uses: ./.github/actions/context
             with:
-              DB-name: ${{ matrix.DB-name }}
+              DB-name: "IoTDB12"
               shell: client-before
 
           - name: Start data cleaning
