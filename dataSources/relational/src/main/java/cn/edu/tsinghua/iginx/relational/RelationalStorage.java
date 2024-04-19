@@ -126,6 +126,14 @@ public class RelationalStorage implements IStorage {
     }
   }
 
+  private void closeConnection(String databaseName){
+    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
+    if (dataSource != null) {
+      dataSource.close();
+      connectionPoolMap.remove(databaseName);
+    }
+  }
+
   protected String getUrl(String databaseName, StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.getOrDefault(USERNAME, "");
@@ -923,7 +931,7 @@ public class RelationalStorage implements IStorage {
 
       if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
-          conn.close();
+          closeConnection(databaseName);
           Connection defaultConn =
               getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
           if (defaultConn != null) {
