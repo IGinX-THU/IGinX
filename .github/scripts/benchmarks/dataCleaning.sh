@@ -1,12 +1,10 @@
 #!/bin/bash
 
 if [ "$RUNNER_OS" = "Linux" ]; then
-  lsof -i:6888
   python3 dataCleaning/gen_data.py -n 1000000
 elif [ "$RUNNER_OS" = "Windows" ]; then
   python dataCleaning/gen_data.py -n 1000000
 elif [ "$RUNNER_OS" = "macOS" ]; then
-  lsof -i:6888
   python3 dataCleaning/gen_data.py -n 1000000
 fi
 set -e

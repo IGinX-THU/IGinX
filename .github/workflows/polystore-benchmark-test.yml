@@ -29,6 +29,12 @@ jobs:
               python-version: ${{ matrix.python-version }}
               java: ${{ matrix.java }}
 
+          - name: generate tpch data
+            shell: bash
+            run: |
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
+
           - name: Run ZooKeeper
             uses: ./.github/actions/zookeeperRunner
 
@@ -78,9 +84,4 @@ jobs:
               DB-name: "IoTDB12"
               shell: client-before
 
-          - name: Start data cleaning
-            shell: bash
-            run: |
-              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
-              "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
 
