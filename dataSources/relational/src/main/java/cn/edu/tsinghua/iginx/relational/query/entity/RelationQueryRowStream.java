@@ -234,6 +234,13 @@ public class RelationQueryRowStream implements RowStream {
               Object value = getResultSetObject(resultSet, columnName, tableName);
               if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
                 tempValue = value.toString().getBytes();
+              } else if (header.getField(startIndex + j).getType() == DataType.BOOLEAN
+                  && value != null) {
+                if (value instanceof Boolean) {
+                  tempValue = value;
+                } else {
+                  tempValue = (int) value == 1;
+                }
               } else {
                 tempValue = value;
               }

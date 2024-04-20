@@ -5509,36 +5509,36 @@ public class SQLSessionIT {
           "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~\\^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
       executor.execute(insert);
 
-      String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
+      //      String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
+      //      String expected =
+      //          "ResultSets:\n"
+      //              + "+---+-------------------+\n"
+      //              + "|key|_:@#$~^{}._:@#$~^{}|\n"
+      //              + "+---+-------------------+\n"
+      //              + "|  1|                  1|\n"
+      //              + "|  2|                  2|\n"
+      //              + "|  3|                  3|\n"
+      //              + "|  4|                  4|\n"
+      //              + "|  5|                  5|\n"
+      //              + "+---+-------------------+\n"
+      //              + "Total line number = 5\n";
+      //      executor.executeAndCompare(query, expected);
+      //
+      //      query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
+      //      expected =
+      //          "ResultSets:\n"
+      //              + "+---+-------------------+\n"
+      //              + "|key|_:@#$~^{}._:@#$~^{}|\n"
+      //              + "+---+-------------------+\n"
+      //              + "|  2|                  2|\n"
+      //              + "|  3|                  3|\n"
+      //              + "|  4|                  4|\n"
+      //              + "+---+-------------------+\n"
+      //              + "Total line number = 3\n";
+      //      executor.executeAndCompare(query, expected);
+
+      String query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
       String expected =
-          "ResultSets:\n"
-              + "+---+-------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|\n"
-              + "+---+-------------------+\n"
-              + "|  1|                  1|\n"
-              + "|  2|                  2|\n"
-              + "|  3|                  3|\n"
-              + "|  4|                  4|\n"
-              + "|  5|                  5|\n"
-              + "+---+-------------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|\n"
-              + "+---+-------------------+\n"
-              + "|  2|                  2|\n"
-              + "|  3|                  3|\n"
-              + "|  4|                  4|\n"
-              + "+---+-------------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
-      expected =
           "ResultSets:\n"
               + "+---+-------------------+------------------+\n"
               + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"

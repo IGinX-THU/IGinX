@@ -26,7 +26,13 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class FilterTransformer {
 
-  public static String toString(Filter filter) {
+  char quote;
+
+  public FilterTransformer(char quote) {
+    this.quote = quote;
+  }
+
+  public String toString(Filter filter) {
     if (filter == null) {
       return "";
     }
@@ -50,7 +56,7 @@ public class FilterTransformer {
     }
   }
 
-  private static String toString(AndFilter filter) {
+  private String toString(AndFilter filter) {
     StringBuilder sb = new StringBuilder();
     for (Filter child : filter.getChildren()) {
       String filterStr = toString(child);
@@ -66,22 +72,22 @@ public class FilterTransformer {
     return "(" + sb.substring(0, sb.length() - 4) + ")";
   }
 
-  private static String toString(BoolFilter filter) {
+  private String toString(BoolFilter filter) {
     return filter.isTrue() ? "true" : "false";
   }
 
-  private static String toString(NotFilter filter) {
+  private String toString(NotFilter filter) {
     return "not " + toString(filter.getChild());
   }
 
-  private static String toString(KeyFilter filter) {
+  private String toString(KeyFilter filter) {
     String op =
         Op.op2StrWithoutAndOr(filter.getOp())
             .replace("==", "="); // postgresql does not support "==" but uses "=" instead
     return (getQuotName(KEY_NAME) + " " + op + " " + filter.getValue());
   }
 
-  private static String toString(ValueFilter filter) {
+  private String toString(ValueFilter filter) {
     RelationSchema schema = new RelationSchema(filter.getPath());
     String path = schema.getQuotFullName();
 
@@ -101,7 +107,7 @@ public class FilterTransformer {
     return path + " " + op + " " + value;
   }
 
-  private static String toString(OrFilter filter) {
+  private String toString(OrFilter filter) {
     StringBuilder sb = new StringBuilder();
     for (Filter child : filter.getChildren()) {
       String filterStr = toString(child);
@@ -117,7 +123,7 @@ public class FilterTransformer {
     return "(" + sb.substring(0, sb.length() - 4) + ")";
   }
 
-  private static String toString(PathFilter filter) {
+  private String toString(PathFilter filter) {
     RelationSchema schemaA = new RelationSchema(filter.getPathA());
     RelationSchema schemaB = new RelationSchema(filter.getPathB());
     String pathA = schemaA.getQuotFullName();
@@ -130,7 +136,7 @@ public class FilterTransformer {
     return pathA + " " + op + " " + pathB;
   }
 
-  private static String getQuotName(String name) {
-    return "\"" + name + "\"";
+  private String getQuotName(String name) {
+    return quote + name + quote;
   }
 }
