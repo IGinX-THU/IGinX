@@ -50,6 +50,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
+import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
@@ -58,6 +59,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
@@ -103,7 +105,7 @@ public class RelationalStorage implements IStorage {
         return dataSource.getConnection();
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database " + databaseName, e);
-        return null;
+        dataSource.close();
       }
     }
 
@@ -112,9 +114,8 @@ public class RelationalStorage implements IStorage {
       config.setJdbcUrl(getUrl(databaseName, meta));
       config.setUsername(meta.getExtraParams().get(USERNAME));
       config.setPassword(meta.getExtraParams().get(PASSWORD));
-      config.addDataSourceProperty(
-          "cachePrepStmts", "true"); // Example of performance tuning property
-      config.addDataSourceProperty("prepStmtCacheSize", "250");
+      config.addDataSourceProperty("cachePrepStmts", "true");
+      config.addDataSourceProperty("prepStmtCacheSize", "1000");
       config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
       HikariDataSource newDataSource = new HikariDataSource(config);
@@ -136,11 +137,8 @@ public class RelationalStorage implements IStorage {
 
   protected String getUrl(String databaseName, StorageEngineMeta meta) {
     Map<String, String> extraParams = meta.getExtraParams();
-    String username = extraParams.getOrDefault(USERNAME, "");
-    String password = extraParams.getOrDefault(PASSWORD, "");
-    return String.format(
-        "jdbc:postgresql://%s:%s/%s?user=%s&password=%s",
-        meta.getIp(), meta.getPort(), databaseName, username, password);
+    String engine = extraParams.get("engine");
+    return String.format("jdbc:%s://%s:%s/%s", engine, meta.getIp(), meta.getPort(), databaseName);
   }
 
   public RelationalStorage(StorageEngineMeta meta) throws StorageInitializationException {
@@ -172,13 +170,24 @@ public class RelationalStorage implements IStorage {
 
   private void buildRelationalMeta() throws RelationalTaskExecuteFailureException {
     String engineName = meta.getExtraParams().get("engine");
-    try {
-      Class<?> clazz = Class.forName(classMap.get(engineName));
-      relationalMeta =
-          (AbstractRelationalMeta) clazz.getConstructor(StorageEngineMeta.class).newInstance(meta);
-    } catch (Exception e) {
-      throw new RelationalTaskExecuteFailureException(
-          String.format("engine %s is not supported:", engineName), e);
+    if (classMap.containsKey(engineName)) {
+      try {
+        Class<?> clazz = Class.forName(classMap.get(engineName));
+        relationalMeta =
+            (AbstractRelationalMeta)
+                clazz.getConstructor(StorageEngineMeta.class).newInstance(meta);
+      } catch (Exception e) {
+        throw new RelationalTaskExecuteFailureException(
+            String.format("engine %s is not supported:", engineName), e);
+      }
+    } else {
+      String propertiesPath = meta.getExtraParams().get("meta_properties_path");
+      try {
+        relationalMeta = new JDBCMeta(meta, propertiesPath);
+      } catch (IOException e) {
+        throw new RelationalTaskExecuteFailureException(
+            String.format("engine %s is not support: ", engineName), e);
+      }
     }
   }
 

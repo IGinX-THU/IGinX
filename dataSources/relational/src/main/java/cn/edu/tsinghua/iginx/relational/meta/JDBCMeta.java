@@ -2,36 +2,48 @@ package cn.edu.tsinghua.iginx.relational.meta;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.tools.JDBCDataTypeTransformer;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Properties;
 
 public class JDBCMeta extends AbstractRelationalMeta {
 
-  public JDBCMeta(StorageEngineMeta meta) {
+  private final Properties properties;
+
+  public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
     super(meta);
+    properties = new Properties();
+    InputStream in = Files.newInputStream(Paths.get(propertiesPath));
+    properties.load(in);
   }
 
   @Override
   public String getDefaultDatabaseName() {
-    return meta.getExtraParams().get("default_database");
+    return properties.getProperty("default_database");
   }
 
   @Override
   public String getDriverClass() {
-    return meta.getExtraParams().get("driver_class");
+    return properties.getProperty("driver_class");
   }
 
   @Override
   public IDataTypeTransformer getDataTypeTransformer() {
-    return null;
+    return new JDBCDataTypeTransformer(properties);
   }
 
   @Override
   public List<String> getSystemDatabaseName() {
-    return null;
+    return Arrays.asList(properties.getProperty("system_databases").split(","));
   }
 
   @Override
   public String getDatabaseQuerySql() {
-    return null;
+    return properties.getProperty("database_query_sql");
   }
 }
