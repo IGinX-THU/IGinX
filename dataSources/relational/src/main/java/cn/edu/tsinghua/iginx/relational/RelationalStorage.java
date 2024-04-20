@@ -1672,17 +1672,14 @@ public class RelationalStorage implements IStorage {
 
       statement.append(relationalMeta.getUpsertStatement());
 
-      for (String part : parts) {
-        statement.append(
-            String.format(
-                relationalMeta.getUpsertConflictStatement(), getQuotName(part), getQuotName(part)));
-        statement.append(", ");
-      }
+      Arrays.stream(parts)
+          .filter(s -> !s.equals(KEY_NAME))
+          .forEach(s -> statement.append(s).append(", "));
+
       statement.delete(statement.length() - 2, statement.length());
 
       statement.append(";");
 
-      //            LOGGER.info("[Insert] execute insert: {}", statement);
       stmt.addBatch(statement.toString());
     }
     stmt.executeBatch();
