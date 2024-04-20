@@ -115,7 +115,9 @@ public class RelationalStorage implements IStorage {
       config.setUsername(meta.getExtraParams().get(USERNAME));
       config.setPassword(meta.getExtraParams().get(PASSWORD));
       config.addDataSourceProperty("cachePrepStmts", "true");
-      config.addDataSourceProperty("prepStmtCacheSize", "1000");
+      config.addDataSourceProperty("prepStmtCacheSize", "250");
+      config.setIdleTimeout(30000);
+      config.setMinimumIdle(1);
       config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
       HikariDataSource newDataSource = new HikariDataSource(config);
