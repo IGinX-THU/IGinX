@@ -37,7 +37,7 @@ public abstract class Constants {
 
   public static final String ADD_COLUMN_STATEMENT = "ALTER TABLE %s ADD COLUMN %s %s;";
 
-  public static final String DROP_DATABASE_STATEMENT = "DROP DATABASE %s;";
+  public static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS %s;";
 
   public static final String DROP_COLUMN_STATEMENT = "ALTER TABLE %s DROP COLUMN IF EXISTS %s;";
 
