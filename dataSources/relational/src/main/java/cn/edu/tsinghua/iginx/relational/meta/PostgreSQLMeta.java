@@ -87,7 +87,7 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
   }
 
   public String getDropDatabaseStatement() {
-    return "DROP DATABASE IF EXISTS %s WITH FORCE;";
+    return "DROP DATABASE IF EXISTS %s WITH (FORCE);";
   }
 
   @Override
