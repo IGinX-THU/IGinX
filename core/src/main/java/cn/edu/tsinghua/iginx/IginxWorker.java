@@ -880,7 +880,7 @@ public class IginxWorker implements IService.Iface {
     for (UDFClassPair p : pairs) {
       TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(p.name.trim());
       if (transformTaskMeta != null && transformTaskMeta.getIpSet().contains(config.getIp())) {
-        errorMsg = String.format("Register task %s already exist", transformTaskMeta);
+        errorMsg = String.format("Function %s already exist", transformTaskMeta);
         LOGGER.error(errorMsg);
         return RpcUtils.FAILURE.setMessage(errorMsg);
       }
@@ -960,20 +960,20 @@ public class IginxWorker implements IService.Iface {
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     String errorMsg = "";
     if (transformTaskMeta == null) {
-      errorMsg = "Register task not exist";
+      errorMsg = "Function not exist";
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     TransformJobManager manager = TransformJobManager.getInstance();
     if (manager.isRegisterTaskRunning(name)) {
-      errorMsg = "Register task is running";
+      errorMsg = String.format("Function %s is running.", name);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     if (!transformTaskMeta.getIpSet().contains(config.getIp())) {
-      errorMsg = String.format("Register task exists in node: %s", config.getIp());
+      errorMsg = String.format("Function exists in node: %s", config.getIp());
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }

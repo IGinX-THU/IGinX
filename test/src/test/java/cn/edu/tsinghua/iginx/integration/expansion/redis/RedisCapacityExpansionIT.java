@@ -16,7 +16,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(RedisCapacityExpansionIT.class);
 
   public RedisCapacityExpansionIT() {
-    super(redis, null);
+    super(redis, null, new RedisHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);

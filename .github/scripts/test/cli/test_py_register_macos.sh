@@ -8,6 +8,8 @@ ls client/target/iginx-client-0.6.0-SNAPSHOT/sbin
 
 COMMAND='CREATE FUNCTION UDAF "'"mock_udf"'" FROM "'"MockUDF"'" IN "'"mock_udf.py"'";'
 
+#CREATE FUNCTION UDAF "mock_udf" FROM "MockUDF" IN "mock_udf.py";
+
 cd client/target/iginx-client-0.6.0-SNAPSHOT/sbin
 
 sh -c "chmod +x start_cli.sh"
