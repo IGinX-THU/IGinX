@@ -20,8 +20,11 @@ echo "TPCH数据生成工具下载完成"
 
 cd TPC-H\ V3.0.1/dbgen
 if [ "$RUNNER_OS" = "Linux" ]; then
-  apt install gcc
-  sudo apt-get update
+  sh -c "sudo apt install gcc"
+  gcc --version
+  cp makefile.suite makefile
+  awk 'NR < 103 || NR > 111 { print } NR == 103 { print "CC      = gcc\n# Current values for DATABASE are: INFORMIX, DB2, TDAT (Teradata)\n#                                  SQLSERVER, SYBASE, ORACLE, VECTORWISE\n# Current values for MACHINE are:  ATT, DOS, HP, IBM, ICL, MVS, \n#                                  SGI, SUN, U2200, VMS, LINUX, WIN32 \n# Current values for WORKLOAD are:  TPCH\nDATABASE= SQLSERVER\nMACHINE = LINUX\nWORKLOAD = TPCH" }' makefile > new_makefile
+  mv new_makefile makefile
 
 elif [ "$RUNNER_OS" = "Windows" ]; then
   echo "windows"
@@ -41,6 +44,7 @@ make
 echo "TPCH数据生成工具编译完成"
 
 ./dbgen -s 1 -f
+ls
 echo "数据生成完成"
 # 源文件夹路径
 source_folder="."
@@ -52,6 +56,7 @@ destination_folder="../data"
 mkdir -p "$destination_folder"
 
 # 将所有*.tbl文件移动到目标文件夹
-mv "$source_folder"/*.tbl "$destination_folder/"
-
+mv *.tbl "$destination_folder/"
+cd $destination_folder
+ls
 echo "文件移动完成"
