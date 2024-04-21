@@ -50,7 +50,7 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
       PostgreSQLDataTypeTransformer.getInstance();
 
   private static final List<String> SYSTEM_DATABASE_NAME =
-      new ArrayList<>(Arrays.asList("template0", "template1"));
+      new ArrayList<>(Arrays.asList("template0", "template1", "readme_to_recover"));
 
   public PostgreSQLMeta(StorageEngineMeta meta) {
     super(meta);

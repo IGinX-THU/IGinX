@@ -226,7 +226,12 @@ public class RelationalStorage implements IStorage {
     Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
     ResultSet rs = conn.createStatement().executeQuery(relationalMeta.getDatabaseQuerySql());
     while (rs.next()) {
-      databaseNames.add(rs.getString("DATNAME"));
+      String databaseName = rs.getString("DATNAME");
+      if (relationalMeta.getSystemDatabaseName().contains(databaseName)
+          && relationalMeta.getDefaultDatabaseName().equals(databaseName)) {
+        continue;
+      }
+      databaseNames.add(databaseName);
     }
     rs.close();
     conn.close();
@@ -1304,7 +1309,7 @@ public class RelationalStorage implements IStorage {
           if (conn == null) {
             continue;
           }
-          DatabaseMetaData databaseMetaData = conn.getMetaData();
+
           List<String> tables = getTables(tempDatabaseName, tableName);
           for (String tempTableName : tables) {
             if (!tableNamePattern.matcher(tempTableName).find()) {
