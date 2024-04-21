@@ -81,7 +81,7 @@ public class RelationalStorage implements IStorage {
 
   private final String engineName;
 
-  private static final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
+  private final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
 
   private final FilterTransformer filterTransformer;
 
