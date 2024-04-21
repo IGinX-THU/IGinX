@@ -426,9 +426,9 @@ keyWords
    | DATA
    | REPLICA
    | DROP
-   | REGISTER
-   | PYTHON
-   | TASK
+   | CREATE
+   | FUNCTION
+   | FUNCTIONS
    | COMMIT
    | JOB
    | STATUS
@@ -673,18 +673,6 @@ ASC
 
 DROP
    : D R O P
-   ;
-
-REGISTER
-   : R E G I S T E R
-   ;
-
-PYTHON
-   : P Y T H O N
-   ;
-
-TASK
-   : T A S K
    ;
 
 COMMIT
