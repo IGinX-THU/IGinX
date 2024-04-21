@@ -120,8 +120,8 @@ public class RelationalStorage implements IStorage {
       config.setLeakDetectionThreshold(5000);
       config.setConnectionTimeout(30000);
       config.setIdleTimeout(60000);
-      config.setMaximumPoolSize(10);
-      config.setMinimumIdle(2);
+      config.setMaximumPoolSize(5);
+      config.setMinimumIdle(1);
       config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
       HikariDataSource newDataSource = new HikariDataSource(config);
