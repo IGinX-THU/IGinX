@@ -25,6 +25,11 @@ jobs:
                     [
                         "FileSystem",
                         "IoTDB12",
+                        "InfluxDB",
+                        "PostgreSQL",
+                        "Redis",
+                        "MongoDB",
+                        "Parquet",
                     ]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
@@ -53,38 +58,37 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format -q
 
-          # 测试只读节点===============================================
+            # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
               uses: ./.github/actions/capacityExpansionUnionTest
               with:
-                version: ${VERSION}
-                DB-name: ${{ matrix.DB-name }}
-                Test-Way: oriHasDataExpHasData
-                Read-Only: true
+                  version: ${VERSION}
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriHasDataExpHasData
+                  Read-Only: true
 
             - name: Run testReadOnly
               shell: bash
               run: |
-                mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
               shell: bash
               run: |
-                cat iginx-*.log
+                  cat iginx-*.log
 
             - if: always()
               name: Show DB Logs on Windows
               uses: ./.github/actions/dbLog
               with:
-                DB-name: ${{ matrix.DB-name }}
+                  DB-name: ${{ matrix.DB-name }}
 
             - uses: codecov/codecov-action@v1
               with:
-                file: ./**/target/site/jacoco/jacoco.xml
-                name: codecov
-
-
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
 #            # 第 1 阶段测试开始==========================================
 #            - name: Prepare CapExp environment oriHasDataExpHasData
 #              uses: ./.github/actions/capacityExpansionUnionTest

@@ -34,13 +34,13 @@ public class Constant {
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
   public static final List<String> ORI_EXTEND_PATH_LIST =
-          Arrays.asList("mn.wf999.wt01.status", "mn.wf999.wt01.temperature");
+      Arrays.asList("mn.wf999.wt01.status", "mn.wf999.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST =
       Arrays.asList("nt.wf03.wt01.status2", "nt.wf04.wt01.temperature");
 
   public static final List<String> EXP_EXTEND_PATH_LIST =
-          Arrays.asList("nt.wf999.wt01.status2", "nt.wf999.wt01.temperature");
+      Arrays.asList("nt.wf999.wt01.status2", "nt.wf999.wt01.temperature");
 
   public static final List<String> EXP_PATH_LIST1 =
       Collections.singletonList("nt.wf03.wt01.status2");
@@ -52,7 +52,7 @@ public class Constant {
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   public static final List<String> READ_ONLY_EXTEND_PATH_LIST =
-          Arrays.asList("tm.wf999.wt01.status", "tm.wf999.wt01.temperature");
+      Arrays.asList("tm.wf999.wt01.status", "tm.wf999.wt01.temperature");
 
   // data type
   public static List<DataType> INIT_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.LONG);

@@ -47,7 +47,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static BaseHistoryDataGenerator generator;
 
-  public BaseCapacityExpansionIT(StorageEngineType type, String extraParams, BaseHistoryDataGenerator generator) {
+  public BaseCapacityExpansionIT(
+      StorageEngineType type, String extraParams, BaseHistoryDataGenerator generator) {
     this.type = type;
     this.extraParams = extraParams;
     BaseCapacityExpansionIT.generator = generator;
@@ -522,38 +523,38 @@ public abstract class BaseCapacityExpansionIT {
   public void testShowColumns() {
     String statement = "SHOW COLUMNS mn.*;";
     String expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|     mn.wf01.wt01.status|  BINARY|\n"
-                    + "|mn.wf01.wt01.temperature|  BINARY|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     mn.wf01.wt01.status|  BINARY|\n"
+            + "|mn.wf01.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS nt.*;";
     expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|    nt.wf03.wt01.status2|  BINARY|\n"
-                    + "|nt.wf04.wt01.temperature|  BINARY|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|    nt.wf03.wt01.status2|  BINARY|\n"
+            + "|nt.wf04.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS tm.*;";
     expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|     tm.wf05.wt01.status|  BINARY|\n"
-                    + "|tm.wf05.wt01.temperature|  BINARY|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     tm.wf05.wt01.status|  BINARY|\n"
+            + "|tm.wf05.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
@@ -569,14 +570,14 @@ public abstract class BaseCapacityExpansionIT {
     String statement;
     statement = "select * from mn where key < 1;";
     String expected =
-            "Columns:\n"
-                    + "+------------------------+--------+\n"
-                    + "|                    Path|DataType|\n"
-                    + "+------------------------+--------+\n"
-                    + "|     mn.wf01.wt01.status|  BINARY|\n"
-                    + "|mn.wf01.wt01.temperature|  BINARY|\n"
-                    + "+------------------------+--------+\n"
-                    + "Total line number = 2\n";
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     mn.wf01.wt01.status|  BINARY|\n"
+            + "|mn.wf01.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
