@@ -295,7 +295,7 @@ public class InfluxDBStorage implements IStorage {
             LOGGER.warn("DataType don't match and default is String");
             break;
         }
-        if (isDummy) {
+        if (isDummy && !isUnit) {
           path = bucket.getName() + "." + path;
         }
         timeseries.add(new Column(path, dataType, tag));
