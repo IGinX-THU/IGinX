@@ -13,32 +13,32 @@ import java.util.Properties;
 
 public class JDBCMeta extends AbstractRelationalMeta {
 
-  private final Properties properties;
-
   private final char quote;
-  private String defaultDatabaseName;
+  private final String defaultDatabaseName;
 
-  private String driverClass;
+  private final String driverClass;
 
-  private JDBCDataTypeTransformer dataTypeTransformer;
+  private final JDBCDataTypeTransformer dataTypeTransformer;
 
-  private List<String> systemDatabaseName;
+  private final List<String> systemDatabaseName;
 
-  private String databaseQuerySql;
+  private final String databaseQuerySql;
 
-  private String databaseDropStatement;
+  private final String databaseDropStatement;
 
-  private boolean needQuote;
+  private final boolean needQuote;
 
-  private String schemaPattern;
+  private final String schemaPattern;
 
-  private String upsertStatement;
+  private final String upsertStatement;
 
-  private String upsertConflictStatement;
+  private final String upsertConflictStatement;
+
+  private final String useDatabaseStatement;
 
   public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
     super(meta);
-    properties = new Properties();
+    Properties properties = new Properties();
     InputStream in = Files.newInputStream(Paths.get(propertiesPath));
     properties.load(in);
 
@@ -53,6 +53,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     schemaPattern = properties.getProperty("schema_pattern");
     upsertStatement = properties.getProperty("upsert_statement");
     upsertConflictStatement = properties.getProperty("upsert_conflict_statement");
+    useDatabaseStatement = properties.getProperty("use_database_statement");
   }
 
   @Override
@@ -108,5 +109,10 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public String getUpsertConflictStatement() {
     return upsertConflictStatement;
+  }
+
+  @Override
+  public String getUseDatabaseStatement() {
+    return useDatabaseStatement;
   }
 }
