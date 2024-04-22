@@ -146,11 +146,4 @@ public abstract class AbstractRelationalMeta {
    * @return 获取upsert冲突后段SQL语句格式
    */
   public abstract String getUpsertConflictStatement();
-
-  /**
-   * 获取切换数据库的SQL语句
-   *
-   * @return 切换数据库的SQL语句
-   */
-  public abstract String getUseDatabaseStatement();
 }

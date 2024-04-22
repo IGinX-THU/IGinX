@@ -63,6 +63,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
@@ -80,25 +81,9 @@ public class RelationalStorage implements IStorage {
 
   private final String engineName;
 
-  private HikariDataSource dataSource;
+  private final Map<String, HikariDataSource> connectionPoolMap = new ConcurrentHashMap<>();
 
   private final FilterTransformer filterTransformer;
-
-  private void initHikariDataSource() {
-    HikariConfig config = new HikariConfig();
-    config.setJdbcUrl(getUrl(relationalMeta.getDefaultDatabaseName(), meta));
-    config.setUsername(meta.getExtraParams().get(USERNAME));
-    config.setPassword(meta.getExtraParams().get(PASSWORD));
-    config.addDataSourceProperty("prepStmtCacheSize", "250");
-    config.setLeakDetectionThreshold(2500);
-    config.setConnectionTimeout(30000);
-    config.setIdleTimeout(10000);
-    config.setMaximumPoolSize(25);
-    config.setMinimumIdle(10);
-    config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
-
-    dataSource = new HikariDataSource(config);
-  }
 
   private Connection getConnection(String databaseName) {
     if (databaseName.startsWith("dummy")) {
@@ -116,14 +101,43 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException ignored) {
     }
 
+    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
+    if (dataSource != null) {
+      try {
+        return dataSource.getConnection();
+      } catch (SQLException e) {
+        LOGGER.error("Cannot get connection for database " + databaseName, e);
+        dataSource.close();
+      }
+    }
+
     try {
-      Connection conn = dataSource.getConnection();
-      conn.createStatement()
-          .executeUpdate(String.format(relationalMeta.getUseDatabaseStatement(), databaseName));
-      return conn;
+      HikariConfig config = new HikariConfig();
+      config.setJdbcUrl(getUrl(databaseName, meta));
+      config.setUsername(meta.getExtraParams().get(USERNAME));
+      config.setPassword(meta.getExtraParams().get(PASSWORD));
+      config.addDataSourceProperty("prepStmtCacheSize", "250");
+      config.setLeakDetectionThreshold(2500);
+      config.setConnectionTimeout(30000);
+      config.setIdleTimeout(10000);
+      config.setMaximumPoolSize(2);
+      config.setMinimumIdle(1);
+      config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+
+      HikariDataSource newDataSource = new HikariDataSource(config);
+      connectionPoolMap.put(databaseName, newDataSource);
+      return newDataSource.getConnection();
     } catch (SQLException e) {
-      LOGGER.error("cannot connect to database " + databaseName + ": ", e);
+      LOGGER.error("Cannot get connection for database " + databaseName, e);
       return null;
+    }
+  }
+
+  private void closeConnection(String databaseName) {
+    HikariDataSource dataSource = connectionPoolMap.get(databaseName);
+    if (dataSource != null) {
+      dataSource.close();
+      connectionPoolMap.remove(databaseName);
     }
   }
 
@@ -143,7 +157,6 @@ public class RelationalStorage implements IStorage {
     if (!testConnection()) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
-    initHikariDataSource();
     filterTransformer = new FilterTransformer(relationalMeta.getQuote());
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
@@ -997,6 +1010,7 @@ public class RelationalStorage implements IStorage {
 
       if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
+          closeConnection(databaseName);
           Connection defaultConn =
               getConnection(relationalMeta.getDefaultDatabaseName()); // 正在使用的数据库无法被删除，因此需要切换到默认数据库
           if (defaultConn != null) {
