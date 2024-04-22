@@ -518,7 +518,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  // test dummy and non-dummy columns
+  // test dummy and non-dummy columns, in read only test
   @Test
   public void testShowColumns() {
     String statement = "SHOW COLUMNS mn.*;";
