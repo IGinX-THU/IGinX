@@ -258,10 +258,10 @@ public class StorageProperties {
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
-    private long cacheCapacity = 1024 * 1024 * 1024; // BYTE
+    private long cacheCapacity = 16 * 1024 * 1024; // BYTE
     private Duration cacheTimeout = null;
     private boolean cacheSoftValues = false;
-    private int compactPermits = 4;
+    private int compactPermits = 2;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
     private String parquetCompression = "UNCOMPRESSED";
