@@ -1007,7 +1007,6 @@ public class RelationalStorage implements IStorage {
       String tableName;
       String columnName;
       List<String> tables;
-      Map<String, String> columnMap;
 
       if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
         if (paths.size() == 1 && paths.get(0).equals("*") && delete.getTagFilter() == null) {
@@ -1120,11 +1119,6 @@ public class RelationalStorage implements IStorage {
     List<String> paths = new ArrayList<>();
     try {
       for (String databaseName : getDatabaseNames()) {
-        Connection conn = getConnection(databaseName);
-        if (conn == null) {
-          continue;
-        }
-        DatabaseMetaData databaseMetaData = conn.getMetaData();
         List<String> tables = getTables(databaseName, "%");
         for (String tableName : tables) {
           List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%");
@@ -1138,7 +1132,6 @@ public class RelationalStorage implements IStorage {
             paths.add(path);
           }
         }
-        conn.close();
       }
     } catch (SQLException e) {
       LOGGER.error("encounter error when getting boundary of storage: ", e);
@@ -1316,11 +1309,6 @@ public class RelationalStorage implements IStorage {
           if (tempDatabaseName.startsWith(DATABASE_PREFIX)) {
             continue;
           }
-          Connection conn = getConnection(tempDatabaseName);
-          if (conn == null) {
-            continue;
-          }
-
           List<String> tables = getTables(tempDatabaseName, tableName);
           for (String tempTableName : tables) {
             if (!tableNamePattern.matcher(tempTableName).find()) {
@@ -1343,7 +1331,6 @@ public class RelationalStorage implements IStorage {
               splitResults.put(tempDatabaseName, tableNameToColumnNames);
             }
           }
-          conn.close();
         }
       } else {
         List<ColumnField> columnFieldList = getColumns(databaseName, tableName, columnNames);
