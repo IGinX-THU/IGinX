@@ -119,7 +119,7 @@ public class RelationalStorage implements IStorage {
       config.addDataSourceProperty("prepStmtCacheSize", "250");
       config.setLeakDetectionThreshold(5000);
       config.setConnectionTimeout(30000);
-      config.setIdleTimeout(120000);
+      config.setIdleTimeout(15000);
       config.setMaximumPoolSize(8);
       config.setMinimumIdle(2);
       config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
