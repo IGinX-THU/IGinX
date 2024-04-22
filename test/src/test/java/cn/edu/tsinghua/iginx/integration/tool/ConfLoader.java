@@ -48,6 +48,8 @@ public class ConfLoader {
 
   private static String confPath;
 
+  private static Properties properties = null;
+
   private boolean DEBUG = false;
 
   private void logInfo(String info, Object... args) {
@@ -63,13 +65,9 @@ public class ConfLoader {
       result = FileReader.convertToString(path);
     } else {
       logInfo(path + "does not exist and use default storage type");
-      Properties properties = null;
-      try {
-        InputStream in = Files.newInputStream(Paths.get(confPath));
-        properties = new Properties();
-        properties.load(in);
-      } catch (IOException e) {
-        LOGGER.error("load conf failure: ", e);
+      if (properties == null) {
+        LOGGER.error("properties is not loaded, please load the conf first.");
+        return null;
       }
       result = properties.getProperty(defaultProperty);
       logInfo("default property: {}", result);
@@ -95,7 +93,7 @@ public class ConfLoader {
 
   public void loadTestConf() throws IOException {
     InputStream in = Files.newInputStream(Paths.get(confPath));
-    Properties properties = new Properties();
+    properties = new Properties();
     properties.load(in);
     logInfo("loading the test conf...");
     String property = properties.getProperty(STORAGE_ENGINE_LIST);
@@ -127,7 +125,6 @@ public class ConfLoader {
 
   public DBConf loadDBConf(String storageEngine) {
     DBConf dbConf = new DBConf();
-    Properties properties;
     try {
       InputStream in = Files.newInputStream(Paths.get(confPath));
       properties = new Properties();
