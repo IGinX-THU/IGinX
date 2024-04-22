@@ -233,13 +233,13 @@ public abstract class BaseCapacityExpansionIT {
 
     testQuerySpecialHistoryData();
 
-    // 扩容后show columns测试
-    testShowColumns();
-
     if (this instanceof FileSystemCapacityExpansionIT) {
       // 仅用于扩容文件系统后查询文件
       testQueryForFileSystem();
     }
+
+    // 扩容后show columns测试
+    testShowColumns();
   }
 
   protected void testQuerySpecialHistoryData() {}

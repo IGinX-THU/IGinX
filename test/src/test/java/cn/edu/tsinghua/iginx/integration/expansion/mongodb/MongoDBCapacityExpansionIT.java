@@ -301,6 +301,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
                     + "+------------------------+--------+\n"
                     + "|             nt.wf03._id| INTEGER|\n"
                     + "|    nt.wf03.wt01.status2|    LONG|\n"
+                    + "|             nt.wf04._id| INTEGER|\n"
                     + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
                     + "+------------------------+--------+\n"
                     + "Total line number = 3\n";
