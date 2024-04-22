@@ -26,10 +26,9 @@ public class TransformExample {
 
   private static final String QUERY_SQL = "select value1, value2, value3, value4 from transform;";
   private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
-  private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
-  private static final String REGISTER_SQL_FORMATTER =
-      "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
-  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
+  private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
+  private static final String CREATE_SQL_FORMATTER = "CREATE FUNCTION TRANSFORM %s FROM %s IN %s";
+  private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
 
   private static final String OUTPUT_DIR_PREFIX =
       System.getProperty("user.dir")
@@ -90,7 +89,7 @@ public class TransformExample {
     registerTask();
 
     // 查询已注册的任务
-    result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
   }
 
@@ -99,7 +98,7 @@ public class TransformExample {
     dropTask();
 
     // 查询已注册的任务
-    SessionExecuteSqlResult result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    SessionExecuteSqlResult result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
 
     // 清除数据
@@ -134,7 +133,7 @@ public class TransformExample {
   private static void registerTask() {
     TASK_MAP.forEach(
         (k, v) -> {
-          String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, v, k);
+          String registerSQL = String.format(CREATE_SQL_FORMATTER, k, k, v);
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
