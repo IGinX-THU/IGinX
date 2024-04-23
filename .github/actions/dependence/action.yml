@@ -23,7 +23,7 @@ runs:
     using: "composite"
     steps:
         - name: Set up Docker Buildx
-          uses: docker/setup-buildx-action@v3
+          uses: crazy-max/ghaction-setup-docker@v3
 
         # need to set up timezone and enlarge JVM heap size manually on windows
         - if: runner.os == 'Windows'
