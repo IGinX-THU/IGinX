@@ -22,6 +22,8 @@ jobs:
                 DB-name: ["MySQL"]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
+        container:
+          image: docker:latest
         steps:
             - uses: actions/checkout@v2
             - name: Environment dependence

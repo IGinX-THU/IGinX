@@ -47,3 +47,6 @@ runs:
           uses: actions/setup-java@v1
           with:
               java-version: ${{ inputs.java }}
+
+        - name: Set up Docker Buildx
+          uses: docker/setup-buildx-action@v1
