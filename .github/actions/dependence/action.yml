@@ -49,4 +49,5 @@ runs:
               java-version: ${{ inputs.java }}
 
         - name: Set up Docker Buildx
+          shell: bash
           uses: docker/setup-buildx-action@v1
