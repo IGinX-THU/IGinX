@@ -16,7 +16,7 @@ result=$(sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'")
 
 if [[ $result =~ 'success' ]]; then
   echo success
-  COMMAND='DROP PYTHON TASK "'"mock_udf"'";'
+  COMMAND='DROP FUNCTION "'"mock_udf"'";'
   sh -c "echo '$COMMAND' | xargs -0 -t -I F sh start_cli.sh -e 'F'"
 else
   echo 'Error: failed to register udf mock_udf.'

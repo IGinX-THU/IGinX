@@ -22,10 +22,13 @@ import static cn.edu.tsinghua.iginx.utils.TimeUtils.convertDatetimeStrToLong;
 
 import java.time.DateTimeException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class StringUtils {
 
@@ -61,9 +64,9 @@ public class StringUtils {
   }
 
   /**
-   * @return 返回值为 0 表示包含，>0 表示在这个序列在 border 前，<0 表示 ts 在 border 后
    * @param ts 时间序列(可能等于/含有*，不可能为null)
    * @param border 前缀式时间范围
+   * @return 返回值为 0 表示包含，>0 表示在这个序列在 border 前，<0 表示 ts 在 border 后
    */
   public static int compare(String ts, String border) {
     // *.*.*
@@ -113,23 +116,29 @@ public class StringUtils {
     return path;
   }
 
-  public static boolean match(String string, String regex) {
-    return Pattern.matches(StringUtils.reformatColumnName(regex), string);
+  public static boolean match(String string, String iginxPattern) {
+    return toColumnMatcher(iginxPattern).test(string);
   }
 
-  private static String reformatColumnName(String name) {
-    if (!name.contains("*")) return Pattern.quote(name);
-    name = name.replaceAll("[.]", "[.]");
-    name = name.replaceAll("[*]", ".*");
-    name = name.replaceAll("[(]", "[(]");
-    name = name.replaceAll("[)]", "[)]");
-    name = name.replaceAll("[{]", "[{]");
-    name = name.replaceAll("[}]", "[}]");
-    name = name.replaceAll("[+]", "[\\\\+]");
-    name = name.replaceAll("\\$", "[\\$]");
-    name = name.replaceAll("\\^", "[\\\\^]");
-    name = name.replaceAll("\\\\", "\\\\\\\\");
-    return name;
+  public static Predicate<String> toColumnMatcher(String iginxPattern) {
+    Objects.requireNonNull(iginxPattern);
+
+    if (iginxPattern.equals("*")) {
+      return s -> true;
+    }
+    if (!iginxPattern.contains("*")) {
+      return iginxPattern::equals;
+    }
+    Pattern pattern = Pattern.compile(toRegexExpr(iginxPattern));
+    return s -> pattern.matcher(s).matches();
+  }
+
+  public static String toRegexExpr(String iginxPattern) {
+    Objects.requireNonNull(iginxPattern);
+
+    return Arrays.stream(iginxPattern.split("[*]+", -1))
+        .map(s -> s.isEmpty() ? "" : Pattern.quote(s))
+        .collect(Collectors.joining(".*"));
   }
 
   public static boolean isContainSpecialChar(String str) {
