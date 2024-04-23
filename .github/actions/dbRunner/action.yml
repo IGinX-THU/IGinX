@@ -148,3 +148,11 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - if: inputs.DB-name == 'MySQL'
+          name: Start MySQL Service
+          shell: bash
+          run: |
+              docker run --name mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
+              docker run --name mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3307:3307 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
+              docker run --name mysql -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3308:3308 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26

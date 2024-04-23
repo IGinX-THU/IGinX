@@ -19,10 +19,7 @@ jobs:
                 java: [8]
                 python-version: ["3.9"]
                 os: [ubuntu-latest, macos-latest, windows-latest]
-                DB-name:
-                    [
-                        "PostgreSQL",
-                    ]
+                DB-name: ["MySQL"]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
         steps:
@@ -87,7 +84,6 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
-                  DB-name: ${{ matrix.DB-name }}
                   shell: client-before
 
             # large image export only tested in FileSystem and Parquet
