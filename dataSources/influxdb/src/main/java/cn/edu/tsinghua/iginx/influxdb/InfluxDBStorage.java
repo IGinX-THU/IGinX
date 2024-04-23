@@ -244,7 +244,8 @@ public class InfluxDBStorage implements IStorage {
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
       // query all the series by querying all the data with first()
 
-      boolean isUnit = bucket.getName().startsWith("unit");
+      String unitPattern = "unit\\d{10}"; // unit后跟10个数字
+      boolean isUnit = bucket.getName().matches(unitPattern);
       boolean isDummy =
           meta.isHasData()
               && (meta.getDataPrefix() == null
@@ -270,7 +271,7 @@ public class InfluxDBStorage implements IStorage {
           tag.put(key, val);
         }
 
-        DataType dataType = null;
+        DataType dataType;
         switch (column.get(5).getDataType()) { // the index 1 is the type of the data
           case "boolean":
             dataType = DataType.BOOLEAN;
