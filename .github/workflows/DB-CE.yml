@@ -24,8 +24,6 @@ jobs:
                 DB-name: ["MySQL"]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
-        container:
-          image: docker:latest
         env:
             METADATA_STORAGE: ${{ matrix.metadata }}
         steps:
