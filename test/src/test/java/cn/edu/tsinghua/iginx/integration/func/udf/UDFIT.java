@@ -70,9 +70,9 @@ public class UDFIT {
 
   private static final String MULTI_UDF_REGISTER_SQL = "CREATE FUNCTION %s IN \"%s\";";
 
-  private static final String DROP_SQL = "DROP PYTHON TASK \"%s\";";
+  private static final String DROP_SQL = "DROP FUNCTION \"%s\";";
 
-  private static final String SHOW_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
+  private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
 
   private static final String MODULE_PATH =
       String.join(
@@ -275,7 +275,7 @@ public class UDFIT {
   }
 
   private boolean isUDFRegistered(String udfName) {
-    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
+    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
             .map(RegisterTaskInfo::getName)
@@ -284,7 +284,7 @@ public class UDFIT {
   }
 
   private boolean isUDFsRegistered(List<String> names) {
-    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
+    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
             .map(RegisterTaskInfo::getName)
@@ -299,7 +299,7 @@ public class UDFIT {
 
   // all udf shouldn't be registered.
   private boolean isUDFsUnregistered(List<String> names) {
-    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
+    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
     List<String> registerUDFs =
         ret.getRegisterTaskInfos().stream()
             .map(RegisterTaskInfo::getName)
@@ -352,7 +352,7 @@ public class UDFIT {
     String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
     String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
-    SessionExecuteSqlResult ret = execute(SHOW_TASK_SQL);
+    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
 
     List<RegisterTaskInfo> registerUDFs = ret.getRegisterTaskInfos();
     for (RegisterTaskInfo info : registerUDFs) {
@@ -1127,7 +1127,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute("drop python task \"udf_b\";");
+    execute(String.format(DROP_SQL, "udf_b"));
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
     executeFail(statement);
@@ -1199,7 +1199,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute("drop python task \"udf_b\";");
+    execute(String.format(DROP_SQL, "udf_b"));
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
     executeFail(statement);
@@ -1275,7 +1275,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute("drop python task \"udf_b\";");
+    execute(String.format(DROP_SQL, "udf_b"));
     assertFalse(isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
     executeFail(statement);

@@ -656,7 +656,7 @@ public class IginxClient {
             Arrays.asList("explain", "select"),
             Arrays.asList("add", "storageengine"),
             Arrays.asList("create", "function"),
-            Arrays.asList("drop", "python", "task"),
+            Arrays.asList("drop", "function"),
             Arrays.asList("commit", "transform", "job"),
             Arrays.asList("show", "transform", "job", "status"),
             Arrays.asList("cancel", "transform", "job"),
@@ -674,7 +674,7 @@ public class IginxClient {
             Arrays.asList("clear", "data"),
             Arrays.asList("show", "columns"),
             Arrays.asList("show", "cluster", "info"),
-            Arrays.asList("show", "register", "python", "task"),
+            Arrays.asList("show", "functions"),
             Arrays.asList("show", "sessionid"),
             Arrays.asList("show", "rules"),
             Arrays.asList("remove", "historydatasource"));

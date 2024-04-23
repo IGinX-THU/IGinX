@@ -350,7 +350,7 @@ public class SessionExecuteSqlResult {
     StringBuilder builder = new StringBuilder();
 
     if (registerTaskInfos != null && !registerTaskInfos.isEmpty()) {
-      builder.append("Register task infos:").append("\n");
+      builder.append("Functions info:").append("\n");
       List<List<String>> cache = new ArrayList<>();
       cache.add(
           new ArrayList<>(Arrays.asList("NAME", "CLASS_NAME", "FILE_NAME", "IP", "UDF_TYPE")));
