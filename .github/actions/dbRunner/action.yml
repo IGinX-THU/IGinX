@@ -150,9 +150,63 @@ runs:
               fi
 
         - if: inputs.DB-name == 'MySQL'
+          name: chan
+          shell: bash
+          run: |
+            if [ "$RUNNER_OS" == "Linux" ]; then
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql.sh"
+            elif [ "$RUNNER_OS" == "Windows" ]; then
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_windows.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_windows.sh"
+            elif [ "$RUNNER_OS" == "macOS" ]; then
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_macos.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_macos.sh"
+            else
+              echo "$RUNNER_OS is not supported"
+              exit 1
+            fi
+
+        - if: inputs.DB-name == 'MySQL' && ("$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "macOS")
           name: Start MySQL Service
           shell: bash
           run: |
               docker run --name mysql1 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
               docker run --name mysql2 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3307:3307 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
               docker run --name mysql3 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3308:3308 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
+
+        - if: inputs.DB-name == 'MySQL' && "$RUNNER_OS" == "Windows"
+          name: Start MySQL Service 3306
+          uses: mirromutth/mysql-action@v1.1
+          with:
+              host port: 3306 # Optional, default value is 3306. The port of host
+              container port: 3306 # Optional, default value is 3306. The port of container
+              mysql version: '8.0' # Optional, default value is "latest". The version of the MySQL
+              mysql database: 'mysql' # Optional, default value is "test". The specified database which will be create
+              mysql root password: mysql # Required if "mysql user" is empty, default is empty. The root superuser password
+              mysql user: 'root' # Required if "mysql root password" is empty, default is empty. The superuser for the specified database. Can use secrets, too
+              mysql password: mysql # Required if "mysql user" exists. The password for the "mysql user"
+
+        - if: inputs.DB-name == 'MySQL' && "$RUNNER_OS" == "Windows"
+          name: Start MySQL Service 3307
+          uses: mirromutth/mysql-action@v1.1
+          with:
+              host port: 3307# Optional, default value is 3306. The port of host
+              container port: 3307# Optional, default value is 3306. The port of container
+              mysql version: '8.0'
+              mysql database: 'mysql'
+              mysql root password: mysql
+              mysql user: 'root'
+              mysql password: mysql
+
+        - if: inputs.DB-name == 'MySQL' && "$RUNNER_OS" == "Windows"
+          name: Start MySQL Service 3308
+          uses: mirromutth/mysql-action@v1.1
+          with:
+              host port: 3308
+              container port: 3308
+              mysql version: '8.0'
+              mysql database: 'mysql'
+              mysql root password: mysql
+              mysql user: 'root'
+              mysql password: mysql
