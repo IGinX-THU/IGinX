@@ -33,16 +33,6 @@ runs:
               tzutil /s "China Standard Time"
               echo "JAVA_OPTS=-Xmx4g -Xms2g" >> %GITHUB_ENV%
 
-        - if: runner.os == 'Windows'
-          uses: azure/mysql@v1
-          with:
-            server-name: REPLACE_THIS_WITH_YOUR_MYSQL_SERVER_NAME
-            username: admin@REPLACE_THIS_WITH_YOUR_MYSQL_SERVER_NAME
-            password: ${{ secrets.AZURE_MYSQL_PASSWORD }}
-            # This is optional, you want to connect directly
-            database: REPLACE_WITH_DATABASE_NAME
-            sql-file: './sqlFile.sql'
-
         - if: inputs.scope=='all'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v3
