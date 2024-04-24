@@ -17,15 +17,16 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final char SEPARATOR = '.';
 
-  private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
+  private static final String QUERY_DATABASES_STATEMENT =
+      "SELECT SCHEMA_NAME AS datname FROM information_schema.schemata;";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
+  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE `%s`;";
 
   private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
 
   private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\";";
+  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS `%s`;";
 
   public MySQLHistoryDataGenerator() {
     Constant.oriPort = 3306;
@@ -41,7 +42,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
       } else {
         url = String.format("jdbc:mysql://127.0.0.1:%d/%s", port, databaseName);
       }
-      Class.forName("org.mysql.Driver");
+      Class.forName("com.mysql.cj.jdbc.Driver");
       return DriverManager.getConnection(url, "root", "mysecret");
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
@@ -212,6 +213,6 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   private static String getQuotName(String name) {
-    return "\"" + name + "\"";
+    return "`" + name + "`";
   }
 }
