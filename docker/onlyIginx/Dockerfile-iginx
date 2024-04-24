@@ -1,7 +1,7 @@
 FROM maven:3-amazoncorretto-8 AS builder
+RUN mvn clean package -DskipTests -P-format
 COPY ./core /root/iginx/core
 WORKDIR /root/iginx
-RUN mvn clean package -DskipTests -P-format
 
 FROM openjdk:11-jre-slim
 COPY --from=builder /root/iginx/core/target/iginx-core-0.6.0-SNAPSHOT /iginx
