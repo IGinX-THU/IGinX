@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
 import cn.edu.tsinghua.iginx.utils.FileUtils;
@@ -39,8 +38,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -95,6 +92,8 @@ public class UDFIT {
           "my_module",
           "idle_classes.py");
 
+  private static UDFTestTools tool;
+
   @BeforeClass
   public static void setUp() throws SessionException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
@@ -104,6 +103,7 @@ public class UDFIT {
     }
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
+    tool = new UDFTestTools(session);
   }
 
   @AfterClass
@@ -177,173 +177,9 @@ public class UDFIT {
   @After
   public void dropTasks() {
     for (String name : taskToBeRemoved) {
-      execute(String.format(DROP_SQL, name));
+      tool.execute(String.format(DROP_SQL, name));
     }
     taskToBeRemoved.clear();
-  }
-
-  private void executeReg(String statement, boolean isRemote) {
-    LOGGER.info(
-        "Execute {} registration Statement: \"{}\"", isRemote ? "remote" : "local", statement);
-    LoadUDFResp res = null;
-    try {
-      res = session.executeRegisterTask(statement, isRemote);
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-      fail();
-    }
-
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.error(
-          "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
-      fail();
-    }
-  }
-
-  // register UDF and expect failure
-  private void executeRegFail(String statement, boolean isRemote) {
-    LOGGER.info(
-        "Execute {} registration Statement: \"{}\"", isRemote ? "remote" : "local", statement);
-    LoadUDFResp res = null;
-    try {
-      res = session.executeRegisterTask(statement, isRemote);
-    } catch (SessionException e) {
-      // don't want to print e because it will be confusing
-      LOGGER.info(
-          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}",
-          statement,
-          e.getMessage());
-      return;
-    }
-
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.info(
-          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.",
-          statement,
-          res.getParseErrorMsg());
-      return;
-    }
-
-    fail("Statement: \"{}\" execute without failure, which was not expected.");
-  }
-
-  private SessionExecuteSqlResult execute(String statement) {
-    LOGGER.info("Execute Statement: \"{}\"", statement);
-
-    SessionExecuteSqlResult res = null;
-    try {
-      res = session.executeSql(statement);
-    } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
-      fail();
-    }
-
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.error(
-          "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
-      fail();
-    }
-
-    return res;
-  }
-
-  // execute a statement and expect failure.
-  private void executeFail(String statement) {
-    LOGGER.info("Execute Statement: \"{}\"", statement);
-
-    SessionExecuteSqlResult res = null;
-    try {
-      res = session.executeSql(statement);
-    } catch (SessionException e) {
-      // don't want to print e because it will be confusing
-      LOGGER.info(
-          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}",
-          statement,
-          e.getMessage());
-      return;
-    }
-
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      LOGGER.info(
-          "Statement: \"{}\" execute failed AS EXPECTED, with message: {}.",
-          statement,
-          res.getParseErrorMsg());
-      return;
-    }
-
-    fail("Statement: \"{}\" execute without failure, which was not expected.");
-  }
-
-  private boolean isUDFRegistered(String udfName) {
-    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
-    List<String> registerUDFs =
-        ret.getRegisterTaskInfos().stream()
-            .map(RegisterTaskInfo::getName)
-            .collect(Collectors.toList());
-    return registerUDFs.contains(udfName);
-  }
-
-  private boolean isUDFsRegistered(List<String> names) {
-    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
-    List<String> registerUDFs =
-        ret.getRegisterTaskInfos().stream()
-            .map(RegisterTaskInfo::getName)
-            .collect(Collectors.toList());
-    for (String udfName : names) {
-      if (!registerUDFs.contains(udfName)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  // all udf shouldn't be registered.
-  private boolean isUDFsUnregistered(List<String> names) {
-    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
-    List<String> registerUDFs =
-        ret.getRegisterTaskInfos().stream()
-            .map(RegisterTaskInfo::getName)
-            .collect(Collectors.toList());
-    for (String udfName : names) {
-      if (registerUDFs.contains(udfName)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
-  /**
-   * generate multiple UDFs' registration sql command
-   *
-   * @param types UDF types
-   * @param names UDF names that will be used in sql after
-   * @param classPaths UDF class path relative to module root
-   * @param modulePath module dir position
-   * @return a sql string
-   */
-  private String concatMultiUDFReg(
-      List<String> types, List<String> names, List<String> classPaths, String modulePath) {
-    assertEquals(types.size(), names.size());
-    assertEquals(names.size(), classPaths.size());
-    String udfs =
-        IntStream.range(0, types.size())
-            .mapToObj(
-                i ->
-                    String.format(
-                        "%s \"%s\" FROM \"%s\"", types.get(i), names.get(i), classPaths.get(i)))
-            .collect(Collectors.joining(", "));
-    return String.format(MULTI_UDF_REGISTER_SQL, udfs, modulePath);
-  }
-
-  // all UDFs will be registered in one type
-  private String concatMultiUDFReg(
-      String type, List<String> names, List<String> classPaths, String modulePath) {
-    assertEquals(names.size(), classPaths.size());
-    String udfs =
-        IntStream.range(0, names.size())
-            .mapToObj(i -> String.format("\"%s\" FROM \"%s\"", names.get(i), classPaths.get(i)))
-            .collect(Collectors.joining(", "));
-    return String.format(MULTI_UDF_REGISTER_SQL, type + " " + udfs, modulePath);
   }
 
   @Test
@@ -352,17 +188,17 @@ public class UDFIT {
     String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
     String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
-    SessionExecuteSqlResult ret = execute(SHOW_FUNCTION_SQL);
+    SessionExecuteSqlResult ret = tool.execute(SHOW_FUNCTION_SQL);
 
     List<RegisterTaskInfo> registerUDFs = ret.getRegisterTaskInfos();
     for (RegisterTaskInfo info : registerUDFs) {
       // execute udf
       if (info.getType().equals(UDFType.UDTF)) {
-        execute(String.format(udtfSQLFormat, info.getName()));
+        tool.execute(String.format(udtfSQLFormat, info.getName()));
       } else if (info.getType().equals(UDFType.UDAF)) {
-        execute(String.format(udafSQLFormat, info.getName()));
+        tool.execute(String.format(udafSQLFormat, info.getName()));
       } else if (info.getType().equals(UDFType.UDSF)) {
-        execute(String.format(udsfSQLFormat, info.getName()));
+        tool.execute(String.format(udsfSQLFormat, info.getName()));
       }
     }
   }
@@ -379,25 +215,25 @@ public class UDFIT {
             "udf",
             "mock_udf.py");
     String udfName = "mock_udf";
-    executeReg(String.format(SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", filePath), false);
-    assertTrue(isUDFRegistered(udfName));
+    tool.executeReg(String.format(SINGLE_UDF_REGISTER_SQL, "UDAF", udfName, "MockUDF", filePath));
+    assertTrue(tool.isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
-    execute(String.format(DROP_SQL, udfName));
+    tool.execute(String.format(DROP_SQL, udfName));
     // dropped udf cannot be queried
-    assertFalse(isUDFRegistered(udfName));
+    assertFalse(tool.isUDFRegistered(udfName));
     taskToBeRemoved.clear();
 
     // make sure dropped udf cannot be used
     String statement = "SELECT " + udfName + "(s1,1) FROM us.d1 WHERE s1 < 10;";
-    executeFail(statement);
+    tool.executeFail(statement);
   }
 
   @Test
   public void testCOS() {
     String statement = "SELECT cos(s1) FROM us.d1 WHERE s1 < 10;";
 
-    SessionExecuteSqlResult ret = execute(statement);
+    SessionExecuteSqlResult ret = tool.execute(statement);
     compareResult(Collections.singletonList("cos(us.d1.s1)"), ret.getPaths());
     compareResult(new long[] {0L, 1L, 2L, 3L, 4L, 5L, 6L, 7L, 8L, 9L}, ret.getKeys());
 
@@ -425,11 +261,11 @@ public class UDFIT {
   public void testConcurrentCos() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
-    execute(insert);
+    tool.execute(insert);
 
     String query =
         "SELECT * FROM (SELECT cos(s1) AS cos_s1 FROM test) AS t1, (SELECT cos(s2) AS cos_s2 FROM test) AS t2 LIMIT 10;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     compareResult(4, ret.getPaths().size());
 
     List<Double> cosS1ExpectedValues =
@@ -473,10 +309,10 @@ public class UDFIT {
   public void testMultiColumns() {
     String insert =
         "INSERT INTO test(key, s1, s2, s3) VALUES (1, 2, 3, 2), (2, 3, 1, 3), (3, 4, 3, 1), (4, 9, 7, 5), (5, 3, 6, 2), (6, 6, 4, 2);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "SELECT multiply(s1, s2) FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+--------------------------+\n"
@@ -493,7 +329,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT multiply(s1, s2, s3) FROM test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+-----------------------------------+\n"
@@ -510,7 +346,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT multiply(s1, s2, s3), s1, s2 + s3 FROM test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+-----------------------------------+-------+-----------------+\n"
@@ -531,10 +367,10 @@ public class UDFIT {
   public void testExprFilter() {
     String insert =
         "INSERT INTO test(key, s1, s2, s3) VALUES (1, 2, 3, 2), (2, 3, 1, 3), (3, 4, 3, 1), (4, 9, 7, 5), (5, 3, 6, 2), (6, 6, 4, 2);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "SELECT * FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+-------+-------+-------+\n"
@@ -551,7 +387,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "SELECT multiply(s1, s2) FROM test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+--------------------------+\n"
@@ -568,7 +404,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "SELECT * FROM test WHERE multiply(s1, s2) > 15;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+-------+-------+-------+\n"
@@ -582,7 +418,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "SELECT * FROM test WHERE multiply(s1, s2) + 10 > 15;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+-------+-------+-------+\n"
@@ -598,7 +434,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "SELECT * FROM test WHERE multiply(s1, s2) + 10 > s3 + 15;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+-------+-------+-------+\n"
@@ -613,7 +449,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "SELECT * FROM test WHERE multiply(s1, s2) + 9 > cos(s3) + 15;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+-------+-------+-------+\n"
@@ -629,7 +465,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     query = "SELECT * FROM test WHERE pow(s1, 0.5) - 1 > cos(s2) + cos(s3);";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+-------+-------+-------+\n"
@@ -650,7 +486,7 @@ public class UDFIT {
   public void testSelectFromUDF() {
     String insert =
         "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
-    execute(insert);
+    tool.execute(insert);
 
     List<Double> cosTestAExpectedValues =
         Arrays.asList(
@@ -670,7 +506,7 @@ public class UDFIT {
             -0.6536436208636119);
 
     String query = "SELECT `cos(test.a)` FROM(SELECT cos(*) FROM test);";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
 
     compareResult(1, ret.getPaths().size());
     compareResult("cos(test.a)", ret.getPaths().get(0));
@@ -683,7 +519,7 @@ public class UDFIT {
     }
 
     query = "SELECT `cos(test.b)` AS cos_b FROM(SELECT cos(*) FROM test);";
-    ret = execute(query);
+    ret = tool.execute(query);
 
     compareResult(1, ret.getPaths().size());
     compareResult("cos_b", ret.getPaths().get(0));
@@ -700,10 +536,10 @@ public class UDFIT {
   public void testTransposeRows() {
     String insert =
         "INSERT INTO test(key, a, b) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "SELECT * FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+------+------+\n"
@@ -720,7 +556,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT transpose(*) FROM (SELECT * FROM test);";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+------------+------------+------------+------------+------------+------------+\n"
@@ -734,7 +570,7 @@ public class UDFIT {
 
     query =
         "SELECT `transpose(0)`, `transpose(1)`, `transpose(2)` FROM (SELECT transpose(*) FROM (SELECT * FROM test));";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+------------+------------+------------+\n"
@@ -751,10 +587,10 @@ public class UDFIT {
   public void testColumnExpand() {
     String insert =
         "INSERT INTO test(key, a) VALUES (1, 2), (2, 3), (3, 4), (4, 9), (5, 3), (6, 6);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "SELECT a FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+------+\n"
@@ -771,7 +607,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT columnExpand(*) FROM (SELECT a FROM test);";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+--------------------+------------------------+----------------------+\n"
@@ -789,7 +625,7 @@ public class UDFIT {
 
     query =
         "SELECT `columnExpand(test.a+1.5)` FROM (SELECT columnExpand(*) FROM (SELECT a FROM test)) WHERE `columnExpand(test.a+1.5)` < 5;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+------------------------+\n"
@@ -807,10 +643,10 @@ public class UDFIT {
   public void testUDFWithArgs() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "SELECT pow(s1, 2) FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+---------------+\n"
@@ -827,7 +663,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(s1, s2, 2) FROM test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+---------------+---------------+\n"
@@ -844,7 +680,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(*, 3) FROM test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+---------------+---------------+\n"
@@ -865,10 +701,10 @@ public class UDFIT {
   public void testUDFWithKvargs() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "SELECT pow(s1, n=2) FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+---------------+\n"
@@ -885,7 +721,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(s1, s2, n=2) FROM test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+---------------+---------------+\n"
@@ -902,7 +738,7 @@ public class UDFIT {
     compareResult(expected, ret.getResultInString(false, ""));
 
     query = "SELECT pow(*, n=3) FROM test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+---+---------------+---------------+\n"
@@ -923,10 +759,10 @@ public class UDFIT {
   public void testUDFWithArgsAndKvArgs() {
     String insert =
         "INSERT INTO test(key, s1, s2) VALUES (1, 2, 3), (2, 3, 1), (3, 4, 3), (4, 9, 7), (5, 3, 6), (6, 6, 4);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "SELECT pow(s1, 2), pow(s2, n=2) FROM test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+---------------+---------------+\n"
@@ -967,10 +803,10 @@ public class UDFIT {
   @Test
   public void testUsingKeyInUDSF() {
     String insert = "INSERT INTO test(key, a) VALUES (1699950998000, 2), (1699951690000, 3);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "select reverse_rows(a) from test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+-------------+--------------------+\n"
@@ -986,10 +822,10 @@ public class UDFIT {
   @Test
   public void testUsingKeyInUDAF() {
     String insert = "INSERT INTO test(key, a, b) VALUES (1,2,3), (2,3,4) (3,4,5);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "select udf_max_with_key(a) from test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+------------------------+\n"
@@ -1004,10 +840,10 @@ public class UDFIT {
   @Test
   public void testUsingKeyInUDTF() {
     String insert = "INSERT INTO test(key, a, b) VALUES (1,2,3), (2,3,4) (3,4,5);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "select key_add_one(a) from test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+-------------------+\n"
@@ -1024,10 +860,10 @@ public class UDFIT {
   @Test
   public void testRowTransform() {
     String insert = "INSERT INTO test(key, a, b) VALUES (1,2,3), (2,3,4) (3,4,5);";
-    execute(insert);
+    tool.execute(insert);
 
     String query = "select cos(a), pow(b, 2) from test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
     String expected =
         "ResultSets:\n"
             + "+---+-------------------+--------------+\n"
@@ -1045,7 +881,7 @@ public class UDFIT {
     }
 
     query = "explain select cos(a), pow(b, 2) from test;";
-    ret = execute(query);
+    ret = tool.execute(query);
     expected =
         "ResultSets:\n"
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
@@ -1063,15 +899,15 @@ public class UDFIT {
   public void testImportModule() {
     String classPath = "my_module.sub_module.sub_class_a.SubClassA";
     String udfName = "module_udf_test";
-    executeReg(
-        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, MODULE_PATH), false);
-    assertTrue(isUDFRegistered(udfName));
+    tool.executeReg(
+        String.format(SINGLE_UDF_REGISTER_SQL, "udsf", udfName, classPath, MODULE_PATH));
+    assertTrue(tool.isUDFRegistered(udfName));
     taskToBeRemoved.add(udfName);
 
     String insert = "insert into test(key, a) values (1,2);";
-    execute(insert);
+    tool.execute(insert);
     String query = "select " + udfName + "(a, 1) from test;";
-    SessionExecuteSqlResult ret = execute(query);
+    SessionExecuteSqlResult ret = tool.execute(query);
 
     String expected =
         "ResultSets:\n"
@@ -1096,14 +932,14 @@ public class UDFIT {
                 "my_module.my_class_a.ClassB",
                 "my_module.sub_module.sub_class_a.SubClassA"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
-    String registerSql = concatMultiUDFReg("udsf", names, classPaths, MODULE_PATH);
-    executeReg(registerSql, false);
-    assertTrue(isUDFsRegistered(names));
+    String registerSql = tool.concatMultiUDFReg("udsf", names, classPaths, MODULE_PATH);
+    tool.executeReg(registerSql);
+    assertTrue(tool.isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
     // test UDFs' usage
     String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
-    SessionExecuteSqlResult ret = execute(statement);
+    SessionExecuteSqlResult ret = tool.execute(statement);
     String expected =
         "ResultSets:\n"
             + "+-----------+\n"
@@ -1115,7 +951,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
-    ret = execute(statement);
+    ret = tool.execute(statement);
     expected =
         "ResultSets:\n"
             + "+-----------+\n"
@@ -1127,14 +963,14 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute(String.format(DROP_SQL, "udf_b"));
-    assertFalse(isUDFRegistered("udf_b"));
+    tool.execute(String.format(DROP_SQL, "udf_b"));
+    assertFalse(tool.isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
-    executeFail(statement);
+    tool.executeFail(statement);
 
     // other udfs in the same module should work normally, use new udf to avoid cache.
     statement = "select udf_sub(s1,1) from us.d1 where s1 < 10;";
-    ret = execute(statement);
+    ret = tool.execute(statement);
     expected =
         "ResultSets:\n"
             + "+---------+\n"
@@ -1159,14 +995,14 @@ public class UDFIT {
                 "my_module.my_class_a.ClassB",
                 "my_module.sub_module.sub_class_a.SubClassA"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_sub"));
-    String register = concatMultiUDFReg(types, names, classPaths, MODULE_PATH);
-    executeReg(register, false);
-    assertTrue(isUDFsRegistered(names));
+    String register = tool.concatMultiUDFReg(types, names, classPaths, MODULE_PATH);
+    tool.executeReg(register);
+    assertTrue(tool.isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
     // test UDFs' usage
     String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
-    SessionExecuteSqlResult ret = execute(statement);
+    SessionExecuteSqlResult ret = tool.execute(statement);
     String expected =
         "ResultSets:\n"
             + "+---+-----------+\n"
@@ -1187,7 +1023,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
-    ret = execute(statement);
+    ret = tool.execute(statement);
     expected =
         "ResultSets:\n"
             + "+-----------+\n"
@@ -1199,14 +1035,14 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute(String.format(DROP_SQL, "udf_b"));
-    assertFalse(isUDFRegistered("udf_b"));
+    tool.execute(String.format(DROP_SQL, "udf_b"));
+    assertFalse(tool.isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
-    executeFail(statement);
+    tool.executeFail(statement);
 
     // other udfs in the same module should work normally, use new udf to avoid cache.
     statement = "select udf_sub(s1,1) from us.d1 where s1 < 10;";
-    ret = execute(statement);
+    ret = tool.execute(statement);
     expected =
         "ResultSets:\n"
             + "+---------+\n"
@@ -1220,29 +1056,19 @@ public class UDFIT {
 
   // register multiple UDFs in one local python file
   @Test
-  public void testMultiUDFRegLocalFile() {
-    multiUDFRegFileTest(false);
-  }
-
-  // register multiple UDFs in one remote python file
-  @Test
-  public void testMultiUDFRegRemoteFile() {
-    multiUDFRegFileTest(true);
-  }
-
-  private void multiUDFRegFileTest(boolean isRemote) {
+  public void testMultiUDFReg() {
     List<String> types = new ArrayList<>(Arrays.asList("udtf", "udsf", "udaf"));
     // ClassA, ClassB & ClassC in same python file
     List<String> classPaths = new ArrayList<>(Arrays.asList("ClassA", "ClassB", "ClassC"));
     List<String> names = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_c"));
-    String register = concatMultiUDFReg(types, names, classPaths, MODULE_FILE_PATH);
-    executeReg(register, isRemote);
-    assertTrue(isUDFsRegistered(names));
+    String register = tool.concatMultiUDFReg(types, names, classPaths, MODULE_FILE_PATH);
+    tool.executeReg(register);
+    assertTrue(tool.isUDFsRegistered(names));
     taskToBeRemoved.addAll(names);
 
     // test UDFs' usage
     String statement = "select udf_a(s1,1) from us.d1 where s1 < 10;";
-    SessionExecuteSqlResult ret = execute(statement);
+    SessionExecuteSqlResult ret = tool.execute(statement);
     String expected =
         "ResultSets:\n"
             + "+---+-----------+\n"
@@ -1263,7 +1089,7 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     statement = "select udf_b(s1,1) from us.d1 where s1 < 10;";
-    ret = execute(statement);
+    ret = tool.execute(statement);
     expected =
         "ResultSets:\n"
             + "+-----------+\n"
@@ -1275,14 +1101,14 @@ public class UDFIT {
     assertEquals(expected, ret.getResultInString(false, ""));
 
     // make sure "udf_b" is dropped and cannot be used
-    execute(String.format(DROP_SQL, "udf_b"));
-    assertFalse(isUDFRegistered("udf_b"));
+    tool.execute(String.format(DROP_SQL, "udf_b"));
+    assertFalse(tool.isUDFRegistered("udf_b"));
     taskToBeRemoved.remove("udf_b");
-    executeFail(statement);
+    tool.executeFail(statement);
 
     // other udfs in the same file should work normally, use new udf to avoid cache.
     statement = "select udf_c(s1,1) from us.d1 where s1 < 10;";
-    ret = execute(statement);
+    ret = tool.execute(statement);
     expected =
         "ResultSets:\n"
             + "+-----------+\n"
@@ -1333,8 +1159,8 @@ public class UDFIT {
             + "\" in \""
             + MODULE_PATH
             + "\";";
-    executeRegFail(register, false);
-    assertTrue(isUDFsUnregistered(names));
+    tool.executeRegFail(register);
+    assertTrue(tool.isUDFsUnregistered(names));
 
     // same class name
     List<String> classPathWrong =
@@ -1343,39 +1169,29 @@ public class UDFIT {
                 "my_module.my_class_a.ClassA",
                 "my_module.my_class_a.ClassB",
                 "my_module.my_class_a.ClassB"));
-    register = concatMultiUDFReg(types, names, classPathWrong, MODULE_PATH);
-    executeRegFail(register, false);
-    assertTrue(isUDFsUnregistered(names));
+    register = tool.concatMultiUDFReg(types, names, classPathWrong, MODULE_PATH);
+    tool.executeRegFail(register);
+    assertTrue(tool.isUDFsUnregistered(names));
 
     // same name
     List<String> nameWrong = new ArrayList<>(Arrays.asList("udf_a", "udf_b", "udf_b"));
-    register = concatMultiUDFReg(types, nameWrong, classPaths, MODULE_PATH);
-    executeRegFail(register, false);
-    assertTrue(isUDFsUnregistered(names));
+    register = tool.concatMultiUDFReg(types, nameWrong, classPaths, MODULE_PATH);
+    tool.executeRegFail(register);
+    assertTrue(tool.isUDFsUnregistered(names));
   }
 
   @Test
-  public void testLocalModuleInstall() {
-    moduleInstallTest(false);
-  }
-
-  @Test
-  public void testRemoteModuleInstall() {
-    moduleInstallTest(true);
-  }
-
-  private void moduleInstallTest(boolean isRemote) {
+  public void testModuleInstall() {
     String classPath = "my_module.dateutil_test.Test";
     String name = "dateutil_test";
     String type = "udsf";
-    executeReg(
-        String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH), isRemote);
-    assertTrue(isUDFRegistered(name));
+    tool.executeReg(String.format(SINGLE_UDF_REGISTER_SQL, type, name, classPath, MODULE_PATH));
+    assertTrue(tool.isUDFRegistered(name));
     taskToBeRemoved.add(name);
 
     // test UDFs' usage
     String statement = "select " + name + "(s1,1) from us.d1 where s1 < 10;";
-    SessionExecuteSqlResult ret = execute(statement);
+    SessionExecuteSqlResult ret = tool.execute(statement);
     String expected =
         "ResultSets:\n"
             + "+---+----+------+-----+----+\n"
@@ -1407,8 +1223,8 @@ public class UDFIT {
     // append an illegal package(wrong name)
     try {
       FileUtils.appendFile(reqFile, "\nillegal-package");
-      executeRegFail(statement, false);
-      assertFalse(isUDFRegistered(name));
+      tool.executeRegFail(statement);
+      assertFalse(tool.isUDFRegistered(name));
     } catch (IOException e) {
       LOGGER.error("Append content to file:{} failed.", reqFile, e);
       fail();
@@ -1421,8 +1237,4 @@ public class UDFIT {
       }
     }
   }
-
-  // register local UDF script into iginx that runs on different host
-  @Test
-  public void testRemoteFileReg() {}
 }

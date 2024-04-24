@@ -1,5 +1,5 @@
 name: "conf-writer"
-description: "use conf-writer to change the target/conf after IGinX was installed"
+description: "use conf-writer to change the target/conf before IGinX was installed, because installation will happen during docker image building."
 inputs:
     if-CapExp:
         description: "if you need capacity expansion"
@@ -25,26 +25,10 @@ inputs:
         description: "which metadata service to use"
         required: false
         default: zookeeper
-    For-Docker:
-        description: "when docker needs to be used, config must be modified before maven install"
-        required: false
-        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
-          name: save config for FileSystem and Parquet
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
-
-        - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
-          name: save config for FileSystem and Parquet
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
-
         - name: Set if-CapExp
           shell: bash
           run: |
@@ -81,9 +65,7 @@ runs:
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                if [ "${{ inputs.For-Docker }}" == "false" ]; then
-                    sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                fi
+                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
@@ -200,30 +182,3 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-
-        # change database connection ip to host.docker.internal to access host services. fs & parquet excluded.
-        - if: inputs.For-Docker=='true'
-          name: write docker donfig file
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config_copy.properties"
-              cp -f "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties"

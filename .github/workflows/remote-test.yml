@@ -1,0 +1,120 @@
+name: "Remote Service Test"
+on:
+    pull_request:
+        types: [opened, reopened]
+        branches:
+            - main
+env:
+    VERSION: 0.6.0-SNAPSHOT
+    FUNCTEST: RemoteUDFIT
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    Union-DB-Test:
+        timeout-minutes: 30
+        strategy:
+            fail-fast: false
+            matrix:
+                java: [8]
+                python-version: ["3.9"]
+                os: [ubuntu-latest, macos-latest, windows-latest]
+                DB-name:
+                    [
+                        "IoTDB12",
+                        "InfluxDB",
+                        "Parquet",
+                        "PostgreSQL",
+                        "FileSystem",
+                        "Redis",
+                        "MongoDB",
+                    ]
+                metadata: [zookeeper]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v2
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
+                  For-Docker: "true"
+
+            - name: Create Docker Network
+              shell: bash
+              run: |
+                  docker --version
+                  docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+
+            - if: runner.os == 'Windows'
+              name: Run IGinX container
+              shell: cmd
+              run: |
+                  cd %GITHUB_WORKSPACE%\docker\onlyIginx && build_iginx_docker.bat && run_iginx_docker.bat 172.40.0.2 iginx0 6888
+
+            - if: runner.os != 'Windows'
+              name: Run IGinX container
+              shell: bash
+              run: |
+                  cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
+                  chmod +x "build_iginx_docker.sh" && \
+                  chmod +x "run_iginx_docker.sh" && \
+                  "./build_iginx_docker.sh" && \
+                  "./run_iginx_docker.sh" 172.40.0.2 iginx0 6888
+
+            - if: runner.os == 'Windows'
+              name: Run Client container
+              shell: cmd
+              run: |
+                  cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
+
+            - if: runner.os != 'Windows'
+              name: Run Client container
+              shell: bash
+              run: |
+                  cd ${GITHUB_WORKSPACE}/docker/client && \
+                  chmod +x "build.sh" && \
+                  chmod +x "run_docker.sh" && \
+                  "./build.sh" && \
+                  "./run_docker.sh"
+
+            - name: Register Remote UDFs
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
+
+            - name: Run Tests
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  export MSYS_NO_PATHCONV=1
+                  docker exec iginx0 cat /iginx/logs/*.log

@@ -1,6 +1,8 @@
 #!/bin/bash
 datadir="$(pwd)/data"
 name="iginx-client"
+net="docker-cluster-iginx"
+ip="172.40.0.3"
 
 while [ "$1" != "" ]; do
     case $1 in
@@ -10,6 +12,14 @@ while [ "$1" != "" ]; do
         --datadir )
             shift
             datadir="$1"
+            ;;
+        --net )
+            shift
+            net="$1"
+            ;;
+        --ip )
+            shift
+            ip="$1"
             ;;
         * )
             echo "Invalid option: $1"
@@ -21,6 +31,6 @@ done
 
 [ -d "$datadir" ] || mkdir -p "$datadir"
 
-command="docker run --name=\"$name\" --privileged -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=${datadir},target=/iginx_client/data iginx-client:0.6.0"
+command="docker run --name=\"$name\" --privileged -dit --net ${net} --ip ${ip} --add-host=host.docker.internal:host-gateway --mount type=bind,source=${datadir},target=/iginx_client/data iginx-client:0.6.0"
 echo $command
 eval $command
