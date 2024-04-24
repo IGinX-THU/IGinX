@@ -15,7 +15,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -57,6 +57,8 @@ public class RelationQueryRowStream implements RowStream {
 
   private List<Connection> connList;
 
+  private AbstractRelationalMeta relationalMeta;
+
   public RelationQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
@@ -64,12 +66,13 @@ public class RelationQueryRowStream implements RowStream {
       Filter filter,
       TagFilter tagFilter,
       List<Connection> connList,
-      IDataTypeTransformer dataTypeTransformer)
+      AbstractRelationalMeta relationalMeta)
       throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
     this.connList = connList;
+    this.relationalMeta = relationalMeta;
 
     if (resultSets.isEmpty()) {
       this.header = new Header(Field.KEY, Collections.emptyList());
@@ -108,13 +111,13 @@ public class RelationQueryRowStream implements RowStream {
           field =
               new Field(
                   databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
-                  dataTypeTransformer.fromEngineType(typeName),
+                  relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                   namesAndTags.v);
         } else {
           field =
               new Field(
                   tableName + SEPARATOR + namesAndTags.k,
-                  dataTypeTransformer.fromEngineType(typeName),
+                  relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                   namesAndTags.v);
         }
 
@@ -226,7 +229,10 @@ public class RelationQueryRowStream implements RowStream {
             for (int j = 0; j < resultSetSizes[i]; j++) {
               String columnName = fieldToColumnName.get(header.getField(startIndex + j));
               RelationSchema schema =
-                  new RelationSchema(header.getField(startIndex + j).getName(), isDummy);
+                  new RelationSchema(
+                      header.getField(startIndex + j).getName(),
+                      isDummy,
+                      relationalMeta.getQuote());
               String tableName = schema.getTableName();
 
               tableNameSet.add(tableName);

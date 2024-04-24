@@ -88,7 +88,7 @@ public class FilterTransformer {
   }
 
   private String toString(ValueFilter filter) {
-    RelationSchema schema = new RelationSchema(filter.getPath());
+    RelationSchema schema = new RelationSchema(filter.getPath(), quote);
     String path = schema.getQuotFullName();
 
     String op =
@@ -124,8 +124,8 @@ public class FilterTransformer {
   }
 
   private String toString(PathFilter filter) {
-    RelationSchema schemaA = new RelationSchema(filter.getPathA());
-    RelationSchema schemaB = new RelationSchema(filter.getPathB());
+    RelationSchema schemaA = new RelationSchema(filter.getPathA(), quote);
+    RelationSchema schemaB = new RelationSchema(filter.getPathB(), quote);
     String pathA = schemaA.getQuotFullName();
     String pathB = schemaB.getQuotFullName();
 
