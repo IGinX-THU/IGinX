@@ -174,6 +174,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
           continue;
         }
         dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
+        LOGGER.info("drop database {} on 127.0.0.1:{}: ", databaseName, port);
       }
       dropDatabaseStatement.executeBatch();
 
