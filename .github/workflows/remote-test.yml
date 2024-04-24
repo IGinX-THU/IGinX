@@ -50,6 +50,11 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
