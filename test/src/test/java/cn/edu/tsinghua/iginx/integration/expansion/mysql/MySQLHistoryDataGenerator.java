@@ -167,9 +167,10 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString("DATNAME");
-        if (databaseName.equalsIgnoreCase("template0")
-            || databaseName.equalsIgnoreCase("template1")
-            || databaseName.equalsIgnoreCase("mysql")) {
+        if (databaseName.equalsIgnoreCase("performance_schema")
+            || databaseName.equalsIgnoreCase("information_schema")
+            || databaseName.equalsIgnoreCase("mysql")
+            || databaseName.equalsIgnoreCase("sys")) {
           continue;
         }
         dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
