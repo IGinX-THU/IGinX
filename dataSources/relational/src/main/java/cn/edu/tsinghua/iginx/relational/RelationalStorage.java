@@ -1172,7 +1172,7 @@ public class RelationalStorage implements IStorage {
         && !tableNameRegex.endsWith(SEPARATOR + ".*")
         && !tableNameRegex.equals(".*")) {
       tableNameRegex = tableNameRegex.substring(0, tableNameRegex.length() - 2);
-      tableNameRegex += "(" + relationalMeta.getQuote() + SEPARATOR + ".*)?";
+      tableNameRegex += "(\\" + SEPARATOR + ".*)?";
     }
     Pattern tableNamePattern = Pattern.compile("^" + tableNameRegex + "$");
 
@@ -1207,7 +1207,7 @@ public class RelationalStorage implements IStorage {
         tableName = "%";
         columnNames = "%";
       } else {
-        if (pattern.split(relationalMeta.getQuote() + SEPARATOR).length == 1) { // REST 查询的路径中可能不含 .
+        if (pattern.split("\\" + SEPARATOR).length == 1) { // REST 查询的路径中可能不含 .
           tableName = pattern;
           columnNames = "%";
         } else {
@@ -1291,7 +1291,7 @@ public class RelationalStorage implements IStorage {
         tableName = "%";
         columnNames = "%";
       } else {
-        String[] parts = pattern.split(relationalMeta.getQuote() + SEPARATOR);
+        String[] parts = pattern.split("\\" + SEPARATOR);
 
         databaseName = parts[0].replace('*', '%');
         if (parts.length == 1) { // 只有一级
