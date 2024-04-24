@@ -59,4 +59,5 @@ mkdir -p "$destination_folder"
 mv *.tbl "$destination_folder/"
 cd $destination_folder
 ls
+pwd
 echo "文件移动完成"
