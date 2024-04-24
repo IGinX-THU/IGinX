@@ -14,7 +14,10 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(MySQLCapacityExpansionIT.class);
 
   public MySQLCapacityExpansionIT() {
-    super(StorageEngineType.relational, "engine:mysql");
+    super(
+        StorageEngineType.relational,
+        "engine:mysql, username:root, password:mysql,"
+            + "meta_properties_path:dataSources/relational/src/main/resources/mysql-meta-template.properties");
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
