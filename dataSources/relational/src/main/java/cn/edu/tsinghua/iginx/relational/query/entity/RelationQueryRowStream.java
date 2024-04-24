@@ -245,7 +245,7 @@ public class RelationQueryRowStream implements RowStream {
                 if (value instanceof Boolean) {
                   tempValue = value;
                 } else {
-                  tempValue = (int) value == 1;
+                  tempValue = ((int) value) == 1;
                 }
               } else {
                 tempValue = value;
