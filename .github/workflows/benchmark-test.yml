@@ -32,53 +32,52 @@ jobs:
         runs-on: ${{ matrix.os }}
 
         steps:
-          - uses: actions/checkout@v2
-          - name: Environment dependence
-            uses: ./.github/actions/dependence
-            with:
-              python-version: ${{ matrix.python-version }}
-              java: ${{ matrix.java }}
+            - uses: actions/checkout@v2
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
 
-          - name: Run ZooKeeper
-            uses: ./.github/actions/zookeeperRunner
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
 
-          - name: Run DB
-            uses: ./.github/actions/dbRunner
-            with:
-              DB-name: ${{ matrix.DB-name }}
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
 
-          - name: Install IGinX with Maven
-            shell: bash
-            run: |
-              mvn clean package -DskipTests -P-format -q
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
 
-          - name: Change IGinX config
-            uses: ./.github/actions/confWriter
-            with:
-              DB-name: ${{ matrix.DB-name }}
-              Set-Filter-Fragment-OFF: "true"
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
 
-          # start udf path test first to avoid being effected
-          - name: Start IGinX
-            uses: ./.github/actions/iginxRunner
-            with:
-              version: ${VERSION}
-              if-test-udf: "true"
+            # start udf path test first to avoid being effected
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-test-udf: "true"
 
-          - name: set client test context
-            uses: ./.github/actions/context
-            with:
-              work-name: restart-iginx-zk
+            - name: set client test context
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-zk
 
-          - name: set client test context
-            uses: ./.github/actions/context
-            with:
-              DB-name: ${{ matrix.DB-name }}
-              shell: client-before
+            - name: set client test context
+              uses: ./.github/actions/context
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  shell: client-before
 
-          - name: Start data cleaning
-            shell: bash
-            run: |
-              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
-              "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
-
+            - name: Start data cleaning
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
