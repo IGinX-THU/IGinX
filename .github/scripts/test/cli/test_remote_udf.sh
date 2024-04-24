@@ -5,7 +5,7 @@ set -e
 cp -r test/src/test/resources/udf docker/client/data
 
 ls docker/client/data
-ls docker/client/udf
+ls docker/client/data/udf
 
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
