@@ -3,6 +3,8 @@ package cn.edu.tsinghua.iginx.relational.meta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.JDBCDataTypeTransformer;
+
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -39,8 +41,13 @@ public class JDBCMeta extends AbstractRelationalMeta {
   public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
     super(meta);
     properties = new Properties();
-    InputStream in = Files.newInputStream(Paths.get(propertiesPath));
-    properties.load(in);
+    File file = new File(propertiesPath);
+    if (!file.exists()) {
+      throw new IOException(String.format("Properties file %s not found", file.getAbsolutePath()));
+    }
+    try (InputStream inputStream = Files.newInputStream(Paths.get(propertiesPath))) {
+      properties.load(inputStream);
+    }
 
     quote = properties.getProperty("quote").charAt(0);
     driverClass = properties.getProperty("driver_class");
