@@ -5,7 +5,7 @@ import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-import com.mongodb.client.model.*;
+
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
@@ -17,15 +17,13 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import org.bson.Document;
+import org.junit.Test;
 
-public class TPCHDataInsertion {
+public class TPCHDataInsertionIT {
   private static final String dataPath =
       "/Users/janet/Desktop/Polystore-utils/tpc/TPC-H V3.0.1/data";
 
-  public static void main(String[] args) {
-    insertDataIntoPostgreSQL(5432);
-    insertDataIntoMongoDB(27017);
-  }
+  public void TPCHDataInsertionIT() {}
 
   private static MongoClient connect(int port) {
     ServerAddress address = new ServerAddress("127.0.0.1", port);
@@ -37,7 +35,8 @@ public class TPCHDataInsertion {
     return MongoClients.create(settings);
   }
 
-  private static void insertDataIntoMongoDB(int port) {
+  @Test
+  public void insertDataIntoMongoDB(int port) {
     String databaseName = "mongotpch"; // 请替换为你实际的数据库名
     try (MongoClient client = connect(port)) {
       String collectionName = "lineitem";
@@ -167,7 +166,8 @@ public class TPCHDataInsertion {
     }
   }
 
-  private static void insertDataIntoPostgreSQL(int port) {
+  @Test
+  public void insertDataIntoPostgreSQL(int port) {
     // PostgreSQL连接参数
     String url = String.format("jdbc:postgresql://localhost:%s/", port);
     String user = "postgres";

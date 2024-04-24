@@ -84,11 +84,8 @@ jobs:
                   DB-name: "Parquet"
                   shell: client-before
 
-            - name: Compile Java file
+            - name: Start storing data
+              if: always()
               shell: bash
               run: |
-                  chmod +x ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHDataInsertion.java
-                  javac -d . ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHDataInsertion.java
-
-            - name: Start storing data
-              run: java -cp . ${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHDataInsertion.java
+                  mvn test -q -Dtest=TPCHDataInsertionIT -DfailIfNoTests=false -P-format
