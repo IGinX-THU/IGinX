@@ -18,7 +18,7 @@ public class JDBCDataTypeTransformer implements IDataTypeTransformer {
   public DataType fromEngineType(String dataType) {
     String mappedType = typeMappings.getProperty(dataType);
     if (mappedType != null) {
-      return str2DataType(mappedType.substring(prefix.length()));
+      return str2DataType(mappedType);
     }
     return DataType.BINARY;
   }
