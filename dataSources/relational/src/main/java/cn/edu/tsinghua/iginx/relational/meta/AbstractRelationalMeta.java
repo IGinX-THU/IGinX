@@ -146,4 +146,7 @@ public abstract class AbstractRelationalMeta {
    * @return 获取upsert冲突后段SQL语句格式
    */
   public abstract String getUpsertConflictStatement();
+
+  /** 是否支持Full Join */
+  public abstract boolean isSupportFullJoin();
 }

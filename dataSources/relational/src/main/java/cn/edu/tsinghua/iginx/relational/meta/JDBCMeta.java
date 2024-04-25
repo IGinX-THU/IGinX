@@ -3,7 +3,6 @@ package cn.edu.tsinghua.iginx.relational.meta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.JDBCDataTypeTransformer;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -38,6 +37,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private String upsertConflictStatement;
 
+  private boolean isSupportFullJoin;
+
   public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
     super(meta);
     properties = new Properties();
@@ -60,6 +61,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     schemaPattern = properties.getProperty("schema_pattern");
     upsertStatement = properties.getProperty("upsert_statement");
     upsertConflictStatement = properties.getProperty("upsert_conflict_statement");
+    isSupportFullJoin = Boolean.parseBoolean(properties.getProperty("is_support_full_join"));
   }
 
   @Override
@@ -115,5 +117,10 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public String getUpsertConflictStatement() {
     return upsertConflictStatement;
+  }
+
+  @Override
+  public boolean isSupportFullJoin() {
+    return isSupportFullJoin;
   }
 }

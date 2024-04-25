@@ -8,7 +8,7 @@ import java.util.Properties;
 public class JDBCDataTypeTransformer implements IDataTypeTransformer {
   private final Properties typeMappings;
 
-  private final static String prefix = "IGinX-";
+  private static final String prefix = "IGinX-";
 
   public JDBCDataTypeTransformer(Properties properties) {
     typeMappings = properties;

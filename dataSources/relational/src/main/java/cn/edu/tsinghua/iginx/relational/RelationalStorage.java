@@ -488,31 +488,7 @@ public class RelationalStorage implements IStorage {
           }
         }
 
-        // table之间用FULL OUTER JOIN ON table1.⺅= table2.⺅ 连接，超过2个table的情况下，需要多次嵌套join
-        StringBuilder fullTableName = new StringBuilder();
-        fullTableName.append(getQuotName(tableNames.get(0)));
-        for (int i = 1; i < tableNames.size(); i++) {
-          fullTableName.insert(0, "(");
-          fullTableName
-              .append(" FULL OUTER JOIN ")
-              .append(getQuotName(tableNames.get(i)))
-              .append(" ON ");
-          for (int j = 0; j < i; j++) {
-            fullTableName
-                .append(
-                    RelationSchema.getQuotFullName(
-                        tableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
-                .append(" = ")
-                .append(
-                    RelationSchema.getQuotFullName(
-                        tableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
-
-            if (j != i - 1) {
-              fullTableName.append(" AND ");
-            }
-          }
-          fullTableName.append(")");
-        }
+        String fullTableName = getFullJoinTables(tableNames);
 
         // 对通配符做处理，将通配符替换成对应的列名
         if (filterTransformer.toString(filter).contains("*")) {
@@ -570,6 +546,129 @@ public class RelationalStorage implements IStorage {
           new PhysicalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
+  }
+
+  private String getFullJoinTables(List<String> tableNames) {
+    StringBuilder fullTableName = new StringBuilder();
+    if (relationalMeta.isSupportFullJoin()) {
+      // 支持全连接，就直接用全连接连接各个表
+      fullTableName.append(getQuotName(tableNames.get(0)));
+      for (int i = 1; i < tableNames.size(); i++) {
+        fullTableName.insert(0, "(");
+        fullTableName
+            .append(" FULL OUTER JOIN ")
+            .append(getQuotName(tableNames.get(i)))
+            .append(" ON ");
+        for (int j = 0; j < i; j++) {
+          fullTableName
+              .append(
+                  RelationSchema.getQuotFullName(
+                      tableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
+              .append(" = ")
+              .append(
+                  RelationSchema.getQuotFullName(
+                      tableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
+
+          if (j != i - 1) {
+            fullTableName.append(" AND ");
+          }
+        }
+        fullTableName.append(")");
+      }
+    } else {
+      // 不支持全连接，就要用Left Join+Union来模拟全连接
+      StringBuilder allColumns = new StringBuilder();
+      tableNames.forEach(
+          tableName -> {
+            allColumns.append(getQuotName(tableName)).append(".*").append(", ");
+          });
+      allColumns.delete(allColumns.length() - 2, allColumns.length());
+
+      fullTableName.append("(");
+      for (int i = 0; i < tableNames.size(); i++) {
+        fullTableName.append(
+            String.format("SELECT %s FROM %s", allColumns, getQuotName(tableNames.get(i))));
+        for (int j = 0; j < tableNames.size(); j++) {
+          if (i != j) {
+            fullTableName.append(
+                String.format(
+                    " LEFT JOIN %s ON %s.%s = %s.%s",
+                    getQuotName(tableNames.get(j)),
+                    getQuotName(tableNames.get(i)),
+                    KEY_NAME,
+                    getQuotName(tableNames.get(j)),
+                    KEY_NAME));
+          }
+        }
+        if (i != tableNames.size() - 1) {
+          fullTableName.append(" UNION ");
+        }
+      }
+      fullTableName.append(")");
+    }
+
+    return fullTableName.toString();
+  }
+
+  private String getDummyFullJoinTables(
+      List<String> tableNames, Map<String, String> allColumnNameForTable) {
+    StringBuilder fullTableName = new StringBuilder();
+    if (relationalMeta.isSupportFullJoin()) {
+      // table之间用FULL OUTER JOIN ON concat(table1所有列) = concat(table2所有列)
+      // 连接，超过2个table的情况下，需要多次嵌套join
+      fullTableName.append(getQuotName(tableNames.get(0)));
+      for (int i = 1; i < tableNames.size(); i++) {
+        fullTableName.insert(0, "(");
+        fullTableName
+            .append(" FULL OUTER JOIN ")
+            .append(getQuotName(tableNames.get(i)))
+            .append(" ON ");
+        for (int j = 0; j < i; j++) {
+          fullTableName
+              .append("CONCAT(")
+              .append(allColumnNameForTable.get(tableNames.get(i)))
+              .append(")")
+              .append(" = ")
+              .append("CONCAT(")
+              .append(allColumnNameForTable.get(tableNames.get(j)))
+              .append(")");
+          if (j != i - 1) {
+            fullTableName.append(" AND ");
+          }
+        }
+        fullTableName.append(")");
+      }
+    } else {
+      // 不支持全连接，就要用Left Join+Union来模拟全连接
+      StringBuilder allColumns = new StringBuilder();
+      tableNames.forEach(
+          tableName -> {
+            allColumns.append(getQuotName(tableName)).append(".*").append(", ");
+          });
+      allColumns.delete(allColumns.length() - 2, allColumns.length());
+
+      fullTableName.append("(");
+      for (int i = 0; i < tableNames.size(); i++) {
+        fullTableName.append(
+            String.format("SELECT %s FROM %s", allColumns, getQuotName(tableNames.get(i))));
+        for (int j = 0; j < tableNames.size(); j++) {
+          if (i != j) {
+            fullTableName.append(
+                String.format(
+                    " LEFT JOIN %s ON CONCAT(%s) = CONCAT(%s)",
+                    getQuotName(tableNames.get(j)),
+                    allColumnNameForTable.get(tableNames.get(i)),
+                    allColumnNameForTable.get(tableNames.get(j))));
+          }
+        }
+        if (i != tableNames.size() - 1) {
+          fullTableName.append(" UNION ");
+        }
+      }
+      fullTableName.append(")");
+    }
+
+    return fullTableName.toString();
   }
 
   private Filter generateWildCardsFilter(Filter filter, List<List<String>> columnNamesList) {
@@ -872,28 +971,7 @@ public class RelationalStorage implements IStorage {
           }
           allColumnNames.delete(allColumnNames.length() - 2, allColumnNames.length());
 
-          // table之间用FULL OUTER JOIN ON concat(table1所有列) = concat(table2所有列)
-          // 连接，超过2个table的情况下，需要多次嵌套join
-          StringBuilder fullTableName = new StringBuilder();
-          fullTableName.append(tableNames.get(0));
-          for (int i = 1; i < tableNames.size(); i++) {
-            fullTableName.insert(0, "(");
-            fullTableName.append(" FULL OUTER JOIN ").append(tableNames.get(i)).append(" ON ");
-            for (int j = 0; j < i; j++) {
-              fullTableName
-                  .append("CONCAT(")
-                  .append(allColumnNameForTable.get(tableNames.get(i)))
-                  .append(")")
-                  .append(" = ")
-                  .append("CONCAT(")
-                  .append(allColumnNameForTable.get(tableNames.get(j)))
-                  .append(")");
-              if (j != i - 1) {
-                fullTableName.append(" AND ");
-              }
-            }
-            fullTableName.append(")");
-          }
+          String fullTableName = getDummyFullJoinTables(tableNames, allColumnNameForTable);
 
           Filter copyFilter = cutFilterDatabaseNameForDummy(filter.copy(), databaseName);
 

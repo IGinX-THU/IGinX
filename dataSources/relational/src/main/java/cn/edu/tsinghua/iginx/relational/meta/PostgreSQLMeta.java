@@ -109,4 +109,9 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
   public String getUpsertConflictStatement() {
     return "%s = EXCLUDED.%s";
   }
+
+  @Override
+  public boolean isSupportFullJoin() {
+    return true;
+  }
 }
