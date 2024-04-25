@@ -55,8 +55,8 @@ mkdir -p "$destination_folder"
 
 # 将所有*.tbl文件移动到目标文件夹
 mv *.tbl "$destination_folder/"
-chmod -R +r "$destination_folder/*"
 cd $destination_folder
+chmod -R +rwx *
 ls
 pwd
 echo "文件移动完成"
