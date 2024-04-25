@@ -33,9 +33,9 @@ sleep 10
 
 docker ps
 docker network inspect docker-cluster-iginx
+ls logs/docker_logs
+cat logs/docker_logs/*
 docker exec iginx0 cat /logs/iginx-latest.log
-docker exec iginx0 netstat -tulnp | grep 6888
-docker exec iginx-client ping 172.40.0.2
 
 
 # single udf in one file
