@@ -202,6 +202,7 @@ runs:
               fi
 
         # change database connection ip to host.docker.internal to access host services. fs & parquet excluded.
+        # db_config_switcher_*.sh need to modify %PROJECT_ROOT%/conf/config.properties
         - if: inputs.For-Docker=='true'
           name: write docker donfig file
           shell: bash
@@ -233,3 +234,4 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
