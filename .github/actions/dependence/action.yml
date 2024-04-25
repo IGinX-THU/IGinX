@@ -30,6 +30,13 @@ runs:
               tzutil /s "China Standard Time"
               echo "JAVA_OPTS=-Xmx4g -Xms2g" >> %GITHUB_ENV%
 
+        - if: runner.os == 'macOS'
+          name: Install Docker on MacOS
+          shell: bash
+          run: |
+            brew install docker
+            colima start
+
         - if: inputs.scope=='all'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v3
