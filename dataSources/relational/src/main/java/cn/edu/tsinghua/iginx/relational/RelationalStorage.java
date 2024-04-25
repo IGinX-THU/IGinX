@@ -489,7 +489,7 @@ public class RelationalStorage implements IStorage {
         }
 
         // 将所有表进行full join
-        String fullTableName = getFullJoinTables(tableNames);
+        String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
 
         // 对通配符做处理，将通配符替换成对应的列名
         if (filterTransformer.toString(filter).contains("*")) {
@@ -557,7 +557,7 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private String getFullJoinTables(List<String> tableNames) {
+  private String getFullJoinTables(List<String> tableNames, List<List<String>> fullColumnList) {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // 支持全连接，就直接用全连接连接各个表
@@ -587,16 +587,21 @@ public class RelationalStorage implements IStorage {
     } else {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
       StringBuilder allColumns = new StringBuilder();
-      tableNames.forEach(
-          tableName -> {
-            allColumns.append(getQuotName(tableName)).append(".*").append(", ");
-          });
+      fullColumnList.forEach(
+          columnList ->
+              columnList.forEach(
+                  column ->
+                      allColumns.append(
+                          String.format("%s AS %s, ", column, column.replaceAll("`\\.`", ".")))));
       allColumns.delete(allColumns.length() - 2, allColumns.length());
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
         fullTableName.append(
-            String.format("SELECT %s FROM %s", allColumns, getQuotName(tableNames.get(i))));
+            String.format(
+                "SELECT %s FROM %s",
+                getQuotName(tableNames.get(i)) + getQuotName(KEY_NAME) + allColumns,
+                getQuotName(tableNames.get(i))));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(
