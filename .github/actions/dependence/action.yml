@@ -36,6 +36,7 @@ runs:
           run: |
             brew install docker colima
             brew services start colima
+            docker --version
 
         - if: inputs.scope=='all'
           name: Set up Python ${{ inputs.python-version }}
