@@ -215,21 +215,21 @@ runs:
                 sudo sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 sudo sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh" ${{ inputs.DB-name }}
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 sed -i '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh" ${{ inputs.DB-name }}
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 sudo sed -i '' '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 sudo sed -i '' '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 sudo sed -i '' '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_macos.sh" ${{ inputs.DB-name }}
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
