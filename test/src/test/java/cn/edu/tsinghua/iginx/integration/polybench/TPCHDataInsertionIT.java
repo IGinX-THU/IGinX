@@ -21,7 +21,7 @@ import org.junit.Test;
 
 public class TPCHDataInsertionIT {
   private static final String dataPath =
-      "../tpc/TPC-H V3.0.1/data";
+      "/home/runner/work/IGinX/IGinX/tpc/TPC-H V3.0.1/data";
 
   public void TPCHDataInsertionIT() {}
 
