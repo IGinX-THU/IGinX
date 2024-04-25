@@ -40,16 +40,6 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
-            - name: Run Metadata
-              uses: ./.github/actions/metadataRunner
-              with:
-                  metadata: ${{ matrix.metadata }}
-
-            - name: Run DB
-              uses: ./.github/actions/dbRunner
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-
             - name: Install IGinX with Maven
               shell: bash
               run: |
@@ -70,29 +60,51 @@ jobs:
                   docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
 
             - if: runner.os == 'Windows'
+              name: Build IGinX image
+              shell: cmd
+              run: |
+                  cd %GITHUB_WORKSPACE%\docker\onlyIginx && build_iginx_docker.bat
+
+            - if: runner.os != 'Windows'
+              name: Build IGinX image
+              shell: bash
+              run: |
+                  cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
+                  chmod +x "build_iginx_docker.sh" && \
+                  "./build_iginx_docker.sh" && \
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                DB-name: ${{ matrix.DB-name }}
+
+            - if: runner.os == 'Windows'
               name: Run IGinX container
               shell: cmd
               run: |
-                  cd %GITHUB_WORKSPACE%\docker\onlyIginx && build_iginx_docker.bat && run_iginx_docker.bat 172.40.0.2 iginx0 6888
+                cd %GITHUB_WORKSPACE%\docker\onlyIginx && run_iginx_docker.bat 172.40.0.2 iginx0 6888
 
             - if: runner.os != 'Windows'
               name: Run IGinX container
               shell: bash
               run: |
-                  cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
-                  chmod +x "build_iginx_docker.sh" && \
-                  chmod +x "run_iginx_docker.sh" && \
-                  "./build_iginx_docker.sh" && \
-                  "./run_iginx_docker.sh" 172.40.0.2 iginx0 6888
+                cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
+                chmod +x "run_iginx_docker.sh" && \
+                "./run_iginx_docker.sh" 172.40.0.2 iginx0 6888
 
             - if: runner.os == 'Windows'
-              name: Run Client container
+              name: Build And Run Client container
               shell: cmd
               run: |
                   cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
 
             - if: runner.os != 'Windows'
-              name: Run Client container
+              name: Build And Run Client container
               shell: bash
               run: |
                   cd ${GITHUB_WORKSPACE}/docker/client && \
