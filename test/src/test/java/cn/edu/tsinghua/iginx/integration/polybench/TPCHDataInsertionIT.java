@@ -37,6 +37,8 @@ public class TPCHDataInsertionIT {
 
   @Test
   public void insertDataIntoMongoDB() {
+    // print pwd
+    System.out.println(System.getProperty("user.dir"));
     int port = 27017;
     String databaseName = "mongotpch"; // 请替换为你实际的数据库名
     try (MongoClient client = connect(port)) {
