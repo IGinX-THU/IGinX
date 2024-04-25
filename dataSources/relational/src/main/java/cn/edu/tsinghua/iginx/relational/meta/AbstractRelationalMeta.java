@@ -102,7 +102,7 @@ public abstract class AbstractRelationalMeta {
         + getQuote()
         + KEY_NAME
         + getQuote()
-        + ", %s FROM %s %s ORDER BY concat(%s);";
+        + ", %s FROM %s %s ORDER BY %s";
   }
 
   public String getCreateTableStatement() {
