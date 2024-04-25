@@ -139,12 +139,13 @@ public class RemoteUDFIT {
     sql = "select udf_b(a,1) from test;";
     expect =
         "ResultSets:\n"
-            + "+-----------+\n"
-            + "|col_outer_b|\n"
-            + "+-----------+\n"
-            + "|          1|\n"
-            + "+-----------+\n"
-            + "Total line number = 1\n";
+            + "+---+-----------+\n"
+            + "|key|col_outer_b|\n"
+            + "+---+-----------+\n"
+            + "|  0|          1|\n"
+            + "|  1|          1|\n"
+            + "+---+-----------+\n"
+            + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, sql, expect);
     sql = "select udf_b_file(a,1) from test;";
     expect =
