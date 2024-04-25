@@ -3,6 +3,7 @@
 set -e
 
 dbName=$1
+echo $dbName
 
 case $dbName in
   IoTDB12)
@@ -31,7 +32,8 @@ case $dbName in
     exit 0
     ;;
 esac
+echo $configName
 
 sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
 
-sed -i "" "/^#storageEngineList=127\.0\.0\.1#.*${configName}/s/^#//" conf/config.properties
+sed -i "" "/^#storageEngineList=.*#${configName}#/s/^#//" conf/config.properties
