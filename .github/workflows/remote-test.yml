@@ -57,7 +57,8 @@ jobs:
               shell: bash
               run: |
                   docker --version
-                  docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/docker/create_network.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/docker/create_network.sh"
 
             - if: runner.os == 'Windows'
               name: Build IGinX image
