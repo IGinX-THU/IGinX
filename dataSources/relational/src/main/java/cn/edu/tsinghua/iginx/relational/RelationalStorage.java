@@ -495,6 +495,9 @@ public class RelationalStorage implements IStorage {
           }
         }
 
+        // 将所有表进行full join
+        String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
+
         // 对通配符做处理，将通配符替换成对应的列名
         if (filterTransformer.toString(filter).contains("*")) {
           // 把fullColumnNamesList中的列名全部用removeFullColumnNameQuote去掉引号
@@ -510,8 +513,6 @@ public class RelationalStorage implements IStorage {
           filter = LogicalFilterUtils.mergeTrue(filter);
         }
 
-        // 将所有表进行full join
-        String fullTableName = getFullJoinTables(tableNames, fullColumnNamesList);
         String fullColumnNamesStr = fullColumnNames.toString();
         String filterStr = filterTransformer.toString(filter);
         String orderByKey =
