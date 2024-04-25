@@ -595,9 +595,9 @@ public class RelationalStorage implements IStorage {
                     " LEFT JOIN %s ON %s.%s = %s.%s",
                     getQuotName(tableNames.get(j)),
                     getQuotName(tableNames.get(i)),
-                    KEY_NAME,
+                    getQuotName(KEY_NAME),
                     getQuotName(tableNames.get(j)),
-                    KEY_NAME));
+                    getQuotName(KEY_NAME)));
           }
         }
         if (i != tableNames.size() - 1) {
