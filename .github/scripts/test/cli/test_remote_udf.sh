@@ -11,23 +11,25 @@ export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
 SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h 172.40.0.2 -e"
 
-timeout=30
-interval=2
+#timeout=30
+#interval=2
+#
+#elapsed_time=0
+#while [ $elapsed_time -lt $timeout ]; do
+#  output=$(${SCRIPT_PREFIX} "show cluster info;")
+#  if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
+#      sleep $interval
+#  else
+#      break
+#  fi
+#  elapsed_time=$((elapsed_time + interval))
+#done
+#if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
+#  echo "IGinX not reachable"
+#  exit 1
+#fi
 
-elapsed_time=0
-while [ $elapsed_time -lt $timeout ]; do
-  output=$(${SCRIPT_PREFIX} "show cluster info;")
-  if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
-      sleep $interval
-  else
-      break
-  fi
-  elapsed_time=$((elapsed_time + interval))
-done
-if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
-  echo "IGinX not reachable"
-  exit 1
-fi
+sleep 10
 
 
 # single udf in one file
