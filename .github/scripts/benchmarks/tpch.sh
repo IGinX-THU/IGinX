@@ -5,8 +5,6 @@ if [ "$RUNNER_OS" = "Windows" ]; then
     -l https://cloud.tsinghua.edu.cn/d/63b9d1a6444e47ae8ac5/ \
     -s  "."
 else
-  pwd
-  ls
   python3 thu_cloud_download.py \
     -l https://cloud.tsinghua.edu.cn/d/63b9d1a6444e47ae8ac5/ \
     -s  "."
