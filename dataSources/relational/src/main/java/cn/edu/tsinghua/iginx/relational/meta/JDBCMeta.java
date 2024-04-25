@@ -39,6 +39,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private boolean isSupportFullJoin;
 
+  private String regexpOp;
+
   public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
     super(meta);
     properties = new Properties();
@@ -62,6 +64,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     upsertStatement = properties.getProperty("upsert_statement");
     upsertConflictStatement = properties.getProperty("upsert_conflict_statement");
     isSupportFullJoin = Boolean.parseBoolean(properties.getProperty("is_support_full_join"));
+    regexpOp = properties.getProperty("regex_like_symbol");
   }
 
   @Override
@@ -122,5 +125,10 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public boolean isSupportFullJoin() {
     return isSupportFullJoin;
+  }
+
+  @Override
+  public String getRegexpOp() {
+    return regexpOp;
   }
 }

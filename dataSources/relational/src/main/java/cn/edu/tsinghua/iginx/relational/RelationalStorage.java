@@ -157,7 +157,7 @@ public class RelationalStorage implements IStorage {
     if (!testConnection()) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
-    filterTransformer = new FilterTransformer(relationalMeta.getQuote());
+    filterTransformer = new FilterTransformer(relationalMeta);
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
@@ -514,6 +514,9 @@ public class RelationalStorage implements IStorage {
           // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
           fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
           filterStr = filterStr.replaceAll("`\\.`", ".");
+          filterStr =
+              filterStr.replace(
+                  getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
           orderByKey = orderByKey.replaceAll("`\\.`", ".");
         }
         statement =
@@ -597,11 +600,16 @@ public class RelationalStorage implements IStorage {
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
+
+        String keyStr =
+            String.format(
+                "%s.%s AS %s",
+                getQuotName(tableNames.get(i)),
+                getQuotName(KEY_NAME),
+                getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
         fullTableName.append(
             String.format(
-                "SELECT %s FROM %s",
-                getQuotName(tableNames.get(i)) + getQuotName(KEY_NAME) + ", " + allColumns,
-                getQuotName(tableNames.get(i))));
+                "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(

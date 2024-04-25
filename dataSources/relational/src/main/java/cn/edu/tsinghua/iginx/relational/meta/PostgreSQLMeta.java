@@ -114,4 +114,9 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
   public boolean isSupportFullJoin() {
     return true;
   }
+
+  @Override
+  public String getRegexpOp() {
+    return "~";
+  }
 }
