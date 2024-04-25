@@ -1,5 +1,5 @@
 FROM maven:3-amazoncorretto-8 AS builder
-COPY ./core /root/iginx/core
+COPY . /root/iginx
 WORKDIR /root/iginx
 RUN mvn clean package -DskipTests -P-format
 

@@ -35,8 +35,7 @@ runs:
           shell: bash
           run: |
             brew install docker colima
-            brew install --reinstall qemu
-            colima start
+            brew services start colima
 
         - if: inputs.scope=='all'
           name: Set up Python ${{ inputs.python-version }}
