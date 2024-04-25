@@ -36,7 +36,8 @@ public class TPCHDataInsertionIT {
   }
 
   @Test
-  public void insertDataIntoMongoDB(int port) {
+  public void insertDataIntoMongoDB() {
+    int port = 27017;
     String databaseName = "mongotpch"; // 请替换为你实际的数据库名
     try (MongoClient client = connect(port)) {
       String collectionName = "lineitem";
@@ -167,7 +168,8 @@ public class TPCHDataInsertionIT {
   }
 
   @Test
-  public void insertDataIntoPostgreSQL(int port) {
+  public void insertDataIntoPostgreSQL() {
+    int port = 5432;
     // PostgreSQL连接参数
     String url = String.format("jdbc:postgresql://localhost:%s/", port);
     String user = "postgres";
