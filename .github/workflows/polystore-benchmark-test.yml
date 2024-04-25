@@ -18,7 +18,7 @@ jobs:
             matrix:
                 java: [8]
                 python-version: ["3.9"]
-                os: [ubuntu-latest, macos-latest, windows-latest]
+                os: [ubuntu-latest, macOS-11, windows-latest]
         runs-on: ${{ matrix.os }}
 
         steps:
