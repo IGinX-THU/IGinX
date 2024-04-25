@@ -29,6 +29,7 @@ public class RuleCollection {
     // 在这里添加规则
     addRule(RemoveNotRule.getInstance());
     addRule(FilterFragmentRule.getInstance());
+    addRule(MarkLoadRule.getInstance());
 
     setRulesByConfig();
   }

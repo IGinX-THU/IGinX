@@ -24,6 +24,7 @@ import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -31,6 +32,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
@@ -343,7 +345,13 @@ public class IoTDBStorage implements IStorage {
           new ClearEmptyRowStreamWrapper(
               new IoTDBQueryRowStream(
                   sessionPool.executeQueryStatement(statement), true, project, filter));
-      return new TaskExecuteResult(rowStream);
+
+      List<Row> newRows = new ArrayList<>();
+      while (rowStream.hasNext()) {
+        newRows.add(rowStream.next());
+      }
+      Table table = new Table(rowStream.getHeader(), newRows);
+      return new TaskExecuteResult(table);
     } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
       logger.error(e.getMessage());
       return new TaskExecuteResult(

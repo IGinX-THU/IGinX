@@ -5,6 +5,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUti
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.distributedquery.coordinator.*;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintCheckerManager;
 import cn.edu.tsinghua.iginx.engine.logical.generator.DeleteGenerator;
@@ -21,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
+import cn.edu.tsinghua.iginx.engine.shared.ResultUtils;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -68,14 +70,12 @@ import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeInferenceUtils;
-import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -102,6 +102,12 @@ public class StatementExecutor {
   private static final StatementBuilder builder = StatementBuilder.getInstance();
 
   private static final PhysicalEngine engine = PhysicalEngineImpl.getInstance();
+
+  private static final PlanExecutor planExecutor = PlanExecutor.getInstance();
+
+  private static final Evaluator evaluator = NaiveEvaluator.getInstance();
+
+  private static final Splitter splitter = NaiveSplitter.getInstance();
 
   private static final ConstraintChecker checker =
       ConstraintCheckerManager.getInstance().getChecker(config.getConstraintChecker());
@@ -349,14 +355,31 @@ public class StatementExecutor {
         if (type == StatementType.SELECT) {
           SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
           if (selectStatement.isNeedLogicalExplain()) {
-            processExplainLogicalStatement(ctx, root);
+            if (evaluator.needDistributedQuery(root)) {
+              //            if (true) {
+              Plan plan = splitter.split(root);
+              processExplainLogicalPlan(ctx, plan);
+            } else {
+              processExplainLogicalStatement(ctx, root);
+            }
             return;
           }
         }
 
         before(ctx, prePhysicalProcessors);
-        RowStream stream = engine.execute(ctx, root);
+        RowStream stream;
+        long startTime = System.currentTimeMillis();
+        if (evaluator.needDistributedQuery(root)) {
+          Plan plan = splitter.split(root);
+          stream = planExecutor.execute(ctx, plan);
+        } else {
+          stream = engine.execute(ctx, root);
+        }
+        long endTime = System.currentTimeMillis();
+        long engineCostTime = endTime - startTime;
+        logger.info("engine cost time: " + engineCostTime);
         after(ctx, postPhysicalProcessors);
+        ctx.setEngineCostTime(engineCostTime);
 
         if (type == StatementType.SELECT) {
           SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
@@ -371,6 +394,33 @@ public class StatementExecutor {
       }
     }
     throw new ExecutionException("Execute Error: can not construct a legal logical tree.");
+  }
+
+  private void processExplainLogicalPlan(RequestContext ctx, Plan plan)
+      throws PhysicalException, ExecutionException {
+    List<Field> fields =
+        new ArrayList<>(
+            Arrays.asList(
+                new Field("Logical Tree", DataType.BINARY),
+                new Field("Operator Type", DataType.BINARY),
+                new Field("Operator Info", DataType.BINARY)));
+    Header header = new Header(fields);
+
+    List<Operator> roots = new ArrayList<>();
+    roots.add(plan.getRoot());
+    roots.addAll(plan.getSubPlans());
+
+    int maxLen = 0;
+    List<Object[]> cache = new ArrayList<>();
+    for (int i = 0; i < roots.size(); i++) {
+      Operator root = roots.get(i);
+      cache.add(new Object[] {"[subplan" + i + "]: ", "".getBytes(), "".getBytes()});
+      OperatorInfoVisitor visitor = new OperatorInfoVisitor();
+      root.accept(visitor);
+      maxLen = Math.max(maxLen, visitor.getMaxLen());
+      cache.addAll(visitor.getCache());
+    }
+    formatTree(ctx, header, cache, maxLen);
   }
 
   private void processExplainLogicalStatement(RequestContext ctx, Operator root)
@@ -433,7 +483,7 @@ public class StatementExecutor {
     RowStream stream = selectContext.getResult().getResultStream();
 
     // step 2: export file
-    setResultFromRowStream(ctx, stream);
+    ResultUtils.setResultFromRowStream(ctx, stream);
     ExportFile exportFile = statement.getExportFile();
     switch (exportFile.getType()) {
       case CSV:
@@ -677,15 +727,6 @@ public class StatementExecutor {
     process(ctx);
   }
 
-  private void setEmptyQueryResp(RequestContext ctx, List<String> paths) {
-    Result result = new Result(RpcUtils.SUCCESS);
-    result.setKeys(new Long[0]);
-    result.setValuesList(new ArrayList<>());
-    result.setBitmapList(new ArrayList<>());
-    result.setPaths(paths);
-    ctx.setResult(result);
-  }
-
   private void setResult(RequestContext ctx, RowStream stream)
       throws PhysicalException, ExecutionException {
     Statement statement = ctx.getStatement();
@@ -702,137 +743,15 @@ public class StatementExecutor {
         }
         break;
       case SELECT:
-        setResultFromRowStream(ctx, stream);
+        ResultUtils.setResultFromRowStream(ctx, stream);
         break;
       case SHOW_COLUMNS:
-        setShowTSRowStreamResult(ctx, stream);
+        ResultUtils.setShowTSRowStreamResult(ctx, stream);
         break;
       default:
         throw new ExecutionException(
             String.format("Execute Error: unknown statement type [%s].", statement.getType()));
     }
-  }
-
-  private void setResultFromRowStream(RequestContext ctx, RowStream stream)
-      throws PhysicalException {
-    Result result = null;
-    if (ctx.isUseStream()) {
-      Status status = RpcUtils.SUCCESS;
-      if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
-        status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
-        status.setMessage(ctx.getWarningMsg());
-      }
-      result = new Result(status);
-      result.setResultStream(stream);
-      ctx.setResult(result);
-      return;
-    }
-
-    if (stream == null) {
-      setEmptyQueryResp(ctx, new ArrayList<>());
-      return;
-    }
-
-    List<String> paths = new ArrayList<>();
-    List<Map<String, String>> tagsList = new ArrayList<>();
-    List<DataType> types = new ArrayList<>();
-    stream
-        .getHeader()
-        .getFields()
-        .forEach(
-            field -> {
-              paths.add(field.getFullName());
-              types.add(field.getType());
-              if (field.getTags() == null) {
-                tagsList.add(new HashMap<>());
-              } else {
-                tagsList.add(field.getTags());
-              }
-            });
-
-    List<Long> timestampList = new ArrayList<>();
-    List<ByteBuffer> valuesList = new ArrayList<>();
-    List<ByteBuffer> bitmapList = new ArrayList<>();
-
-    boolean hasTimestamp = stream.getHeader().hasKey();
-    while (stream.hasNext()) {
-      Row row = stream.next();
-
-      Object[] rowValues = row.getValues();
-      valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-      Bitmap bitmap = new Bitmap(rowValues.length);
-      for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
-          bitmap.mark(i);
-        }
-      }
-      bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-
-      if (hasTimestamp) {
-        timestampList.add(row.getKey());
-      }
-    }
-
-    if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx, paths);
-      return;
-    }
-
-    Status status = RpcUtils.SUCCESS;
-    if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
-      status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
-      status.setMessage(ctx.getWarningMsg());
-    }
-    result = new Result(status);
-    if (timestampList.size() != 0) {
-      Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
-      result.setKeys(timestamps);
-    }
-    result.setValuesList(valuesList);
-    result.setBitmapList(bitmapList);
-    result.setPaths(paths);
-    result.setTagsList(tagsList);
-    result.setDataTypes(types);
-    ctx.setResult(result);
-
-    stream.close();
-  }
-
-  private void setShowTSRowStreamResult(RequestContext ctx, RowStream stream)
-      throws PhysicalException {
-    if (ctx.isUseStream()) {
-      Result result = new Result(RpcUtils.SUCCESS);
-      result.setResultStream(stream);
-      ctx.setResult(result);
-      return;
-    }
-    List<String> paths = new ArrayList<>();
-    // todo:need physical layer to support.
-    List<Map<String, String>> tagsList = new ArrayList<>();
-    List<DataType> types = new ArrayList<>();
-
-    while (stream.hasNext()) {
-      Row row = stream.next();
-      Object[] rowValues = row.getValues();
-
-      if (rowValues.length == 2) {
-        paths.add(new String((byte[]) rowValues[0]));
-        DataType type = DataTypeUtils.getDataTypeFromString(new String((byte[]) rowValues[1]));
-        if (type == null) {
-          logger.warn("unknown data type [{}]", rowValues[1]);
-        }
-        types.add(type);
-      } else {
-        logger.warn("show columns result col size = {}", rowValues.length);
-      }
-    }
-
-    Result result = new Result(RpcUtils.SUCCESS);
-    result.setPaths(paths);
-    result.setTagsList(tagsList);
-    result.setDataTypes(types);
-    ctx.setResult(result);
   }
 
   private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)

@@ -43,11 +43,13 @@ public class SessionExecuteSqlResult {
   private long jobId;
   private JobState jobState;
   private List<Long> jobIdList;
-  private Map<String, String> configs;
+  private String configValue;
   private String loadCsvPath;
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
+
+  private long totalCostTime;
 
   // Only for mock test
   public SessionExecuteSqlResult() {}
@@ -102,7 +104,7 @@ public class SessionExecuteSqlResult {
         this.jobIdList = resp.getJobIdList();
         break;
       case ShowConfig:
-        this.configs = resp.getConfigs();
+        this.configValue = resp.getConfigValue();
         break;
       case LoadCsv:
         this.loadCsvPath = resp.getLoadCsvPath();
@@ -131,6 +133,7 @@ public class SessionExecuteSqlResult {
     } else {
       this.values = new ArrayList<>();
     }
+    this.totalCostTime = resp.getCostTime();
   }
 
   public List<List<String>> getResultInList(
@@ -182,8 +185,6 @@ public class SessionExecuteSqlResult {
         return buildShowEligibleJobResult();
       case ShowSessionID:
         return buildShowSessionIDResult();
-      case ShowConfig:
-        return buildShowConfigResult();
       case ShowRules:
         return buildShowRulesResult();
       case GetReplicaNum:
@@ -194,6 +195,8 @@ public class SessionExecuteSqlResult {
         return "job id: " + jobId;
       case ShowJobStatus:
         return "Job status: " + jobState;
+      case ShowConfig:
+        return "config value: " + configValue + "\n";
       default:
         return "No data to print." + "\n";
     }
@@ -208,7 +211,56 @@ public class SessionExecuteSqlResult {
     builder.append(FormatUtils.formatResult(cache));
 
     builder.append(FormatUtils.formatCount(cache.size() - 1));
+
+    if (paths != null && !paths.isEmpty() && paths.get(0).equals("Physical Tree")) {
+      builder.append(cacheMoreThings());
+    }
     return builder.toString();
+  }
+
+  private String cacheMoreThings() {
+    Map<String, OpStats> map = new HashMap<>();
+    for (List<Object> row : values) {
+      String timeStr = FormatUtils.valueToString(row.get(1));
+      String name = FormatUtils.valueToString(row.get(3)).split(":")[0];
+      int costTime = Integer.parseInt(timeStr.substring(0, timeStr.length() - 2));
+      if (map.containsKey(name)) {
+        map.get(name).addUp(costTime);
+      } else {
+        map.put(name, new OpStats(name, costTime));
+      }
+    }
+
+    List<OpStats> list = new ArrayList<>(map.values());
+    list.sort(Comparator.comparingInt(a -> a.costTime));
+
+    StringBuilder builder = new StringBuilder();
+    list.forEach(
+        opStats ->
+            builder
+                .append(
+                    String.format(
+                        "[%s] cost time: %s, num: %s", opStats.name, opStats.costTime, opStats.num))
+                .append("\n"));
+    builder.append("total cost: ").append(totalCostTime).append("ms\n");
+    return builder.toString();
+  }
+
+  static class OpStats {
+    String name;
+    int num;
+    int costTime;
+
+    public OpStats(String name, int costTime) {
+      this.num = 1;
+      this.name = name;
+      this.costTime = costTime;
+    }
+
+    public void addUp(int costTime) {
+      this.num++;
+      this.costTime += costTime;
+    }
   }
 
   private List<List<String>> cacheResult(
@@ -376,21 +428,6 @@ public class SessionExecuteSqlResult {
       for (long sessionID : sessionIDs) {
         cache.add(new ArrayList<>(Collections.singletonList(String.valueOf(sessionID))));
       }
-      builder.append(FormatUtils.formatResult(cache));
-    }
-    return builder.toString();
-  }
-
-  private String buildShowConfigResult() {
-    StringBuilder builder = new StringBuilder();
-    if (configs != null) {
-      builder.append("Config Info:").append("\n");
-      List<List<String>> cache = new ArrayList<>();
-      cache.add(new ArrayList<>(Arrays.asList("ConfigName", "ConfigValue")));
-      configs.forEach(
-          (name, value) -> {
-            cache.add(new ArrayList<>(Arrays.asList(name, value)));
-          });
       builder.append(FormatUtils.formatResult(cache));
     }
     return builder.toString();
@@ -569,9 +606,5 @@ public class SessionExecuteSqlResult {
 
   public List<Long> getSessionIDs() {
     return sessionIDs;
-  }
-
-  public Map<String, String> getConfigs() {
-    return configs;
   }
 }

@@ -87,8 +87,10 @@ public class StoragePhysicalTaskExecutor {
   private final int maxCachedPhysicalTaskPerStorage =
       ConfigDescriptor.getInstance().getConfig().getMaxCachedPhysicalTaskPerStorage();
 
+  private final StorageUnitHook storageUnitHook;
+
   private StoragePhysicalTaskExecutor() {
-    StorageUnitHook storageUnitHook =
+    storageUnitHook =
         (before, after) -> {
           if (before == null && after != null) { // 新增加 du，处理这种事件，其他事件暂时不处理
             logger.info("new storage unit " + after.getId() + " come!");
@@ -390,15 +392,16 @@ public class StoragePhysicalTaskExecutor {
 
   public void commit(List<StoragePhysicalTask> tasks) {
     for (StoragePhysicalTask task : tasks) {
+      String key;
       if (replicaDispatcher == null) {
-        storageTaskQueues
-            .get(task.getTargetFragment().getMasterStorageUnitId())
-            .addTask(task); // 默认情况下，异步写备，查询只查主
+        key = task.getTargetFragment().getMasterStorageUnitId(); // 默认情况下，异步写备，查询只查主
       } else {
-        storageTaskQueues
-            .get(replicaDispatcher.chooseReplica(task))
-            .addTask(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
+        key = replicaDispatcher.chooseReplica(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
       }
+      if (!storageTaskQueues.containsKey(key)) {
+        storageUnitHook.onChange(null, task.getTargetFragment().getMasterStorageUnit());
+      }
+      storageTaskQueues.get(key).addTask(task);
     }
   }
 

@@ -64,7 +64,7 @@ public class RowUtils {
 
   private static final Logger logger = LoggerFactory.getLogger(RowUtils.class);
 
-  private static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
+  public static final BlockingQueue<ForkJoinPool> poolQueue = new LinkedBlockingQueue<>();
 
   static {
     for (int i = 0; i < config.getParallelGroupByPoolNum(); i++) {
@@ -170,9 +170,31 @@ public class RowUtils {
     return false;
   }
 
-  public static HashMap<Integer, List<Row>> establishHashMap(
+  public static Map<Integer, List<Row>> establishHashMap(
+      List<Row> rows, String joinPath, boolean needTypeCast) throws PhysicalException {
+    Map<Integer, List<Row>> result;
+
+    String use;
+    long startTime = System.currentTimeMillis();
+    if (config.isEnableParallelOperator()
+        && rows.size() > config.getParallelGroupByRowsThreshold()) {
+      use = "parallel";
+      result = parallelEstablishHashMap(rows, joinPath, needTypeCast);
+    } else {
+      use = "sequence";
+      result = seqEstablishHashMap(rows, joinPath, needTypeCast);
+    }
+    long endTime = System.currentTimeMillis();
+    logger.info(
+        String.format(
+            "join use %s build, row size: %s, cost time: %s",
+            use, rows.size(), endTime - startTime));
+    return result;
+  }
+
+  private static Map<Integer, List<Row>> seqEstablishHashMap(
       List<Row> rows, String joinPath, boolean needTypeCast) {
-    HashMap<Integer, List<Row>> hashMap = new HashMap<>();
+    Map<Integer, List<Row>> map = new HashMap<>();
     for (Row row : rows) {
       Value value = row.getAsValue(joinPath);
       if (value == null) {
@@ -180,10 +202,79 @@ public class RowUtils {
       }
       int hash = getHash(value, needTypeCast);
 
-      List<Row> l = hashMap.computeIfAbsent(hash, k -> new ArrayList<>());
+      List<Row> l = map.computeIfAbsent(hash, k -> new ArrayList<>());
       l.add(row);
     }
-    return hashMap;
+    return map;
+  }
+
+  private static Map<Integer, List<Row>> parallelEstablishHashMap(
+      List<Row> rows, String joinPath, boolean needTypeCast) throws PhysicalException {
+    ForkJoinPool pool = null;
+    try {
+      pool = poolQueue.take();
+
+      int size = config.getParallelGroupByPoolSize();
+      int range = rows.size() / size;
+      List<Map<Integer, List<Row>>> listOfMaps = new ArrayList<>();
+
+      CountDownLatch latch = new CountDownLatch(size);
+      for (int i = 0; i < size; i++) {
+        int finalI = i;
+        listOfMaps.add(new HashMap<>());
+        pool.submit(
+            () -> {
+              for (int j = finalI * range; j < Math.min((finalI + 1) * range, rows.size()); j++) {
+                Row row = rows.get(j);
+                Value value = row.getAsValue(joinPath);
+                if (value == null) {
+                  continue;
+                }
+                int hash = getHash(value, needTypeCast);
+
+                List<Row> l = listOfMaps.get(finalI).computeIfAbsent(hash, k -> new ArrayList<>());
+                l.add(row);
+              }
+              latch.countDown();
+            });
+      }
+      latch.await();
+      Map<Integer, List<Row>> mergedMap =
+          listOfMaps
+              .parallelStream()
+              .flatMap(map -> map.entrySet().stream()) // 将每个Map转换为流
+              .collect(
+                  Collectors.toConcurrentMap(
+                      Map.Entry::getKey, // 键
+                      Map.Entry::getValue, // 值
+                      (list1, list2) -> { // 合并函数，用于处理重复键
+                        list1.addAll(list2); // 合并两个列表
+                        return list1;
+                      }));
+      return mergedMap;
+      //      Map<Integer, List<Row>> map =
+      //          pool.submit(
+      //                  () ->
+      //                      Collections.synchronizedList(rows)
+      //                          .parallelStream()
+      //                          .collect(
+      //                              Collectors.groupingBy(
+      //                                  row -> {
+      //                                    Value value = row.getAsValue(joinPath);
+      //                                    if (value == null) {
+      //                                      return 0; // nullable value hashcode
+      //                                    }
+      //                                    return getHash(value, needTypeCast);
+      //                                  })))
+      //              .get();
+      //      return map;
+    } catch (InterruptedException e) {
+      throw new PhysicalException("parallel build failed");
+    } finally {
+      if (pool != null) {
+        poolQueue.add(pool);
+      }
+    }
   }
 
   /**
@@ -568,11 +659,21 @@ public class RowUtils {
     }
 
     Map<GroupByKey, List<Row>> groups;
-    if (table.getRowSize() > config.getParallelGroupByRowsThreshold()) {
+    String use;
+    long startTime = System.currentTimeMillis();
+    if (config.isEnableParallelOperator()
+        && table.getRowSize() > config.getParallelGroupByRowsThreshold()) {
+      use = "parallel";
       groups = parallelBuild(table, colIndex);
     } else {
+      use = "sequence";
       groups = seqBuild(table, colIndex);
     }
+    long endTime = System.currentTimeMillis();
+    logger.info(
+        String.format(
+            "groupBy use %s build, row size: %s, cost time: %s",
+            use, table.getRowSize(), endTime - startTime));
 
     return applyFunc(groupBy, fields, header, groups);
   }
@@ -581,11 +682,21 @@ public class RowUtils {
       GroupBy groupBy, List<Field> fields, Header header, Map<GroupByKey, List<Row>> groups)
       throws PhysicalException {
 
-    if (groups.size() > config.getParallelApplyFuncGroupsThreshold()) {
+    String use;
+    long startTime = System.currentTimeMillis();
+    if (config.isEnableParallelOperator()
+        && groups.size() > config.getParallelApplyFuncGroupsThreshold()) {
+      use = "parallel";
       parallelApplyFunc(groupBy, fields, header, groups);
     } else {
+      use = "sequence";
       seqApplyFunc(groupBy, fields, header, groups);
     }
+    long endTime = System.currentTimeMillis();
+    logger.info(
+        String.format(
+            "groupBy use %s apply, row size: %s, cost time: %s",
+            use, groups.size(), endTime - startTime));
 
     Header newHeader = new Header(fields);
     int fieldSize = newHeader.getFieldSize();
@@ -776,21 +887,26 @@ public class RowUtils {
 
   public static List<Row> cacheFilterResult(List<Row> rows, Filter filter)
       throws PhysicalException {
-    if (rows.size() > config.getParallelFilterThreshold()) {
+    List<Row> result;
+    String use;
+    long startTime = System.currentTimeMillis();
+    if (config.isEnableParallelOperator() && rows.size() > config.getParallelFilterThreshold()) {
+      use = "parallel";
       ForkJoinPool pool = null;
       try {
         pool = poolQueue.take();
-        return rows.parallelStream()
-            .filter(
-                row -> {
-                  try {
-                    return FilterUtils.validate(filter, row);
-                  } catch (PhysicalException e) {
-                    logger.error("execute parallel filter error, cause by: ", e.getCause());
-                    return false;
-                  }
-                })
-            .collect(Collectors.toList());
+        result =
+            rows.parallelStream()
+                .filter(
+                    row -> {
+                      try {
+                        return FilterUtils.validate(filter, row);
+                      } catch (PhysicalException e) {
+                        logger.error("execute parallel filter error, cause by: ", e.getCause());
+                        return false;
+                      }
+                    })
+                .collect(Collectors.toList());
       } catch (InterruptedException e) {
         throw new PhysicalException("parallel filter failed");
       } finally {
@@ -799,18 +915,26 @@ public class RowUtils {
         }
       }
     } else {
-      return rows.stream()
-          .filter(
-              row -> {
-                try {
-                  return FilterUtils.validate(filter, row);
-                } catch (PhysicalException e) {
-                  logger.error("execute sequence filter error, cause by: ", e.getCause());
-                  return false;
-                }
-              })
-          .collect(Collectors.toList());
+      use = "sequence";
+      result =
+          rows.stream()
+              .filter(
+                  row -> {
+                    try {
+                      return FilterUtils.validate(filter, row);
+                    } catch (PhysicalException e) {
+                      logger.error("execute sequence filter error, cause by: ", e.getCause());
+                      return false;
+                    }
+                  })
+              .collect(Collectors.toList());
     }
+    long endTime = System.currentTimeMillis();
+    logger.info(
+        String.format(
+            "select use %s filter, row size: %s, cost time: %s",
+            use, rows.size(), endTime - startTime));
+    return result;
   }
 
   public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)

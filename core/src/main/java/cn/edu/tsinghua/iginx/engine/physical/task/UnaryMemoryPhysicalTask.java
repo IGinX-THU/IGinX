@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecut
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Load;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -36,6 +37,9 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   @Override
   public TaskExecuteResult execute() {
+    if (getOperators().size() == 1 && getOperators().get(0).getType().equals(OperatorType.Load)) {
+      return executeLoad((Load) getOperators().get(0));
+    }
     TaskExecuteResult parentResult = parentTask.getResult();
     if (parentResult == null) {
       return new TaskExecuteResult(
@@ -60,6 +64,18 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
       return new TaskExecuteResult(e);
     }
     return new TaskExecuteResult(stream);
+  }
+
+  private TaskExecuteResult executeLoad(Load load) {
+    OperatorMemoryExecutor executor =
+        OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
+    try {
+      RowStream stream = executor.executeUnaryOperator(load, null, getContext());
+      return new TaskExecuteResult(stream);
+    } catch (PhysicalException e) {
+      logger.error("encounter error when execute load in memory: ", e);
+      return new TaskExecuteResult(e);
+    }
   }
 
   @Override

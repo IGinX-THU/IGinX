@@ -29,6 +29,8 @@
         <module>test</module>
         <module>zeppelin-interpreter</module>
         <module>tools-exportCsv</module>
+        <module>tools-tpch</module>
+        <module>tools-benchmark</module>
     </modules>
 
     <distributionManagement>

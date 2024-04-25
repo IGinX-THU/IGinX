@@ -65,7 +65,8 @@ public enum OperatorType {
   GroupBy,
   Distinct,
   ProjectWaitingForPath,
-  ValueToSelectedPath;
+  ValueToSelectedPath,
+  Load;
 
   private int value;
 

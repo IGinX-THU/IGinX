@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
@@ -17,10 +16,7 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -5959,125 +5955,6 @@ public class SQLSessionIT {
                     + "+------------+------------+-------+\n"
                     + "Total line number = 2\n"));
     executor.concurrentExecuteAndCompare(statementsAndExpectRes);
-  }
-
-  @Test
-  public void testShowConfig() {
-    String statement = "show config \"memoryTaskThreadPoolSize\";";
-    String expected =
-        "Config Info:\n"
-            + "+------------------------+-----------+\n"
-            + "|              ConfigName|ConfigValue|\n"
-            + "+------------------------+-----------+\n"
-            + "|memoryTaskThreadPoolSize|        200|\n"
-            + "+------------------------+-----------+\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement = "show config \"enableEnvParameter\";";
-    expected =
-        "Config Info:\n"
-            + "+------------------+-----------+\n"
-            + "|        ConfigName|ConfigValue|\n"
-            + "+------------------+-----------+\n"
-            + "|enableEnvParameter|      false|\n"
-            + "+------------------+-----------+\n";
-    executor.executeAndCompare(statement, expected);
-
-    statement = "show config;";
-    Map<String, String> configs = executor.getSessionExecuteSqlResult(statement).getConfigs();
-    Set<String> expectedConfigNames =
-        new HashSet<>(
-            Arrays.asList(
-                "cachedTimeseriesProb",
-                "parallelFilterThreshold",
-                "memoryTaskThreadPoolSize",
-                "statisticsCollectorClassName",
-                "systemMemoryThreshold",
-                "streamParallelGroupByWorkerNum",
-                "password",
-                "constraintChecker",
-                "mqttHost",
-                "fragmentCompactionReadRatioThreshold",
-                "migrationPolicyClassName",
-                "metaStorage",
-                "tagPrefix",
-                "ip",
-                "enableRestService",
-                "parallelGroupByPoolNum",
-                "enablePushDown",
-                "loadBalanceCheckInterval",
-                "parallelApplyFuncGroupsThreshold",
-                "timePrecision",
-                "useStreamExecutor",
-                "parallelGroupByRowsThreshold",
-                "enableMonitor",
-                "databaseClassNames",
-                "mqttPort",
-                "clients",
-                "defaultUDFDir",
-                "ruleBasedOptimizer",
-                "instancesNumPerClient",
-                "physicalOptimizer",
-                "maxAsyncRetryTimes",
-                "enableInstantCompaction",
-                "maxCachedPhysicalTaskPerStorage",
-                "restIp",
-                "physicalTaskThreadPoolSizePerStorage",
-                "disorderMargin",
-                "enableEnvParameter",
-                "syncExecuteThreadPool",
-                "policyClassName",
-                "fragmentCacheThreshold",
-                "fragmentPerEngine",
-                "enableStorageGroupValueLimit",
-                "zookeeperConnectionString",
-                "minThriftWorkerThreadNum",
-                "udfList",
-                "migrationBatchSize",
-                "maxTimeseriesLoadBalanceThreshold",
-                "mqttMaxMessageSize",
-                "reshardFragmentTimeMargin",
-                "storageGroupValueLimit",
-                "replicaNum",
-                "enableMetaCacheControl",
-                "fragmentCompactionReadThreshold",
-                "storageEngineList",
-                "batchSizeImportCsv",
-                "restPort",
-                "asyncRestThreadPool",
-                "fragmentCompactionWriteThreshold",
-                "expectedStorageUnitNum",
-                "maxThriftWrokerThreadNum",
-                "isUTTestEnv",
-                "tagSuffix",
-                "port",
-                "asyncExecuteThreadPool",
-                "needInitBasicUDFFunctions",
-                "retryWait",
-                "reAllocatePeriod",
-                "pythonCMD",
-                "historicalPrefixList",
-                "transformMaxRetryTimes",
-                "transformTaskThreadPoolSize",
-                "enableFragmentCompaction",
-                "maxReshardFragmentsNum",
-                "statisticsLogInterval",
-                "enableMemoryControl",
-                "retryCount",
-                "tagNameAnnotation",
-                "etcdEndpoints",
-                "mqttPayloadFormatter",
-                "queryOptimizer",
-                "systemCpuThreshold",
-                "enableMQTT",
-                "mqttHandlerPoolSize",
-                "heapMemoryThreshold",
-                "systemResourceMetrics",
-                "maxTimeseriesLength",
-                "batchSize",
-                "parallelGroupByPoolSize",
-                "username"));
-    assertEquals(expectedConfigNames, configs.keySet());
   }
 
   @Test

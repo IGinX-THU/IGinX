@@ -1005,7 +1005,9 @@ public class DefaultMetaManager implements IMetaManager {
     if (cache.hasFragment() && cache.hasStorageUnit()) {
       return false;
     }
-    checkInitialFragmentCompletion(initialFragments);
+    if (initialFragments != null) {
+      checkInitialFragmentCompletion(initialFragments);
+    }
     List<StorageUnitMeta> newStorageUnits = new ArrayList<>();
     try {
       storage.lockFragment();

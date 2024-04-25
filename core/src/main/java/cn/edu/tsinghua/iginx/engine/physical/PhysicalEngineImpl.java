@@ -97,14 +97,20 @@ public class PhysicalEngineImpl implements PhysicalEngine {
   private void commitBottomTasks(List<PhysicalTask> bottomTasks) {
     List<StoragePhysicalTask> storageTasks = new ArrayList<>();
     List<GlobalPhysicalTask> globalTasks = new ArrayList<>();
+    List<IGinXPhysicalTask> iGinXTasks = new ArrayList<>();
     for (PhysicalTask task : bottomTasks) {
       if (task.getType().equals(TaskType.Storage)) {
         storageTasks.add((StoragePhysicalTask) task);
       } else if (task.getType().equals(TaskType.Global)) {
         globalTasks.add((GlobalPhysicalTask) task);
+      } else if (task instanceof IGinXPhysicalTask) {
+        iGinXTasks.add((IGinXPhysicalTask) task);
       }
     }
     storageTaskExecutor.commit(storageTasks);
+    for (IGinXPhysicalTask iGinXTask : iGinXTasks) {
+      memoryTaskExecutor.addMemoryTask(iGinXTask);
+    }
     for (GlobalPhysicalTask globalTask : globalTasks) {
       storageTaskExecutor.executeGlobalTask(globalTask);
     }

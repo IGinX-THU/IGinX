@@ -18,7 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.iotdb.query.entity;
 
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
 import static org.apache.iotdb.tsfile.file.metadata.enums.TSDataType.TEXT;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -206,9 +205,9 @@ public class IoTDBQueryRowStream implements RowStream {
         }
         state = State.HAS_NEXT;
         cachedRow = new Row(header, timestamp, fields);
-        if (!validate(filter, cachedRow)) {
-          cacheOneRow();
-        }
+        //        if (!validate(filter, cachedRow)) {
+        //          cacheOneRow();
+        //        }
       } else {
         state = State.NO_NEXT;
         cachedRow = null;

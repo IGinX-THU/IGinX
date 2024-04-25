@@ -52,7 +52,7 @@ public class Result {
   private long jobId;
   private List<Long> jobIdList;
 
-  private Map<String, String> configs;
+  private String configValue;
 
   private String exportByteStreamDir;
 
@@ -169,7 +169,7 @@ public class Result {
     resp.setJobId(jobId);
     resp.setJobState(jobState);
     resp.setJobIdList(jobIdList);
-    resp.setConfigs(configs);
+    resp.setConfigValue(configValue);
     // INFILE AS CSV
     resp.setLoadCsvPath(loadCSVPath);
     resp.setSessionIDList(sessionIDs);
@@ -261,6 +261,28 @@ public class Result {
     } catch (PhysicalException e) {
       logger.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);
+    }
+    return resp;
+  }
+
+  public ExecuteSubPlanResp getExecuteSubPlanResp() {
+    ExecuteSubPlanResp resp = new ExecuteSubPlanResp(status);
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
+      return resp;
+    }
+
+    resp.setPaths(paths);
+    resp.setTagsList(tagsList);
+    resp.setDataTypeList(dataTypes);
+
+    if (valuesList != null) {
+      if (keys != null) {
+        ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
+        resp.setKeys(keyBuffer);
+        resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+      } else {
+        resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
+      }
     }
     return resp;
   }
