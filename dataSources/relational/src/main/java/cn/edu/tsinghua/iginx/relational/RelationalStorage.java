@@ -488,6 +488,7 @@ public class RelationalStorage implements IStorage {
           }
         }
 
+        // 将所有表进行full join
         String fullTableName = getFullJoinTables(tableNames);
 
         // 对通配符做处理，将通配符替换成对应的列名
@@ -505,15 +506,23 @@ public class RelationalStorage implements IStorage {
           filter = LogicalFilterUtils.mergeTrue(filter);
         }
 
+        String fullColumnNamesStr = fullColumnNames.toString();
         String filterStr = filterTransformer.toString(filter);
+        String orderByKey =
+            RelationSchema.getQuotFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
+        if (!relationalMeta.isSupportFullJoin()) {
+          // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
+          fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
+          filterStr = filterStr.replaceAll("`\\.`", ".");
+          orderByKey = orderByKey.replaceAll("`\\.`", ".");
+        }
         statement =
             String.format(
                 QUERY_STATEMENT_WITHOUT_KEYNAME,
-                fullColumnNames,
+                fullColumnNamesStr,
                 fullTableName,
                 filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                RelationSchema.getQuotFullName(
-                    tableNames.get(0), KEY_NAME, relationalMeta.getQuote()));
+                orderByKey);
 
         ResultSet rs = null;
         try {
@@ -605,6 +614,8 @@ public class RelationalStorage implements IStorage {
         }
       }
       fullTableName.append(")");
+
+      fullTableName.append(" AS derived ");
     }
 
     return fullTableName.toString();
@@ -666,6 +677,7 @@ public class RelationalStorage implements IStorage {
         }
       }
       fullTableName.append(")");
+      fullTableName.append(" AS derived ");
     }
 
     return fullTableName.toString();
