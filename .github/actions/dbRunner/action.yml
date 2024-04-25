@@ -171,9 +171,9 @@ runs:
           name: Start MySQL Service
           shell: bash
           run: |
-              docker run --name mysql1 -e MYSQL_ROOT_PASSWORD=mysql -p 3306:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
-              docker run --name mysql2 -e MYSQL_ROOT_PASSWORD=mysql -p 3307:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
-              docker run --name mysql3 -e MYSQL_ROOT_PASSWORD=mysql -p 3308:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
+              docker run --name mysql1 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
+              docker run --name mysql2 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3307:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
+              docker run --name mysql3 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3308:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
 
         - if: inputs.DB-name == 'MySQL' && runner.os == 'Windows'
           name: Install MySQL
@@ -184,20 +184,26 @@ runs:
           name: Configure and start MySQL instances
           shell: bash
           run: |
-              choco install tree
-              tree ./
-              mkdir ./mysql/data1 ./mysql/data2 ./mysql/data3
-              ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data1 --port=3307
-              ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data2 --port=3308
-              ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data3 --port=3309
-              ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data1 --port=3307 &
-              ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data2 --port=3308 &
-              ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data3 --port=3309 &
+            echo "ALTER USER 'root'@'localhost' IDENTIFIED BY 'mysql';" > init.txt
+            mkdir ./mysql/data1 ./mysql/data2 ./mysql/data3
+            dir
+            ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data1 --port=3306  --console
+            dir
+            ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data2 --port=3307  --console
+            dir
+            ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data3 --port=3308  --console
+            dir
+            ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data1 --port=3306 &
+            dir
+            ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data2 --port=3307 &
+            dir
+            ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data3 --port=3308 &
 
         - if: inputs.DB-name == 'MySQL' && runner.os == 'Windows'
           name: Setup Database for each instance
           shell: bash
           run: |
-              ./mysql/mysql-8.0.31-winx64/bin/mysql -u root --port=3307
-              ./mysql/mysql-8.0.31-winx64/bin/mysql -u root --port=3308
-              ./mysql/mysql-8.0.31-winx64/bin/mysql -u root --port=3309
+            ./mysql/mysql-8.0.31-winx64/bin/mysql -v -u root --port=3306
+            ./mysql/mysql-8.0.31-winx64/bin/mysql -v -u root --port=3307
+            ./mysql/mysql-8.0.31-winx64/bin/mysql -v -u root --port=3308
+
