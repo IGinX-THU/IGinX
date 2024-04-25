@@ -600,7 +600,7 @@ public class RelationalStorage implements IStorage {
         fullTableName.append(
             String.format(
                 "SELECT %s FROM %s",
-                getQuotName(tableNames.get(i)) + getQuotName(KEY_NAME) + allColumns,
+                getQuotName(tableNames.get(i)) + getQuotName(KEY_NAME) + ", " + allColumns,
                 getQuotName(tableNames.get(i))));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
