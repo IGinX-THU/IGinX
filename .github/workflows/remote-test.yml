@@ -71,7 +71,7 @@ jobs:
               run: |
                   cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
                   chmod +x "build_iginx_docker.sh" && \
-                  "./build_iginx_docker.sh" && \
+                  "./build_iginx_docker.sh"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner

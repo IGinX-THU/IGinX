@@ -34,7 +34,7 @@ runs:
           name: Install Docker on MacOS
           shell: bash
           run: |
-            brew install docker
+            brew install docker colima
             colima start
 
         - if: inputs.scope=='all'
