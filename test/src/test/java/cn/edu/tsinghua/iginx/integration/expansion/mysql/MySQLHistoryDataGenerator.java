@@ -43,7 +43,7 @@ public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
         url = String.format("jdbc:mysql://127.0.0.1:%d/%s", port, databaseName);
       }
       Class.forName("com.mysql.cj.jdbc.Driver");
-      return DriverManager.getConnection(url, "root", "mysql");
+      return DriverManager.getConnection(url, "root", null);
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
