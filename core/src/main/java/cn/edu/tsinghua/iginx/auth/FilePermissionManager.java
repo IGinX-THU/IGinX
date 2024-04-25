@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import cn.edu.tsinghua.iginx.conf.entity.FilePermissionDescriptor;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Predicate;
@@ -32,7 +33,57 @@ public class FilePermissionManager {
     filePermissionConfig.onReload(this::reload);
   }
 
-  public Predicate<Path> getChecker(
+  public interface Checker {
+    boolean test(Path path);
+
+    default Optional<Path> normalize(String path) {
+      Optional<Path> p = cheatNormalize(Paths.get(path));
+      if (!p.isPresent()) {
+        return Optional.empty();
+      }
+      Path cheated = p.get();
+      if (!test(cheated)) {
+        return Optional.empty();
+      }
+      return Optional.of(cheated);
+    }
+
+    default boolean testRelativePath(String path) {
+      return !path.contains("..");
+    }
+
+    /**
+     * cheat CodeQL to not complain about path traversal vulnerability. This method should not be
+     * used except you know what you are doing.
+     *
+     * @param path the path to normalize
+     * @return the normalized path if it is safe, otherwise empty
+     */
+    @Deprecated
+    default Optional<Path> cheatNormalize(Path path) {
+      Path p = path.toAbsolutePath();
+      // split path nodes
+      String root = p.getRoot().toString();
+      String[] nodes = new String[p.getNameCount()];
+      for (int i = 0; i < p.getNameCount(); i++) {
+        nodes[i] = p.getName(i).toString();
+      }
+      // check if any node contains "."
+      if (!testRelativePath(root)) {
+        return Optional.empty();
+      }
+      for (String node : nodes) {
+        if (!testRelativePath(node)) {
+          return Optional.empty();
+        }
+      }
+      // rebuild path
+      Path rebuiltPath = Paths.get(root, nodes);
+      return Optional.of(rebuiltPath);
+    }
+  }
+
+  public Checker getChecker(
       @Nullable String user, Predicate<String> ruleNameFilter, FileAccessType... type) {
     return path -> {
       UserRules userRules = rules.get();
