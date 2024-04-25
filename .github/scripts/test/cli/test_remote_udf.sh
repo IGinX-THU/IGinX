@@ -31,6 +31,12 @@ SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h 172.4
 
 sleep 10
 
+docker ps
+docker network inspect docker-cluster-iginx
+docker exec iginx0 cat /logs/iginx-latest.log
+docker exec iginx0 netstat -tulnp | grep 6888
+docker exec iginx-client ping 172.40.0.2
+
 
 # single udf in one file
 ${SCRIPT_PREFIX} "create function udtf \"mock_udf\" from \"MockUDF\" in \"/iginx_client/data/udf/mock_udf.py\";"

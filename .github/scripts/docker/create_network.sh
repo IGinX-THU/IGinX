@@ -6,6 +6,8 @@ docker network ls
 
 output=$(docker network ls | grep ' bridge ')
 
+echo "$output"
+
 if [ -z "$output" ]; then
     docker network create -d "nat" --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
 else

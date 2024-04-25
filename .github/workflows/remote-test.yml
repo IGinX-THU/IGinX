@@ -99,6 +99,7 @@ jobs:
               name: Run IGinX & Client container
               shell: bash
               run: |
+                  service firewalld stop
                   cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
                   chmod +x "run_iginx_docker.sh" && \
                   "./run_iginx_docker.sh" 172.40.0.2 iginx0 6888
