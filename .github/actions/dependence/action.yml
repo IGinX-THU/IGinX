@@ -35,6 +35,7 @@ runs:
           shell: bash
           run: |
             brew install docker colima
+            brew install --reinstall qemu
             colima start
 
         - if: inputs.scope=='all'
