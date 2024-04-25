@@ -53,12 +53,19 @@ jobs:
                   Metadata: ${{ matrix.metadata }}
                   For-Docker: "true"
 
-            - name: Create Docker Network
-              shell: bash
+            - if: runner.os == 'Windows'
+              name: Create Docker Network
+              shell: cmd
               run: |
                   docker --version
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/docker/create_network.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/docker/create_network.sh"
+                  docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+
+            - if: runner.os != 'Windows'
+              name: Create Docker Network
+              shell: bash
+              run: |
+                docker --version
+                docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
 
             - if: runner.os == 'Windows'
               name: Build IGinX & Client image
