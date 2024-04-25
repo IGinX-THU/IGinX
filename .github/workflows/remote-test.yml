@@ -130,4 +130,4 @@ jobs:
               shell: bash
               run: |
                   export MSYS_NO_PATHCONV=1
-                  docker exec iginx0 cat /iginx/logs/*.log
+                  docker exec iginx0 cat /logs/iginx-latest.log
