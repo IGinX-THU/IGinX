@@ -45,17 +45,17 @@ if __name__ == '__main__':
         print(cluster_info)
         ######################  test   #######################
         # 查询写入的数据，数据由PySessionIT测试写入
-        dataset = self.session.query(["mongotpch.orders.*"], 0, 5)
+        dataset = session.query(["mongotpch.orders.*"], 0, 5)
         # 转换为pandas.Dataframe
         df = dataset.to_df()
         print(df)
         # 查询写入的数据，数据由PySessionIT测试写入
-        dataset = self.session.query(["postgres.customer.*"], 0, 5)
+        dataset = session.query(["postgres.customer.*"], 0, 5)
         # 转换为pandas.Dataframe
         df = dataset.to_df()
         print(df)
         # 查询写入的数据，数据由PySessionIT测试写入
-        dataset = self.session.query(["nation.*"], 0, 5)
+        dataset = session.query(["nation.*"], 0, 5)
         # 转换为pandas.Dataframe
         df = dataset.to_df()
         print(df)
@@ -63,6 +63,34 @@ if __name__ == '__main__':
         # 开始tpch查询
         print("start tpch query")
         start_time = time.time()
+
+        sql = '''select 
+    nation.n_name,
+    revenue
+from (
+    select
+        nation.n_name,
+        sum(tmp) as revenue
+    from (
+        select
+            nation.n_name,
+            mongotpch.lineitem.l_extendedprice * (1 - mongotpch.lineitem.l_discount) as tmp
+        from
+            postgres.customer
+            join mongotpch.orders on postgres.customer.c_custkey = mongotpch.orders.o_custkey
+            join mongotpch.lineitem on mongotpch.lineitem.l_orderkey = mongotpch.orders.o_orderkey
+            join postgres.supplier on mongotpch.lineitem.l_suppkey = postgres.supplier.s_suppkey and postgres.customer.c_nationkey = postgres.supplier.s_nationkey
+            join nation on postgres.supplier.s_nationkey = nation.n_nationkey
+            join postgres.region on nation.n_regionkey = postgres.region.r_regionkey
+        where
+            postgres.region.r_name = "EUROPE"
+    )
+    group by
+        nation.n_name
+)
+order by
+    revenue desc;'''
+        dataset = session.execute_statement(sql)
 
         print(f"end tpch query, time cost: {time.time() - start_time}s")
         session.close()
