@@ -11,9 +11,9 @@ if __name__ == '__main__':
     try:
         session = Session('127.0.0.1', 6888, "root", "root")
         session.open()
-        # load nation.csv into parquet
-        # TODO
-
+        # 输出所有存储引擎
+        cluster_info = session.get_cluster_info()
+        print(cluster_info)
         # add storage engine
         print("start adding storage engine")
         start_time = time.time()
