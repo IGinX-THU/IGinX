@@ -80,7 +80,7 @@ from (
             join mongotpch.orders on postgres.customer.c_custkey = mongotpch.orders.o_custkey
             join mongotpch.lineitem on mongotpch.lineitem.l_orderkey = mongotpch.orders.o_orderkey
             join postgres.supplier on mongotpch.lineitem.l_suppkey = postgres.supplier.s_suppkey and postgres.customer.c_nationkey = postgres.supplier.s_nationkey
-            join nation on postgres.supplier.s_nationkey = nation.n_nationkey
+            join nation on postgres.supplier.s_nationkey = nation.key
             join postgres.region on nation.n_regionkey = postgres.region.r_regionkey
         where
             postgres.region.r_name = "EUROPE"
