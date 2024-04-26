@@ -108,22 +108,26 @@ runs:
               fi
 
         - if: inputs.DB-name=='Redis'
+          name: Setup DB
+          uses: ./.github/actions/setup/redis
+
+        - if: inputs.DB-name=='Redis'
           name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh" 6379 6380 6381
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh" 6379 6380 6381
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh" 6379 6380 6381
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          uses: ./.github/actions/service/redis
+          with:
+            stop: false
+            clean: false
+            start: true
+            ports: 6379 6380 6381
+
+        - if: inputs.DB-name=='Redis'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+            paths: conf/config.properties
+            statements: |
+              s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
+              s/#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
 
         - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB

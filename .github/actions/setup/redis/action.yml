@@ -1,0 +1,13 @@
+name: "redis"
+description: "setup redis"
+
+runs:
+  using: "composite"
+  steps:
+    - id: base
+      name: install redis with package manager
+      uses: ./.github/actions/setup/package
+      with:
+        apt: redis
+        brew: redis
+        choco: redis
