@@ -52,6 +52,22 @@ jobs:
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
+            - if: runner.os == 'Windows'
+              name: Build & Run Client image
+              shell: cmd
+              run: |
+                  cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
+
+            - if: runner.os != 'Windows'
+              name: Build & Run Client image
+              shell: bash
+              run: |
+                  cd ${GITHUB_WORKSPACE}/docker/client && \
+                  chmod +x "build.sh" && \
+                  chmod +x "run_docker.sh" && \
+                  "./build.sh" && \
+                  "./run_docker.sh"
+
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
@@ -67,22 +83,6 @@ jobs:
               with:
                 version: ${VERSION}
                 if-test-udf: "true"
-
-            - if: runner.os == 'Windows'
-              name: Build Client image
-              shell: cmd
-              run: |
-                  cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
-
-            - if: runner.os != 'Windows'
-              name: Build Client image
-              shell: bash
-              run: |
-                  cd ${GITHUB_WORKSPACE}/docker/client && \
-                  chmod +x "build.sh" && \
-                  chmod +x "run_docker.sh" && \
-                  "./build.sh" && \
-                  "./run_docker.sh"
 
             - name: Register Remote UDFs
               shell: bash
