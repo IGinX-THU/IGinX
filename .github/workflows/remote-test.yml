@@ -45,6 +45,19 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format -q
 
+            - if: runner.os == 'Windows'
+              name: Create Docker Network
+              shell: cmd
+              run: |
+                docker --version
+                docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+            - if: runner.os != 'Windows'
+              name: Create Docker Network
+              shell: bash
+              run: |
+                docker --version
+                docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
