@@ -16,7 +16,7 @@ SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h host.
 #docker ps
 #docker network inspect docker-cluster-iginx
 #ls logs/docker_logs
-#cat logs/docker_logs/*
+cat logs/*
 #docker exec iginx0 cat /logs/iginx-latest.log
 #
 #timeout=30
