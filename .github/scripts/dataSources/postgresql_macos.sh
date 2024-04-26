@@ -6,9 +6,7 @@ sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0
 
 sed -i "" "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
 
-sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
-
-sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
+sh -c "sudo cp -R $PGHOME pgsql"
 
 sh -c "sudo dscl . -create /Users/postgres UniqueID 666"
 

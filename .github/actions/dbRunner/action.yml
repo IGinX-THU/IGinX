@@ -148,6 +148,10 @@ runs:
               fi
 
         - if: inputs.DB-name=='PostgreSQL'
+          name: Setup DB
+          uses: ./.github/actions/setup/postgresql
+
+        - if: inputs.DB-name=='PostgreSQL'
           name: Run DB
           shell: bash
           run: |
