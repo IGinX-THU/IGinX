@@ -38,7 +38,7 @@ jobs:
               name: Build & Run Client image
               shell: cmd
               run: |
-                mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
+                mvn clean package -pl client -am -Dmaven.test.skip=true -P-format && \
                 cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
 
             - name: Run Metadata
