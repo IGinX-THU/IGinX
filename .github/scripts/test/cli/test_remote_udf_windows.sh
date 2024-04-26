@@ -2,49 +2,59 @@
 
 set -e
 
-cp -r test/src/test/resources/udf docker/client/data
-
-ls docker/client/data
-ls docker/client/data/udf
-
-set os=$1
-echo "$os"
+#cp -r test/src/test/resources/udf docker/client/data
+#
+#ls docker/client/data
+#ls docker/client/data/udf
+#
+#set os=$1
+#echo "$os"
 
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
-SCRIPT_PREFIX="docker exec iginx-client cmd /c 'C:\\iginx_client\\sbin\\start_cli.bat -h host.docker.internal -e "
+SCRIPT_PREFIX1="docker exec iginx-client powershell -command \"Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-h', 'host.docker.internal', '-e', 'show cluster info;'\""
+SCRIPT_PREFIX2="docker exec iginx-client powershell -command \"Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-h', 'host.docker.internal', '-e', 'create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"../data/udf/mock_udf.py\\\";'\""
+
+
+$SCRIPT_PREFIX1
+echo $SCRIPT_PREFIX1
+$SCRIPT_PREFIX2
+echo $SCRIPT_PREFIX2
+
+#SCRIPT_PREFIX="docker exec iginx-client cmd /c 'C:\\iginx_client\\sbin\\start_cli.bat -h host.docker.internal -e "
 #echo $SCRIPT_PREFIX "\"create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"../data/udf/mock_udf.py\\\";\"'"
 
 #docker exec container_name cmd /c "C:\\iginx_client\\sbin\\start_cli.bat -h host.docker.internal -e \"create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"../data/udf/mock_udf.py\\\";\""
 
 
-sleep 5
+#sleep 5
+##
+##docker ps
+##docker network inspect docker-cluster-iginx
+##ls logs/docker_logs
+#cat logs/*
+##docker exec iginx0 cat /logs/iginx-latest.log
+##
+#timeout=30
+#interval=2
 #
-#docker ps
-#docker network inspect docker-cluster-iginx
-#ls logs/docker_logs
-cat logs/*
-#docker exec iginx0 cat /logs/iginx-latest.log
-#
-timeout=30
-interval=2
+#elapsed_time=0
+#while [ $elapsed_time -lt $timeout ]; do
+#  output=$(${SCRIPT_PREFIX} "show cluster info;")
+#  if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
+#      echo "$output"
+#      sleep $interval
+#  else
+#      break
+#  fi
+#  elapsed_time=$((elapsed_time + interval))
+#done
+#if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
+#  echo "IGinX not reachable"
+#  exit 1
+#fi
 
-elapsed_time=0
-while [ $elapsed_time -lt $timeout ]; do
-  output=$(${SCRIPT_PREFIX} "show cluster info;")
-  if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
-      echo "$output"
-      sleep $interval
-  else
-      break
-  fi
-  elapsed_time=$((elapsed_time + interval))
-done
-if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
-  echo "IGinX not reachable"
-  exit 1
-fi
-
+create function udtf "mock_udf" from "MockUDF" in "../data/udf/mock_udf.py";
 
 # single udf in one file
 echo ${SCRIPT_PREFIX} "\"create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"../data/udf/mock_udf.py\\\";\"'"
