@@ -42,4 +42,4 @@ if result.returncode == 0:
         print("脚本输出：", result.stdout)
     # TODO 正确性检验
 else:
-    print("Shell 脚本执行失败。")
+    print("Shell 脚本执行失败")
