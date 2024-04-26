@@ -16,7 +16,7 @@ jobs:
             fail-fast: false
             matrix:
                 java: [8]
-                os: [ubuntu-latest, windows-latest, macos-latest]
+                os: [ubuntu-latest, windows-latest, macos-13]
         runs-on: ${{ matrix.os}}
         env:
             STORAGE: zookeeper
