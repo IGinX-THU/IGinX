@@ -62,8 +62,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
 import cn.edu.tsinghua.iginx.engine.shared.source.IGinXSource;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSubPlanResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -588,8 +587,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     try {
       SessionExecuteSubPlanResult result = session.executeSubPlan(subPlanMsg);
       return constructRowStream(result);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("execute load fail, because: ", e);
+    } catch (SessionException e) {
+      LOGGER.error("execute load fail, because: ", e);
       throw new PhysicalException(e);
     }
   }
@@ -1031,7 +1030,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
     }
     long endTime = System.currentTimeMillis();
-    logger.info(
+    LOGGER.info(
         String.format(
             "inner join use %s probe, row size: %s, cost time: %s",
             use, tableA.getRowSize(), endTime - startTime));
@@ -2075,7 +2074,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       }
     }
     long endTime = System.currentTimeMillis();
-    logger.info(
+    LOGGER.info(
         String.format(
             "single join use %s probe, row size: %s, cost time: %s",
             use, tableA.getRowSize(), endTime - startTime));

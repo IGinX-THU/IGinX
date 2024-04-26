@@ -236,7 +236,7 @@ public class ConfigDescriptor {
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
-          properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on"));
+      properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on");
       config.setDistributedQueryTriggerThreshold(
           Integer.parseInt(properties.getProperty("distributedQueryTriggerThreshold", "3")));
     } catch (IOException e) {

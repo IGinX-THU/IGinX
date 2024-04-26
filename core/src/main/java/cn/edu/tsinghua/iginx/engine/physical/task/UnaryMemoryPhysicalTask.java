@@ -73,7 +73,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
       RowStream stream = executor.executeUnaryOperator(load, null, getContext());
       return new TaskExecuteResult(stream);
     } catch (PhysicalException e) {
-      logger.error("encounter error when execute load in memory: ", e);
+      LOGGER.error("encounter error when execute load in memory: ", e);
       return new TaskExecuteResult(e);
     }
   }

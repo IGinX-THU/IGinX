@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.distributedquery.coordinator;
 
 import cn.edu.tsinghua.iginx.engine.shared.source.IGinXSource;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;

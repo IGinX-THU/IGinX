@@ -81,7 +81,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -375,7 +374,7 @@ public class StatementExecutor {
         }
         long endTime = System.currentTimeMillis();
         long engineCostTime = endTime - startTime;
-        logger.info("engine cost time: " + engineCostTime);
+        LOGGER.info("engine cost time: " + engineCostTime);
         after(ctx, postPhysicalProcessors);
         ctx.setEngineCostTime(engineCostTime);
 
@@ -395,7 +394,7 @@ public class StatementExecutor {
   }
 
   private void processExplainLogicalPlan(RequestContext ctx, Plan plan)
-      throws PhysicalException, ExecutionException {
+      throws PhysicalException, StatementExecutionException {
     List<Field> fields =
         new ArrayList<>(
             Arrays.asList(
@@ -823,92 +822,6 @@ public class StatementExecutor {
         throw new StatementExecutionException(
             String.format("Execute Error: unknown statement type [%s].", statement.getType()));
     }
-  }
-
-  private void setResultFromRowStream(RequestContext ctx, RowStream stream)
-      throws PhysicalException {
-    Result result = null;
-    if (ctx.isUseStream()) {
-      Status status = RpcUtils.SUCCESS;
-      if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
-        status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
-        status.setMessage(ctx.getWarningMsg());
-      }
-      result = new Result(status);
-      result.setResultStream(stream);
-      ctx.setResult(result);
-      return;
-    }
-
-    if (stream == null) {
-      setEmptyQueryResp(ctx, new ArrayList<>());
-      return;
-    }
-
-    List<String> paths = new ArrayList<>();
-    List<Map<String, String>> tagsList = new ArrayList<>();
-    List<DataType> types = new ArrayList<>();
-    stream
-        .getHeader()
-        .getFields()
-        .forEach(
-            field -> {
-              paths.add(field.getFullName());
-              types.add(field.getType());
-              if (field.getTags() == null) {
-                tagsList.add(new HashMap<>());
-              } else {
-                tagsList.add(field.getTags());
-              }
-            });
-
-    List<Long> timestampList = new ArrayList<>();
-    List<ByteBuffer> valuesList = new ArrayList<>();
-    List<ByteBuffer> bitmapList = new ArrayList<>();
-
-    boolean hasTimestamp = stream.getHeader().hasKey();
-    while (stream.hasNext()) {
-      Row row = stream.next();
-
-      Object[] rowValues = row.getValues();
-      valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-      Bitmap bitmap = new Bitmap(rowValues.length);
-      for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
-          bitmap.mark(i);
-        }
-      }
-      bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-
-      if (hasTimestamp) {
-        timestampList.add(row.getKey());
-      }
-    }
-
-    if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx, paths);
-      return;
-    }
-
-    Status status = RpcUtils.SUCCESS;
-    if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
-      status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
-      status.setMessage(ctx.getWarningMsg());
-    }
-    result = new Result(status);
-    if (timestampList.size() != 0) {
-      Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
-      result.setKeys(timestamps);
-    }
-    result.setValuesList(valuesList);
-    result.setBitmapList(bitmapList);
-    result.setPaths(paths);
-    result.setTagsList(tagsList);
-    result.setDataTypes(types);
-    ctx.setResult(result);
-
-    stream.close();
   }
 
   private void setShowTSRowStreamResult(RequestContext ctx, RowStream stream)

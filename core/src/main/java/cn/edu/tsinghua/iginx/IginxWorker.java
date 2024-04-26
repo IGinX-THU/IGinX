@@ -564,7 +564,7 @@ public class IginxWorker implements IService.Iface {
     StatementExecutor executor = StatementExecutor.getInstance();
     RequestContext ctx = contextBuilder.build(req);
     executor.execute(ctx);
-    logger.info("total cost time: " + (ctx.getEndTime() - ctx.getStartTime()));
+    LOGGER.info("total cost time: " + (ctx.getEndTime() - ctx.getStartTime()));
     ExecuteSqlResp resp = ctx.getResult().getExecuteSqlResp();
     resp.setCostTime(ctx.getEndTime() - ctx.getStartTime());
     return resp;

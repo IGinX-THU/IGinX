@@ -949,6 +949,14 @@ public class Session {
     }
   }
 
+  public SessionExecuteSubPlanResult executeSubPlan(String subPlanMsg) throws SessionException {
+    ExecuteSubPlanReq req = new ExecuteSubPlanReq(sessionId, subPlanMsg);
+    Reference<ExecuteSubPlanResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.executeSubPlan(req)).status);
+
+    return new SessionExecuteSubPlanResult(ref.resp);
+  }
+
   public SessionQueryDataSet queryLast(
       List<String> paths, long startKey, TimePrecision timePrecision) throws SessionException {
     return queryLast(paths, startKey, null, timePrecision);
