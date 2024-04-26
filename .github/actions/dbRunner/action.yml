@@ -9,7 +9,7 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.DB-name=='InfluxDB'
+        - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Setup DB
           uses: ./.github/actions/setup/influxdb
 
@@ -31,7 +31,7 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name=='IoTDB12'
+        - if: inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Setup DB
           uses: ./.github/actions/setup/iotdb12
 
