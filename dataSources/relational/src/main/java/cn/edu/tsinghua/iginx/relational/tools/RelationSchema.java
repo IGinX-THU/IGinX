@@ -10,11 +10,13 @@ public class RelationSchema {
 
   private final String columnName;
 
-  public RelationSchema(String path) {
-    this(path, false);
+  private final char quote;
+
+  public RelationSchema(String path, char quote) {
+    this(path, false, quote);
   }
 
-  public RelationSchema(String path, boolean isDummy) {
+  public RelationSchema(String path, boolean isDummy, char quote) {
     int firstSeparator = path.indexOf(".");
     if (isDummy) {
       databaseName = path.substring(0, firstSeparator);
@@ -25,16 +27,11 @@ public class RelationSchema {
     int lastSeparator = path.lastIndexOf(".");
     tableName = path.substring(0, lastSeparator);
     columnName = path.substring(lastSeparator + 1);
+    this.quote = quote;
   }
 
-  public RelationSchema(String tableName, String columnName) {
-    this.databaseName = "";
-    this.tableName = tableName;
-    this.columnName = columnName;
-  }
-
-  public static String getQuotFullName(String tableName, String columnName) {
-    return getQuotName(tableName) + SEPARATOR + getQuotName(columnName);
+  public static String getQuotFullName(String tableName, String columnName, char quote) {
+    return getQuotName(tableName, quote) + SEPARATOR + getQuotName(columnName, quote);
   }
 
   public static String getFullName(String tableName, String columnName) {
@@ -54,18 +51,18 @@ public class RelationSchema {
   }
 
   public String getQuotFullName() {
-    return getQuotName(tableName) + SEPARATOR + getQuotName(columnName);
+    return getQuotName(tableName, quote) + SEPARATOR + getQuotName(columnName, quote);
   }
 
   public String getQuotTableName() {
-    return getQuotName(tableName);
+    return getQuotName(tableName, quote);
   }
 
   public String getQuotColumnName() {
-    return getQuotName(columnName);
+    return getQuotName(columnName, quote);
   }
 
-  private static String getQuotName(String name) {
-    return "\"" + name + "\"";
+  private static String getQuotName(String name, char quote) {
+    return quote + name + quote;
   }
 }

@@ -8,6 +8,8 @@ import java.util.Properties;
 public class JDBCDataTypeTransformer implements IDataTypeTransformer {
   private final Properties typeMappings;
 
+  private static final String prefix = "IGinX-";
+
   public JDBCDataTypeTransformer(Properties properties) {
     typeMappings = properties;
   }
@@ -23,18 +25,18 @@ public class JDBCDataTypeTransformer implements IDataTypeTransformer {
 
   @Override
   public String toEngineType(DataType dataType) {
-    return typeMappings.getProperty(dataType.name(), "TEXT");
+    return typeMappings.getProperty(prefix + dataType.name(), "TEXT");
   }
 
-  private static Map<String, DataType> dataTypeMap = new HashMap<>();
+  private static final Map<String, DataType> dataTypeMap = new HashMap<>();
 
   static {
-    dataTypeMap.put("BOOLEAN", DataType.BOOLEAN);
-    dataTypeMap.put("INTEGER", DataType.INTEGER);
-    dataTypeMap.put("LONG", DataType.LONG);
-    dataTypeMap.put("FLOAT", DataType.FLOAT);
-    dataTypeMap.put("DOUBLE", DataType.DOUBLE);
-    dataTypeMap.put("BINARY", DataType.BINARY);
+    dataTypeMap.put(prefix + "BOOLEAN", DataType.BOOLEAN);
+    dataTypeMap.put(prefix + "INTEGER", DataType.INTEGER);
+    dataTypeMap.put(prefix + "LONG", DataType.LONG);
+    dataTypeMap.put(prefix + "FLOAT", DataType.FLOAT);
+    dataTypeMap.put(prefix + "DOUBLE", DataType.DOUBLE);
+    dataTypeMap.put(prefix + "BINARY", DataType.BINARY);
   }
 
   private static DataType str2DataType(String typeStr) {

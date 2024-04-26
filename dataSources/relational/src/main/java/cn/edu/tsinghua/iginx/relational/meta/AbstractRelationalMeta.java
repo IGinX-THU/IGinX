@@ -102,7 +102,7 @@ public abstract class AbstractRelationalMeta {
         + getQuote()
         + KEY_NAME
         + getQuote()
-        + ", %s FROM %s %s ORDER BY concat(%s);";
+        + ", %s FROM %s %s ORDER BY %s";
   }
 
   public String getCreateTableStatement() {
@@ -146,4 +146,14 @@ public abstract class AbstractRelationalMeta {
    * @return 获取upsert冲突后段SQL语句格式
    */
   public abstract String getUpsertConflictStatement();
+
+  /** 是否支持Full Join */
+  public abstract boolean isSupportFullJoin();
+
+  /**
+   * 获取正则表达式的操作符
+   *
+   * @return 正则表达式的操作符
+   */
+  public abstract String getRegexpOp();
 }

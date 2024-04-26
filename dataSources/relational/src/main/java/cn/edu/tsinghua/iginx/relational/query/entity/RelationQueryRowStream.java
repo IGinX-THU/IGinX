@@ -15,7 +15,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -57,6 +57,12 @@ public class RelationQueryRowStream implements RowStream {
 
   private List<Connection> connList;
 
+  private AbstractRelationalMeta relationalMeta;
+
+  private String fullKeyName = KEY_NAME;
+
+  private boolean isPushDown = false;
+
   public RelationQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
@@ -64,12 +70,13 @@ public class RelationQueryRowStream implements RowStream {
       Filter filter,
       TagFilter tagFilter,
       List<Connection> connList,
-      IDataTypeTransformer dataTypeTransformer)
+      AbstractRelationalMeta relationalMeta)
       throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
     this.connList = connList;
+    this.relationalMeta = relationalMeta;
 
     if (resultSets.isEmpty()) {
       this.header = new Header(Field.KEY, Collections.emptyList());
@@ -95,10 +102,23 @@ public class RelationQueryRowStream implements RowStream {
         String columnName = resultSetMetaData.getColumnName(j);
         String typeName = resultSetMetaData.getColumnTypeName(j);
 
+        if (j == 1 && columnName.contains(KEY_NAME) && columnName.contains(SEPARATOR)) {
+          isPushDown = true;
+        }
+
+        if (!relationalMeta.isSupportFullJoin() && isPushDown) {
+          System.out.println(columnName);
+          RelationSchema relationSchema =
+              new RelationSchema(columnName, isDummy, relationalMeta.getQuote());
+          tableName = relationSchema.getTableName();
+          columnName = relationSchema.getColumnName();
+        }
+
         columnNameSet.add(columnName);
 
         if (j == 1 && columnName.equals(KEY_NAME)) {
           key = Field.KEY;
+          this.fullKeyName = resultSetMetaData.getColumnName(j);
           continue;
         }
 
@@ -108,13 +128,13 @@ public class RelationQueryRowStream implements RowStream {
           field =
               new Field(
                   databaseNameList.get(i) + SEPARATOR + tableName + SEPARATOR + namesAndTags.k,
-                  dataTypeTransformer.fromEngineType(typeName),
+                  relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                   namesAndTags.v);
         } else {
           field =
               new Field(
                   tableName + SEPARATOR + namesAndTags.k,
-                  dataTypeTransformer.fromEngineType(typeName),
+                  relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
                   namesAndTags.v);
         }
 
@@ -226,7 +246,10 @@ public class RelationQueryRowStream implements RowStream {
             for (int j = 0; j < resultSetSizes[i]; j++) {
               String columnName = fieldToColumnName.get(header.getField(startIndex + j));
               RelationSchema schema =
-                  new RelationSchema(header.getField(startIndex + j).getName(), isDummy);
+                  new RelationSchema(
+                      header.getField(startIndex + j).getName(),
+                      isDummy,
+                      relationalMeta.getQuote());
               String tableName = schema.getTableName();
 
               tableNameSet.add(tableName);
@@ -239,7 +262,7 @@ public class RelationQueryRowStream implements RowStream {
                 if (value instanceof Boolean) {
                   tempValue = value;
                 } else {
-                  tempValue = (int) value == 1;
+                  tempValue = ((int) value) == 1;
                 }
               } else {
                 tempValue = value;
@@ -251,11 +274,11 @@ public class RelationQueryRowStream implements RowStream {
               // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
               // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
               // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
-              String keyString = resultSet.getString(KEY_NAME);
+              String keyString = resultSet.getString(fullKeyName);
               keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
               tempKey = toHash(keyString);
             } else {
-              tempKey = resultSet.getLong(KEY_NAME);
+              tempKey = resultSet.getLong(fullKeyName);
             }
             cachedKeys[i] = tempKey;
 
@@ -309,6 +332,10 @@ public class RelationQueryRowStream implements RowStream {
    */
   private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName)
       throws SQLException {
+    if (!relationalMeta.isSupportFullJoin() && isPushDown) {
+      return resultSet.getObject(tableName + SEPARATOR + columnName);
+    }
+
     if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
       return resultSet.getObject(columnName);
     }

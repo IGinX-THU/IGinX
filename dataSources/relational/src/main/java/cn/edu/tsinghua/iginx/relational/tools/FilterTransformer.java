@@ -22,14 +22,15 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class FilterTransformer {
 
-  char quote;
+  AbstractRelationalMeta relationalMeta;
 
-  public FilterTransformer(char quote) {
-    this.quote = quote;
+  public FilterTransformer(AbstractRelationalMeta relationalMeta) {
+    this.relationalMeta = relationalMeta;
   }
 
   public String toString(Filter filter) {
@@ -88,12 +89,12 @@ public class FilterTransformer {
   }
 
   private String toString(ValueFilter filter) {
-    RelationSchema schema = new RelationSchema(filter.getPath());
+    RelationSchema schema = new RelationSchema(filter.getPath(), relationalMeta.getQuote());
     String path = schema.getQuotFullName();
 
     String op =
         isLikeOp(filter.getOp())
-            ? "~"
+            ? relationalMeta.getRegexpOp()
             : Op.op2StrWithoutAndOr(filter.getOp())
                 .replace("==", "="); // postgresql does not support "==" but uses "=" instead
 
@@ -124,8 +125,8 @@ public class FilterTransformer {
   }
 
   private String toString(PathFilter filter) {
-    RelationSchema schemaA = new RelationSchema(filter.getPathA());
-    RelationSchema schemaB = new RelationSchema(filter.getPathB());
+    RelationSchema schemaA = new RelationSchema(filter.getPathA(), relationalMeta.getQuote());
+    RelationSchema schemaB = new RelationSchema(filter.getPathB(), relationalMeta.getQuote());
     String pathA = schemaA.getQuotFullName();
     String pathB = schemaB.getQuotFullName();
 
@@ -137,6 +138,6 @@ public class FilterTransformer {
   }
 
   private String getQuotName(String name) {
-    return quote + name + quote;
+    return relationalMeta.getQuote() + name + relationalMeta.getQuote();
   }
 }
