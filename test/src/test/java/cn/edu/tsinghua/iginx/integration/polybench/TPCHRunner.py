@@ -13,6 +13,7 @@ if __name__ == '__main__':
         session.open()
         # load nation.csv into parquet
         # TODO
+
         # add storage engine
         print("start adding storage engine")
         start_time = time.time()

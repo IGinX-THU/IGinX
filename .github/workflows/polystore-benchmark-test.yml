@@ -89,6 +89,8 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=TPCHDataInsertionIT -DfailIfNoTests=false -P-format
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
 
             - name: Run session test
               shell: bash
