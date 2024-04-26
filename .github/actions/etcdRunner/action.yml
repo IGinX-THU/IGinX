@@ -17,41 +17,30 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
-          name: Start ETCD
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd.sh"
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_macos.sh"
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_windows.sh"
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+      - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
+        name: First Run etcd | Setup
+        uses: ./.github/actions/setup/etcd
 
-        - if: inputs.if-rerun=='true' && runner.os != 'Windows'
-          name: ReRun ETCD
-          shell: bash
-          run: |
-              nohup ${GITHUB_WORKSPACE}/go/bin/etcd >> etcd_run.log 2>&1 &
+      - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
+        name: First Run etcd | Start
+        uses: ./.github/actions/service/etcd
+        with:
+          stop: false
+          clean: false
+          start: true
 
-        - if: inputs.if-rerun=='true' && runner.os == 'Windows'
-          name: ReRun ETCD
-          shell: powershell
-          run: |
-              Start-Process -FilePath 'go/bin/etcd.exe'
-              sleep 3
-              netstat -ano | findstr 2379
+      - if: inputs.if-rerun=='true'
+        name: ReRun etcd
+        uses: ./.github/actions/service/etcd
+        with:
+          stop: false
+          clean: false
+          start: true
 
-        - if: inputs.if-stop=='true'
-          name: Stop ETCD
-          shell: bash
-          run: |
-              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_clear.sh"
-              "${GITHUB_WORKSPACE}/.github/scripts/metadata/etcd_clear.sh"
+      - if: inputs.if-stop=='true'
+        name: Stop etcd
+        uses: ./.github/actions/service/etcd
+        with:
+          stop: true
+          clean: true
+          start: false
