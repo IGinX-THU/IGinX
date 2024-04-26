@@ -3,7 +3,7 @@
 #WORKDIR /root/iginx
 #RUN mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
 
-FROM mcr.microsoft.com/openjdk/jdk:11-ubuntu
+FROM eclipse-temurin:17.0.11_9-jre-jammy
 #COPY --from=builder /root/iginx/client/target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
 COPY . C:/iginx
 WORKDIR C:/iginx
