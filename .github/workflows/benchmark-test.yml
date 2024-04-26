@@ -79,5 +79,9 @@ jobs:
             - name: Start data cleaning
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/dataCleaning.sh"
+                pwd
+                if [ "$RUNNER_OS" = "Windows" ]; then
+                  python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/DataCleaningRunner.py
+                else
+                  python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/DataCleaningRunner.py
+                fi
