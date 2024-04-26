@@ -3,9 +3,9 @@
 #WORKDIR /root/iginx
 #RUN mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
 
-FROM mcr.microsoft.com/openjdk/11-ubuntu
+FROM mcr.microsoft.com/openjdk/jdk:11-ubuntu
 #COPY --from=builder /root/iginx/client/target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
-COPY . C:/iginx
+COPY ./client C:/iginx
 WORKDIR C:/iginx
 COPY ./client/target/iginx-client-0.6.0-SNAPSHOT/ C:/iginx_client
 

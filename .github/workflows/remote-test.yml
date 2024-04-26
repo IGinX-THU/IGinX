@@ -40,6 +40,16 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                DB-name: ${{ matrix.DB-name }}
+
             - name: Install IGinX with Maven
               shell: bash
               run: |
@@ -74,16 +84,6 @@ jobs:
                   chmod +x "run_docker.sh" && \
                   "./build.sh" && \
                   "./run_docker.sh"
-
-            - name: Run Metadata
-              uses: ./.github/actions/metadataRunner
-              with:
-                metadata: ${{ matrix.metadata }}
-
-            - name: Run DB
-              uses: ./.github/actions/dbRunner
-              with:
-                DB-name: ${{ matrix.DB-name }}
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
