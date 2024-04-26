@@ -1,8 +1,6 @@
 #!/bin/sh
 set -e
 if [ "$RUNNER_OS" = "Linux" ]; then
-  sed -i "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
-  sed -i "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
   sh -c "sudo sh -c 'echo \"deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main\" > /etc/apt/sources.list.d/pgdg.list'"
   sh -c "wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -"
   sh -c "sudo apt-get update"
@@ -27,8 +25,6 @@ elif [ "$RUNNER_OS" = "Windows" ]; then
   sh -c "unzip -qq postgresql-15.5-1-windows-x64-binaries.zip"
   echo "Download finished."
   sh -c "ls pgsql/bin"
-  sed -i "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
-  sed -i "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
   sh -c "cp -R pgsql pgsql-5432"
   filePrefix="pgsql-5432"
   sh -c "mkdir -p $filePrefix/data"
@@ -45,8 +41,6 @@ elif [ "$RUNNER_OS" = "Windows" ]; then
   sqlredirect="-RedirectStandardOutput '$filePrefix/logs/psql.log' -RedirectStandardError '$filePrefix/logs/psql-error.log'"
   powershell -command "Start-Process -FilePath '$filePrefix/bin/psql' -NoNewWindow $sqlarguments $sqlredirect"
 elif [ "$RUNNER_OS" = "macOS" ]; then
-  sed -i "" "s/storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/g" conf/config.properties
-  sed -i "" "s/#storageEngineList=127.0.0.1#5432#postgresql/storageEngineList=127.0.0.1#5432#postgresql/g" conf/config.properties
   sh -c "wget --quiet https://get.enterprisedb.com/postgresql/postgresql-15.2-1-osx-binaries.zip"
   sh -c "sudo unzip -q postgresql-15.2-1-osx-binaries.zip"
   sh -c "sudo dscl . -create /Users/postgres UniqueID 666"
