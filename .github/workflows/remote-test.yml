@@ -75,14 +75,6 @@ jobs:
                   "./build.sh" && \
                   "./run_docker.sh"
 
-            - name: Change IGinX config
-              uses: ./.github/actions/confWriter
-              with:
-                DB-name: ${{ matrix.DB-name }}
-                Set-Filter-Fragment-OFF: "true"
-                Metadata: ${{ matrix.metadata }}
-                Switch-DB: "true"
-
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
@@ -92,6 +84,14 @@ jobs:
               uses: ./.github/actions/dbRunner
               with:
                 DB-name: ${{ matrix.DB-name }}
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                DB-name: ${{ matrix.DB-name }}
+                Set-Filter-Fragment-OFF: "true"
+                Metadata: ${{ matrix.metadata }}
+                Switch-DB: "true"
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
