@@ -8,7 +8,7 @@ import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.conf.FilePermissionConfig;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.function.Predicate;
+import java.util.Optional;
 import org.apache.commons.configuration2.ex.ConfigurationException;
 import org.junit.Test;
 
@@ -31,22 +31,23 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
     try {
-      Predicate<Path> predicate = manager.getChecker(null, null, FileAccessType.READ);
+      FilePermissionManager.Checker predicate = manager.getChecker(null, null, FileAccessType.READ);
       predicate.test(Paths.get("test"));
       fail("Should throw NullPointerException");
     } catch (NullPointerException ignored) {
     }
 
     try {
-      Predicate<Path> predicate = manager.getChecker(null, defaultRules(), null);
+      FilePermissionManager.Checker predicate = manager.getChecker(null, defaultRules(), null);
       predicate.test(Paths.get("test"));
       fail("Should throw NullPointerException");
     } catch (NullPointerException ignored) {
     }
 
-    Predicate<Path> predicate = manager.getChecker(null, defaultRules(), FileAccessType.READ);
+    FilePermissionManager.Checker predicate =
+        manager.getChecker(null, defaultRules(), FileAccessType.READ);
     try {
-      predicate.test(null);
+      predicate.test((Path) null);
       fail("Should throw NullPointerException");
     } catch (NullPointerException ignored) {
     }
@@ -58,7 +59,7 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate =
+    FilePermissionManager.Checker predicate =
         manager.getChecker(null, udfRulesWithDefault(), FileAccessType.EXECUTE);
     assertTrue(predicate.test(Paths.get("udf.py")));
     assertFalse(predicate.test(Paths.get("udf.sh")));
@@ -70,7 +71,7 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate =
+    FilePermissionManager.Checker predicate =
         manager.getChecker(null, udfRulesWithDefault(), FileAccessType.EXECUTE);
     assertTrue(predicate.test(Paths.get("test.bat")));
   }
@@ -81,11 +82,11 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate =
+    FilePermissionManager.Checker predicate =
         manager.getChecker("root", udfRulesWithDefault(), FileAccessType.EXECUTE);
     assertTrue(predicate.test(Paths.get("test.sh")));
 
-    Predicate<Path> rootPredicate =
+    FilePermissionManager.Checker rootPredicate =
         manager.getChecker("test", udfRulesWithDefault(), FileAccessType.EXECUTE);
     assertFalse(rootPredicate.test(Paths.get("test.sh")));
   }
@@ -96,7 +97,7 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate =
+    FilePermissionManager.Checker predicate =
         manager.getChecker(null, udfRulesWithDefault(), FileAccessType.READ);
     assertTrue(predicate.test(Paths.get("test.py")));
   }
@@ -107,7 +108,7 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate = manager.getChecker(null, udfRulesWithDefault());
+    FilePermissionManager.Checker predicate = manager.getChecker(null, udfRulesWithDefault());
     assertTrue(predicate.test(Paths.get("test.sh")));
   }
 
@@ -117,7 +118,7 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate =
+    FilePermissionManager.Checker predicate =
         manager.getChecker(
             null, udfRulesWithDefault(), FileAccessType.EXECUTE, FileAccessType.WRITE);
     assertFalse(predicate.test(Paths.get("test.py")));
@@ -129,12 +130,21 @@ public class FilePermissionManagerTest {
     config.reload();
     FilePermissionManager manager = new FilePermissionManager(config);
 
-    Predicate<Path> predicate =
+    FilePermissionManager.Checker predicate =
         manager.getChecker(
             "测试用户",
             ruleName -> ruleName.equals("第一条规则"),
             FileAccessType.EXECUTE,
             FileAccessType.WRITE);
     assertFalse(predicate.test(Paths.get("不允许.py")));
+  }
+
+  @Test
+  public void testNormalize() {
+    FilePermissionManager.Checker checker = path -> true;
+
+    Optional<Path> p = checker.normalize("test");
+    assertTrue(p.isPresent());
+    assertEquals(Paths.get("test").toAbsolutePath(), p.get());
   }
 }
