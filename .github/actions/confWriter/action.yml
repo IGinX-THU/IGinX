@@ -25,8 +25,8 @@ inputs:
         description: "which metadata service to use"
         required: false
         default: zookeeper
-    For-Docker:
-        description: "when docker needs to be used, config must be modified before maven install"
+    Switch-DB:
+        description: "switch database in config"
         required: false
         default: "false"
 
@@ -81,9 +81,7 @@ runs:
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                if [ "${{ inputs.For-Docker }}" == "false" ]; then
-                    sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
-                fi
+                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
@@ -203,34 +201,34 @@ runs:
 
         # change database connection ip to host.docker.internal to access host services. fs & parquet excluded.
         # db_config_switcher_*.sh need to modify %PROJECT_ROOT%/conf/config.properties
-        - if: inputs.For-Docker=='true'
+        - if: inputs.Switch-DB=='true'
           name: write docker donfig file
           shell: bash
           run: |
               cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config_copy.properties"
               cp -f "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties"
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '/storageEngineList=/s/localhost/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '/storageEngineList=/s/localhost/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh" ${{ inputs.DB-name }}
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sed -i '/storageEngineList=/s/localhost/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sed -i '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sed -i '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sed -i '/storageEngineList=/s/localhost/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sed -i '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sed -i '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sed -i '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh" ${{ inputs.DB-name }}
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '' '/storageEngineList=/s/localhost/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '' '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '' '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
-                sudo sed -i '' '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '' '/storageEngineList=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '' '/storageEngineList=/s/localhost/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '' '/zookeeperConnectionString=/s/127.0.0.1/host.docker.internal/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '' '/#filesystem#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
+#                sudo sed -i '' '/#parquet#/s/host.docker.internal/127.0.0.1/g' ${GITHUB_WORKSPACE}/conf/config.properties
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_macos.sh" ${{ inputs.DB-name }}
               else
