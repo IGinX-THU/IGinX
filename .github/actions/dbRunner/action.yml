@@ -10,6 +10,10 @@ runs:
     using: "composite" # Mandatory parameter
     steps:
         - if: inputs.DB-name=='InfluxDB'
+          name: Setup DB
+          uses: ./.github/actions/setup/influxdb
+
+        - if: inputs.DB-name=='InfluxDB'
           name: Run DB
           shell: bash
           run: |

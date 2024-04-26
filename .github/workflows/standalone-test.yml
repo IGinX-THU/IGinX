@@ -26,7 +26,7 @@ jobs:
                         "Parquet",
                         "PostgreSQL",
                         "FileSystem",
-#                        "Redis",
+                        "Redis",
                         "MongoDB",
                     ]
                 metadata: [zookeeper]
