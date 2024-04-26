@@ -178,7 +178,7 @@ runs:
         - if: inputs.DB-name == 'MySQL' && runner.os == 'Windows'
           name: Install MySQL
           shell: bash
-          run: choco install mysql --params "/InstallLocation:./"
+          run: choco install mysql --version 8.0.26 --params "/InstallLocation:./"
 
         - if: inputs.DB-name == 'MySQL' && runner.os == 'Windows'
           name: Configure and start MySQL instances
@@ -187,23 +187,23 @@ runs:
             echo "ALTER USER 'root'@'localhost' IDENTIFIED BY 'mysql';" > init.txt
             mkdir ./mysql/data1 ./mysql/data2 ./mysql/data3
             dir
-            ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data1 --port=3306  --console
+            ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data1 --port=3306  --console
             dir
-            ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data2 --port=3307  --console
+            ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data2 --port=3307  --console
             dir
-            ./mysql/mysql-8.0.31-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data3 --port=3308  --console
+            ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data3 --port=3308  --console
             dir
-            ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data1 --port=3306 &
+            ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data1 --port=3306 &
             dir
-            ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data2 --port=3307 &
+            ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data2 --port=3307 &
             dir
-            ./mysql/mysql-8.0.31-winx64/bin/mysqld --console --datadir=./mysql/data3 --port=3308 &
+            ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data3 --port=3308 &
 
         - if: inputs.DB-name == 'MySQL' && runner.os == 'Windows'
           name: Setup Database for each instance
           shell: bash
           run: |
-            ./mysql/mysql-8.0.31-winx64/bin/mysql -v -u root --port=3306
-            ./mysql/mysql-8.0.31-winx64/bin/mysql -v -u root --port=3307
-            ./mysql/mysql-8.0.31-winx64/bin/mysql -v -u root --port=3308
+            ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3306
+            ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3307
+            ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3308
 
