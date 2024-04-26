@@ -3,7 +3,7 @@
 #WORKDIR /root/iginx
 #RUN mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
 
-FROM mcr.microsoft.com/windows/servercore:1809
+FROM jenkins4eval/openjdk:11-jdk-hotspot-windowsservercore-ltsc2019
 #COPY --from=builder /root/iginx/client/target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
 COPY . C:/iginx
 WORKDIR C:/iginx
@@ -15,8 +15,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPref
 ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
 
 # 解压 JDK
-RUN powershell -Command \
-    Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk; \
+RUN Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk; \
     Remove-Item -Path C:/temp/jdk.zip
 
 # 设置环境变量
