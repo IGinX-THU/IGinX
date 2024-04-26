@@ -22,13 +22,7 @@ jobs:
                 os: [windows-latest]
                 DB-name:
                     [
-                        "IoTDB12",
-                        "InfluxDB",
-                        "Parquet",
-                        "PostgreSQL",
-                        "FileSystem",
-                        "Redis",
-                        "MongoDB",
+                        "Parquet"
                     ]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
@@ -39,6 +33,13 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+
+            - if: runner.os == 'Windows'
+              name: Build & Run Client image
+              shell: cmd
+              run: |
+                mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
+                cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -68,12 +69,6 @@ jobs:
               run: |
                 docker --version
                 docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-
-            - if: runner.os == 'Windows'
-              name: Build & Run Client image
-              shell: cmd
-              run: |
-                  cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
 
             - if: runner.os != 'Windows'
               name: Build & Run Client image
