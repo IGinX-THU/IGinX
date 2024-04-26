@@ -92,7 +92,7 @@ jobs:
               with:
                 version: ${VERSION}
 
-            - if: runner.os != 'Windows'
+            - if: runner.os == 'Windows'
               name: Register Remote UDFs
               shell: bash
               run: |
