@@ -1,34 +1,34 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set "current_dir=%CD%"
+set current_dir=%CD%
 @REM 将路径中的单反斜线替换为双反斜线
-set "double_slash_dir=%current_dir:\=\\%"
+set double_slash_dir=%current_dir:\=\\%
 
 @REM 初始化变量
-set "name=iginx-client"
-set "datadir=%double_slash_dir%\\data"
-set "net=docker-cluster-iginx"
-set "ip=172.40.0.3"
+set name=iginx-client
+set datadir=%double_slash_dir%\\data
+set net=docker-cluster-iginx
+set ip=172.40.0.3
 
 
 @REM 检查参数
 :parse_args
 if "%~1"=="" goto end_parse_args
 if "%~1"=="-n" (
-     set "name=%~2"
+     set name=%~2
      shift
  )
 if "%~1"=="--datadir" (
-     set "datadir=%~2"
+     set datadir=%~2
      shift
  )
 if "%~1"=="--ip" (
-     set "ip=%~2"
+     set ip=%~2
      shift
  )
 if "%~1"=="--net" (
-     set "net=%~2"
+     set net=%~2
      shift
  )
 shift
