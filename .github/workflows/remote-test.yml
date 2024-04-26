@@ -81,6 +81,7 @@ jobs:
                 DB-name: ${{ matrix.DB-name }}
                 Set-Filter-Fragment-OFF: "true"
                 Metadata: ${{ matrix.metadata }}
+                Switch-DB: "true"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
