@@ -157,15 +157,16 @@ public class RelationalStorage implements IStorage {
     if (!testConnection()) {
       throw new StorageInitializationException("cannot connect to " + meta.toString());
     }
-    filterTransformer = new FilterTransformer(relationalMeta.getQuote());
+    filterTransformer = new FilterTransformer(relationalMeta);
     Map<String, String> extraParams = meta.getExtraParams();
     String username = extraParams.get(USERNAME);
     String password = extraParams.get(PASSWORD);
     engineName = extraParams.get("engine");
     String connUrl =
-        password == null ? String.format("jdbc:%s://%s:%s/?user=%s", engineName, meta.getIp(), meta.getPort(), username)
-            :
-            String.format(
+        password == null
+            ? String.format(
+                "jdbc:%s://%s:%s/?user=%s", engineName, meta.getIp(), meta.getPort(), username)
+            : String.format(
                 "jdbc:%s://%s:%s/?user=%s&password=%s",
                 engineName, meta.getIp(), meta.getPort(), username, password);
     try {
@@ -206,9 +207,10 @@ public class RelationalStorage implements IStorage {
     String password = extraParams.get(PASSWORD);
     String engine = meta.getExtraParams().get("engine");
     String connUrl =
-        password == null ? String.format("jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
-            :
-            String.format(
+        password == null
+            ? String.format(
+                "jdbc:%s://%s:%s/?user=%s", engine, meta.getIp(), meta.getPort(), username)
+            : String.format(
                 "jdbc:%s://%s:%s/?user=%s&password=%s",
                 engine, meta.getIp(), meta.getPort(), username, password);
 
@@ -519,6 +521,9 @@ public class RelationalStorage implements IStorage {
           // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
           fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
           filterStr = filterStr.replaceAll("`\\.`", ".");
+          filterStr =
+              filterStr.replace(
+                  getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
           orderByKey = orderByKey.replaceAll("`\\.`", ".");
         }
         statement =
@@ -602,11 +607,16 @@ public class RelationalStorage implements IStorage {
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
+
+        String keyStr =
+            String.format(
+                "%s.%s AS %s",
+                getQuotName(tableNames.get(i)),
+                getQuotName(KEY_NAME),
+                getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
         fullTableName.append(
             String.format(
-                "SELECT %s FROM %s",
-                getQuotName(tableNames.get(i)) + getQuotName(KEY_NAME) + ", " + allColumns,
-                getQuotName(tableNames.get(i))));
+                "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(
@@ -632,7 +642,9 @@ public class RelationalStorage implements IStorage {
   }
 
   private String getDummyFullJoinTables(
-      List<String> tableNames, Map<String, String> allColumnNameForTable) {
+      List<String> tableNames,
+      Map<String, String> allColumnNameForTable,
+      List<List<String>> fullColumnList) {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // table之间用FULL OUTER JOIN ON concat(table1所有列) = concat(table2所有列)
@@ -661,17 +673,25 @@ public class RelationalStorage implements IStorage {
       }
     } else {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
+      // 不支持全连接，就要用Left Join+Union来模拟全连接
       StringBuilder allColumns = new StringBuilder();
-      tableNames.forEach(
-          tableName -> {
-            allColumns.append(getQuotName(tableName)).append(".*").append(", ");
-          });
+      fullColumnList.forEach(
+          columnList ->
+              columnList.forEach(
+                  column ->
+                      allColumns.append(
+                          String.format("%s AS %s, ", column, column.replaceAll("`\\.`", ".")))));
       allColumns.delete(allColumns.length() - 2, allColumns.length());
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
+        String keyStr =
+            String.format(
+                "%s AS %s",
+                getQuotName(KEY_NAME), getQuotName(tableNames.get(i) + SEPARATOR + KEY_NAME));
         fullTableName.append(
-            String.format("SELECT %s FROM %s", allColumns, getQuotName(tableNames.get(i))));
+            String.format(
+                "SELECT %s FROM %s", keyStr + ", " + allColumns, getQuotName(tableNames.get(i))));
         for (int j = 0; j < tableNames.size(); j++) {
           if (i != j) {
             fullTableName.append(
@@ -941,7 +961,7 @@ public class RelationalStorage implements IStorage {
                     fullQuotColumnNames,
                     getQuotName(tableName),
                     filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                    allColumnNameForTable.get(tableName));
+                    "Concat(" + allColumnNameForTable.get(tableName) + ")");
 
             try {
               stmt = conn.createStatement();
@@ -993,7 +1013,8 @@ public class RelationalStorage implements IStorage {
           }
           allColumnNames.delete(allColumnNames.length() - 2, allColumnNames.length());
 
-          String fullTableName = getDummyFullJoinTables(tableNames, allColumnNameForTable);
+          String fullTableName =
+              getDummyFullJoinTables(tableNames, allColumnNameForTable, fullColumnNamesList);
 
           Filter copyFilter = cutFilterDatabaseNameForDummy(filter.copy(), databaseName);
 
@@ -1021,15 +1042,27 @@ public class RelationalStorage implements IStorage {
             copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
           }
 
+          String fullColumnNamesStr = fullColumnNames.toString();
           String filterStr = filterTransformer.toString(copyFilter);
+          String orderByKey = String.format("Concat(%s)", allColumnNames);
+          if (!relationalMeta.isSupportFullJoin()) {
+            // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
+            fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
+            filterStr = filterStr.replaceAll("`\\.`", ".");
+            filterStr =
+                filterStr.replace(
+                    getQuotName(KEY_NAME), getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME));
+            orderByKey = getQuotName(tableNames.get(0) + SEPARATOR + KEY_NAME);
+          }
+
           statement =
               String.format(
                   relationalMeta.getConcatQueryStatement(),
                   allColumnNames,
-                  fullColumnNames,
+                  fullColumnNamesStr,
                   fullTableName,
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                  allColumnNames);
+                  orderByKey);
 
           try {
             stmt = conn.createStatement();

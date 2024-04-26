@@ -206,4 +206,3 @@ runs:
             ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3306
             ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3307
             ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3308
-
