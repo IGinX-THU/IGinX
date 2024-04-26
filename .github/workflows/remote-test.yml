@@ -102,7 +102,7 @@ jobs:
               shell: bash
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh" ${{ matrix.os }}
 
             - name: Run Tests
               shell: bash

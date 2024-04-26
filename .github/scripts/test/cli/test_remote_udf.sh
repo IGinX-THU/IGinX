@@ -7,9 +7,15 @@ cp -r test/src/test/resources/udf docker/client/data
 ls docker/client/data
 ls docker/client/data/udf
 
+set os=$1
+echo "$os"
+
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
 SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h host.docker.internal -e"
+if [ $os =~ "mac" ]; then
+    SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h 192.168.65.1 -e"
+fi
 
 #sleep 15
 #
