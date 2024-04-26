@@ -51,6 +51,7 @@ jobs:
               run: |
                 docker --version
                 docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+
             - if: runner.os != 'Windows'
               name: Create Docker Network
               shell: bash
@@ -95,7 +96,6 @@ jobs:
               uses: ./.github/actions/iginxRunner
               with:
                 version: ${VERSION}
-                if-test-udf: "true"
 
             - name: Register Remote UDFs
               shell: bash
