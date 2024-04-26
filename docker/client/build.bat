@@ -1,1 +1,1 @@
-docker build --file Dockerfile-windows -t iginx-client:0.6.0 ../..
+docker build --file Dockerfile-windows -t iginx-client:0.6.0 ../../client

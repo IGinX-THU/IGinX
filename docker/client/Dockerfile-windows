@@ -5,9 +5,9 @@
 
 FROM mcr.microsoft.com/openjdk/jdk:11-ubuntu
 #COPY --from=builder /root/iginx/client/target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
-COPY ./client C:/iginx
+COPY . C:/iginx
 WORKDIR C:/iginx
-COPY ./client/target/iginx-client-0.6.0-SNAPSHOT/ C:/iginx_client
+COPY ./target/iginx-client-0.6.0-SNAPSHOT/ C:/iginx_client
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 

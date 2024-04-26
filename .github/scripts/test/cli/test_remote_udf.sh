@@ -17,7 +17,7 @@ if [ $os =~ "mac" ]; then
     SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h 192.168.65.1 -e"
 fi
 
-#sleep 15
+sleep 5
 #
 #docker ps
 #docker network inspect docker-cluster-iginx

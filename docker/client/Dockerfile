@@ -7,7 +7,7 @@ FROM openjdk:11-jre-slim
 #COPY . /root/iginx
 #WORKDIR /root/iginx
 #COPY --from=builder /root/iginx/client/target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
-COPY ./client/target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
+COPY ./target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
 
 RUN mkdir -p /iginx_client/logs
 RUN mkdir -p /iginx_client/data
