@@ -93,8 +93,9 @@ jobs:
             - name: Run session test
               shell: bash
               run: |
+                pwd
                 if [ "$RUNNER_OS" = "Windows" ]; then
-                  python "${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py"
+                  python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
                 else
-                  python3 "${GITHUB_WORKSPACE}/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py"
+                  python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
                 fi

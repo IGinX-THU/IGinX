@@ -182,8 +182,6 @@ public class TPCHDataInsertionIT {
       "DROP TABLE IF EXISTS customer",
       "DROP TABLE IF EXISTS supplier",
       "DROP TABLE IF EXISTS region",
-      "DROP TABLE IF EXISTS lineitem",
-      "DROP TABLE IF EXISTS orders",
       "CREATE TABLE IF NOT EXISTS customer ( c_custkey INT, c_name VARCHAR(25), c_address VARCHAR(40), c_nationkey INT, c_phone CHAR(15), c_acctbal DECIMAL(15,2), c_mktsegment CHAR(10), c_comment VARCHAR(117), c_dummy VARCHAR(2), PRIMARY KEY (c_custkey))",
       "CREATE TABLE IF NOT EXISTS region ( r_regionkey INT, r_name VARCHAR(25), r_comment VARCHAR(152), r_dummy VARCHAR(2), PRIMARY KEY (r_regionkey))",
       "CREATE TABLE IF NOT EXISTS supplier ( s_suppkey INT, s_name VARCHAR(25), s_address VARCHAR(40), s_nationkey INT, s_phone VARCHAR(15), s_acctbal DECIMAL(15,2), s_comment VARCHAR(101), s_dummy varchar(2), PRIMARY KEY (s_suppkey))",
