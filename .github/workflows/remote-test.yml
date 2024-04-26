@@ -51,66 +51,37 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
-                  For-Docker: "true"
-
-            - if: runner.os == 'Windows'
-              name: Create Docker Network
-              shell: cmd
-              run: |
-                  docker --version
-                  docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-
-            - if: runner.os != 'Windows'
-              name: Create Docker Network
-              shell: bash
-              run: |
-                docker --version
-                docker network create -d bridge --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
-
-            - if: runner.os == 'Windows'
-              name: Build IGinX & Client image
-              shell: cmd
-              run: |
-                  cd %GITHUB_WORKSPACE%\docker\onlyIginx && build_iginx_docker.bat
-                  cd %GITHUB_WORKSPACE%\docker\client && build.bat
-
-            - if: runner.os != 'Windows'
-              name: Build IGinX & Client image
-              shell: bash
-              run: |
-                  cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
-                  chmod +x "build_iginx_docker.sh" && \
-                  "./build_iginx_docker.sh"
-                  cd ${GITHUB_WORKSPACE}/docker/client && \
-                  chmod +x "build.sh" && \
-                  "./build.sh"
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
-                  metadata: ${{ matrix.metadata }}
+                metadata: ${{ matrix.metadata }}
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
-                  DB-name: ${{ matrix.DB-name }}
+                DB-name: ${{ matrix.DB-name }}
+
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                version: ${VERSION}
+                if-test-udf: "true"
 
             - if: runner.os == 'Windows'
-              name: Run IGinX & Client container
+              name: Build Client image
               shell: cmd
               run: |
-                  cd %GITHUB_WORKSPACE%\docker\onlyIginx && run_iginx_docker.bat 172.40.0.2 iginx0 6888
-                  cd %GITHUB_WORKSPACE%\docker\client && run_docker.bat
+                  cd %GITHUB_WORKSPACE%\docker\client && build.bat && run_docker.bat
 
             - if: runner.os != 'Windows'
-              name: Run IGinX & Client container
+              name: Build Client image
               shell: bash
               run: |
-                  cd ${GITHUB_WORKSPACE}/docker/onlyIginx && \
-                  chmod +x "run_iginx_docker.sh" && \
-                  "./run_iginx_docker.sh" 172.40.0.2 iginx0 6888
                   cd ${GITHUB_WORKSPACE}/docker/client && \
+                  chmod +x "build.sh" && \
                   chmod +x "run_docker.sh" && \
+                  "./build.sh" && \
                   "./run_docker.sh"
 
             - name: Register Remote UDFs
@@ -128,5 +99,4 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  export MSYS_NO_PATHCONV=1
-                  docker exec iginx0 cat /logs/iginx-latest.log
+                  cat iginx-*.log
