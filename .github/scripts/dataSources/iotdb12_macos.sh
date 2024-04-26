@@ -2,13 +2,7 @@
 
 set -e
 
-sh -c "wget -nv https://github.com/thulab/IginX-benchmarks/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip"
-
-sh -c "unzip -qq apache-iotdb-0.12.6-server-bin.zip"
-
-sh -c "sleep 10"
-
-sh -c "ls ./"
+sh -c "cp -r $IOTDB_HOME/ apache-iotdb-0.12.6-server-bin"
 
 sh -c "echo ========================="
 

@@ -1,0 +1,51 @@
+name: "iotdb12"
+description: "setup iotdb12"
+inputs:
+    version:
+        description: "iotdb version"
+        required: false
+        default: "0.12.6"
+
+runs:
+    using: "composite"
+    steps:
+        - id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+              tool: iotdb
+              version: ${{ inputs.version }}
+
+        - name: Restore iotdb Cache
+          id: restore
+          uses: actions/cache/restore@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - name: Cache iotdb
+          uses: actions/cache@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - name: Setup iotdb into Runner Tool Cache
+          uses: pbrisbin/setup-tool-action@v2
+          with:
+              name: iotdb
+              version: 0.12.6
+              url: "https://github.com/thulab/IginX-benchmarks/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip"
+              subdir: "apache-iotdb-0.12.6-server-bin"
+              ext: "zip"
+
+        - name: Add iotdb HOME to ENV
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run: echo "IOTDB_HOME=$PWD" >> $GITHUB_ENV
+
+        - name: Save iotdb Cache
+          if: steps.restore.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
