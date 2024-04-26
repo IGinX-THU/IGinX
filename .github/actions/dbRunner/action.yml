@@ -28,6 +28,10 @@ runs:
               fi
 
         - if: inputs.DB-name=='IoTDB12'
+          name: Setup DB
+          uses: ./.github/actions/setup/iotdb12
+
+        - if: inputs.DB-name=='IoTDB12'
           name: Run DB
           shell: bash
           run: |
