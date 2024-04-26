@@ -3,13 +3,25 @@
 #WORKDIR /root/iginx
 #RUN mvn clean package -pl client -am -Dmaven.test.skip=true -P-format -e
 
-FROM eclipse-temurin:17.0.11_9-jre-jammy
+FROM mcr.microsoft.com/windows/servercore:1809
 #COPY --from=builder /root/iginx/client/target/iginx-client-0.6.0-SNAPSHOT/ /iginx_client/
 COPY . C:/iginx
 WORKDIR C:/iginx
 COPY ./target/iginx-client-0.6.0-SNAPSHOT/ C:/iginx_client
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+
+# 下载 JDK
+ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
+
+# 解压 JDK
+RUN powershell -Command \
+    Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk; \
+    Remove-Item -Path C:/temp/jdk.zip
+
+# 设置环境变量
+ENV JAVA_HOME C:\\jdk\\jdk-11.0.2
+ENV PATH ${JAVA_HOME}\\bin:${PATH}
 
 RUN mkdir C:/iginx_client/logs
 RUN mkdir C:/iginx_client/data
