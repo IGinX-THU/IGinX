@@ -19,7 +19,7 @@ jobs:
             matrix:
                 java: [8]
                 python-version: ["3.9"]
-                os: [macos-12, windows-latest]
+                os: [windows-latest]
                 DB-name:
                     [
                         "IoTDB12",
