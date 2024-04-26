@@ -27,11 +27,11 @@ if [ "$RUNNER_OS" = "Linux" ]; then
 
 elif [ "$RUNNER_OS" = "Windows" ]; then
   echo "windows"
-  #  awk 'NR < 103 || NR > 111 { print } NR == 103 { print "CC      = gcc\n# Current values for DATABASE are: INFORMIX, DB2, TDAT (Teradata)\n#                                  SQLSERVER, SYBASE, ORACLE, VECTORWISE\n# Current values for MACHINE are:  ATT, DOS, HP, IBM, ICL, MVS, \n#                                  SGI, SUN, U2200, VMS, LINUX, WIN32 \n# Current values for WORKLOAD are:  TPCH\nDATABASE= SQLSERVER\nMACHINE = WIN32\nWORKLOAD = TPCH" }' makefile.suite > new_makefile
-  #  mv new_makefile makefile.suite
-  #  make
+  awk 'NR < 103 || NR > 111 { print } NR == 103 { print "CC      = gcc\n# Current values for DATABASE are: INFORMIX, DB2, TDAT (Teradata)\n#                                  SQLSERVER, SYBASE, ORACLE, VECTORWISE\n# Current values for MACHINE are:  ATT, DOS, HP, IBM, ICL, MVS, \n#                                  SGI, SUN, U2200, VMS, LINUX, WIN32 \n# Current values for WORKLOAD are:  TPCH\nDATABASE= SQLSERVER\nMACHINE = WIN32\nWORKLOAD = TPCH" }' makefile.suite > new_makefile
+  mv new_makefile makefile.suite
+  make -f makefile.suite
   # https://juejin.cn/s/%E5%91%BD%E4%BB%A4%E8%A1%8C%E7%BC%96%E8%AF%91sln
-  msbuild tpch.sln /t:Build /p:Configuration=Debug
+  #  msbuild tpch.sln /t:Build /p:Configuration=Debug
 
 
 elif [ "$RUNNER_OS" = "macOS" ]; then
