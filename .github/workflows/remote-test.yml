@@ -35,6 +35,13 @@ jobs:
                   java: ${{ matrix.java }}
 
             - if: runner.os == 'Windows'
+              name: Create Docker Network
+              shell: cmd
+              run: |
+                docker --version
+                docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+
+            - if: runner.os == 'Windows'
               name: Build & Run Client image
               shell: cmd
               run: |
@@ -54,13 +61,6 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
-
-            - if: runner.os == 'Windows'
-              name: Create Docker Network
-              shell: cmd
-              run: |
-                docker --version
-                docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
 
             - if: runner.os != 'Windows'
               name: Create Docker Network
@@ -92,11 +92,19 @@ jobs:
               with:
                 version: ${VERSION}
 
-            - name: Register Remote UDFs
+            - if: runner.os != 'Windows'
+              name: Register Remote UDFs
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh" ${{ matrix.os }}
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_windows.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_windows.sh" ${{ matrix.os }}
+
+            - if: runner.os = 'Windows'
+              name: Register Remote UDFs
+              shell: bash
+              run: |
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh" ${{ matrix.os }}
 
             - name: Run Tests
               shell: bash
