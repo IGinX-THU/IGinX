@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.filesystem.exception.FilesystemException;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import java.io.File;
@@ -86,7 +87,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
   @Override
   public Row next() throws PhysicalException {
     if (!hasNext()) {
-      throw new PhysicalException("no more data");
+      throw new FilesystemException("no more data");
     }
     Row currRow = nextRow;
     nextRow = calculateNext();

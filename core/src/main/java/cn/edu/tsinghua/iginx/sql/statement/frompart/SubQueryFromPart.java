@@ -2,9 +2,9 @@ package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.BinarySelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.BinarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import java.util.List;
 import java.util.Map;
 

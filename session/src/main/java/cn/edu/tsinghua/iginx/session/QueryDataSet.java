@@ -21,8 +21,7 @@ package cn.edu.tsinghua.iginx.session;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getBytesFromByteBufferByDataType;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
 import cn.edu.tsinghua.iginx.thrift.QueryDataSetV2;
@@ -89,11 +88,11 @@ public class QueryDataSet {
     this.warningMsg = warningMsg;
   }
 
-  public void close() throws SessionException, ExecutionException {
+  public void close() throws SessionException {
     session.closeQuery(queryId);
   }
 
-  private void fetch() throws SessionException, ExecutionException {
+  private void fetch() throws SessionException {
     if (bitmapList != null && index != bitmapList.size()) { // 只有之前的被消费完才有可能继续取数据
       return;
     }
@@ -109,7 +108,7 @@ public class QueryDataSet {
     state = pair.v ? State.HAS_MORE : State.NO_MORE;
   }
 
-  public boolean hasMore() throws SessionException, ExecutionException {
+  public boolean hasMore() throws SessionException {
     if (valuesList != null && index < valuesList.size()) {
       return true;
     }
@@ -122,7 +121,7 @@ public class QueryDataSet {
     return valuesList != null;
   }
 
-  public Object[] nextRow() throws SessionException, ExecutionException {
+  public Object[] nextRow() throws SessionException {
     if (!hasMore()) {
       return null;
     }
@@ -140,7 +139,7 @@ public class QueryDataSet {
     return values;
   }
 
-  public List<byte[]> nextRowAsBytes() throws SessionException, ExecutionException {
+  public List<byte[]> nextRowAsBytes() throws SessionException {
     if (!hasMore()) {
       return null;
     }

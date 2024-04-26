@@ -21,8 +21,12 @@ package cn.edu.tsinghua.iginx.rest.query.aggregator;
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class QueryShowColumns extends QueryAggregator {
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryShowColumns.class);
+
   public QueryShowColumns() {
     super(QueryAggregatorType.SHOW_COLUMNS);
   }
@@ -33,7 +37,7 @@ public class QueryShowColumns extends QueryAggregator {
       SessionQueryDataSet sessionQueryDataSet = session.showColumns();
       queryResultDataset.setPaths(getPathsFromShowColumns(sessionQueryDataSet));
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return queryResultDataset;
   }

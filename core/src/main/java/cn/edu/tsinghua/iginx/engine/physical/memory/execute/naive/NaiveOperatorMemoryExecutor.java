@@ -53,10 +53,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
@@ -77,7 +74,6 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -93,7 +89,7 @@ import org.slf4j.LoggerFactory;
 
 public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(NaiveOperatorMemoryExecutor.class);
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
@@ -275,65 +271,75 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     long slideDistance = downsample.getSlideDistance();
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
     long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
-    TreeMap<Long, List<Row>> groups = new TreeMap<>();
-    SetMappingFunction function = (SetMappingFunction) downsample.getFunctionCall().getFunction();
-    FunctionParams params = downsample.getFunctionCall().getParams();
-    if (precision == slideDistance) {
-      for (Row row : rows) {
-        long timestamp = row.getKey() - (row.getKey() - bias) % precision;
-        groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
-      }
-    } else {
-      HashMap<Long, Long> timestamps = new HashMap<>();
-      for (long i = 0; i < n; i++) {
-        timestamps.put(i, bias + i * slideDistance);
-      }
-      for (Row row : rows) {
-        long rowTimestamp = row.getKey();
+
+    List<Table> tableList = new ArrayList<>();
+    for (FunctionCall functionCall : downsample.getFunctionCallList()) {
+      SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      FunctionParams params = functionCall.getParams();
+
+      TreeMap<Long, List<Row>> groups = new TreeMap<>();
+      if (precision == slideDistance) {
+        for (Row row : rows) {
+          long timestamp = row.getKey() - (row.getKey() - bias) % precision;
+          groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+        }
+      } else {
+        HashMap<Long, Long> timestamps = new HashMap<>();
         for (long i = 0; i < n; i++) {
-          if (rowTimestamp - timestamps.get(i) >= 0
-              && rowTimestamp - timestamps.get(i) < precision) {
-            groups.compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+          timestamps.put(i, bias + i * slideDistance);
+        }
+        for (Row row : rows) {
+          long rowTimestamp = row.getKey();
+          for (long i = 0; i < n; i++) {
+            if (rowTimestamp - timestamps.get(i) >= 0
+                && rowTimestamp - timestamps.get(i) < precision) {
+              groups
+                  .compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v)
+                  .add(row);
+            }
           }
         }
       }
-    }
-    List<Pair<Long, Row>> transformedRawRows = new ArrayList<>();
-    try {
-      for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-        long time = entry.getKey();
-        List<Row> group = entry.getValue();
+      List<Pair<Long, Row>> transformedRawRows = new ArrayList<>();
+      try {
+        for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
+          long time = entry.getKey();
+          List<Row> group = entry.getValue();
 
-        if (params.isDistinct()) {
-          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-            throw new IllegalArgumentException(
-                "function " + function.getIdentifier() + " can't use DISTINCT");
+          if (params.isDistinct()) {
+            if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+              throw new IllegalArgumentException(
+                  "function " + function.getIdentifier() + " can't use DISTINCT");
+            }
+            // min和max无需去重
+            if (!function.getIdentifier().equals(Max.MAX)
+                && !function.getIdentifier().equals(Min.MIN)) {
+              group = removeDuplicateRows(group);
+            }
           }
-          // min和max无需去重
-          if (!function.getIdentifier().equals(Max.MAX)
-              && !function.getIdentifier().equals(Min.MIN)) {
-            group = removeDuplicateRows(group);
+
+          Row row = function.transform(new Table(header, group), params);
+          if (row != null) {
+            transformedRawRows.add(new Pair<>(time, row));
           }
         }
-
-        Row row = function.transform(new Table(header, group), params);
-        if (row != null) {
-          transformedRawRows.add(new Pair<>(time, row));
-        }
+      } catch (Exception e) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+            e);
       }
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+      if (transformedRawRows.size() == 0) {
+        return Table.EMPTY_TABLE;
+      }
+      Header newHeader = new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
+      List<Row> transformedRows = new ArrayList<>();
+      for (Pair<Long, Row> pair : transformedRawRows) {
+        transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
+      }
+      tableList.add(new Table(newHeader, transformedRows));
     }
-    if (transformedRawRows.size() == 0) {
-      return Table.EMPTY_TABLE;
-    }
-    Header newHeader = new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
-    List<Row> transformedRows = new ArrayList<>();
-    for (Pair<Long, Row> pair : transformedRawRows) {
-      transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
-    }
-    return new Table(newHeader, transformedRows);
+
+    return RowUtils.joinMultipleTablesByKey(tableList);
   }
 
   private RowStream executeRowTransform(RowTransform rowTransform, Table table)
@@ -388,100 +394,63 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeSetTransform(SetTransform setTransform, Table table)
       throws PhysicalException {
-    SetMappingFunction function = (SetMappingFunction) setTransform.getFunctionCall().getFunction();
-    FunctionParams params = setTransform.getFunctionCall().getParams();
+    List<FunctionCall> functionList = setTransform.getFunctionCallList();
 
-    if (params.isDistinct()) {
-      if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-        throw new IllegalArgumentException(
-            "function " + function.getIdentifier() + " can't use DISTINCT");
+    Map<List<String>, Table> distinctMap = new HashMap<>();
+    List<Row> rows = new ArrayList<>();
+
+    for (FunctionCall functionCall : functionList) {
+      SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      FunctionParams params = functionCall.getParams();
+      Table functable = table;
+      if (setTransform.isDistinct()) {
+        // min和max无需去重
+        if (!function.getIdentifier().equals(Max.MAX)
+            && !function.getIdentifier().equals(Min.MIN)) {
+          if (distinctMap.containsKey(params.getPaths())) {
+            functable = distinctMap.get(params.getPaths());
+          } else {
+            Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
+            functable = transformToTable(executeDistinct(distinct, table));
+            distinctMap.put(params.getPaths(), functable);
+          }
+        }
       }
-      // min和max无需去重
-      if (!function.getIdentifier().equals(Max.MAX) && !function.getIdentifier().equals(Min.MIN)) {
-        Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
-        table = transformToTable(executeDistinct(distinct, table));
+
+      try {
+        Row row = function.transform(functable, params);
+        if (row != null) {
+          rows.add(row);
+        }
+      } catch (Exception e) {
+        throw new PhysicalTaskExecuteFailureException(
+            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+            e);
       }
     }
 
-    try {
-      Row row = function.transform(table, params);
-      if (row == null) {
-        return Table.EMPTY_TABLE;
-      }
-      Header header = row.getHeader();
-      return new Table(header, Collections.singletonList(row));
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute set mapping function " + function.getIdentifier() + ".", e);
+    if (rows.isEmpty()) {
+      return Table.EMPTY_TABLE;
     }
+
+    Row combinedRow = combineMultipleColumns(rows);
+    Header header = combinedRow.getHeader();
+
+    return new Table(header, Collections.singletonList(combinedRow));
   }
 
   private RowStream executeMappingTransform(MappingTransform mappingTransform, Table table)
       throws PhysicalException {
-    MappingFunction function = (MappingFunction) mappingTransform.getFunctionCall().getFunction();
-    FunctionParams params = mappingTransform.getFunctionCall().getParams();
-    try {
-      return function.transform(table, params);
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
-    }
+    List<FunctionCall> functionCallList = mappingTransform.getFunctionCallList();
+    return RowUtils.calMappingTransform(table, functionCallList);
   }
 
   private RowStream executeRename(Rename rename, Table table) throws PhysicalException {
     Header header = table.getHeader();
     Map<String, String> aliasMap = rename.getAliasMap();
 
-    List<Field> fields = new ArrayList<>();
     List<String> ignorePatterns = rename.getIgnorePatterns();
-    header
-        .getFields()
-        .forEach(
-            field -> {
-              // 如果列名在ignorePatterns中，对该列不执行rename
-              for (String ignorePattern : ignorePatterns) {
-                if (StringUtils.match(field.getName(), ignorePattern)) {
-                  fields.add(field);
-                  return;
-                }
-              }
-              String alias = "";
-              for (String oldPattern : aliasMap.keySet()) {
-                String newPattern = aliasMap.get(oldPattern);
-                if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
-                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                  alias = newPrefix + field.getName();
-                } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
-                  String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
-                  String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-                  if (field.getName().startsWith(oldPrefix)) {
-                    alias = field.getName().replaceFirst(oldPrefix, newPrefix);
-                  }
-                  break;
-                } else if (oldPattern.equals(field.getFullName())) {
-                  alias = newPattern;
-                  break;
-                } else {
-                  if (StringUtils.match(field.getName(), oldPattern)) {
-                    if (newPattern.endsWith("." + oldPattern)) {
-                      String prefix =
-                          newPattern.substring(0, newPattern.length() - oldPattern.length());
-                      alias = prefix + field.getName();
-                    } else {
-                      alias = newPattern;
-                    }
-                    break;
-                  }
-                }
-              }
-              if (alias.isEmpty()) {
-                fields.add(field);
-              } else {
-                fields.add(new Field(alias, field.getType(), field.getTags()));
-              }
-            });
-
-    Header newHeader = new Header(header.getKey(), fields);
+    Header newHeader = header.renamedHeader(aliasMap, ignorePatterns);
 
     List<Row> rows = new ArrayList<>();
     table
@@ -545,41 +514,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeReorder(Reorder reorder, Table table) {
     Header header = table.getHeader();
-    List<Field> targetFields = new ArrayList<>();
-    Map<Integer, Integer> reorderMap = new HashMap<>();
 
-    for (int index = 0; index < reorder.getPatterns().size(); index++) {
-      String pattern = reorder.getPatterns().get(index);
-      List<Pair<Field, Integer>> matchedFields = new ArrayList<>();
-      if (StringUtils.isPattern(pattern)) {
-        for (int i = 0; i < header.getFields().size(); i++) {
-          Field field = header.getField(i);
-          if (StringUtils.match(field.getName(), pattern)) {
-            matchedFields.add(new Pair<>(field, i));
-          }
-        }
-      } else {
-        for (int i = 0; i < header.getFields().size(); i++) {
-          Field field = header.getField(i);
-          if (pattern.equals(field.getName())) {
-            matchedFields.add(new Pair<>(field, i));
-          }
-        }
-      }
-      if (!matchedFields.isEmpty()) {
-        // 不对同一个UDF里返回的多列进行重新排序
-        if (!reorder.getIsPyUDF().get(index)) {
-          matchedFields.sort(Comparator.comparing(pair -> pair.getK().getFullName()));
-        }
-        matchedFields.forEach(
-            pair -> {
-              reorderMap.put(targetFields.size(), pair.getV());
-              targetFields.add(pair.getK());
-            });
-      }
-    }
-
-    Header newHeader = new Header(header.getKey(), targetFields);
+    Header.ReorderedHeaderWrapped res =
+        header.reorderedHeaderWrapped(reorder.getPatterns(), reorder.getIsPyUDF());
+    Header newHeader = res.getHeader();
+    List<Field> targetFields = res.getTargetFields();
+    Map<Integer, Integer> reorderMap = res.getReorderMap();
     List<Row> rows = new ArrayList<>();
     table
         .getRows()

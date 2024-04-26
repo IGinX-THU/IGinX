@@ -21,7 +21,7 @@ package cn.edu.tsinghua.iginx.session_v2.internal;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.QueryClient;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.query.AggregateQuery;
@@ -45,7 +45,7 @@ import cn.edu.tsinghua.iginx.thrift.QueryDataResp;
 import cn.edu.tsinghua.iginx.thrift.QueryDataSet;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -61,7 +61,7 @@ import org.slf4j.LoggerFactory;
 
 public class QueryClientImpl extends AbstractFunctionClient implements QueryClient {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(QueryClientImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryClientImpl.class);
 
   private final ResultMapper resultMapper;
 
@@ -90,8 +90,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       iginXClient.checkIsClosed();
       try {
         resp = client.queryData(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("simple query failure: ", e);
       }
     }
@@ -120,8 +120,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       iginXClient.checkIsClosed();
       try {
         resp = client.aggregateQuery(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("aggregate query failure: ", e);
       }
     }
@@ -164,8 +164,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       iginXClient.checkIsClosed();
       try {
         resp = client.downsampleQuery(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("downsample query failure: ", e);
       }
     }
@@ -191,8 +191,8 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       iginXClient.checkIsClosed();
       try {
         resp = client.lastQuery(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("last query failure: ", e);
       }
     }

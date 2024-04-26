@@ -4,35 +4,68 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>cn.edu.tsinghua</groupId>
-        <artifactId>iginx</artifactId>
+        <artifactId>iginx-driver</artifactId>
         <version>${revision}</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>parquet</artifactId>
     <name>IGinX Parquet</name>
 
     <properties>
+        <driver.basedir>..</driver.basedir>
+        <driver.name>parquet</driver.name>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iginx-core</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
+            <groupId>cn.edu.tsinghua.iginx</groupId>
+            <artifactId>parquet-file</artifactId>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
-            <groupId>org.duckdb</groupId>
-            <artifactId>duckdb_jdbc</artifactId>
-            <version>0.5.1</version>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+            <version>2.9.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.ehcache</groupId>
+            <artifactId>sizeof</artifactId>
+            <version>0.4.3</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish</groupId>
+            <artifactId>javax.json</artifactId>
+            <version>1.1.4</version>
         </dependency>
     </dependencies>
 
+    <repositories>
+        <repository>
+            <id>parquet-file</id>
+            <name>IGinX GitHub repository</name>
+            <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
+        </repository>
+    </repositories>
+
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>
@@ -47,6 +80,7 @@
                         <configuration>
                             <outputDirectory>../../core/target/iginx-core-${project.version}/driver/parquet/</outputDirectory>
                             <excludeScope>provided</excludeScope>
+                            <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>
                         </configuration>
                     </execution>
                 </executions>

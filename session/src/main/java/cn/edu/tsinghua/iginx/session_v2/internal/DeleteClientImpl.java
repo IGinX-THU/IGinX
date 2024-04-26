@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.DeleteClient;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
@@ -26,7 +26,7 @@ import cn.edu.tsinghua.iginx.thrift.DeleteColumnsReq;
 import cn.edu.tsinghua.iginx.thrift.DeleteDataInColumnsReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.TimePrecision;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.util.*;
 import org.apache.thrift.TException;
 
@@ -58,8 +58,8 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
       iginXClient.checkIsClosed();
       try {
         Status status = client.deleteColumns(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("delete measurements failure: ", e);
       }
     }
@@ -170,8 +170,8 @@ public class DeleteClientImpl extends AbstractFunctionClient implements DeleteCl
       iginXClient.checkIsClosed();
       try {
         Status status = client.deleteDataInColumns(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("delete measurements data failure: ", e);
       }
     }

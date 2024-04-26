@@ -3,8 +3,7 @@ package cn.edu.tsinghua.iginx.integration.regression;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import org.junit.After;
@@ -15,7 +14,7 @@ import org.slf4j.LoggerFactory;
 
 public class MixClusterShowColumnsRegressionTest {
 
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(MixClusterShowColumnsRegressionTest.class);
 
   private Session session;
@@ -92,19 +91,19 @@ public class MixClusterShowColumnsRegressionTest {
 
   private String execute(String statement) {
     if (!statement.toLowerCase().startsWith("insert")) {
-      logger.info("Execute Statement: \"{}\"", statement);
+      LOGGER.info("Execute Statement: \"{}\"", statement);
     }
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
-      logger.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(
+      LOGGER.error(
           "Statement: \"{}\" execute fail. Caused by: {}.", statement, res.getParseErrorMsg());
       fail();
       return "";

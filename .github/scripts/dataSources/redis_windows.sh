@@ -4,11 +4,15 @@ set -e
 
 echo "Downloading files..."
 
-sh -c "curl -LJO https://github.com/redis-windows/redis-windows/releases/download/7.0.14/Redis-7.0.14-Windows-x64.tar.gz -o Redis-7.0.14-Windows-x64.tar.gz"
+sh -c "curl -L https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/resources/Redis-7.0.14-Windows-x64-msys2-with-Service.zip -o Redis-7.0.14-Windows-x64.zip"
 
-sh -c "tar -xzvf Redis-7.0.14-Windows-x64.tar.gz"
+sh -c "unzip -qq Redis-7.0.14-Windows-x64.zip"
 
 echo "Download finished."
+
+sh -c "mkdir Redis-7.0.14-Windows-x64"
+
+sh -c "mv Redis-7.0.14-Windows-x64*/* Redis-7.0.14-Windows-x64"
 
 sh -c "ls Redis-7.0.14-Windows-x64"
 

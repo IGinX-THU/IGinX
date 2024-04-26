@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.metadata;
 
-import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
@@ -312,6 +312,11 @@ public class MetaManagerMock implements IMetaManager {
 
   @Override
   public List<TransformTaskMeta> getTransformTasks() {
+    return null;
+  }
+
+  @Override
+  public List<TransformTaskMeta> getTransformTasksByModule(String moduleName) {
     return null;
   }
 

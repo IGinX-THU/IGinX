@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.sql.statement;
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.thrift.GetRegisterTaskInfoReq;
 import cn.edu.tsinghua.iginx.thrift.GetRegisterTaskInfoResp;
 import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
@@ -19,7 +19,7 @@ public class ShowRegisterTaskStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     GetRegisterTaskInfoReq req = new GetRegisterTaskInfoReq(ctx.getSessionId());
     GetRegisterTaskInfoResp resp = worker.getRegisterTaskInfo(req);
     List<RegisterTaskInfo> taskInfos = resp.getRegisterTaskInfoList();

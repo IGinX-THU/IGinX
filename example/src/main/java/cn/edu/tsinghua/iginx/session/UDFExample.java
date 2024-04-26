@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.util.ArrayList;
@@ -17,9 +16,9 @@ public class UDFExample {
   private static final String S3 = "udf.value3";
   private static final String S4 = "udf.value4";
 
-  private static final String REGISTER_SQL_FORMATTER = "REGISTER %s PYTHON TASK %s IN %s AS %s";
-  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
-  private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
+  private static final String CREATE_SQL_FORMATTER = "CREATE FUNCTION %s %s FROM %s IN %s";
+  private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
+  private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
 
   private static final String FILE_DIR =
       String.join(
@@ -28,7 +27,7 @@ public class UDFExample {
   private static final long START_TIMESTAMP = 0L;
   private static final long END_TIMESTAMP = 1000L;
 
-  public static void main(String[] args) throws SessionException, ExecutionException {
+  public static void main(String[] args) throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -44,23 +43,23 @@ public class UDFExample {
     // 注册UDTF
     String registerSQL =
         String.format(
-            REGISTER_SQL_FORMATTER,
+            CREATE_SQL_FORMATTER,
             "UDTF",
+            "\"sin\"",
             "\"UDFSin\"",
-            "\"" + FILE_DIR + File.separator + "udtf_sin.py" + "\"",
-            "\"sin\"");
+            "\"" + FILE_DIR + File.separator + "udtf_sin.py" + "\"");
     session.executeSql(registerSQL);
     registerSQL =
         String.format(
-            REGISTER_SQL_FORMATTER,
+            CREATE_SQL_FORMATTER,
             "UDAF",
+            "\"py_count\"",
             "\"UDFCount\"",
-            "\"" + FILE_DIR + File.separator + "udaf_count.py" + "\"",
-            "\"py_count\"");
+            "\"" + FILE_DIR + File.separator + "udaf_count.py" + "\"");
     session.executeSql(registerSQL);
 
     // 查询已注册的UDF
-    result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
 
     // 使用已注册的UDF
@@ -77,11 +76,11 @@ public class UDFExample {
     session.executeSql(dropSQL);
 
     // 查询已注册的UDF
-    result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
   }
 
-  private static void prepareData() throws ExecutionException, SessionException {
+  private static void prepareData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);

@@ -41,19 +41,9 @@ runs:
           shell: bash
           run: |
               python -m pip install --upgrade pip
-              pip install pandas numpy
+              pip install pandas numpy pemjax==0.1.0 thrift
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v1
           with:
               java-version: ${{ inputs.java }}
-
-        - if: inputs.scope=='all'
-          name: Install Pemja Locally
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Windows" ]; then
-                pip install https://iginx-thu.github.io/pemja/dist/pemja-0.5.dev0-cp39-cp39-win_amd64.whl            
-              else
-                pip install https://iginx-thu.github.io/pemja/dist/pemja-0.5.dev0.tar.gz   
-              fi

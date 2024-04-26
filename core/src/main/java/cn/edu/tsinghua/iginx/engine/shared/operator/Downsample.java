@@ -23,6 +23,8 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import java.util.ArrayList;
+import java.util.List;
 
 public class Downsample extends AbstractUnaryOperator {
 
@@ -30,7 +32,7 @@ public class Downsample extends AbstractUnaryOperator {
 
   private final long slideDistance;
 
-  private final FunctionCall functionCall;
+  private final List<FunctionCall> functionCallList;
 
   private final KeyRange keyRange;
 
@@ -38,7 +40,7 @@ public class Downsample extends AbstractUnaryOperator {
       Source source,
       long precision,
       long slideDistance,
-      FunctionCall functionCall,
+      List<FunctionCall> functionCallList,
       KeyRange keyRange) {
     super(OperatorType.Downsample, source);
     if (precision <= 0) {
@@ -47,19 +49,23 @@ public class Downsample extends AbstractUnaryOperator {
     if (slideDistance <= 0) {
       throw new IllegalArgumentException("slide distance should be greater than zero");
     }
-    if (functionCall == null || functionCall.getFunction() == null) {
-      throw new IllegalArgumentException("function shouldn't be null");
-    }
-    if (functionCall.getFunction().getMappingType() != MappingType.SetMapping) {
-      throw new IllegalArgumentException("function should be set mapping function");
-    }
+
     if (keyRange == null) {
       throw new IllegalArgumentException("timeRange shouldn't be null");
     }
     this.precision = precision;
     this.slideDistance = slideDistance;
-    this.functionCall = functionCall;
     this.keyRange = keyRange;
+
+    for (FunctionCall functionCall : functionCallList) {
+      if (functionCall == null || functionCall.getFunction() == null) {
+        throw new IllegalArgumentException("function shouldn't be null");
+      }
+      if (functionCall.getFunction().getMappingType() != MappingType.SetMapping) {
+        throw new IllegalArgumentException("function should be set mapping function");
+      }
+    }
+    this.functionCallList = functionCallList;
   }
 
   public long getPrecision() {
@@ -70,8 +76,8 @@ public class Downsample extends AbstractUnaryOperator {
     return slideDistance;
   }
 
-  public FunctionCall getFunctionCall() {
-    return functionCall;
+  public List<FunctionCall> getFunctionCallList() {
+    return functionCallList;
   }
 
   public KeyRange getKeyRange() {
@@ -81,23 +87,42 @@ public class Downsample extends AbstractUnaryOperator {
   @Override
   public Operator copy() {
     return new Downsample(
-        getSource().copy(), precision, slideDistance, functionCall.copy(), keyRange.copy());
+        getSource().copy(),
+        precision,
+        slideDistance,
+        new ArrayList<>(functionCallList),
+        keyRange.copy());
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new Downsample(source, precision, slideDistance, functionCall.copy(), keyRange.copy());
+    return new Downsample(
+        source, precision, slideDistance, new ArrayList<>(functionCallList), keyRange.copy());
   }
 
   @Override
   public String getInfo() {
-    return "Precision: "
-        + precision
-        + ", SlideDistance: "
-        + slideDistance
-        + ", TimeRange: "
-        + keyRange.toString()
-        + ", Func: "
-        + functionCall.toString();
+    StringBuilder sb =
+        new StringBuilder(
+            "Precision: "
+                + precision
+                + ", SlideDistance: "
+                + slideDistance
+                + ", TimeRange: "
+                + keyRange.toString()
+                + ", FuncList(Name, FunctionType): ");
+
+    if (functionCallList == null || functionCallList.isEmpty()) {
+      return sb.toString();
+    }
+
+    for (FunctionCall functionCall : functionCallList) {
+      sb.append(functionCall.getNameAndFuncTypeStr());
+      sb.append(", ");
+    }
+    sb.append("MappingType: ");
+    sb.append(functionCallList.get(0).getFunction().getMappingType());
+
+    return sb.toString();
   }
 }

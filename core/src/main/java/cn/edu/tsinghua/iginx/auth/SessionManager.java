@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 
 public class SessionManager {
 
-  private static final Logger logger = LoggerFactory.getLogger(SessionManager.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SessionManager.class);
 
   private final UserManager userManager;
   private final Set<Long> sessionIds = ConcurrentHashMap.newKeySet();
@@ -67,13 +67,13 @@ public class SessionManager {
     for (AuthType auth : userMeta.getAuths()) {
       sessionId += (1L << auth.getValue());
     }
-    logger.info("new session id comes: " + sessionId);
+    LOGGER.info("new session id comes: {}", sessionId);
     sessionIds.add(sessionId);
     return sessionId;
   }
 
   public void closeSession(long sessionId) {
-    logger.info(String.format("session id %s is removed.", sessionId));
+    LOGGER.info("session id {} is removed.", sessionId);
     sessionIds.remove(sessionId);
   }
 

@@ -18,19 +18,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.regex.Pattern;
 
 public class Min implements SetMappingFunction {
 
@@ -60,34 +55,12 @@ public class Min implements SetMappingFunction {
   }
 
   @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
-    List<String> pathParams = params.getPaths();
-    if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
-    }
-
-    String target = pathParams.get(0);
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-    List<Field> targetFields = new ArrayList<>();
-    List<Integer> indices = new ArrayList<>();
-    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-      Field field = rows.getHeader().getField(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
-        String name = getIdentifier() + "(";
-        String fullName = getIdentifier() + "(";
-        if (params.isDistinct()) {
-          name += "distinct ";
-          fullName += "distinct ";
-        }
-        name += field.getName() + ")";
-        fullName += field.getFullName() + ")";
-        targetFields.add(new Field(name, fullName, field.getType()));
-        indices.add(i);
-      }
-    }
+  public Row transform(Table table, FunctionParams params) throws Exception {
+    Pair<List<Field>, List<Integer>> pair = FunctionUtils.getFieldAndIndices(table, params, this);
+    List<Field> targetFields = pair.k;
+    List<Integer> indices = pair.v;
     Object[] targetValues = new Object[targetFields.size()];
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       Object[] values = row.getValues();
       for (int i = 0; i < indices.size(); i++) {
         Object value = values[indices.get(i)];

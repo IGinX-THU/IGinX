@@ -46,10 +46,10 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.ShowColumnsFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.BinarySelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement.QueryType;
+import cn.edu.tsinghua.iginx.sql.statement.select.BinarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement.QueryType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
 import java.util.ArrayList;
@@ -64,7 +64,7 @@ import org.slf4j.LoggerFactory;
 
 public class QueryGenerator extends AbstractGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(QueryGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(QueryGenerator.class);
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
   private static final QueryGenerator instance = new QueryGenerator();
   private static final FunctionManager functionManager = FunctionManager.getInstance();
@@ -566,25 +566,16 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.SimpleQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
     Set<String> selectedPath = new HashSet<>();
     selectStatement
         .getBaseExpressionList()
         .forEach(expression -> selectedPath.add(expression.getPathName()));
-    queryList.add(
-        new Project(
-            new OperatorSource(root),
-            new ArrayList<>(selectedPath),
-            selectStatement.getTagFilter(),
-            selectStatement.hasValueToSelectedPath()));
 
-    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-      root = OperatorUtils.joinOperatorsByTime(queryList);
-    } else {
-      root = OperatorUtils.joinOperators(queryList, ORDINAL);
-    }
-
-    return root;
+    return new Project(
+        new OperatorSource(root),
+        new ArrayList<>(selectedPath),
+        selectStatement.getTagFilter(),
+        selectStatement.hasValueToSelectedPath());
   }
 
   /**
@@ -598,8 +589,7 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.LastFirstQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
-    Operator finalRoot = root;
+    List<FunctionCall> functionCallList = new ArrayList<>();
     selectStatement
         .getFuncExpressionMap()
         .forEach(
@@ -607,16 +597,11 @@ public class QueryGenerator extends AbstractGenerator {
                 v.forEach(
                     expression -> {
                       FunctionParams params = getFunctionParams(k, expression);
-                      Operator copySelect = finalRoot.copy();
-                      logger.info("function: " + k + ", wrapped path: " + v);
-                      queryList.add(
-                          new MappingTransform(
-                              new OperatorSource(copySelect),
-                              new FunctionCall(functionManager.getFunction(k), params)));
+                      functionCallList.add(
+                          new FunctionCall(functionManager.getFunction(k), params));
                     }));
-    root = OperatorUtils.unionOperators(queryList);
 
-    return root;
+    return new MappingTransform(new OperatorSource(root), functionCallList);
   }
 
   /**
@@ -631,6 +616,7 @@ public class QueryGenerator extends AbstractGenerator {
       return root;
     }
     List<Operator> queryList = new ArrayList<>();
+    List<FunctionCall> functionCallList = new ArrayList<>();
     Operator finalRoot = root;
     selectStatement
         .getFuncExpressionMap()
@@ -639,25 +625,27 @@ public class QueryGenerator extends AbstractGenerator {
                 v.forEach(
                     expression -> {
                       FunctionParams params = getFunctionParams(k, expression);
-                      Operator copySelect = finalRoot.copy();
-                      logger.info("function: " + expression.getColumnName());
-                      if (FunctionUtils.isRowToRowFunction(k)) {
-                        queryList.add(
-                            new RowTransform(
-                                new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
-                      } else if (FunctionUtils.isSetToSetFunction(k)) {
-                        queryList.add(
-                            new MappingTransform(
-                                new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
-                      } else {
-                        queryList.add(
-                            new SetTransform(
-                                new OperatorSource(copySelect),
-                                new FunctionCall(functionManager.getFunction(k), params)));
-                      }
+                      functionCallList.add(
+                          new FunctionCall(functionManager.getFunction(k), params));
                     }));
+
+    if (!functionCallList.isEmpty()) {
+      switch (functionCallList.get(0).getFunction().getMappingType()) {
+        case Mapping:
+          queryList.add(new MappingTransform(new OperatorSource(finalRoot), functionCallList));
+          break;
+        case RowMapping:
+          queryList.add(new RowTransform(new OperatorSource(finalRoot), functionCallList));
+          break;
+        case SetMapping:
+          queryList.add(new SetTransform(new OperatorSource(finalRoot), functionCallList));
+          break;
+        default:
+          throw new RuntimeException(
+              "Unknown mapping type: " + functionCallList.get(0).getFunction().getMappingType());
+      }
+    }
+
     selectStatement
         .getBaseExpressionList()
         .forEach(
@@ -690,7 +678,6 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.GroupByQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
     List<FunctionCall> functionCallList = new ArrayList<>();
     selectStatement
         .getFuncExpressionMap()
@@ -705,16 +692,9 @@ public class QueryGenerator extends AbstractGenerator {
                     });
               }
             });
-    queryList.add(
-        new GroupBy(new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList));
 
-    if (selectStatement.getFuncTypeSet().contains(FuncType.Udtf)) {
-      root = OperatorUtils.joinOperatorsByTime(queryList);
-    } else {
-      root = OperatorUtils.joinOperators(queryList, ORDINAL);
-    }
-
-    return root;
+    return new GroupBy(
+        new OperatorSource(root), selectStatement.getGroupByPaths(), functionCallList);
   }
 
   /**
@@ -728,8 +708,8 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getQueryType() != QueryType.DownSampleQuery) {
       return root;
     }
-    List<Operator> queryList = new ArrayList<>();
-    Operator finalRoot = root;
+    List<FunctionCall> functionCallList = new ArrayList<>();
+
     selectStatement
         .getFuncExpressionMap()
         .forEach(
@@ -737,19 +717,16 @@ public class QueryGenerator extends AbstractGenerator {
                 v.forEach(
                     expression -> {
                       FunctionParams params = getFunctionParams(k, expression);
-                      Operator copySelect = finalRoot.copy();
-                      queryList.add(
-                          new Downsample(
-                              new OperatorSource(copySelect),
-                              selectStatement.getPrecision(),
-                              selectStatement.getSlideDistance(),
-                              new FunctionCall(functionManager.getFunction(k), params),
-                              new KeyRange(
-                                  selectStatement.getStartKey(), selectStatement.getEndKey())));
+                      functionCallList.add(
+                          new FunctionCall(functionManager.getFunction(k), params));
                     }));
-    root = OperatorUtils.joinOperatorsByTime(queryList);
 
-    return root;
+    return new Downsample(
+        new OperatorSource(root),
+        selectStatement.getPrecision(),
+        selectStatement.getSlideDistance(),
+        functionCallList,
+        new KeyRange(selectStatement.getStartKey(), selectStatement.getEndKey()));
   }
 
   /**

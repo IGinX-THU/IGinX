@@ -11,11 +11,10 @@ import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.ReverseLevel
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.TreeIterator;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.Rule;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleStrategy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.IndexVisitor;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class RuleBasedPlanner implements Planner {
 
@@ -67,14 +66,25 @@ public class RuleBasedPlanner implements Planner {
 
   @Override
   public Operator findBest() {
-    boolean hasMatched = false;
+    Set<Rule> onceRules = new HashSet<>(); // 一次性规则执行后加入此集合，不再执行
+    boolean hasMatched;
     while (!reachLimit()) {
       TreeIterator treeIt = getTreeIterator();
+      hasMatched = false;
       while (treeIt.hasNext()) {
         Operator op = treeIt.next();
         Iterator<Rule> rulesIt = ruleCollection.iterator();
         while (rulesIt.hasNext()) {
           Rule rule = rulesIt.next();
+
+          if (rule.getStrategy() == RuleStrategy.ONCE) {
+            if (onceRules.contains(rule)) {
+              continue;
+            } else {
+              onceRules.add(rule);
+            }
+          }
+
           Operand expected = rule.getOperand();
 
           if (!matchOperand(expected, op)) {
@@ -88,7 +98,11 @@ public class RuleBasedPlanner implements Planner {
 
           rule.onMatch(ruleCall);
           matchCount++;
+
+          treeIt = getTreeIterator();
           updateIndex();
+          hasMatched = true;
+          break;
         }
       }
       if (!hasMatched) {

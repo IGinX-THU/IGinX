@@ -236,12 +236,12 @@ $ curl -XPOST -H'Content-Type: application/json' -d @query.json http://127.0.0.1
 }
 ```
 
-更多接口可以参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf) 。
+更多接口可以参考 [IGinX 官方手册](../pdf/userManualC.pdf) 。
 
 ### RPC 接口
 
 除了 RESTful 接口外，IGinX 还提供了 RPC
-的数据访问接口，具体接口参考 [IGinX 官方手册](https://github.com/IGinX-THU/IGinX/blob/main/docs/pdf/userManualC.pdf)，同时 IGinX
+的数据访问接口，具体接口参考 [IGinX 官方手册](../pdf/userManualC.pdf)，同时 IGinX
 还提供了部分[官方 example](https://github.com/IGinX-THU/IGinX/tree/main/example/src/main/java/cn/edu/tsinghua/iginx/session)，展示了
 RPC 接口最常见的用法。
 

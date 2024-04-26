@@ -15,12 +15,11 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class JobRunner implements Runner {
+  private static final Logger LOGGER = LoggerFactory.getLogger(JobRunner.class);
 
   private final Job job;
 
   private final List<Runner> runnerList;
-
-  private static final Logger logger = LoggerFactory.getLogger(JobRunner.class);
 
   public JobRunner(Job job) {
     this.job = job;
@@ -39,7 +38,7 @@ public class JobRunner implements Runner {
           runnerList.add(new StreamStageRunner((StreamStage) stage));
           break;
         default:
-          logger.error(String.format("Unknown stage type %s", dataFlowType.toString()));
+          LOGGER.error("Unknown stage type {}", dataFlowType);
           throw new UnknownDataFlowException(dataFlowType);
       }
     }
@@ -59,7 +58,7 @@ public class JobRunner implements Runner {
         job.setState(JobState.JOB_FINISHED);
       }
     } catch (TransformException e) {
-      logger.error(String.format("Fail to run transform job id=%d, because", job.getJobId()), e);
+      LOGGER.error("Fail to run transform job id={}, because", job.getJobId(), e);
       if (job.getActive().compareAndSet(true, false)) {
         job.setState(JobState.JOB_FAILING);
         close();
@@ -75,8 +74,7 @@ public class JobRunner implements Runner {
         runner.close();
       }
     } catch (TransformException e) {
-      logger.error(
-          String.format("Fail to close Transform job runner id=%d, because", job.getJobId()), e);
+      LOGGER.error("Fail to close Transform job runner id={}, because", job.getJobId(), e);
     }
   }
 }

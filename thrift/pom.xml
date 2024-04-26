@@ -13,19 +13,6 @@
     <artifactId>iginx-thrift</artifactId>
     <name>IGinX Thrift</name>
 
-    <distributionManagement>
-        <repository>
-            <id>local-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-repo</url>
-        </repository>
-        <snapshotRepository>
-            <id>local-snapshot-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-snapshot-repo</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <thrift.version>0.16.0</thrift.version>
@@ -35,8 +22,7 @@
         <dependency>
             <groupId>org.apache.thrift</groupId>
             <artifactId>libthrift</artifactId>
-            <version>0.16.0</version>
-            <scope>compile</scope>
+            <version>${thrift.version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -47,7 +33,6 @@
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-api</artifactId>
-            <version>1.7.36</version>
         </dependency>
     </dependencies>
 

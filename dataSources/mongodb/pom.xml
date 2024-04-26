@@ -5,47 +5,33 @@
 
     <parent>
         <groupId>cn.edu.tsinghua</groupId>
-        <artifactId>iginx</artifactId>
+        <artifactId>iginx-driver</artifactId>
         <version>${revision}</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>mongodb</artifactId>
     <name>IGinX MongoDB</name>
 
     <properties>
+        <driver.basedir>..</driver.basedir>
+        <driver.name>mongodb</driver.name>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iginx-core</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
             <groupId>org.mongodb</groupId>
             <artifactId>mongodb-driver</artifactId>
-            <version>3.12.12</version>
-        </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.36</version>
-            <scope>provided</scope>
         </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>

@@ -46,7 +46,7 @@ public class DataTypeInferenceUtils {
     if (isBoolean(s)) {
       return DataType.BOOLEAN;
     } else if (isNumber(s)) {
-      if (!s.contains(".")) {
+      if (!s.contains(".") && !s.equals("0")) {
         if (isLong(s)) {
           return DataType.LONG;
         }

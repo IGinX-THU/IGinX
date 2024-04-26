@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 IGinX of Tsinghua University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cn.edu.tsinghua.iginx.parquet.server;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -22,7 +38,6 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.thrift.*;
-import cn.edu.tsinghua.iginx.parquet.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -41,7 +56,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetWorker implements ParquetService.Iface {
 
-  private static final Logger logger = LoggerFactory.getLogger(ParquetWorker.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetWorker.class);
 
   private static final Status SUCCESS = new Status(200, "success");
 
@@ -99,7 +114,7 @@ public class ParquetWorker implements ParquetService.Iface {
                 tagsList.add(tags);
               });
     } catch (PhysicalException e) {
-      logger.error("encounter error when get header from RowStream ", e);
+      LOGGER.error("encounter error when get header from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
     ParquetHeader parquetHeader = new ParquetHeader(names, types, tagsList, hasTime);
@@ -125,7 +140,7 @@ public class ParquetWorker implements ParquetService.Iface {
         parquetRows.add(parquetRow);
       }
     } catch (PhysicalException e) {
-      logger.error("encounter error when get result from RowStream ", e);
+      LOGGER.error("encounter error when get result from RowStream ", e);
       return new ProjectResp(EXEC_PROJECT_FAIL);
     }
 
@@ -261,7 +276,7 @@ public class ParquetWorker implements ParquetService.Iface {
         }
       default:
         {
-          logger.error("unknown tag filter type: {}", rawTagFilter.getType());
+          LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
           return null;
         }
     }
@@ -284,15 +299,15 @@ public class ParquetWorker implements ParquetService.Iface {
       resp.setTsList(ret);
       return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getColumnsOfStorageUnit ", e);
+      LOGGER.error("encounter error when getColumnsOfStorageUnit ", e);
       return new GetColumnsOfStorageUnitResp(GET_TS_FAIL);
     }
   }
 
   @Override
-  public GetStorageBoundaryResp getBoundaryOfStorage() throws TException {
+  public GetStorageBoundaryResp getBoundaryOfStorage(String dataPrefix) throws TException {
     try {
-      Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage();
+      Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage(dataPrefix);
       GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);
       resp.setStartKey(pair.getV().getStartKey());
       resp.setEndKey(pair.getV().getEndKey());
@@ -300,7 +315,7 @@ public class ParquetWorker implements ParquetService.Iface {
       resp.setEndColumn(pair.getK().getEndColumn());
       return resp;
     } catch (PhysicalException e) {
-      logger.error("encounter error when getBoundaryOfStorage ", e);
+      LOGGER.error("encounter error when getBoundaryOfStorage ", e);
       return new GetStorageBoundaryResp(GET_BOUNDARY_FAIL);
     }
   }

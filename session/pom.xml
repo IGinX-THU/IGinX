@@ -11,19 +11,6 @@
     <artifactId>iginx-session</artifactId>
     <name>IGinX Session</name>
 
-    <distributionManagement>
-        <repository>
-            <id>local-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-repo</url>
-        </repository>
-        <snapshotRepository>
-            <id>local-snapshot-repo-release</id>
-            <name>GitHub Release</name>
-            <url>file://${project.basedir}/../maven-snapshot-repo</url>
-        </snapshotRepository>
-    </distributionManagement>
-
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
@@ -33,18 +20,10 @@
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-thrift</artifactId>
-            <version>${project.version}</version>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>iginx-shared</artifactId>
-            <version>${project.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.thrift</groupId>
-            <artifactId>libthrift</artifactId>
-            <version>0.16.0</version>
-            <scope>compile</scope>
         </dependency>
     </dependencies>
 

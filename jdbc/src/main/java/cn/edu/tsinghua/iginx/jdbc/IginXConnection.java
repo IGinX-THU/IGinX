@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.jdbc;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.Session;
 import java.sql.*;
 import java.util.Map;

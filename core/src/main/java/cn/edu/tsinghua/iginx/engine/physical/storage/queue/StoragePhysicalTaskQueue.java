@@ -26,7 +26,7 @@ import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskQueue {
 
-  private static final Logger logger = LoggerFactory.getLogger(StoragePhysicalTaskQueue.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StoragePhysicalTaskQueue.class);
 
   private final BlockingQueue<StoragePhysicalTask> tasks;
 
@@ -38,7 +38,7 @@ public class StoragePhysicalTaskQueue {
     try {
       tasks.put(task);
     } catch (InterruptedException e) {
-      logger.error("add task to physical task queue error: ", e);
+      LOGGER.error("add task to physical task queue error: ", e);
     }
   }
 
@@ -46,7 +46,7 @@ public class StoragePhysicalTaskQueue {
     try {
       return tasks.take();
     } catch (Exception e) {
-      logger.error("encounter error when get memory task: ", e);
+      LOGGER.error("encounter error when get memory task: ", e);
     }
     return null;
   }

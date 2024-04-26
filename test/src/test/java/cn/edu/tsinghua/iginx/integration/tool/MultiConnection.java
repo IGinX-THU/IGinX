@@ -4,8 +4,7 @@ import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAU
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionAggregateQueryDataSet;
@@ -24,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 public class MultiConnection {
 
-  private static final Logger logger = LoggerFactory.getLogger(MultiConnection.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MultiConnection.class);
 
   private static Session session = null;
 
@@ -77,7 +76,7 @@ public class MultiConnection {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
     } else if (sessionPool != null) {
@@ -92,7 +91,7 @@ public class MultiConnection {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
     } else if (sessionPool != null) {
@@ -106,7 +105,7 @@ public class MultiConnection {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
     } else if (sessionPool != null) {
@@ -120,7 +119,7 @@ public class MultiConnection {
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
     } else if (sessionPool != null) {
@@ -128,24 +127,24 @@ public class MultiConnection {
     }
   }
 
-  public void deleteColumns(List<String> paths) throws SessionException, ExecutionException {
+  public void deleteColumns(List<String> paths) throws SessionException {
     deleteColumns(paths, null, null);
   }
 
   public void deleteColumns(
       List<String> paths, List<Map<String, List<String>>> tags, TagFilterType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     try {
       if (session != null) {
         session.deleteColumns(paths, tags, type);
       } else if (sessionPool != null) {
         sessionPool.deleteColumns(paths, tags, type);
       }
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", CLEAR_DATA, e);
         fail();
       }
     }
@@ -153,7 +152,7 @@ public class MultiConnection {
 
   public SessionAggregateQueryDataSet aggregateQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       return session.aggregateQuery(paths, startKey, endKey, aggregateType);
     }
@@ -165,7 +164,7 @@ public class MultiConnection {
 
   public SessionQueryDataSet downsampleQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       return session.downsampleQuery(paths, startKey, endKey, aggregateType, precision);
     }
@@ -176,7 +175,7 @@ public class MultiConnection {
   }
 
   public SessionQueryDataSet queryData(List<String> paths, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       return session.queryData(paths, startKey, endKey);
     }
@@ -186,8 +185,7 @@ public class MultiConnection {
     return null;
   }
 
-  public SessionExecuteSqlResult executeSql(String statement)
-      throws SessionException, ExecutionException {
+  public SessionExecuteSqlResult executeSql(String statement) throws SessionException {
     if (session != null) {
       return session.executeSql(statement);
     }
@@ -199,7 +197,7 @@ public class MultiConnection {
 
   public void addStorageEngine(
       String ip, int port, StorageEngineType type, Map<String, String> extraParams)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     if (session != null) {
       session.addStorageEngine(ip, port, type, extraParams);
     } else if (sessionPool != null) {
@@ -208,7 +206,7 @@ public class MultiConnection {
   }
 
   public void deleteDataInColumns(List<String> paths, long startKey, long endKey)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     deleteDataInColumns(paths, startKey, endKey, null, null);
   }
 
@@ -218,18 +216,18 @@ public class MultiConnection {
       long endKey,
       List<Map<String, List<String>>> tags,
       TagFilterType type)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     try {
       if (session != null) {
         session.deleteDataInColumns(paths, startKey, endKey, tags, type);
       } else if (sessionPool != null) {
         sessionPool.deleteDataInColumns(paths, startKey, endKey, tags, type);
       }
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, CLEAR_DATA, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", CLEAR_DATA, e);
         fail();
       }
     }

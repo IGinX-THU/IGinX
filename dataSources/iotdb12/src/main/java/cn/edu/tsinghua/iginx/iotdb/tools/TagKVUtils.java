@@ -22,18 +22,16 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+// TODO: 由于IGinX支持除了反引号和换行符之外的所有字符，因此需要TagKVUtils的实现
 public class TagKVUtils {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(TagKVUtils.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TagKVUtils.class);
 
   public static final String tagNameAnnotation = Config.tagNameAnnotation;
 
@@ -41,8 +39,30 @@ public class TagKVUtils {
 
   public static final String tagSuffix = Config.tagSuffix;
 
+  public static String toFullName(String path, Map<String, String> tags) {
+    path += '.';
+    path += tagPrefix;
+    if (tags != null && !tags.isEmpty()) {
+      TreeMap<String, String> sortedTags = new TreeMap<>(tags);
+      StringBuilder pathBuilder = new StringBuilder();
+      sortedTags.forEach(
+          (tagKey, tagValue) -> {
+            pathBuilder
+                .append('.')
+                .append(tagNameAnnotation)
+                .append(tagKey)
+                .append('.')
+                .append(tagValue);
+          });
+      path += pathBuilder.toString();
+    }
+    path += '.';
+    path += tagSuffix;
+    return path;
+  }
+
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {
-    if (!fullName.contains(tagPrefix) && !fullName.contains(tagSuffix)) {
+    if (!fullName.contains(tagPrefix)) {
       return new Pair<>(fullName, null);
     }
 

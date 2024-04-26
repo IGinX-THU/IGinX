@@ -21,10 +21,20 @@ inputs:
         description: "make the IGinX push down filter"
         required: false
         default: "false"
+    Metadata:
+        description: "which metadata service to use"
+        required: false
+        default: zookeeper
 
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
+          name: save config for FileSystem and Parquet
+          shell: bash
+          run: |
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
+
         - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
           name: save config for FileSystem and Parquet
           shell: bash
@@ -40,6 +50,7 @@ runs:
           name: Change has_data
           shell: bash
           run: |
+              echo "${{ inputs.Test-Way }}" > ${GITHUB_WORKSPACE}/test/src/test/resources/dbce-test-way.txt 
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
                   sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
@@ -120,16 +131,66 @@ runs:
                   exit 1
               fi
         - if: inputs.Set-Filter-Fragment-OFF=='true'
-          name: Set FilterFragmentRule OFF
+          name: Set FragmentPruningByFilterRule OFF
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/ruleBasedOptimizer=RemoveNotRule=on,FilterFragmentRule=on/ruleBasedOptimizer=RemoveNotRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/ruleBasedOptimizer=RemoveNotRule=on,FilterFragmentRule=on/ruleBasedOptimizer=RemoveNotRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sudo sed -i '' 's/ruleBasedOptimizer=RemoveNotRule=on,FilterFragmentRule=on/ruleBasedOptimizer=RemoveNotRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i '' 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                   echo "$RUNNER_OS is not supported"
                   exit 1
+              fi
+        - name: Change Log conf
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+        - name: Change File Permission
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i '' 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+
+        - if: inputs.Metadata=='etcd'
+          name: Change metadata to ETCD
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/^metaStorage=.*$/metaStorage=etcd/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/^zookeeperConnectionString=$/#zookeeperConnectionString=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/^#etcdEndpoints=/etcdEndpoints=/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
               fi

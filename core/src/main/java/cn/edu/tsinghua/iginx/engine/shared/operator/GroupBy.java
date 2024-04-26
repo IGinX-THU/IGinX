@@ -45,11 +45,12 @@ public class GroupBy extends AbstractUnaryOperator {
     StringBuilder builder = new StringBuilder();
     builder.append("GroupByCols: ").append(String.join(",", groupByCols));
     if (functionCallList != null && !functionCallList.isEmpty()) {
-      builder.append(", FunctionCallList: ");
+      builder.append(", FuncList(Name, FuncType): ");
       for (FunctionCall functionCall : functionCallList) {
-        builder.append(functionCall.toString()).append(",");
+        builder.append(functionCall.getNameAndFuncTypeStr()).append(",");
       }
-      builder.deleteCharAt(builder.length() - 1);
+      builder.append(" MappingType: ");
+      builder.append(functionCallList.get(0).getFunction().getMappingType());
     }
     return builder.toString();
   }

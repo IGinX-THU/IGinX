@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.other;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.session.Session;
 import org.junit.AfterClass;
@@ -11,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 public class UDFPathIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(UDFPathIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UDFPathIT.class);
 
   private static Session session;
 
@@ -34,9 +34,9 @@ public class UDFPathIT {
 
   @Test
   public void testUDFFuncList() {
-    String statement = "show register python task;";
+    String statement = "SHOW FUNCTIONS;";
     String expectedRes =
-        "Register task infos:\n"
+        "Functions info:\n"
             + "+----------------+---------------+---------------------+-------+--------+\n"
             + "|            NAME|     CLASS_NAME|            FILE_NAME|     IP|UDF_TYPE|\n"
             + "+----------------+---------------+---------------------+-------+--------+\n"

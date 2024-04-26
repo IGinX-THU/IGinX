@@ -18,8 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.metadata;
 
-import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
@@ -209,6 +209,8 @@ public interface IMetaManager {
   TransformTaskMeta getTransformTask(String name);
 
   List<TransformTaskMeta> getTransformTasks();
+
+  List<TransformTaskMeta> getTransformTasksByModule(String moduleName);
 
   void updateFragmentRequests(
       Map<FragmentMeta, Long> writeRequestsMap, Map<FragmentMeta, Long> readRequestsMap)

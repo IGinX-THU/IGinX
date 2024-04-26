@@ -1,3 +1,19 @@
+/*
+ * Copyright 2024 IGinX of Tsinghua University
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package cn.edu.tsinghua.iginx.parquet;
 
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
@@ -18,14 +34,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
-import cn.edu.tsinghua.iginx.parquet.exec.NewExecutor;
+import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
+import cn.edu.tsinghua.iginx.parquet.util.Shared;
+import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +50,7 @@ import org.slf4j.LoggerFactory;
 
 public class ParquetStorage implements IStorage {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(ParquetStorage.class);
-
-  private static final String DRIVER_NAME = "org.duckdb.DuckDBDriver";
-
-  private static final String CONN_URL = "jdbc:duckdb:";
+  private static final Logger LOGGER = LoggerFactory.getLogger(ParquetStorage.class);
 
   private Executor executor;
 
@@ -59,25 +70,25 @@ public class ParquetStorage implements IStorage {
   }
 
   private void initLocalStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    if (!testLocalConnection()) {
-      throw new StorageInitializationException("cannot connect to " + meta.toString());
-    }
-
     Map<String, String> extraParams = meta.getExtraParams();
     String dataDir = extraParams.get("dir");
     String dummyDir = extraParams.get("dummy_dir");
     String dirPrefix = extraParams.get("embedded_prefix");
 
-    Connection connection;
-    try {
-      connection = DriverManager.getConnection(CONN_URL);
-    } catch (SQLException e) {
-      throw new StorageInitializationException("cannot connect to " + meta.toString());
-    }
+    StorageProperties storageProperties = StorageProperties.builder().parse(extraParams).build();
+    LOGGER.info(
+        "storage of {} dir: data_dir={}, dummy_dir={}, dir_prefix={}",
+        meta,
+        dataDir,
+        dummyDir,
+        dirPrefix);
+    LOGGER.info("storage of {} properties: {}", meta, storageProperties);
+
+    Shared shared = Shared.of(storageProperties);
 
     this.executor =
-        new NewExecutor(
-            connection, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
+        new LocalExecutor(
+            shared, meta.isHasData(), meta.isReadOnly(), dataDir, dummyDir, dirPrefix);
     this.server = new ParquetServer(meta.getPort(), executor);
     this.thread = new Thread(server);
     thread.start();
@@ -85,21 +96,9 @@ public class ParquetStorage implements IStorage {
 
   private void initRemoteStorage(StorageEngineMeta meta) throws StorageInitializationException {
     try {
-      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort());
+      this.executor = new RemoteExecutor(meta.getIp(), meta.getPort(), meta.getExtraParams());
     } catch (TTransportException e) {
-      throw new StorageInitializationException(
-          "encounter error when init RemoteStorage " + e.getMessage());
-    }
-  }
-
-  private boolean testLocalConnection() {
-    try {
-      Class.forName(DRIVER_NAME);
-      Connection conn = DriverManager.getConnection(CONN_URL);
-      conn.close();
-      return true;
-    } catch (ClassNotFoundException | SQLException e) {
-      return false;
+      throw new StorageInitializationException("encounter error when init RemoteStorage: " + e);
     }
   }
 
@@ -182,7 +181,7 @@ public class ParquetStorage implements IStorage {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
-    return executor.getBoundaryOfStorage();
+    return executor.getBoundaryOfStorage(prefix);
   }
 
   @Override

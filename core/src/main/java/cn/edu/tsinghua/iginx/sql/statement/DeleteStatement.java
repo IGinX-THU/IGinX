@@ -1,10 +1,10 @@
 package cn.edu.tsinghua.iginx.sql.statement;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.exceptions.SQLParserException;
+import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,7 +84,7 @@ public class DeleteStatement extends DataStatement {
 
   public void setKeyRangesByFilter(Filter filter) {
     if (filter != null) {
-      this.keyRanges = ExprUtils.getKeyRangesFromFilter(filter);
+      this.keyRanges = LogicalFilterUtils.getKeyRangesFromFilter(filter);
       if (keyRanges.isEmpty()) {
         throw new SQLParserException("This clause delete nothing, check your filter again.");
       }

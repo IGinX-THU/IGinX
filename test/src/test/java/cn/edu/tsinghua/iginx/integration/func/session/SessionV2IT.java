@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
 import static org.junit.Assert.*;
 
@@ -37,11 +38,16 @@ public class SessionV2IT {
 
   private static boolean isInfluxdb = false;
 
+  private static boolean needCompareResult = true;
+
   @BeforeClass
   public static void setUp() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == influxdb) {
       isInfluxdb = true;
+    }
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
+      needCompareResult = false;
     }
     iginXClient = IginXClientFactory.create("127.0.0.1", 6888);
 
@@ -284,6 +290,10 @@ public class SessionV2IT {
                 .startKey(endKey - 1000L)
                 .endKey(endKey)
                 .build());
+
+    if (!needCompareResult) {
+      return;
+    }
     assertNotNull(table);
     IginXHeader header = table.getHeader();
     assertTrue(header.hasTimestamp());
@@ -385,6 +395,10 @@ public class SessionV2IT {
                             })
                         .collect(Collectors.toList()))
                 .build());
+    if (!needCompareResult) {
+      return;
+    }
+
     assertNotNull(table);
 
     IginXHeader header = table.getHeader();
@@ -450,6 +464,9 @@ public class SessionV2IT {
                             })
                         .collect(Collectors.toList()))
                 .build());
+    if (!needCompareResult) {
+      return;
+    }
     assertNotNull(table);
 
     header = table.getHeader();
@@ -518,6 +535,9 @@ public class SessionV2IT {
             .endKey(endKey)
             .build();
     IginXTable table = queryClient.query(query);
+    if (!needCompareResult) {
+      return;
+    }
     assertNotNull(table);
     IginXHeader header = table.getHeader();
     assertFalse(header.hasTimestamp());
@@ -561,6 +581,9 @@ public class SessionV2IT {
             .build();
 
     IginXTable table = queryClient.query(query);
+    if (!needCompareResult) {
+      return;
+    }
     assertNotNull(table);
     IginXHeader header = table.getHeader();
     assertTrue(header.hasTimestamp());
@@ -594,6 +617,9 @@ public class SessionV2IT {
             .endKey(endKey + (endKey - startKey))
             .build();
     IginXTable table = queryClient.query(query);
+    if (!needCompareResult) {
+      return;
+    }
     assertNotNull(table);
     IginXHeader header = table.getHeader();
     assertTrue(header.hasTimestamp());
@@ -638,6 +664,9 @@ public class SessionV2IT {
                 .endKey(endKey)
                 .build(),
             POJO.class);
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(1000, pojoList.size());
     for (int i = 0; i < pojoList.size(); i++) {
       POJO pojo = pojoList.get(i);

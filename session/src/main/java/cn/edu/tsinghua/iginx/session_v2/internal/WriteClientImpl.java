@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.session_v2.internal;
 
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.WriteClient;
 import cn.edu.tsinghua.iginx.session_v2.exception.IginXException;
 import cn.edu.tsinghua.iginx.session_v2.write.Point;
@@ -45,7 +45,7 @@ import org.slf4j.LoggerFactory;
 
 public class WriteClientImpl extends AbstractFunctionClient implements WriteClient {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(WriteClientImpl.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(WriteClientImpl.class);
 
   private final MeasurementMapper measurementMapper;
 
@@ -269,8 +269,8 @@ public class WriteClientImpl extends AbstractFunctionClient implements WriteClie
       iginXClient.checkIsClosed();
       try {
         Status status = client.insertNonAlignedColumnRecords(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("insert data failure: ", e);
       }
     }
@@ -310,8 +310,8 @@ public class WriteClientImpl extends AbstractFunctionClient implements WriteClie
       iginXClient.checkIsClosed();
       try {
         Status status = client.insertNonAlignedRowRecords(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("insert data failure: ", e);
       }
     }

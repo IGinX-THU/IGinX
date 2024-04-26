@@ -6,7 +6,7 @@ sqlStatement
 
 statement
    : INSERT INTO insertFullPathSpec VALUES insertValuesSpec # insertStatement
-   | LOAD DATA importFileClause INTO insertFullPathSpec # insertFromFileStatement
+   | LOAD DATA importFileClause INTO (path tagList? (SET KEY keyName = stringLiteral)? | insertFullPathSpec) (AT keyBase = INT)? # insertFromFileStatement
    | DELETE FROM path (COMMA path)* whereClause? withClause? # deleteStatement
    | EXPLAIN? (LOGICAL | PHYSICAL)? cteClause? queryClause orderByClause? limitClause? exportFileClause? # selectStatement
    | COUNT POINTS # countPointsStatement
@@ -16,9 +16,9 @@ statement
    | SHOW REPLICA NUMBER # showReplicationStatement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
-   | SHOW REGISTER PYTHON TASK # showRegisterTaskStatement
-   | REGISTER udfType PYTHON TASK className = stringLiteral IN filePath = stringLiteral AS name = stringLiteral # registerTaskStatement
-   | DROP PYTHON TASK name = stringLiteral # dropTaskStatement
+   | SHOW FUNCTIONS # showRegisterTaskStatement
+   | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
+   | DROP FUNCTION name = stringLiteral # dropTaskStatement
    | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
@@ -30,6 +30,10 @@ statement
    | COMPACT # compactStatement
    | SHOW RULES # showRulesStatement
    | SET RULES ruleAssignment (COMMA ruleAssignment)* # setRulesStatement
+   ;
+
+udfClassRef
+   : name = stringLiteral FROM className = stringLiteral
    ;
 
 insertFullPathSpec
@@ -421,12 +425,10 @@ keyWords
    | POINTS
    | DATA
    | REPLICA
-   | IOTDB
-   | INFLUXDB
    | DROP
-   | REGISTER
-   | PYTHON
-   | TASK
+   | CREATE
+   | FUNCTION
+   | FUNCTIONS
    | COMMIT
    | JOB
    | STATUS
@@ -601,14 +603,6 @@ VALUES
    : V A L U E S
    ;
 
-IOTDB
-   : I O T D B
-   ;
-
-INFLUXDB
-   : I N F L U X D B
-   ;
-
 NOW
    : N O W
    ;
@@ -681,18 +675,6 @@ DROP
    : D R O P
    ;
 
-REGISTER
-   : R E G I S T E R
-   ;
-
-PYTHON
-   : P Y T H O N
-   ;
-
-TASK
-   : T A S K
-   ;
-
 COMMIT
    : C O M M I T
    ;
@@ -755,6 +737,18 @@ UNKNOWN
 
 FINISHED
    : F I N I S H E D
+   ;
+
+CREATE
+   : C R E A T E
+   ;
+
+FUNCTION
+   : F U N C T I O N
+   ;
+
+FUNCTIONS
+   : F U N C T I O N S
    ;
 
 CREATED
@@ -919,6 +913,10 @@ INFILE
 
 CSV
    : C S V
+   ;
+
+AT
+   : A T
    ;
 
 STREAM

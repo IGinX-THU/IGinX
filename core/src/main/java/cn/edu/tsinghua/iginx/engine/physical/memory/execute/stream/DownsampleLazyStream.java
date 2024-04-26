@@ -21,11 +21,13 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStreamWrapper;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
@@ -38,9 +40,7 @@ public class DownsampleLazyStream extends UnaryLazyStream {
 
   private final Downsample downsample;
 
-  private final SetMappingFunction function;
-
-  private final FunctionParams params;
+  private final List<FunctionCall> functionCallList;
 
   private Row nextTarget;
 
@@ -52,8 +52,7 @@ public class DownsampleLazyStream extends UnaryLazyStream {
     super(stream);
     this.wrapper = new RowStreamWrapper(stream);
     this.downsample = downsample;
-    this.function = (SetMappingFunction) downsample.getFunctionCall().getFunction();
-    this.params = downsample.getFunctionCall().getParams();
+    this.functionCallList = downsample.getFunctionCallList();
   }
 
   private void initialize() throws PhysicalException {
@@ -97,13 +96,20 @@ public class DownsampleLazyStream extends UnaryLazyStream {
         rows.add(wrapper.next());
       }
       Table table = new Table(rows.get(0).getHeader(), rows);
-      try {
-        row = function.transform(table, params);
-      } catch (Exception e) {
-        throw new PhysicalTaskExecuteFailureException(
-            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
-            e);
+
+      List<Row> subRowList = new ArrayList<>();
+      for (FunctionCall functionCall : functionCallList) {
+        FunctionParams params = functionCall.getParams();
+        SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+        try {
+          subRowList.add(function.transform(table, params));
+        } catch (Exception e) {
+          throw new PhysicalTaskExecuteFailureException(
+              "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+              e);
+        }
       }
+      row = RowUtils.combineMultipleColumns(subRowList);
     }
     return row == null
         ? null

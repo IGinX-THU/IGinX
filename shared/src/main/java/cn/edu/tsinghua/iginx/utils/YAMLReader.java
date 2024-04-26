@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
 import org.yaml.snakeyaml.constructor.Constructor;
 
@@ -16,11 +17,11 @@ public class YAMLReader {
 
   private final File file;
 
-  private static final Logger logger = LoggerFactory.getLogger(YAMLReader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(YAMLReader.class);
 
   public YAMLReader(String path) throws FileNotFoundException {
     this.path = path;
-    this.yaml = new Yaml(new Constructor(JobFromYAML.class));
+    this.yaml = new Yaml(new Constructor(JobFromYAML.class, new LoaderOptions()));
     this.file = new File(path);
   }
 
@@ -56,12 +57,12 @@ public class YAMLReader {
       conf = IOUtils.toString(in, String.valueOf(StandardCharsets.UTF_8));
       conf = normalize(conf);
     } catch (IOException e) {
-      logger.error(String.format("Fail to find file, path=%s", filePath));
+      LOGGER.error("Fail to find file, path={}", filePath);
     } finally {
       try {
         in.close();
       } catch (IOException e) {
-        logger.error("Fail to close the file, path=%s", filePath);
+        LOGGER.error("Fail to close the file, path={}", filePath);
       }
     }
     return conf;

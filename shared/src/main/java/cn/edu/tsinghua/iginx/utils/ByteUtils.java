@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
-import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
+import cn.edu.tsinghua.iginx.exception.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;

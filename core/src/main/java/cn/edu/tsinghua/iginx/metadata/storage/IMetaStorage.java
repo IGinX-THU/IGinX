@@ -18,9 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.metadata.storage;
 
-import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
 import cn.edu.tsinghua.iginx.utils.Pair;

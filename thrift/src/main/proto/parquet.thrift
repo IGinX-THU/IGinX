@@ -157,6 +157,6 @@ service ParquetService {
 
     GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit);
 
-    GetStorageBoundaryResp getBoundaryOfStorage();
+    GetStorageBoundaryResp getBoundaryOfStorage(1: string dataPrefix);
 
 }

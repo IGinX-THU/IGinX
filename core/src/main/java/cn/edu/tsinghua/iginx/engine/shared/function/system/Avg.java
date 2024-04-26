@@ -18,22 +18,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.thrift.DataType;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
-import java.util.HashMap;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.Map;
-import java.util.regex.Pattern;
 
 public class Avg implements SetMappingFunction {
 
@@ -63,35 +55,11 @@ public class Avg implements SetMappingFunction {
   }
 
   @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
-    List<String> pathParams = params.getPaths();
-    if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
-    }
-
-    String target = pathParams.get(0);
-    List<Field> fields = rows.getHeader().getFields();
-
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-    List<Field> targetFields = new ArrayList<>();
-    List<Integer> indices = new ArrayList<>();
-    Map<String, Integer> groupNameIndexMap = new HashMap<>(); // 只有在存在 group by 的时候才奏效
-    Map<Integer, Integer> groupOrderIndexMap = new HashMap<>();
-    for (int i = 0; i < fields.size(); i++) {
-      Field field = fields.get(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
-        String name = getIdentifier() + "(";
-        String fullName = getIdentifier() + "(";
-        if (params.isDistinct()) {
-          name += "distinct ";
-          fullName += "distinct ";
-        }
-        name += field.getName() + ")";
-        fullName += field.getFullName() + ")";
-        targetFields.add(new Field(name, fullName, DataType.DOUBLE));
-        indices.add(i);
-      }
-    }
+  public Row transform(Table table, FunctionParams params) throws Exception {
+    Pair<List<Field>, List<Integer>> pair = FunctionUtils.getFieldAndIndices(table, params, this);
+    List<Field> fields = table.getHeader().getFields();
+    List<Field> targetFields = pair.k;
+    List<Integer> indices = pair.v;
 
     for (Field field : targetFields) {
       if (!DataTypeUtils.isNumber(field.getType())) {
@@ -101,8 +69,7 @@ public class Avg implements SetMappingFunction {
 
     double[] targetSums = new double[targetFields.size()];
     long[] counts = new long[targetFields.size()];
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       for (int i = 0; i < indices.size(); i++) {
         int index = indices.get(i);
         Object value = row.getValue(index);

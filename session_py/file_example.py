@@ -7,8 +7,8 @@ import numpy as np
 import cv2
 import requests
 
-from iginx.session import Session
-from iginx.thrift.rpc.ttypes import StorageEngineType
+from iginx_pyclient.session import Session
+from iginx_pyclient.thrift.rpc.ttypes import StorageEngineType
 
 
 # 读取第一行是列名的csv文件，并将数据存入IGinX

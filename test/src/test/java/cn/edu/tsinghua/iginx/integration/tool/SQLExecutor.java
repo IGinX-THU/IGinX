@@ -5,8 +5,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
@@ -20,11 +19,13 @@ import org.slf4j.LoggerFactory;
 
 public class SQLExecutor {
 
-  private static final Logger logger = LoggerFactory.getLogger(SQLExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(SQLExecutor.class);
 
   private final ExecutorService pool = Executors.newFixedThreadPool(30);
 
   private final MultiConnection conn;
+
+  private boolean needCompareResult = true;
 
   public SQLExecutor(MultiConnection session) {
     this.conn = session;
@@ -38,28 +39,33 @@ public class SQLExecutor {
     conn.closeSession();
   }
 
+  public void setNeedCompareResult(boolean needCompareResult) {
+    this.needCompareResult = needCompareResult;
+  }
+
   public SessionExecuteSqlResult getSessionExecuteSqlResult(String statement) {
     if (statement.toLowerCase().startsWith("insert")) {
-      logger.info("Execute Insert Statement.");
+      LOGGER.info("Execute Insert Statement.");
     } else {
-      logger.info("Execute Statement: \"{}\"", statement);
+      LOGGER.info("Execute Statement: \"{}\"", statement);
     }
 
     SessionExecuteSqlResult res = null;
     try {
       res = conn.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
         return null;
       } else {
-        logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
         fail();
       }
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      LOGGER.error(
+          "Statement: \"{}\" execute fail. Caused by: {}", statement, res.getParseErrorMsg());
       fail();
       return null;
     }
@@ -77,22 +83,25 @@ public class SQLExecutor {
 
   public void executeAndCompare(String statement, String expectedOutput) {
     String actualOutput = execute(statement);
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(expectedOutput, actualOutput);
   }
 
   public void executeAndCompareErrMsg(String statement, String expectedErrMsg) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     try {
       conn.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
-      logger.info("Statement: \"{}\" execute fail. Because: {}", statement, e.getMessage());
+    } catch (SessionException e) {
+      LOGGER.info("Statement: \"{}\" execute fail. Because: ", statement, e);
       assertEquals(expectedErrMsg, e.getMessage());
     }
   }
 
   public void concurrentExecute(List<String> statements) {
-    logger.info("Concurrent execute statements, size={}", statements.size());
+    LOGGER.info("Concurrent execute statements, size={}", statements.size());
     CountDownLatch latch = new CountDownLatch(statements.size());
 
     for (String statement : statements) {
@@ -106,13 +115,13 @@ public class SQLExecutor {
     try {
       latch.await();
     } catch (InterruptedException e) {
-      logger.error("Interrupt when latch await");
+      LOGGER.error("Interrupt when latch await");
       fail();
     }
   }
 
   public void concurrentExecuteAndCompare(List<Pair<String, String>> statementsAndExpectRes) {
-    logger.info("Concurrent execute statements, size={}", statementsAndExpectRes.size());
+    LOGGER.info("Concurrent execute statements, size={}", statementsAndExpectRes.size());
     List<Pair<String, Pair<String, String>>> failedList =
         Collections.synchronizedList(new ArrayList<>());
     CountDownLatch start = new CountDownLatch(statementsAndExpectRes.size());
@@ -128,7 +137,7 @@ public class SQLExecutor {
             try {
               start.await();
             } catch (InterruptedException e) {
-              logger.error("Interrupt when latch await");
+              LOGGER.error("Interrupt when latch await");
             }
 
             String actualOutput = execute(statement);
@@ -142,18 +151,21 @@ public class SQLExecutor {
     try {
       end.await();
     } catch (InterruptedException e) {
-      logger.error("Interrupt when latch await");
+      LOGGER.error("Interrupt when latch await");
       fail();
     }
 
+    if (!needCompareResult) {
+      return;
+    }
     if (!failedList.isEmpty()) {
       failedList.forEach(
           failed -> {
-            logger.error(
+            LOGGER.error(
                 "Statement: \"{}\" execute result is inconsistent with the expectation.",
                 failed.getK());
-            logger.error("Expected: {}", failed.getV().getK());
-            logger.error("Actual: {}", failed.getV().getV());
+            LOGGER.error("Expected: {}", failed.getV().getK());
+            LOGGER.error("Actual: {}", failed.getV().getV());
           });
       fail();
     }

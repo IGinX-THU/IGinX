@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.UsersClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.User;
@@ -31,7 +31,7 @@ import cn.edu.tsinghua.iginx.thrift.GetUserResp;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.UpdateUserReq;
 import cn.edu.tsinghua.iginx.thrift.UserType;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,8 +58,8 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
       iginXClient.checkIsClosed();
       try {
         Status status = client.addUser(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("add user failure: ", e);
       }
     }
@@ -83,8 +83,8 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
       iginXClient.checkIsClosed();
       try {
         Status status = client.updateUser(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("update user failure: ", e);
       }
     }
@@ -102,8 +102,8 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
       iginXClient.checkIsClosed();
       try {
         Status status = client.updateUser(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("update user failure: ", e);
       }
     }
@@ -118,8 +118,8 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
       iginXClient.checkIsClosed();
       try {
         Status status = client.deleteUser(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("Remove user failure: ", e);
       }
     }
@@ -138,8 +138,8 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
       iginXClient.checkIsClosed();
       try {
         resp = client.getUser(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("find user failure: ", e);
       }
     }
@@ -163,8 +163,8 @@ public class UsersClientImpl extends AbstractFunctionClient implements UsersClie
       iginXClient.checkIsClosed();
       try {
         resp = client.getUser(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("find users failure: ", e);
       }
     }

@@ -43,7 +43,7 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
 
   private boolean isValid(String prefix) {
     return prefix != null
-        && !prefix.contains("..")
+        && !prefix.contains("..") // why this is specially checked?
         && (prefix.isEmpty() || prefix.charAt(0) != '.');
   }
 
@@ -210,5 +210,12 @@ public final class ColumnsInterval implements Comparable<ColumnsInterval> {
       return isStart ? 1 : -1;
     }
     return s1.compareTo(s2);
+  }
+
+  public boolean isContainWithoutPrefix(String columnName) {
+    return (startColumn == null
+            || (columnName != null && StringUtils.compare(columnName, startColumn, true) >= 0))
+        && (endColumn == null
+            || (columnName != null && StringUtils.compare(columnName, endColumn, false) < 0));
   }
 }

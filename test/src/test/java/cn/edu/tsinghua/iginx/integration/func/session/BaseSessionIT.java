@@ -2,8 +2,7 @@ package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
@@ -21,7 +20,7 @@ import org.slf4j.LoggerFactory;
 
 public abstract class BaseSessionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(BaseSessionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(BaseSessionIT.class);
 
   // parameters to be flexibly configured by inheritance
   protected static MultiConnection session;
@@ -63,7 +62,7 @@ public abstract class BaseSessionIT {
               new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
       session.openSession();
     } catch (Exception e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
   }
 
@@ -73,7 +72,7 @@ public abstract class BaseSessionIT {
       clearData();
       session.closeSession();
     } catch (SessionException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("unexpected error: ", e);
     }
   }
 
@@ -117,8 +116,7 @@ public abstract class BaseSessionIT {
     return paths;
   }
 
-  protected void insertNumRecords(List<String> insertPaths)
-      throws SessionException, ExecutionException {
+  protected void insertNumRecords(List<String> insertPaths) throws SessionException {
     int pathLen = insertPaths.size();
     long[] keys = new long[(int) KEY_PERIOD];
     for (long i = 0; i < KEY_PERIOD; i++) {
@@ -150,7 +148,7 @@ public abstract class BaseSessionIT {
       try {
         result = (double) rawResult;
       } catch (Exception e) {
-        logger.error(e.getMessage());
+        LOGGER.error("unexpected error: ", e);
         fail();
       }
     }

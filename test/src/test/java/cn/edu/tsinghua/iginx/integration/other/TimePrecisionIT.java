@@ -2,8 +2,7 @@ package cn.edu.tsinghua.iginx.integration.other;
 
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
@@ -18,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 public class TimePrecisionIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TimePrecisionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TimePrecisionIT.class);
 
   private static Session session;
 
@@ -52,7 +51,7 @@ public class TimePrecisionIT {
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
+  public void insertData() throws SessionException {
 
     for (int i = 0; i < 4; i++) {
       List<String> paths = new ArrayList<>();
@@ -79,7 +78,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeS() throws ExecutionException, SessionException {
+  public void queryTimeS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -102,7 +101,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeMS() throws ExecutionException, SessionException {
+  public void queryTimeMS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -125,7 +124,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeUS() throws ExecutionException, SessionException {
+  public void queryTimeUS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;
@@ -145,7 +144,7 @@ public class TimePrecisionIT {
   }
 
   @Test
-  public void queryTimeNS() throws ExecutionException, SessionException {
+  public void queryTimeNS() throws SessionException {
     List<String> paths = new ArrayList<>(Arrays.asList(path).subList(0, 4));
 
     long startTime = 0L;

@@ -18,14 +18,15 @@
  */
 package cn.edu.tsinghua.iginx.metadata.storage.zk;
 
+import static cn.edu.tsinghua.iginx.metadata.storage.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.metadata.utils.ColumnsIntervalUtils.fromString;
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.*;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.cache.IMetaCache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.hook.*;
 import cn.edu.tsinghua.iginx.metadata.storage.IMetaStorage;
 import cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus;
@@ -51,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class ZooKeeperMetaStorage implements IMetaStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(ZooKeeperMetaStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ZooKeeperMetaStorage.class);
 
   private static final String IGINX_NODE = "/iginx/node";
 
@@ -61,40 +62,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
 
   private static final String IGINX_LOCK_NODE = "/lock/iginx";
 
-  private static final String STORAGE_ENGINE_LOCK_NODE = "/lock/storage";
-
-  private static final String FRAGMENT_LOCK_NODE = "/lock/fragment";
-
-  private static final String STORAGE_UNIT_LOCK_NODE = "/lock/unit";
-
   private static final String SCHEMA_MAPPING_LOCK_NODE = "/lock/schema";
-
-  private static final String STORAGE_ENGINE_NODE_PREFIX = "/storage";
-
-  private static final String IGINX_NODE_PREFIX = "/iginx";
-
-  private static final String FRAGMENT_NODE_PREFIX = "/fragment";
-
-  private static final String STORAGE_UNIT_NODE_PREFIX = "/unit";
-
-  private static final String SCHEMA_MAPPING_PREFIX = "/schema";
-
-  private static final String USER_NODE_PREFIX = "/user";
-
-  private static final String USER_LOCK_NODE = "/lock/user";
-
-  private static final String RESHARD_STATUS_LOCK_NODE = "/lock/status/reshard";
-
-  private static final String RESHARD_COUNTER_LOCK_NODE = "/lock/counter/reshard";
-
-  private static final String ACTIVE_END_TIME_COUNTER_LOCK_NODE =
-      "/lock/counter/end/time/active/max";
-
-  private static final String LATENCY_COUNTER_LOCK_NODE = "/lock/counter/latency";
-
-  private static final String FRAGMENT_HEAT_COUNTER_LOCK_NODE = "/lock/counter/fragment/heat";
-
-  private static final String TIMESERIES_HEAT_COUNTER_LOCK_NODE = "/lock/counter/timeseries/heat";
 
   private static final String POLICY_NODE_PREFIX = "/policy";
 
@@ -103,47 +71,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   private static final String POLICY_VERSION = "/policy/version";
 
   private static final String POLICY_LOCK_NODE = "/lock/policy";
-
-  private static final String STATISTICS_FRAGMENT_POINTS_PREFIX = "/statistics/fragment/points";
-
-  private static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_WRITE =
-      "/statistics/fragment/requests/write";
-
-  private static final String STATISTICS_FRAGMENT_REQUESTS_PREFIX_READ =
-      "/statistics/fragment/requests/read";
-
-  private static final String STATISTICS_FRAGMENT_REQUESTS_COUNTER_PREFIX =
-      "/statistics/fragment/requests/counter";
-
-  private static final String STATISTICS_FRAGMENT_HEAT_PREFIX_WRITE =
-      "/statistics/fragment/heat/write";
-
-  private static final String STATISTICS_FRAGMENT_HEAT_PREFIX_READ =
-      "/statistics/fragment/heat/read";
-
-  private static final String STATISTICS_FRAGMENT_HEAT_COUNTER_PREFIX =
-      "/statistics/fragment/heat/counter";
-
-  private static final String STATISTICS_TIMESERIES_HEAT_PREFIX = "/statistics/timeseries/heat";
-
-  private static final String STATISTICS_TIMESERIES_HEAT_COUNTER_PREFIX =
-      "/statistics/timeseries/heat/counter";
-
-  private static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE =
-      "/statistics/end/time/active/max/node";
-
-  private static final String MAX_ACTIVE_END_TIME_STATISTICS_NODE_PREFIX =
-      "/statistics/end/time/active/max";
-
-  private static final String RESHARD_STATUS_NODE_PREFIX = "/status/reshard";
-
-  private static final String RESHARD_COUNTER_NODE_PREFIX = "/counter/reshard";
-
-  private static final String TIMESERIES_NODE_PREFIX = "/timeseries";
-
-  private static final String TRANSFORM_NODE_PREFIX = "/transform";
-
-  private static final String TRANSFORM_LOCK_NODE = "/lock/transform";
 
   private boolean isMaster = false;
 
@@ -351,7 +278,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           byte[] data = client.getData().forPath(IGINX_NODE_PREFIX + "/" + childName);
           IginxMeta iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
           if (iginxMeta == null) {
-            logger.error("resolve data from " + IGINX_NODE_PREFIX + "/" + childName + " error");
+            LOGGER.error("resolve data from {}/{} error", IGINX_NODE_PREFIX, childName);
             continue;
           }
           iginxMetaMap.putIfAbsent(iginxMeta.getId(), iginxMeta);
@@ -413,7 +340,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               data = event.getData().getData();
               iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
               if (iginxMeta != null) {
-                logger.info(
+                LOGGER.info(
                     "new iginx comes to cluster: id = "
                         + iginxMeta.getId()
                         + " ,ip = "
@@ -422,22 +349,22 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                         + iginxMeta.getPort());
                 iginxChangeHook.onChange(iginxMeta.getId(), iginxMeta);
               } else {
-                logger.error("resolve iginx meta from zookeeper error");
+                LOGGER.error("resolve iginx meta from zookeeper error");
               }
               break;
             case NODE_REMOVED:
               data = event.getData().getData();
               String path = event.getData().getPath();
-              logger.info("node " + path + " is removed");
+              LOGGER.info("node {} is removed", path);
               if (path.equals(IGINX_NODE_PREFIX)) {
                 // 根节点被删除
-                logger.info("all iginx leave from cluster, iginx shutdown.");
+                LOGGER.info("all iginx leave from cluster, iginx shutdown.");
                 System.exit(1);
                 break;
               }
               iginxMeta = JsonUtils.fromJson(data, IginxMeta.class);
               if (iginxMeta != null) {
-                logger.info(
+                LOGGER.info(
                     "iginx leave from cluster: id = "
                         + iginxMeta.getId()
                         + " ,ip = "
@@ -446,7 +373,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                         + iginxMeta.getPort());
                 iginxChangeHook.onChange(iginxMeta.getId(), null);
               } else {
-                logger.error("resolve iginx meta from zookeeper error");
+                LOGGER.error("resolve iginx meta from zookeeper error");
               }
               break;
             default:
@@ -496,7 +423,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         byte[] data = this.client.getData().forPath(STORAGE_ENGINE_NODE_PREFIX + "/" + childName);
         StorageEngineMeta storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
         if (storageEngineMeta == null) {
-          logger.error(
+          LOGGER.error(
               "resolve data from " + STORAGE_ENGINE_NODE_PREFIX + "/" + childName + " error");
           continue;
         }
@@ -583,11 +510,11 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 break;
               }
               data = event.getData().getData();
-              logger.info("storage engine meta updated " + event.getData().getPath());
-              logger.info("storage engine: " + new String(data));
+              LOGGER.info("storage engine meta updated {}", event.getData().getPath());
+              LOGGER.info("storage engine: {}", new String(data));
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
               if (storageEngineMeta != null) {
-                logger.info(
+                LOGGER.info(
                     "new storage engine comes to cluster: id = "
                         + storageEngineMeta.getId()
                         + " ,ip = "
@@ -596,22 +523,22 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                         + storageEngineMeta.getPort());
                 storageChangeHook.onChange(storageEngineMeta.getId(), storageEngineMeta);
               } else {
-                logger.error("resolve storage engine from zookeeper error");
+                LOGGER.error("resolve storage engine from zookeeper error");
               }
               break;
             case NODE_REMOVED:
               data = event.getData().getData();
               String path = event.getData().getPath();
-              logger.info("node " + path + " is removed");
+              LOGGER.info("node {} is removed", path);
               if (path.equals(IGINX_NODE_PREFIX)) {
                 // 根节点被删除
-                logger.info("all iginx leave from cluster, iginx exits");
+                LOGGER.info("all iginx leave from cluster, iginx exits");
                 System.exit(2);
                 break;
               }
               storageEngineMeta = JsonUtils.fromJson(data, StorageEngineMeta.class);
               if (storageEngineMeta != null) {
-                logger.info(
+                LOGGER.info(
                     "storage engine leave from cluster: id = "
                         + storageEngineMeta.getId()
                         + " ,ip = "
@@ -620,7 +547,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                         + storageEngineMeta.getPort());
                 storageChangeHook.onChange(storageEngineMeta.getId(), null);
               } else {
-                logger.error("resolve storage engine from zookeeper error");
+                LOGGER.error("resolve storage engine from zookeeper error");
               }
               break;
             default:
@@ -647,7 +574,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         List<String> storageUnitIds = this.client.getChildren().forPath(STORAGE_UNIT_NODE_PREFIX);
         storageUnitIds.sort(String::compareTo);
         for (String storageUnitId : storageUnitIds) {
-          logger.info("load storage unit: " + storageUnitId);
+          LOGGER.info("load storage unit: {}", storageUnitId);
           byte[] data =
               this.client.getData().forPath(STORAGE_UNIT_NODE_PREFIX + "/" + storageUnitId);
           StorageUnitMeta storageUnitMeta = JsonUtils.fromJson(data, StorageUnitMeta.class);
@@ -655,7 +582,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             StorageUnitMeta masterStorageUnitMeta =
                 storageUnitMetaMap.get(storageUnitMeta.getMasterId());
             if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-              logger.error(
+              LOGGER.error(
                   "unexpected storage unit "
                       + new String(data)
                       + ", because it does not has a master storage unit");
@@ -740,7 +667,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               }
               StorageUnitMeta storageUnitMeta = JsonUtils.fromJson(data, StorageUnitMeta.class);
               if (storageUnitMeta != null) {
-                logger.info("new storage unit comes to cluster: id = " + storageUnitMeta.getId());
+                LOGGER.info("new storage unit comes to cluster: id = {}", storageUnitMeta.getId());
                 storageUnitChangeHook.onChange(storageUnitMeta.getId(), storageUnitMeta);
               }
               break;
@@ -792,7 +719,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         }
       }
     } catch (Exception e) {
-      logger.error("get error when query fragment by columnName and keyInterval");
+      LOGGER.error("get error when query fragment by columnName and keyInterval");
     }
     return new ArrayList<>();
   }
@@ -833,7 +760,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       }
       return fragmentMap;
     } catch (Exception e) {
-      logger.error("get error when query fragment by columnsInterval and keyInterval");
+      LOGGER.error("get error when query fragment by columnsInterval and keyInterval");
     }
     return new HashMap<>();
   }
@@ -892,7 +819,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               if (fragmentMeta != null) {
                 fragmentChangeHook.onChange(false, fragmentMeta);
               } else {
-                logger.error("resolve fragment from zookeeper error");
+                LOGGER.error("resolve fragment from zookeeper error");
               }
               break;
             case NODE_ADDED:
@@ -903,7 +830,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 if (fragmentMeta != null) {
                   fragmentChangeHook.onChange(true, fragmentMeta);
                 } else {
-                  logger.error("resolve fragment from zookeeper error");
+                  LOGGER.error("resolve fragment from zookeeper error");
                 }
               }
               break;
@@ -1087,7 +1014,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               if (userMeta != null) {
                 userChangeHook.onChange(userMeta.getUsername(), userMeta);
               } else {
-                logger.error("resolve user from zookeeper error");
+                LOGGER.error("resolve user from zookeeper error");
               }
               break;
             case NODE_REMOVED:
@@ -1122,7 +1049,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         byte[] data = this.client.getData().forPath(USER_NODE_PREFIX + "/" + username);
         UserMeta user = JsonUtils.fromJson(data, UserMeta.class);
         if (user == null) {
-          logger.error("resolve data from " + USER_NODE_PREFIX + "/" + username + " error");
+          LOGGER.error("resolve data from {}/{} error", USER_NODE_PREFIX, username);
           continue;
         }
         users.add(user);
@@ -1227,10 +1154,10 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           .creatingParentsIfNeeded()
           .withMode(CreateMode.EPHEMERAL)
           .forPath(POLICY_LEADER);
-      logger.info("成功");
+      LOGGER.info("成功");
       isMaster = true;
     } catch (KeeperException.NodeExistsException e) {
-      logger.info("失败");
+      LOGGER.info("失败");
       isMaster = false;
     } finally {
       // TODO: this will cause exception lost! Can we catch all exception instead?
@@ -1284,7 +1211,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         }
         Map<String, Double> tmp = toMap(data);
         if (tmp == null) {
-          logger.error("resolve data from " + TIMESERIES_NODE_PREFIX + "/" + child + " error");
+          LOGGER.error("resolve data from {}/{} error", TIMESERIES_NODE_PREFIX, child);
           continue;
         }
         tmp.forEach(
@@ -1297,7 +1224,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             });
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return ret;
   }
@@ -1313,12 +1240,12 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
     if (ret.length() != 0 && ret.charAt(ret.length() - 1) == '^') {
       ret.deleteCharAt(ret.length() - 1);
     }
-    logger.info(ret.toString());
+    LOGGER.info(ret.toString());
     return ret.toString().getBytes();
   }
 
   private Map<String, Double> toMap(byte[] prefix) {
-    logger.info(new String(prefix));
+    LOGGER.info(new String(prefix));
     Map<String, Double> ret = new HashMap<>();
     String str = new String(prefix);
     String[] tmp = str.split("\\^");
@@ -1327,7 +1254,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
       try {
         ret.put(tmp2[0], Double.parseDouble(tmp2[1]));
       } catch (Exception e) {
-        logger.error(entry);
+        LOGGER.error(entry);
       }
     }
     return ret;
@@ -1427,7 +1354,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                 if (version > 0) {
                   versionChangeHook.onChange(version, newNum);
                 } else {
-                  logger.error("resolve prefix from zookeeper error");
+                  LOGGER.error("resolve prefix from zookeeper error");
                 }
                 break;
               default:
@@ -1457,7 +1384,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           Integer.parseInt(new String(client.getData().forPath(POLICY_VERSION)).split("\t")[0]);
       this.client.setData().forPath(POLICY_VERSION, ((version + 1) + "\t" + "0").getBytes());
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.error("unexpected error: ", e);
     }
     return version + 1;
   }
@@ -1486,7 +1413,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           byte[] data = this.client.getData().forPath(TRANSFORM_NODE_PREFIX + "/" + className);
           TransformTaskMeta task = JsonUtils.fromJson(data, TransformTaskMeta.class);
           if (task == null) {
-            logger.error("resolve data from " + TRANSFORM_NODE_PREFIX + "/" + className + " error");
+            LOGGER.error("resolve data from {}/{} error", TRANSFORM_NODE_PREFIX, className);
             continue;
           }
           tasks.add(task);
@@ -1526,7 +1453,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
               if (taskMeta != null) {
                 transformChangeHook.onChange(taskMeta.getName(), taskMeta);
               } else {
-                logger.error("resolve transform task from zookeeper error");
+                LOGGER.error("resolve transform task from zookeeper error");
               }
               break;
             case NODE_REMOVED:
@@ -2263,7 +2190,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             case NODE_UPDATED:
               data = event.getData().getData();
               status = JsonUtils.fromJson(data, ReshardStatus.class);
-              logger.error("status = {}", status);
+              LOGGER.error("status = {}", status);
               reshardStatusChangeHook.onChange(status);
               break;
             default:

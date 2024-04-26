@@ -12,7 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class ColumnsIntervalTest {
-  public static final Logger logger = LoggerFactory.getLogger(ColumnsIntervalTest.class);
+  public static final Logger LOGGER = LoggerFactory.getLogger(ColumnsIntervalTest.class);
   private ColumnsInterval columnsInterval;
   private String[] arrayName = {"null", "a.a", "b.b", "c.c", "d.d", "null"};
 
@@ -32,7 +32,7 @@ public class ColumnsIntervalTest {
         ColumnsInterval columnsInterval = new ColumnsInterval(str);
       } catch (Exception e) {
         flag = true;
-        logger.error(e.getMessage());
+        LOGGER.error("expect true but was false, with {}", str, e);
       }
       if (!flag) {
         fail();
@@ -108,7 +108,7 @@ public class ColumnsIntervalTest {
         ColumnsInterval ca = getColumnRangeFromInterval(intervalA);
         ColumnsInterval cb = getColumnRangeFromInterval(intervalB);
         if (res != ca.isCompletelyAfter(cb)) {
-          logger.error(
+          LOGGER.error(
               "expect {} but was {}, with {}, {} ",
               res,
               ca.isCompletelyAfter(cb),
@@ -131,7 +131,7 @@ public class ColumnsIntervalTest {
         ColumnsInterval ca = getColumnRangeFromInterval(intervalA);
         ColumnsInterval cb = getColumnRangeFromInterval(intervalB);
         if (res != ca.isIntersect(cb)) {
-          logger.error(
+          LOGGER.error(
               "expect {} but was {}, with {}, {} ",
               res,
               ca.isIntersect(cb),
@@ -154,7 +154,7 @@ public class ColumnsIntervalTest {
         boolean res = testIsContain(intervalA, list.get(j));
         ColumnsInterval ca = getColumnRangeFromInterval(intervalA);
         if (res != ca.isContain(arrayName[j])) {
-          logger.error(
+          LOGGER.error(
               "expect {} but was {}, with {}, {} ",
               res,
               ca.isContain(arrayName[j]),

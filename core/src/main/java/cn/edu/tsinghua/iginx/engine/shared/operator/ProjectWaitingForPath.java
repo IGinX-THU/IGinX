@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 
 public class ProjectWaitingForPath extends AbstractUnaryOperator {
 

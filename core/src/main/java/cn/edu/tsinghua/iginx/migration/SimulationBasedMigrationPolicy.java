@@ -15,11 +15,11 @@ import org.slf4j.LoggerFactory;
 
 public class SimulationBasedMigrationPolicy extends MigrationPolicy {
 
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(SimulationBasedMigrationPolicy.class);
 
   public SimulationBasedMigrationPolicy() {
-    super(logger);
+    super(LOGGER);
   }
 
   @Override
@@ -62,7 +62,7 @@ public class SimulationBasedMigrationPolicy extends MigrationPolicy {
         targetIndex = currIndex;
       }
     }
-    logger.info(
+    LOGGER.info(
         "complete simulate migration task with time consumption: {} ms",
         System.currentTimeMillis() - startTime);
 
@@ -73,7 +73,7 @@ public class SimulationBasedMigrationPolicy extends MigrationPolicy {
       executeOneRoundMigration(migrationTaskQueueList, nodeLoadMap);
     }
 
-    logger.info(
+    LOGGER.info(
         "complete all migration task with time consumption: {} ms",
         System.currentTimeMillis() - startTime);
   }
@@ -166,7 +166,7 @@ public class SimulationBasedMigrationPolicy extends MigrationPolicy {
       candidateMigrationTaskQueueList.add(migrationTaskQueueList);
     }
 
-    logger.info(
+    LOGGER.info(
         "start to simulate migration task of {} possibilities",
         candidateMigrationTaskQueueList.size());
     return candidateMigrationTaskQueueList;

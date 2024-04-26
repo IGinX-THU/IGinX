@@ -23,7 +23,7 @@ import org.slf4j.LoggerFactory;
 
 public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(MongoDBHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBHistoryDataGenerator.class);
 
   private static final String LOCAL_IP = "127.0.0.1";
 
@@ -35,7 +35,11 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     try (MongoClient client = connect(port)) {
       for (int i = 0; i < pathList.size(); i++) {
         String[] nodes = pathList.get(i).split("\\.");
@@ -61,7 +65,13 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         collection.bulkWrite(operations);
       }
     }
-    logger.info("write data to 127.0.0.1:{} success!", port);
+    LOGGER.info("write data to 127.0.0.1:{} success!", port);
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
   }
 
   @Override
@@ -73,7 +83,7 @@ public class MongoDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         }
       }
     }
-    logger.info("clear data on 127.0.0.1:{} success!", port);
+    LOGGER.info("clear data on 127.0.0.1:{} success!", port);
   }
 
   @Override

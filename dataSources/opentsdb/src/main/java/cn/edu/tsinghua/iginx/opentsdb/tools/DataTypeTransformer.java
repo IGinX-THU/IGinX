@@ -3,7 +3,7 @@ package cn.edu.tsinghua.iginx.opentsdb.tools;
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BINARY;
 
-import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
+import cn.edu.tsinghua.iginx.exception.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeTransformer {

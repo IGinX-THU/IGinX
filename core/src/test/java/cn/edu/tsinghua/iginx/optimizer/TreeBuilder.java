@@ -105,7 +105,7 @@ public class TreeBuilder {
   }
 
   /**
-   * 这棵树会被FilterFragmentRule优化，优化前有10个Project-Fragment，优化后1个Project-Fragment。
+   * 这棵树会被FFragmentPruningByFilterRule优化，优化前有10个Project-Fragment，优化后1个Project-Fragment。
    *
    * @return 形状如下的树
    */
@@ -120,7 +120,7 @@ public class TreeBuilder {
          |       |           |       |
     Fragment Fragment .... Fragment Fragment
   */
-  public static Operator buildFilterFragmentTree() {
+  public static Operator buildFragmentPruningByFilterRuleTree() {
     int keyInterval = 100;
 
     Queue<OperatorSource> operatorSourceQueue = new LinkedList<>();
@@ -170,7 +170,7 @@ public class TreeBuilder {
   }
 
   /**
-   * 这棵树不会被FilterFragmentRule优化，因为Select节点的子树下包含会被FilterFragmentRule跳过的节点。
+   * 这棵树不会被FragmentPruningByFilterRule优化，因为Select节点的子树下包含会被FragmentPruningByFilterRule跳过的节点。
    *
    * @return 形状如下的树
    */
@@ -185,7 +185,7 @@ public class TreeBuilder {
            |       |           |       |
     Fragment Fragment .... Fragment Fragment
   */
-  public static Operator buildFilterFragmentTreeContainsInvalidOperator() {
+  public static Operator buildFragmentPruningByFilterRuleTreeContainsInvalidOperator() {
     int keyInterval = 100;
 
     Queue<OperatorSource> operatorSourceQueue = new LinkedList<>();

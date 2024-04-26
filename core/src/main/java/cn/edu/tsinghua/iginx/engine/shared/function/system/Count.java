@@ -18,28 +18,22 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.ArrayList;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Count implements SetMappingFunction {
 
-  public static final String COUNT = "count";
-
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(Count.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(Count.class);
+
+  public static final String COUNT = "count";
 
   private static final Count INSTANCE = new Count();
 
@@ -65,34 +59,13 @@ public class Count implements SetMappingFunction {
   }
 
   @Override
-  public Row transform(RowStream rows, FunctionParams params) throws Exception {
-    List<String> pathParams = params.getPaths();
-    if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
-    }
+  public Row transform(Table table, FunctionParams params) throws Exception {
+    Pair<List<Field>, List<Integer>> pair = FunctionUtils.getFieldAndIndices(table, params, this);
+    List<Field> targetFields = pair.k;
+    List<Integer> indices = pair.v;
 
-    String target = pathParams.get(0);
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-    List<Field> targetFields = new ArrayList<>();
-    List<Integer> indices = new ArrayList<>();
-    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-      Field field = rows.getHeader().getField(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
-        String name = getIdentifier() + "(";
-        String fullName = getIdentifier() + "(";
-        if (params.isDistinct()) {
-          name += "distinct ";
-          fullName += "distinct ";
-        }
-        name += field.getName() + ")";
-        fullName += field.getFullName() + ")";
-        targetFields.add(new Field(name, fullName, DataType.LONG));
-        indices.add(i);
-      }
-    }
     long[] counts = new long[targetFields.size()];
-    while (rows.hasNext()) {
-      Row row = rows.next();
+    for (Row row : table.getRows()) {
       Object[] values = row.getValues();
       for (int i = 0; i < indices.size(); i++) {
         int index = indices.get(i);

@@ -22,8 +22,7 @@ import static cn.edu.tsinghua.iginx.utils.CSVUtils.getCSVBuilder;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.exportByteStream;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
@@ -244,15 +243,14 @@ public class IginxClient {
       }
       System.out.println("Goodbye");
     } catch (RuntimeException e) {
-      System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error.");
+      System.out.println(IGINX_CLI_PREFIX + "Parse Parameter error: " + e.getMessage());
       System.out.println(IGINX_CLI_PREFIX + "Use -help for more information");
     } catch (Exception e) {
       System.out.println(IGINX_CLI_PREFIX + "exit cli with error " + e.getMessage());
     }
   }
 
-  private static boolean processCommand(String command)
-      throws SessionException, ExecutionException, IOException {
+  private static boolean processCommand(String command) throws SessionException, IOException {
     if (command == null || command.trim().isEmpty()) {
       return true;
     }
@@ -280,23 +278,31 @@ public class IginxClient {
   }
 
   private static OperationResult handleInputStatement(String statement)
-      throws SessionException, ExecutionException, IOException {
+      throws SessionException, IOException {
     String trimedStatement = statement.replaceAll(" +", " ").toLowerCase().trim();
 
     if (trimedStatement.equals(EXIT_COMMAND) || trimedStatement.equals(QUIT_COMMAND)) {
       return OperationResult.STOP;
     }
-
+    long startTime = System.currentTimeMillis();
     if (isQuery(trimedStatement)) {
       processSqlWithStream(statement);
     } else if (isLoadDataFromCsv(trimedStatement)) {
       processLoadCsv(statement);
     } else if (isSetTimeUnit(trimedStatement)) {
       processSetTimeUnit(statement);
+    } else if (isRegisterPy(trimedStatement)) {
+      processPythonRegister(statement);
     } else {
       processSql(statement);
     }
+    long endTime = System.currentTimeMillis();
+    System.out.printf("Time cost: %d ms\n", endTime - startTime);
     return OperationResult.DO_NOTHING;
+  }
+
+  private static boolean isRegisterPy(String sql) {
+    return sql.startsWith("create") && sql.contains("function");
   }
 
   private static boolean isQuery(String sql) {
@@ -309,6 +315,24 @@ public class IginxClient {
 
   private static boolean isSetTimeUnit(String sql) {
     return sql.startsWith("set time unit in");
+  }
+
+  private static void processPythonRegister(String sql) {
+    try {
+      SessionExecuteSqlResult res = session.executePythonRegister(sql);
+      String parseErrorMsg = res.getParseErrorMsg();
+      if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+        System.out.println(res.getParseErrorMsg());
+        return;
+      }
+      System.out.println("success");
+    } catch (SessionException e) {
+      System.out.println(e.getMessage());
+    } catch (Exception e) {
+      System.out.println(
+          "Execute Error: encounter error(s) when executing sql statement, "
+              + "see server log for more details.");
+    }
   }
 
   private static void processSetTimeUnit(String sql) {
@@ -362,7 +386,7 @@ public class IginxClient {
         default:
           System.out.println("success");
       }
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       e.printStackTrace();
@@ -420,7 +444,7 @@ public class IginxClient {
         System.out.print(FormatUtils.formatCount(total));
       }
       res.close();
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
       e.printStackTrace();
@@ -430,13 +454,12 @@ public class IginxClient {
     }
   }
 
-  private static List<List<String>> cacheResult(QueryDataSet queryDataSet)
-      throws ExecutionException, SessionException {
+  private static List<List<String>> cacheResult(QueryDataSet queryDataSet) throws SessionException {
     return cacheResult(queryDataSet, false);
   }
 
   private static List<List<String>> cacheResult(QueryDataSet queryDataSet, boolean skipHeader)
-      throws ExecutionException, SessionException {
+      throws SessionException {
     boolean hasKey = queryDataSet.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
     List<List<String>> cache = new ArrayList<>();
     if (!skipHeader) {
@@ -466,7 +489,7 @@ public class IginxClient {
   }
 
   private static void processExportByteStream(QueryDataSet res)
-      throws SessionException, ExecutionException, IOException {
+      throws SessionException, IOException {
     String dir = res.getExportStreamDir();
 
     File dirFile = new File(dir);
@@ -488,6 +511,7 @@ public class IginxClient {
         finalCnt--;
         continue;
       }
+      originColumn = originColumn.replace("\\", ".");
       Integer count = countMap.getOrDefault(originColumn, 0);
       count += 1;
       countMap.put(originColumn, count);
@@ -516,7 +540,7 @@ public class IginxClient {
   }
 
   private static List<List<byte[]>> cacheResultByteArray(QueryDataSet queryDataSet)
-      throws SessionException, ExecutionException {
+      throws SessionException {
     List<List<byte[]>> cache = new ArrayList<>();
     int rowIndex = 0;
     while (queryDataSet.hasMore() && rowIndex < Integer.parseInt(fetchSize)) {
@@ -529,8 +553,7 @@ public class IginxClient {
     return cache;
   }
 
-  private static void processExportCsv(QueryDataSet res)
-      throws SessionException, ExecutionException, IOException {
+  private static void processExportCsv(QueryDataSet res) throws SessionException, IOException {
     ExportCSV exportCSV = res.getExportCSV();
 
     String path = exportCSV.getExportCsvPath();
@@ -575,8 +598,7 @@ public class IginxClient {
     System.out.println("Successfully write csv file: \"" + file.getAbsolutePath() + "\".");
   }
 
-  private static void processLoadCsv(String sql)
-      throws SessionException, ExecutionException, IOException {
+  private static void processLoadCsv(String sql) throws SessionException, IOException {
     SessionExecuteSqlResult res = session.executeSql(sql);
     String path = res.getLoadCsvPath();
 
@@ -587,12 +609,11 @@ public class IginxClient {
     }
 
     File file = new File(path);
+    if (!file.exists()) {
+      throw new InvalidParameterException(path + " does not exist!");
+    }
     if (!file.isFile()) {
       throw new InvalidParameterException(path + " is not a file!");
-    }
-    if (!path.endsWith(".csv")) {
-      throw new InvalidParameterException(
-          "The file name must end with [.csv], " + path + " doesn't satisfy the requirement!");
     }
 
     byte[] bytes = FileUtils.readFileToByteArray(file);
@@ -633,8 +654,8 @@ public class IginxClient {
             Arrays.asList("delete", "columns"),
             Arrays.asList("explain", "select"),
             Arrays.asList("add", "storageengine"),
-            Arrays.asList("register", "python", "task"),
-            Arrays.asList("drop", "python", "task"),
+            Arrays.asList("create", "function"),
+            Arrays.asList("drop", "function"),
             Arrays.asList("commit", "transform", "job"),
             Arrays.asList("show", "transform", "job", "status"),
             Arrays.asList("cancel", "transform", "job"),
@@ -652,7 +673,7 @@ public class IginxClient {
             Arrays.asList("clear", "data"),
             Arrays.asList("show", "columns"),
             Arrays.asList("show", "cluster", "info"),
-            Arrays.asList("show", "register", "python", "task"),
+            Arrays.asList("show", "functions"),
             Arrays.asList("show", "sessionid"),
             Arrays.asList("show", "rules"),
             Arrays.asList("remove", "historydatasource"));
@@ -701,14 +722,13 @@ public class IginxClient {
 
   public static void displayLogo(String version) {
     System.out.println(
-        "  _____        _        __   __\n"
-            + " |_   _|      (_)       \\ \\ / /\n"
-            + "   | |   __ _  _  _ __   \\ V / \n"
-            + "   | |  / _` || || '_ \\   > <  \n"
-            + "  _| |_| (_| || || | | | / . \\ \n"
-            + " |_____|\\__, ||_||_| |_|/_/ \\_\\\n"
-            + "         __/ |                 \n"
-            + "        |___/                       version "
+        "  _____    _____   _          __   __\n"
+            + " |_   _|  / ____| (_)         \\ \\ / /\n"
+            + "   | |   | |  __   _   _ __    \\ V / \n"
+            + "   | |   | | |_ | | | | '_ \\    > <  \n"
+            + "  _| |_  | |__| | | | | | | |  / . \\ \n"
+            + " |_____|  \\_____| |_| |_| |_| /_/ \\_\\"
+            + "     version "
             + version
             + "\n");
   }

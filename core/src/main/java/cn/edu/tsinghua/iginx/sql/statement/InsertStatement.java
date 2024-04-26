@@ -12,11 +12,11 @@ public class InsertStatement extends DataStatement {
   private final RawDataType rawDataType;
 
   private String prefixPath;
-  private List<String> paths;
+  private List<String> paths; // full paths, prefixed by the above prefixPath
   private Map<String, String> globalTags;
   private List<Map<String, String>> tagsList;
   private List<Long> keys;
-  private Object[] values;
+  private Object[] values; // 按列组织，每个元数是一列
   private List<DataType> types;
   private List<Bitmap> bitmaps;
 

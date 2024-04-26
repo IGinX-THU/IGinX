@@ -182,7 +182,8 @@ public class Config {
 
   private int maxThriftWrokerThreadNum = 2147483647;
 
-  private String ruleBasedOptimizer = "RemoveNotRule=on,FilterFragmentRule=on";
+  private String ruleBasedOptimizer =
+      "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on";
 
   private int distributedQueryTriggerThreshold = 3;
 

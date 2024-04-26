@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.constant;
 
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.Arrays;
 import java.util.Collections;
@@ -8,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 public class Constant {
+  public static final String ORI_PORT_NAME = "ori_port";
+  public static final String EXP_PORT_NAME = "exp_port";
+  public static final String READ_ONLY_PORT_NAME = "read_only_port";
 
   // port
   public static int oriPort = 6667;
@@ -23,6 +27,9 @@ public class Constant {
   public static int readOnlyPortIginx = 6890;
 
   // path
+  public static final List<String> INIT_PATH_LIST =
+      Arrays.asList(Controller.DUMMY_INIT_PATH_BEGIN, Controller.DUMMY_INIT_PATH_END);
+
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
@@ -39,6 +46,8 @@ public class Constant {
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   // data type
+  public static List<DataType> INIT_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.LONG);
+
   public static List<DataType> ORI_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
   public static List<DataType> EXP_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.DOUBLE);
@@ -47,6 +56,9 @@ public class Constant {
       Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
   // values
+  public static List<List<Object>> INIT_VALUES_LIST =
+      Arrays.asList(Arrays.asList(11111111L, 11111111L), Arrays.asList(22222222L, 22222222L));
+
   public static List<List<Object>> ORI_VALUES_LIST =
       Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
 
@@ -65,6 +77,10 @@ public class Constant {
   public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =
       Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));
 
+  // key list
+  public static List<Long> INIT_KEYS_LIST = Arrays.asList(1L, (long) Integer.MAX_VALUE);
+
+  // for file system
   // for file system & influxdb
   public static Map<Integer, String> PORT_TO_ROOT =
       new HashMap<Integer, String>() {

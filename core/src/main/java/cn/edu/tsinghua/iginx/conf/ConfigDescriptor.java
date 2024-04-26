@@ -26,20 +26,20 @@ import org.slf4j.LoggerFactory;
 
 public class ConfigDescriptor {
 
-  private static final Logger logger = LoggerFactory.getLogger(ConfigDescriptor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ConfigDescriptor.class);
 
   private final Config config;
 
   private ConfigDescriptor() {
     config = new Config();
-    logger.info("load parameters from config.properties.");
+    LOGGER.info("load parameters from config.properties.");
     loadPropsFromFile();
     if (config.isEnableEnvParameter()) {
-      logger.info("load parameters from env.");
+      LOGGER.info("load parameters from env.");
       loadPropsFromEnv(); // 如果在环境变量中设置了相关参数，则会覆盖配置文件中设置的参数
     }
     if (config.isNeedInitBasicUDFFunctions()) {
-      logger.info("load UDF list from file.");
+      LOGGER.info("load UDF list from file.");
       loadUDFListFromFile();
     }
   }
@@ -140,16 +140,16 @@ public class ConfigDescriptor {
       config.setMetaStorage(properties.getProperty("metaStorage", "zookeeper"));
       config.setEtcdEndpoints(properties.getProperty("etcdEndpoints", "http://localhost:2379"));
 
-      config.setEnableMQTT(Boolean.parseBoolean(properties.getProperty("enable_mqtt", "false")));
-      config.setMqttHost(properties.getProperty("mqtt_host", "0.0.0.0"));
-      config.setMqttPort(Integer.parseInt(properties.getProperty("mqtt_port", "1883")));
+      config.setEnableMQTT(Boolean.parseBoolean(properties.getProperty("enableMqtt", "false")));
+      config.setMqttHost(properties.getProperty("mqttHost", "0.0.0.0"));
+      config.setMqttPort(Integer.parseInt(properties.getProperty("mqttPort", "1883")));
       config.setMqttHandlerPoolSize(
-          Integer.parseInt(properties.getProperty("mqtt_handler_pool_size", "1")));
+          Integer.parseInt(properties.getProperty("mqttHandlerPoolSize", "1")));
       config.setMqttPayloadFormatter(
           properties.getProperty(
-              "mqtt_payload_formatter", "cn.edu.tsinghua.iginx.mqtt.JsonPayloadFormatter"));
+              "mqttPayloadFormatter", "cn.edu.tsinghua.iginx.mqtt.JsonPayloadFormatter"));
       config.setMqttMaxMessageSize(
-          Integer.parseInt(properties.getProperty("mqtt_max_message_size", "1048576")));
+          Integer.parseInt(properties.getProperty("mqttMaxMessageSize", "1048576")));
 
       config.setClients(properties.getProperty("clients", ""));
       config.setInstancesNumPerClient(
@@ -186,19 +186,19 @@ public class ConfigDescriptor {
           Boolean.parseBoolean(properties.getProperty("useStreamExecutor", "true")));
 
       config.setEnableMemoryControl(
-          Boolean.parseBoolean(properties.getProperty("enable_memory_control", "true")));
-      config.setSystemResourceMetrics(properties.getProperty("system_resource_metrics", "default"));
+          Boolean.parseBoolean(properties.getProperty("enableMemoryControl", "true")));
+      config.setSystemResourceMetrics(properties.getProperty("systemResourceMetrics", "default"));
       config.setHeapMemoryThreshold(
-          Double.parseDouble(properties.getProperty("heap_memory_threshold", "0.9")));
+          Double.parseDouble(properties.getProperty("heapMemoryThreshold", "0.9")));
       config.setSystemMemoryThreshold(
-          Double.parseDouble(properties.getProperty("system_memory_threshold", "0.9")));
+          Double.parseDouble(properties.getProperty("systemMemoryThreshold", "0.9")));
       config.setSystemCpuThreshold(
-          Double.parseDouble(properties.getProperty("system_cpu_threshold", "0.9")));
+          Double.parseDouble(properties.getProperty("systemCpuThreshold", "0.9")));
 
       config.setEnableMetaCacheControl(
-          Boolean.parseBoolean(properties.getProperty("enable_meta_cache_control", "false")));
+          Boolean.parseBoolean(properties.getProperty("enableMetaCacheControl", "false")));
       config.setFragmentCacheThreshold(
-          Long.parseLong(properties.getProperty("fragment_cache_threshold", "131072")));
+          Long.parseLong(properties.getProperty("fragmentCacheThreshold", "131072")));
       config.setBatchSize(Integer.parseInt(properties.getProperty("batchSize", "50")));
       config.setPythonCMD(properties.getProperty("pythonCMD", "python3"));
       config.setTransformTaskThreadPoolSize(
@@ -233,6 +233,9 @@ public class ConfigDescriptor {
       config.setBatchSizeImportCsv(
           Integer.parseInt(properties.getProperty("batchSizeImportCsv", "10000")));
       config.setRuleBasedOptimizer(
+          properties.getProperty(
+              "ruleBasedOptimizer",
+              "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
           properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on"));
       config.setDistributedQueryTriggerThreshold(
           Integer.parseInt(properties.getProperty("distributedQueryTriggerThreshold", "3")));
@@ -240,7 +243,7 @@ public class ConfigDescriptor {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
       loadPropsFromEnv();
-      logger.warn(
+      LOGGER.warn(
           "Use default config, because fail to load properties(This error may be expected if it occurs during UT testing): ",
           e);
     }
@@ -280,15 +283,15 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("enableRestService", config.isEnableRestService()));
     config.setMetaStorage(EnvUtils.loadEnv("metaStorage", config.getMetaStorage()));
     config.setEtcdEndpoints(EnvUtils.loadEnv("etcdEndpoints", config.getEtcdEndpoints()));
-    config.setEnableMQTT(EnvUtils.loadEnv("enable_mqtt", config.isEnableMQTT()));
-    config.setMqttHost(EnvUtils.loadEnv("mqtt_host", config.getMqttHost()));
-    config.setMqttPort(EnvUtils.loadEnv("mqtt_port", config.getMqttPort()));
+    config.setEnableMQTT(EnvUtils.loadEnv("enableMqtt", config.isEnableMQTT()));
+    config.setMqttHost(EnvUtils.loadEnv("mqttHost", config.getMqttHost()));
+    config.setMqttPort(EnvUtils.loadEnv("mqttPort", config.getMqttPort()));
     config.setMqttHandlerPoolSize(
-        EnvUtils.loadEnv("mqtt_handler_pool_size", config.getMqttHandlerPoolSize()));
+        EnvUtils.loadEnv("mqttHandlerPoolSize", config.getMqttHandlerPoolSize()));
     config.setMqttPayloadFormatter(
-        EnvUtils.loadEnv("mqtt_payload_formatter", config.getMqttPayloadFormatter()));
+        EnvUtils.loadEnv("mqttPayloadFormatter", config.getMqttPayloadFormatter()));
     config.setMqttMaxMessageSize(
-        EnvUtils.loadEnv("mqtt_max_message_size", config.getMqttMaxMessageSize()));
+        EnvUtils.loadEnv("mqttMaxMessageSize", config.getMqttMaxMessageSize()));
     config.setQueryOptimizer(EnvUtils.loadEnv("queryOptimizer", config.getQueryOptimizer()));
     config.setConstraintChecker(
         EnvUtils.loadEnv("constraintChecker", config.getConstraintChecker()));
@@ -318,19 +321,19 @@ public class ConfigDescriptor {
     config.setUseStreamExecutor(
         EnvUtils.loadEnv("useStreamExecutor", config.isUseStreamExecutor()));
     config.setEnableMemoryControl(
-        EnvUtils.loadEnv("enable_memory_control", config.isEnableMemoryControl()));
+        EnvUtils.loadEnv("enableMemoryControl", config.isEnableMemoryControl()));
     config.setSystemResourceMetrics(
-        EnvUtils.loadEnv("system_resource_metrics", config.getSystemResourceMetrics()));
+        EnvUtils.loadEnv("systemResourceMetrics", config.getSystemResourceMetrics()));
     config.setHeapMemoryThreshold(
-        EnvUtils.loadEnv("heap_memory_threshold", config.getHeapMemoryThreshold()));
+        EnvUtils.loadEnv("heapMemoryThreshold", config.getHeapMemoryThreshold()));
     config.setSystemMemoryThreshold(
-        EnvUtils.loadEnv("system_memory_threshold", config.getSystemMemoryThreshold()));
+        EnvUtils.loadEnv("systemMemoryThreshold", config.getSystemMemoryThreshold()));
     config.setSystemCpuThreshold(
-        EnvUtils.loadEnv("system_cpu_threshold", config.getSystemCpuThreshold()));
+        EnvUtils.loadEnv("systemCpuThreshold", config.getSystemCpuThreshold()));
     config.setEnableMetaCacheControl(
-        EnvUtils.loadEnv("enable_meta_cache_control", config.isEnableMetaCacheControl()));
+        EnvUtils.loadEnv("enableMetaCacheControl", config.isEnableMetaCacheControl()));
     config.setFragmentCacheThreshold(
-        EnvUtils.loadEnv("fragment_cache_threshold", config.getFragmentCacheThreshold()));
+        EnvUtils.loadEnv("fragmentCacheThreshold", config.getFragmentCacheThreshold()));
     config.setBatchSize(EnvUtils.loadEnv("batchSize", config.getBatchSize()));
     config.setPythonCMD(EnvUtils.loadEnv("pythonCMD", config.getPythonCMD()));
     config.setTransformTaskThreadPoolSize(
@@ -361,7 +364,7 @@ public class ConfigDescriptor {
             "streamParallelGroupByWorkerNum", config.getStreamParallelGroupByWorkerNum()));
     config.setBatchSizeImportCsv(
         EnvUtils.loadEnv("batchSizeImportCsv", config.getBatchSizeImportCsv()));
-    config.setUTTestEnv(EnvUtils.loadEnv("ut_test_env", config.isUTTestEnv()));
+    config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
     config.setDistributedQueryTriggerThreshold(
@@ -386,7 +389,7 @@ public class ConfigDescriptor {
         }
       }
     } catch (IOException e) {
-      logger.error("Fail to load udf list: ", e);
+      LOGGER.error("Fail to load udf list: ", e);
     }
   }
 

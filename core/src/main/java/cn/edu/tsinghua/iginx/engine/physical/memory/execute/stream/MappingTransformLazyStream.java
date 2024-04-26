@@ -19,29 +19,24 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MappingTransform;
+import java.util.List;
 
 public class MappingTransformLazyStream extends UnaryLazyStream {
 
-  private final MappingTransform transform;
-
-  private final MappingFunction function;
-
-  private final FunctionParams params;
+  private final List<FunctionCall> functionCallList;
 
   private RowStream resultStream;
 
   public MappingTransformLazyStream(MappingTransform transform, RowStream stream) {
     super(stream);
-    this.transform = transform;
-    this.function = (MappingFunction) transform.getFunctionCall().getFunction();
-    this.params = transform.getFunctionCall().getParams();
+    this.functionCallList = transform.getFunctionCallList();
   }
 
   @Override
@@ -69,11 +64,6 @@ public class MappingTransformLazyStream extends UnaryLazyStream {
   }
 
   private RowStream calculateResults() throws PhysicalException {
-    try {
-      return function.transform(stream, params);
-    } catch (Exception e) {
-      throw new PhysicalTaskExecuteFailureException(
-          "encounter error when execute mapping function " + function.getIdentifier() + ".", e);
-    }
+    return RowUtils.calMappingTransform((Table) stream, functionCallList);
   }
 }

@@ -5,20 +5,24 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class TagIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TagIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TagIT.class);
 
   private static Session session;
 
@@ -45,28 +49,188 @@ public class TagIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     session.closeSession();
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
-    String[] insertStatements =
-        new String[] {
-          "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3, 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
-          "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
-          "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");",
-          "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");",
-          "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);",
-          "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16, 32);"
-        };
+  public void insertData() throws SessionException {
+    //    "insert into ah.hr01 (key, s, v, s[t1=v1, t2=vv1], v[t1=v2, t2=vv1]) values (0, 1, 2, 3,
+    // 4), (1, 2, 3, 4, 5), (2, 3, 4, 5, 6), (3, 4, 5, 6, 7);",
+    //    "insert into ah.hr02 (key, s, v) values (100, true, \"v1\");",
+    //    "insert into ah.hr02[t1=v1] (key, s, v) values (400, false, \"v4\");",
+    //    "insert into ah.hr02[t1=v1,t2=v2] (key, v) values (800, \"v8\");",
+    //    "insert into ah.hr03 (key, s[t1=vv1,t2=v2], v[t1=vv11]) values (1600, true, 16);",
+    //    "insert into ah.hr03 (key, s[t1=v1,t2=vv2], v[t1=v1], v[t1=vv11]) values (3200, true, 16,
+    // 32);"
 
-    for (String insertStatement : insertStatements) {
-      SessionExecuteSqlResult res = session.executeSql(insertStatement);
-      if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-        logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-        fail();
-      }
-    }
+    // round 1
+    List<String> pathList1 = Arrays.asList("ah.hr01.s", "ah.hr01.s", "ah.hr01.v", "ah.hr01.v");
+    List<DataType> dataTypeList1 =
+        Arrays.asList(DataType.LONG, DataType.LONG, DataType.LONG, DataType.LONG);
+    List<Long> keyList1 = Arrays.asList(0L, 1L, 2L, 3L);
+    List<Map<String, String>> tagList1 =
+        Arrays.asList(
+            new HashMap<>(),
+            new HashMap<String, String>() {
+              {
+                put("t1", "v1");
+                put("t2", "vv1");
+              }
+            },
+            new HashMap<>(),
+            new HashMap<String, String>() {
+              {
+                put("t1", "v2");
+                put("t2", "vv1");
+              }
+            });
+    List<List<Object>> valuesList1 =
+        Arrays.asList(
+            Arrays.asList(1L, 2L, 3L, 4L),
+            Arrays.asList(3L, 4L, 5L, 6L),
+            Arrays.asList(2L, 3L, 4L, 5L),
+            Arrays.asList(4L, 5L, 6L, 7L));
+    Controller.writeColumnsData(
+        session,
+        pathList1,
+        IntStream.range(0, pathList1.size())
+            .mapToObj(i -> new ArrayList<>(keyList1))
+            .collect(Collectors.toList()),
+        dataTypeList1,
+        valuesList1,
+        tagList1,
+        InsertAPIType.Column,
+        false);
+
+    // round 2
+    List<String> pathList2 = Arrays.asList("ah.hr02.s", "ah.hr02.v");
+    List<DataType> dataTypeList2 = Arrays.asList(DataType.BOOLEAN, DataType.BINARY);
+    List<Long> keyList2 = Arrays.asList(100L);
+    List<Map<String, String>> tagList2 = Arrays.asList(new HashMap<>(), new HashMap<>());
+    List<List<Object>> valuesList2 =
+        Arrays.asList(Arrays.asList(true, "v1".getBytes()), Arrays.asList(false, "v4".getBytes()));
+    Controller.writeRowsData(
+        session,
+        pathList2,
+        keyList2,
+        dataTypeList2,
+        valuesList2,
+        tagList2,
+        InsertAPIType.Row,
+        false);
+
+    // round 3
+    List<String> pathList3 = Arrays.asList("ah.hr02.s", "ah.hr02.v");
+    List<DataType> dataTypeList3 = Arrays.asList(DataType.BOOLEAN, DataType.BINARY);
+    List<Long> keyList3 = Arrays.asList(400L);
+    List<Map<String, String>> tagList3 =
+        Arrays.asList(
+            new HashMap<String, String>() {
+              {
+                put("t1", "v1");
+              }
+            },
+            new HashMap<String, String>() {
+              {
+                put("t1", "v1");
+              }
+            });
+    List<List<Object>> valuesList3 = Arrays.asList(Arrays.asList(false, "v4".getBytes()));
+    Controller.writeRowsData(
+        session,
+        pathList3,
+        keyList3,
+        dataTypeList3,
+        valuesList3,
+        tagList3,
+        InsertAPIType.Row,
+        false);
+
+    // round 4
+    List<String> pathList4 = Arrays.asList("ah.hr02.v");
+    List<DataType> dataTypeList4 = Arrays.asList(DataType.BINARY);
+    List<Long> keyList4 = Arrays.asList(800L);
+    List<Map<String, String>> tagList4 =
+        Arrays.asList(
+            new HashMap<String, String>() {
+              {
+                put("t1", "v1");
+                put("t2", "v2");
+              }
+            });
+    List<List<Object>> valuesList4 = Arrays.asList(Arrays.asList("v8".getBytes()));
+    Controller.writeRowsData(
+        session,
+        pathList4,
+        keyList4,
+        dataTypeList4,
+        valuesList4,
+        tagList4,
+        InsertAPIType.Row,
+        false);
+
+    // round 5
+    List<String> pathList5 = Arrays.asList("ah.hr03.s", "ah.hr03.v");
+    List<DataType> dataTypeList5 = Arrays.asList(DataType.BOOLEAN, DataType.LONG);
+    List<Long> keyList5 = Arrays.asList(1600L);
+    List<Map<String, String>> tagList5 =
+        Arrays.asList(
+            new HashMap<String, String>() {
+              {
+                put("t1", "vv1");
+                put("t2", "v2");
+              }
+            },
+            new HashMap<String, String>() {
+              {
+                put("t1", "vv11");
+              }
+            });
+    List<List<Object>> valuesList5 = Arrays.asList(Arrays.asList(true, 16L));
+    Controller.writeRowsData(
+        session,
+        pathList5,
+        keyList5,
+        dataTypeList5,
+        valuesList5,
+        tagList5,
+        InsertAPIType.Row,
+        false);
+
+    // round 6
+    List<String> pathList6 = Arrays.asList("ah.hr03.s", "ah.hr03.v", "ah.hr03.v");
+    List<DataType> dataTypeList6 = Arrays.asList(DataType.BOOLEAN, DataType.LONG, DataType.LONG);
+    List<Long> keyList6 = Arrays.asList(3200L);
+    List<Map<String, String>> tagList6 =
+        Arrays.asList(
+            new HashMap<String, String>() {
+              {
+                put("t1", "v1");
+                put("t2", "vv2");
+              }
+            },
+            new HashMap<String, String>() {
+              {
+                put("t1", "v1");
+              }
+            },
+            new HashMap<String, String>() {
+              {
+                put("t1", "vv11");
+              }
+            });
+    List<List<Object>> valuesList6 = Arrays.asList(Arrays.asList(true, 16L, 32L));
+    Controller.writeRowsData(
+        session,
+        pathList6,
+        keyList6,
+        dataTypeList6,
+        valuesList6,
+        tagList6,
+        InsertAPIType.Row,
+        false);
+    Controller.after(session);
   }
 
   @After
@@ -80,16 +244,16 @@ public class TagIT {
   }
 
   private String execute(String statement) {
-    logger.info("Execute Statement: \"{}\"", statement);
+    LOGGER.info("Execute Statement: \"{}\"", statement);
 
     SessionExecuteSqlResult res = null;
     try {
       res = session.executeSql(statement);
-    } catch (SessionException | ExecutionException e) {
+    } catch (SessionException e) {
       if (e.toString().trim().contains(CLEAR_DUMMY_DATA_CAUTION)) {
-        logger.warn(CLEAR_DATA_WARNING);
+        LOGGER.warn(CLEAR_DATA_WARNING);
       } else {
-        logger.error(CLEAR_DATA_ERROR, statement, e.getMessage());
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by: ", statement, e);
         fail();
       }
     }
@@ -99,7 +263,8 @@ public class TagIT {
     }
 
     if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error(CLEAR_DATA_ERROR, statement, res.getParseErrorMsg());
+      LOGGER.error(
+          "Statement: \"{}\" execute fail. Caused by: ", statement, res.getParseErrorMsg());
       fail();
       return "";
     }
@@ -1303,7 +1468,7 @@ public class TagIT {
   }
 
   @Test
-  public void testClearData() throws SessionException, ExecutionException {
+  public void testClearData() throws SessionException {
     if (!isAbleToClearData || isScaling) return;
     clearData();
 

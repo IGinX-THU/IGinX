@@ -1,16 +1,20 @@
 package cn.edu.tsinghua.iginx.optimizer;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.rbo.RuleBasedOptimizer;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
 
 public class RBOTest {
 
   private final RuleBasedOptimizer rbo = new RuleBasedOptimizer();
+  private final RuleCollection ruleCollection = RuleCollection.getInstance();
 
   @Test
-  public void testRemoveNotRule() {
+  public void testNotFilterRemoveRule() {
+    List<String> bannedRules = RBOTestUtils.banRuleExceptGivenRule("NotFilterRemoveRule");
     Operator root = TreeBuilder.buildRemoveNotTree();
     String expected =
         "[Reorder] Order: *\n" + "  [Select] Filter: !(key > 100)\n" + "    [Project] Patterns:\n";
@@ -22,13 +26,14 @@ public class RBOTest {
         "[Reorder] Order: *\n" + "  [Select] Filter: key <= 100\n" + "    [Project] Patterns:\n";
     actual = TreePrinter.getTreeInfo(rootAfterRBO);
     Assert.assertEquals(expected, actual);
+    ruleCollection.unbanRulesByName(bannedRules);
   }
 
   @Test
-  public void testFilterFragmentRule() {
+  public void testFragmentPruningByFilterRule() {
     // 下面这棵树会被优化
-    Operator root = TreeBuilder.buildFilterFragmentTree();
-
+    Operator root = TreeBuilder.buildFragmentPruningByFilterRuleTree();
+    List<String> bannedRules = RBOTestUtils.banRuleExceptGivenRule("FragmentPruningByFilterRule");
     String expected =
         "[Reorder] Order: *\n"
             + "  [Select] Filter: (key > 180 && key < 220)\n"
@@ -63,7 +68,7 @@ public class RBOTest {
     Assert.assertEquals(expected, actual);
 
     // 下面这棵树由于包含无法通过FilterFragmentRule的Matches,包含了不能被优化的节点，不会被优化
-    root = TreeBuilder.buildFilterFragmentTreeContainsInvalidOperator();
+    root = TreeBuilder.buildFragmentPruningByFilterRuleTreeContainsInvalidOperator();
     expected =
         "[Reorder] Order: *\n"
             + "  [Select] Filter: (key > 180 && key < 220)\n"
@@ -80,5 +85,7 @@ public class RBOTest {
     rootAfterRBO = rbo.optimize(root);
     actual = TreePrinter.getTreeInfo(rootAfterRBO);
     Assert.assertEquals(expected, actual);
+
+    ruleCollection.unbanRulesByName(bannedRules);
   }
 }

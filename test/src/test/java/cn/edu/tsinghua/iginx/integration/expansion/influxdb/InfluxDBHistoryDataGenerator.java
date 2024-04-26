@@ -9,6 +9,7 @@ import com.influxdb.client.domain.Bucket;
 import com.influxdb.client.domain.Organization;
 import com.influxdb.client.domain.WritePrecision;
 import com.influxdb.client.write.Point;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import org.slf4j.Logger;
@@ -16,7 +17,7 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDBHistoryDataGenerator.class);
 
   public static final String TOKEN = "testToken";
 
@@ -40,7 +41,11 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     Organization organization =
@@ -49,8 +54,10 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
             .findFirst()
             .orElseThrow(IllegalAccessError::new);
 
+    boolean hasKeys = !keyList.isEmpty();
     int timeCnt = 0;
-    for (List<Object> valueList : valuesList) {
+    for (int index = 0; index < valuesList.size(); index++) {
+      List<Object> valueList = valuesList.get(index);
       for (int i = 0; i < pathList.size(); i++) {
         String path = pathList.get(i);
         DataType dataType = dataTypeList.get(i);
@@ -71,6 +78,9 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
         Point point = null;
         if (valueList.get(i) == null) {
           continue;
+        }
+        if (hasKeys) {
+          timeCnt = Math.toIntExact(keyList.get(index));
         }
         switch (dataType) {
           case BOOLEAN:
@@ -121,7 +131,7 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
                     .time(timeCnt, WRITE_PRECISION);
             break;
           default:
-            logger.error("unsupported data type: {}", dataType);
+            LOGGER.error("unsupported data type: {}", dataType);
             break;
         }
         if (point == null) {
@@ -134,7 +144,13 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
 
     client.close();
-    logger.info("write data to " + url + " success!");
+    LOGGER.info("write data to {} success!", url);
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
   }
 
   @Override
@@ -142,11 +158,13 @@ public class InfluxDBHistoryDataGenerator extends BaseHistoryDataGenerator {
     String url = "http://localhost:" + port + "/";
     InfluxDBClient client = InfluxDBClientFactory.create(url, TOKEN.toCharArray(), ORGANIZATION);
     // find bucket for given port
-    Bucket bucket = client.getBucketsApi().findBucketByName(Constant.PORT_TO_ROOT.get(port));
-    if (bucket != null) {
-      client.getBucketsApi().deleteBucket(bucket);
+    List<Bucket> allBuckets = client.getBucketsApi().findBuckets();
+    for (Bucket bucket : allBuckets) {
+      if (bucket != null && !bucket.getName().startsWith("_")) {
+        client.getBucketsApi().deleteBucket(bucket);
+      }
     }
     client.close();
-    logger.info("clear data on 127.0.0.1:{} success!", port);
+    LOGGER.info("clear data on 127.0.0.1:{} success!", port);
   }
 }

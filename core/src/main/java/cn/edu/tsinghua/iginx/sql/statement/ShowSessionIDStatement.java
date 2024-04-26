@@ -8,7 +8,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.ShowSessionIDReq;
 import cn.edu.tsinghua.iginx.thrift.ShowSessionIDResp;
@@ -25,7 +25,7 @@ public class ShowSessionIDStatement extends SystemStatement {
   }
 
   @Override
-  public void execute(RequestContext ctx) throws ExecutionException {
+  public void execute(RequestContext ctx) throws StatementExecutionException {
     ShowSessionIDReq req = new ShowSessionIDReq(ctx.getSessionId());
     ShowSessionIDResp resp = worker.showSessionID(req);
     List<Long> sessionIDs = resp.getSessionIDList();

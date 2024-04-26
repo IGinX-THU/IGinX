@@ -18,8 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +27,7 @@ import org.slf4j.LoggerFactory;
 
 public class IoTDBBeforeDilatationExample {
 
-  private static final Logger logger = LoggerFactory.getLogger(IoTDBBeforeDilatationExample.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(IoTDBBeforeDilatationExample.class);
   private static final String COLUMN_D1_S1 = "sg.d1.s1";
   private static final String COLUMN_D2_S2 = "sg.d2.s2";
   private static final String COLUMN_D3_S3 = "sg.d3.s3";
@@ -55,8 +54,7 @@ public class IoTDBBeforeDilatationExample {
     session.closeSession();
   }
 
-  private static void insertRecords()
-      throws SessionException, ExecutionException, InterruptedException {
+  private static void insertRecords() throws SessionException, InterruptedException {
     List<DataType> dataTypeList = new ArrayList<>();
     for (int i = 0; i < paths.size(); i++) {
       dataTypeList.add(DataType.LONG);
@@ -78,7 +76,7 @@ public class IoTDBBeforeDilatationExample {
       session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null);
       Thread.sleep(1);
       if ((insertTimes - i + 1) % 100 == 0) {
-        logger.info("insert progress: " + (insertTimes - i + 1) + "/" + insertTimes + ".");
+        LOGGER.info("insert progress: {}/{}.", (insertTimes - i + 1), insertTimes);
       }
     }
   }

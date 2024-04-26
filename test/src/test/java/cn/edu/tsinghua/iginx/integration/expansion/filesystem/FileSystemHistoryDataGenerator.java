@@ -17,18 +17,28 @@ import org.slf4j.LoggerFactory;
 
 public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger logger =
+  private static final Logger LOGGER =
       LoggerFactory.getLogger(FileSystemHistoryDataGenerator.class);
 
   public FileSystemHistoryDataGenerator() {}
 
   @Override
   public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+      int port,
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
     // 创建并写入文件
     createFileAndWriteValues(pathList, valuesList);
     // 仅用于扩容文件系统后查询文件
     writeSpecificDirectoriesAndFiles();
+  }
+
+  @Override
+  public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
   }
 
   @Override
@@ -40,7 +50,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     try (Stream<Path> walk = Files.walk(rootPath)) {
       walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
     } catch (IOException e) {
-      logger.error("delete {} failure", rootPath);
+      LOGGER.error("delete {} failure", rootPath);
     }
   }
 
@@ -59,13 +69,13 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       String realFilePath = pathList.get(i).replace(".", separator);
       File file = new File(realFilePath);
       file.getParentFile().mkdirs();
-      logger.info("create file {} success", file.getAbsolutePath());
+      LOGGER.info("create file {} success", file.getAbsolutePath());
       try (OutputStream out = Files.newOutputStream(file.toPath())) {
         for (Object value : reversedValuesList.get(i)) {
           out.write(value.toString().getBytes());
         }
       } catch (IOException e) {
-        logger.error("write file {} failure", file.getAbsolutePath());
+        LOGGER.error("write file {} failure", file.getAbsolutePath());
       }
     }
   }
@@ -74,7 +84,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     try {
       Files.deleteIfExists(path);
     } catch (IOException e) {
-      logger.error("delete {} failure", path);
+      LOGGER.error("delete {} failure", path);
     }
   }
 
@@ -111,22 +121,22 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     File file = new File(Paths.get(first, more).toString());
     try {
       if (file.exists()) {
-        logger.info("file {} has existed", file.getAbsolutePath());
+        LOGGER.info("file {} has existed", file.getAbsolutePath());
         return;
       }
       if (!file.getParentFile().mkdirs()) {
-        logger.error("create directory {} failed", file.getParentFile().getAbsolutePath());
+        LOGGER.error("create directory {} failed", file.getParentFile().getAbsolutePath());
         return;
       }
       if (!file.exists() && !file.createNewFile()) {
-        logger.error("create file {} failed", file.getAbsolutePath());
+        LOGGER.error("create file {} failed", file.getAbsolutePath());
         return;
       }
       try (FileOutputStream fos = new FileOutputStream(file)) {
         fos.write(content);
       }
     } catch (IOException e) {
-      logger.error("createAndWriteFile failed first {} more {}", first, more);
+      LOGGER.error("createAndWriteFile failed first {} more {}", first, more);
     }
   }
 }

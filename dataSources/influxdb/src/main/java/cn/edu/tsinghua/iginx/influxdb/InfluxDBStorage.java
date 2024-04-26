@@ -21,9 +21,8 @@ package cn.edu.tsinghua.iginx.influxdb;
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 import static com.influxdb.client.domain.WritePrecision.NS;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.ExprUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -41,6 +40,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
+import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBException;
+import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBHistoryQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBQueryRowStream;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
@@ -75,7 +76,7 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBStorage implements IStorage {
 
-  private static final Logger logger = LoggerFactory.getLogger(InfluxDBStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDBStorage.class);
 
   private static final WritePrecision WRITE_PRECISION = NS;
 
@@ -143,7 +144,7 @@ public class InfluxDBStorage implements IStorage {
           InfluxDBClientFactory.create(url, extraParams.get("token").toCharArray());
       client.close();
     } catch (Exception e) {
-      logger.error("test connection error: {}", e.getMessage());
+      LOGGER.error("test connection error: ", e);
       return false;
     }
     return true;
@@ -158,7 +159,7 @@ public class InfluxDBStorage implements IStorage {
       if (bucket.getName().startsWith("unit")) {
         continue;
       }
-      logger.debug("history data bucket info: " + bucket);
+      LOGGER.debug("history data bucket info: {}", bucket);
       historyBucketMap.put(bucket.getName(), bucket);
     }
   }
@@ -169,7 +170,7 @@ public class InfluxDBStorage implements IStorage {
     List<String> bucketNames = new ArrayList<>(historyBucketMap.keySet());
     bucketNames.sort(String::compareTo);
     if (bucketNames.isEmpty()) {
-      throw new PhysicalTaskExecuteFailureException("no data!");
+      throw new InfluxDBTaskExecuteFailureException("InfluxDB has no bucket!");
     }
     ColumnsInterval columnsInterval;
     if (dataPrefix == null) {
@@ -202,7 +203,7 @@ public class InfluxDBStorage implements IStorage {
                   ? MEASUREMENTALL
                   : "= \"" + measurementPrefix + "\"",
               fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/");
-      logger.debug("execute statement: " + statement);
+      LOGGER.debug("execute statement: {}", statement);
       // 查询 first
       List<FluxTable> tables =
           client.getQueryApi().query(statement + " |> first()", organization.getId());
@@ -211,7 +212,7 @@ public class InfluxDBStorage implements IStorage {
           long time = instantToNs(record.getTime());
           minTime = Math.min(time, minTime);
           maxTime = Math.max(time, maxTime);
-          logger.debug("record: " + InfluxDBStorage.toString(table, record));
+          LOGGER.debug("record: {}", InfluxDBStorage.toString(table, record));
         }
       }
       // 查询 last
@@ -221,7 +222,7 @@ public class InfluxDBStorage implements IStorage {
           long time = instantToNs(record.getTime());
           minTime = Math.min(time, minTime);
           maxTime = Math.max(time, maxTime);
-          logger.debug("record: " + InfluxDBStorage.toString(table, record));
+          LOGGER.debug("record: {}", InfluxDBStorage.toString(table, record));
         }
       }
     }
@@ -239,58 +240,67 @@ public class InfluxDBStorage implements IStorage {
   public List<Column> getColumns() {
     List<Column> timeseries = new ArrayList<>();
 
-    List<FluxTable> tables = new ArrayList<>();
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
       // query all the series by querying all the data with first()
-      if (!bucket.getName().contains("unit")) {
+
+      String unitPattern = "unit\\d{10}"; // unit后跟10个数字
+      boolean isUnit = bucket.getName().matches(unitPattern);
+      boolean isDummy =
+          meta.isHasData()
+              && (meta.getDataPrefix() == null
+                  || bucket.getName().startsWith(meta.getDataPrefix()));
+      if (bucket.getType() == Bucket.TypeEnum.SYSTEM || (!isUnit && !isDummy)) {
         continue;
       }
-      // TODO 没有show dummy columns
+
       String statement = String.format(SHOW_TIME_SERIES, bucket.getName());
-      tables.addAll(client.getQueryApi().query(statement, organization.getId()));
-    }
+      List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
 
-    for (FluxTable table : tables) {
-      List<FluxColumn> column = table.getColumns();
-      // get the path
-      String path =
-          table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getField();
-      Map<String, String> tag = new HashMap<>();
-      int len = column.size();
-      // get the tag cause the 8 is the begin index of the tag information
-      for (int i = 8; i < len; i++) {
-        String key = column.get(i).getLabel();
-        String val = (String) table.getRecords().get(0).getValues().get(key);
-        tag.put(key, val);
-      }
+      for (FluxTable table : tables) {
+        List<FluxColumn> column = table.getColumns();
+        // get the path
+        String path =
+            table.getRecords().get(0).getMeasurement() + "." + table.getRecords().get(0).getField();
+        Map<String, String> tag = new HashMap<>();
+        int len = column.size();
+        // get the tag cause the 8 is the begin index of the tag information
+        for (int i = 8; i < len; i++) {
+          String key = column.get(i).getLabel();
+          String val = (String) table.getRecords().get(0).getValues().get(key);
+          tag.put(key, val);
+        }
 
-      DataType dataType = null;
-      switch (column.get(5).getDataType()) { // the index 1 is the type of the data
-        case "boolean":
-          dataType = DataType.BOOLEAN;
-          break;
-        case "float":
-          dataType = DataType.FLOAT;
-          break;
-        case "string":
-          dataType = DataType.BINARY;
-          break;
-        case "double":
-          dataType = DataType.DOUBLE;
-          break;
-        case "int":
-          dataType = DataType.INTEGER;
-          break;
-        case "long":
-          dataType = DataType.LONG;
-          break;
-        default:
-          dataType = DataType.BINARY;
-          logger.warn("DataType don't match and default is String");
-          break;
+        DataType dataType;
+        switch (column.get(5).getDataType()) { // the index 1 is the type of the data
+          case "boolean":
+            dataType = DataType.BOOLEAN;
+            break;
+          case "float":
+            dataType = DataType.FLOAT;
+            break;
+          case "string":
+            dataType = DataType.BINARY;
+            break;
+          case "double":
+            dataType = DataType.DOUBLE;
+            break;
+          case "int":
+            dataType = DataType.INTEGER;
+            break;
+          case "long":
+            dataType = DataType.LONG;
+            break;
+          default:
+            dataType = DataType.BINARY;
+            LOGGER.warn("DataType don't match and default is String");
+            break;
+        }
+        if (isDummy && !isUnit) {
+          path = bucket.getName() + "." + path;
+        }
+        timeseries.add(new Column(path, dataType, tag));
       }
-      timeseries.add(new Column(path, dataType, tag));
     }
 
     return timeseries;
@@ -314,7 +324,7 @@ public class InfluxDBStorage implements IStorage {
     Filter filter = select.getFilter();
 
     if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
-      logger.warn("storage engine {} doesn't exist", storageUnit);
+      LOGGER.warn("storage engine {} doesn't exist", storageUnit);
       return new TaskExecuteResult(
           new InfluxDBQueryRowStream(Collections.emptyList(), project, filter));
     }
@@ -353,7 +363,7 @@ public class InfluxDBStorage implements IStorage {
               keyInterval.getStartKey(),
               keyInterval.getEndKey());
 
-      logger.info("execute query: " + statement);
+      LOGGER.info("execute query: {}", statement);
       bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
     }
 
@@ -368,7 +378,7 @@ public class InfluxDBStorage implements IStorage {
     KeyInterval keyInterval = dataArea.getKeyInterval();
 
     if (client.getBucketsApi().findBucketByName(storageUnit) == null) {
-      logger.warn("storage engine {} doesn't exist", storageUnit);
+      LOGGER.warn("storage engine {} doesn't exist", storageUnit);
       return new TaskExecuteResult(
           new InfluxDBQueryRowStream(Collections.emptyList(), project, null));
     }
@@ -381,6 +391,7 @@ public class InfluxDBStorage implements IStorage {
             null,
             keyInterval.getStartKey(),
             keyInterval.getEndKey());
+
     List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
     InfluxDBQueryRowStream rowStream = new InfluxDBQueryRowStream(tables, project, null);
     return new TaskExecuteResult(rowStream);
@@ -405,7 +416,7 @@ public class InfluxDBStorage implements IStorage {
       if (!bucketQueries.get(bucket).equals("()")) {
         statement += String.format(" |> filter(fn: (r) => %s)", bucketQueries.get(bucket));
       }
-      logger.info("execute query: " + statement);
+      LOGGER.info("execute query: {}", statement);
       bucketQueryResults.put(bucket, client.getQueryApi().query(statement, organization.getId()));
     }
 
@@ -431,7 +442,7 @@ public class InfluxDBStorage implements IStorage {
           }
         }
       } else if (client.getBucketsApi().findBucketByName(bucketName) == null) {
-        logger.warn("storage engine {} doesn't exist", bucketName);
+        LOGGER.warn("storage engine {} doesn't exist", bucketName);
         continue;
       } else {
         bucketNameList.add(bucketName);
@@ -581,7 +592,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
 
-    logger.info("generate query: " + statement);
+    LOGGER.info("generate query: {}", statement);
     return statement;
   }
 
@@ -870,7 +881,7 @@ public class InfluxDBStorage implements IStorage {
           matchFilter = setTrueByMeasurement(matchFilter, measurementName);
         }
 
-        matchFilter = ExprUtils.mergeTrue(matchFilter);
+        matchFilter = LogicalFilterUtils.mergeTrue(matchFilter);
 
         if (matchFilter.getType() == FilterType.Bool) {
           return "";
@@ -933,7 +944,7 @@ public class InfluxDBStorage implements IStorage {
     }
     if (e != null) {
       return new TaskExecuteResult(
-          null, new PhysicalException("execute insert task in influxdb failure", e));
+          null, new InfluxDBException("execute insert task in influxdb failure", e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -958,7 +969,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
     if (bucket == null) {
-      return new PhysicalTaskExecuteFailureException("create bucket failure!");
+      return new InfluxDBTaskExecuteFailureException("create bucket failure!");
     }
 
     List<InfluxDBSchema> schemas = new ArrayList<>();
@@ -1023,12 +1034,13 @@ public class InfluxDBStorage implements IStorage {
       }
     }
     try {
-      logger.info("开始数据写入");
+      LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      logger.error("encounter error when write points to influxdb: ", e);
+      return new InfluxDBTaskExecuteFailureException(
+          "encounter error when write points to influxdb: ", e);
     } finally {
-      logger.info("数据写入完毕！");
+      LOGGER.info("数据写入完毕！");
     }
     return null;
   }
@@ -1053,7 +1065,7 @@ public class InfluxDBStorage implements IStorage {
       }
     }
     if (bucket == null) {
-      return new PhysicalTaskExecuteFailureException("create bucket failure!");
+      return new InfluxDBTaskExecuteFailureException("create bucket failure!");
     }
 
     List<Point> points = new ArrayList<>();
@@ -1113,12 +1125,13 @@ public class InfluxDBStorage implements IStorage {
     }
 
     try {
-      logger.info("开始数据写入");
+      LOGGER.info("开始数据写入");
       client.getWriteApiBlocking().writePoints(bucket.getId(), organization.getId(), points);
     } catch (Exception e) {
-      logger.error("encounter error when write points to influxdb: ", e);
+      return new InfluxDBTaskExecuteFailureException(
+          "encounter error when write points to influxdb: ", e);
     } finally {
-      logger.info("数据写入完毕！");
+      LOGGER.info("数据写入完毕！");
     }
 
     return null;

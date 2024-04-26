@@ -18,7 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.session_v2.ClusterClient;
 import cn.edu.tsinghua.iginx.session_v2.domain.ClusterInfo;
@@ -31,7 +31,7 @@ import cn.edu.tsinghua.iginx.thrift.GetReplicaNumReq;
 import cn.edu.tsinghua.iginx.thrift.GetReplicaNumResp;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.thrift.StorageEngine;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.StatusUtils;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -53,8 +53,8 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
 
       try {
         resp = client.getClusterInfo(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("get cluster info failure: ", e);
       }
     }
@@ -86,8 +86,8 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
       iginXClient.checkIsClosed();
       try {
         Status status = client.addStorageEngines(req);
-        RpcUtils.verifySuccess(status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(status);
+      } catch (TException | SessionException e) {
         throw new IginXException("scale out storage failure: ", e);
       }
     }
@@ -102,8 +102,8 @@ public class ClusterClientImpl extends AbstractFunctionClient implements Cluster
       iginXClient.checkIsClosed();
       try {
         resp = client.getReplicaNum(req);
-        RpcUtils.verifySuccess(resp.status);
-      } catch (TException | ExecutionException e) {
+        StatusUtils.verifySuccess(resp.status);
+      } catch (TException | SessionException e) {
         throw new IginXException("get replica num failure: ", e);
       }
     }

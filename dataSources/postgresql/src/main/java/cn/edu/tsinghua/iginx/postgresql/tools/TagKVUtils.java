@@ -5,6 +5,7 @@ import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 
+// TODO: 由于IGinX支持除了反引号和换行符之外的所有字符，因此需要TagKVUtils的实现
 public class TagKVUtils {
 
   public static Pair<String, Map<String, String>> splitFullName(String fullName) {

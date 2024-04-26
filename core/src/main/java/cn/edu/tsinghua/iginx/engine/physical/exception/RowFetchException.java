@@ -25,4 +25,8 @@ public class RowFetchException extends PhysicalException {
   public RowFetchException(Throwable cause) {
     super(cause);
   }
+
+  public RowFetchException(String message, Throwable cause) {
+    super(message, cause);
+  }
 }

@@ -10,7 +10,7 @@ import org.slf4j.LoggerFactory;
 
 public class ShowColumnsGenerator extends AbstractGenerator {
   @SuppressWarnings("unused")
-  private static final Logger logger = LoggerFactory.getLogger(ShowColumnsGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(ShowColumnsGenerator.class);
 
   private static final ShowColumnsGenerator instance = new ShowColumnsGenerator();
 

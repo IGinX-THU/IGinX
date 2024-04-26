@@ -41,7 +41,7 @@ import org.slf4j.LoggerFactory;
 
 public class InfluxDBHistoryQueryRowStream implements RowStream {
 
-  private static final Logger logger = LoggerFactory.getLogger(InfluxDBQueryRowStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDBQueryRowStream.class);
 
   private final List<Map.Entry<String, List<FluxTable>>> bucketQueryResults;
 
@@ -100,7 +100,7 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      throw new RowFetchException(e);
     }
 
     return cachedRow != null;
@@ -183,7 +183,6 @@ public class InfluxDBHistoryQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
       throw new RowFetchException(e);
     }
   }

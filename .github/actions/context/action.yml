@@ -13,30 +13,36 @@ inputs:
         description: "DB name"
         required: false
         default: IoTDB12
+    metadata:
+        description: "which metadata service to use"
+        required: false
+        default: zookeeper
 
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.work-name=='stop-iginx-zk' || inputs.work-name=='restart-iginx-zk'
+        - if: inputs.work-name=='stop-iginx-meta' || inputs.work-name=='restart-iginx-meta'
           name: Stop IGinX
           uses: ./.github/actions/iginxRunner
           with:
               version: ${VERSION}
               if-stop: true
 
-        - if: inputs.work-name=='stop-iginx-zk' || inputs.work-name=='restart-iginx-zk'
-          name: Stop and clear ZooKeeper
-          uses: ./.github/actions/zookeeperRunner
+        - if: inputs.work-name=='stop-iginx-meta' || inputs.work-name=='restart-iginx-meta'
+          name: Stop and clear Metadata Service
+          uses: ./.github/actions/metadataRunner
           with:
               if-stop: true
+              metadata: ${{ inputs.metadata }}
 
-        - if: inputs.work-name=='start-iginx-zk' || inputs.work-name=='restart-iginx-zk'
-          name: Run ZooKeeper
-          uses: ./.github/actions/zookeeperRunner
+        - if: inputs.work-name=='start-iginx-meta' || inputs.work-name=='restart-iginx-meta'
+          name: Run Metadata Service
+          uses: ./.github/actions/metadataRunner
           with:
               if-rerun: true
+              metadata: ${{ inputs.metadata }}
 
-        - if: inputs.work-name=='start-iginx-zk' || inputs.work-name=='restart-iginx-zk'
+        - if: inputs.work-name=='start-iginx-meta' || inputs.work-name=='restart-iginx-meta'
           name: Start IGinX
           uses: ./.github/actions/iginxRunner
 

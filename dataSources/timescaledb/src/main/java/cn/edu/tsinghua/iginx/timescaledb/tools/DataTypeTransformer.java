@@ -7,7 +7,7 @@ import static cn.edu.tsinghua.iginx.thrift.DataType.FLOAT;
 import static cn.edu.tsinghua.iginx.thrift.DataType.INTEGER;
 import static cn.edu.tsinghua.iginx.thrift.DataType.LONG;
 
-import cn.edu.tsinghua.iginx.exceptions.UnsupportedDataTypeException;
+import cn.edu.tsinghua.iginx.exception.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
 public class DataTypeTransformer {

@@ -19,37 +19,14 @@
 package cn.edu.tsinghua.iginx.engine.shared.function.system;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingFunction;
-import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.regex.Pattern;
+import cn.edu.tsinghua.iginx.engine.shared.function.*;
 
 public class Last implements MappingFunction {
 
   public static final String LAST = "last";
 
   private static final Last INSTANCE = new Last();
-
-  private static final String PATH = "path";
-
-  private static final String VALUE = "value";
 
   private Last() {}
 
@@ -73,60 +50,7 @@ public class Last implements MappingFunction {
   }
 
   @Override
-  public RowStream transform(RowStream rows, FunctionParams params) throws Exception {
-    List<String> pathParams = params.getPaths();
-    if (pathParams == null || pathParams.size() != 1) {
-      throw new IllegalArgumentException("unexpected param type for avg.");
-    }
-
-    String target = pathParams.get(0);
-    Header header =
-        new Header(
-            Field.KEY,
-            Arrays.asList(new Field(PATH, DataType.BINARY), new Field(VALUE, DataType.BINARY)));
-    List<Row> resultRows = new ArrayList<>();
-    Map<Integer, Pair<Long, Object>> valueMap = new HashMap<>();
-    Pattern pattern = Pattern.compile(StringUtils.reformatPath(target) + ".*");
-    Set<Integer> indices = new HashSet<>();
-    for (int i = 0; i < rows.getHeader().getFieldSize(); i++) {
-      Field field = rows.getHeader().getField(i);
-      if (pattern.matcher(field.getFullName()).matches()) {
-        indices.add(i);
-      }
-    }
-    while (rows.hasNext()) {
-      Row row = rows.next();
-      Object[] values = row.getValues();
-
-      for (int i = 0; i < values.length; i++) {
-        if (values[i] == null || !indices.contains(i)) {
-          continue;
-        }
-        if (!valueMap.containsKey(i)) {
-          valueMap.put(i, new Pair<>(row.getKey(), values[i]));
-        } else {
-          Pair<Long, Object> pair = valueMap.get(i);
-          pair.k = row.getKey();
-          pair.v = values[i];
-        }
-      }
-    }
-    for (Map.Entry<Integer, Pair<Long, Object>> entry : valueMap.entrySet()) {
-      resultRows.add(
-          new Row(
-              header,
-              entry.getValue().k,
-              new Object[] {
-                rows.getHeader()
-                    .getField(entry.getKey())
-                    .getFullName()
-                    .getBytes(StandardCharsets.UTF_8),
-                ValueUtils.toString(
-                        entry.getValue().v, rows.getHeader().getField(entry.getKey()).getType())
-                    .getBytes(StandardCharsets.UTF_8)
-              }));
-    }
-    resultRows.sort(ValueUtils.firstLastRowComparator());
-    return new Table(header, resultRows);
+  public RowStream transform(Table table, FunctionParams params) throws Exception {
+    return FunctionUtils.firstOrLastTransform(table, params, this);
   }
 }

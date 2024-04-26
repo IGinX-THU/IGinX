@@ -18,34 +18,29 @@
  */
 package cn.edu.tsinghua.iginx.integration.func.udf;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
-import cn.edu.tsinghua.iginx.thrift.DataFlowType;
-import cn.edu.tsinghua.iginx.thrift.ExportType;
-import cn.edu.tsinghua.iginx.thrift.JobState;
-import cn.edu.tsinghua.iginx.thrift.RegisterTaskInfo;
-import cn.edu.tsinghua.iginx.thrift.TaskInfo;
-import cn.edu.tsinghua.iginx.thrift.TaskType;
+import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -57,7 +52,7 @@ import org.slf4j.LoggerFactory;
 
 public class TransformIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(TransformIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformIT.class);
 
   private static Session session;
 
@@ -76,12 +71,12 @@ public class TransformIT {
 
   private static final long END_TIMESTAMP = 15000L;
 
-  private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
+  private static final String SHOW_REGISTER_TASK_SQL = "SHOW FUNCTIONS;";
 
-  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK \"%s\";";
+  private static final String DROP_SQL_FORMATTER = "DROP FUNCTION \"%s\";";
 
-  private static final String REGISTER_SQL_FORMATTER =
-      "REGISTER TRANSFORM PYTHON TASK \"%s\" IN \"%s\" AS \"%s\";";
+  private static final String CREATE_SQL_FORMATTER =
+      "CREATE FUNCTION TRANSFORM \"%s\" FROM \"%s\" IN \"%s\";";
 
   private static final String COMMIT_SQL_FORMATTER = "COMMIT TRANSFORM JOB \"%s\";";
 
@@ -92,6 +87,10 @@ public class TransformIT {
   private static final String QUERY_SQL_2 = "SELECT s1, s2 FROM us.d1 WHERE key < 200;";
 
   private static final Map<String, String> TASK_MAP = new HashMap<>();
+
+  private static boolean dummyNoData = true;
+
+  private static boolean needCompareResult = true;
 
   static {
     TASK_MAP.put(
@@ -104,43 +103,64 @@ public class TransformIT {
 
   @BeforeClass
   public static void setUp() throws SessionException {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
+      needCompareResult = false;
+    }
     session = new Session("127.0.0.1", 6888, "root", "root");
     session.openSession();
   }
 
   @AfterClass
-  public static void tearDown() throws SessionException, ExecutionException {
+  public static void tearDown() throws SessionException {
     dropAllTask();
+    clearAllData(session);
     session.closeSession();
   }
 
   @Before
-  public void insertData() throws ExecutionException, SessionException {
-    String insertStrPrefix = "INSERT INTO us.d1 (key, s1, s2, s3, s4) values ";
-    StringBuilder builder = new StringBuilder(insertStrPrefix);
+  public void insertData() {
+    List<String> pathList =
+        new ArrayList<String>() {
+          {
+            add("us.d1.s1");
+            add("us.d1.s2");
+            add("us.d1.s3");
+            add("us.d1.s4");
+          }
+        };
+    List<DataType> dataTypeList =
+        new ArrayList<DataType>() {
+          {
+            add(DataType.LONG);
+            add(DataType.LONG);
+            add(DataType.BINARY);
+            add(DataType.DOUBLE);
+          }
+        };
+    List<Long> keyList = new ArrayList<>();
+    List<List<Object>> valuesList = new ArrayList<>();
     int size = (int) (END_TIMESTAMP - START_TIMESTAMP);
-
     for (int i = 0; i < size; i++) {
-      builder.append(", ");
-      builder.append("(");
-      builder.append(START_TIMESTAMP + i).append(", ");
-      builder.append(i).append(", ");
-      builder.append(i + 1).append(", ");
-      builder
-          .append("\"")
-          .append(new String(RandomStringUtils.randomAlphanumeric(10).getBytes()))
-          .append("\", ");
-      builder.append((i + 0.1));
-      builder.append(")");
+      keyList.add(START_TIMESTAMP + i);
+      valuesList.add(
+          Arrays.asList(
+              (long) i,
+              (long) i + 1,
+              ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
+              (i + 0.1d)));
     }
-    builder.append(";");
-
-    String insertStatement = builder.toString();
-    SessionExecuteSqlResult res = session.executeSql(insertStatement);
-    if (res.getParseErrorMsg() != null && !res.getParseErrorMsg().equals("")) {
-      logger.error("Insert date execute fail. Caused by: {}.", res.getParseErrorMsg());
-      fail();
-    }
+    Controller.writeRowsData(
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        new ArrayList<>(),
+        InsertAPIType.Row,
+        dummyNoData);
+    dummyNoData = false;
+    Controller.after(session);
   }
 
   @After
@@ -148,7 +168,7 @@ public class TransformIT {
     Controller.clearData(session);
   }
 
-  private static void dropAllTask() throws SessionException, ExecutionException {
+  private static void dropAllTask() throws SessionException {
     String[] taskList = {
       "RowSumTransformer", "AddOneTransformer", "SumTransformer", "SleepTransformer"
     };
@@ -157,7 +177,7 @@ public class TransformIT {
     }
   }
 
-  private static void dropTask(String task) throws SessionException, ExecutionException {
+  private static void dropTask(String task) throws SessionException {
     SessionExecuteSqlResult result = session.executeSql(SHOW_REGISTER_TASK_SQL);
     for (RegisterTaskInfo info : result.getRegisterTaskInfos()) {
       if (info.getClassName().equals(task)) {
@@ -166,14 +186,13 @@ public class TransformIT {
     }
   }
 
-  private void registerTask(String task) throws SessionException, ExecutionException {
+  private void registerTask(String task) throws SessionException {
     dropTask(task);
-    session.executeSql(String.format(REGISTER_SQL_FORMATTER, task, TASK_MAP.get(task), task));
+    session.executeSql(String.format(CREATE_SQL_FORMATTER, task, task, TASK_MAP.get(task)));
   }
 
-  private void verifyJobState(long jobId)
-      throws SessionException, ExecutionException, InterruptedException {
-    logger.info("job is {}", jobId);
+  private void verifyJobState(long jobId) throws SessionException, InterruptedException {
+    LOGGER.info("job is {}", jobId);
     JobState jobState = JobState.JOB_CREATED;
     while (!jobState.equals(JobState.JOB_CLOSED)
         && !jobState.equals(JobState.JOB_FAILED)
@@ -181,7 +200,11 @@ public class TransformIT {
       Thread.sleep(500);
       jobState = session.queryTransformJobStatus(jobId);
     }
-    logger.info("job {} state is {}", jobId, jobState.toString());
+    LOGGER.info("job {} state is {}", jobId, jobState.toString());
+
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(JobState.JOB_FINISHED, jobState);
 
     List<Long> finishedJobIds = session.showEligibleJob(JobState.JOB_FINISHED);
@@ -189,8 +212,30 @@ public class TransformIT {
   }
 
   @Test
+  public void exportFileWithoutPermissionTest() {
+    LOGGER.info("exportFileWithoutPermissionTest");
+
+    List<String> sqlList = new ArrayList<>();
+    sqlList.add(QUERY_SQL_2);
+
+    TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
+    iginxTask.setSqlList(sqlList);
+
+    List<TaskInfo> taskInfoList = new ArrayList<>();
+    taskInfoList.add(iginxTask);
+
+    try {
+      String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "output.denied";
+      session.commitTransformJob(taskInfoList, ExportType.File, outputFileName);
+      fail("Export file without permission should fail.");
+    } catch (SessionException e) {
+      assertEquals(RpcUtils.ACCESS_DENY.message, e.getMessage());
+    }
+  }
+
+  @Test
   public void commitSingleSqlStatementTest() {
-    logger.info("commitSingleSqlStatementTest");
+    LOGGER.info("commitSingleSqlStatementTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
     TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
@@ -201,15 +246,15 @@ public class TransformIT {
       long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
 
       verifyJobState(jobId);
-    } catch (SessionException | ExecutionException | InterruptedException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitSingleSqlStatementByYamlTest() {
-    logger.info("commitSingleSqlStatementByYamlTest");
+    LOGGER.info("commitSingleSqlStatementByYamlTest");
     try {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatement.yaml";
       SessionExecuteSqlResult result =
@@ -217,15 +262,15 @@ public class TransformIT {
 
       long jobId = result.getJobId();
       verifyJobState(jobId);
-    } catch (SessionException | ExecutionException | InterruptedException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultipleSqlStatementsTest() {
-    logger.info("commitMultipleSqlStatementsTest");
+    LOGGER.info("commitMultipleSqlStatementsTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
     TaskInfo iginxTask = new TaskInfo(TaskType.IginX, DataFlowType.Stream);
@@ -251,15 +296,15 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultipleSqlStatements(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultipleSqlStatementsByYamlTest() {
-    logger.info("commitMultipleSqlStatementsByYamlTest");
+    LOGGER.info("commitMultipleSqlStatementsByYamlTest");
     try {
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformMultipleSqlStatements.yaml";
@@ -271,8 +316,8 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultipleSqlStatements(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -282,6 +327,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("us.d1.s2", parts[1]);
 
@@ -300,7 +348,7 @@ public class TransformIT {
 
   @Test
   public void commitSinglePythonJobTest() {
-    logger.info("commitSinglePythonJobTest");
+    LOGGER.info("commitSinglePythonJobTest");
     try {
       String task = "RowSumTransformer";
       registerTask(task);
@@ -322,15 +370,15 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifySinglePythonJob(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitSinglePythonJobByYamlTest() {
-    logger.info("commitSinglePythonJobByYamlTest");
+    LOGGER.info("commitSinglePythonJobByYamlTest");
     try {
       String task = "RowSumTransformer";
       registerTask(task);
@@ -344,8 +392,8 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifySinglePythonJob(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -355,6 +403,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("sum", parts[1]);
 
@@ -373,7 +424,7 @@ public class TransformIT {
 
   @Test
   public void commitMultiplePythonJobsTest() {
-    logger.info("commitMultiplePythonJobsTest");
+    LOGGER.info("commitMultiplePythonJobsTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer"};
       for (String task : taskList) {
@@ -401,15 +452,15 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultiplePythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultiplePythonJobsByYamlTest() {
-    logger.info("commitMultiplePythonJobsByYamlTest");
+    LOGGER.info("commitMultiplePythonJobsByYamlTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer"};
       for (String task : taskList) {
@@ -425,15 +476,15 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMultiplePythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMultiplePythonJobsByYamlWithExportToIginxTest() {
-    logger.info("commitMultiplePythonJobsByYamlWithExportToIginxTest");
+    LOGGER.info("commitMultiplePythonJobsByYamlWithExportToIginxTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer"};
       for (String task : taskList) {
@@ -451,12 +502,14 @@ public class TransformIT {
       SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
       int timeIndex = queryResult.getPaths().indexOf("transform.key");
       int sumIndex = queryResult.getPaths().indexOf("transform.sum");
-      assertNotEquals(-1, timeIndex);
-      assertNotEquals(-1, sumIndex);
+      if (needCompareResult) {
+        assertNotEquals(-1, timeIndex);
+        assertNotEquals(-1, sumIndex);
+      }
 
       verifyMultiplePythonJobs(queryResult, timeIndex, sumIndex, 200);
-    } catch (SessionException | ExecutionException | InterruptedException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -478,6 +531,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("sum", parts[1]);
 
@@ -496,7 +552,7 @@ public class TransformIT {
 
   @Test
   public void commitMixedPythonJobsTest() {
-    logger.info("commitMixedPythonJobsTest");
+    LOGGER.info("commitMixedPythonJobsTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
       for (String task : taskList) {
@@ -528,15 +584,15 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMixedPythonJobsByYamlTest() {
-    logger.info("commitMixedPythonJobsByYamlTest");
+    LOGGER.info("commitMixedPythonJobsByYamlTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
       for (String task : taskList) {
@@ -552,15 +608,15 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
 
   @Test
   public void commitMixedPythonJobsByYamlWithRegisterTest() {
-    logger.info("commitMixedPythonJobsByYamlWithRegisterTest");
+    LOGGER.info("commitMixedPythonJobsByYamlWithRegisterTest");
     try {
       String[] taskList = {"RowSumTransformer", "AddOneTransformer", "SumTransformer"};
       for (String task : taskList) {
@@ -579,8 +635,8 @@ public class TransformIT {
 
       verifyJobState(jobId);
       verifyMixedPythonJobs(outputFileName);
-    } catch (SessionException | ExecutionException | InterruptedException | IOException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException | InterruptedException | IOException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }
@@ -590,6 +646,9 @@ public class TransformIT {
     String line = reader.readLine();
     String[] parts = line.split(",");
 
+    if (!needCompareResult) {
+      return;
+    }
     assertEquals(GlobalConstant.KEY_NAME, parts[0]);
     assertEquals("sum", parts[1]);
 
@@ -604,7 +663,7 @@ public class TransformIT {
 
   //    @Test
   public void cancelJobTest() {
-    logger.info("cancelJobTest");
+    LOGGER.info("cancelJobTest");
     try {
       String task = "SleepTransformer";
       registerTask(task);
@@ -621,19 +680,19 @@ public class TransformIT {
       taskInfoList.add(sleepPyTask);
 
       long jobId = session.commitTransformJob(taskInfoList, ExportType.Log, "");
-      logger.info("job is {}", jobId);
+      LOGGER.info("job is {}", jobId);
       JobState jobState = session.queryTransformJobStatus(jobId);
-      logger.info("job {} state is {}", jobId, jobState.toString());
+      LOGGER.info("job {} state is {}", jobId, jobState.toString());
 
       session.cancelTransformJob(jobId);
       jobState = session.queryTransformJobStatus(jobId);
-      logger.info("After cancellation, job {} state is {}", jobId, jobState.toString());
+      LOGGER.info("After cancellation, job {} state is {}", jobId, jobState.toString());
       assertEquals(JobState.JOB_CLOSED, jobState);
 
       List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
       assertTrue(closedJobIds.contains(jobId));
-    } catch (SessionException | ExecutionException e) {
-      logger.error("Transform:  execute fail. Caused by:", e);
+    } catch (SessionException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
   }

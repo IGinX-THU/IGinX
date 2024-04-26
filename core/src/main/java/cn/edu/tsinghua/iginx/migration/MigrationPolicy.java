@@ -14,9 +14,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
-import cn.edu.tsinghua.iginx.exceptions.MetaStorageException;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.migration.recover.MigrationExecuteTask;
 import cn.edu.tsinghua.iginx.migration.recover.MigrationExecuteType;
 import cn.edu.tsinghua.iginx.migration.recover.MigrationLogger;
@@ -279,7 +279,7 @@ public abstract class MigrationPolicy {
       }
       logger.info("start to add new fragment");
       String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
-      logger.info("timeseries split middleTimeseries=" + middleTimeseries);
+      logger.info("timeseries split middleTimeseries={}", middleTimeseries);
       ColumnsInterval sourceColumnsInterval =
           new ColumnsInterval(
               fragmentMeta.getColumnsInterval().getStartColumn(),
@@ -291,7 +291,7 @@ public abstract class MigrationPolicy {
               fragmentMeta.getKeyInterval().getStartKey(),
               fragmentMeta.getKeyInterval().getEndKey(),
               fragmentMeta.getMasterStorageUnit());
-      logger.info("timeseries split new fragment=" + newFragment.toString());
+      logger.info("timeseries split new fragment={}", newFragment);
       DefaultMetaManager.getInstance().addFragment(newFragment);
       logger.info("start to add old fragment");
       DefaultMetaManager.getInstance().endFragmentByColumnsInterval(fragmentMeta, middleTimeseries);
@@ -353,9 +353,9 @@ public abstract class MigrationPolicy {
       MigrationTask migrationTask, Map<Long, Long> nodeLoadMap) {
     //    long currTargetNodeLoad = nodeLoadMap.getOrDefault(migrationTask.getTargetStorageId(),
     // 0L);
-    //    logger.error("currTargetNodeLoad = {}", currTargetNodeLoad);
-    //    logger.error("migrationTask.getLoad() = {}", migrationTask.getLoad());
-    //    logger.error("config.getMaxLoadThreshold() = {}", config.getMaxLoadThreshold());
+    //    LOGGER.error("currTargetNodeLoad = {}", currTargetNodeLoad);
+    //    LOGGER.error("migrationTask.getLoad() = {}", migrationTask.getLoad());
+    //    LOGGER.error("config.getMaxLoadThreshold() = {}", config.getMaxLoadThreshold());
     return true;
   }
 

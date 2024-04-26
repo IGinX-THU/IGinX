@@ -5,37 +5,29 @@
 
     <parent>
         <groupId>cn.edu.tsinghua</groupId>
-        <artifactId>iginx</artifactId>
+        <artifactId>iginx-driver</artifactId>
         <version>${revision}</version>
-        <relativePath>../../pom.xml</relativePath>
     </parent>
 
     <artifactId>iotdb12</artifactId>
     <name>IGinX IoTDB12</name>
 
     <properties>
+        <driver.basedir>..</driver.basedir>
+        <driver.name>iotdb12</driver.name>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
 
     <dependencies>
         <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iginx-core</artifactId>
-            <version>${project.version}</version>
-            <scope>provided</scope>
+            <groupId>org.apache.iotdb</groupId>
+            <artifactId>iotdb-session</artifactId>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
+                    <artifactId>*</artifactId>
                 </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.iotdb</groupId>
-            <artifactId>iotdb-session</artifactId>
-            <version>0.12.6</version>
-            <exclusions>
                 <exclusion>
                     <groupId>ch.qos.logback</groupId>
                     <artifactId>logback-classic</artifactId>
@@ -48,6 +40,10 @@
             <version>0.14.1</version>
             <exclusions>
                 <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+                <exclusion>
                     <groupId>org.apache.httpcomponents</groupId>
                     <artifactId>httpclient</artifactId>
                 </exclusion>
@@ -57,16 +53,14 @@
                 </exclusion>
             </exclusions>
         </dependency>
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>1.7.36</version>
-            <scope>provided</scope>
-        </dependency>
     </dependencies>
 
     <build>
         <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-dependency-plugin</artifactId>

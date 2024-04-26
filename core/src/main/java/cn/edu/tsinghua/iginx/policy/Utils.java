@@ -7,8 +7,8 @@ import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.DeleteStatement;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import java.util.*;
 
 public class Utils {
@@ -23,7 +23,6 @@ public class Utils {
         return ((InsertStatement) statement).getPaths();
       default:
         // TODO: case label. should we return empty list for other statements?
-        break;
     }
     return Collections.emptyList();
   }
@@ -60,7 +59,8 @@ public class Utils {
       case INSERT:
         InsertStatement insertStatement = (InsertStatement) statement;
         List<Long> keys = insertStatement.getKeys();
-        return new KeyInterval(keys.get(0), keys.get(keys.size() - 1));
+        return new KeyInterval(
+            Collections.min(keys), Collections.min(keys)); // interval should require coparison
       case SELECT:
         UnarySelectStatement selectStatement = (UnarySelectStatement) statement;
         return new KeyInterval(selectStatement.getStartKey(), selectStatement.getEndKey());

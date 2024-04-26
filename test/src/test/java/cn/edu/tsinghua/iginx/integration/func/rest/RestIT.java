@@ -1,27 +1,33 @@
 package cn.edu.tsinghua.iginx.integration.func.rest;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.*;
+import java.util.*;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class RestIT {
 
-  private static final Logger logger = LoggerFactory.getLogger(RestIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RestIT.class);
 
   private boolean isAbleToClearData = true;
 
   private static Session session;
 
   private boolean isAbleToDelete = true;
+
+  // dummy节点是够已经插入过数据
+  private boolean isDummyHasInitialData = false;
 
   public RestIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
@@ -38,17 +44,67 @@ public class RestIT {
 
   @AfterClass
   public static void tearDown() throws SessionException {
+    clearAllData(session);
     session.closeSession();
   }
 
   @Before
   public void insertData() {
-    try {
-      execute("insert.json", TYPE.INSERT);
-    } catch (Exception e) {
-      logger.error("insertData fail. Caused by: {}.", e.toString());
-      fail();
-    }
+    List<String> pathList = Arrays.asList("archive.file.tracked", "archive.file.search");
+    List<DataType> dataTypeList = Arrays.asList(DataType.DOUBLE, DataType.DOUBLE);
+
+    List<List<Long>> keyList =
+        Arrays.asList(
+            new ArrayList<Long>() {
+              {
+                add(1359788300000L);
+                add(1359788400000L);
+                add(1359788410000L);
+              }
+            },
+            new ArrayList<Long>() {
+              {
+                add(1359786400000L);
+              }
+            });
+    List<List<Object>> valuesList =
+        Arrays.asList(
+            new ArrayList<Object>() {
+              {
+                add(13.2);
+                add(123.3);
+                add(23.1);
+              }
+            },
+            new ArrayList<Object>() {
+              {
+                add(321.0);
+              }
+            });
+    List<Map<String, String>> tagsList =
+        Arrays.asList(
+            new HashMap<String, String>() {
+              {
+                put("dc", "DC1");
+                put("host", "server1");
+              }
+            },
+            new HashMap<String, String>() {
+              {
+                put("host", "server2");
+              }
+            });
+    Controller.writeColumnsData(
+        session,
+        pathList,
+        keyList,
+        dataTypeList,
+        valuesList,
+        tagsList,
+        InsertAPIType.Column,
+        isDummyHasInitialData);
+    isDummyHasInitialData = false;
+    Controller.after(session);
   }
 
   @After
@@ -118,7 +174,7 @@ public class RestIT {
       result = execute(json, TYPE.QUERY);
     } catch (Exception e) {
       //            if (e.toString().equals())
-      logger.error("executeAndCompare fail. Caused by: {}.", e.toString());
+      LOGGER.error("executeAndCompare fail. Caused by: {}.", e.toString());
     }
     assertEquals(output, result);
   }
@@ -268,9 +324,9 @@ public class RestIT {
   public void pathValidTest() {
     try {
       String res = execute("pathValidTest.json", TYPE.INSERT);
-      logger.warn("insertData fail. Caused by: {}.", res);
+      LOGGER.warn("insertData fail. Caused by: {}.", res);
     } catch (Exception e) {
-      logger.error("insertData fail. Caused by: {}.", e.toString());
+      LOGGER.error("insertData fail. Caused by: {}.", e.toString());
     }
   }
 }

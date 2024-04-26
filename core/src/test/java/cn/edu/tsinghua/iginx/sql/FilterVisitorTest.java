@@ -10,7 +10,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import org.junit.Test;
 
 public class FilterVisitorTest {

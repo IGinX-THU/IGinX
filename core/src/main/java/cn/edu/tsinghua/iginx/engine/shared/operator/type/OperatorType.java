@@ -115,4 +115,12 @@ public enum OperatorType {
   public static boolean isSetOperator(OperatorType op) {
     return op.value >= 35 && op.value < 39;
   }
+
+  public static boolean isHasFunction(OperatorType op) {
+    return op == GroupBy
+        || op == Downsample
+        || op == RowTransform
+        || op == SetTransform
+        || op == MappingTransform;
+  }
 }

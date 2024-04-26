@@ -47,4 +47,9 @@ public class FunctionCall {
         "{Name: %s, FuncType: %s, MappingType: %s}",
         function.getIdentifier(), function.getFunctionType(), function.getMappingType());
   }
+
+  public String getNameAndFuncTypeStr() {
+    return String.format(
+        "(%s, %s)", FunctionUtils.getFunctionName(function), function.getFunctionType());
+  }
 }

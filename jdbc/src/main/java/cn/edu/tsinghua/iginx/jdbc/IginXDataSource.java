@@ -1,14 +1,17 @@
 package cn.edu.tsinghua.iginx.jdbc;
 
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import java.io.PrintWriter;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.sql.DataSource;
 
 public class IginXDataSource implements DataSource {
+
+  private static final Logger LOGGER = Logger.getLogger(IginXDataSource.class.getName());
   private String url;
   private String user;
   private String password;
@@ -62,7 +65,7 @@ public class IginXDataSource implements DataSource {
     try {
       return new IginXConnection(url, properties);
     } catch (SessionException e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, "unexpected error: ", e);
     }
     return null;
   }
@@ -75,7 +78,7 @@ public class IginXDataSource implements DataSource {
       newProp.setProperty(Config.PASSWORD, password);
       return new IginXConnection(url, newProp);
     } catch (Exception e) {
-      e.printStackTrace();
+      LOGGER.log(Level.SEVERE, "unexpected error: ", e);
     }
     return null;
   }

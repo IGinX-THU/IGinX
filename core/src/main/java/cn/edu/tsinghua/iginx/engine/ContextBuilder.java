@@ -6,7 +6,7 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.sql.statement.*;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;

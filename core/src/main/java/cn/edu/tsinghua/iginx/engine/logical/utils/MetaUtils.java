@@ -17,7 +17,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.policy.IPolicy;
 import cn.edu.tsinghua.iginx.policy.PolicyManager;
-import cn.edu.tsinghua.iginx.sql.statement.selectstatement.SelectStatement;
+import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;

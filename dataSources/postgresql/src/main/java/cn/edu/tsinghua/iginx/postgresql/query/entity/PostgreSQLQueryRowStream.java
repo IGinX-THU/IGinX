@@ -2,8 +2,7 @@ package cn.edu.tsinghua.iginx.postgresql.query.entity;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.validate;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
-import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.postgresql.tools.Constants.KEY_NAME;
 import static cn.edu.tsinghua.iginx.postgresql.tools.HashUtils.toHash;
 import static cn.edu.tsinghua.iginx.postgresql.tools.TagKVUtils.splitFullName;
 
@@ -20,6 +19,7 @@ import cn.edu.tsinghua.iginx.postgresql.tools.DataTypeTransformer;
 import cn.edu.tsinghua.iginx.postgresql.tools.PostgreSQLSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 
 public class PostgreSQLQueryRowStream implements RowStream {
 
-  private static final Logger logger = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLQueryRowStream.class);
 
   private final List<ResultSet> resultSets;
 
@@ -55,16 +55,20 @@ public class PostgreSQLQueryRowStream implements RowStream {
 
   private List<Boolean> resultSetHasColumnWithTheSameName;
 
+  private List<Connection> connList;
+
   public PostgreSQLQueryRowStream(
       List<String> databaseNameList,
       List<ResultSet> resultSets,
       boolean isDummy,
       Filter filter,
-      TagFilter tagFilter)
+      TagFilter tagFilter,
+      List<Connection> connList)
       throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
+    this.connList = connList;
 
     if (resultSets.isEmpty()) {
       this.header = new Header(Field.KEY, Collections.emptyList());
@@ -152,13 +156,16 @@ public class PostgreSQLQueryRowStream implements RowStream {
       for (ResultSet resultSet : resultSets) {
         resultSet.close();
       }
+      for (Connection conn : connList) {
+        conn.close();
+      }
     } catch (SQLException e) {
-      logger.error(e.getMessage());
+      LOGGER.error("error occurred when closing resultSets or connections", e);
     }
   }
 
   @Override
-  public boolean hasNext() {
+  public boolean hasNext() throws PhysicalException {
     if (resultSets.isEmpty()) {
       return false;
     }
@@ -168,7 +175,7 @@ public class PostgreSQLQueryRowStream implements RowStream {
         cacheOneRow();
       }
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
+      throw new RowFetchException("unexpected error: ", e);
     }
 
     return cachedRow != null;
@@ -186,101 +193,103 @@ public class PostgreSQLQueryRowStream implements RowStream {
       cachedRow = null;
       return row;
     } catch (SQLException | PhysicalException e) {
-      logger.error(e.getMessage());
-      throw new RowFetchException(e);
+      throw new RowFetchException("unexpected error: ", e);
     }
   }
 
   private void cacheOneRow() throws SQLException, PhysicalException {
-    boolean hasNext = false;
-    long key;
-    Object[] values = new Object[header.getFieldSize()];
+    while (true) {
+      boolean hasNext = false;
+      long key;
+      Object[] values = new Object[header.getFieldSize()];
 
-    int startIndex = 0;
-    int endIndex = 0;
-    for (int i = 0; i < resultSets.size(); i++) {
-      ResultSet resultSet = resultSets.get(i);
-      if (resultSetSizes[i] == 0) {
-        continue;
-      }
-      endIndex += resultSetSizes[i];
-      if (!gotNext[i]) {
-        boolean tempHasNext = resultSet.next();
-        hasNext |= tempHasNext;
-        gotNext[i] = true;
-
-        if (tempHasNext) {
-          long tempKey;
-          Object tempValue;
-
-          Set<String> tableNameSet = new HashSet<>();
-
-          for (int j = 0; j < resultSetSizes[i]; j++) {
-            String columnName = fieldToColumnName.get(header.getField(startIndex + j));
-            PostgreSQLSchema schema =
-                new PostgreSQLSchema(header.getField(startIndex + j).getName(), isDummy);
-            String tableName = schema.getTableName();
-
-            tableNameSet.add(tableName);
-
-            Object value = getResultSetObject(resultSet, columnName, tableName);
-            if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
-              tempValue = value.toString().getBytes();
-            } else {
-              tempValue = value;
-            }
-            cachedValues[startIndex + j] = tempValue;
-          }
-
-          if (isDummy) {
-            // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
-            // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
-            // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
-            String keyString = resultSet.getString(KEY_NAME);
-            keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
-            tempKey = toHash(keyString);
-          } else {
-            tempKey = resultSet.getLong(KEY_NAME);
-          }
-          cachedKeys[i] = tempKey;
-
-        } else {
-          cachedKeys[i] = Long.MAX_VALUE;
-          for (int j = startIndex; j < endIndex; j++) {
-            cachedValues[j] = null;
-          }
-        }
-      } else {
-        hasNext = true;
-      }
-      startIndex = endIndex;
-    }
-
-    if (hasNext) {
-      key = Arrays.stream(cachedKeys).min().getAsLong();
-      startIndex = 0;
-      endIndex = 0;
+      int startIndex = 0;
+      int endIndex = 0;
       for (int i = 0; i < resultSets.size(); i++) {
+        ResultSet resultSet = resultSets.get(i);
+        if (resultSetSizes[i] == 0) {
+          continue;
+        }
         endIndex += resultSetSizes[i];
-        if (cachedKeys[i] == key) {
-          for (int j = 0; j < resultSetSizes[i]; j++) {
-            values[startIndex + j] = cachedValues[startIndex + j];
-          }
-          gotNext[i] = false;
-        } else {
-          for (int j = 0; j < resultSetSizes[i]; j++) {
-            values[startIndex + j] = null;
-          }
+        if (!gotNext[i]) {
+          boolean tempHasNext = resultSet.next();
+          hasNext |= tempHasNext;
           gotNext[i] = true;
+
+          if (tempHasNext) {
+            long tempKey;
+            Object tempValue;
+
+            Set<String> tableNameSet = new HashSet<>();
+
+            for (int j = 0; j < resultSetSizes[i]; j++) {
+              String columnName = fieldToColumnName.get(header.getField(startIndex + j));
+              PostgreSQLSchema schema =
+                  new PostgreSQLSchema(header.getField(startIndex + j).getName(), isDummy);
+              String tableName = schema.getTableName();
+
+              tableNameSet.add(tableName);
+
+              Object value = getResultSetObject(resultSet, columnName, tableName);
+              if (header.getField(startIndex + j).getType() == DataType.BINARY && value != null) {
+                tempValue = value.toString().getBytes();
+              } else {
+                tempValue = value;
+              }
+              cachedValues[startIndex + j] = tempValue;
+            }
+
+            if (isDummy) {
+              // 在Dummy查询的Join操作中，key列的值是由多个Join表的所有列的值拼接而成的，但实际上的Key列仅由一个表的所有列的值拼接而成
+              // 所以在这里需要将key列的值截断为一个表的所有列的值，因为能合并在一行里的不同表的数据一定是key相同的
+              // 所以查询出来的KEY值一定是（我们需要的KEY值 * 表的数量），因此只需要裁剪取第一个表的key列的值即可
+              String keyString = resultSet.getString(KEY_NAME);
+              keyString = keyString.substring(0, keyString.length() / tableNameSet.size());
+              tempKey = toHash(keyString);
+            } else {
+              tempKey = resultSet.getLong(KEY_NAME);
+            }
+            cachedKeys[i] = tempKey;
+
+          } else {
+            cachedKeys[i] = Long.MAX_VALUE;
+            for (int j = startIndex; j < endIndex; j++) {
+              cachedValues[j] = null;
+            }
+          }
+        } else {
+          hasNext = true;
         }
         startIndex = endIndex;
       }
-      cachedRow = new Row(header, key, values);
-      if (!validate(filter, cachedRow)) {
-        cacheOneRow();
+
+      if (hasNext) {
+        key = Arrays.stream(cachedKeys).min().getAsLong();
+        startIndex = 0;
+        endIndex = 0;
+        for (int i = 0; i < resultSets.size(); i++) {
+          endIndex += resultSetSizes[i];
+          if (cachedKeys[i] == key) {
+            for (int j = 0; j < resultSetSizes[i]; j++) {
+              values[startIndex + j] = cachedValues[startIndex + j];
+            }
+            gotNext[i] = false;
+          } else {
+            for (int j = 0; j < resultSetSizes[i]; j++) {
+              values[startIndex + j] = null;
+            }
+            gotNext[i] = true;
+          }
+          startIndex = endIndex;
+        }
+        cachedRow = new Row(header, key, values);
+        if (!validate(filter, cachedRow)) {
+          continue;
+        }
+      } else {
+        cachedRow = null;
       }
-    } else {
-      cachedRow = null;
+      break;
     }
     hasCachedRow = true;
   }
@@ -290,23 +299,19 @@ public class PostgreSQLQueryRowStream implements RowStream {
    * columnLabel)是因为：在pg的filter下推中，可能会存在column名字相同，但是table不同的情况 这时候用resultSet.getObject(String
    * columnLabel)就只能取到第一个column的值
    */
-  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName) {
-    try {
-      if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
-        return resultSet.getObject(columnName);
-      }
-      ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
-      for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
-        String tempColumnName = resultSetMetaData.getColumnName(j);
-        String tempTableName = resultSetMetaData.getTableName(j);
-        if (tempColumnName.equals(columnName) && tempTableName.equals(tableName)) {
-          return resultSet.getObject(j);
-        }
-      }
-    } catch (SQLException e) {
-      logger.error(e.getMessage());
+  private Object getResultSetObject(ResultSet resultSet, String columnName, String tableName)
+      throws SQLException {
+    if (!resultSetHasColumnWithTheSameName.get(resultSets.indexOf(resultSet))) {
+      return resultSet.getObject(columnName);
     }
-
+    ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+    for (int j = 1; j <= resultSetMetaData.getColumnCount(); j++) {
+      String tempColumnName = resultSetMetaData.getColumnName(j);
+      String tempTableName = resultSetMetaData.getTableName(j);
+      if (tempColumnName.equals(columnName) && tempTableName.equals(tableName)) {
+        return resultSet.getObject(j);
+      }
+    }
     return null;
   }
 }

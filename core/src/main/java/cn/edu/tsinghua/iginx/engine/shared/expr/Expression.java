@@ -19,6 +19,7 @@ public interface Expression {
     Function,
     Base,
     Constant,
-    FromValue
+    FromValue,
+    Multiple,
   }
 }

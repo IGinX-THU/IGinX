@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.session;
 
-import cn.edu.tsinghua.iginx.exceptions.ExecutionException;
-import cn.edu.tsinghua.iginx.exceptions.SessionException;
+import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.IginXClient;
 import cn.edu.tsinghua.iginx.session_v2.IginXClientFactory;
 import cn.edu.tsinghua.iginx.session_v2.TransformClient;
@@ -10,8 +9,12 @@ import cn.edu.tsinghua.iginx.session_v2.domain.Transform;
 import cn.edu.tsinghua.iginx.thrift.*;
 import java.io.File;
 import java.util.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransformExample {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TransformExample.class);
 
   private static Session session;
   private static IginXClient client;
@@ -23,10 +26,9 @@ public class TransformExample {
 
   private static final String QUERY_SQL = "select value1, value2, value3, value4 from transform;";
   private static final String SHOW_TIME_SERIES_SQL = "SHOW COLUMNS;";
-  private static final String SHOW_REGISTER_TASK_SQL = "SHOW REGISTER PYTHON TASK;";
-  private static final String REGISTER_SQL_FORMATTER =
-      "REGISTER TRANSFORM PYTHON TASK %s IN %s AS %s";
-  private static final String DROP_SQL_FORMATTER = "DROP PYTHON TASK %s";
+  private static final String SHOW_FUNCTION_SQL = "SHOW FUNCTIONS;";
+  private static final String CREATE_SQL_FORMATTER = "CREATE FUNCTION TRANSFORM %s FROM %s IN %s";
+  private static final String DROP_SQL_FORMATTER = "DROP FUNCTION %s";
 
   private static final String OUTPUT_DIR_PREFIX =
       System.getProperty("user.dir")
@@ -57,8 +59,7 @@ public class TransformExample {
         "\"SumTransformer\"", "\"" + OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py\"");
   }
 
-  public static void main(String[] args)
-      throws SessionException, ExecutionException, InterruptedException {
+  public static void main(String[] args) throws SessionException, InterruptedException {
     before();
 
     // session
@@ -69,7 +70,7 @@ public class TransformExample {
     after();
   }
 
-  private static void before() throws SessionException, ExecutionException {
+  private static void before() throws SessionException {
     session = new Session("127.0.0.1", 6888, "root", "root");
     // 打开 Session
     session.openSession();
@@ -88,16 +89,16 @@ public class TransformExample {
     registerTask();
 
     // 查询已注册的任务
-    result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
   }
 
-  private static void after() throws ExecutionException, SessionException {
+  private static void after() throws SessionException {
     // 注销任务
     dropTask();
 
     // 查询已注册的任务
-    SessionExecuteSqlResult result = session.executeSql(SHOW_REGISTER_TASK_SQL);
+    SessionExecuteSqlResult result = session.executeSql(SHOW_FUNCTION_SQL);
     result.print(false, "ms");
 
     // 清除数据
@@ -106,8 +107,7 @@ public class TransformExample {
     session.closeSession();
   }
 
-  private static void runWithSession()
-      throws SessionException, ExecutionException, InterruptedException {
+  private static void runWithSession() throws SessionException, InterruptedException {
     // 直接输出到文件
     commitWithoutPyTask();
 
@@ -133,11 +133,11 @@ public class TransformExample {
   private static void registerTask() {
     TASK_MAP.forEach(
         (k, v) -> {
-          String registerSQL = String.format(REGISTER_SQL_FORMATTER, k, v, k);
+          String registerSQL = String.format(CREATE_SQL_FORMATTER, k, k, v);
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
   }
@@ -149,13 +149,12 @@ public class TransformExample {
           try {
             session.executeSql(registerSQL);
           } catch (Exception e) {
-            e.printStackTrace();
+            LOGGER.error("unexpected error: ", e);
           }
         });
   }
 
-  private static void commitWithoutPyTask()
-      throws ExecutionException, SessionException, InterruptedException {
+  private static void commitWithoutPyTask() throws SessionException, InterruptedException {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -182,8 +181,7 @@ public class TransformExample {
     System.out.println("job state is " + jobState.toString());
   }
 
-  private static void commitStdJob()
-      throws ExecutionException, SessionException, InterruptedException {
+  private static void commitStdJob() throws SessionException, InterruptedException {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -210,8 +208,7 @@ public class TransformExample {
     System.out.println("job state is " + jobState.toString());
   }
 
-  private static void commitFileJob()
-      throws ExecutionException, SessionException, InterruptedException {
+  private static void commitFileJob() throws SessionException, InterruptedException {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -240,8 +237,7 @@ public class TransformExample {
     System.out.println("job state is " + jobState.toString());
   }
 
-  private static void commitCombineJob()
-      throws ExecutionException, SessionException, InterruptedException {
+  private static void commitCombineJob() throws SessionException, InterruptedException {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -276,8 +272,7 @@ public class TransformExample {
     System.out.println("job state is " + jobState.toString());
   }
 
-  private static void commitMixedJob()
-      throws ExecutionException, SessionException, InterruptedException {
+  private static void commitMixedJob() throws SessionException, InterruptedException {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -316,8 +311,7 @@ public class TransformExample {
     System.out.println("job state is " + jobState.toString());
   }
 
-  private static void commitIginXJob()
-      throws ExecutionException, SessionException, InterruptedException {
+  private static void commitIginXJob() throws SessionException, InterruptedException {
     // 构造任务
     List<TaskInfo> taskInfoList = new ArrayList<>();
 
@@ -348,8 +342,7 @@ public class TransformExample {
     result.print(false, "ms");
   }
 
-  private static void commitBySQL()
-      throws ExecutionException, SessionException, InterruptedException {
+  private static void commitBySQL() throws SessionException, InterruptedException {
     String yamlPath = "\"" + OUTPUT_DIR_PREFIX + File.separator + "TransformJobExample.yaml\"";
     SessionExecuteSqlResult result = session.executeSql("commit transform job " + yamlPath);
 
@@ -365,7 +358,7 @@ public class TransformExample {
     System.out.println("job state is " + jobState.toString());
   }
 
-  private static void prepareData() throws ExecutionException, SessionException {
+  private static void prepareData() throws SessionException {
     List<String> paths = new ArrayList<>();
     paths.add(S1);
     paths.add(S2);

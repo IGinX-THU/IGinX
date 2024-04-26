@@ -14,6 +14,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.filesystem.exception.FilesystemException;
 import cn.edu.tsinghua.iginx.filesystem.thrift.*;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FileSystemService.Client;
 import cn.edu.tsinghua.iginx.filesystem.thrift.TagFilterType;
@@ -41,7 +42,7 @@ import org.slf4j.LoggerFactory;
 
 public class RemoteExecutor implements Executor {
 
-  private static final Logger logger = LoggerFactory.getLogger(RemoteExecutor.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(RemoteExecutor.class);
 
   private static final int SUCCESS_CODE = 200;
 
@@ -66,7 +67,8 @@ public class RemoteExecutor implements Executor {
     if (filter != null && !filter.toString().isEmpty()) {
       req.setFilter(FilterTransformer.toFSFilter(filter));
     }
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       ProjectResp resp = client.executeProject(req);
       thriftConnPool.returnTransport(transport);
@@ -110,10 +112,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(rowStream, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote project task error"));
+            null, new FilesystemException("execute remote project task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new FilesystemException(e));
     }
   }
 
@@ -152,7 +154,8 @@ public class RemoteExecutor implements Executor {
             dataView.getRawDataType().toString());
 
     InsertReq req = new InsertReq(storageUnit, fileDataRawData);
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeInsert(req);
       thriftConnPool.returnTransport(transport);
@@ -160,10 +163,10 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(null, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote insert task error"));
+            null, new FilesystemException("execute remote insert task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new FilesystemException(e));
     }
   }
 
@@ -187,7 +190,8 @@ public class RemoteExecutor implements Executor {
       req.setKeyRanges(fsKeyRanges);
     }
 
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       Status status = client.executeDelete(req);
       thriftConnPool.returnTransport(transport);
@@ -195,16 +199,17 @@ public class RemoteExecutor implements Executor {
         return new TaskExecuteResult(null, null);
       } else {
         return new TaskExecuteResult(
-            null, new PhysicalException("execute remote delete task error"));
+            null, new FilesystemException("execute remote delete task error"));
       }
     } catch (TException e) {
-      return new TaskExecuteResult(null, new PhysicalException(e));
+      return new TaskExecuteResult(null, new FilesystemException(e));
     }
   }
 
   @Override
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
       thriftConnPool.returnTransport(transport);
@@ -220,7 +225,7 @@ public class RemoteExecutor implements Executor {
                           column.isDummy())));
       return columns;
     } catch (TException e) {
-      throw new PhysicalException(
+      throw new FilesystemException(
           "encounter error when executing remote getColumnsOfStorageUnit task", e);
     }
   }
@@ -228,7 +233,8 @@ public class RemoteExecutor implements Executor {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
-    try (TTransport transport = thriftConnPool.borrowTransport()) {
+    try {
+      TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       GetBoundaryOfStorageResp resp = client.getBoundaryOfStorage(dataPrefix);
       thriftConnPool.returnTransport(transport);
@@ -236,7 +242,7 @@ public class RemoteExecutor implements Executor {
           new ColumnsInterval(resp.getStartColumn(), resp.getEndColumn()),
           new KeyInterval(resp.getStartKey(), resp.getEndKey()));
     } catch (TException e) {
-      throw new PhysicalException(
+      throw new FilesystemException(
           "encounter error when executing remote getBoundaryOfStorage task", e);
     }
   }
@@ -301,7 +307,7 @@ public class RemoteExecutor implements Executor {
         }
       default:
         {
-          logger.error("unknown tag filter type: {}", tagFilter.getType());
+          LOGGER.error("unknown tag filter type: {}", tagFilter.getType());
         }
     }
     return filter;
