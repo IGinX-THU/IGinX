@@ -65,6 +65,7 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
+                  Switch-DB: "true"
 
             - if: runner.os == 'Windows'
               name: Build & Run Client image
