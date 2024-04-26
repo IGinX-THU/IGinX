@@ -1,0 +1,46 @@
+name: "postgresql"
+description: "setup postgresql"
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os != 'Linux'
+          id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+              tool: postgresql
+              version: 15.6-1
+
+        - if: runner.os != 'Linux'
+          name: Restore postgresql Cache
+          id: restore
+          uses: actions/cache/restore@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - if: runner.os != 'Linux'
+          name: Setup postgresql into Runner Tool Cache
+          uses: pbrisbin/setup-tool-action@v2
+          with:
+              name: postgresql
+              version: 15.6-1
+              url: "https://get.enterprisedb.com/{name}/{name}-{version}-{os}-binaries.zip"
+              subdir: "pgsql"
+              ext: "zip"
+              os-darwin: osx
+              os-win32: windows-x64
+
+        - if: runner.os != 'Linux'
+          name: Add influxdb HOME to ENV
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run: echo "PGHOME=$PWD" >> $GITHUB_ENV
+
+        - if: runner.os != 'Linux' && steps.restore.outputs.cache-hit != 'true'
+          name: Save postgresql Cache
+          uses: actions/cache/save@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
