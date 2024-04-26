@@ -10,6 +10,7 @@ if [ -f "$output_file" ]; then
 fi
 
 # 处理每一行数据
+line_number=1
 while IFS='|' read -r fields; do
     # 移除逗号并用双引号括起字符串
     fields=$(echo "$fields" | tr -d ',' | sed 's/^\|$/"/g')
@@ -17,15 +18,17 @@ while IFS='|' read -r fields; do
     fields=$(echo "$fields" | tr '|' ',')
     # 删除每行末尾的逗号
     fields=$(echo "$fields" | sed 's/,$//')
-    # 将处理后的数据写入 CSV 文件
-    echo "$fields" >> "$output_file"
+    # 添加行号并将处理后的数据写入 CSV 文件
+    echo "$line_number,$fields" >> "$output_file"
+    ((line_number++))
 done < "$input_file"
+
 
 echo "Conversion completed. CSV file: $output_file"
 
 # 插入数据
 
-COMMAND1="LOAD DATA FROM INFILE \"$output_file\" AS CSV SKIPPING HEADER INTO nation(key, n_name, n_regionkey, n_comment);"
+COMMAND1="LOAD DATA FROM INFILE \"$output_file\" AS CSV SKIPPING HEADER INTO nation(key, n_nationkey, n_name, n_regionkey, n_comment);"
 SCRIPT_COMMAND="bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
 
 bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"

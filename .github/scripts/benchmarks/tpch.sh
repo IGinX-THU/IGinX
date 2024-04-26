@@ -31,6 +31,7 @@ elif [ "$RUNNER_OS" = "Windows" ]; then
   mv new_makefile makefile.suite
   make -f makefile.suite
   # https://juejin.cn/s/%E5%91%BD%E4%BB%A4%E8%A1%8C%E7%BC%96%E8%AF%91sln
+  # https://tedamoh.com/en/data-vault/78-generating-large-example-data-with-tpc-h
   #  msbuild tpch.sln /t:Build /p:Configuration=Debug
 
 

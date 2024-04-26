@@ -59,6 +59,10 @@ if __name__ == '__main__':
         # 转换为pandas.Dataframe
         df = dataset.to_df()
         print(df)
+        # 使用 list_time_series() 接口查询时间序列
+        timeSeries = session.list_time_series()
+        for ts in timeSeries:
+            print(ts)
         ###################  end  test  #######################
         # 开始tpch查询
         print("start tpch query")
@@ -80,7 +84,7 @@ from (
             join mongotpch.orders on postgres.customer.c_custkey = mongotpch.orders.o_custkey
             join mongotpch.lineitem on mongotpch.lineitem.l_orderkey = mongotpch.orders.o_orderkey
             join postgres.supplier on mongotpch.lineitem.l_suppkey = postgres.supplier.s_suppkey and postgres.customer.c_nationkey = postgres.supplier.s_nationkey
-            join nation on postgres.supplier.s_nationkey = nation.key
+            join nation on postgres.supplier.s_nationkey = nation.n_nationkey
             join postgres.region on nation.n_regionkey = postgres.region.r_regionkey
         where
             postgres.region.r_name = "EUROPE"
