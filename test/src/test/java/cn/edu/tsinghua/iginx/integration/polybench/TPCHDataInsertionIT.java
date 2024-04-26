@@ -7,17 +7,19 @@ import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 
 import java.io.BufferedReader;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.sql.*;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 import java.util.Date;
-import java.util.List;
+
 import org.bson.Document;
 import org.junit.Test;
+import org.postgresql.copy.CopyManager;
+import org.postgresql.core.BaseConnection;
 
 public class TPCHDataInsertionIT {
   private static final String dataPath =
@@ -185,9 +187,6 @@ public class TPCHDataInsertionIT {
       "CREATE TABLE IF NOT EXISTS customer ( c_custkey INT, c_name VARCHAR(25), c_address VARCHAR(40), c_nationkey INT, c_phone CHAR(15), c_acctbal DECIMAL(15,2), c_mktsegment CHAR(10), c_comment VARCHAR(117), c_dummy VARCHAR(2), PRIMARY KEY (c_custkey))",
       "CREATE TABLE IF NOT EXISTS region ( r_regionkey INT, r_name VARCHAR(25), r_comment VARCHAR(152), r_dummy VARCHAR(2), PRIMARY KEY (r_regionkey))",
       "CREATE TABLE IF NOT EXISTS supplier ( s_suppkey INT, s_name VARCHAR(25), s_address VARCHAR(40), s_nationkey INT, s_phone VARCHAR(15), s_acctbal DECIMAL(15,2), s_comment VARCHAR(101), s_dummy varchar(2), PRIMARY KEY (s_suppkey))",
-      String.format("COPY \"customer\"   FROM '%s/customer.tbl'    DELIMITER '|' CSV", dataPath),
-      String.format("COPY \"supplier\"   FROM '%s/supplier.tbl'    DELIMITER '|' CSV", dataPath),
-      String.format("COPY \"region\"   FROM '%s/region.tbl'    DELIMITER '|' CSV", dataPath),
     };
 
     try (Connection conn = DriverManager.getConnection(url, user, password);
@@ -200,12 +199,25 @@ public class TPCHDataInsertionIT {
           stmt.execute(sql);
           System.out.println("Executed SQL statement: " + sql);
         }
+        CopyManager copyManager = new CopyManager((BaseConnection) conn);
+        List<String> tableNames = Arrays.asList("customer", "supplier", "region");
+        for (String tableName : tableNames) {
+          String filePath = String.format("%s/%s.tbl", dataPath, tableName);
+          FileReader fileReader = new FileReader(filePath);
+          // 使用 CopyManager 执行 COPY 命令将数据从 CSV 文件加载到数据库表中
+          copyManager.copyIn("COPY " + tableName + " FROM STDIN WITH DELIMITER '|' CSV", fileReader);
+          System.out.println("Data loaded successfully from CSV to table " + tableName);
+        }
       } else {
         System.out.println("Failed to make connection to the PostgreSQL server.");
       }
     } catch (SQLException e) {
       System.out.println("SQLException: " + e.getMessage());
       e.printStackTrace();
+    } catch (FileNotFoundException e) {
+      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
     }
   }
 }

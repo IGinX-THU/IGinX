@@ -25,7 +25,7 @@ echo "Conversion completed. CSV file: $output_file"
 
 # 插入数据
 
-COMMAND1="LOAD DATA FROM INFILE $output_file AS CSV SKIPPING HEADER INTO nation(key, n_name, n_regionkey, n_comment);"
+COMMAND1="LOAD DATA FROM INFILE \"$output_file\" AS CSV SKIPPING HEADER INTO nation(key, n_name, n_regionkey, n_comment);"
 SCRIPT_COMMAND="bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
 
 bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
