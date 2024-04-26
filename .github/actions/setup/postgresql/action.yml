@@ -1,0 +1,54 @@
+name: "postgresql"
+description: "setup postgresql"
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'Linux'
+          name: Add hosted postgresql bin to PATH
+          shell: bash
+          run: echo "$(pg_config --bindir)" >> $GITHUB_PATH
+
+        - if: runner.os == 'Windows'
+          name: Add hosted postgresql bin to PATH
+          shell: bash
+          run: echo "$PGBIN" >> $GITHUB_PATH
+
+        - if: runner.os == 'macOS'
+          id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+            tool: postgresql
+            version: 15.6-1
+
+        - if: runner.os == 'macOS'
+          name: Restore postgresql Cache
+          id: restore
+          uses: actions/cache/restore@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - if: runner.os == 'macOS'
+          name: Setup postgresql into Runner Tool Cache
+          uses: pbrisbin/setup-tool-action@v2
+          with:
+              name: postgresql
+              version: 15.6-1
+              url: "https://get.enterprisedb.com/{name}/{name}-{version}-osx-binaries.{ext}"
+              subdir: "pgsql"
+              ext: "zip"
+
+        - if: runner.os == 'macOS'
+          name: Add postgresql bin to PATH
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run: echo "$PWD/bin" >> $GITHUB_PATH
+
+        - if: runner.os == 'macOS' && steps.restore.outputs.cache-hit != 'true'
+          name: Save postgresql Cache
+          uses: actions/cache/save@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}

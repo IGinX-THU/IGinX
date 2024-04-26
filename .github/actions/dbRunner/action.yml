@@ -148,19 +148,23 @@ runs:
               fi
 
         - if: inputs.DB-name=='PostgreSQL'
+          name: Setup DB
+          uses: ./.github/actions/setup/postgresql
+
+        - if: inputs.DB-name=='PostgreSQL'
           name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5432 5433 5434
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh" 5432 5433 5434
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5432 5433 5434
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          uses: ./.github/actions/service/postgresql
+          with:
+            stop: false
+            clean: false
+            start: true
+            ports: 5432 5433 5434
+
+        - if: inputs.DB-name=='PostgreSQL'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+            paths: conf/config.properties
+            statements: |
+              s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
+              s/#storageEngineList=127.0.0.1#5432/storageEngineList=127.0.0.1#5432/g
