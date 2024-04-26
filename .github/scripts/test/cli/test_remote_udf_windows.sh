@@ -47,8 +47,8 @@ fi
 
 
 # single udf in one file
-${SCRIPT_PREFIX} "\"create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"../data/udf/mock_udf.py\\\";\"'"
 echo ${SCRIPT_PREFIX} "\"create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"../data/udf/mock_udf.py\\\";\"'"
+${SCRIPT_PREFIX} "\"create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"../data/udf/mock_udf.py\\\";\"'"
 # multiple udfs in one module
 ${SCRIPT_PREFIX} "\\\"CREATE FUNCTION udtf \"udf_a\" FROM \"my_module.my_class_a.ClassA\", \"udf_b\" FROM \"my_module.my_class_a.ClassB\", \"udf_sub\" FROM \"my_module.sub_module.sub_class_a.SubClassA\" IN \"../data/udf/my_module\";\\\""
 echo ${SCRIPT_PREFIX} "\\\"CREATE FUNCTION udtf \"udf_a\" FROM \"my_module.my_class_a.ClassA\", \"udf_b\" FROM \"my_module.my_class_a.ClassB\", \"udf_sub\" FROM \"my_module.sub_module.sub_class_a.SubClassA\" IN \"../data/udf/my_module\";\\\""
