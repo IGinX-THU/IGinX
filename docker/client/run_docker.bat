@@ -40,7 +40,7 @@ if not exist "%datadir%" (
     mkdir "%datadir%"
 )
 
-set command=docker run --name="%name%" --privileged -dit --net !net! --ip !ip! --add-host=host.docker.internal:host-gateway --mount type=bind,source=!datadir!,target=/iginx_client/data iginx-client:0.6.0
+set command=docker run --name="%name%" -dit --net !net! --ip !ip! --add-host=host.docker.internal:host-gateway --mount type=bind,source=!datadir!,target=/iginx_client/data iginx-client:0.6.0
 echo %command%
 %command%
 
