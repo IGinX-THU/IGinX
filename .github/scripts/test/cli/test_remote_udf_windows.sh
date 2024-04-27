@@ -12,8 +12,6 @@ echo "$os"
 
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
-docker exec iginx-client cmd /c "dir C:/iginx_client/sbin"
-docker exec iginx-client cmd /c "dir C:/iginx_client/data"
 docker exec iginx-client powershell -Command "Get-ChildItem -Path C:/iginx_client/sbin"
 docker exec iginx-client powershell -Command "Get-ChildItem -Path C:/iginx_client/data"
 #docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-h', 'host.docker.internal', '-e', 'show cluster info;'"
