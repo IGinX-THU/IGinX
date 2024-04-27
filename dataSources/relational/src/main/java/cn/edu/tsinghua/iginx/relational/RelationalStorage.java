@@ -1365,8 +1365,13 @@ public class RelationalStorage implements IStorage {
         columnNames += "%"; // 匹配 tagKV
       }
 
-      List<ColumnField> columnFieldList =
-          getColumns(databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames));
+      List<ColumnField> columnFieldList;
+      if (relationalMeta.jdbcSupportSpecialChar()) {
+        columnFieldList =
+            getColumns(databaseName, reformatForJDBC(tableName), reformatForJDBC(columnNames));
+      } else {
+        columnFieldList = getColumns(databaseName, "%", "%");
+      }
 
       List<Pattern> patternList = getRegexPatternByName(tableName, columnNames, false);
       Pattern tableNamePattern = patternList.get(0), columnNamePattern = patternList.get(1);

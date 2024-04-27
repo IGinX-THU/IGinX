@@ -119,4 +119,9 @@ public class PostgreSQLMeta extends AbstractRelationalMeta {
   public String getRegexpOp() {
     return "~";
   }
+
+  @Override
+  public boolean jdbcSupportSpecialChar() {
+    return true;
+  }
 }
