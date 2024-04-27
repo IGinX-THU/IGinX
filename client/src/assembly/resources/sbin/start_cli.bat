@@ -51,7 +51,7 @@ echo %PARAMETERS% | findstr /c:"-h "
 set pw_parameter=-pw root
 set u_parameter=-u root
 set p_parameter=-p 6888
-set h_parameter=-h 127.0.0.1
+set h_parameter=-h host.docker.internal
 set fs_parameter=-fs 1000
 
 @REM Added parameters when default parameters are missing
