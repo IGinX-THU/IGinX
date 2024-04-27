@@ -1,0 +1,67 @@
+name: "postgresql"
+description: "stop, clean and start postgresql in order"
+inputs:
+  stop:
+    description: "whether to stop"
+    required: true
+  clean:
+    description: "whether to clean"
+    required: true
+  start:
+    description: "whether to start"
+    required: true
+  username:
+    description: The username of the user to setup.
+    default: postgres
+    required: false
+  password:
+    description: The password of the user to setup.
+    default: postgres
+    required: false
+  ports:
+    description: The server port to listen on.
+    default: "5432"
+    required: false
+
+runs:
+  using: "composite"
+  steps:
+    - if: fromJSON(inputs.stop) || fromJSON(inputs.clean)
+      name: unimplemented
+      shell: bash
+      run: exit 1
+
+    - if: fromJSON(inputs.start)
+      name: Create postgresql Work Directory
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        for port in ${{ inputs.ports }}; do
+          mkdir -p $port
+        done
+
+    - if: fromJSON(inputs.start)
+      name: Start postgresql
+      shell: bash
+      working-directory: ${{ github.action_path }}
+      run: |
+        for port in ${{ inputs.ports }}; do
+          PGDATA=${port}
+          PWFILE=${port}.pgpass
+          PGCONF=${PGDATA}/postgresql.conf
+        
+          echo '${{ inputs.password }}' > "${PWFILE}"
+        
+          initdb \
+            --pgdata="${PGDATA}" \
+            --username="${{ inputs.username }}" \
+            --pwfile="${PWFILE}" \
+            --auth="trust" \
+            --no-instructions 
+        
+          echo "port = ${port}" >> "${PGCONF}"
+          echo "unix_socket_directories = ''" >> "${PGCONF}"
+          echo "fsync = off" >> "${PGCONF}"
+  
+          pg_ctl start --pgdata="${PGDATA}" 
+        done
