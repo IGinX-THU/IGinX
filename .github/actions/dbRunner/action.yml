@@ -167,13 +167,44 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name == 'MySQL' && (runner.os == 'Linux' || runner.os == 'macOS')
+        - if: inputs.DB-name == 'MySQL' && runner.os == 'Linux'
           name: Start MySQL Service
           shell: bash
           run: |
               docker run --name mysql1 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3306:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
               docker run --name mysql2 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3307:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
               docker run --name mysql3 -e MYSQL_ALLOW_EMPTY_PASSWORD=yes -p 3308:3306 --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=3 -d mysql:8.0.26
+
+        - if: inputs.DB-name == 'MySQL' && runner.os == 'macOS'
+          name: Install MySQL
+          shell: bash
+          run: brew install mysql@8.0
+
+        - if: inputs.DB-name == 'MySQL' && runner.os == 'macOS'
+          name: Configure and start MySQL instances
+          shell: bash
+          run: |
+              mkdir -p ./data1 ./data2 ./data3
+              /usr/local/Cellar/mysql@8.0/8.0.36_1/bin/mysql --help | grep "Default options"
+              sudo touch /usr/local/etc/my.cnf
+              sudo sh -c 'echo "[mysqld]" > /usr/local/etc/my.cnf'
+              sudo sh -c 'echo "port=3306" >> /usr/local/etc/my.cnf'
+              sudo sh -c 'echo "mysqlx_port=33060" >> /usr/local/etc/my.cnf'
+              sudo sh -c 'echo "user=root" >> /usr/local/etc/my.cnf'
+              sudo sh -c 'echo "socket=/tmp/mysql.sock" >> /usr/local/etc/my.cnf'
+              cat /usr/local/etc/my.cnf
+              cp /usr/local/etc/my.cnf /usr/local/etc/my1.cnf
+              cp /usr/local/etc/my.cnf /usr/local/etc/my2.cnf
+              cp /usr/local/etc/my.cnf /usr/local/etc/my3.cnf
+              sed -i '' -e 's/^port=.*$/port=3306/' -e 's/^mysqlx_port=.*$/mysqlx_port=33060/' -e 's/^user=.*$/user=root/' -e 's#^socket=.*$#socket=/tmp/mysql1.sock#' /usr/local/etc/my1.cnf
+              sed -i '' -e 's/^port=.*$/port=3307/' -e 's/^mysqlx_port=.*$/mysqlx_port=33061/' -e 's/^user=.*$/user=root/' -e 's#^socket=.*$#socket=/tmp/mysql2.sock#' /usr/local/etc/my2.cnf
+              sed -i '' -e 's/^port=.*$/port=3308/' -e 's/^mysqlx_port=.*$/mysqlx_port=33062/' -e 's/^user=.*$/user=root/' -e 's#^socket=.*$#socket=/tmp/mysql3.sock#' /usr/local/etc/my3.cnf
+              /usr/local/Cellar/mysql@8.0/8.0.36_1/bin/mysqld --defaults-file=/usr/local/etc/my1.cnf --mysqlx=0 --user=root --initialize-insecure --datadir=./data1 --port=3306 
+              /usr/local/Cellar/mysql@8.0/8.0.36_1/bin/mysqld --defaults-file=/usr/local/etc/my2.cnf --mysqlx=0 --user=root --initialize-insecure --datadir=./data2 --port=3307
+              /usr/local/Cellar/mysql@8.0/8.0.36_1/bin/mysqld --defaults-file=/usr/local/etc/my3.cnf --mysqlx=0 --user=root --initialize-insecure --datadir=./data3 --port=3308
+              /usr/local/Cellar/mysql@8.0/8.0.36_1/bin/mysqld --defaults-file=/usr/local/etc/my1.cnf --mysqlx=0 --datadir=./data1 --port=3306 &
+              /usr/local/Cellar/mysql@8.0/8.0.36_1/bin/mysqld --defaults-file=/usr/local/etc/my2.cnf --mysqlx=0 --datadir=./data2 --port=3307 &
+              /usr/local/Cellar/mysql@8.0/8.0.36_1/bin/mysqld --defaults-file=/usr/local/etc/my3.cnf --mysqlx=0 --datadir=./data3 --port=3308 &
 
         - if: inputs.DB-name == 'MySQL' && runner.os == 'Windows'
           name: Install MySQL
@@ -184,25 +215,25 @@ runs:
           name: Configure and start MySQL instances
           shell: bash
           run: |
-            echo "ALTER USER 'root'@'localhost' IDENTIFIED BY 'mysql';" > init.txt
-            mkdir ./mysql/data1 ./mysql/data2 ./mysql/data3
-            dir
-            ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data1 --port=3306  --console
-            dir
-            ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data2 --port=3307  --console
-            dir
-            ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data3 --port=3308  --console
-            dir
-            ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data1 --port=3306 &
-            dir
-            ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data2 --port=3307 &
-            dir
-            ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data3 --port=3308 &
+              echo "ALTER USER 'root'@'localhost' IDENTIFIED BY 'mysql';" > init.txt
+              mkdir ./mysql/data1 ./mysql/data2 ./mysql/data3
+              dir
+              ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data1 --port=3306  --console
+              dir
+              ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data2 --port=3307  --console
+              dir
+              ./mysql/mysql-8.0.26-winx64/bin/mysqld --initialize-insecure --datadir=./mysql/data3 --port=3308  --console
+              dir
+              ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data1 --port=3306 &
+              dir
+              ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data2 --port=3307 &
+              dir
+              ./mysql/mysql-8.0.26-winx64/bin/mysqld --console --datadir=./mysql/data3 --port=3308 &
 
         - if: inputs.DB-name == 'MySQL' && runner.os == 'Windows'
           name: Setup Database for each instance
           shell: bash
           run: |
-            ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3306
-            ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3307
-            ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3308
+              ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3306
+              ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3307
+              ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=3308
