@@ -43,6 +43,7 @@ set CLASSPATH="%IGINX_CLI_HOME%\lib\*"
 REM -----------------------------------------------------------------------------
 set PARAMETERS=%*
 echo %PARAMETERS%
+echo %PARAMETERS% | findstr /c:"-h "
 
 @REM if "%PARAMETERS%" == "" set PARAMETERS=-h 127.0.0.1 -p 6667 -u root -pw root
 
@@ -61,7 +62,12 @@ echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (se
 echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%fs_parameter% %PARAMETERS%)
 
 echo %PARAMETERS%
+echo "%JAVA_HOME%"
 dir "%JAVA_HOME%\bin\"
+
+echo "dir JAVAHOME"
+dir "%JAVA_HOME%"
+
 echo classpath:
 dir "%IGINX_CLI_HOME%\lib\"
 "%JAVA_HOME%\bin\java" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
