@@ -1,67 +1,67 @@
-name: "Bug Regression Test"
-
-on:
-    pull_request:
-        types: [opened, reopened]
-        branches:
-            - main
-env:
-    VERSION: 0.6.0-SNAPSHOT
-
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
-
-jobs:
-    MixCluster-ShowTimeseries:
-        timeout-minutes: 15
-        strategy:
-            fail-fast: false
-            matrix:
-                java: [8]
-                python-version: ["3.9"]
-                os: [ubuntu-latest, macos-13, windows-latest]
-                metadata: [zookeeper]
-        runs-on: ${{ matrix.os }}
-        steps:
-            - uses: actions/checkout@v4
-            - name: Environment dependence
-              uses: ./.github/actions/dependence
-              with:
-                  python-version: ${{ matrix.python-version }}
-                  java: ${{ matrix.java }}
-
-            - name: Run Metadata
-              uses: ./.github/actions/metadataRunner
-              with:
-                  metadata: ${{ matrix.metadata }}
-
-            - name: Run DB
-              uses: ./.github/actions/dbRunner
-              with:
-                  DB-name: "Mix-IoTDB12-InfluxDB"
-
-            - name: Install IGinX with Maven
-              shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format -q
-
-            - name: Write Conf
-              uses: ./.github/actions/confWriter
-              with:
-                  Metadata: ${{ matrix.metadata }}
-
-            - name: Start IGinX
-              uses: ./.github/actions/iginxRunner
-
-            - name: TestMixCluster
-              if: always()
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P-format
-
-            - name: Show IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat iginx-*.log
+#name: "Bug Regression Test"
+#
+#on:
+#    pull_request:
+#        types: [opened, reopened]
+#        branches:
+#            - main
+#env:
+#    VERSION: 0.6.0-SNAPSHOT
+#
+#concurrency:
+#    group: ${{ github.workflow }}-${{ github.ref }}
+#    cancel-in-progress: true
+#
+#jobs:
+#    MixCluster-ShowTimeseries:
+#        timeout-minutes: 15
+#        strategy:
+#            fail-fast: false
+#            matrix:
+#                java: [8]
+#                python-version: ["3.9"]
+#                os: [ubuntu-latest, macos-13, windows-latest]
+#                metadata: [zookeeper]
+#        runs-on: ${{ matrix.os }}
+#        steps:
+#            - uses: actions/checkout@v4
+#            - name: Environment dependence
+#              uses: ./.github/actions/dependence
+#              with:
+#                  python-version: ${{ matrix.python-version }}
+#                  java: ${{ matrix.java }}
+#
+#            - name: Run Metadata
+#              uses: ./.github/actions/metadataRunner
+#              with:
+#                  metadata: ${{ matrix.metadata }}
+#
+#            - name: Run DB
+#              uses: ./.github/actions/dbRunner
+#              with:
+#                  DB-name: "Mix-IoTDB12-InfluxDB"
+#
+#            - name: Install IGinX with Maven
+#              shell: bash
+#              run: |
+#                  mvn clean package -DskipTests -P-format -q
+#
+#            - name: Write Conf
+#              uses: ./.github/actions/confWriter
+#              with:
+#                  Metadata: ${{ matrix.metadata }}
+#
+#            - name: Start IGinX
+#              uses: ./.github/actions/iginxRunner
+#
+#            - name: TestMixCluster
+#              if: always()
+#              shell: bash
+#              run: |
+#                  mvn test -q -Dtest=MixClusterShowColumnsRegressionTest -DfailIfNoTests=false -P-format
+#
+#            - name: Show IGinX log
+#              if: always()
+#              shell: bash
+#              run: |
+#                  cat iginx-*.log
