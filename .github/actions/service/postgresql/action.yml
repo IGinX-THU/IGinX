@@ -48,6 +48,7 @@ runs:
         for port in ${{ inputs.ports }}; do
           PGDATA=${port}
           PWFILE=${PGDATA}/.pgpass
+          PGCONF=${PGDATA}/postgresql.conf
         
           echo '${{ inputs.password }}' > "${PWFILE}"
         
@@ -56,10 +57,11 @@ runs:
             --username="${{ inputs.username }}" \
             --pwfile="${PWFILE}" \
             --auth="trust" \
-            --no-instructions \
-            --set port=${port} \
-            --set unix_socket_directories='' \
-            --set fsync=false \
+            --no-instructions 
+        
+          echo "port = ${port}" >> "${PGCONF}"
+          echo "unix_socket_directories = ''" >> "${PGCONF}"
+          echo "fsync = off" >> "${PGCONF}"
   
           pg_ctl start --pgdata="${PGDATA}" 
         done
