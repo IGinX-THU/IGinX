@@ -17,12 +17,6 @@ RUN @powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object Sy
 RUN choco install openjdk8 -Y
 RUN refreshenv
 
-# 下载 JDK
-ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
-
-# 解压 JDK
-RUN Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk; \
-    Remove-Item -Path C:/temp/jdk.zip
 
 # 设置环境变量
 USER ContainerAdministrator
@@ -30,6 +24,12 @@ ENV JAVA_HOME "C:\jdk\jdk-11.0.2"
 RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 USER ContainerUser
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
+# 下载 JDK
+ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
+
+# 解压 JDK
+RUN Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk; \
+    Remove-Item -Path C:/temp/jdk.zip
 
 RUN New-Item -Path 'C:/iginx_client/logs' -ItemType Directory
 RUN New-Item -Path 'C:/iginx_client/data' -ItemType Directory
