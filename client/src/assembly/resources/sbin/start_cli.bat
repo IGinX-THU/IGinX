@@ -62,14 +62,6 @@ echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (se
 echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%fs_parameter% %PARAMETERS%)
 
 echo %PARAMETERS%
-echo "%JAVA_HOME%"
-dir "%JAVA_HOME%\bin\"
-
-echo "dir JAVAHOME"
-dir "%JAVA_HOME%"
-
-echo classpath:
-dir "%IGINX_CLI_HOME%\lib\"
 "%JAVA_HOME%\bin\java" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
 
 goto finally
