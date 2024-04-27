@@ -9,6 +9,10 @@ inputs:
         description: "start shell"
         required: false
         default: client
+    DB-name:
+        description: "DB name"
+        required: false
+        default: IoTDB12
     metadata:
         description: "which metadata service to use"
         required: false
