@@ -44,10 +44,10 @@ runs:
           name: Save Brew packages Cache
           uses: actions/cache/save@v4
           with:
-            path: |
-              ~/Library/Caches/Homebrew
-              /Library/Caches/Homebrew
-            key: "brew-${{ inputs.brew }}-${{ runner.os }}-${{ runner.arch }}"
+              path: |
+                  ~/Library/Caches/Homebrew
+                  /Library/Caches/Homebrew
+              key: "brew-${{ inputs.brew }}-${{ runner.os }}-${{ runner.arch }}"
 
         - if: runner.os == 'Windows' && inputs.choco != ''
           id: cache-choco
@@ -66,5 +66,5 @@ runs:
           name: Save Choco packages Cache
           uses: actions/cache/save@v4
           with:
-            path: ~\AppData\Local\Temp\chocolatey
-            key: "choco-${{ inputs.choco }}-${{ runner.os }}-${{ runner.arch }}"
+              path: ~\AppData\Local\Temp\chocolatey
+              key: "choco-${{ inputs.choco }}-${{ runner.os }}-${{ runner.arch }}"

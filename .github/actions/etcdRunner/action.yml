@@ -17,30 +17,30 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-      - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
-        name: First Run etcd | Setup
-        uses: ./.github/actions/setup/etcd
+        - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
+          name: First Run etcd | Setup
+          uses: ./.github/actions/setup/etcd
 
-      - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
-        name: First Run etcd | Start
-        uses: ./.github/actions/service/etcd
-        with:
-          stop: false
-          clean: false
-          start: true
+        - if: inputs.if-stop=='false' && inputs.if-rerun=='false'
+          name: First Run etcd | Start
+          uses: ./.github/actions/service/etcd
+          with:
+              stop: false
+              clean: false
+              start: true
 
-      - if: inputs.if-rerun=='true'
-        name: ReRun etcd
-        uses: ./.github/actions/service/etcd
-        with:
-          stop: false
-          clean: false
-          start: true
+        - if: inputs.if-rerun=='true'
+          name: ReRun etcd
+          uses: ./.github/actions/service/etcd
+          with:
+              stop: false
+              clean: false
+              start: true
 
-      - if: inputs.if-stop=='true'
-        name: Stop etcd
-        uses: ./.github/actions/service/etcd
-        with:
-          stop: true
-          clean: true
-          start: false
+        - if: inputs.if-stop=='true'
+          name: Stop etcd
+          uses: ./.github/actions/service/etcd
+          with:
+              stop: true
+              clean: true
+              start: false

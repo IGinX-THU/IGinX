@@ -13,15 +13,15 @@ runs:
           name: Initialize Setup Configuration
           uses: ./.github/actions/setup/tool
           with:
-            tool: zookeeper
-            version: ${{ inputs.version }}
+              tool: zookeeper
+              version: ${{ inputs.version }}
 
         - name: Restore zookeeper Cache
           id: restore
           uses: actions/cache/restore@v3
           with:
-            path: ${{ steps.base.outputs.cache-path }}
-            key: ${{ steps.base.outputs.cache-key }}
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
 
         - name: Setup zookeeper into Runner Tool Cache
           uses: pbrisbin/setup-tool-action@v2
@@ -41,5 +41,5 @@ runs:
           if: steps.restore.outputs.cache-hit != 'true'
           uses: actions/cache/save@v3
           with:
-            path: ${{ steps.base.outputs.cache-path }}
-            key: ${{ steps.base.outputs.cache-key }}
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}

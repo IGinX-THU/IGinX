@@ -1,51 +1,51 @@
 name: "influxdb"
 description: "setup influxdb"
 inputs:
-  version:
-    description: "influxdb version"
-    required: false
-    default: "2.0.7"
+    version:
+        description: "influxdb version"
+        required: false
+        default: "2.0.7"
 
 runs:
-  using: "composite"
-  steps:
-    - id: base
-      name: Initialize Setup Configuration
-      uses: ./.github/actions/setup/tool
-      with:
-        tool: influxdb2
-        version: ${{ inputs.version }}
+    using: "composite"
+    steps:
+        - id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+              tool: influxdb2
+              version: ${{ inputs.version }}
 
-    - name: Restore influxdb Cache
-      id: restore
-      uses: actions/cache/restore@v3
-      with:
-        path: ${{ steps.base.outputs.cache-path }}
-        key: ${{ steps.base.outputs.cache-key }}
+        - name: Restore influxdb Cache
+          id: restore
+          uses: actions/cache/restore@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
 
-    - name: Setup influxdb into Runner Tool Cache
-      uses: pbrisbin/setup-tool-action@v2
-      with:
-        name: influxdb2
-        version: ${{ inputs.version }}
-        url: "https://dl.influxdata.com/influxdb/releases/{name}-{version}-{os}-{arch}.{ext}"
-        subdir: "{name}-{version}-{os}-{arch}"
-        arch: amd64
-        os-win32: windows
+        - name: Setup influxdb into Runner Tool Cache
+          uses: pbrisbin/setup-tool-action@v2
+          with:
+              name: influxdb2
+              version: ${{ inputs.version }}
+              url: "https://dl.influxdata.com/influxdb/releases/{name}-{version}-{os}-{arch}.{ext}"
+              subdir: "{name}-{version}-{os}-{arch}"
+              arch: amd64
+              os-win32: windows
 
-    - name: Add influxdb HOME to ENV
-      shell: bash
-      working-directory: ${{ steps.base.outputs.tool-path }}
-      run: echo "INFLUX_HOME=$PWD" >> $GITHUB_ENV
+        - name: Add influxdb HOME to ENV
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run: echo "INFLUX_HOME=$PWD" >> $GITHUB_ENV
 
-    - name: Show influxdb Version
-      shell: bash
-      working-directory: ${{ github.action_path }}
-      run: influx version
+        - name: Show influxdb Version
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: influx version
 
-    - name: Save influxdb Cache
-      if: steps.restore.outputs.cache-hit != 'true'
-      uses: actions/cache/save@v3
-      with:
-        path: ${{ steps.base.outputs.cache-path }}
-        key: ${{ steps.base.outputs.cache-key }}
+        - name: Save influxdb Cache
+          if: steps.restore.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}

@@ -31,9 +31,9 @@ runs:
           shell: bash
           working-directory: ${{ github.action_path }}
           run: |
-            mkdir -p conf
-            echo "dataDir=data" > conf/zoo.cfg
-            echo "dataLogDir=logs" >> conf/zoo.cfg
-            echo "clientPort=2181" >> conf/zoo.cfg
-            
-            zkServer.sh --config conf start
+              mkdir -p conf
+              echo "dataDir=data" > conf/zoo.cfg
+              echo "dataLogDir=logs" >> conf/zoo.cfg
+              echo "clientPort=2181" >> conf/zoo.cfg
+
+              zkServer.sh --config conf start

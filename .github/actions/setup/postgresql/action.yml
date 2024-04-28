@@ -19,8 +19,8 @@ runs:
           name: Initialize Setup Configuration
           uses: ./.github/actions/setup/tool
           with:
-            tool: postgresql
-            version: 15.6-1
+              tool: postgresql
+              version: 15.6-1
 
         - if: runner.os == 'macOS'
           name: Restore postgresql Cache
