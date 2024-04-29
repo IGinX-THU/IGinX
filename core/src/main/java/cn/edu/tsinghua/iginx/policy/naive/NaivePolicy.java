@@ -83,40 +83,84 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     int storageEngineNum = iMetaManager.getStorageEngineNum();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
-    List<Long> storageEngineIdList;
+    List<Long> storageEngineIdList = new ArrayList<>();
     Pair<FragmentMeta, StorageUnitMeta> pair;
-    int index = 0;
+
+    List<Long> masterStorageEngindIdList = new ArrayList<>();
+    List<Long> replicaStorageEngindIdList = new ArrayList<>();
+    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
+    for (StorageEngineMeta storageEngine : storageEngines) {
+      switch (storageEngine.getStorageEngine()) {
+        case parquet:
+          masterStorageEngindIdList.add(storageEngine.getId());
+          break;
+        case iotdb12:
+          replicaStorageEngindIdList.add(storageEngine.getId());
+          break;
+        default:
+          throw new RuntimeException(
+              "unsupported storage engine: " + storageEngine.getStorageEngine());
+      }
+    }
+
+    int replicaNum =
+        1
+            + Math.min(
+                ConfigDescriptor.getInstance().getConfig().getReplicaNum(),
+                replicaStorageEngindIdList.size());
+    int masterIndex = 0;
+    int replicaIndex = 0;
 
     // [0, startKey) & (-∞, +∞)
     // 一般情况下该范围内几乎无数据，因此作为一个分片处理
     // TODO 考虑大规模插入历史数据的情况
     if (keyInterval.getStartKey() != 0) {
-      storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+      storageEngineIdList.add(
+          masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+      masterIndex++;
+      for (int i = 1; i < replicaNum; i++) {
+        storageEngineIdList.add(
+            replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+        replicaIndex++;
+      }
       pair =
           generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
               null, null, 0, keyInterval.getStartKey(), storageEngineIdList);
       fragmentList.add(pair.k);
       storageUnitList.add(pair.v);
+      storageEngineIdList.clear();
     }
 
     // [startKey, +∞) & (-∞, +∞)
     // 在初始查询/删除等语句中没有具体路径，只有通配符的情况下创建初始分片
     if (paths == null || paths.isEmpty()) {
-      storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+      storageEngineIdList.add(
+          masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+      for (int i = 1; i < replicaNum; i++) {
+        storageEngineIdList.add(
+            replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+        replicaIndex++;
+      }
       pair =
           generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
               null, null, keyInterval.getStartKey(), Long.MAX_VALUE, storageEngineIdList);
       fragmentList.add(pair.k);
       storageUnitList.add(pair.v);
+      storageEngineIdList.clear();
       return new Pair<>(fragmentList, storageUnitList);
     }
 
     // [startKey, +∞) & [startPath, endPath)
     int splitNum = Math.max(Math.min(storageEngineNum, paths.size() - 1), 0);
     for (int i = 0; i < splitNum; i++) {
-      storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+      storageEngineIdList.add(
+          masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+      masterIndex++;
+      for (int j = 1; j < replicaNum; j++) {
+        storageEngineIdList.add(
+            replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+        replicaIndex++;
+      }
       pair =
           generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
               paths.get(i * (paths.size() - 1) / splitNum),
@@ -126,10 +170,18 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
               storageEngineIdList);
       fragmentList.add(pair.k);
       storageUnitList.add(pair.v);
+      storageEngineIdList.clear();
     }
 
     // [startKey, +∞) & [endPath, null)
-    storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+    storageEngineIdList.add(
+        masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+    masterIndex++;
+    for (int j = 1; j < replicaNum; j++) {
+      storageEngineIdList.add(
+          replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+      replicaIndex++;
+    }
     pair =
         generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
             paths.get(paths.size() - 1),
@@ -139,14 +191,22 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
             storageEngineIdList);
     fragmentList.add(pair.k);
     storageUnitList.add(pair.v);
+    storageEngineIdList.clear();
 
     // [startKey, +∞) & (null, startPath)
-    storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
+    storageEngineIdList.add(
+        masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+    for (int j = 1; j < replicaNum; j++) {
+      storageEngineIdList.add(
+          replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+      replicaIndex++;
+    }
     pair =
         generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
             null, paths.get(0), keyInterval.getStartKey(), Long.MAX_VALUE, storageEngineIdList);
     fragmentList.add(pair.k);
     storageUnitList.add(pair.v);
+    storageEngineIdList.clear();
 
     return new Pair<>(fragmentList, storageUnitList);
   }
@@ -318,10 +378,33 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<FragmentMeta> fragmentList = new ArrayList<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
     int storageEngineNum = iMetaManager.getWritableStorageEngineList().size();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
-    List<Long> storageEngineIdList;
+    List<Long> storageEngineIdList = new ArrayList<>();
     Pair<FragmentMeta, StorageUnitMeta> pair;
+
+    List<Long> masterStorageEngindIdList = new ArrayList<>();
+    List<Long> replicaStorageEngindIdList = new ArrayList<>();
+    List<StorageEngineMeta> storageEngines = iMetaManager.getWritableStorageEngineList();
+    for (StorageEngineMeta storageEngine : storageEngines) {
+      switch (storageEngine.getStorageEngine()) {
+        case parquet:
+          masterStorageEngindIdList.add(storageEngine.getId());
+          break;
+        case iotdb12:
+          replicaStorageEngindIdList.add(storageEngine.getId());
+          break;
+        default:
+          throw new RuntimeException(
+              "unsupported storage engine: " + storageEngine.getStorageEngine());
+      }
+    }
+
+    int replicaNum =
+        1
+            + Math.min(
+                ConfigDescriptor.getInstance().getConfig().getReplicaNum(),
+                replicaStorageEngindIdList.size());
+    int masterIndex = 0;
+    int replicaIndex = 0;
 
     if (storageEngineNum == 0) {
       // 系统中无可写存储引擎
@@ -345,7 +428,14 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
       // [startKey, +∞) & [startPath, endPath)
       int splitNum = Math.max(Math.min(storageEngineNum, prefixList.size() - 1), 0);
       for (int i = 0; i < splitNum; i++) {
-        storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+        storageEngineIdList.add(
+            masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+        masterIndex++;
+        for (int j = 1; j < replicaNum; j++) {
+          storageEngineIdList.add(
+              replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+          replicaIndex++;
+        }
         pair =
             generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
                 prefixList.get(i),
@@ -355,10 +445,18 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
                 storageEngineIdList);
         fragmentList.add(pair.k);
         storageUnitList.add(pair.v);
+        storageEngineIdList.clear();
       }
 
       // [startKey, +∞) & [endPath, null)
-      storageEngineIdList = generateStorageEngineIdList(index++, replicaNum);
+      storageEngineIdList.add(
+          masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+      masterIndex++;
+      for (int i = 1; i < replicaNum; i++) {
+        storageEngineIdList.add(
+            replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+        replicaIndex++;
+      }
       pair =
           generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
               prefixList.get(prefixList.size() - 1),
@@ -368,14 +466,22 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
               storageEngineIdList);
       fragmentList.add(pair.k);
       storageUnitList.add(pair.v);
+      storageEngineIdList.clear();
 
       // [startKey, +∞) & (null, startPath)
-      storageEngineIdList = generateStorageEngineIdList(index, replicaNum);
+      storageEngineIdList.add(
+          masterStorageEngindIdList.get(masterIndex % masterStorageEngindIdList.size()));
+      for (int i = 1; i < replicaNum; i++) {
+        storageEngineIdList.add(
+            replicaStorageEngindIdList.get(replicaIndex % replicaStorageEngindIdList.size()));
+        replicaIndex++;
+      }
       pair =
           generateFragmentAndStorageUnitByColumnsIntervalAndKeyInterval(
               null, prefixList.get(0), startKey, Long.MAX_VALUE, storageEngineIdList);
       fragmentList.add(pair.k);
       storageUnitList.add(pair.v);
+      storageEngineIdList.clear();
     }
 
     return new Pair<>(fragmentList, storageUnitList);
