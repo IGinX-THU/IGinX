@@ -24,11 +24,24 @@ public class FileAppendWriter extends ExportWriter {
 
   private boolean hasWriteHeader;
 
-  public FileAppendWriter(String fileName) {
-    this.fileName = fileName;
+  public FileAppendWriter(String name) {
+    this.fileName = normalizeFileName(name).toString();
     this.hasWriteHeader = false;
     File file = new File(fileName);
     createFileIfNotExist(file);
+  }
+
+  private Path normalizeFileName(String fileName) {
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+
+    FilePermissionManager.Checker checker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+
+    return checker
+        .normalize(fileName)
+        .orElseThrow(
+            () ->
+                new SecurityException("transformer has no permission to write file: " + fileName));
   }
 
   @Override
@@ -50,20 +63,13 @@ public class FileAppendWriter extends ExportWriter {
   }
 
   private void createFileIfNotExist(File file) {
-    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
-
-    Predicate<Path> pathChecker =
-        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
-    if (!pathChecker.test(file.toPath())) {
-      throw new SecurityException(
-          ("transformer has no permission to write file: " + file.getAbsolutePath()));
-    }
     if (!file.exists()) {
       LOGGER.info("File not exists, create it...");
       // get and create parent dir
-      if (!file.getParentFile().exists()) {
-        System.out.println("Parent dir not exists, create it...");
-        file.getParentFile().mkdirs();
+      File normalizeParentFile = normalizeFileName(file.getParentFile().getPath()).toFile();
+      if (!normalizeParentFile.exists()) {
+        LOGGER.info("Parent dir not exists, create it...");
+        normalizeParentFile.mkdirs();
       }
       try {
         // create file

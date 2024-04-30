@@ -16,9 +16,9 @@ statement
    | SHOW REPLICA NUMBER # showReplicationStatement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
-   | SHOW REGISTER PYTHON TASK # showRegisterTaskStatement
+   | SHOW FUNCTIONS # showRegisterTaskStatement
    | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
-   | DROP PYTHON TASK name = stringLiteral # dropTaskStatement
+   | DROP FUNCTION name = stringLiteral # dropTaskStatement
    | COMMIT TRANSFORM JOB filePath = stringLiteral # commitTransformJobStatement
    | SHOW TRANSFORM JOB STATUS jobId = INT # showJobStatusStatement
    | CANCEL TRANSFORM JOB jobId = INT # cancelJobStatement
@@ -426,9 +426,9 @@ keyWords
    | DATA
    | REPLICA
    | DROP
-   | REGISTER
-   | PYTHON
-   | TASK
+   | CREATE
+   | FUNCTION
+   | FUNCTIONS
    | COMMIT
    | JOB
    | STATUS
@@ -675,18 +675,6 @@ DROP
    : D R O P
    ;
 
-REGISTER
-   : R E G I S T E R
-   ;
-
-PYTHON
-   : P Y T H O N
-   ;
-
-TASK
-   : T A S K
-   ;
-
 COMMIT
    : C O M M I T
    ;
@@ -757,6 +745,10 @@ CREATE
 
 FUNCTION
    : F U N C T I O N
+   ;
+
+FUNCTIONS
+   : F U N C T I O N S
    ;
 
 CREATED

@@ -95,9 +95,9 @@ jobs:
             - name: Run session test
               shell: bash
               run: |
-                pwd
-                if [ "$RUNNER_OS" = "Windows" ]; then
-                  python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
-                else
-                  python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
-                fi
+                  pwd
+                  if [ "$RUNNER_OS" = "Windows" ]; then
+                    python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
+                  else
+                    python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
+                  fi

@@ -5,7 +5,6 @@ import com.mongodb.ServerAddress;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
-
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
@@ -15,7 +14,6 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
-
 import org.bson.Document;
 import org.junit.Test;
 import org.postgresql.copy.CopyManager;
@@ -23,7 +21,7 @@ import org.postgresql.core.BaseConnection;
 
 public class TPCHDataInsertionIT {
   private static final String dataPath =
-          System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
+      System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
 
   public void TPCHDataInsertionIT() {}
 
@@ -114,7 +112,12 @@ public class TPCHDataInsertionIT {
         // 将数据插入 MongoDB
         collection.insertOne(document);
       }
-      System.out.println("Data loaded successfully to collection " + collectionName + " in " + (System.currentTimeMillis() - start_time) + "ms");
+      System.out.println(
+          "Data loaded successfully to collection "
+              + collectionName
+              + " in "
+              + (System.currentTimeMillis() - start_time)
+              + "ms");
       start_time = System.currentTimeMillis();
       // 读取 orders.tbl 文件
       collectionName = "orders";
@@ -169,7 +172,12 @@ public class TPCHDataInsertionIT {
         // 将数据插入 MongoDB
         collection.insertOne(document);
       }
-      System.out.println("Data loaded successfully to collection " + collectionName + " in " + (System.currentTimeMillis() - start_time) + "ms");
+      System.out.println(
+          "Data loaded successfully to collection "
+              + collectionName
+              + " in "
+              + (System.currentTimeMillis() - start_time)
+              + "ms");
     }
   }
 
@@ -207,7 +215,8 @@ public class TPCHDataInsertionIT {
           String filePath = String.format("%s/%s.tbl", dataPath, tableName);
           FileReader fileReader = new FileReader(filePath);
           // 使用 CopyManager 执行 COPY 命令将数据从 CSV 文件加载到数据库表中
-          copyManager.copyIn("COPY " + tableName + " FROM STDIN WITH DELIMITER '|' CSV", fileReader);
+          copyManager.copyIn(
+              "COPY " + tableName + " FROM STDIN WITH DELIMITER '|' CSV", fileReader);
           System.out.println("Data loaded successfully from CSV to table " + tableName);
         }
       } else {
