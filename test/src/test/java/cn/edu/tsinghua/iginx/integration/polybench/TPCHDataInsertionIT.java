@@ -60,7 +60,7 @@ public class TPCHDataInsertionIT {
 
       MongoCollection<Document> collection =
           client.getDatabase(databaseName).getCollection(collectionName);
-
+      Long start_time = System.currentTimeMillis();
       // 解析并插入数据到 MongoDB
       for (String line : lines) {
         // 以 | 分隔每个字段
@@ -114,7 +114,8 @@ public class TPCHDataInsertionIT {
         // 将数据插入 MongoDB
         collection.insertOne(document);
       }
-
+      System.out.println("Data loaded successfully to collection " + collectionName + " in " + (System.currentTimeMillis() - start_time) + "ms");
+      start_time = System.currentTimeMillis();
       // 读取 orders.tbl 文件
       collectionName = "orders";
       lines = new ArrayList<>();
@@ -168,6 +169,7 @@ public class TPCHDataInsertionIT {
         // 将数据插入 MongoDB
         collection.insertOne(document);
       }
+      System.out.println("Data loaded successfully to collection " + collectionName + " in " + (System.currentTimeMillis() - start_time) + "ms");
     }
   }
 

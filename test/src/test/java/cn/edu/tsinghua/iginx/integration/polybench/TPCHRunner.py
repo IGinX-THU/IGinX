@@ -1,10 +1,15 @@
-import sys, traceback
+import sys, traceback, signal
 sys.path.append('session_py/')
 
 from iginx.iginx_pyclient.session import Session
 from iginx.iginx_pyclient.thrift.rpc.ttypes import StorageEngineType, StorageEngine, DataType, AggregateType, DebugInfoType
 
 import time
+
+# 定义信号处理函数
+def timeout_handler(signum, frame):
+    print("Execution time exceeded 5 minutes. Exiting...")
+    sys.exit(0)
 
 if __name__ == '__main__':
     print("start")
@@ -94,8 +99,14 @@ from (
 )
 order by
     revenue desc;'''
+        # 设置 SIGALRM 信号处理器
+        signal.signal(signal.SIGALRM, timeout_handler)
+        # 设置定时器，5分钟后触发 SIGALRM 信号
+        signal.alarm(300)  # 300 秒 = 5 分钟
+        # 执行查询语句
         dataset = session.execute_statement(sql)
-
+        # 取消定时器
+        signal.alarm(0)
         print(f"end tpch query, time cost: {time.time() - start_time}s")
         session.close()
     except Exception as e:
