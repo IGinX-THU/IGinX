@@ -73,7 +73,8 @@ if __name__ == '__main__':
         print("start tpch query")
         start_time = time.time()
 
-        sql = '''select 
+        sql = 'select * from mongotpch.orders limit 5;'
+        '''select 
     nation.n_name,
     revenue
 from (
@@ -108,6 +109,9 @@ order by
         # 取消定时器
         signal.alarm(0)
         print(f"end tpch query, time cost: {time.time() - start_time}s")
+        # 获取执行语句后的内存使用情况
+        memory_usage = get_memory_usage()
+        print("Memory usage:", memory_usage, "MB")
         session.close()
     except Exception as e:
         print(e)
