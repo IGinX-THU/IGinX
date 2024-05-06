@@ -360,4 +360,21 @@ public class FilterUtils {
       return new AndFilter(filterList);
     }
   }
+
+  /**
+   * 将Filter分解为一系列AND连接的子条件，如果顶层Filter不是AND连接的话，返回一个只包含顶层Filter的List
+   *
+   * @param filter 待分解的Filter
+   * @return 分解后的子条件列表
+   */
+  public static List<Filter> splitFilter(Filter filter) {
+    List<Filter> splitFilter = new ArrayList<>();
+    if (filter.getType() != FilterType.And) {
+      splitFilter.add(filter);
+    } else {
+      AndFilter andFilter = (AndFilter) filter;
+      splitFilter.addAll(andFilter.getChildren());
+    }
+    return splitFilter;
+  }
 }
