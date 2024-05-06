@@ -39,6 +39,7 @@ jobs:
               shell: cmd
               run: |
                 ipconfig
+                docker network inspect nat -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}'
                 docker --version
                 docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
 
