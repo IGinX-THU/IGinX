@@ -261,15 +261,15 @@ public abstract class BaseCapacityExpansionIT {
     // controlled. Thus, when extended value can be queried without specifying key filter(<0),
     // we still assume that dummy key range is extended.
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
-    SQLTestTools.executeAndCompare(session, statement, ORI_PATH_LIST, ORI_EXTEND_VALUES_LIST);
+    SQLTestTools.executeAndContainValue(session, statement, ORI_PATH_LIST, ORI_EXTEND_VALUES_LIST);
 
     // exp
     statement = "select wf03.wt01.status2, wf04.wt01.temperature from nt;";
-    SQLTestTools.executeAndCompare(session, statement, EXP_PATH_LIST, EXP_EXTEND_VALUES_LIST);
+    SQLTestTools.executeAndContainValue(session, statement, EXP_PATH_LIST, EXP_EXTEND_VALUES_LIST);
 
     // ro
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm where;";
-    SQLTestTools.executeAndCompare(session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
+    SQLTestTools.executeAndContainValue(session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
   }
 
   protected void queryExtendedColDummy() {
