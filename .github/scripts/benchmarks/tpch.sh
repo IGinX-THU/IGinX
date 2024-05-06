@@ -52,6 +52,13 @@ echo "TPCH数据生成工具编译完成"
 ./dbgen -s 1 -f
 ls
 echo "数据生成完成"
+
+rm part.tbl
+rm partsupp.tbl
+cat lineitem.tbl | head -n 999999 > lineitem2.tbl
+mv lineitem2.tbl lineitem.tbl
+cat orders.tbl | head -n 999999 > orders2.tbl
+mv orders2.tbl orders.tbl
 # 源文件夹路径
 source_folder="."
 
@@ -67,10 +74,8 @@ cd $destination_folder
 
 chmod +r customer.tbl
 chmod +r lineitem.tbl
-head -n 1000000 lineitem.tbl > lineitem.tbl
 chmod +r nation.tbl
 chmod +r orders.tbl
-head -n 1000000 orders.tbl > orders.tbl
 chmod +r region.tbl
 chmod +r supplier.tbl
 ls -a

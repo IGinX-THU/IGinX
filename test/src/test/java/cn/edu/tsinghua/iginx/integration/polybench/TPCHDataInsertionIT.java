@@ -49,10 +49,10 @@ public class TPCHDataInsertionIT {
       List<Future<?>> futures = new ArrayList<>();
 
       // 读取 lineitem.tbl 文件并插入数据
-      futures.add(executor.submit(() -> insertDataFromFile(client, databaseName, "lineitem", "lineitem.tbl")));
+      futures.add(executor.submit(() -> insertLineItemFromFile(client, databaseName)));
 
       // 读取 orders.tbl 文件并插入数据
-      futures.add(executor.submit(() -> insertDataFromFile(client, databaseName, "orders", "orders.tbl")));
+      futures.add(executor.submit(() -> insertOrdersFromFile(client, databaseName)));
 
       // 等待所有任务完成
       for (Future<?> future : futures) {
@@ -65,8 +65,10 @@ public class TPCHDataInsertionIT {
     }
   }
 
-  private void insertDataFromFile(MongoClient client, String databaseName, String collectionName, String fileName) {
+  private void insertLineItemFromFile(MongoClient client, String databaseName) {
     try {
+      String collectionName = "lineitem";
+        String fileName = "lineitem.tbl";
       Long start_time = System.currentTimeMillis();
       List<Document> documents = new ArrayList<>();
       try (BufferedReader br = new BufferedReader(new FileReader(String.format("%s/%s", dataPath, fileName)))) {
@@ -118,6 +120,73 @@ public class TPCHDataInsertionIT {
                           .append("l_shipinstruct", l_shipinstruct)
                           .append("l_shipmode", l_shipmode)
                           .append("l_comment", l_comment);
+          // 将 Document 对象添加到列表中
+          documents.add(document);
+          if(documents.size() >= 10000) {
+            // 每次插入 10000 条数据
+            MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+            collection.insertMany(documents);
+            documents.clear();
+            System.out.println("Inserted 10000 records into " + collectionName);
+          }
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+        return;
+      }
+      // 插入数据到 MongoDB
+      MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+      collection.insertMany(documents);
+      System.out.println(
+              "Data loaded successfully to collection "
+                      + collectionName
+                      + " in "
+                      + (System.currentTimeMillis() - start_time)
+                      + "ms");
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
+  private void insertOrdersFromFile(MongoClient client, String databaseName) {
+    try {
+      String collectionName = "orders";
+      String fileName = "orders.tbl";
+      Long start_time = System.currentTimeMillis();
+      List<Document> documents = new ArrayList<>();
+      try (BufferedReader br = new BufferedReader(new FileReader(String.format("%s/%s", dataPath, fileName)))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          String[] fields = line.split("\\|");
+          // 将字符型字段转换为相应类型
+          int o_orderkey = Integer.parseInt(fields[0]);
+          int o_custkey = Integer.parseInt(fields[1]);
+          String o_orderstatus = fields[2];
+          double o_totalprice = Double.parseDouble(fields[3]);
+          Date o_orderdate = null;
+          try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            o_orderdate = dateFormat.parse(fields[4]);
+          } catch (ParseException e) {
+            e.printStackTrace();
+          }
+          String o_orderpriority = fields[5];
+          String o_clerk = fields[6];
+          int o_shippriority = Integer.parseInt(fields[7]);
+          String o_comment = fields[8];
+
+          // 构建 MongoDB 文档
+          Document document =
+                  new Document()
+                          .append("o_orderkey", o_orderkey)
+                          .append("o_custkey", o_custkey)
+                          .append("o_orderstatus", o_orderstatus)
+                          .append("o_totalprice", o_totalprice)
+                          .append("o_orderdate", o_orderdate)
+                          .append("o_orderpriority", o_orderpriority)
+                          .append("o_clerk", o_clerk)
+                          .append("o_shippriority", o_shippriority)
+                          .append("o_comment", o_comment);
           // 将 Document 对象添加到列表中
           documents.add(document);
           if(documents.size() >= 10000) {
