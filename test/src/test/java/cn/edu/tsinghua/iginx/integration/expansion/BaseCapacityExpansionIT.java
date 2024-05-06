@@ -258,7 +258,7 @@ public abstract class BaseCapacityExpansionIT {
     // extended key queryable
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
 
-    List<List<Object>> valuesList = ORI_VALUES_LIST.subList(0, 1);
+    List<List<Object>> valuesList = new ArrayList<>(ORI_VALUES_LIST.subList(0, 1));
     valuesList.addAll(ORI_VALUES_LIST);
     SQLTestTools.executeAndCompare(session, statement, ORI_PATH_LIST, valuesList);
     // extended column unreachable
@@ -267,7 +267,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // exp
     statement = "select wf03.wt01.status2, wf04.wt01.temperature from nt;";
-    valuesList = EXP_VALUES_LIST.subList(0, 1);
+    valuesList = new ArrayList<>(EXP_VALUES_LIST.subList(0, 1));
     valuesList.addAll(EXP_VALUES_LIST);
     SQLTestTools.executeAndCompare(session, statement, EXP_PATH_LIST, valuesList);
     statement = "select wf999.wt01.status2, wf999.wt01.temperature from nt;";
@@ -275,7 +275,7 @@ public abstract class BaseCapacityExpansionIT {
 
     // ro
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
-    valuesList = READ_ONLY_VALUES_LIST.subList(0, 1);
+    valuesList = new ArrayList<>(READ_ONLY_VALUES_LIST.subList(0, 1));
     valuesList.addAll(READ_ONLY_VALUES_LIST);
     SQLTestTools.executeAndCompare(session, statement, READ_ONLY_PATH_LIST, valuesList);
     statement = "select wf999.wt01.status, wf999.wt01.temperature from tm;";
