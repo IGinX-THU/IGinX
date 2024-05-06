@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.relational.tools;
+package cn.edu.tsinghua.iginx.relational.datatype.transformer;
 
 import static cn.edu.tsinghua.iginx.thrift.DataType.*;
 

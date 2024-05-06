@@ -106,7 +106,7 @@ public class RelationalStorage implements IStorage {
       try {
         return dataSource.getConnection();
       } catch (SQLException e) {
-        LOGGER.error("Cannot get connection for database " + databaseName, e);
+        LOGGER.error("Cannot get connection for database {}", databaseName, e);
         dataSource.close();
       }
     }
@@ -128,7 +128,7 @@ public class RelationalStorage implements IStorage {
       connectionPoolMap.put(databaseName, newDataSource);
       return newDataSource.getConnection();
     } catch (SQLException e) {
-      LOGGER.error("Cannot get connection for database " + databaseName, e);
+      LOGGER.error("Cannot get connection for database {}", databaseName, e);
       return null;
     }
   }
@@ -174,7 +174,7 @@ public class RelationalStorage implements IStorage {
       Statement statement = connection.createStatement();
       statement.close();
     } catch (SQLException e) {
-      throw new StorageInitializationException("cannot connect to " + meta + ":", e);
+      throw new StorageInitializationException(String.format("cannot connect to %s :", meta), e);
     }
   }
 
@@ -188,7 +188,7 @@ public class RelationalStorage implements IStorage {
                 clazz.getConstructor(StorageEngineMeta.class).newInstance(meta);
       } catch (Exception e) {
         throw new RelationalTaskExecuteFailureException(
-            String.format("engine %s is not supported:", engineName), e);
+            String.format("engine %s is not supported", engineName), e);
       }
     } else {
       String propertiesPath = meta.getExtraParams().get("meta_properties_path");
@@ -196,7 +196,7 @@ public class RelationalStorage implements IStorage {
         relationalMeta = new JDBCMeta(meta, propertiesPath);
       } catch (IOException e) {
         throw new RelationalTaskExecuteFailureException(
-            String.format("engine %s is not support: ", engineName), e);
+            String.format("engine %s is not supported", engineName), e);
       }
     }
   }
@@ -672,7 +672,6 @@ public class RelationalStorage implements IStorage {
         fullTableName.append(")");
       }
     } else {
-      // 不支持全连接，就要用Left Join+Union来模拟全连接
       // 不支持全连接，就要用Left Join+Union来模拟全连接
       StringBuilder allColumns = new StringBuilder();
       fullColumnList.forEach(

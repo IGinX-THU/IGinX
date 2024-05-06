@@ -21,8 +21,8 @@ package cn.edu.tsinghua.iginx.relational.meta;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.KEY_NAME;
 
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.relational.tools.IDataTypeTransformer;
-import cn.edu.tsinghua.iginx.relational.tools.PostgreSQLDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.IDataTypeTransformer;
+import cn.edu.tsinghua.iginx.relational.datatype.transformer.PostgreSQLDataTypeTransformer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
