@@ -43,7 +43,7 @@ set CLASSPATH="%IGINX_CLI_HOME%\lib\*"
 REM -----------------------------------------------------------------------------
 set PARAMETERS=%*
 echo %PARAMETERS%
-echo %PARAMETERS% | findstr /c:"-h "
+echo %PARAMETERS% | findstr "-h "
 
 @REM if "%PARAMETERS%" == "" set PARAMETERS=-h 127.0.0.1 -p 6667 -u root -pw root
 

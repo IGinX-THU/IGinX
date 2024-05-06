@@ -6,7 +6,7 @@ set double_slash_dir=%current_dir:\=\\%
 
 set name=iginx-client
 set datadir=%double_slash_dir%\\data
-set net=docker-cluster-iginx
+set net=host
 set ip=172.40.0.3
 
 
@@ -37,7 +37,7 @@ if not exist "%datadir%" (
     mkdir "%datadir%"
 )
 
-set command=docker run --name="%name%" -dit --net !net! --ip !ip! --add-host=host.docker.internal:host-gateway --mount type=bind,source=D:/a/IGinX/IGinX/docker/client/data,target=C:/iginx_client/data iginx-client:0.6.0
+set command=docker run --name="%name%" -dit --net !net! --add-host=host.docker.internal:host-gateway --mount type=bind,source=D:/a/IGinX/IGinX/docker/client/data,target=C:/iginx_client/data iginx-client:0.6.0
 echo %command%
 %command%
 
