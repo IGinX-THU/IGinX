@@ -266,8 +266,10 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndContainValue(session, statement, ORI_PATH_LIST, ORI_EXTEND_VALUES_LIST);
 
     // exp
-    statement = "select wf03.wt01.status2, wf04.wt01.temperature from nt;";
-    SQLTestTools.executeAndContainValue(session, statement, EXP_PATH_LIST, EXP_EXTEND_VALUES_LIST);
+    statement = "select wf03.wt01.status2 from nt;";
+    SQLTestTools.executeAndContainValue(session, statement, EXP_PATH_LIST1, EXP_EXTEND_VALUES_LIST1);
+    statement = "select wf04.wt01.temperature from nt;";
+    SQLTestTools.executeAndContainValue(session, statement, EXP_PATH_LIST2, EXP_EXTEND_VALUES_LIST2);
 
     // ro
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
