@@ -19,6 +19,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -83,6 +84,9 @@ public class StorageManager {
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
+    } catch (PhysicalException e) {
+      LOGGER.error("Failed to get boundary of engine {}:", engine, e);
+      return null;
     } catch (Exception e) {
       LOGGER.error("unexpected error when process engine {}:", engine, e);
     } finally {

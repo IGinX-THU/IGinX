@@ -241,6 +241,8 @@ public abstract class BaseCapacityExpansionIT {
     // 扩容后show columns测试
 //    testShowColumns();
 
+    generator.clearHistoryData();
+
     // 向三个dummy数据库中追加dummy数据，数据的key和列名都在添加数据库时的范围之外
     addDummyDataToThree();
     // 能查到key在初始范围外的数据，查不到列名在初始范围外的数据
@@ -268,7 +270,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndContainValue(session, statement, EXP_PATH_LIST, EXP_EXTEND_VALUES_LIST);
 
     // ro
-    statement = "select wf05.wt01.status, wf05.wt01.temperature from tm where;";
+    statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
     SQLTestTools.executeAndContainValue(session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
   }
 

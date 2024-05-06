@@ -95,7 +95,7 @@ public class SQLTestTools {
     if (equalMode && !expectedSet.equals(actualSet)) {
       LOGGER.error("actual valuesList is {} and it should be {}", actualSet, expectedSet);
       fail();
-    } else if (!equalMode && !actualValuesList.containsAll(expectedValuesList)) {
+    } else if (!equalMode && !actualSet.containsAll(expectedSet)) {
       LOGGER.error("actual valuesList is {} and it should contain {}", actualSet, expectedSet);
       fail();
     }

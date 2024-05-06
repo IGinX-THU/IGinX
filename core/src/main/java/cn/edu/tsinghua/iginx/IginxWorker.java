@@ -426,6 +426,11 @@ public class IginxWorker implements IService.Iface {
         StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(0), -1);
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
+        if (boundary == null) {
+          status.setCode(RpcUtils.FAILURE.code);
+          status.setMessage(String.format("Dummy storage engine %s has no data! Please check params:%s.", meta.getStorageEngine(), meta));
+          return;
+        }
         FragmentMeta dummyFragment;
 
         if (dataPrefix == null) {
