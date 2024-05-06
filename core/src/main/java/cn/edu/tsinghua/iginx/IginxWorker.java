@@ -431,6 +431,7 @@ public class IginxWorker implements IService.Iface {
           status.setMessage(String.format("Dummy storage engine %s has no data! Please check params:%s.", meta.getStorageEngine(), meta));
           return;
         }
+        LOGGER.info("boundary for {}: {}", meta, boundary);
         FragmentMeta dummyFragment;
 
         if (dataPrefix == null) {

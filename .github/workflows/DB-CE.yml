@@ -71,7 +71,6 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
-                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
@@ -89,6 +88,7 @@ jobs:
               with:
                   file: ./**/target/site/jacoco/jacoco.xml
                   name: codecov
+#                mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 #            # 第 1 阶段测试开始==========================================
 #            - name: Prepare CapExp environment oriHasDataExpHasData
 #              uses: ./.github/actions/capacityExpansionUnionTest

@@ -72,7 +72,7 @@ public class Constant {
       Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
 
   public static List<List<Object>> ORI_EXTEND_VALUES_LIST = Arrays.asList(
-          Arrays.asList(123456L, 654321.23)
+          Arrays.asList(123456L, 654321.2379)
   );
 
   public static List<List<Object>> EXP_VALUES_LIST =
