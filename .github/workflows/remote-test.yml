@@ -36,9 +36,11 @@ jobs:
 
             - name: Set up Docker
               run: |
-                Install-WindowsFeature -Name Containers
-                Restart-Computer -Force
-                Start-Sleep -s 60
+                $feature = Install-WindowsFeature -Name Containers
+                if ($feature.RestartNeeded -eq 'Yes') {
+                  Restart-Computer -Force
+                  Start-Sleep -s 60
+                }
 
             - name: Run Docker container and test network
               run: |
