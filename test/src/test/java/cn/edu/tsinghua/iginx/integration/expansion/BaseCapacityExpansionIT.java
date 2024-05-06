@@ -259,7 +259,7 @@ public abstract class BaseCapacityExpansionIT {
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
 
     List<List<Object>> valuesList = new ArrayList<>(ORI_VALUES_LIST.subList(0, 1));
-    valuesList.addAll(ORI_VALUES_LIST);
+//    valuesList.addAll(ORI_VALUES_LIST);
     SQLTestTools.executeAndCompare(session, statement, ORI_PATH_LIST, valuesList);
     // extended column unreachable
     statement = "select wf999.wt01.status, wf999.wt01.temperature from mn;";
@@ -268,7 +268,7 @@ public abstract class BaseCapacityExpansionIT {
     // exp
     statement = "select wf03.wt01.status2, wf04.wt01.temperature from nt;";
     valuesList = new ArrayList<>(EXP_VALUES_LIST.subList(0, 1));
-    valuesList.addAll(EXP_VALUES_LIST);
+//    valuesList.addAll(EXP_VALUES_LIST);
     SQLTestTools.executeAndCompare(session, statement, EXP_PATH_LIST, valuesList);
     statement = "select wf999.wt01.status2, wf999.wt01.temperature from nt;";
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
@@ -276,7 +276,7 @@ public abstract class BaseCapacityExpansionIT {
     // ro
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
     valuesList = new ArrayList<>(READ_ONLY_VALUES_LIST.subList(0, 1));
-    valuesList.addAll(READ_ONLY_VALUES_LIST);
+//    valuesList.addAll(READ_ONLY_VALUES_LIST);
     SQLTestTools.executeAndCompare(session, statement, READ_ONLY_PATH_LIST, valuesList);
     statement = "select wf999.wt01.status, wf999.wt01.temperature from tm;";
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());

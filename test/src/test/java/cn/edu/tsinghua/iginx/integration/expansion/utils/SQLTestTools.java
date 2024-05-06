@@ -95,6 +95,7 @@ public class SQLTestTools {
       List<List<Object>> expectedValuesList) {
     try {
       SessionExecuteSqlResult res = session.executeSql(statement);
+      LOGGER.info(res.getResultInString(false, "ms"));
       List<String> pathList = res.getPaths();
       List<List<Object>> actualValuesList = res.getValues();
 
