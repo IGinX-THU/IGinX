@@ -36,7 +36,7 @@ if [[ "$line" == "notFound" ]]; then
     exit 1
 fi
 
-docker run --name=test-container -d mcr.microsoft.com/windows/servercore:ltsc2022 ping 8.8.8.8
+docker run --name=test-container -d mcr.microsoft.com/windows/servercore:ltsc2022 ping ${trimmed_string}
 Start-Sleep -s 10
 docker logs test-container
 docker stop test-container
