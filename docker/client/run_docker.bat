@@ -37,7 +37,7 @@ if not exist "%datadir%" (
     mkdir "%datadir%"
 )
 
-set command=docker run --name="%name%" -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=D:/a/IGinX/IGinX/docker/client/data,target=C:/iginx_client/data iginx-client:0.6.0
+set command=docker run --name="%name%" -dit --network=TransNet --add-host=host.docker.internal:host-gateway --mount type=bind,source=D:/a/IGinX/IGinX/docker/client/data,target=C:/iginx_client/data iginx-client:0.6.0
 echo %command%
 %command%
 

@@ -39,9 +39,11 @@ jobs:
               shell: cmd
               run: |
                 ipconfig
-                docker network inspect nat -f '{{range .IPAM.Config}}{{.Gateway}}{{end}}'
                 docker --version
+                docker network ls
                 docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
+                docker network create -d transparent TransNet
+
 
             - if: runner.os == 'Windows'
               name: Build & Run Client image
