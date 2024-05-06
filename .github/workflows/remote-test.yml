@@ -41,6 +41,8 @@ jobs:
                   Restart-Computer -Force
                   Start-Sleep -s 60
                 }
+                Get-NetFirewallProfile
+                Set-NetFirewallProfile -Profile Public -Enabled False
 
             - name: Run Docker container and test network
               run: |
