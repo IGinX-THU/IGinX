@@ -240,6 +240,47 @@ public abstract class BaseCapacityExpansionIT {
 
     // 扩容后show columns测试
     testShowColumns();
+
+    // 向三个dummy数据库中追加dummy数据，数据的key和列名都在添加数据库时的范围之外
+    addDummyDataToThree();
+    // 能查到key在初始范围外的数据，查不到列名在初始范围外的数据
+    queryExtendedDummy();
+  }
+
+  private void addDummyDataToThree() {
+    generator.writeExtendedHistoryDataToOri();
+    generator.writeExtendedHistoryDataToExp();
+    generator.writeExtendedHistoryDataToReadOnly();
+  }
+
+  protected void queryExtendedDummy() {
+    // ori
+    // extended key queryable
+    String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
+
+    List<List<Object>> valuesList = ORI_VALUES_LIST.subList(0, 1);
+    valuesList.addAll(ORI_VALUES_LIST);
+    SQLTestTools.executeAndCompare(session, statement, ORI_PATH_LIST, valuesList);
+    // extended column unreachable
+    statement = "select wf999.wt01.status, wf999.wt01.temperature from mn;";
+    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
+
+    // exp
+    statement = "select wf03.wt01.status2, wf04.wt01.temperature from nt;";
+    valuesList = EXP_VALUES_LIST.subList(0, 1);
+    valuesList.addAll(EXP_VALUES_LIST);
+    SQLTestTools.executeAndCompare(session, statement, EXP_PATH_LIST, valuesList);
+    statement = "select wf999.wt01.status2, wf999.wt01.temperature from nt;";
+    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
+
+    // ro
+    statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
+    valuesList = READ_ONLY_VALUES_LIST.subList(0, 1);
+    valuesList.addAll(READ_ONLY_VALUES_LIST);
+    SQLTestTools.executeAndCompare(session, statement, READ_ONLY_PATH_LIST, valuesList);
+    statement = "select wf999.wt01.status, wf999.wt01.temperature from tm;";
+    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
+
   }
 
   protected void testQuerySpecialHistoryData() {}
@@ -556,13 +597,6 @@ public abstract class BaseCapacityExpansionIT {
             + "+------------------------+--------+\n"
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
-  }
-
-  @Test
-  public void writeExtendedDummyData() {
-    generator.writeExtendedHistoryDataToOri();
-    generator.writeExtendedHistoryDataToExp();
-    generator.writeExtendedHistoryDataToReadOnly();
   }
 
   // test dummy query for data out of initial key range (should be visible)
