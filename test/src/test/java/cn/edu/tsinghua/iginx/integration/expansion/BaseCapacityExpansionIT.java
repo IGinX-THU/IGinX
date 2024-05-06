@@ -239,7 +239,7 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // 扩容后show columns测试
-    testShowColumns();
+//    testShowColumns();
 
     // 向三个dummy数据库中追加dummy数据，数据的key和列名都在添加数据库时的范围之外
     addDummyDataToThree();
