@@ -19,7 +19,8 @@ docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FileP
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"CREATE FUNCTION udtf \\\"udf_a\\\" FROM \\\"my_module.my_class_a.ClassA\\\", \\\"udf_b\\\" FROM \\\"my_module.my_class_a.ClassB\\\", \\\"udf_sub\\\" FROM \\\"my_module.sub_module.sub_class_a.SubClassA\\\" IN \\\"C:/iginx_client/data/udf/my_module\\\";\"'"
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"CREATE FUNCTION udtf \\\"udf_a_file\\\" FROM \\\"ClassA\\\", udsf \\\"udf_b_file\\\" FROM \\\"ClassB\\\", udaf \\\"udf_c_file\\\" FROM \\\"ClassC\\\" IN \\\"C:/iginx_client/data/udf/my_module/idle_classes.py\\\";\"'"
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"show functions;\"'"
-docker exec iginx-client powershell -Command "ping 172.40.0.1"
+docker exec iginx-client powershell -Command "ipconfig"
+docker exec iginx-client powershell -Command "ping 172.17.0.1"
 docker exec iginx-client powershell -Command "ping host.docker.internal"
 
 docker logs iginx-client
