@@ -17,7 +17,7 @@ trimmed_string=notFound
 
 for line in "${results[@]}"; do
   echo "$line"
-	if [[ $line =~ " Ethernet:" && $line =~ "nat" ]]; then
+	if [[ $line =~ " Ethernet:" ]]; then
 		adapterfound=true
 	elif [[ "${adapterfound}" == "true" && $line =~ "IPv4" ]]; then
 		echo $line
