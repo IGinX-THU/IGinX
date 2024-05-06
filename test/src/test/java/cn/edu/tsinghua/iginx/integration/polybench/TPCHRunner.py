@@ -1,4 +1,4 @@
-import sys, traceback, signal
+import sys, traceback, signal, resource
 sys.path.append('session_py/')
 
 from iginx.iginx_pyclient.session import Session
@@ -10,6 +10,11 @@ import time
 def timeout_handler(signum, frame):
     print("Execution time exceeded 5 minutes. Exiting...")
     sys.exit(0)
+
+def get_memory_usage():
+    usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
+    # 转换为 MB 并返回
+    return usage / 1024
 
 if __name__ == '__main__':
     print("start")
@@ -106,6 +111,19 @@ order by
         signal.alarm(300)  # 300 秒 = 5 分钟
         # 执行查询语句
         dataset = session.execute_statement(sql)
+        columns = dataset.columns()
+        for column in columns:
+            print(str(column) + '    ')
+        print()
+
+        while dataset.has_more():
+            row = dataset.next()
+            for field in row:
+                print(str(field) + '        ')
+            print()
+        print()
+
+        dataset.close()
         # 取消定时器
         signal.alarm(0)
         print(f"end tpch query, time cost: {time.time() - start_time}s")

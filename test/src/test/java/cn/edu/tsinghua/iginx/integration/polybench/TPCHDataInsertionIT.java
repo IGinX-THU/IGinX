@@ -14,6 +14,10 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.Date;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import org.bson.Document;
 import org.junit.Test;
 import org.postgresql.copy.CopyManager;
@@ -37,149 +41,111 @@ public class TPCHDataInsertionIT {
 
   @Test
   public void insertDataIntoMongoDB() {
-    // print pwd
     System.out.println(System.getProperty("user.dir"));
     int port = 27017;
-    String databaseName = "mongotpch"; // 请替换为你实际的数据库名
+    String databaseName = "mongotpch";
     try (MongoClient client = connect(port)) {
-      String collectionName = "lineitem";
-      // 读取 lineitem.tbl 文件
-      List<String> lines = new ArrayList<>();
-      try (BufferedReader br =
-          new BufferedReader(new FileReader(String.format("%s/lineitem.tbl", dataPath)))) {
-        String line;
-        while ((line = br.readLine()) != null) {
-          lines.add(line);
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-        return;
+      ExecutorService executor = Executors.newFixedThreadPool(2); // 使用2个线程
+      List<Future<?>> futures = new ArrayList<>();
+
+      // 读取 lineitem.tbl 文件并插入数据
+      futures.add(executor.submit(() -> insertDataFromFile(client, databaseName, "lineitem", "lineitem.tbl")));
+
+      // 读取 orders.tbl 文件并插入数据
+      futures.add(executor.submit(() -> insertDataFromFile(client, databaseName, "orders", "orders.tbl")));
+
+      // 等待所有任务完成
+      for (Future<?> future : futures) {
+        future.get();
       }
 
-      MongoCollection<Document> collection =
-          client.getDatabase(databaseName).getCollection(collectionName);
-      Long start_time = System.currentTimeMillis();
-      // 解析并插入数据到 MongoDB
-      for (String line : lines) {
-        // 以 | 分隔每个字段
-        String[] fields = line.split("\\|");
-
-        // 将字符型字段转换为相应类型
-        int l_orderkey = Integer.parseInt(fields[0]);
-        int l_partkey = Integer.parseInt(fields[1]);
-        int l_suppkey = Integer.parseInt(fields[2]);
-        int l_linenumber = Integer.parseInt(fields[3]);
-        double l_quantity = Double.parseDouble(fields[4]);
-        double l_extendedprice = Double.parseDouble(fields[5]);
-        double l_discount = Double.parseDouble(fields[6]);
-        double l_tax = Double.parseDouble(fields[7]);
-        String l_returnflag = fields[8];
-        String l_linestatus = fields[9];
-        // 解析日期字段
-        Date l_shipdate = null, l_commitdate = null, l_receiptdate = null;
-        try {
-          SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-          l_shipdate = dateFormat.parse(fields[10]);
-          l_commitdate = dateFormat.parse(fields[11]);
-          l_receiptdate = dateFormat.parse(fields[12]);
-        } catch (ParseException e) {
-          e.printStackTrace();
-        }
-        String l_shipinstruct = fields[13];
-        String l_shipmode = fields[14];
-        String l_comment = fields[15];
-
-        // 构建 MongoDB 文档
-        Document document =
-            new Document()
-                .append("l_orderkey", l_orderkey)
-                .append("l_partkey", l_partkey)
-                .append("l_suppkey", l_suppkey)
-                .append("l_linenumber", l_linenumber)
-                .append("l_quantity", l_quantity)
-                .append("l_extendedprice", l_extendedprice)
-                .append("l_discount", l_discount)
-                .append("l_tax", l_tax)
-                .append("l_returnflag", l_returnflag)
-                .append("l_linestatus", l_linestatus)
-                .append("l_shipdate", l_shipdate)
-                .append("l_commitdate", l_commitdate)
-                .append("l_receiptdate", l_receiptdate)
-                .append("l_shipinstruct", l_shipinstruct)
-                .append("l_shipmode", l_shipmode)
-                .append("l_comment", l_comment);
-
-        // 将数据插入 MongoDB
-        collection.insertOne(document);
-      }
-      System.out.println(
-          "Data loaded successfully to collection "
-              + collectionName
-              + " in "
-              + (System.currentTimeMillis() - start_time)
-              + "ms");
-      start_time = System.currentTimeMillis();
-      // 读取 orders.tbl 文件
-      collectionName = "orders";
-      lines = new ArrayList<>();
-      try (BufferedReader br =
-          new BufferedReader(new FileReader(String.format("%s/orders.tbl", dataPath)))) {
-        String line;
-        while ((line = br.readLine()) != null) {
-          lines.add(line);
-        }
-      } catch (IOException e) {
-        e.printStackTrace();
-        return;
-      }
-      collection = client.getDatabase(databaseName).getCollection(collectionName);
-
-      // 解析并插入数据到 MongoDB
-      for (String line : lines) {
-        // 以 | 分隔每个字段
-        String[] fields = line.split("\\|");
-
-        // 将字符型字段转换为相应类型
-        int o_orderkey = Integer.parseInt(fields[0]);
-        int o_custkey = Integer.parseInt(fields[1]);
-        String o_orderstatus = fields[2];
-        double o_totalprice = Double.parseDouble(fields[3]);
-        Date o_orderdate = null;
-        try {
-          SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-          o_orderdate = dateFormat.parse(fields[4]);
-        } catch (ParseException e) {
-          e.printStackTrace();
-        }
-        String o_orderpriority = fields[5];
-        String o_clerk = fields[6];
-        int o_shippriority = Integer.parseInt(fields[7]);
-        String o_comment = fields[8];
-
-        // 构建 MongoDB 文档
-        Document document =
-            new Document()
-                .append("o_orderkey", o_orderkey)
-                .append("o_custkey", o_custkey)
-                .append("o_orderstatus", o_orderstatus)
-                .append("o_totalprice", o_totalprice)
-                .append("o_orderdate", o_orderdate)
-                .append("o_orderpriority", o_orderpriority)
-                .append("o_clerk", o_clerk)
-                .append("o_shippriority", o_shippriority)
-                .append("o_comment", o_comment);
-
-        // 将数据插入 MongoDB
-        collection.insertOne(document);
-      }
-      System.out.println(
-          "Data loaded successfully to collection "
-              + collectionName
-              + " in "
-              + (System.currentTimeMillis() - start_time)
-              + "ms");
+      executor.shutdown();
+    } catch (Exception e) {
+      e.printStackTrace();
     }
   }
+
+  private void insertDataFromFile(MongoClient client, String databaseName, String collectionName, String fileName) {
+    try {
+      Long start_time = System.currentTimeMillis();
+      List<Document> documents = new ArrayList<>();
+      try (BufferedReader br = new BufferedReader(new FileReader(String.format("%s/%s", dataPath, fileName)))) {
+        String line;
+        while ((line = br.readLine()) != null) {
+          String[] fields = line.split("\\|");
+          // 解析数据并构建 Document 对象
+          // 将字符型字段转换为相应类型
+          int l_orderkey = Integer.parseInt(fields[0]);
+          int l_partkey = Integer.parseInt(fields[1]);
+          int l_suppkey = Integer.parseInt(fields[2]);
+          int l_linenumber = Integer.parseInt(fields[3]);
+          double l_quantity = Double.parseDouble(fields[4]);
+          double l_extendedprice = Double.parseDouble(fields[5]);
+          double l_discount = Double.parseDouble(fields[6]);
+          double l_tax = Double.parseDouble(fields[7]);
+          String l_returnflag = fields[8];
+          String l_linestatus = fields[9];
+          // 解析日期字段
+          Date l_shipdate = null, l_commitdate = null, l_receiptdate = null;
+          try {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+            l_shipdate = dateFormat.parse(fields[10]);
+            l_commitdate = dateFormat.parse(fields[11]);
+            l_receiptdate = dateFormat.parse(fields[12]);
+          } catch (ParseException e) {
+            e.printStackTrace();
+          }
+          String l_shipinstruct = fields[13];
+          String l_shipmode = fields[14];
+          String l_comment = fields[15];
+
+          // 构建 MongoDB 文档
+          Document document =
+                  new Document()
+                          .append("l_orderkey", l_orderkey)
+                          .append("l_partkey", l_partkey)
+                          .append("l_suppkey", l_suppkey)
+                          .append("l_linenumber", l_linenumber)
+                          .append("l_quantity", l_quantity)
+                          .append("l_extendedprice", l_extendedprice)
+                          .append("l_discount", l_discount)
+                          .append("l_tax", l_tax)
+                          .append("l_returnflag", l_returnflag)
+                          .append("l_linestatus", l_linestatus)
+                          .append("l_shipdate", l_shipdate)
+                          .append("l_commitdate", l_commitdate)
+                          .append("l_receiptdate", l_receiptdate)
+                          .append("l_shipinstruct", l_shipinstruct)
+                          .append("l_shipmode", l_shipmode)
+                          .append("l_comment", l_comment);
+          // 将 Document 对象添加到列表中
+          documents.add(document);
+          if(documents.size() >= 10000) {
+            // 每次插入 10000 条数据
+            MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+            collection.insertMany(documents);
+            documents.clear();
+            System.out.println("Inserted 10000 records into " + collectionName);
+          }
+        }
+      } catch (IOException e) {
+        e.printStackTrace();
+        return;
+      }
+      // 插入数据到 MongoDB
+      MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+      collection.insertMany(documents);
+      System.out.println(
+              "Data loaded successfully to collection "
+                      + collectionName
+                      + " in "
+                      + (System.currentTimeMillis() - start_time)
+                      + "ms");
+    } catch (Exception e) {
+      e.printStackTrace();
+    }
+  }
+
 
   @Test
   public void insertDataIntoPostgreSQL() {
