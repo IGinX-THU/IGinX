@@ -30,5 +30,4 @@ RUN New-Item -Path 'C:/iginx_client/logs' -ItemType Directory
 RUN New-Item -Path 'C:/iginx_client/data' -ItemType Directory
 USER ContainerUser
 
-
 ENTRYPOINT ["cmd", "/c", "ping", "localhost", "-t"]
