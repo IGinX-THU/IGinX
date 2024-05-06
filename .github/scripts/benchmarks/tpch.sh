@@ -6,14 +6,14 @@ if [ "$RUNNER_OS" = "Windows" ]; then
     -s  "."
   cd tpchdata
   # 目标文件夹路径
-  destination_folder="../tpc/TPC-H\ V3.0.1/data"
+  destination_folder="../tpc/TPC-H V3.0.1/data"
 
   # 确保目标文件夹存在，如果不存在则创建
   mkdir -p "$destination_folder"
 
   # 将所有*.tbl文件移动到目标文件夹
   mv *.tbl "$destination_folder/"
-  cd $destination_folder
+  cd "$destination_folder"
 
   chmod +r customer.tbl
   chmod +r lineitem.tbl
