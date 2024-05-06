@@ -67,8 +67,10 @@ cd $destination_folder
 
 chmod +r customer.tbl
 chmod +r lineitem.tbl
+head -n 1000000 lineitem.tbl > lineitem.tbl
 chmod +r nation.tbl
 chmod +r orders.tbl
+head -n 1000000 orders.tbl > orders.tbl
 chmod +r region.tbl
 chmod +r supplier.tbl
 ls -a

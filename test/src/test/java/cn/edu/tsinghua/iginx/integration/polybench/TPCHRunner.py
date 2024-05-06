@@ -78,8 +78,8 @@ if __name__ == '__main__':
         print("start tpch query")
         start_time = time.time()
 
-        sql = 'select * from mongotpch.orders limit 5;'
-        '''select 
+        # sql = 'select * from mongotpch.orders limit 5;'
+        sql = '''select 
     nation.n_name,
     revenue
 from (
