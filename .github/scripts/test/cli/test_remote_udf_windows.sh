@@ -36,6 +36,12 @@ if [[ "$line" == "notFound" ]]; then
     exit 1
 fi
 
+docker run --name=test-container -d mcr.microsoft.com/windows/servercore:ltsc2022 ping 8.8.8.8
+Start-Sleep -s 10
+docker logs test-container
+docker stop test-container
+docker rm test-container
+
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
 docker exec iginx-client powershell -Command "Get-ChildItem -Path C:/iginx_client/sbin"

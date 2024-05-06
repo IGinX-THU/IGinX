@@ -48,18 +48,6 @@ jobs:
                 New-NetFirewallRule -DisplayName "Allow ICMPv4-In" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Inbound
                 New-NetFirewallRule -DisplayName "Allow ICMPv4-Out" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Outbound
 
-
-            - name: Run Docker container and test network
-              run: |
-                docker run --name=test-container -d mcr.microsoft.com/windows/servercore:ltsc2022 ping 8.8.8.8
-                Start-Sleep -s 10
-                docker logs test-container
-
-            - name: Clean up
-              run: |
-                docker stop test-container
-                docker rm test-container
-
             - if: runner.os == 'Windows'
               name: Create Docker Network
               shell: cmd
@@ -69,6 +57,18 @@ jobs:
                 docker network ls
                 docker network create -d nat --attachable --subnet 172.40.0.0/16 docker-cluster-iginx
                 docker network create -d transparent TransNet
+
+            - name: Run Docker container and test network
+              run: |
+                docker run --name=test-container --network=TransNet -d mcr.microsoft.com/windows/servercore:ltsc2022 ping 8.8.8.8
+                Start-Sleep -s 10
+                docker logs test-container
+
+            - name: Clean up
+              run: |
+                docker stop test-container
+                docker rm test-container
+
 
 
             - if: runner.os == 'Windows'
