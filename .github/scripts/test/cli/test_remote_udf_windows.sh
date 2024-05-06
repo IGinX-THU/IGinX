@@ -48,8 +48,8 @@ docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FileP
 docker exec iginx-client powershell -Command "ipconfig"
 # 172.27.100.3
 # host: 172.22.0.1
-docker exec iginx-client powershell -Command "ping host.docker.internal"
 docker exec iginx-client powershell -Command "ping ${trimmed_string}"
+docker exec iginx-client powershell -Command "ping host.docker.internal"
 docker exec iginx-client powershell -Command "ping docker.for.win.localhost"
 docker exec iginx-client powershell -Command "ping 172.17.0.1"
 

@@ -34,6 +34,23 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
+            - name: Set up Docker
+              run: |
+                Install-WindowsFeature -Name Containers
+                Restart-Computer -Force
+                Start-Sleep -s 60
+
+            - name: Run Docker container and test network
+              run: |
+                docker run --name=test-container -d mcr.microsoft.com/windows/servercore:ltsc2022 ping 8.8.8.8
+                Start-Sleep -s 10
+                docker logs test-container
+
+            - name: Clean up
+              run: |
+                docker stop test-container
+                docker rm test-container
+
             - if: runner.os == 'Windows'
               name: Create Docker Network
               shell: cmd
