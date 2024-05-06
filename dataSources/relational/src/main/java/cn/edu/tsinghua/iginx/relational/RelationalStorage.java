@@ -346,7 +346,7 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() {
+  public List<Column> getColumns() throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
@@ -383,7 +383,7 @@ public class RelationalStorage implements IStorage {
         }
       }
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw new RelationalTaskExecuteFailureException("failed to get columns ", e);
     }
     return columns;
   }
@@ -428,7 +428,7 @@ public class RelationalStorage implements IStorage {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
-            new PhysicalTaskExecuteFailureException(
+            new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
 
@@ -1138,7 +1138,7 @@ public class RelationalStorage implements IStorage {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
-            new PhysicalTaskExecuteFailureException(
+            new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
 
