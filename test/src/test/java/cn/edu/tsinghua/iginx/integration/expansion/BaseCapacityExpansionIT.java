@@ -244,7 +244,8 @@ public abstract class BaseCapacityExpansionIT {
     // 向三个dummy数据库中追加dummy数据，数据的key和列名都在添加数据库时的范围之外
     addDummyDataToThree();
     // 能查到key在初始范围外的数据，查不到列名在初始范围外的数据
-    queryExtendedDummy();
+    queryExtendedKeyDummy();
+    queryExtendedColDummy();
   }
 
   private void addDummyDataToThree() {
@@ -253,31 +254,37 @@ public abstract class BaseCapacityExpansionIT {
     generator.writeExtendedHistoryDataToReadOnly();
   }
 
-  protected void queryExtendedDummy() {
+  protected void queryExtendedKeyDummy() {
     // ori
-    // extended key queryable
+    // extended key(-1L) queryable
+    // NOTE: in some database(e.g. mongoDB), the key for dummy data is given randomly and cannot be
+    // controlled. Thus, when extended value can be queried without specifying key filter(<0),
+    // we still assume that dummy key range is extended.
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
-
-    List<List<Object>> valuesList = new ArrayList<>(ORI_VALUES_LIST.subList(0, 1));
-    SQLTestTools.executeAndCompare(session, statement, ORI_PATH_LIST, valuesList);
-    // extended column unreachable
-    statement = "select wf999.wt01.status, wf999.wt01.temperature from mn;";
-    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
+    SQLTestTools.executeAndCompare(session, statement, ORI_PATH_LIST, ORI_EXTEND_VALUES_LIST);
 
     // exp
     statement = "select wf03.wt01.status2, wf04.wt01.temperature from nt;";
-    valuesList = new ArrayList<>(EXP_VALUES_LIST.subList(0, 1));
-    SQLTestTools.executeAndCompare(session, statement, EXP_PATH_LIST, valuesList);
+    SQLTestTools.executeAndCompare(session, statement, EXP_PATH_LIST, EXP_EXTEND_VALUES_LIST);
+
+    // ro
+    statement = "select wf05.wt01.status, wf05.wt01.temperature from tm where;";
+    SQLTestTools.executeAndCompare(session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
+  }
+
+  protected void queryExtendedColDummy() {
+    // ori
+    // extended columns unreachable
+    String statement = "select wf999.wt01.status, wf999.wt01.temperature from mn;";
+    SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
+
+    // exp
     statement = "select wf999.wt01.status2, wf999.wt01.temperature from nt;";
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
 
     // ro
-    statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
-    valuesList = new ArrayList<>(READ_ONLY_VALUES_LIST.subList(0, 1));
-    SQLTestTools.executeAndCompare(session, statement, READ_ONLY_PATH_LIST, valuesList);
     statement = "select wf999.wt01.status, wf999.wt01.temperature from tm;";
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
-
   }
 
   protected void testQuerySpecialHistoryData() {}

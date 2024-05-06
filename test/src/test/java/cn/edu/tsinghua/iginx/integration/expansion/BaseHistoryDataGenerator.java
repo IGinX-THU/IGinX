@@ -65,7 +65,7 @@ public abstract class BaseHistoryDataGenerator {
         ORI_PATH_LIST,
         ORI_DATA_TYPE_LIST,
         new ArrayList<>(Collections.singletonList(-1L)),
-        ORI_VALUES_LIST.subList(0, 1));
+        ORI_EXTEND_VALUES_LIST);
   }
 
   public void writeHistoryDataToExp() {
@@ -79,7 +79,7 @@ public abstract class BaseHistoryDataGenerator {
         EXP_PATH_LIST,
         EXP_DATA_TYPE_LIST,
         new ArrayList<>(Collections.singletonList(-1L)),
-        EXP_VALUES_LIST.subList(0, 1));
+        EXP_EXTEND_VALUES_LIST);
   }
 
   public void writeHistoryDataToReadOnly() {
@@ -95,7 +95,7 @@ public abstract class BaseHistoryDataGenerator {
         READ_ONLY_PATH_LIST,
         READ_ONLY_DATA_TYPE_LIST,
         new ArrayList<>(Collections.singletonList(-1L)),
-        READ_ONLY_VALUES_LIST.subList(0, 1));
+        READ_ONLY_EXTEND_VALUES_LIST);
   }
 
   public abstract void writeHistoryData(
