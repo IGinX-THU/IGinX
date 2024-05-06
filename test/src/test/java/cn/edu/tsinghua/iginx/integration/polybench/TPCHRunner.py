@@ -113,13 +113,13 @@ order by
         dataset = session.execute_statement(sql)
         columns = dataset.columns()
         for column in columns:
-            print(str(column) + '    ')
+            print(str(column) + '    ', end='')
         print()
 
         while dataset.has_more():
             row = dataset.next()
             for field in row:
-                print(str(field) + '        ')
+                print(str(field) + '        ', end='')
             print()
         print()
 
