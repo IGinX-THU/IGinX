@@ -16,7 +16,7 @@ adapterfound=false
 trimmed_string=notFound
 
 for line in "${results[@]}"; do
-	if [[ $line =~ "vEthernet" ]]; then
+	if [[ $line =~ "vEthernet" || $line =~ "nat" ]]; then
 		adapterfound=true
 	elif [[ "${adapterfound}" == "true" && $line =~ "IPv4" ]]; then
 		echo $line
