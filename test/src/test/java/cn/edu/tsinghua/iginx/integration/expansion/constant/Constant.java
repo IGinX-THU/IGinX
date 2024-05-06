@@ -34,13 +34,13 @@ public class Constant {
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
   public static final List<String> ORI_EXTEND_PATH_LIST =
-      Arrays.asList("mn.wf999.wt01.status", "mn.wf999.wt01.temperature");
+      Arrays.asList("a.a.a.status", "a.a.a.temperature");
 
   public static final List<String> EXP_PATH_LIST =
       Arrays.asList("nt.wf03.wt01.status2", "nt.wf04.wt01.temperature");
 
   public static final List<String> EXP_EXTEND_PATH_LIST =
-      Arrays.asList("nt.wf999.wt01.status2", "nt.wf999.wt01.temperature");
+      Arrays.asList("a.a.b.status2", "a.a.b.temperature");
 
   public static final List<String> EXP_PATH_LIST1 =
       Collections.singletonList("nt.wf03.wt01.status2");
@@ -52,7 +52,7 @@ public class Constant {
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   public static final List<String> READ_ONLY_EXTEND_PATH_LIST =
-      Arrays.asList("tm.wf999.wt01.status", "tm.wf999.wt01.temperature");
+      Arrays.asList("a.a.c.status", "a.a.c.temperature");
 
   // data type
   public static List<DataType> INIT_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.LONG);
@@ -72,14 +72,14 @@ public class Constant {
       Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
 
   public static List<List<Object>> ORI_EXTEND_VALUES_LIST = Arrays.asList(
-          Arrays.asList(123456L, 654321.2379)
+          Arrays.asList(123456L, 654321.2)
   );
 
   public static List<List<Object>> EXP_VALUES_LIST =
       Arrays.asList(Arrays.asList(33333333L, 66123.23), Arrays.asList(44444444L, 77123.71));
 
   public static List<List<Object>> EXP_EXTEND_VALUES_LIST = Arrays.asList(
-          Arrays.asList(77777777L, 3498.145)
+          Arrays.asList(77777777L, 3498.1)
   );
 
   public static List<List<Object>> EXP_VALUES_LIST1 =
@@ -92,7 +92,7 @@ public class Constant {
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
 
   public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST = Arrays.asList(
-          Arrays.asList(9999999L, 152346.154)
+          Arrays.asList(9999999L, 152346.1)
   );
 
   public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =

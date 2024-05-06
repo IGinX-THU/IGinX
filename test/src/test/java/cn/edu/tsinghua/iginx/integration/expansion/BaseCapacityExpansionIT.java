@@ -258,9 +258,9 @@ public abstract class BaseCapacityExpansionIT {
 
   protected void queryExtendedKeyDummy() {
     // ori
-    // extended key(-1L) queryable
+    // extended key queryable
     // NOTE: in some database(e.g. mongoDB), the key for dummy data is given randomly and cannot be
-    // controlled. Thus, when extended value can be queried without specifying key filter(<0),
+    // controlled. Thus, when extended value can be queried without specifying key filter,
     // we still assume that dummy key range is extended.
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
     SQLTestTools.executeAndContainValue(session, statement, ORI_PATH_LIST, ORI_EXTEND_VALUES_LIST);
@@ -277,15 +277,15 @@ public abstract class BaseCapacityExpansionIT {
   protected void queryExtendedColDummy() {
     // ori
     // extended columns unreachable
-    String statement = "select wf999.wt01.status, wf999.wt01.temperature from mn;";
+    String statement = "select * from a.a.a;";
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
 
     // exp
-    statement = "select wf999.wt01.status2, wf999.wt01.temperature from nt;";
+    statement = "select * from a.a.b;";
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
 
     // ro
-    statement = "select wf999.wt01.status, wf999.wt01.temperature from tm;";
+    statement = "select * from a.a.c;";
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
   }
 
