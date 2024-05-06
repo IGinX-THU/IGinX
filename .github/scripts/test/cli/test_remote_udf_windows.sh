@@ -10,6 +10,31 @@ ls docker/client/data/udf
 set os=$1
 echo "$os"
 
+# 找到docker nat的ip4地址
+readarray -t results < <(ipconfig)
+adapterfound=false
+trimmed_string=notFound
+
+for line in "${results[@]}"; do
+	if [[ $line =~ "vEthernet" ]]; then
+		adapterfound=true
+	elif [[ "${adapterfound}" == "true" && $line =~ "IPv4" ]]; then
+		echo $line
+		IFS=':'
+		read -ra arr <<< "$line"
+		echo ${arr[0]}
+		trimmed_string=$(echo ${arr[1]} | tr -d ' ')
+		echo ${arr[1]}
+		echo $trimmed_string
+		adapterfound=false
+	fi
+done
+
+if [[ "$line" == "notFound" ]]; then
+    echo "ip4 addr for host not found"
+    exit 1
+fi
+
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
 docker exec iginx-client powershell -Command "Get-ChildItem -Path C:/iginx_client/sbin"
@@ -20,6 +45,10 @@ docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FileP
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"CREATE FUNCTION udtf \\\"udf_a_file\\\" FROM \\\"ClassA\\\", udsf \\\"udf_b_file\\\" FROM \\\"ClassB\\\", udaf \\\"udf_c_file\\\" FROM \\\"ClassC\\\" IN \\\"C:/iginx_client/data/udf/my_module/idle_classes.py\\\";\"'"
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"show functions;\"'"
 docker exec iginx-client powershell -Command "ipconfig"
+# 172.27.100.3
+# host: 172.22.0.1
+docker exec iginx-client powershell -Command "ping ${trimmed_string}"
+docker exec iginx-client powershell -Command "ping docker.for.win.localhost"
 docker exec iginx-client powershell -Command "ping 172.17.0.1"
 docker exec iginx-client powershell -Command "ping host.docker.internal"
 
