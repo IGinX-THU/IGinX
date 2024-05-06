@@ -52,6 +52,7 @@ import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureEx
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
+import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -274,18 +275,6 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
       return new ArrayList<>();
-    }
-  }
-
-  private static class ColumnField {
-    String tableName;
-    String columnName;
-    String columnType;
-
-    ColumnField(String tableName, String columnName, String columnType) {
-      this.tableName = tableName;
-      this.columnName = columnName;
-      this.columnType = columnType;
     }
   }
 
@@ -1842,26 +1831,30 @@ public class RelationalStorage implements IStorage {
 
   private List<Pair<String, String>> determineDeletedPaths(
       List<String> paths, TagFilter tagFilter) {
-    List<Column> columns = getColumns();
-    List<Pair<String, String>> deletedPaths = new ArrayList<>();
+    try {
+      List<Column> columns = getColumns();
+      List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
-    for (Column column : columns) {
-      for (String path : paths) {
-        if (Pattern.matches(StringUtils.reformatPath(path), column.getPath())) {
-          if (tagFilter != null && !TagKVUtils.match(column.getTags(), tagFilter)) {
-            continue;
+      for (Column column : columns) {
+        for (String path : paths) {
+          if (Pattern.matches(StringUtils.reformatPath(path), column.getPath())) {
+            if (tagFilter != null && !TagKVUtils.match(column.getTags(), tagFilter)) {
+              continue;
+            }
+            String fullPath = column.getPath();
+            RelationSchema schema = new RelationSchema(fullPath, relationalMeta.getQuote());
+            String tableName = schema.getTableName();
+            String columnName = toFullName(schema.getColumnName(), column.getTags());
+            deletedPaths.add(new Pair<>(tableName, columnName));
+            break;
           }
-          String fullPath = column.getPath();
-          RelationSchema schema = new RelationSchema(fullPath, relationalMeta.getQuote());
-          String tableName = schema.getTableName();
-          String columnName = toFullName(schema.getColumnName(), column.getTags());
-          deletedPaths.add(new Pair<>(tableName, columnName));
-          break;
         }
       }
+      return deletedPaths;
+    } catch (RelationalTaskExecuteFailureException e) {
+      LOGGER.error(e.getMessage(), e);
+      return new ArrayList<>();
     }
-
-    return deletedPaths;
   }
 
   private String getQuotName(String name) {
