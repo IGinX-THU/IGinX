@@ -5,6 +5,8 @@ on:
         types: [opened, reopened]
         branches:
             - main
+    schedule:
+        - cron: "0 0 * * 0" # every Sunday
 env:
     VERSION: 0.6.0-SNAPSHOT
 

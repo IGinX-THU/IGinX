@@ -5,6 +5,8 @@ on:
         types: [opened, reopened]
         branches:
             - main
+    schedule:
+        - cron: "0 0 * * 0" # every Sunday
 
 concurrency:
     group: ${{ github.workflow }}-${{ github.ref }}

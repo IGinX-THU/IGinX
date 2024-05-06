@@ -15,6 +15,8 @@ on:
     pull_request:
         types: [opened, reopened]
         branches: ["main"]
+    schedule:
+        - cron: "0 0 * * 0" # every Sunday
 
 jobs:
     analyze:
