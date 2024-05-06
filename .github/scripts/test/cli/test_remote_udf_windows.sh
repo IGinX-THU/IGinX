@@ -46,7 +46,7 @@ export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
 docker exec iginx-client powershell -Command "Get-ChildItem -Path C:/iginx_client/sbin"
 docker exec iginx-client powershell -Command "Get-ChildItem -Path C:/iginx_client/data"
-docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-h host.docker.internal -e \"show cluster info;\"'"
+docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-h ${trimmed_string} -e \"show cluster info;\"'"
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"create function udtf \\\"mock_udf\\\" from \\\"MockUDF\\\" in \\\"C:/iginx_client/data/udf/mock_udf.py\\\";\"'"
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"CREATE FUNCTION udtf \\\"udf_a\\\" FROM \\\"my_module.my_class_a.ClassA\\\", \\\"udf_b\\\" FROM \\\"my_module.my_class_a.ClassB\\\", \\\"udf_sub\\\" FROM \\\"my_module.sub_module.sub_class_a.SubClassA\\\" IN \\\"C:/iginx_client/data/udf/my_module\\\";\"'"
 docker exec iginx-client powershell -command "Start-Process  -NoNewWindow -FilePath 'C:/iginx_client/sbin/start_cli.bat' -ArgumentList '-e \"CREATE FUNCTION udtf \\\"udf_a_file\\\" FROM \\\"ClassA\\\", udsf \\\"udf_b_file\\\" FROM \\\"ClassB\\\", udaf \\\"udf_c_file\\\" FROM \\\"ClassC\\\" IN \\\"C:/iginx_client/data/udf/my_module/idle_classes.py\\\";\"'"
