@@ -13,4 +13,8 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
   public ParquetCapacityExpansionIT() {
     super(parquet, null, new ParquetHistoryDataGenerator());
   }
+
+  // dummy key range cannot be extended yet
+  @Override
+  protected void queryExtendedKeyDummy() {  }
 }

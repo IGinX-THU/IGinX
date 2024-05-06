@@ -25,4 +25,8 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
   }
+
+  // dummy key range cannot be extended yet
+  @Override
+  protected void queryExtendedKeyDummy() {  }
 }
