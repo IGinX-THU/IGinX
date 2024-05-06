@@ -64,7 +64,7 @@ public abstract class BaseHistoryDataGenerator {
         oriPort,
         ORI_PATH_LIST,
         ORI_DATA_TYPE_LIST,
-        new ArrayList<>(Collections.singletonList(0L)),
+        new ArrayList<>(Collections.singletonList(-1L)),
         ORI_VALUES_LIST.subList(0, 1));
   }
 
@@ -78,7 +78,7 @@ public abstract class BaseHistoryDataGenerator {
         expPort,
         EXP_PATH_LIST,
         EXP_DATA_TYPE_LIST,
-        new ArrayList<>(Collections.singletonList(0L)),
+        new ArrayList<>(Collections.singletonList(-1L)),
         EXP_VALUES_LIST.subList(0, 1));
   }
 
@@ -94,7 +94,7 @@ public abstract class BaseHistoryDataGenerator {
         readOnlyPort,
         READ_ONLY_PATH_LIST,
         READ_ONLY_DATA_TYPE_LIST,
-        new ArrayList<>(Collections.singletonList(0L)),
+        new ArrayList<>(Collections.singletonList(-1L)),
         READ_ONLY_VALUES_LIST.subList(0, 1));
   }
 
