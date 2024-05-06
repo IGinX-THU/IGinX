@@ -10,10 +10,10 @@ WORKDIR C:/iginx
 COPY ./target/iginx-client-0.6.0-SNAPSHOT/ C:/iginx_client
 
 # install chocolately package manager
-RUN @powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin" -Y
-
-RUN choco install openjdk8 -Y
-RUN refreshenv
+#RUN @powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin" -Y
+#
+#RUN choco install openjdk8 -Y
+#RUN refreshenv
 
 # 设置环境变量
 USER ContainerAdministrator
