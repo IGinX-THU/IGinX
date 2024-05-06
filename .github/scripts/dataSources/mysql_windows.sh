@@ -21,4 +21,3 @@ for port in "$@"
 do
     ./mysql/mysql-8.0.26-winx64/bin/mysql -v -u root --port=$port
 done
-
