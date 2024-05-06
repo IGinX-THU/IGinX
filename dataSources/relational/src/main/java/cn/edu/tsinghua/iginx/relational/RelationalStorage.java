@@ -25,7 +25,6 @@ import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -48,10 +47,12 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.exception.RelationalException;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
 import cn.edu.tsinghua.iginx.relational.query.entity.RelationQueryRowStream;
+import cn.edu.tsinghua.iginx.relational.tools.ColumnField;
 import cn.edu.tsinghua.iginx.relational.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.relational.tools.RelationSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
@@ -106,7 +107,7 @@ public class RelationalStorage implements IStorage {
       try {
         return dataSource.getConnection();
       } catch (SQLException e) {
-        LOGGER.error("Cannot get connection for database " + databaseName, e);
+        LOGGER.error("Cannot get connection for database {}", databaseName, e);
         dataSource.close();
       }
     }
@@ -128,7 +129,7 @@ public class RelationalStorage implements IStorage {
       connectionPoolMap.put(databaseName, newDataSource);
       return newDataSource.getConnection();
     } catch (SQLException e) {
-      LOGGER.error("Cannot get connection for database " + databaseName, e);
+      LOGGER.error("Cannot get connection for database {}", databaseName, e);
       return null;
     }
   }
@@ -174,7 +175,7 @@ public class RelationalStorage implements IStorage {
       Statement statement = connection.createStatement();
       statement.close();
     } catch (SQLException e) {
-      throw new StorageInitializationException("cannot connect to " + meta + ":", e);
+      throw new StorageInitializationException(String.format("cannot connect to %s :", meta), e);
     }
   }
 
@@ -188,7 +189,7 @@ public class RelationalStorage implements IStorage {
                 clazz.getConstructor(StorageEngineMeta.class).newInstance(meta);
       } catch (Exception e) {
         throw new RelationalTaskExecuteFailureException(
-            String.format("engine %s is not supported:", engineName), e);
+            String.format("engine %s is not supported", engineName), e);
       }
     } else {
       String propertiesPath = meta.getExtraParams().get("meta_properties_path");
@@ -196,7 +197,7 @@ public class RelationalStorage implements IStorage {
         relationalMeta = new JDBCMeta(meta, propertiesPath);
       } catch (IOException e) {
         throw new RelationalTaskExecuteFailureException(
-            String.format("engine %s is not support: ", engineName), e);
+            String.format("engine %s is not supported", engineName), e);
       }
     }
   }
@@ -277,18 +278,6 @@ public class RelationalStorage implements IStorage {
     }
   }
 
-  private static class ColumnField {
-    String tableName;
-    String columnName;
-    String columnType;
-
-    ColumnField(String tableName, String columnName, String columnType) {
-      this.tableName = tableName;
-      this.columnName = columnName;
-      this.columnType = columnType;
-    }
-  }
-
   private List<ColumnField> getColumns(
       String databaseName, String tableName, String columnNamePattern) {
     try {
@@ -346,7 +335,7 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() {
+  public List<Column> getColumns() throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
@@ -383,7 +372,7 @@ public class RelationalStorage implements IStorage {
         }
       }
     } catch (SQLException e) {
-      throw new RuntimeException(e);
+      throw new RelationalTaskExecuteFailureException("failed to get columns ", e);
     }
     return columns;
   }
@@ -428,7 +417,7 @@ public class RelationalStorage implements IStorage {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
-            new PhysicalTaskExecuteFailureException(
+            new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
 
@@ -562,7 +551,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
   }
@@ -672,7 +661,6 @@ public class RelationalStorage implements IStorage {
         fullTableName.append(")");
       }
     } else {
-      // 不支持全连接，就要用Left Join+Union来模拟全连接
       // 不支持全连接，就要用Left Join+Union来模拟全连接
       StringBuilder allColumns = new StringBuilder();
       fullColumnList.forEach(
@@ -1092,7 +1080,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
   }
@@ -1139,7 +1127,7 @@ public class RelationalStorage implements IStorage {
       Connection conn = getConnection(databaseName);
       if (conn == null) {
         return new TaskExecuteResult(
-            new PhysicalTaskExecuteFailureException(
+            new RelationalTaskExecuteFailureException(
                 String.format("cannot connect to database %s", databaseName)));
       }
 
@@ -1166,7 +1154,7 @@ public class RelationalStorage implements IStorage {
             return new TaskExecuteResult(null, null);
           } else {
             return new TaskExecuteResult(
-                new PhysicalTaskExecuteFailureException(
+                new RelationalTaskExecuteFailureException(
                     String.format(
                         "cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
                     new SQLException()));
@@ -1216,7 +1204,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("execute delete task in %s failure", engineName), e));
     }
   }
@@ -1228,7 +1216,7 @@ public class RelationalStorage implements IStorage {
     Connection conn = getConnection(databaseName);
     if (conn == null) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("cannot connect to database %s", databaseName)));
     }
     Exception e = null;
@@ -1250,7 +1238,8 @@ public class RelationalStorage implements IStorage {
     if (e != null) {
       return new TaskExecuteResult(
           null,
-          new PhysicalException(String.format("execute insert task in %s failure", engineName), e));
+          new RelationalException(
+              String.format("execute insert task in %s failure", engineName), e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -1282,7 +1271,7 @@ public class RelationalStorage implements IStorage {
     paths.sort(String::compareTo);
 
     if (paths.isEmpty()) {
-      throw new PhysicalTaskExecuteFailureException("no data!");
+      throw new RelationalTaskExecuteFailureException("no data!");
     }
 
     if (dataPrefix != null) {
@@ -1843,26 +1832,30 @@ public class RelationalStorage implements IStorage {
 
   private List<Pair<String, String>> determineDeletedPaths(
       List<String> paths, TagFilter tagFilter) {
-    List<Column> columns = getColumns();
-    List<Pair<String, String>> deletedPaths = new ArrayList<>();
+    try {
+      List<Column> columns = getColumns();
+      List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
-    for (Column column : columns) {
-      for (String path : paths) {
-        if (Pattern.matches(StringUtils.reformatPath(path), column.getPath())) {
-          if (tagFilter != null && !TagKVUtils.match(column.getTags(), tagFilter)) {
-            continue;
+      for (Column column : columns) {
+        for (String path : paths) {
+          if (Pattern.matches(StringUtils.reformatPath(path), column.getPath())) {
+            if (tagFilter != null && !TagKVUtils.match(column.getTags(), tagFilter)) {
+              continue;
+            }
+            String fullPath = column.getPath();
+            RelationSchema schema = new RelationSchema(fullPath, relationalMeta.getQuote());
+            String tableName = schema.getTableName();
+            String columnName = toFullName(schema.getColumnName(), column.getTags());
+            deletedPaths.add(new Pair<>(tableName, columnName));
+            break;
           }
-          String fullPath = column.getPath();
-          RelationSchema schema = new RelationSchema(fullPath, relationalMeta.getQuote());
-          String tableName = schema.getTableName();
-          String columnName = toFullName(schema.getColumnName(), column.getTags());
-          deletedPaths.add(new Pair<>(tableName, columnName));
-          break;
         }
       }
+      return deletedPaths;
+    } catch (RelationalTaskExecuteFailureException e) {
+      LOGGER.error(e.getMessage(), e);
+      return new ArrayList<>();
     }
-
-    return deletedPaths;
   }
 
   private String getQuotName(String name) {
@@ -1884,7 +1877,7 @@ public class RelationalStorage implements IStorage {
     try {
       connection.close();
     } catch (SQLException e) {
-      throw new PhysicalException(e);
+      throw new RelationalException(e);
     }
   }
 }

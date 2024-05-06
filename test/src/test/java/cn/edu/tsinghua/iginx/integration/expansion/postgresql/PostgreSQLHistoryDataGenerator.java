@@ -27,7 +27,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String USERNAME = "postgres";
 
-  private static final String PASSWORD = "sb114514";
+  private static final String PASSWORD = "postgres";
 
   public PostgreSQLHistoryDataGenerator() {
     Constant.oriPort = 5432;

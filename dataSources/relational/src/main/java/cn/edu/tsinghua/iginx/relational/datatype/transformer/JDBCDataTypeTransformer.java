@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.relational.tools;
+package cn.edu.tsinghua.iginx.relational.datatype.transformer;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.HashMap;
