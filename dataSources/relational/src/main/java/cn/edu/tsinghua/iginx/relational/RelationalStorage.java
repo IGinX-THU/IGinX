@@ -25,7 +25,6 @@ import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -48,6 +47,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
+import cn.edu.tsinghua.iginx.relational.exception.RelationalException;
 import cn.edu.tsinghua.iginx.relational.exception.RelationalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.relational.meta.AbstractRelationalMeta;
 import cn.edu.tsinghua.iginx.relational.meta.JDBCMeta;
@@ -551,7 +551,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
   }
@@ -1080,7 +1080,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("execute project task in %s failure", engineName), e));
     }
   }
@@ -1154,7 +1154,7 @@ public class RelationalStorage implements IStorage {
             return new TaskExecuteResult(null, null);
           } else {
             return new TaskExecuteResult(
-                new PhysicalTaskExecuteFailureException(
+                new RelationalTaskExecuteFailureException(
                     String.format(
                         "cannot connect to database %s", relationalMeta.getDefaultDatabaseName()),
                     new SQLException()));
@@ -1204,7 +1204,7 @@ public class RelationalStorage implements IStorage {
     } catch (SQLException e) {
       LOGGER.error("unexpected error: ", e);
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("execute delete task in %s failure", engineName), e));
     }
   }
@@ -1216,7 +1216,7 @@ public class RelationalStorage implements IStorage {
     Connection conn = getConnection(databaseName);
     if (conn == null) {
       return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
+          new RelationalTaskExecuteFailureException(
               String.format("cannot connect to database %s", databaseName)));
     }
     Exception e = null;
@@ -1238,7 +1238,8 @@ public class RelationalStorage implements IStorage {
     if (e != null) {
       return new TaskExecuteResult(
           null,
-          new PhysicalException(String.format("execute insert task in %s failure", engineName), e));
+          new RelationalException(
+              String.format("execute insert task in %s failure", engineName), e));
     }
     return new TaskExecuteResult(null, null);
   }
@@ -1270,7 +1271,7 @@ public class RelationalStorage implements IStorage {
     paths.sort(String::compareTo);
 
     if (paths.isEmpty()) {
-      throw new PhysicalTaskExecuteFailureException("no data!");
+      throw new RelationalTaskExecuteFailureException("no data!");
     }
 
     if (dataPrefix != null) {
@@ -1876,7 +1877,7 @@ public class RelationalStorage implements IStorage {
     try {
       connection.close();
     } catch (SQLException e) {
-      throw new PhysicalException(e);
+      throw new RelationalException(e);
     }
   }
 }
