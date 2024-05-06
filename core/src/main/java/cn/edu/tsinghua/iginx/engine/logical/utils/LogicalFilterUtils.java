@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -830,5 +831,44 @@ public class LogicalFilterUtils {
           }
         });
     return exprFilters;
+  }
+
+  public static Set<String> getPathsFromFilter(Filter filter) {
+    final Set<String> paths = new HashSet<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {
+            paths.add(filter.getPath());
+          }
+
+          @Override
+          public void visit(PathFilter filter) {
+            paths.add(filter.getPathA());
+            paths.add(filter.getPathB());
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {
+            paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionA()));
+            paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionB()));
+          }
+        });
+    return paths;
   }
 }

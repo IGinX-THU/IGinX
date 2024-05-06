@@ -22,6 +22,8 @@ public abstract class RuleCall {
 
   private final Map<Operator, List<Operator>> childrenIndex;
 
+  private Object context;
+
   public RuleCall(
       Operator matchedRoot,
       Map<Operator, Operator> parentIndexMap,
@@ -80,5 +82,13 @@ public abstract class RuleCall {
         multipleOp.getSources().set(childIndex, new OperatorSource(newRoot));
       }
     }
+  }
+
+  public void setContext(Object context) {
+    this.context = context;
+  }
+
+  public Object getContext() {
+    return context;
   }
 }
