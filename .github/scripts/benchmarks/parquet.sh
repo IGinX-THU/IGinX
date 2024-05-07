@@ -38,6 +38,8 @@ mv new_nation.csv "$output_file"
 
 echo "Conversion completed. CSV file: $output_file"
 
+cat "$output_file"
+
 # 插入数据
 
 COMMAND1="LOAD DATA FROM INFILE \"$output_file\" AS CSV INTO nation(key, n_nationkey, n_name, n_regionkey, n_comment);"
