@@ -272,7 +272,6 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
 
-
     // wrong port
     res = addStorageEngine(port+999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
     if (res != null) {

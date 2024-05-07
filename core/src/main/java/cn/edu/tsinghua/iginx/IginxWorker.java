@@ -427,10 +427,9 @@ public class IginxWorker implements IService.Iface {
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         if (boundary == null) {
-//          status.setCode(RpcUtils.FAILURE.code);
-//          status.setMessage(String.format("Failed to process dummy storage engine %s. Please check params:%s;%s.", meta.getStorageEngine(), meta, meta.getExtraParams()));
-//          return;
-          boundary = new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
+          status.setCode(RpcUtils.FAILURE.code);
+          status.setMessage(String.format("Failed to process dummy storage engine %s. Please check params:%s;%s.", meta.getStorageEngine(), meta, meta.getExtraParams()));
+          return;
         }
         LOGGER.info("boundary for {}: {}", meta, boundary);
         FragmentMeta dummyFragment;
