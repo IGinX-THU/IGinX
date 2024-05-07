@@ -25,6 +25,8 @@
 echo "%OS%"
 if "%OS%" == "Windows_NT" setlocal
 
+java -version
+
 pushd %~dp0..
 if NOT DEFINED IGINX_CLI_HOME set IGINX_CLI_HOME=%CD%
 popd
@@ -74,7 +76,7 @@ echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (se
 echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%fs_parameter% %PARAMETERS%)
 
 echo %PARAMETERS%
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
+java %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
 
 goto finally
 
