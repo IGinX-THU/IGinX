@@ -47,17 +47,19 @@ public class SQLTestTools {
   }
 
   private static void compareValuesList(
-          List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+      List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
     compareValuesList(expectedValuesList, actualValuesList, true);
   }
 
   private static void containValuesList(
-          List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+      List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
     compareValuesList(expectedValuesList, actualValuesList, false);
   }
 
   private static void compareValuesList(
-      List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList, boolean equalMode) {
+      List<List<Object>> expectedValuesList,
+      List<List<Object>> actualValuesList,
+      boolean equalMode) {
     Set<List<String>> expectedSet =
         expectedValuesList.stream()
             .map(
@@ -108,7 +110,6 @@ public class SQLTestTools {
       List<List<Object>> expectedValuesList) {
     try {
       SessionExecuteSqlResult res = session.executeSql(statement);
-      LOGGER.info(res.getResultInString(false, "ms"));
       List<String> pathList = res.getPaths();
       List<List<Object>> actualValuesList = res.getValues();
 
@@ -121,17 +122,14 @@ public class SQLTestTools {
     }
   }
 
-  /**
-   * execute query and result should contain expected values for specified paths.
-   */
+  /** execute query and result should contain expected values for specified paths. */
   public static void executeAndContainValue(
-          Session session,
-          String statement,
-          List<String> pathListAns,
-          List<List<Object>> expectedValuesList) {
+      Session session,
+      String statement,
+      List<String> pathListAns,
+      List<List<Object>> expectedValuesList) {
     try {
       SessionExecuteSqlResult res = session.executeSql(statement);
-      LOGGER.info(res.getResultInString(false, "ms"));
       List<String> pathList = res.getPaths();
       List<List<Object>> actualValuesList = res.getValues();
 

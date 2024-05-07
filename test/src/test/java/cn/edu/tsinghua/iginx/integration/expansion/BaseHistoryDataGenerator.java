@@ -121,6 +121,5 @@ public abstract class BaseHistoryDataGenerator {
     clearHistoryDataForGivenPort(readOnlyPort);
   }
 
-
   public abstract void clearHistoryDataForGivenPort(int port);
 }

@@ -57,7 +57,12 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected String addStorageEngine(
-      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix, String extraParams) {
+      int port,
+      boolean hasData,
+      boolean isReadOnly,
+      String dataPrefix,
+      String schemaPrefix,
+      String extraParams) {
     try {
       StringBuilder statement = new StringBuilder();
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
@@ -259,13 +264,18 @@ public abstract class BaseCapacityExpansionIT {
     queryExtendedColDummy();
   }
 
-  protected void testInvalidDummyParams(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+  protected void testInvalidDummyParams(
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     // wrong params
     String res;
     for (String params : wrongExtraParams) {
       res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params);
       if (res != null) {
-        LOGGER.info("Successfully rejected dummy engine with wrong params: {}; {}. msg: {}", port, params, res);
+        LOGGER.info(
+            "Successfully rejected dummy engine with wrong params: {}; {}. msg: {}",
+            port,
+            params,
+            res);
       } else {
         LOGGER.error("Dummy engine with wrong params {}; {} shouldn't be added.", port, params);
         fail();
@@ -273,13 +283,21 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // wrong port
-    res = addStorageEngine(port+999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
+    res = addStorageEngine(port + 999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
     if (res != null) {
-      LOGGER.info("Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}", port+999, extraParams, res);
+      LOGGER.info(
+          "Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}",
+          port + 999,
+          extraParams,
+          res);
     } else {
-      LOGGER.error("Dummy engine with wrong port {} & params:{} shouldn't be added.", port+999, extraParams);
+      LOGGER.error(
+          "Dummy engine with wrong port {} & params:{} shouldn't be added.",
+          port + 999,
+          extraParams);
       fail();
-    }}
+    }
+  }
 
   protected void queryExtendedKeyDummy() {
     // ori
@@ -292,13 +310,16 @@ public abstract class BaseCapacityExpansionIT {
 
     // exp
     statement = "select wf03.wt01.status2 from nt;";
-    SQLTestTools.executeAndContainValue(session, statement, EXP_PATH_LIST1, EXP_EXTEND_VALUES_LIST1);
+    SQLTestTools.executeAndContainValue(
+        session, statement, EXP_PATH_LIST1, EXP_EXTEND_VALUES_LIST1);
     statement = "select wf04.wt01.temperature from nt;";
-    SQLTestTools.executeAndContainValue(session, statement, EXP_PATH_LIST2, EXP_EXTEND_VALUES_LIST2);
+    SQLTestTools.executeAndContainValue(
+        session, statement, EXP_PATH_LIST2, EXP_EXTEND_VALUES_LIST2);
 
     // ro
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
-    SQLTestTools.executeAndContainValue(session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
+    SQLTestTools.executeAndContainValue(
+        session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
   }
 
   protected void queryExtendedColDummy() {

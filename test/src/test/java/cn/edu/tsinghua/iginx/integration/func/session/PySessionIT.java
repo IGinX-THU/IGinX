@@ -264,7 +264,7 @@ public class PySessionIT {
   }
 
   // TODO this test needs correction
-//  @Test
+  // @Test
   public void testAddStorageEngine() {
     String output = "";
     try {

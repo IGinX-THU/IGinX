@@ -17,7 +17,8 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   // skip this test
   @Override
-  protected void testInvalidDummyParams(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+  protected void testInvalidDummyParams(
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     LOGGER.info("filesystem skips test for wrong dummy engine params.");
   }
 

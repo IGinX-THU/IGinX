@@ -144,7 +144,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                cat iginx-*.log
+                  cat iginx-*.log
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter

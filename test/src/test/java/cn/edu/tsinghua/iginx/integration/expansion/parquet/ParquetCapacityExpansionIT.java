@@ -14,10 +14,10 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
     super(parquet, null, new ParquetHistoryDataGenerator());
   }
 
-
   // skip this test
   @Override
-  protected void testInvalidDummyParams(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+  protected void testInvalidDummyParams(
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     LOGGER.info("parquet skips test for wrong dummy engine params.");
   }
 }

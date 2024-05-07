@@ -18,5 +18,4 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
     wrongExtraParams.add("username:root, password:wrong, sessionPoolSize:20");
     wrongExtraParams.add("username:wrong, password:root, sessionPoolSize:20");
   }
-
 }

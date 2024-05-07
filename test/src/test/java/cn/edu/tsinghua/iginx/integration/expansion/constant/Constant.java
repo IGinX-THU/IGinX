@@ -71,24 +71,20 @@ public class Constant {
   public static List<List<Object>> ORI_VALUES_LIST =
       Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
 
-  public static List<List<Object>> ORI_EXTEND_VALUES_LIST = Collections.singletonList(
-          Arrays.asList(123456L, 654321.2)
-  );
+  public static List<List<Object>> ORI_EXTEND_VALUES_LIST =
+      Collections.singletonList(Arrays.asList(123456L, 654321.2));
 
   public static List<List<Object>> EXP_VALUES_LIST =
       Arrays.asList(Arrays.asList(33333333L, 66123.23), Arrays.asList(44444444L, 77123.71));
 
-  public static List<List<Object>> EXP_EXTEND_VALUES_LIST = Collections.singletonList(
-          Arrays.asList(77777777L, 3498.1)
-  );
+  public static List<List<Object>> EXP_EXTEND_VALUES_LIST =
+      Collections.singletonList(Arrays.asList(77777777L, 3498.1));
 
-  public static List<List<Object>> EXP_EXTEND_VALUES_LIST1 = Collections.singletonList(
-          Collections.singletonList(77777777L)
-  );
+  public static List<List<Object>> EXP_EXTEND_VALUES_LIST1 =
+      Collections.singletonList(Collections.singletonList(77777777L));
 
-  public static List<List<Object>> EXP_EXTEND_VALUES_LIST2 = Collections.singletonList(
-          Collections.singletonList(3498.1)
-  );
+  public static List<List<Object>> EXP_EXTEND_VALUES_LIST2 =
+      Collections.singletonList(Collections.singletonList(3498.1));
 
   public static List<List<Object>> EXP_VALUES_LIST1 =
       Arrays.asList(Collections.singletonList(33333333L), Collections.singletonList(44444444L));
@@ -99,9 +95,8 @@ public class Constant {
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
 
-  public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST = Collections.singletonList(
-          Arrays.asList(9999999L, 152346.1)
-  );
+  public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST =
+      Collections.singletonList(Arrays.asList(9999999L, 152346.1));
 
   public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =
       Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));
