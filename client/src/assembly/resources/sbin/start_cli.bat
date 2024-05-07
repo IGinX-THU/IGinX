@@ -44,17 +44,17 @@ REM ----------------------------------------------------------------------------
 set PARAMETERS=%*
 echo %PARAMETERS%
 echo "11111111"
-echo %PARAMETERS% | findstr /c:"-h " && (echo "found1 ") || (echo "not found 1")
+echo %PARAMETERS% | findstr /R /c:"-h ">nul && (echo "found1 ") || (echo "not found 1")
 echo "2222222222222"
-echo %PARAMETERS% | findstr "\-h " && (echo "found3 ") || (echo "not found 3")
+echo %PARAMETERS% | findstr "\-h ">nul && (echo "found3 ") || (echo "not found 3")
 echo "2222222222222"
-echo %PARAMETERS% | findstr " -h " && (echo "found2 ") || (echo "not found 2")
+echo %PARAMETERS% | findstr " -h ">nul && (echo "found2 ") || (echo "not found 2")
 echo "333333333"
-echo "%PARAMETERS%" | findstr /c:"-h " && (echo "found4 ") || (echo "not found 4")
+echo "%PARAMETERS%" | findstr /R /c:"-h ">nul && (echo "found4 ") || (echo "not found 4")
 echo "2222222222222"
-echo "%PARAMETERS%" | findstr "\-h " && (echo "found5 ") || (echo "not found 5")
+echo "%PARAMETERS%" | findstr "\-h ">nul && (echo "found5 ") || (echo "not found 5")
 echo "2222222222222"
-echo "%PARAMETERS%" | findstr " -h " && (echo "found6 ") || (echo "not found 6")
+echo "%PARAMETERS%" | findstr " -h ">nul && (echo "found6 ") || (echo "not found 6")
 echo "333333333"
 
 @REM if "%PARAMETERS%" == "" set PARAMETERS=-h 127.0.0.1 -p 6667 -u root -pw root
@@ -63,7 +63,7 @@ echo "333333333"
 set pw_parameter=-pw root
 set u_parameter=-u root
 set p_parameter=-p 6888
-set h_parameter=-h host.docker.internal
+set h_parameter=-h 127.0.0.1
 set fs_parameter=-fs 1000
 
 @REM Added parameters when default parameters are missing
