@@ -44,9 +44,17 @@ REM ----------------------------------------------------------------------------
 set PARAMETERS=%*
 echo %PARAMETERS%
 echo "11111111"
-echo %PARAMETERS% | findstr /c:"-h "
+echo %PARAMETERS% | findstr /c:"-h " && (echo "found1 ") || (echo "not found 1")
 echo "2222222222222"
-echo %PARAMETERS% | findstr /c:" -h "
+echo %PARAMETERS% | findstr "\-h " && (echo "found3 ") || (echo "not found 3")
+echo "2222222222222"
+echo %PARAMETERS% | findstr " -h " && (echo "found2 ") || (echo "not found 2")
+echo "333333333"
+echo "%PARAMETERS%" | findstr /c:"-h " && (echo "found4 ") || (echo "not found 4")
+echo "2222222222222"
+echo "%PARAMETERS%" | findstr "\-h " && (echo "found5 ") || (echo "not found 5")
+echo "2222222222222"
+echo "%PARAMETERS%" | findstr " -h " && (echo "found6 ") || (echo "not found 6")
 echo "333333333"
 
 @REM if "%PARAMETERS%" == "" set PARAMETERS=-h 127.0.0.1 -p 6667 -u root -pw root
