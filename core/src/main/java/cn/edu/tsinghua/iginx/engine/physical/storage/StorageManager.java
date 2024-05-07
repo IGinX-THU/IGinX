@@ -84,11 +84,9 @@ public class StorageManager {
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
-    } catch (PhysicalException e) {
-      LOGGER.error("Failed to get boundary of engine {}:", engine, e);
-      return null;
     } catch (Exception e) {
       LOGGER.error("unexpected error when process engine {}:", engine, e);
+      return null;
     } finally {
       try {
         if (needRelease) {

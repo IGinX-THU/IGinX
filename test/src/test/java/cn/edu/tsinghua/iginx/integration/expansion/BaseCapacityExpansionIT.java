@@ -100,13 +100,14 @@ public abstract class BaseCapacityExpansionIT {
       return null;
     } catch (SessionException e) {
       LOGGER.warn(
-          "add storage engine {} port {} hasData {} isReadOnly {} dataPrefix {} schemaPrefix {} failure: ",
+          "add storage engine:{} port:{} hasData:{} isReadOnly:{} dataPrefix:{} schemaPrefix:{} extraParams:{} failure: ",
           type.name(),
           port,
           hasData,
           isReadOnly,
           dataPrefix,
           schemaPrefix,
+          extraParams,
           e);
       return e.getMessage();
     }
@@ -267,6 +268,7 @@ public abstract class BaseCapacityExpansionIT {
         LOGGER.info("Successfully rejected dummy engine with wrong params: {}; {}. msg: {}", port, params, res);
       } else {
         LOGGER.error("Dummy engine with wrong params {}; {} shouldn't be added.", port, params);
+        fail();
       }
     }
 
@@ -274,9 +276,10 @@ public abstract class BaseCapacityExpansionIT {
     // wrong port
     res = addStorageEngine(port+999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
     if (res != null) {
-      LOGGER.info("Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}", port, wrongExtraParams, res);
+      LOGGER.info("Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}", port+999, extraParams, res);
     } else {
-      LOGGER.error("Dummy engine with wrong port {} & params:{} shouldn't be added.", port, wrongExtraParams);
+      LOGGER.error("Dummy engine with wrong port {} & params:{} shouldn't be added.", port+999, extraParams);
+      fail();
     }}
 
   protected void queryExtendedKeyDummy() {
