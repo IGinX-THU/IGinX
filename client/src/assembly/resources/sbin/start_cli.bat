@@ -76,6 +76,7 @@ echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (se
 echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%fs_parameter% %PARAMETERS%)
 
 echo %PARAMETERS%
+echo "java %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%"
 java %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
 
 goto finally
