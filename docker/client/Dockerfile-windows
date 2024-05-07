@@ -22,7 +22,7 @@ RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 #RUN Get-ChildItem -Path "C:\Program Files\Eclipse Adoptium\jdk-8.0.402.6-hotspot"
-RUN Get-ChildItem -Path "%JAVA_HOME%\bin"
+RUN Get-ChildItem -Path "C:\jdk\jdk-11.0.2\bin"
 
 # 下载 JDK
 ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
