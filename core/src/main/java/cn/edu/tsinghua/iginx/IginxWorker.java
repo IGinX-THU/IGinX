@@ -428,7 +428,7 @@ public class IginxWorker implements IService.Iface {
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         if (boundary == null) {
           status.setCode(RpcUtils.FAILURE.code);
-          status.setMessage(String.format("Dummy storage engine %s has no data! Please check params:%s.", meta.getStorageEngine(), meta));
+          status.setMessage(String.format("Failed to process dummy storage engine %s. Please check params:%s.", meta.getStorageEngine(), meta));
           return;
         }
         LOGGER.info("boundary for {}: {}", meta, boundary);
@@ -843,16 +843,19 @@ public class IginxWorker implements IService.Iface {
 
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
 
-    Predicate<Path> sourceChecker =
+    FilePermissionManager.Checker sourceChecker =
         FilePermissionManager.getInstance()
             .getChecker(null, ruleNameFilter, FileAccessType.EXECUTE);
 
-    File sourceFile = new File(filePath);
-    if (!sourceChecker.test(sourceFile.toPath())) {
+    Optional<Path> sourceCheckedPath = sourceChecker.normalize(filePath);
+
+    if (!sourceCheckedPath.isPresent()) {
       errorMsg = String.format("Register file %s has no execute permission", filePath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
+
+    File sourceFile = sourceCheckedPath.get().toFile();
     if (!sourceFile.exists()) {
       errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
       LOGGER.error(errorMsg);
@@ -896,19 +899,21 @@ public class IginxWorker implements IService.Iface {
     String fileName = sourceFile.getName();
     String destPath =
         String.join(File.separator, config.getDefaultUDFDir(), "python_scripts", fileName);
-    File destFile = new File(destPath);
 
-    if (destFile.exists()) {
-      errorMsg = String.format("Register file(s) already exist, name=%s", fileName);
+    FilePermissionManager.Checker destChecker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+
+    Optional<Path> destCheckedPath = destChecker.normalize(destPath);
+    if (!destCheckedPath.isPresent()) {
+      errorMsg = String.format("Register file %s has no write permission", destPath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    Predicate<Path> destChecker =
-        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+    File destFile = destCheckedPath.get().toFile();
 
-    if (!destChecker.test(destFile.toPath())) {
-      errorMsg = String.format("Register file %s has no write permission", destPath);
+    if (destFile.exists()) {
+      errorMsg = String.format("Register file(s) already exist, name=%s", fileName);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
@@ -966,7 +971,7 @@ public class IginxWorker implements IService.Iface {
     TransformTaskMeta transformTaskMeta = metaManager.getTransformTask(name);
     String errorMsg = "";
     if (transformTaskMeta == null) {
-      errorMsg = "Function not exist";
+      errorMsg = "Function does not exist";
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
@@ -990,25 +995,25 @@ public class IginxWorker implements IService.Iface {
             + "python_scripts"
             + File.separator
             + transformTaskMeta.getFileName();
-    File file = new File(filePath);
 
-    if (!file.exists()) {
-      metaManager.dropTransformTask(name);
-      errorMsg = String.format("Register file not exist, path=%s", filePath);
+    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
+    FilePermissionManager.Checker destChecker =
+        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+    Optional<Path> normalizedFile = destChecker.normalize(filePath);
+
+    if (!normalizedFile.isPresent()) {
+      errorMsg =
+          String.format(
+              "User has no write permission in target directory, task %s cannot be dropped.", name);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
-    String pythonDir = config.getDefaultUDFDir() + File.separator + "python_scripts";
-    Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
-    Predicate<Path> destChecker =
-        FilePermissionManager.getInstance().getChecker(null, ruleNameFilter, FileAccessType.WRITE);
+    File file = normalizedFile.get().toFile();
 
-    Path pythonDirPath = Paths.get(pythonDir);
-    if (!destChecker.test(pythonDirPath)) {
-      errorMsg =
-          String.format(
-              "User has no write permission in target directory, udf %s cannot be dropped.", name);
+    if (!file.exists()) {
+      metaManager.dropTransformTask(name);
+      errorMsg = String.format("Register file not exist, path=%s", filePath);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
