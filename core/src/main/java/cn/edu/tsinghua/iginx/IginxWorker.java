@@ -428,7 +428,7 @@ public class IginxWorker implements IService.Iface {
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         if (boundary == null) {
           status.setCode(RpcUtils.FAILURE.code);
-          status.setMessage(String.format("Failed to process dummy storage engine %s. Please check params:%s.", meta.getStorageEngine(), meta));
+          status.setMessage(String.format("Failed to process dummy storage engine %s. Please check params:%s;%s.", meta.getStorageEngine(), meta, meta.getExtraParams()));
           return;
         }
         LOGGER.info("boundary for {}: {}", meta, boundary);
