@@ -15,6 +15,8 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
         iotdb12,
         "username:root, password:root, sessionPoolSize:20",
         new IoTDB12HistoryDataGenerator());
+    wrongExtraParams.add("username:root, password:wrong, sessionPoolSize:20");
+    wrongExtraParams.add("username:wrong, password:root, sessionPoolSize:20");
   }
 
   // dummy key range cannot be extended yet

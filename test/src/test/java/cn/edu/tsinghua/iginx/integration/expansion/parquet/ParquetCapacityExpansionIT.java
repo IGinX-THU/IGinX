@@ -17,4 +17,10 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
   // dummy key range cannot be extended yet
   @Override
   protected void queryExtendedKeyDummy() {  }
+
+  // skip this test
+  @Override
+  protected void testInvalidDummyParams(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+    LOGGER.info("parquet skips test for wrong dummy engine params.");
+  }
 }

@@ -36,6 +36,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected String extraParams;
 
+  protected List<String> wrongExtraParams = new ArrayList<>();
+
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
       this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
@@ -55,7 +57,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected String addStorageEngine(
-      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix, String extraParams) {
     try {
       StringBuilder statement = new StringBuilder();
       statement.append("ADD STORAGEENGINE (\"127.0.0.1\", ");
@@ -141,7 +143,7 @@ public abstract class BaseCapacityExpansionIT {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
       // 测试会添加初始数据，所以hasData=true
-      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
+      addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
     }
   }
 
@@ -218,10 +220,14 @@ public abstract class BaseCapacityExpansionIT {
   public void testReadOnly() throws InterruptedException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
+    // 测试参数错误的只读节点扩容
+    testInvalidDummyParams(readOnlyPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
     testQueryHistoryDataReadOnly();
+    // 测试参数错误的可写节点扩容
+    testInvalidDummyParams(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 扩容可写节点
     addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 查询扩容可写节点的历史数据，结果不为空
@@ -239,24 +245,39 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     // 扩容后show columns测试
-//    testShowColumns();
+    testShowColumns();
 
     // clear data first, because history generator cannot append. It can only write
     clearData();
     generator.clearHistoryData();
 
     // 向三个dummy数据库中追加dummy数据，数据的key和列名都在添加数据库时的范围之外
-    addDummyDataToThree();
+    generator.writeExtendDummyData();
     // 能查到key在初始范围外的数据，查不到列名在初始范围外的数据
     queryExtendedKeyDummy();
     queryExtendedColDummy();
   }
 
-  private void addDummyDataToThree() {
-    generator.writeExtendedHistoryDataToOri();
-    generator.writeExtendedHistoryDataToExp();
-    generator.writeExtendedHistoryDataToReadOnly();
-  }
+  protected void testInvalidDummyParams(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+    // wrong params
+    String res;
+    for (String params : wrongExtraParams) {
+      res = addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, params);
+      if (res != null) {
+        LOGGER.info("Successfully rejected dummy engine with wrong params: {}; {}. msg: {}", port, params, res);
+      } else {
+        LOGGER.error("Dummy engine with wrong params {}; {} shouldn't be added.", port, params);
+      }
+    }
+
+
+    // wrong port
+    res = addStorageEngine(port+999, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
+    if (res != null) {
+      LOGGER.info("Successfully rejected dummy engine with wrong port: {}; params: {}. msg: {}", port, wrongExtraParams, res);
+    } else {
+      LOGGER.error("Dummy engine with wrong port {} & params:{} shouldn't be added.", port, wrongExtraParams);
+    }}
 
   protected void queryExtendedKeyDummy() {
     // ori
@@ -419,29 +440,29 @@ public abstract class BaseCapacityExpansionIT {
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
-    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1);
+    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
     List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
-    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2);
-    addStorageEngine(expPort, true, true, dataPrefix1, null);
+    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
+    addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
     testShowClusterInfo(5);
 
     // 如果是重复添加，则报错
-    String res = addStorageEngine(expPort, true, true, dataPrefix1, null);
+    String res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
     if (res != null && !res.contains("repeatedly add storage engine")) {
       fail();
     }
     testShowClusterInfo(5);
 
-    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3);
+    addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3, extraParams);
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
-    addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3);
+    addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3, extraParams);
     testShowClusterInfo(7);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询

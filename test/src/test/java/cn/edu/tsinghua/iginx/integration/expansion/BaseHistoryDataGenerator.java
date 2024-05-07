@@ -53,6 +53,12 @@ public abstract class BaseHistoryDataGenerator {
     writeHistoryData(port, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_KEYS_LIST, INIT_VALUES_LIST);
   }
 
+  public void writeExtendDummyData() {
+    writeExtendedHistoryDataToOri();
+    writeExtendedHistoryDataToExp();
+    writeExtendedHistoryDataToReadOnly();
+  }
+
   public void writeHistoryDataToOri() {
     writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
   }
@@ -115,7 +121,6 @@ public abstract class BaseHistoryDataGenerator {
     clearHistoryDataForGivenPort(readOnlyPort);
   }
 
-  public void writeExtendData() {}
 
   public abstract void clearHistoryDataForGivenPort(int port);
 }

@@ -15,6 +15,12 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
     super(filesystem, "chunk_size_in_bytes:8", new FileSystemHistoryDataGenerator());
   }
 
+  // skip this test
+  @Override
+  protected void testInvalidDummyParams(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+    LOGGER.info("filesystem skips test for wrong dummy engine params.");
+  }
+
   @Override
   public void testShowColumns() {
     String statement = "SHOW COLUMNS mn.*;";
