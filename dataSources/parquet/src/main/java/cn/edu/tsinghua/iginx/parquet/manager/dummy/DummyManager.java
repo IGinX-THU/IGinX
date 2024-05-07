@@ -28,11 +28,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
-import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import com.google.common.collect.Range;
-import com.google.common.collect.TreeRangeSet;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -158,23 +155,8 @@ public class DummyManager implements Manager {
   }
 
   @Override
-  public KeyInterval getKeyInterval() throws PhysicalException {
-    TreeRangeSet<Long> rangeSet = TreeRangeSet.create();
-
-    for (Path path : getFilePaths()) {
-      try {
-        Range<Long> range = new Loader(path).getRange();
-        rangeSet.add(range);
-      } catch (Exception e) {
-        throw new PhysicalException("failed to get range from " + path + ": " + e, e);
-      }
-    }
-
-    if (rangeSet.isEmpty()) {
-      return new KeyInterval(0, 0);
-    }
-    Range<Long> span = rangeSet.span();
-    return RangeUtils.toKeyInterval(span);
+  public KeyInterval getKeyInterval() {
+    return new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
   }
 
   @Override
