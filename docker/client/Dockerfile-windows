@@ -21,7 +21,7 @@ ENV JAVA_HOME "C:\jdk\jdk-11.0.2"
 RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
-RUN Get-ChildItem -Path "C:\Program Files\Eclipse Adoptium\jdk-8.0.402.6-hotspot\"
+RUN Get-ChildItem -Path "C:\Program Files\Eclipse Adoptium\jdk-8.0.402.6-hotspot"
 RUN Get-ChildItem -Path "%JAVA_HOME%\bin"
 
 # 下载 JDK
