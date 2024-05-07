@@ -41,6 +41,11 @@ jobs:
                   Restart-Computer -Force
                   Start-Sleep -s 60
                 }
+                Get-NetFirewallProfile
+                Set-NetFirewallProfile -Profile Public -Enabled False
+                echo "############################"
+                New-NetFirewallRule -DisplayName "Allow ICMPv4-In" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Inbound
+                New-NetFirewallRule -DisplayName "Allow ICMPv4-Out" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Outbound
 
             - if: runner.os == 'Windows'
               name: Create Docker Network
