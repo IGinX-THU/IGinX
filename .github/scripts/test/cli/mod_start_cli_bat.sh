@@ -26,4 +26,5 @@ if [[ "$line" == "notFound" ]]; then
     exit 1
 fi
 
+
 sed -i "s/^set h_parameter=.*$/set h_parameter=-h ${trimmed_string}/g" client/src/assembly/resources/sbin/start_cli.bat
