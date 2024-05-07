@@ -16,7 +16,7 @@
 # under the License.
 #
 
-from iginx_pyclient.thrift.rpc.ttypes import StorageEngineType
+from .thrift.rpc.ttypes import StorageEngineType
 class ClusterInfo(object):
 
     def __init__(self, resp):
