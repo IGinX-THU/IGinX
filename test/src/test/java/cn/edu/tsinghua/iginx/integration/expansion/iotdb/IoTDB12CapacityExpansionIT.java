@@ -19,7 +19,4 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
     wrongExtraParams.add("username:wrong, password:root, sessionPoolSize:20");
   }
 
-  // dummy key range cannot be extended yet
-  @Override
-  protected void queryExtendedKeyDummy() {  }
 }
