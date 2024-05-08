@@ -192,7 +192,7 @@ public class InfluxDBStorage implements IStorage {
           "InfluxDB has no valid data! Maybe there are no data in each bucket or no data with the given data prefix!");
     }
 
-    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE-1);
     columnsInterval = new ColumnsInterval(minPath, maxPath);
     return new Pair<>(columnsInterval, keyInterval);
   }
