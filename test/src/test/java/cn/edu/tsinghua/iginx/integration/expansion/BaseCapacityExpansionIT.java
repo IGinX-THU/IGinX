@@ -673,11 +673,12 @@ public abstract class BaseCapacityExpansionIT {
     try {
       session.executeSql(
           "insert into mn.wf01.wt01 (key, status) values (0, 123),(1, 123),(2, 123),(3, 123);");
-      String statement = "select * from mn.wf01.wt01";
+      String statement = "select * from mn.wf01.wt01;";
 
       QueryDataSet res = session.executeQuery(statement);
-      if ((res.getWarningMsg() == null || res.getWarningMsg().isEmpty())
-          && !res.getWarningMsg().contains("The query results contain overlapped keys.")
+      if ((res.getWarningMsg() == null
+              || res.getWarningMsg().isEmpty()
+              || !res.getWarningMsg().contains("The query results contain overlapped keys."))
           && SUPPORT_KEY.get(type.name())) {
         LOGGER.error("未抛出重叠key的警告");
         fail();
