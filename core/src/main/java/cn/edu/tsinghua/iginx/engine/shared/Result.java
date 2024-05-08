@@ -52,7 +52,7 @@ public class Result {
   private long jobId;
   private List<Long> jobIdList;
 
-  private String configValue;
+  private Map<String, String> configs;
 
   private String exportByteStreamDir;
 
@@ -169,7 +169,7 @@ public class Result {
     resp.setJobId(jobId);
     resp.setJobState(jobState);
     resp.setJobIdList(jobIdList);
-    resp.setConfigValue(configValue);
+    resp.setConfigs(configs);
     // INFILE AS CSV
     resp.setLoadCsvPath(loadCSVPath);
     resp.setSessionIDList(sessionIDs);

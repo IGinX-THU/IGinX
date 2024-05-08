@@ -382,7 +382,7 @@ struct ExecuteSqlResp {
     22: optional i64 jobId
     23: optional JobState jobState
     24: optional list<i64> jobIdList
-    25: optional string configValue
+    25: optional map<string, string> configs
     26: optional string loadCsvPath
     27: optional list<i64> sessionIDList
     28: optional map<string, bool> rules

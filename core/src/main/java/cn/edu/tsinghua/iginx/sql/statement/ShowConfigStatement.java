@@ -45,6 +45,7 @@ public class ShowConfigStatement extends SystemStatement {
       }
 
       Result result = new Result(RpcUtils.SUCCESS);
+      result.setConfigs(configs);
       ctx.setResult(result);
     } catch (NoSuchFieldException e) {
       String errMsg = String.format("no such field, field=%s", configName);
