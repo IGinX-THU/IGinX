@@ -21,17 +21,31 @@ ENV JAVA_HOME "C:\jdk\jdk-11.0.2"
 RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
+# Enable Developer Mode.
+RUN Write-Host -NoNewLine "Enabling Developer Mode";                            \
+    $Process =                                                                  \
+        Start-Process reg.exe -Wait -PassThru -NoNewWindow -ArgumentList @(     \
+          'add',                                                                \
+          'HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock', \
+          '/f',                                                                 \
+          '/t', 'REG_DWORD',                                                    \
+          '/v', 'AllowDevelopmentWithoutDevLicense',                            \
+          '/d', '1'                                                             \
+        );                                                                      \
+    if ($Process.ExitCode -eq 0) {                                              \
+      Write-Host '✓';                                                           \
+    } else {                                                                    \
+      Write-Host ('✘ ({0})' -f $Process.ExitCode);                              \
+      exit 1;                                                                   \
+
 # 下载 JDK
 ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
 
 # 解压 JDK
 RUN Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk
 
-#RUN Get-ChildItem -Path "C:\Program Files\Eclipse Adoptium\jdk-8.0.402.6-hotspot"
-RUN Get-ChildItem -Path "C:\jdk\jdk-11.0.2\bin"
-
 RUN New-Item -Path 'C:/iginx_client/logs' -ItemType Directory
 RUN New-Item -Path 'C:/iginx_client/data' -ItemType Directory
-USER ContainerUser
+#USER ContainerUser
 
-ENTRYPOINT ["cmd", "/c", "ping", "localhost", "-t"]
+ENTRYPOINT ["cmd", "/c", "ping -t localhost > NUL"]

@@ -147,6 +147,7 @@ public class IginxClient {
   }
 
   public static void main(String[] args) {
+    System.out.println("entered class...");
     Options options = createOptions();
 
     HelpFormatter hf = new HelpFormatter();
