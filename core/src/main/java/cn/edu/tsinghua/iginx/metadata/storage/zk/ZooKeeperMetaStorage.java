@@ -578,18 +578,6 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
           byte[] data =
               this.client.getData().forPath(STORAGE_UNIT_NODE_PREFIX + "/" + storageUnitId);
           StorageUnitMeta storageUnitMeta = JsonUtils.fromJson(data, StorageUnitMeta.class);
-          if (!storageUnitMeta.isMaster()) { // 需要加入到主节点的子节点列表中
-            StorageUnitMeta masterStorageUnitMeta =
-                storageUnitMetaMap.get(storageUnitMeta.getMasterId());
-            if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-              LOGGER.error(
-                  "unexpected storage unit "
-                      + new String(data)
-                      + ", because it does not has a master storage unit");
-            } else {
-              masterStorageUnitMeta.addReplica(storageUnitMeta);
-            }
-          }
           storageUnitMetaMap.put(storageUnitMeta.getId(), storageUnitMeta);
         }
       }
@@ -766,9 +754,13 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<ColumnsInterval, List<FragmentMeta>> loadFragment() throws MetaStorageException {
+  public Pair<
+          Map<ColumnsInterval, List<FragmentMeta>>,
+          Map<ColumnsInterval, Map<Long, List<FragmentMeta>>>>
+      loadFragment() throws MetaStorageException {
     try {
-      Map<ColumnsInterval, List<FragmentMeta>> fragmentListMap = new HashMap<>();
+      Map<ColumnsInterval, List<FragmentMeta>> masterFragmentMap = new HashMap<>();
+      Map<ColumnsInterval, Map<Long, List<FragmentMeta>>> replicaFragmentMap = new HashMap<>();
       if (this.client.checkExists().forPath(FRAGMENT_NODE_PREFIX) == null) {
         // 当前还没有数据，创建父节点，然后不需要解析数据
         this.client.create().withMode(CreateMode.PERSISTENT).forPath(FRAGMENT_NODE_PREFIX);
@@ -776,30 +768,54 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
         List<String> columnsIntervalNames = this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX);
         for (String columnsIntervalName : columnsIntervalNames) {
           ColumnsInterval columnsInterval = fromString(columnsIntervalName);
-          List<FragmentMeta> fragmentMetaList = new ArrayList<>();
+          List<FragmentMeta> masterFragments = new ArrayList<>();
+          Map<Long, List<FragmentMeta>> replicaFragments = new HashMap<>();
           List<String> keyIntervalNames =
               this.client.getChildren().forPath(FRAGMENT_NODE_PREFIX + "/" + columnsIntervalName);
           for (String keyIntervalName : keyIntervalNames) {
-            FragmentMeta fragmentMeta =
-                JsonUtils.fromJson(
-                    this.client
-                        .getData()
-                        .forPath(
-                            FRAGMENT_NODE_PREFIX
-                                + "/"
-                                + columnsIntervalName
-                                + "/"
-                                + keyIntervalName),
-                    FragmentMeta.class);
-            fragmentMetaList.add(fragmentMeta);
+            long startKey = 0;
+            List<String> nodeNames =
+                this.client
+                    .getChildren()
+                    .forPath(
+                        FRAGMENT_NODE_PREFIX + "/" + columnsIntervalName + "/" + keyIntervalName);
+            List<FragmentMeta> replicas = new ArrayList<>();
+            FragmentMeta master = null;
+            for (String nodeName : nodeNames) {
+              FragmentMeta fragmentMeta =
+                  JsonUtils.fromJson(
+                      this.client
+                          .getData()
+                          .forPath(
+                              FRAGMENT_NODE_PREFIX
+                                  + "/"
+                                  + columnsIntervalName
+                                  + "/"
+                                  + keyIntervalName
+                                  + "/"
+                                  + nodeName),
+                      FragmentMeta.class);
+              startKey = fragmentMeta.getKeyInterval().getStartKey();
+              if (fragmentMeta.isMaster()) {
+                master = fragmentMeta;
+              } else {
+                replicas.add(fragmentMeta);
+              }
+            }
+            if (master != null) {
+              master.setReplicas(replicas);
+            }
+            masterFragments.add(master);
+            replicaFragments.put(startKey, replicas);
           }
-          fragmentListMap.put(columnsInterval, fragmentMetaList);
+          masterFragmentMap.put(columnsInterval, masterFragments);
+          replicaFragmentMap.put(columnsInterval, replicaFragments);
         }
       }
       registerFragmentListener();
-      return fragmentListMap;
+      return new Pair<>(masterFragmentMap, replicaFragmentMap);
     } catch (Exception e) {
-      throw new MetaStorageException("get error when update fragment", e);
+      throw new MetaStorageException("encounter error when loading fragment", e);
     }
   }
 
@@ -825,7 +841,7 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
             case NODE_ADDED:
               String path = event.getData().getPath();
               String[] pathParts = path.split("/");
-              if (pathParts.length == 4) {
+              if (pathParts.length == 5) {
                 fragmentMeta = JsonUtils.fromJson(event.getData().getData(), FragmentMeta.class);
                 if (fragmentMeta != null) {
                   fragmentChangeHook.onChange(true, fragmentMeta);
@@ -864,13 +880,16 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
                   + "/"
                   + fragmentMeta.getColumnsInterval().toString()
                   + "/"
-                  + fragmentMeta.getKeyInterval().toString(),
+                  + fragmentMeta.getKeyInterval().toString()
+                  + "/"
+                  + fragmentMeta.getId(),
               JsonUtils.toJson(fragmentMeta));
     } catch (Exception e) {
       throw new MetaStorageException("get error when update fragment", e);
     }
   }
 
+  // TODO AYZ 暂时忽略
   @Override
   public void removeFragment(FragmentMeta fragmentMeta)
       throws MetaStorageException { // 只在有锁的情况下调用，内部不需要加锁
@@ -926,22 +945,25 @@ public class ZooKeeperMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void addFragment(FragmentMeta fragmentMeta)
+  public String addFragment(FragmentMeta fragmentMeta)
       throws MetaStorageException { // 只在有锁的情况下调用，内部不需要加锁
     try {
-      this.client
-          .create()
-          .creatingParentsIfNeeded()
-          .withMode(CreateMode.PERSISTENT)
-          .forPath(
-              FRAGMENT_NODE_PREFIX
-                  + "/"
-                  + fragmentMeta.getColumnsInterval().toString()
-                  + "/"
-                  + fragmentMeta.getKeyInterval().toString(),
-              JsonUtils.toJson(fragmentMeta));
+      String nodeName =
+          this.client
+              .create()
+              .creatingParentsIfNeeded()
+              .withMode(CreateMode.PERSISTENT_SEQUENTIAL)
+              .forPath(
+                  FRAGMENT_NODE_PREFIX
+                      + "/"
+                      + fragmentMeta.getColumnsInterval().toString()
+                      + "/"
+                      + fragmentMeta.getKeyInterval().toString()
+                      + "/fragment",
+                  "".getBytes(StandardCharsets.UTF_8));
+      return nodeName.substring(nodeName.lastIndexOf("/") + 1);
     } catch (Exception e) {
-      throw new MetaStorageException("get error when add fragment", e);
+      throw new MetaStorageException("encounter error when adding fragment", e);
     }
   }
 

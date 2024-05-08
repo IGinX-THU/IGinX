@@ -35,7 +35,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -98,56 +97,58 @@ public class HistoricalPolicy extends AbstractPolicy implements IPolicy {
     List<FragmentMeta> fragmentList = new ArrayList<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
-    KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
-    List<StorageEngineMeta> storageEngineList = iMetaManager.getStorageEngineList();
-    int storageEngineNum = storageEngineList.size();
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
-
-    String[] historicalPrefixList =
-        ConfigDescriptor.getInstance().getConfig().getHistoricalPrefixList().split(",");
-    Arrays.sort(historicalPrefixList);
-    int expectedStorageUnitNum =
-        ConfigDescriptor.getInstance().getConfig().getExpectedStorageUnitNum();
-
-    List<String> prefixList = new ArrayList<>();
-    List<ColumnsInterval> columnsIntervalList = new ArrayList<>();
-    for (String historicalPrefix : historicalPrefixList) {
-      for (String suffix : suffixList) {
-        if (!prefixList.contains(historicalPrefix + suffix)) {
-          prefixList.add(historicalPrefix + suffix);
-        }
-      }
-    }
-    Collections.sort(prefixList);
-    int prefixNum = prefixList.size();
-    prefixList.add(null);
-    columnsIntervalList.add(new ColumnsInterval(null, prefixList.get(0)));
-    for (int i = 0; i < expectedStorageUnitNum; i++) {
-      columnsIntervalList.add(
-          new ColumnsInterval(
-              prefixList.get(i * prefixNum / expectedStorageUnitNum),
-              prefixList.get((i + 1) * prefixNum / expectedStorageUnitNum)));
-    }
-
-    String masterId;
-    StorageUnitMeta storageUnit;
-    for (int i = 0; i < columnsIntervalList.size(); i++) {
-      masterId = RandomStringUtils.randomAlphanumeric(16);
-      storageUnit =
-          new StorageUnitMeta(
-              masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId, true);
-      for (int j = i + 1; j < i + replicaNum; j++) {
-        storageUnit.addReplica(
-            new StorageUnitMeta(
-                RandomStringUtils.randomAlphanumeric(16),
-                storageEngineList.get(j % storageEngineNum).getId(),
-                masterId,
-                false));
-      }
-      storageUnitList.add(storageUnit);
-      fragmentList.add(new FragmentMeta(columnsIntervalList.get(i), keyInterval, masterId));
-    }
+    // TODO AYZ 暂时忽略
+    //    KeyInterval keyInterval = Utils.getKeyIntervalFromDataStatement(statement);
+    //    List<StorageEngineMeta> storageEngineList = iMetaManager.getStorageEngineList();
+    //    int storageEngineNum = storageEngineList.size();
+    //    int replicaNum =
+    //        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(),
+    // storageEngineNum);
+    //
+    //    String[] historicalPrefixList =
+    //        ConfigDescriptor.getInstance().getConfig().getHistoricalPrefixList().split(",");
+    //    Arrays.sort(historicalPrefixList);
+    //    int expectedStorageUnitNum =
+    //        ConfigDescriptor.getInstance().getConfig().getExpectedStorageUnitNum();
+    //
+    //    List<String> prefixList = new ArrayList<>();
+    //    List<ColumnsInterval> columnsIntervalList = new ArrayList<>();
+    //    for (String historicalPrefix : historicalPrefixList) {
+    //      for (String suffix : suffixList) {
+    //        if (!prefixList.contains(historicalPrefix + suffix)) {
+    //          prefixList.add(historicalPrefix + suffix);
+    //        }
+    //      }
+    //    }
+    //    Collections.sort(prefixList);
+    //    int prefixNum = prefixList.size();
+    //    prefixList.add(null);
+    //    columnsIntervalList.add(new ColumnsInterval(null, prefixList.get(0)));
+    //    for (int i = 0; i < expectedStorageUnitNum; i++) {
+    //      columnsIntervalList.add(
+    //          new ColumnsInterval(
+    //              prefixList.get(i * prefixNum / expectedStorageUnitNum),
+    //              prefixList.get((i + 1) * prefixNum / expectedStorageUnitNum)));
+    //    }
+    //
+    //    String masterId;
+    //    StorageUnitMeta storageUnit;
+    //    for (int i = 0; i < columnsIntervalList.size(); i++) {
+    //      masterId = RandomStringUtils.randomAlphanumeric(16);
+    //      storageUnit =
+    //          new StorageUnitMeta(
+    //              masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId, true);
+    //      for (int j = i + 1; j < i + replicaNum; j++) {
+    //        storageUnit.addReplica(
+    //            new StorageUnitMeta(
+    //                RandomStringUtils.randomAlphanumeric(16),
+    //                storageEngineList.get(j % storageEngineNum).getId(),
+    //                masterId,
+    //                false));
+    //      }
+    //      storageUnitList.add(storageUnit);
+    //      fragmentList.add(new FragmentMeta(columnsIntervalList.get(i), keyInterval, masterId));
+    //    }
 
     return new Pair<>(fragmentList, storageUnitList);
   }
@@ -241,15 +242,18 @@ public class HistoricalPolicy extends AbstractPolicy implements IPolicy {
           long startKey,
           long endKey,
           List<Long> storageEngineList) {
-    String masterId = RandomStringUtils.randomAlphanumeric(16);
-    StorageUnitMeta storageUnit =
-        new StorageUnitMeta(masterId, storageEngineList.get(0), masterId, true);
-    FragmentMeta fragment = new FragmentMeta(startPath, endPath, startKey, endKey, masterId);
-    for (int i = 1; i < storageEngineList.size(); i++) {
-      storageUnit.addReplica(
-          new StorageUnitMeta(
-              RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId, false));
-    }
-    return new Pair<>(fragment, storageUnit);
+    // TODO AYZ 暂时忽略
+    return null;
+    //    String masterId = RandomStringUtils.randomAlphanumeric(16);
+    //    StorageUnitMeta storageUnit =
+    //        new StorageUnitMeta(masterId, storageEngineList.get(0), masterId, true);
+    //    FragmentMeta fragment = new FragmentMeta(startPath, endPath, startKey, endKey, masterId);
+    //    for (int i = 1; i < storageEngineList.size(); i++) {
+    //      storageUnit.addReplica(
+    //          new StorageUnitMeta(
+    //              RandomStringUtils.randomAlphanumeric(16), storageEngineList.get(i), masterId,
+    // false));
+    //    }
+    //    return new Pair<>(fragment, storageUnit);
   }
 }

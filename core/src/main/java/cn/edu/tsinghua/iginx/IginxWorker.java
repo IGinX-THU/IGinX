@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyFragmentId;
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.*;
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
@@ -428,15 +429,18 @@ public class IginxWorker implements IService.Iface {
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
         FragmentMeta dummyFragment;
 
+        // TODO AYZ 待确认
+        String id = generateDummyFragmentId(0);
         if (dataPrefix == null) {
           boundary.k.setSchemaPrefix(schemaPrefix);
-          dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
+          dummyFragment = new FragmentMeta(id, true, id, boundary.k, boundary.v, dummyStorageUnit);
         } else {
           ColumnsInterval columnsInterval = new ColumnsInterval(dataPrefix);
           columnsInterval.setSchemaPrefix(schemaPrefix);
-          dummyFragment = new FragmentMeta(columnsInterval, boundary.v, dummyStorageUnit);
+          dummyFragment =
+              new FragmentMeta(id, true, id, columnsInterval, boundary.v, dummyStorageUnit);
         }
-        dummyFragment.setDummyFragment(true);
+        dummyFragment.setDummy(true);
         meta.setDummyStorageUnit(dummyStorageUnit);
         meta.setDummyFragment(dummyFragment);
       }
@@ -1165,16 +1169,17 @@ public class IginxWorker implements IService.Iface {
         metaManager.getStorageEngineList().stream()
             .map(e -> new Storage(e.getId(), e.getIp(), e.getPort(), e.getStorageEngine()))
             .collect(Collectors.toList());
+    // TODO AYZ 待确认
     List<StorageUnit> units =
         metaManager.getStorageUnits().stream()
-            .map(u -> new StorageUnit(u.getId(), u.getMasterId(), u.getStorageEngineId()))
+            .map(u -> new StorageUnit(u.getId(), u.getId(), u.getStorageEngineId()))
             .collect(Collectors.toList());
     List<Fragment> fragments =
         metaManager.getFragments().stream()
             .map(
                 f ->
                     new Fragment(
-                        f.getMasterStorageUnitId(),
+                        f.getStorageUnitId(),
                         f.getKeyInterval().getStartKey(),
                         f.getKeyInterval().getEndKey(),
                         f.getColumnsInterval().getStartColumn(),

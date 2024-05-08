@@ -213,6 +213,13 @@ public class Config {
 
   private boolean isUTTestEnv = false; // 是否是单元测试环境
 
+  // AYZ
+  private String keyIntervalsForRangePolicy = "0,9223372036854775807";
+
+  private String columnsForRangePolicy = "/path/to/file";
+
+  private String columnsIntervalsForRangePolicy = "/path/to/file";
+
   public int getMaxTimeseriesLength() {
     return maxTimeseriesLength;
   }
@@ -895,5 +902,29 @@ public class Config {
 
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
+  }
+
+  public String getKeyIntervalsForRangePolicy() {
+    return keyIntervalsForRangePolicy;
+  }
+
+  public void setKeyIntervalsForRangePolicy(String keyIntervalsForRangePolicy) {
+    this.keyIntervalsForRangePolicy = keyIntervalsForRangePolicy;
+  }
+
+  public String getColumnsForRangePolicy() {
+    return columnsForRangePolicy;
+  }
+
+  public void setColumnsForRangePolicy(String columnsForRangePolicy) {
+    this.columnsForRangePolicy = columnsForRangePolicy;
+  }
+
+  public String getColumnsIntervalsForRangePolicy() {
+    return columnsIntervalsForRangePolicy;
+  }
+
+  public void setColumnsIntervalsForRangePolicy(String columnsIntervalsForRangePolicy) {
+    this.columnsIntervalsForRangePolicy = columnsIntervalsForRangePolicy;
   }
 }

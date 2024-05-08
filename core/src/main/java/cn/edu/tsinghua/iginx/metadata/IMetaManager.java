@@ -77,6 +77,11 @@ public interface IMetaManager {
   Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval, boolean withDummyFragment);
 
+  // AYZ
+  FragmentMeta getMasterFragment(FragmentMeta fragmentMeta);
+
+  List<FragmentMeta> getReplicaFragments(FragmentMeta fragmentMeta);
+
   /** 查询某个列区间是否有虚拟堆叠分片 */
   boolean hasDummyFragment(ColumnsInterval columnsInterval);
 

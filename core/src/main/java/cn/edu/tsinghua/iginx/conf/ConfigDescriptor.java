@@ -234,6 +234,14 @@ public class ConfigDescriptor {
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
+
+      // AYZ
+      config.setKeyIntervalsForRangePolicy(
+          properties.getProperty("keyIntervalsForRangePolicy", "0,9223372036854775807"));
+      config.setColumnsForRangePolicy(
+          properties.getProperty("columnsForRangePolicy", "/path/to/file"));
+      config.setColumnsIntervalsForRangePolicy(
+          properties.getProperty("columnsIntervalsForRangePolicy", "/path/to/file"));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
@@ -360,6 +368,15 @@ public class ConfigDescriptor {
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
+
+    // AYZ
+    config.setKeyIntervalsForRangePolicy(
+        EnvUtils.loadEnv("keyIntervalsForRangePolicy", config.getKeyIntervalsForRangePolicy()));
+    config.setColumnsForRangePolicy(
+        EnvUtils.loadEnv("columnsForRangePolicy", config.getColumnsForRangePolicy()));
+    config.setColumnsIntervalsForRangePolicy(
+        EnvUtils.loadEnv(
+            "columnsIntervalsForRangePolicy", config.getColumnsIntervalsForRangePolicy()));
   }
 
   private void loadUDFListFromFile() {

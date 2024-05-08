@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.metadata;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyFragmentId;
 import static cn.edu.tsinghua.iginx.metadata.utils.IdUtils.generateDummyStorageUnitId;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.EXECUTING;
 import static cn.edu.tsinghua.iginx.metadata.utils.ReshardStatus.NON_RESHARDING;
@@ -251,43 +252,13 @@ public class DefaultMetaManager implements IMetaManager {
           if (storageUnit.getCreatedBy() == DefaultMetaManager.this.id) { // 本地创建的
             return;
           }
-          if (storageUnit.isInitialStorageUnit()) { // 初始分片不通过异步事件更新
+          if (storageUnit.isInitial()) { // 初始分片不通过异步事件更新
             return;
           }
           if (!cache.hasStorageUnit()) {
             return;
           }
           StorageUnitMeta originStorageUnitMeta = cache.getStorageUnit(id);
-          if (originStorageUnitMeta == null) {
-            if (!storageUnit.isMaster()) { // 需要加入到主节点的子节点列表中
-              StorageUnitMeta masterStorageUnitMeta =
-                  cache.getStorageUnit(storageUnit.getMasterId());
-              if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-                LOGGER.error(
-                    "unexpected storage unit "
-                        + storageUnit.toString()
-                        + ", because it does not has a master storage unit");
-              } else {
-                masterStorageUnitMeta.addReplica(storageUnit);
-              }
-            }
-          } else {
-            if (storageUnit.isMaster()) {
-              storageUnit.setReplicas(originStorageUnitMeta.getReplicas());
-            } else {
-              StorageUnitMeta masterStorageUnitMeta =
-                  cache.getStorageUnit(storageUnit.getMasterId());
-              if (masterStorageUnitMeta == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-                LOGGER.error(
-                    "unexpected storage unit "
-                        + storageUnit.toString()
-                        + ", because it does not has a master storage unit");
-              } else {
-                masterStorageUnitMeta.removeReplica(originStorageUnitMeta);
-                masterStorageUnitMeta.addReplica(storageUnit);
-              }
-            }
-          }
           if (originStorageUnitMeta != null) {
             cache.updateStorageUnit(storageUnit);
             cache
@@ -313,13 +284,13 @@ public class DefaultMetaManager implements IMetaManager {
           if (!create && fragment.getUpdatedBy() == DefaultMetaManager.this.id) {
             return;
           }
-          if (fragment.isInitialFragment()) { // 初始分片不通过异步事件更新
+          if (create && fragment.isInitial()) { // 初始分片不通过异步事件更新
             return;
           }
           if (!cache.hasFragment()) {
             return;
           }
-          fragment.setMasterStorageUnit(cache.getStorageUnit(fragment.getMasterStorageUnitId()));
+          fragment.setStorageUnit(cache.getStorageUnit(fragment.getStorageUnitId()));
           if (create) {
             cache.addFragment(fragment);
           } else {
@@ -419,10 +390,9 @@ public class DefaultMetaManager implements IMetaManager {
       StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
       dummyStorageUnit.setStorageEngineId(storageEngineId);
       dummyStorageUnit.setId(generateDummyStorageUnitId(storageEngineId));
-      dummyStorageUnit.setMasterId(dummyStorageUnit.getId());
       FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
-      dummyFragment.setMasterStorageUnit(dummyStorageUnit);
-      dummyFragment.setMasterStorageUnitId(dummyStorageUnit.getId());
+      dummyFragment.setStorageUnit(dummyStorageUnit);
+      dummyFragment.setStorageUnitId(dummyStorageUnit.getId());
     }
     cache.addStorageEngine(storageEngineMeta);
     for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
@@ -571,6 +541,16 @@ public class DefaultMetaManager implements IMetaManager {
   }
 
   @Override
+  public FragmentMeta getMasterFragment(FragmentMeta fragmentMeta) {
+    return cache.getMasterFragmentByReplicaFragment(fragmentMeta);
+  }
+
+  @Override
+  public List<FragmentMeta> getReplicaFragments(FragmentMeta fragmentMeta) {
+    return cache.getReplicaFragments(fragmentMeta);
+  }
+
+  @Override
   public boolean hasDummyFragment(ColumnsInterval columnsInterval) {
     List<FragmentMeta> fragmentList = cache.getDummyFragmentsByColumnsInterval(columnsInterval);
     return !fragmentList.isEmpty();
@@ -694,57 +674,60 @@ public class DefaultMetaManager implements IMetaManager {
       storage.lockFragment();
       storage.lockStorageUnit();
 
-      Map<String, StorageUnitMeta> fakeIdToStorageUnit = new HashMap<>(); // 假名翻译工具
-      for (StorageUnitMeta masterStorageUnit : storageUnits) {
-        masterStorageUnit.setCreatedBy(id);
-        String fakeName = masterStorageUnit.getId();
-        String actualName = storage.addStorageUnit();
-        StorageUnitMeta actualMasterStorageUnit =
-            masterStorageUnit.renameStorageUnitMeta(actualName, actualName);
-        cache.updateStorageUnit(actualMasterStorageUnit);
-        for (StorageUnitHook hook : storageUnitHooks) {
-          hook.onChange(null, actualMasterStorageUnit);
-        }
-        storage.updateStorageUnit(actualMasterStorageUnit);
-        fakeIdToStorageUnit.put(fakeName, actualMasterStorageUnit);
-        for (StorageUnitMeta slaveStorageUnit : masterStorageUnit.getReplicas()) {
-          slaveStorageUnit.setCreatedBy(id);
-          String slaveFakeName = slaveStorageUnit.getId();
-          String slaveActualName = storage.addStorageUnit();
-          StorageUnitMeta actualSlaveStorageUnit =
-              slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
-          actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
-          for (StorageUnitHook hook : storageUnitHooks) {
-            hook.onChange(null, actualSlaveStorageUnit);
-          }
-          cache.updateStorageUnit(actualSlaveStorageUnit);
-          storage.updateStorageUnit(actualSlaveStorageUnit);
-          fakeIdToStorageUnit.put(slaveFakeName, actualSlaveStorageUnit);
-        }
-      }
-
-      Map<ColumnsInterval, FragmentMeta> latestFragments = getLatestFragmentMap();
-      for (FragmentMeta originalFragmentMeta : latestFragments.values()) {
-        FragmentMeta fragmentMeta =
-            originalFragmentMeta.endFragmentMeta(fragments.get(0).getKeyInterval().getStartKey());
-        // 在更新分片时，先更新本地
-        fragmentMeta.setUpdatedBy(id);
-        cache.updateFragment(fragmentMeta);
-        storage.updateFragment(fragmentMeta);
-      }
-
-      for (FragmentMeta fragmentMeta : fragments) {
-        fragmentMeta.setCreatedBy(id);
-        fragmentMeta.setInitialFragment(false);
-        StorageUnitMeta storageUnit = fakeIdToStorageUnit.get(fragmentMeta.getFakeStorageUnitId());
-        if (storageUnit.isMaster()) {
-          fragmentMeta.setMasterStorageUnit(storageUnit);
-        } else {
-          fragmentMeta.setMasterStorageUnit(getStorageUnit(storageUnit.getMasterId()));
-        }
-        cache.addFragment(fragmentMeta);
-        storage.addFragment(fragmentMeta);
-      }
+      // TODO AYZ 暂时不涉及重分片
+      //      Map<String, StorageUnitMeta> fakeIdToStorageUnit = new HashMap<>(); // 假名翻译工具
+      //      for (StorageUnitMeta masterStorageUnit : storageUnits) {
+      //        masterStorageUnit.setCreatedBy(id);
+      //        String fakeName = masterStorageUnit.getId();
+      //        String actualName = storage.addStorageUnit();
+      //        StorageUnitMeta actualMasterStorageUnit =
+      //            masterStorageUnit.renameStorageUnitMeta(actualName, actualName);
+      //        cache.updateStorageUnit(actualMasterStorageUnit);
+      //        for (StorageUnitHook hook : storageUnitHooks) {
+      //          hook.onChange(null, actualMasterStorageUnit);
+      //        }
+      //        storage.updateStorageUnit(actualMasterStorageUnit);
+      //        fakeIdToStorageUnit.put(fakeName, actualMasterStorageUnit);
+      //        for (StorageUnitMeta slaveStorageUnit : masterStorageUnit.getReplicas()) {
+      //          slaveStorageUnit.setCreatedBy(id);
+      //          String slaveFakeName = slaveStorageUnit.getId();
+      //          String slaveActualName = storage.addStorageUnit();
+      //          StorageUnitMeta actualSlaveStorageUnit =
+      //              slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
+      //          actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
+      //          for (StorageUnitHook hook : storageUnitHooks) {
+      //            hook.onChange(null, actualSlaveStorageUnit);
+      //          }
+      //          cache.updateStorageUnit(actualSlaveStorageUnit);
+      //          storage.updateStorageUnit(actualSlaveStorageUnit);
+      //          fakeIdToStorageUnit.put(slaveFakeName, actualSlaveStorageUnit);
+      //        }
+      //      }
+      //
+      //      Map<ColumnsInterval, FragmentMeta> latestFragments = getLatestFragmentMap();
+      //      for (FragmentMeta originalFragmentMeta : latestFragments.values()) {
+      //        FragmentMeta fragmentMeta =
+      //
+      // originalFragmentMeta.endFragmentMeta(fragments.get(0).getKeyInterval().getStartKey());
+      //        // 在更新分片时，先更新本地
+      //        fragmentMeta.setUpdatedBy(id);
+      //        cache.updateFragment(fragmentMeta);
+      //        storage.updateFragment(fragmentMeta);
+      //      }
+      //
+      //      for (FragmentMeta fragmentMeta : fragments) {
+      //        fragmentMeta.setCreatedBy(id);
+      //        fragmentMeta.setInitial(false);
+      //        StorageUnitMeta storageUnit =
+      // fakeIdToStorageUnit.get(fragmentMeta.getFakeStorageUnitId());
+      //        if (storageUnit.isMaster()) {
+      //          fragmentMeta.setStorageUnit(storageUnit);
+      //        } else {
+      //          fragmentMeta.setStorageUnit(getStorageUnit(storageUnit.getMasterId()));
+      //        }
+      //        cache.addFragment(fragmentMeta);
+      //        storage.addFragment(fragmentMeta);
+      //      }
       return true;
     } catch (MetaStorageException e) {
       LOGGER.error("create fragment error: ", e);
@@ -766,47 +749,48 @@ public class DefaultMetaManager implements IMetaManager {
       storage.lockFragment();
       storage.lockStorageUnit();
 
-      // 更新du
-      LOGGER.info("update du");
-      toAddStorageUnit.setCreatedBy(id);
-      String actualName = storage.addStorageUnit();
-      StorageUnitMeta actualMasterStorageUnit =
-          toAddStorageUnit.renameStorageUnitMeta(actualName, actualName);
-      cache.updateStorageUnit(actualMasterStorageUnit);
-      for (StorageUnitHook hook : storageUnitHooks) {
-        hook.onChange(null, actualMasterStorageUnit);
-      }
-      storage.updateStorageUnit(actualMasterStorageUnit);
-      for (StorageUnitMeta slaveStorageUnit : toAddStorageUnit.getReplicas()) {
-        slaveStorageUnit.setCreatedBy(id);
-        String slaveActualName = storage.addStorageUnit();
-        StorageUnitMeta actualSlaveStorageUnit =
-            slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
-        actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
-        for (StorageUnitHook hook : storageUnitHooks) {
-          hook.onChange(null, actualSlaveStorageUnit);
-        }
-        cache.updateStorageUnit(actualSlaveStorageUnit);
-        storage.updateStorageUnit(actualSlaveStorageUnit);
-      }
-
-      // 结束旧分片
-      cache.deleteFragmentByColumnsInterval(fragment.getColumnsInterval(), fragment);
-      fragment = fragment.endFragmentMeta(toAddFragment.getKeyInterval().getStartKey());
-      cache.addFragment(fragment);
-      fragment.setUpdatedBy(id);
-      storage.updateFragment(fragment);
-
-      // 更新新分片
-      toAddFragment.setCreatedBy(id);
-      toAddFragment.setInitialFragment(false);
-      if (toAddStorageUnit.isMaster()) {
-        toAddFragment.setMasterStorageUnit(actualMasterStorageUnit);
-      } else {
-        toAddFragment.setMasterStorageUnit(getStorageUnit(actualMasterStorageUnit.getMasterId()));
-      }
-      cache.addFragment(toAddFragment);
-      storage.addFragment(toAddFragment);
+      // TODO AYZ 暂时不涉及重分片
+      //      // 更新du
+      //      LOGGER.info("update du");
+      //      toAddStorageUnit.setCreatedBy(id);
+      //      String actualName = storage.addStorageUnit();
+      //      StorageUnitMeta actualMasterStorageUnit =
+      //          toAddStorageUnit.renameStorageUnitMeta(actualName, actualName);
+      //      cache.updateStorageUnit(actualMasterStorageUnit);
+      //      for (StorageUnitHook hook : storageUnitHooks) {
+      //        hook.onChange(null, actualMasterStorageUnit);
+      //      }
+      //      storage.updateStorageUnit(actualMasterStorageUnit);
+      //      for (StorageUnitMeta slaveStorageUnit : toAddStorageUnit.getReplicas()) {
+      //        slaveStorageUnit.setCreatedBy(id);
+      //        String slaveActualName = storage.addStorageUnit();
+      //        StorageUnitMeta actualSlaveStorageUnit =
+      //            slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
+      //        actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
+      //        for (StorageUnitHook hook : storageUnitHooks) {
+      //          hook.onChange(null, actualSlaveStorageUnit);
+      //        }
+      //        cache.updateStorageUnit(actualSlaveStorageUnit);
+      //        storage.updateStorageUnit(actualSlaveStorageUnit);
+      //      }
+      //
+      //      // 结束旧分片
+      //      cache.deleteFragmentByColumnsInterval(fragment.getColumnsInterval(), fragment);
+      //      fragment = fragment.endFragmentMeta(toAddFragment.getKeyInterval().getStartKey());
+      //      cache.addFragment(fragment);
+      //      fragment.setUpdatedBy(id);
+      //      storage.updateFragment(fragment);
+      //
+      //      // 更新新分片
+      //      toAddFragment.setCreatedBy(id);
+      //      toAddFragment.setInitial(false);
+      //      if (toAddStorageUnit.isMaster()) {
+      //        toAddFragment.setStorageUnit(actualMasterStorageUnit);
+      //      } else {
+      //        toAddFragment.setStorageUnit(getStorageUnit(actualMasterStorageUnit.getMasterId()));
+      //      }
+      //      cache.addFragment(toAddFragment);
+      //      storage.addFragment(toAddFragment);
     } catch (MetaStorageException e) {
       LOGGER.error("create fragment error: ", e);
     } finally {
@@ -1018,7 +1002,10 @@ public class DefaultMetaManager implements IMetaManager {
       // 查看一下服务器上是不是已经有了
       Map<String, StorageUnitMeta> globalStorageUnits = storage.loadStorageUnit();
       if (globalStorageUnits != null && !globalStorageUnits.isEmpty()) { // 服务器上已经有人创建过了，本地只需要加载
-        Map<ColumnsInterval, List<FragmentMeta>> globalFragmentMap = storage.loadFragment();
+        Pair<
+                Map<ColumnsInterval, List<FragmentMeta>>,
+                Map<ColumnsInterval, Map<Long, List<FragmentMeta>>>>
+            globalFragmentMap = storage.loadFragment();
         newStorageUnits.addAll(globalStorageUnits.values());
         newStorageUnits.sort(Comparator.comparing(StorageUnitMeta::getId));
         LOGGER.warn("server has created storage unit, just need to load.");
@@ -1037,37 +1024,40 @@ public class DefaultMetaManager implements IMetaManager {
 
       // 确实没有人创建过，以我为准
       Map<String, StorageUnitMeta> fakeIdToStorageUnit = new HashMap<>(); // 假名翻译工具
-      for (StorageUnitMeta masterStorageUnit : storageUnits) {
-        masterStorageUnit.setCreatedBy(id);
-        String fakeName = masterStorageUnit.getId();
+      for (StorageUnitMeta storageUnit : storageUnits) {
+        storageUnit.setCreatedBy(DefaultMetaManager.this.id);
+        String fakeName = storageUnit.getId();
         String actualName = storage.addStorageUnit();
-        StorageUnitMeta actualMasterStorageUnit =
-            masterStorageUnit.renameStorageUnitMeta(actualName, actualName);
-        storage.updateStorageUnit(actualMasterStorageUnit);
-        fakeIdToStorageUnit.put(fakeName, actualMasterStorageUnit);
-        for (StorageUnitMeta slaveStorageUnit : masterStorageUnit.getReplicas()) {
-          slaveStorageUnit.setCreatedBy(id);
-          String slaveFakeName = slaveStorageUnit.getId();
-          String slaveActualName = storage.addStorageUnit();
-          StorageUnitMeta actualSlaveStorageUnit =
-              slaveStorageUnit.renameStorageUnitMeta(slaveActualName, actualName);
-          actualMasterStorageUnit.addReplica(actualSlaveStorageUnit);
-          storage.updateStorageUnit(actualSlaveStorageUnit);
-          fakeIdToStorageUnit.put(slaveFakeName, actualSlaveStorageUnit);
-        }
+        StorageUnitMeta actualStorageUnit = storageUnit.renameStorageUnitMeta(actualName, true);
+        storage.updateStorageUnit(actualStorageUnit);
+        fakeIdToStorageUnit.put(fakeName, actualStorageUnit);
       }
       initialFragments.sort(Comparator.comparingLong(o -> o.getKeyInterval().getStartKey()));
-      for (FragmentMeta fragmentMeta : initialFragments) {
-        fragmentMeta.setCreatedBy(id);
-        StorageUnitMeta storageUnit = fakeIdToStorageUnit.get(fragmentMeta.getFakeStorageUnitId());
-        if (storageUnit.isMaster()) {
-          fragmentMeta.setMasterStorageUnit(storageUnit);
-        } else {
-          fragmentMeta.setMasterStorageUnit(getStorageUnit(storageUnit.getMasterId()));
-        }
-        storage.addFragment(fragmentMeta);
-      }
       Map<String, StorageUnitMeta> loadedStorageUnits = storage.loadStorageUnit();
+      for (FragmentMeta masterFragment : initialFragments) {
+        masterFragment.setCreatedBy(DefaultMetaManager.this.id);
+        String actualMasterName = storage.addFragment(masterFragment);
+        StorageUnitMeta masterStorageUnit =
+            fakeIdToStorageUnit.get(masterFragment.getFakeStorageUnitId());
+        FragmentMeta actualMasterFragment =
+            masterFragment.renameFragment(actualMasterName, actualMasterName, true);
+        actualMasterFragment.setStorageUnit(masterStorageUnit);
+        for (FragmentMeta slaveFragment : masterFragment.getReplicas()) {
+          slaveFragment.setCreatedBy(DefaultMetaManager.this.id);
+          String actualSlaveName = storage.addFragment(slaveFragment);
+          StorageUnitMeta slaveStorageUnit =
+              fakeIdToStorageUnit.get(slaveFragment.getFakeStorageUnitId());
+          FragmentMeta actualSlaveFragment =
+              slaveFragment.renameFragment(actualSlaveName, actualMasterName, true);
+          actualSlaveFragment.setStorageUnit(slaveStorageUnit);
+          storage.updateFragment(actualSlaveFragment);
+        }
+        storage.updateFragment(actualMasterFragment);
+      }
+      //      for (StorageUnitMeta storageUnitMeta : loadedStorageUnits.values()) {
+      //        storage.updateStorageUnit(storageUnitMeta);
+      //      }
+
       newStorageUnits.addAll(loadedStorageUnits.values());
       newStorageUnits.sort(Comparator.comparing(StorageUnitMeta::getId));
       // 先通知
@@ -1084,13 +1074,13 @@ public class DefaultMetaManager implements IMetaManager {
       cache.initFragment(storage.loadFragment());
       return true;
     } catch (MetaStorageException e) {
-      LOGGER.error("encounter error when init fragment: ", e);
+      LOGGER.error("encounter error when initiating fragments and storage units: ", e);
     } finally {
       try {
         storage.releaseStorageUnit();
         storage.releaseFragment();
       } catch (MetaStorageException e) {
-        LOGGER.error("encounter error when release fragment lock: ", e);
+        LOGGER.error("encounter error when releasing fragment and storage unit lock: ", e);
       }
     }
     return false;
@@ -1099,17 +1089,19 @@ public class DefaultMetaManager implements IMetaManager {
   @Override
   public StorageUnitMeta generateNewStorageUnitMetaByFragment(
       FragmentMeta fragmentMeta, long targetStorageId) throws MetaStorageException {
-    String actualName = storage.addStorageUnit();
-    StorageUnitMeta storageUnitMeta =
-        new StorageUnitMeta(actualName, targetStorageId, actualName, true, false);
-    storageUnitMeta.setCreatedBy(getIginxId());
-
-    cache.updateStorageUnit(storageUnitMeta);
-    for (StorageUnitHook hook : storageUnitHooks) {
-      hook.onChange(null, storageUnitMeta);
-    }
-    storage.updateStorageUnit(storageUnitMeta);
-    return storageUnitMeta;
+    // TODO AYZ 暂时不涉及重分片
+    return null;
+    //    String actualName = storage.addStorageUnit();
+    //    StorageUnitMeta storageUnitMeta =
+    //        new StorageUnitMeta(actualName, targetStorageId, actualName, true, false);
+    //    storageUnitMeta.setCreatedBy(getIginxId());
+    //
+    //    cache.updateStorageUnit(storageUnitMeta);
+    //    for (StorageUnitHook hook : storageUnitHooks) {
+    //      hook.onChange(null, storageUnitMeta);
+    //    }
+    //    storage.updateStorageUnit(storageUnitMeta);
+    //    return storageUnitMeta;
   }
 
   @Override
@@ -1254,15 +1246,18 @@ public class DefaultMetaManager implements IMetaManager {
         Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
         FragmentMeta dummyFragment;
 
+        // TODO AYZ 待确认
+        String id = generateDummyFragmentId(i);
         if (dataPrefix == null) {
           boundary.k.setSchemaPrefix(schemaPrefix);
-          dummyFragment = new FragmentMeta(boundary.k, boundary.v, dummyStorageUnit);
+          dummyFragment = new FragmentMeta(id, true, id, boundary.k, boundary.v, dummyStorageUnit);
         } else {
           ColumnsInterval columnsInterval = new ColumnsInterval(dataPrefix);
           columnsInterval.setSchemaPrefix(schemaPrefix);
-          dummyFragment = new FragmentMeta(columnsInterval, boundary.v, dummyStorageUnit);
+          dummyFragment =
+              new FragmentMeta(id, true, id, columnsInterval, boundary.v, dummyStorageUnit);
         }
-        dummyFragment.setDummyFragment(true);
+        dummyFragment.setDummy(true);
         storage.setDummyStorageUnit(dummyStorageUnit);
         storage.setDummyFragment(dummyFragment);
       }
@@ -1350,14 +1345,14 @@ public class DefaultMetaManager implements IMetaManager {
   protected void updateStorageUnitReference(Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap) {
     for (List<FragmentMeta> fragments : fragmentsMap.values()) {
       for (FragmentMeta fragment : fragments) {
-        fragment.setMasterStorageUnit(cache.getStorageUnit(fragment.getMasterStorageUnitId()));
+        fragment.setStorageUnit(cache.getStorageUnit(fragment.getStorageUnitId()));
       }
     }
   }
 
   protected void updateStorageUnitReference(List<FragmentMeta> fragments) {
     for (FragmentMeta fragment : fragments) {
-      fragment.setMasterStorageUnit(cache.getStorageUnit(fragment.getMasterStorageUnitId()));
+      fragment.setStorageUnit(cache.getStorageUnit(fragment.getStorageUnitId()));
     }
   }
 

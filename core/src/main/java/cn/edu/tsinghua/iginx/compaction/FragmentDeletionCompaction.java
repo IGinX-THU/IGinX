@@ -56,7 +56,7 @@ public class FragmentDeletionCompaction extends Compaction {
 
       // 删除节点数据
       List<String> paths = new ArrayList<>();
-      paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
+      paths.add(fragmentMeta.getStorageUnitId() + "*");
       List<KeyRange> keyRanges = new ArrayList<>();
       keyRanges.add(
           new KeyRange(

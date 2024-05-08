@@ -31,7 +31,7 @@ public class InstantCompaction extends Compaction {
     LOGGER.info("start to compact all fragments");
     for (List<FragmentMeta> fragmentGroup : toCompactFragmentGroups) {
       if (fragmentGroup.size() > 1) {
-        StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getMasterStorageUnit();
+        StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getStorageUnit();
         compactFragmentGroupToTargetStorageUnit(fragmentGroup, maxStorageUnitMeta, 0L);
       }
     }

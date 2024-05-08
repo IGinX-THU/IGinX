@@ -894,17 +894,6 @@ public class ETCDMetaStorage implements IMetaStorage {
       for (KeyValue kv : kvs) {
         StorageUnitMeta storageUnit =
             JsonUtils.fromJson(kv.getValue().getBytes(), StorageUnitMeta.class);
-        if (!storageUnit.isMaster()) { // 需要加入到主节点的子节点列表中
-          StorageUnitMeta masterStorageUnit = storageUnitMap.get(storageUnit.getMasterId());
-          if (masterStorageUnit == null) { // 子节点先于主节点加入系统中，不应该发生，报错
-            LOGGER.error(
-                "unexpected storage unit "
-                    + new String(kv.getValue().getBytes())
-                    + ", because it does not has a master storage unit");
-          } else {
-            masterStorageUnit.addReplica(storageUnit);
-          }
-        }
         storageUnitMap.put(storageUnit.getId(), storageUnit);
       }
       return storageUnitMap;
@@ -972,29 +961,35 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public Map<ColumnsInterval, List<FragmentMeta>> loadFragment() throws MetaStorageException {
-    try {
-      Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap = new HashMap<>();
-      GetResponse response =
-          this.client
-              .getKVClient()
-              .get(
-                  ByteSequence.from(FRAGMENT_NODE_PREFIX.getBytes()),
-                  GetOption.newBuilder()
-                      .withPrefix(ByteSequence.from(FRAGMENT_NODE_PREFIX.getBytes()))
-                      .build())
-              .get();
-      for (KeyValue kv : response.getKvs()) {
-        FragmentMeta fragment = JsonUtils.fromJson(kv.getValue().getBytes(), FragmentMeta.class);
-        fragmentsMap
-            .computeIfAbsent(fragment.getColumnsInterval(), e -> new ArrayList<>())
-            .add(fragment);
-      }
-      return fragmentsMap;
-    } catch (ExecutionException | InterruptedException e) {
-      LOGGER.error("got error when load fragments: ", e);
-      throw new MetaStorageException(e);
-    }
+  public Pair<
+          Map<ColumnsInterval, List<FragmentMeta>>,
+          Map<ColumnsInterval, Map<Long, List<FragmentMeta>>>>
+      loadFragment() throws MetaStorageException {
+    // TODO AYZ 暂时忽略
+    return null;
+    //    try {
+    //      Map<ColumnsInterval, List<FragmentMeta>> fragmentsMap = new HashMap<>();
+    //      GetResponse response =
+    //          this.client
+    //              .getKVClient()
+    //              .get(
+    //                  ByteSequence.from(FRAGMENT_NODE_PREFIX.getBytes()),
+    //                  GetOption.newBuilder()
+    //                      .withPrefix(ByteSequence.from(FRAGMENT_NODE_PREFIX.getBytes()))
+    //                      .build())
+    //              .get();
+    //      for (KeyValue kv : response.getKvs()) {
+    //        FragmentMeta fragment = JsonUtils.fromJson(kv.getValue().getBytes(),
+    // FragmentMeta.class);
+    //        fragmentsMap
+    //            .computeIfAbsent(fragment.getColumnsInterval(), e -> new ArrayList<>())
+    //            .add(fragment);
+    //      }
+    //      return fragmentsMap;
+    //    } catch (ExecutionException | InterruptedException e) {
+    //      LOGGER.error("got error when load fragments: ", e);
+    //      throw new MetaStorageException(e);
+    //    }
   }
 
   @Override
@@ -1197,8 +1192,10 @@ public class ETCDMetaStorage implements IMetaStorage {
   }
 
   @Override
-  public void addFragment(FragmentMeta fragmentMeta) throws MetaStorageException {
-    updateFragment(fragmentMeta);
+  public String addFragment(FragmentMeta fragmentMeta) throws MetaStorageException {
+    // TODO AYZ 暂时忽略
+    return "";
+    //    updateFragment(fragmentMeta);
   }
 
   @Override

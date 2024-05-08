@@ -84,7 +84,8 @@ public class MockClassGenerator {
   }
 
   public static FragmentMeta genFragmentMeta() {
-    return new FragmentMeta(null, null, 0, 0);
+    // TODO AYZ 待确认
+    return new FragmentMeta("", true, "", null, null, 0, 0);
   }
 
   public static FragmentSource genFragmentSource() {

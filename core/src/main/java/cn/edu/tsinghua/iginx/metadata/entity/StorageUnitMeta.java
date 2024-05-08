@@ -19,7 +19,6 @@
 package cn.edu.tsinghua.iginx.metadata.entity;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
@@ -29,82 +28,31 @@ public final class StorageUnitMeta {
 
   private long storageEngineId;
 
-  private String masterId;
-
-  private boolean isMaster;
-
   private long createdBy;
 
-  private boolean initialStorageUnit = true;
+  private boolean initial = true;
 
   private boolean dummy = false;
 
-  private boolean ifValid = true;
+  private boolean valid = true;
 
-  private transient List<StorageUnitMeta> replicas = new ArrayList<>();
-
-  public StorageUnitMeta(String id, long storageEngineId, String masterId, boolean isMaster) {
-    this.id = id;
-    this.storageEngineId = storageEngineId;
-    this.masterId = masterId;
-    this.isMaster = isMaster;
-  }
+  // TODO AYZ 未保证一致性
+  private transient List<FragmentMeta> fragments = new ArrayList<>();
 
   public StorageUnitMeta(String id, long storageEngineId) {
     this.id = id;
     this.storageEngineId = storageEngineId;
-    this.masterId = id;
-    this.isMaster = true;
-    this.dummy = true;
-    this.replicas = Collections.emptyList();
   }
 
-  public StorageUnitMeta(
-      String id,
-      long storageEngineId,
-      String masterId,
-      boolean isMaster,
-      boolean initialStorageUnit) {
-    this.id = id;
-    this.storageEngineId = storageEngineId;
-    this.masterId = masterId;
-    this.isMaster = isMaster;
-    this.initialStorageUnit = initialStorageUnit;
+  public StorageUnitMeta(String id, long storageEngineId, boolean initial) {
+    this(id, storageEngineId);
+    this.initial = initial;
   }
 
-  public StorageUnitMeta(
-      String id,
-      long storageEngineId,
-      String masterId,
-      boolean isMaster,
-      long createdBy,
-      boolean initialStorageUnit,
-      boolean dummy,
-      List<StorageUnitMeta> replicas) {
-    this.id = id;
-    this.storageEngineId = storageEngineId;
-    this.masterId = masterId;
-    this.isMaster = isMaster;
-    this.createdBy = createdBy;
-    this.initialStorageUnit = initialStorageUnit;
-    this.dummy = dummy;
-    this.replicas = replicas;
-  }
-
-  public void addReplica(StorageUnitMeta storageUnit) {
-    if (replicas == null) replicas = new ArrayList<>();
-    replicas.add(storageUnit);
-  }
-
-  public void removeReplica(StorageUnitMeta storageUnit) {
-    if (replicas == null) replicas = new ArrayList<>();
-    replicas.remove(storageUnit);
-  }
-
-  public StorageUnitMeta renameStorageUnitMeta(String id, String masterId) {
-    StorageUnitMeta storageUnitMeta = new StorageUnitMeta(id, storageEngineId, masterId, isMaster);
+  public StorageUnitMeta renameStorageUnitMeta(String id, boolean initialStorageUnit) {
+    StorageUnitMeta storageUnitMeta = new StorageUnitMeta(id, storageEngineId);
     storageUnitMeta.setCreatedBy(createdBy);
-    storageUnitMeta.setInitialStorageUnit(initialStorageUnit);
+    storageUnitMeta.setInitial(initialStorageUnit);
     return storageUnitMeta;
   }
 
@@ -124,22 +72,6 @@ public final class StorageUnitMeta {
     this.storageEngineId = storageEngineId;
   }
 
-  public String getMasterId() {
-    return masterId;
-  }
-
-  public void setMasterId(String masterId) {
-    this.masterId = masterId;
-  }
-
-  public boolean isMaster() {
-    return isMaster;
-  }
-
-  public void setMaster(boolean master) {
-    isMaster = master;
-  }
-
   public long getCreatedBy() {
     return createdBy;
   }
@@ -148,12 +80,12 @@ public final class StorageUnitMeta {
     this.createdBy = createdBy;
   }
 
-  public boolean isInitialStorageUnit() {
-    return initialStorageUnit;
+  public boolean isInitial() {
+    return initial;
   }
 
-  public void setInitialStorageUnit(boolean initialStorageUnit) {
-    this.initialStorageUnit = initialStorageUnit;
+  public void setInitial(boolean initial) {
+    this.initial = initial;
   }
 
   public boolean isDummy() {
@@ -164,23 +96,12 @@ public final class StorageUnitMeta {
     this.dummy = dummy;
   }
 
-  public boolean isIfValid() {
-    return ifValid;
+  public boolean isValid() {
+    return valid;
   }
 
-  public void setIfValid(boolean ifValid) {
-    this.ifValid = ifValid;
-  }
-
-  public List<StorageUnitMeta> getReplicas() {
-    if (replicas == null) {
-      replicas = new ArrayList<>();
-    }
-    return replicas;
-  }
-
-  public void setReplicas(List<StorageUnitMeta> replicas) {
-    this.replicas = replicas;
+  public void setValid(boolean valid) {
+    this.valid = valid;
   }
 
   @Override
@@ -207,19 +128,8 @@ public final class StorageUnitMeta {
     builder.append(id);
     builder.append(", storageEngineId = ");
     builder.append(storageEngineId);
-    builder.append(", masterId = ");
-    builder.append(masterId);
-    builder.append(", isMaster = ");
-    builder.append(isMaster);
     builder.append(", createdBy = ");
     builder.append(createdBy);
-    if (replicas != null) {
-      builder.append(", replica id list = ");
-      for (StorageUnitMeta storageUnit : replicas) {
-        builder.append(" ");
-        builder.append(storageUnit.getId());
-      }
-    }
     builder.append("}");
     return builder.toString();
   }

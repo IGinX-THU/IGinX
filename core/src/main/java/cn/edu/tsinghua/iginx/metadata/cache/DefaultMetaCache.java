@@ -45,9 +45,14 @@ public class DefaultMetaCache implements IMetaCache {
   private static DefaultMetaCache INSTANCE = null;
 
   // 分片列表的缓存
+  // AYZ
+  // 主
   private final List<Pair<ColumnsInterval, List<FragmentMeta>>> sortedFragmentMetaLists;
 
   private final Map<ColumnsInterval, List<FragmentMeta>> fragmentMetaListMap;
+
+  // 副
+  private final Map<ColumnsInterval, Map<Long, List<FragmentMeta>>> replicaFragmentMetaMap;
 
   private final List<FragmentMeta> dummyFragments;
 
@@ -106,6 +111,7 @@ public class DefaultMetaCache implements IMetaCache {
     // 分片相关
     sortedFragmentMetaLists = new ArrayList<>();
     fragmentMetaListMap = new HashMap<>();
+    replicaFragmentMetaMap = new HashMap<>();
     dummyFragments = new ArrayList<>();
     fragmentLock = new ReentrantReadWriteLock();
     // 数据单元相关
@@ -206,7 +212,7 @@ public class DefaultMetaCache implements IMetaCache {
       return resultList;
     }
     for (FragmentMeta meta : fragmentMetaList) {
-      if (meta.getMasterStorageUnitId().equals(storageUnitId)) {
+      if (meta.getStorageUnitId().equals(storageUnitId)) {
         resultList.add(meta);
       }
     }
@@ -214,32 +220,53 @@ public class DefaultMetaCache implements IMetaCache {
   }
 
   @Override
-  public void initFragment(Map<ColumnsInterval, List<FragmentMeta>> fragmentListMap) {
+  public void initFragment(
+      Pair<
+              Map<ColumnsInterval, List<FragmentMeta>>,
+              Map<ColumnsInterval, Map<Long, List<FragmentMeta>>>>
+          fragmentPair) {
+    Map<ColumnsInterval, List<FragmentMeta>> masterFragments = fragmentPair.k;
+    Map<ColumnsInterval, Map<Long, List<FragmentMeta>>> replicaFragments = fragmentPair.v;
     storageUnitLock.readLock().lock();
-    fragmentListMap
-        .values()
-        .forEach(
-            e ->
-                e.forEach(
-                    f ->
-                        f.setMasterStorageUnit(
-                            storageUnitMetaMap.get(f.getMasterStorageUnitId()))));
-    storageUnitLock.readLock().unlock();
-    fragmentLock.writeLock().lock();
-    sortedFragmentMetaLists.addAll(
-        fragmentListMap.entrySet().stream()
-            .sorted(Map.Entry.comparingByKey())
-            .map(e -> new Pair<>(e.getKey(), e.getValue()))
-            .collect(Collectors.toList()));
-    fragmentListMap.forEach(fragmentMetaListMap::put);
-    if (enableFragmentCacheControl) {
-      // 统计分片总数
-      fragmentCacheSize = sortedFragmentMetaLists.stream().mapToInt(e -> e.v.size()).sum();
-      while (fragmentCacheSize > fragmentCacheMaxSize) {
-        kickOffHistoryFragment();
-      }
+    try {
+      masterFragments
+          .values()
+          .forEach(
+              e -> e.forEach(f -> f.setStorageUnit(storageUnitMetaMap.get(f.getStorageUnitId()))));
+      replicaFragments
+          .values()
+          .forEach(
+              e ->
+                  e.values()
+                      .forEach(
+                          x ->
+                              x.forEach(
+                                  f ->
+                                      f.setStorageUnit(
+                                          storageUnitMetaMap.get(f.getStorageUnitId())))));
+    } finally {
+      storageUnitLock.readLock().unlock();
     }
-    fragmentLock.writeLock().unlock();
+
+    fragmentLock.writeLock().lock();
+    try {
+      sortedFragmentMetaLists.addAll(
+          masterFragments.entrySet().stream()
+              .sorted(Map.Entry.comparingByKey())
+              .map(e -> new Pair<>(e.getKey(), e.getValue()))
+              .collect(Collectors.toList()));
+      fragmentMetaListMap.putAll(masterFragments);
+      replicaFragmentMetaMap.putAll(replicaFragments);
+      if (enableFragmentCacheControl) {
+        // 统计分片总数
+        fragmentCacheSize = sortedFragmentMetaLists.stream().mapToInt(e -> e.v.size()).sum();
+        while (fragmentCacheSize > fragmentCacheMaxSize) {
+          kickOffHistoryFragment();
+        }
+      }
+    } finally {
+      fragmentLock.writeLock().unlock();
+    }
   }
 
   private void kickOffHistoryFragment() {
@@ -262,26 +289,37 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public void addFragment(FragmentMeta fragmentMeta) {
     fragmentLock.writeLock().lock();
-    // 更新 fragmentMetaListMap
-    List<FragmentMeta> fragmentMetaList =
-        fragmentMetaListMap.computeIfAbsent(
-            fragmentMeta.getColumnsInterval(), v -> new ArrayList<>());
-    if (fragmentMetaList.size() == 0) {
-      // 更新 sortedFragmentMetaLists
-      updateSortedFragmentsList(fragmentMeta.getColumnsInterval(), fragmentMetaList);
-    }
-    fragmentMetaList.add(fragmentMeta);
-    if (enableFragmentCacheControl) {
-      if (fragmentMeta.getKeyInterval().getStartKey() < minKey) {
-        minKey = fragmentMeta.getKeyInterval().getStartKey();
+    try {
+      if (fragmentMeta.isMaster()) {
+        // 更新 fragmentMetaListMap
+        List<FragmentMeta> fragmentMetaList =
+            fragmentMetaListMap.computeIfAbsent(
+                fragmentMeta.getColumnsInterval(), v -> new ArrayList<>());
+        if (fragmentMetaList.isEmpty()) {
+          // 更新 sortedFragmentMetaLists
+          updateSortedFragmentsList(fragmentMeta.getColumnsInterval(), fragmentMetaList);
+        }
+        fragmentMetaList.add(fragmentMeta);
+        if (enableFragmentCacheControl) {
+          if (fragmentMeta.getKeyInterval().getStartKey() < minKey) {
+            minKey = fragmentMeta.getKeyInterval().getStartKey();
+          }
+          fragmentCacheSize++;
+          while (fragmentCacheSize > fragmentCacheMaxSize) {
+            kickOffHistoryFragment();
+          }
+        }
+      } else {
+        List<FragmentMeta> replicaFragments =
+            replicaFragmentMetaMap
+                .computeIfAbsent(fragmentMeta.getColumnsInterval(), x -> new HashMap<>())
+                .computeIfAbsent(
+                    fragmentMeta.getKeyInterval().getStartKey(), x -> new ArrayList<>());
+        replicaFragments.add(fragmentMeta);
       }
-      fragmentCacheSize++;
-      while (fragmentCacheSize > fragmentCacheMaxSize) {
-        kickOffHistoryFragment();
-      }
+    } finally {
+      fragmentLock.writeLock().unlock();
     }
-
-    fragmentLock.writeLock().unlock();
   }
 
   private void updateSortedFragmentsList(
@@ -313,11 +351,43 @@ public class DefaultMetaCache implements IMetaCache {
   @Override
   public void updateFragment(FragmentMeta fragmentMeta) {
     fragmentLock.writeLock().lock();
-    // 更新 fragmentMetaListMap
-    List<FragmentMeta> fragmentMetaList =
-        fragmentMetaListMap.get(fragmentMeta.getColumnsInterval());
-    fragmentMetaList.set(fragmentMetaList.size() - 1, fragmentMeta);
-    fragmentLock.writeLock().unlock();
+    try {
+      if (fragmentMeta.isMaster()) {
+        // 更新 fragmentMetaListMap
+        List<FragmentMeta> fragmentMetaList =
+            fragmentMetaListMap.getOrDefault(fragmentMeta.getColumnsInterval(), new ArrayList<>());
+        // TODO 主分支默认执行 update 操作之前一定已经执行过了 add 操作，在 add 操作时 sortedFragmentMetaLists 添加了
+        // fragmentMetaListMap 中对应的引用，所以此处只需更新 fragmentMetaListMap；但修改后的 add 操作只是为分片获取一个 id，不会触发
+        // addFragment 函数
+        if (fragmentMetaList.isEmpty()) {
+          addFragment(fragmentMeta);
+        } else {
+          fragmentMetaList.set(fragmentMetaList.size() - 1, fragmentMeta);
+        }
+      } else {
+        List<FragmentMeta> replicaFragments =
+            replicaFragmentMetaMap
+                .computeIfAbsent(fragmentMeta.getColumnsInterval(), e -> new HashMap<>())
+                .computeIfAbsent(
+                    fragmentMeta.getKeyInterval().getStartKey(), e -> new ArrayList<>());
+        int index = -1;
+        int cnt = 0;
+        for (FragmentMeta replicaFragment : replicaFragments) {
+          if (replicaFragment.getId().equals(fragmentMeta.getId())) {
+            index = cnt;
+            break;
+          }
+          cnt++;
+        }
+        if (index != -1) {
+          replicaFragments.set(index, fragmentMeta);
+        } else {
+          replicaFragments.add(fragmentMeta);
+        }
+      }
+    } finally {
+      fragmentLock.writeLock().unlock();
+    }
   }
 
   @Override
@@ -376,6 +446,49 @@ public class DefaultMetaCache implements IMetaCache {
         .forEach(e -> resultMap.put(e.k, e.v));
     fragmentLock.readLock().unlock();
     return resultMap;
+  }
+
+  @Override
+  public FragmentMeta getMasterFragmentByReplicaFragment(FragmentMeta fragmentMeta) {
+    FragmentMeta masterFragment = null;
+    fragmentLock.readLock().lock();
+    try {
+      for (Pair<ColumnsInterval, List<FragmentMeta>> pair : sortedFragmentMetaLists) {
+        boolean found = false;
+        if (pair.k.equals(fragmentMeta.getColumnsInterval())) {
+          for (FragmentMeta fragment : pair.v) {
+            if (fragment.getKeyInterval().getStartKey()
+                    == fragmentMeta.getKeyInterval().getStartKey()
+                && fragment.getId().equals(fragmentMeta.getMasterId())) {
+              masterFragment = fragment;
+              found = true;
+              break;
+            }
+          }
+        }
+        if (found) {
+          break;
+        }
+      }
+    } finally {
+      fragmentLock.readLock().unlock();
+    }
+    return masterFragment;
+  }
+
+  @Override
+  public List<FragmentMeta> getReplicaFragments(FragmentMeta fragmentMeta) {
+    List<FragmentMeta> replicaFragments = new ArrayList<>();
+    fragmentLock.readLock().lock();
+    try {
+      replicaFragments =
+          replicaFragmentMetaMap
+              .getOrDefault(fragmentMeta.getColumnsInterval(), new HashMap<>())
+              .getOrDefault(fragmentMeta.getKeyInterval().getStartKey(), new ArrayList<>());
+    } finally {
+      fragmentLock.readLock().unlock();
+    }
+    return replicaFragments;
   }
 
   @Override
@@ -633,7 +746,7 @@ public class DefaultMetaCache implements IMetaCache {
       if (storageEngineMeta.isHasData()) {
         StorageUnitMeta dummyStorageUnit = storageEngineMeta.getDummyStorageUnit();
         FragmentMeta dummyFragment = storageEngineMeta.getDummyFragment();
-        dummyFragment.setMasterStorageUnit(dummyStorageUnit);
+        dummyFragment.setStorageUnit(dummyStorageUnit);
         dummyStorageUnitMetaMap.put(dummyStorageUnit.getId(), dummyStorageUnit);
         dummyFragments.add(dummyFragment);
       }
@@ -654,7 +767,7 @@ public class DefaultMetaCache implements IMetaCache {
     String dummyStorageUnitId = generateDummyStorageUnitId(storageEngineId);
     StorageEngineMeta oldStorageEngineMeta = storageEngineMetaMap.get(storageEngineId);
     assert oldStorageEngineMeta.isHasData();
-    dummyFragments.removeIf(e -> e.getMasterStorageUnitId().equals(dummyStorageUnitId));
+    dummyFragments.removeIf(e -> e.getStorageUnitId().equals(dummyStorageUnitId));
     dummyStorageUnitMetaMap.remove(dummyStorageUnitId);
     storageEngineMetaMap.remove(storageEngineId);
 

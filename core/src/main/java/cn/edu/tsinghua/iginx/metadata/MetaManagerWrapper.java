@@ -9,6 +9,7 @@ import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
 import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -119,6 +120,16 @@ public class MetaManagerWrapper implements IMetaManager {
   public Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval, boolean withDummyFragment) {
     return metaManager.getFragmentMapByColumnsInterval(columnsInterval, withDummyFragment);
+  }
+
+  @Override
+  public FragmentMeta getMasterFragment(FragmentMeta fragmentMeta) {
+    return null;
+  }
+
+  @Override
+  public List<FragmentMeta> getReplicaFragments(FragmentMeta fragmentMeta) {
+    return Collections.emptyList();
   }
 
   @Override

@@ -127,9 +127,9 @@ public class TreeBuilder {
     Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsInterval = new HashMap<>();
 
     // 生成Project-Fragment
+    // TODO AYZ 待确认
     for (int startKey = 0; startKey < 1000; startKey += 100) {
-      StorageUnitMeta storageUnitMeta =
-          new StorageUnitMeta("fakeUnit" + startKey, 1, "fakeUnit" + startKey, false);
+      StorageUnitMeta storageUnitMeta = new StorageUnitMeta("fakeUnit" + startKey, 1, false);
 
       String startPrefix = "test.a", endPrefix = "test.b";
       if (startKey % 200 == 0) {
@@ -138,7 +138,14 @@ public class TreeBuilder {
       }
       FragmentMeta fragmentMeta =
           new FragmentMeta(
-              startPrefix, endPrefix, startKey, startKey + keyInterval, storageUnitMeta);
+              "",
+              true,
+              "",
+              startPrefix,
+              endPrefix,
+              startKey,
+              startKey + keyInterval,
+              storageUnitMeta);
       FragmentSource fragmentSource = new FragmentSource(fragmentMeta);
       Project project = new Project(fragmentSource, Collections.singletonList("test.c"), null);
       operatorSourceQueue.add(new OperatorSource(project));
@@ -192,9 +199,9 @@ public class TreeBuilder {
     Map<ColumnsInterval, List<FragmentMeta>> fragmentsByColumnsInterval = new HashMap<>();
 
     // 生成Project-Fragment
+    // TODO AYZ 待确认
     for (int startKey = 0; startKey < 400; startKey += 100) {
-      StorageUnitMeta storageUnitMeta =
-          new StorageUnitMeta("fakeUnit" + startKey, 1, "fakeUnit" + startKey, false);
+      StorageUnitMeta storageUnitMeta = new StorageUnitMeta("fakeUnit" + startKey, 1, false);
 
       String startPrefix = "test.a", endPrefix = "test.b";
       if (startKey % 200 == 0) {
@@ -203,7 +210,14 @@ public class TreeBuilder {
       }
       FragmentMeta fragmentMeta =
           new FragmentMeta(
-              startPrefix, endPrefix, startKey, startKey + keyInterval, storageUnitMeta);
+              "",
+              true,
+              "",
+              startPrefix,
+              endPrefix,
+              startKey,
+              startKey + keyInterval,
+              storageUnitMeta);
       FragmentSource fragmentSource = new FragmentSource(fragmentMeta);
       Project project = new Project(fragmentSource, Collections.singletonList("test.c"), null);
       operatorSourceQueue.add(new OperatorSource(project));

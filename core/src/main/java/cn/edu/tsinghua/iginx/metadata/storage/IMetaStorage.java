@@ -63,7 +63,10 @@ public interface IMetaStorage {
 
   void registerStorageUnitChangeHook(StorageUnitChangeHook hook);
 
-  Map<ColumnsInterval, List<FragmentMeta>> loadFragment() throws MetaStorageException;
+  Pair<
+          Map<ColumnsInterval, List<FragmentMeta>>,
+          Map<ColumnsInterval, Map<Long, List<FragmentMeta>>>>
+      loadFragment() throws MetaStorageException;
 
   void lockFragment() throws MetaStorageException;
 
@@ -80,7 +83,7 @@ public interface IMetaStorage {
 
   void removeFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
 
-  void addFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
+  String addFragment(FragmentMeta fragmentMeta) throws MetaStorageException;
 
   void releaseFragment() throws MetaStorageException;
 

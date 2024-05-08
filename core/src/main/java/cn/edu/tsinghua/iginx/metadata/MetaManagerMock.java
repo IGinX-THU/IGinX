@@ -128,6 +128,16 @@ public class MetaManagerMock implements IMetaManager {
   }
 
   @Override
+  public FragmentMeta getMasterFragment(FragmentMeta fragmentMeta) {
+    return null;
+  }
+
+  @Override
+  public List<FragmentMeta> getReplicaFragments(FragmentMeta fragmentMeta) {
+    return Collections.emptyList();
+  }
+
+  @Override
   public boolean hasDummyFragment(ColumnsInterval columnsInterval) {
     return false;
   }

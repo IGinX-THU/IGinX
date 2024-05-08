@@ -36,110 +36,236 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 public final class FragmentMeta {
+
+  private String id;
 
   private final KeyInterval keyInterval;
 
   private final ColumnsInterval columnsInterval;
 
+  private boolean isMaster;
+
+  private String masterId;
+
+  private String storageUnitId;
+
+  private transient StorageUnitMeta storageUnit;
+
+  private transient String fakeStorageUnitId;
+
   private long createdBy;
 
   private long updatedBy;
 
-  private String masterStorageUnitId;
+  private boolean initial = true;
 
-  private transient StorageUnitMeta masterStorageUnit;
-
-  private transient String fakeStorageUnitId;
-
-  private boolean initialFragment = true;
-
-  private boolean dummyFragment = false;
+  private boolean dummy = false;
 
   private boolean valid = true;
 
-  public FragmentMeta(String startPrefix, String endPrefix, long startKey, long endKey) {
-    this.keyInterval = new KeyInterval(startKey, endKey);
-    this.columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
-  }
+  // TODO AYZ 未保证一致性
+  private transient List<FragmentMeta> replicas = new ArrayList<>();
 
   public FragmentMeta(
-      String startPrefix, String endPrefix, long startKey, long endKey, String fakeStorageUnitId) {
-    this.keyInterval = new KeyInterval(startKey, endKey);
-    this.columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
-    this.fakeStorageUnitId = fakeStorageUnitId;
-  }
-
-  public FragmentMeta(
-      ColumnsInterval columnsInterval, KeyInterval keyInterval, String fakeStorageUnitId) {
+      String id,
+      boolean isMaster,
+      String masterId,
+      KeyInterval keyInterval,
+      ColumnsInterval columnsInterval) {
+    this.id = id;
+    this.isMaster = isMaster;
+    this.masterId = masterId;
     this.keyInterval = keyInterval;
     this.columnsInterval = columnsInterval;
-    this.fakeStorageUnitId = fakeStorageUnitId;
   }
 
   public FragmentMeta(
-      String startPrefix,
-      String endPrefix,
+      String id,
+      boolean isMaster,
+      String masterId,
+      String startColumn,
+      String endColumn,
+      long startKey,
+      long endKey) {
+    this(
+        id,
+        isMaster,
+        masterId,
+        new KeyInterval(startKey, endKey),
+        new ColumnsInterval(startColumn, endColumn));
+  }
+
+  public FragmentMeta(
+      String id,
+      boolean isMaster,
+      String masterId,
+      String startColumn,
+      String endColumn,
       long startKey,
       long endKey,
-      StorageUnitMeta masterStorageUnit) {
-    this.keyInterval = new KeyInterval(startKey, endKey);
-    this.columnsInterval = new ColumnsInterval(startPrefix, endPrefix);
-    this.masterStorageUnit = masterStorageUnit;
-    this.masterStorageUnitId = masterStorageUnit.getMasterId();
+      String fakeStorageUnitId) {
+    this(id, isMaster, masterId, startColumn, endColumn, startKey, endKey);
+    this.fakeStorageUnitId = fakeStorageUnitId;
   }
 
   public FragmentMeta(
-      ColumnsInterval columnsInterval, KeyInterval keyInterval, StorageUnitMeta masterStorageUnit) {
-    this.keyInterval = keyInterval;
-    this.columnsInterval = columnsInterval;
-    this.masterStorageUnit = masterStorageUnit;
-    this.masterStorageUnitId = masterStorageUnit.getMasterId();
+      String id,
+      boolean isMaster,
+      String masterId,
+      ColumnsInterval columnsInterval,
+      KeyInterval keyInterval,
+      String fakeStorageUnitId) {
+    this(id, isMaster, masterId, keyInterval, columnsInterval);
+    this.fakeStorageUnitId = fakeStorageUnitId;
   }
 
   public FragmentMeta(
+      String id,
+      boolean isMaster,
+      String masterId,
+      String startColumn,
+      String endColumn,
+      long startKey,
+      long endKey,
+      StorageUnitMeta storageUnit) {
+    this(id, isMaster, masterId, startColumn, endColumn, startKey, endKey);
+    setStorageUnit(storageUnit);
+  }
+
+  public FragmentMeta(
+      String id,
+      boolean isMaster,
+      String masterId,
+      ColumnsInterval columnsInterval,
+      KeyInterval keyInterval,
+      StorageUnitMeta storageUnit) {
+    this(id, isMaster, masterId, keyInterval, columnsInterval);
+    setStorageUnit(storageUnit);
+  }
+
+  public FragmentMeta(FragmentMeta fragment) {
+    this.id = fragment.id;
+    this.keyInterval = fragment.keyInterval;
+    this.columnsInterval = fragment.columnsInterval;
+    this.isMaster = fragment.isMaster;
+    this.masterId = fragment.masterId;
+    this.storageUnitId = fragment.storageUnitId;
+    this.createdBy = fragment.createdBy;
+    this.updatedBy = fragment.updatedBy;
+    this.initial = fragment.initial;
+    this.dummy = fragment.dummy;
+    this.valid = fragment.valid;
+  }
+
+  public FragmentMeta(
+      String id,
       KeyInterval keyInterval,
       ColumnsInterval columnsInterval,
+      boolean isMaster,
+      String masterId,
+      String storageUnitId,
       long createdBy,
       long updatedBy,
-      String masterStorageUnitId,
-      StorageUnitMeta masterStorageUnit,
-      String fakeStorageUnitId,
-      boolean initialFragment,
-      boolean dummyFragment) {
+      boolean initial,
+      boolean dummy,
+      boolean valid) {
+    this.id = id;
     this.keyInterval = keyInterval;
     this.columnsInterval = columnsInterval;
+    this.isMaster = isMaster;
+    this.masterId = masterId;
+    this.storageUnitId = storageUnitId;
     this.createdBy = createdBy;
     this.updatedBy = updatedBy;
-    this.masterStorageUnitId = masterStorageUnitId;
-    this.masterStorageUnit = masterStorageUnit;
-    this.fakeStorageUnitId = fakeStorageUnitId;
-    this.initialFragment = initialFragment;
-    this.dummyFragment = dummyFragment;
-  }
-
-  public KeyInterval getKeyInterval() {
-    return keyInterval;
-  }
-
-  public ColumnsInterval getColumnsInterval() {
-    return columnsInterval;
+    this.initial = initial;
+    this.dummy = dummy;
+    this.valid = valid;
   }
 
   public FragmentMeta endFragmentMeta(long endKey) {
     FragmentMeta fragment =
         new FragmentMeta(
+            id,
+            isMaster,
+            masterId,
             columnsInterval.getStartColumn(),
             columnsInterval.getEndColumn(),
             keyInterval.getStartKey(),
             endKey);
-    fragment.setMasterStorageUnit(masterStorageUnit);
-    fragment.setMasterStorageUnitId(masterStorageUnitId);
+    fragment.setStorageUnit(storageUnit);
     fragment.setCreatedBy(createdBy);
-    fragment.setInitialFragment(initialFragment);
     return fragment;
+  }
+
+  public FragmentMeta renameFragment(String id, String masterId, boolean initial) {
+    FragmentMeta fragment = new FragmentMeta(id, isMaster, masterId, keyInterval, columnsInterval);
+    fragment.setCreatedBy(createdBy);
+    fragment.setInitial(initial);
+    fragment.setReplicas(replicas);
+    fragment.setStorageUnitId(storageUnitId);
+    return fragment;
+  }
+
+  public synchronized void addReplica(FragmentMeta replica) {
+    replicas.add(replica);
+  }
+
+  public synchronized void removeReplica(FragmentMeta replica) {
+    replicas.remove(replica);
+  }
+
+  public String getId() {
+    return id;
+  }
+
+  public void setId(String id) {
+    this.id = id;
+  }
+
+  public boolean isMaster() {
+    return isMaster;
+  }
+
+  public void setMaster(boolean master) {
+    isMaster = master;
+  }
+
+  public String getMasterId() {
+    return masterId;
+  }
+
+  public void setMasterId(String masterId) {
+    this.masterId = masterId;
+  }
+
+  public String getStorageUnitId() {
+    return storageUnitId;
+  }
+
+  public void setStorageUnitId(String storageUnitId) {
+    this.storageUnitId = storageUnitId;
+  }
+
+  public StorageUnitMeta getStorageUnit() {
+    return storageUnit;
+  }
+
+  public void setStorageUnit(StorageUnitMeta storageUnit) {
+    this.storageUnit = storageUnit;
+    this.storageUnitId = storageUnit.getId();
+  }
+
+  public String getFakeStorageUnitId() {
+    return fakeStorageUnitId;
+  }
+
+  public void setFakeStorageUnitId(String fakeStorageUnitId) {
+    this.fakeStorageUnitId = fakeStorageUnitId;
   }
 
   public long getCreatedBy() {
@@ -158,55 +284,50 @@ public final class FragmentMeta {
     this.updatedBy = updatedBy;
   }
 
-  public StorageUnitMeta getMasterStorageUnit() {
-    return masterStorageUnit;
-  }
-
-  public void setMasterStorageUnit(StorageUnitMeta masterStorageUnit) {
-    this.masterStorageUnit = masterStorageUnit;
-    this.masterStorageUnitId = masterStorageUnit.getMasterId();
-  }
-
-  public String getFakeStorageUnitId() {
-    return fakeStorageUnitId;
-  }
-
-  public void setFakeStorageUnitId(String fakeStorageUnitId) {
-    this.fakeStorageUnitId = fakeStorageUnitId;
-  }
-
-  public String getMasterStorageUnitId() {
-    return masterStorageUnitId;
-  }
-
-  public void setMasterStorageUnitId(String masterStorageUnitId) {
-    this.masterStorageUnitId = masterStorageUnitId;
-  }
-
   public boolean isValid() {
     return valid;
   }
 
-  public void setIfValid(boolean ifValid) {
-    this.valid = ifValid;
+  public void setValid(boolean valid) {
+    this.valid = valid;
+  }
+
+  public List<FragmentMeta> getReplicas() {
+    return replicas;
+  }
+
+  public void setReplicas(List<FragmentMeta> replicas) {
+    this.replicas = replicas;
   }
 
   @Override
   public String toString() {
     return "FragmentMeta{"
-        + "keyInterval="
+        + "id='"
+        + id
+        + '\''
+        + ", keyInterval="
         + keyInterval
         + ", columnsInterval="
         + columnsInterval
+        + ", isMaster="
+        + isMaster
+        + ", masterId='"
+        + masterId
+        + '\''
+        + ", storageUnitId='"
+        + storageUnitId
+        + '\''
         + ", createdBy="
         + createdBy
         + ", updatedBy="
         + updatedBy
-        + ", masterStorageUnitId='"
-        + masterStorageUnitId
-        + '\''
-        + ", dummyFragment="
-        + dummyFragment
+        + ", initial="
+        + initial
+        + ", dummy="
+        + dummy
+        + ", valid="
+        + valid
         + '}';
   }
 
@@ -215,7 +336,8 @@ public final class FragmentMeta {
     if (this == o) return true;
     if (o == null || getClass() != o.getClass()) return false;
     FragmentMeta that = (FragmentMeta) o;
-    return Objects.equals(keyInterval, that.keyInterval)
+    return Objects.equals(id, that.id)
+        && Objects.equals(keyInterval, that.keyInterval)
         && Objects.equals(columnsInterval, that.columnsInterval);
   }
 
@@ -224,20 +346,28 @@ public final class FragmentMeta {
     return Objects.hash(keyInterval, columnsInterval);
   }
 
-  public boolean isInitialFragment() {
-    return initialFragment;
+  public KeyInterval getKeyInterval() {
+    return keyInterval;
   }
 
-  public void setInitialFragment(boolean initialFragment) {
-    this.initialFragment = initialFragment;
+  public ColumnsInterval getColumnsInterval() {
+    return columnsInterval;
   }
 
-  public boolean isDummyFragment() {
-    return dummyFragment;
+  public boolean isInitial() {
+    return initial;
   }
 
-  public void setDummyFragment(boolean dummyFragment) {
-    this.dummyFragment = dummyFragment;
+  public void setInitial(boolean initial) {
+    this.initial = initial;
+  }
+
+  public boolean isDummy() {
+    return dummy;
+  }
+
+  public void setDummy(boolean dummy) {
+    this.dummy = dummy;
   }
 
   public static long sizeOf() {

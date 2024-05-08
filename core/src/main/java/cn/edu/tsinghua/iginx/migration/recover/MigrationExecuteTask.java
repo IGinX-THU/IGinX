@@ -49,12 +49,15 @@ public class MigrationExecuteTask {
 
   public static MigrationExecuteTask fromString(String input) {
     String[] tuples = input.split(SEPARATOR);
-    return new MigrationExecuteTask(
-        new FragmentMeta(
-            tuples[2], tuples[3], Long.parseLong(tuples[0]), Long.parseLong(tuples[1]), tuples[4]),
-        tuples[4],
-        Long.parseLong(tuples[5]),
-        Long.parseLong(tuples[6]),
-        MigrationExecuteType.valueOf(tuples[7]));
+    // TODO AYZ 暂时忽略
+    return null;
+    //    return new MigrationExecuteTask(
+    //        new FragmentMeta(
+    //            tuples[2], tuples[3], Long.parseLong(tuples[0]), Long.parseLong(tuples[1]),
+    // tuples[4]),
+    //        tuples[4],
+    //        Long.parseLong(tuples[5]),
+    //        Long.parseLong(tuples[6]),
+    //        MigrationExecuteType.valueOf(tuples[7]));
   }
 }

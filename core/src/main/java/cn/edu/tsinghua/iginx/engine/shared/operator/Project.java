@@ -100,7 +100,7 @@ public class Project extends AbstractUnaryOperator {
     Source source = getSource();
     if (source.getType() == SourceType.Fragment) {
       FragmentMeta meta = ((FragmentSource) source).getFragment();
-      String du = meta.getMasterStorageUnitId();
+      String du = meta.getStorageUnitId();
       builder.append(", Target DU: ").append(du);
     }
     if (tagFilter != null) {

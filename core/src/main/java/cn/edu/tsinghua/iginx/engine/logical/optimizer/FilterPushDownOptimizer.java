@@ -94,13 +94,13 @@ public class FilterPushDownOptimizer implements Optimizer {
 
       // the same meta just call once.
       Filter subFilter;
-      if (cache.containsKey(fragmentMeta.getMasterStorageUnitId())) {
-        subFilter = cache.get(fragmentMeta.getMasterStorageUnitId()).copy();
+      if (cache.containsKey(fragmentMeta.getStorageUnitId())) {
+        subFilter = cache.get(fragmentMeta.getStorageUnitId()).copy();
       } else {
         subFilter =
             LogicalFilterUtils.getSubFilterFromFragment(filter, fragmentMeta.getColumnsInterval());
         subFilter = LogicalFilterUtils.removeWildCardOrFilterByFragment(subFilter, fragmentMetaSet);
-        cache.put(fragmentMeta.getMasterStorageUnitId(), subFilter);
+        cache.put(fragmentMeta.getStorageUnitId(), subFilter);
       }
       subFilter = LogicalFilterUtils.removePathByPatterns(subFilter, project.getPatterns());
 

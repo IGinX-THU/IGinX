@@ -91,18 +91,17 @@ public class LowWriteFragmentCompaction extends Compaction {
     for (List<FragmentMeta> fragmentGroup : toCompactFragmentGroups) {
       if (fragmentGroup.size() > 1) {
         // 分别计算每个du的数据量，取其中数据量最多的du作为目标合并du
-        StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getMasterStorageUnit();
+        StorageUnitMeta maxStorageUnitMeta = fragmentGroup.get(0).getStorageUnit();
         long maxStorageUnitPoint = 0;
         Map<String, Long> storageUnitPointsMap = new HashMap<>();
         long totalPoints = 0;
         for (FragmentMeta fragmentMeta : fragmentGroup) {
-          long pointsNum =
-              storageUnitPointsMap.getOrDefault(fragmentMeta.getMasterStorageUnitId(), 0L);
+          long pointsNum = storageUnitPointsMap.getOrDefault(fragmentMeta.getStorageUnitId(), 0L);
           pointsNum += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
           if (pointsNum > maxStorageUnitPoint) {
-            maxStorageUnitMeta = fragmentMeta.getMasterStorageUnit();
+            maxStorageUnitMeta = fragmentMeta.getStorageUnit();
           }
-          storageUnitPointsMap.put(fragmentMeta.getMasterStorageUnitId(), pointsNum);
+          storageUnitPointsMap.put(fragmentMeta.getStorageUnitId(), pointsNum);
           totalPoints += fragmentMetaPointsMap.getOrDefault(fragmentMeta, 0L);
         }
 

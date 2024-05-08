@@ -35,13 +35,15 @@ public class LowAccessFragmentCompactionTest {
 
     StorageUnitMeta storageUnitMeta1 = new StorageUnitMeta("1", 1);
     StorageUnitMeta storageUnitMeta2 = new StorageUnitMeta("2", 2);
+    // TODO AYZ 待确认
     FragmentMeta fragmentMeta1 =
-        new FragmentMeta("root.a.b", "root.z", 0L, 1000L, storageUnitMeta1);
+        new FragmentMeta("", true, "", "root.a.b", "root.z", 0L, 1000L, storageUnitMeta1);
     FragmentMeta fragmentMeta2 =
-        new FragmentMeta("root.z", "root.z.a", 0L, 1000L, storageUnitMeta1);
+        new FragmentMeta("", true, "", "root.z", "root.z.a", 0L, 1000L, storageUnitMeta1);
     FragmentMeta fragmentMeta3 =
-        new FragmentMeta("root.z.a", "root.z.z", 0L, 1000L, storageUnitMeta1);
-    FragmentMeta fragmentMeta4 = new FragmentMeta("root.z.z", null, 0L, 1000L, storageUnitMeta2);
+        new FragmentMeta("", true, "", "root.z.a", "root.z.z", 0L, 1000L, storageUnitMeta1);
+    FragmentMeta fragmentMeta4 =
+        new FragmentMeta("", true, "", "root.z.z", null, 0L, 1000L, storageUnitMeta2);
     fragmentMetaSet.add(fragmentMeta1);
     fragmentMetaSet.add(fragmentMeta2);
     fragmentMetaSet.add(fragmentMeta3);
@@ -76,7 +78,7 @@ public class LowAccessFragmentCompactionTest {
     assertEquals(fragmentMetas.size(), 1);
     assertEquals(fragmentMetas.get(0).getColumnsInterval().getStartColumn(), "root.z.a");
     assertNull(fragmentMetas.get(0).getColumnsInterval().getEndColumn());
-    assertEquals(fragmentMetas.get(0).getMasterStorageUnit().getStorageEngineId(), 1);
+    assertEquals(fragmentMetas.get(0).getStorageUnit().getStorageEngineId(), 1);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getStartKey(), 0);
     assertEquals(fragmentMetas.get(0).getKeyInterval().getEndKey(), 1000);
     metaManager.removeFragment(fragmentMetas.get(0));

@@ -48,7 +48,6 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
-import cn.edu.tsinghua.iginx.metadata.entity.StorageUnitMeta;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageEngineChangeHook;
 import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
@@ -225,22 +224,24 @@ public class StoragePhysicalTaskExecutor {
                                         + result.getException());
                                 task.setResult(new TaskExecuteResult(result.getException()));
                               } else {
-                                StorageUnitMeta masterStorageUnit =
-                                    task.getTargetFragment().getMasterStorageUnit();
-                                List<String> replicaIds =
-                                    masterStorageUnit.getReplicas().stream()
-                                        .map(StorageUnitMeta::getId)
+                                List<FragmentMeta> replicaFragments =
+                                    metaManager.getReplicaFragments(task.getTargetFragment());
+                                List<String> storageUnitReplicaIds =
+                                    replicaFragments.stream()
+                                        .map(FragmentMeta::getStorageUnitId)
                                         .collect(Collectors.toList());
-                                replicaIds.add(masterStorageUnit.getId());
-                                for (String replicaId : replicaIds) {
-                                  if (replicaId.equals(task.getStorageUnit())) {
+                                storageUnitReplicaIds.add(
+                                    task.getTargetFragment().getStorageUnitId());
+                                for (String storageUnitReplicaId : storageUnitReplicaIds) {
+                                  if (storageUnitReplicaId.equals(task.getStorageUnit())) {
                                     continue;
                                   }
                                   StoragePhysicalTask replicaTask =
                                       new StoragePhysicalTask(
                                           task.getOperators(), false, false, task.getContext());
-                                  storageTaskQueues.get(replicaId).addTask(replicaTask);
-                                  LOGGER.info("broadcasting task {} to {}", task, replicaId);
+                                  storageTaskQueues.get(storageUnitReplicaId).addTask(replicaTask);
+                                  LOGGER.info(
+                                      "broadcasting task {} to {}", task, storageUnitReplicaId);
                                 }
                               }
                             }
@@ -388,15 +389,37 @@ public class StoragePhysicalTaskExecutor {
 
   public void commit(List<StoragePhysicalTask> tasks) {
     for (StoragePhysicalTask task : tasks) {
-      if (replicaDispatcher == null) {
-        storageTaskQueues
-            .get(task.getTargetFragment().getMasterStorageUnitId())
-            .addTask(task); // 默认情况下，异步写备，查询只查主
+      // AYZ
+      FragmentMeta fragment = task.getTargetFragment();
+      FragmentMeta masterFragment;
+      if (fragment.isMaster()) {
+        masterFragment = fragment;
       } else {
-        storageTaskQueues
-            .get(replicaDispatcher.chooseReplica(task))
-            .addTask(task); // 在优化策略提供了选择器的情况下，利用选择器提供的结果
+        masterFragment = metaManager.getMasterFragment(fragment);
       }
+      List<FragmentMeta> replicas = metaManager.getReplicaFragments(masterFragment);
+      int chosenIndex = new Random().nextInt(replicas.size() + 1);
+      String chosenStorageUnitId;
+      switch (task.getOperators().get(0).getType()) {
+        case Insert:
+          // 写入选择主本，副本通过主本的 broadcasting 写入
+          chosenStorageUnitId = masterFragment.getStorageUnitId();
+          break;
+        case Delete:
+          // TODO 如果是在迁移过程中，则应该删除选择自己；如果是正常的删除，则应该选择主本，副本通过主本的 broadcasting 删除
+          chosenStorageUnitId = fragment.getStorageUnitId();
+          // chosenStorageUnitId = masterFragment.getStorageUnitId();
+          break;
+        default:
+          // 查询随机选择
+          if (chosenIndex == 0) {
+            chosenStorageUnitId = masterFragment.getStorageUnitId();
+          } else {
+            chosenStorageUnitId = replicas.get(chosenIndex - 1).getStorageUnitId();
+          }
+          break;
+      }
+      storageTaskQueues.get(chosenStorageUnitId).addTask(task);
     }
   }
 

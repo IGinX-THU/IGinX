@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.metadata.cache;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.policy.simple.ColumnCalDO;
 import cn.edu.tsinghua.iginx.sql.statement.InsertStatement;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -30,7 +31,11 @@ public interface IMetaCache {
   boolean enableFragmentCacheControl();
 
   // 分片相关的缓存读写接口
-  void initFragment(Map<ColumnsInterval, List<FragmentMeta>> fragmentListMap);
+  void initFragment(
+      Pair<
+              Map<ColumnsInterval, List<FragmentMeta>>,
+              Map<ColumnsInterval, Map<Long, List<FragmentMeta>>>>
+          fragmentPair);
 
   void addFragment(FragmentMeta fragmentMeta);
 
@@ -44,6 +49,11 @@ public interface IMetaCache {
 
   Map<ColumnsInterval, List<FragmentMeta>> getFragmentMapByColumnsInterval(
       ColumnsInterval columnsInterval);
+
+  // AYZ
+  FragmentMeta getMasterFragmentByReplicaFragment(FragmentMeta fragmentMeta);
+
+  List<FragmentMeta> getReplicaFragments(FragmentMeta fragmentMeta);
 
   List<FragmentMeta> getDummyFragmentsByColumnsInterval(ColumnsInterval columnsInterval);
 

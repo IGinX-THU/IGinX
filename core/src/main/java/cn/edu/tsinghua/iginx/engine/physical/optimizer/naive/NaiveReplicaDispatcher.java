@@ -32,7 +32,7 @@ public class NaiveReplicaDispatcher implements ReplicaDispatcher {
     if (task == null) {
       return null;
     }
-    return task.getTargetFragment().getMasterStorageUnitId();
+    return task.getTargetFragment().getStorageUnitId();
   }
 
   public static NaiveReplicaDispatcher getInstance() {

@@ -13,4 +13,8 @@ public class IdUtils {
   public static String generateDummyStorageUnitId(long id) {
     return generateId(Constants.DUMMY, id);
   }
+
+  public static String generateDummyFragmentId(long id) {
+    return generateId(Constants.DUMMY, id);
+  }
 }

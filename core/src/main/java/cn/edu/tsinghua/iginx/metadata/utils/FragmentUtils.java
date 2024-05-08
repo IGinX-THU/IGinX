@@ -17,7 +17,7 @@ public class FragmentUtils {
         (k, v) ->
             v.forEach(
                 fragmentMeta -> {
-                  if (fragmentMeta.isDummyFragment()) {
+                  if (fragmentMeta.isDummy()) {
                     dummyFragments.add(fragmentMeta);
                     return;
                   }
