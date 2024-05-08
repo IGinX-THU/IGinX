@@ -676,6 +676,11 @@ public abstract class BaseCapacityExpansionIT {
       String statement = "select * from mn.wf01.wt01;";
 
       QueryDataSet res = session.executeQuery(statement);
+      LOGGER.info(String.valueOf((res.getWarningMsg() == null
+              || res.getWarningMsg().isEmpty()
+              || !res.getWarningMsg().contains("The query results contain overlapped keys."))));
+      LOGGER.info(SUPPORT_KEY.toString());
+      LOGGER.info(type.name());
       if ((res.getWarningMsg() == null
               || res.getWarningMsg().isEmpty()
               || !res.getWarningMsg().contains("The query results contain overlapped keys."))
