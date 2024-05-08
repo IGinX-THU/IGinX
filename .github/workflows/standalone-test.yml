@@ -140,6 +140,12 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
 
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:

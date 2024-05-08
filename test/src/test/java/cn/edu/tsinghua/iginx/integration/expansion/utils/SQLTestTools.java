@@ -21,6 +21,7 @@ public class SQLTestTools {
 
   public static void executeAndCompare(Session session, String statement, String exceptOutput) {
     String actualOutput = execute(session, statement);
+    System.out.println(actualOutput);
     assertEquals(exceptOutput, actualOutput);
   }
 
@@ -47,6 +48,18 @@ public class SQLTestTools {
 
   private static void compareValuesList(
       List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+    compareValuesList(expectedValuesList, actualValuesList, true);
+  }
+
+  private static void containValuesList(
+      List<List<Object>> expectedValuesList, List<List<Object>> actualValuesList) {
+    compareValuesList(expectedValuesList, actualValuesList, false);
+  }
+
+  private static void compareValuesList(
+      List<List<Object>> expectedValuesList,
+      List<List<Object>> actualValuesList,
+      boolean equalMode) {
     Set<List<String>> expectedSet =
         expectedValuesList.stream()
             .map(
@@ -81,8 +94,11 @@ public class SQLTestTools {
                 })
             .collect(Collectors.toSet());
 
-    if (!expectedSet.equals(actualSet)) {
+    if (equalMode && !expectedSet.equals(actualSet)) {
       LOGGER.error("actual valuesList is {} and it should be {}", actualSet, expectedSet);
+      fail();
+    } else if (!equalMode && !actualSet.containsAll(expectedSet)) {
+      LOGGER.error("actual valuesList is {} and it should contain {}", actualSet, expectedSet);
       fail();
     }
   }
@@ -100,6 +116,26 @@ public class SQLTestTools {
       assertArrayEquals(new List[] {pathListAns}, new List[] {pathList});
 
       compareValuesList(expectedValuesList, actualValuesList);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
+      fail();
+    }
+  }
+
+  /** execute query and result should contain expected values for specified paths. */
+  public static void executeAndContainValue(
+      Session session,
+      String statement,
+      List<String> pathListAns,
+      List<List<Object>> expectedValuesList) {
+    try {
+      SessionExecuteSqlResult res = session.executeSql(statement);
+      List<String> pathList = res.getPaths();
+      List<List<Object>> actualValuesList = res.getValues();
+
+      assertArrayEquals(new List[] {pathListAns}, new List[] {pathList});
+
+      containValuesList(expectedValuesList, actualValuesList);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", statement, e);
       fail();

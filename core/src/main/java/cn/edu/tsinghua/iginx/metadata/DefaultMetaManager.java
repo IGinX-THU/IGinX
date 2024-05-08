@@ -1252,6 +1252,10 @@ public class DefaultMetaManager implements IMetaManager {
       if (hasData) {
         StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(i), i);
         Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
+        if (boundary == null) {
+          boundary =
+              new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
+        }
         FragmentMeta dummyFragment;
 
         if (dataPrefix == null) {

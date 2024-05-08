@@ -346,7 +346,7 @@ public class LocalExecutor implements Executor {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
-    KeyInterval keyInterval = new KeyInterval(0, Long.MAX_VALUE);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
     ColumnsInterval columnsInterval;
 
     File directory = new File(FilePathUtils.toNormalFilePath(realDummyRoot, dataPrefix));

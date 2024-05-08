@@ -85,6 +85,7 @@ public class StorageManager {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
     } catch (Exception e) {
       LOGGER.error("unexpected error when process engine {}:", engine, e);
+      return null;
     } finally {
       try {
         if (needRelease) {
