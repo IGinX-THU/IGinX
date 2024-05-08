@@ -12,6 +12,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacity
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
@@ -31,6 +32,8 @@ public abstract class BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseCapacityExpansionIT.class);
 
   protected static Session session;
+
+  private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   protected StorageEngineType type;
 
@@ -676,15 +679,10 @@ public abstract class BaseCapacityExpansionIT {
       String statement = "select * from mn.wf01.wt01;";
 
       QueryDataSet res = session.executeQuery(statement);
-      LOGGER.info(String.valueOf((res.getWarningMsg() == null
-              || res.getWarningMsg().isEmpty()
-              || !res.getWarningMsg().contains("The query results contain overlapped keys."))));
-      LOGGER.info(SUPPORT_KEY.toString());
-      LOGGER.info(type.name());
       if ((res.getWarningMsg() == null
               || res.getWarningMsg().isEmpty()
               || !res.getWarningMsg().contains("The query results contain overlapped keys."))
-          && SUPPORT_KEY.get(type.name())) {
+          && SUPPORT_KEY.get(testConf.getStorageType())) {
         LOGGER.error("未抛出重叠key的警告");
         fail();
       }
@@ -692,7 +690,7 @@ public abstract class BaseCapacityExpansionIT {
       clearData();
 
       res = session.executeQuery(statement);
-      if (res.getWarningMsg() != null && SUPPORT_KEY.get(type.name())) {
+      if (res.getWarningMsg() != null && SUPPORT_KEY.get(testConf.getStorageType())) {
         LOGGER.error("不应抛出重叠key的警告");
         fail();
       }
