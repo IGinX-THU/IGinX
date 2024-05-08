@@ -47,7 +47,7 @@ class Tests:
                 'Salary': [50000, 60000, 70000, 80000, 90000]
             })
             # 将数据框保存为 Parquet 文件
-            data.to_parquet('pq/data/example.parquet', index=False)
+            data.to_parquet('pq/dummy/example.parquet', index=False)
             print("Dummy Parquet 文件已生成：example.parquet")
 
             os.makedirs('fs/data', mode=0o777, exist_ok=True)
@@ -136,7 +136,7 @@ class Tests:
             self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6670, "", "");')
             self.session.execute_sql('REMOVE HISTORYDATASOURCE  ("127.0.0.1", 6671, "", "");')
             # 删除新建的parquet文件
-            os.remove('pq/data/example.parquet')
+            os.remove('pq/dummy/example.parquet')
             # 删除新建的文件夹
             os.rmdir('pq/data')
             os.rmdir('pq/dummy')
