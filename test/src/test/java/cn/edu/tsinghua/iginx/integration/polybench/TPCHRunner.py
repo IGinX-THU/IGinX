@@ -1,4 +1,6 @@
-import sys, traceback, signal, resource
+import sys, traceback, signal, psutil
+
+
 sys.path.append('session_py/')
 
 from iginx.iginx_pyclient.session import Session
@@ -10,11 +12,6 @@ import time
 def timeout_handler(signum, frame):
     print("Execution time exceeded 5 minutes. Exiting...")
     sys.exit(0)
-
-def get_memory_usage():
-    usage = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    # 转换为 MB 并返回
-    return usage / 1024
 
 if __name__ == '__main__':
     print("start")
@@ -128,8 +125,13 @@ order by
         signal.alarm(0)
         print(f"end tpch query, time cost: {time.time() - start_time}s")
         # 获取执行语句后的内存使用情况
-        memory_usage = get_memory_usage()
-        print("Memory usage:", memory_usage, "MB")
+        # 获取系统内存信息
+        memory = psutil.virtual_memory()
+
+        # 输出内存总量、可用内存量和已使用内存量
+        print("Total memory:", memory.total)
+        print("Available memory:", memory.available)
+        print("Used memory:", memory.used)
         session.close()
     except Exception as e:
         print(e)

@@ -67,16 +67,12 @@ else
   fi
   echo "TPCH数据生成工具编译完成"
 
-  ./dbgen -s 1 -f
+  ./dbgen -s 0.1
   ls
   echo "数据生成完成"
 
   rm part.tbl
   rm partsupp.tbl
-  cat lineitem.tbl | head -n 999999 > lineitem2.tbl
-  mv lineitem2.tbl lineitem.tbl
-  cat orders.tbl | head -n 999999 > orders2.tbl
-  mv orders2.tbl orders.tbl
   # 源文件夹路径
   source_folder="."
 

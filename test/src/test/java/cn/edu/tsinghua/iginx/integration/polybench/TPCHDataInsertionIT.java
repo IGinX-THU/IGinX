@@ -17,7 +17,6 @@ import java.util.Date;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-
 import org.bson.Document;
 import org.junit.Test;
 import org.postgresql.copy.CopyManager;
@@ -68,10 +67,11 @@ public class TPCHDataInsertionIT {
   private void insertLineItemFromFile(MongoClient client, String databaseName) {
     try {
       String collectionName = "lineitem";
-        String fileName = "lineitem.tbl";
+      String fileName = "lineitem.tbl";
       Long start_time = System.currentTimeMillis();
       List<Document> documents = new ArrayList<>();
-      try (BufferedReader br = new BufferedReader(new FileReader(String.format("%s/%s", dataPath, fileName)))) {
+      try (BufferedReader br =
+          new BufferedReader(new FileReader(String.format("%s/%s", dataPath, fileName)))) {
         String line;
         while ((line = br.readLine()) != null) {
           String[] fields = line.split("\\|");
@@ -103,28 +103,29 @@ public class TPCHDataInsertionIT {
 
           // 构建 MongoDB 文档
           Document document =
-                  new Document()
-                          .append("l_orderkey", l_orderkey)
-                          .append("l_partkey", l_partkey)
-                          .append("l_suppkey", l_suppkey)
-                          .append("l_linenumber", l_linenumber)
-                          .append("l_quantity", l_quantity)
-                          .append("l_extendedprice", l_extendedprice)
-                          .append("l_discount", l_discount)
-                          .append("l_tax", l_tax)
-                          .append("l_returnflag", l_returnflag)
-                          .append("l_linestatus", l_linestatus)
-                          .append("l_shipdate", l_shipdate)
-                          .append("l_commitdate", l_commitdate)
-                          .append("l_receiptdate", l_receiptdate)
-                          .append("l_shipinstruct", l_shipinstruct)
-                          .append("l_shipmode", l_shipmode)
-                          .append("l_comment", l_comment);
+              new Document()
+                  .append("l_orderkey", l_orderkey)
+                  .append("l_partkey", l_partkey)
+                  .append("l_suppkey", l_suppkey)
+                  .append("l_linenumber", l_linenumber)
+                  .append("l_quantity", l_quantity)
+                  .append("l_extendedprice", l_extendedprice)
+                  .append("l_discount", l_discount)
+                  .append("l_tax", l_tax)
+                  .append("l_returnflag", l_returnflag)
+                  .append("l_linestatus", l_linestatus)
+                  .append("l_shipdate", l_shipdate)
+                  .append("l_commitdate", l_commitdate)
+                  .append("l_receiptdate", l_receiptdate)
+                  .append("l_shipinstruct", l_shipinstruct)
+                  .append("l_shipmode", l_shipmode)
+                  .append("l_comment", l_comment);
           // 将 Document 对象添加到列表中
           documents.add(document);
-          if(documents.size() >= 10000) {
+          if (documents.size() >= 10000) {
             // 每次插入 10000 条数据
-            MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+            MongoCollection<Document> collection =
+                client.getDatabase(databaseName).getCollection(collectionName);
             collection.insertMany(documents);
             documents.clear();
             System.out.println("Inserted 10000 records into " + collectionName);
@@ -135,14 +136,15 @@ public class TPCHDataInsertionIT {
         return;
       }
       // 插入数据到 MongoDB
-      MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+      MongoCollection<Document> collection =
+          client.getDatabase(databaseName).getCollection(collectionName);
       collection.insertMany(documents);
       System.out.println(
-              "Data loaded successfully to collection "
-                      + collectionName
-                      + " in "
-                      + (System.currentTimeMillis() - start_time)
-                      + "ms");
+          "Data loaded successfully to collection "
+              + collectionName
+              + " in "
+              + (System.currentTimeMillis() - start_time)
+              + "ms");
     } catch (Exception e) {
       e.printStackTrace();
     }
@@ -154,7 +156,8 @@ public class TPCHDataInsertionIT {
       String fileName = "orders.tbl";
       Long start_time = System.currentTimeMillis();
       List<Document> documents = new ArrayList<>();
-      try (BufferedReader br = new BufferedReader(new FileReader(String.format("%s/%s", dataPath, fileName)))) {
+      try (BufferedReader br =
+          new BufferedReader(new FileReader(String.format("%s/%s", dataPath, fileName)))) {
         String line;
         while ((line = br.readLine()) != null) {
           String[] fields = line.split("\\|");
@@ -177,21 +180,22 @@ public class TPCHDataInsertionIT {
 
           // 构建 MongoDB 文档
           Document document =
-                  new Document()
-                          .append("o_orderkey", o_orderkey)
-                          .append("o_custkey", o_custkey)
-                          .append("o_orderstatus", o_orderstatus)
-                          .append("o_totalprice", o_totalprice)
-                          .append("o_orderdate", o_orderdate)
-                          .append("o_orderpriority", o_orderpriority)
-                          .append("o_clerk", o_clerk)
-                          .append("o_shippriority", o_shippriority)
-                          .append("o_comment", o_comment);
+              new Document()
+                  .append("o_orderkey", o_orderkey)
+                  .append("o_custkey", o_custkey)
+                  .append("o_orderstatus", o_orderstatus)
+                  .append("o_totalprice", o_totalprice)
+                  .append("o_orderdate", o_orderdate)
+                  .append("o_orderpriority", o_orderpriority)
+                  .append("o_clerk", o_clerk)
+                  .append("o_shippriority", o_shippriority)
+                  .append("o_comment", o_comment);
           // 将 Document 对象添加到列表中
           documents.add(document);
-          if(documents.size() >= 10000) {
+          if (documents.size() >= 10000) {
             // 每次插入 10000 条数据
-            MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+            MongoCollection<Document> collection =
+                client.getDatabase(databaseName).getCollection(collectionName);
             collection.insertMany(documents);
             documents.clear();
             System.out.println("Inserted 10000 records into " + collectionName);
@@ -202,19 +206,19 @@ public class TPCHDataInsertionIT {
         return;
       }
       // 插入数据到 MongoDB
-      MongoCollection<Document> collection = client.getDatabase(databaseName).getCollection(collectionName);
+      MongoCollection<Document> collection =
+          client.getDatabase(databaseName).getCollection(collectionName);
       collection.insertMany(documents);
       System.out.println(
-              "Data loaded successfully to collection "
-                      + collectionName
-                      + " in "
-                      + (System.currentTimeMillis() - start_time)
-                      + "ms");
+          "Data loaded successfully to collection "
+              + collectionName
+              + " in "
+              + (System.currentTimeMillis() - start_time)
+              + "ms");
     } catch (Exception e) {
       e.printStackTrace();
     }
   }
-
 
   @Test
   public void insertDataIntoPostgreSQL() {
