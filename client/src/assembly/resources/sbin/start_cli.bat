@@ -77,7 +77,10 @@ echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (s
 
 echo %PARAMETERS%
 echo "%JAVA_HOME%\bin\java %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%"
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
+"%JAVA_HOME%\bin\java.exe" --version
+"%JAVA_HOME%\bin\java.exe" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
+
+echo "IginxClient finished"
 
 goto finally
 
