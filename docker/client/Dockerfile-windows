@@ -37,6 +37,7 @@ RUN Write-Host -NoNewLine "Enabling Developer Mode";                            
     } else {                                                                    \
       Write-Host ('✘ ({0})' -f $Process.ExitCode);                              \
       exit 1;                                                                   \
+    }
 
 # 下载 JDK
 ADD https://download.java.net/java/GA/jdk11/9/GPL/openjdk-11.0.2_windows-x64_bin.zip C:/temp/jdk.zip
