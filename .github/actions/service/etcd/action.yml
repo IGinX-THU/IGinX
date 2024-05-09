@@ -1,0 +1,33 @@
+name: "etcd"
+description: "stop, clean and start etcd in order"
+inputs:
+    stop:
+        description: "whether to stop"
+        required: true
+    clean:
+        description: "whether to clean"
+        required: true
+    start:
+        description: "whether to start"
+        required: true
+
+runs:
+    using: "composite"
+    steps:
+        - if: fromJSON(inputs.stop)
+          name: Stop etcd
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: cat etcd.pid | xargs kill -9
+
+        - if: fromJSON(inputs.clean)
+          name: Clean etcd
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: rm -rf *.etcd etcd.*
+
+        - if: fromJSON(inputs.start)
+          name: Start etcd
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: nohup etcd >etcd.log 2>&1 & echo $! > etcd.pid
