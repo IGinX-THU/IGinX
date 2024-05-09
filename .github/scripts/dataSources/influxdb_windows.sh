@@ -2,13 +2,7 @@
 
 set -e
 
-sh -c "curl -LJO https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.7-windows-amd64.zip -o influxdb2-2.0.7-windows-amd64.zip"
-
-sh -c "unzip -qq influxdb2-2.0.7-windows-amd64.zip -d './'"
-
-sh -c "curl -LJO https://dl.influxdata.com/influxdb/releases/influxdb2-client-2.0.7-windows-amd64.zip -o influxdb2-client-2.0.7-windows-amd64.zip"
-
-sh -c "unzip -qq influxdb2-client-2.0.7-windows-amd64.zip -d './'"
+sh -c "cp -r $INFLUX_HOME/ influxdb2-2.0.7-windows-amd64"
 
 sh -c "ls influxdb2-2.0.7-windows-amd64"
 
@@ -24,7 +18,7 @@ powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64/infl
 
 sh -c "sleep 30"
 
-sh -c "./influxdb2-client-2.0.7-windows-amd64/influx setup --org testOrg --bucket testBucket --username user --password 12345678 --token testToken --force"
+sh -c "./influxdb2-2.0.7-windows-amd64/influx setup --org testOrg --bucket testBucket --username user --password 12345678 --token testToken --force"
 
 sed -i "s/your-token/testToken/g" conf/config.properties
 
