@@ -570,15 +570,9 @@ public class IginxClient {
 
     try {
       CSVPrinter printer = getCSVBuilder(exportCSV).build().print(new PrintWriter(file));
-      boolean hasKey = res.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
 
       if (exportCSV.isExportHeader) {
-        List<String> headerNames = new ArrayList<>();
-        if (hasKey) {
-          headerNames.add(GlobalConstant.KEY_NAME);
-        }
-        headerNames.addAll(res.getColumnList());
-        printer.printRecord(headerNames);
+        printer.printRecord(res.getColumnList());
       }
 
       while (res.hasMore()) {
