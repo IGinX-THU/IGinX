@@ -29,6 +29,7 @@ jobs:
                         "Redis",
                         "MongoDB",
                     ]
+                metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
 
         steps:
@@ -68,7 +69,8 @@ jobs:
             - name: set client test context
               uses: ./.github/actions/context
               with:
-                  work-name: restart-iginx-zk
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
 
             - name: set client test context
               uses: ./.github/actions/context
