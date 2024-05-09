@@ -28,7 +28,7 @@ with open('dataCleaning/zipcode_city.csv', 'w') as f:
         f.write(str(i) + ',' + cities[i] + ',' + str(zipcodes[i]) + '\n')
 
 # 要运行的 shell 脚本文件路径
-script_path = "./.github/scripts/benchmarks/dataCleaning.sh"
+script_path = ".github/scripts/benchmarks/dataCleaning.sh"
 
 # 使用 subprocess.run() 运行 shell 脚本
 # shell=True 表示通过 shell 解释器执行脚本
