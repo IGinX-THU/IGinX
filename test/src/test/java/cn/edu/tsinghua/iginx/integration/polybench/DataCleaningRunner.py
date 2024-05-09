@@ -37,19 +37,19 @@ result = subprocess.run(script_path, shell=True, stdout=subprocess.PIPE, text=Tr
 
 # 检查脚本是否成功执行
 if result.returncode == 0:
-    print("Shell 脚本执行成功！")
+    print("Shell Script ran successfully!")
     # 如果脚本有输出，可以打印输出内容
     if result.stdout:
         resultMessage = result.stdout
-        print("脚本输出：", resultMessage)
-        print("结束输出")
+        print("output: ", resultMessage)
+        print("end of output")
         # 正确性检验
         assert "Successfully write 1000000 record(s) to: [uszip.city, uszip.zipcode]" in resultMessage
         assert '200000' in resultMessage
         exit(0)
     else:
-        print("脚本没有输出")
+        print("no output")
         exit(1)
 else:
-    print("Shell 脚本执行失败")
+    print("Failed to run script!")
     exit(1)
