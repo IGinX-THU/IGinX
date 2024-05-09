@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import subprocess
+import subprocess, platform
 
 # 生成 zipcode -> city的映射关系，error rate 10%
 # lineNum 为 -n 后面的参数
@@ -33,7 +33,13 @@ script_path = ".github/scripts/benchmarks/dataCleaning.sh"
 # 使用 subprocess.run() 运行 shell 脚本
 # shell=True 表示通过 shell 解释器执行脚本
 # 如果脚本有输出，可以通过 stdout=subprocess.PIPE 捕获输出
-result = subprocess.run(script_path, shell=True, stdout=subprocess.PIPE, text=True)
+# 检测当前系统类型
+if platform.system() == "Windows":
+    # 使用 PowerShell 来运行脚本
+    result = subprocess.run(["powershell", "-Command", script_path], stdout=subprocess.PIPE, text=True)
+else:
+    # 使用 bash 来运行脚本
+    result = subprocess.run(script_path, shell=True, stdout=subprocess.PIPE, text=True)
 
 # 检查脚本是否成功执行
 if result.returncode == 0:
