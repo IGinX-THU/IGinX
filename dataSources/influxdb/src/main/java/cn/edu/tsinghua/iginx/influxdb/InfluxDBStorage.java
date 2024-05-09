@@ -185,14 +185,14 @@ public class InfluxDBStorage implements IStorage {
 
     // 只需要查询首尾两端的记录即可
     String minPath = findExtremeRecordPath(bucketNames, dataPrefix, true);
-    String maxPath = findExtremeRecordPath(bucketNames, dataPrefix, false);
+    String maxPath = findExtremeRecordPath(bucketNames, dataPrefix, false) + "~";
 
     if (minPath == null || maxPath == null) {
       throw new InfluxDBTaskExecuteFailureException(
           "InfluxDB has no valid data! Maybe there are no data in each bucket or no data with the given data prefix!");
     }
 
-    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE + 2, Long.MAX_VALUE - 1);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE + 1, Long.MAX_VALUE);
     columnsInterval = new ColumnsInterval(minPath, maxPath);
     return new Pair<>(columnsInterval, keyInterval);
   }
