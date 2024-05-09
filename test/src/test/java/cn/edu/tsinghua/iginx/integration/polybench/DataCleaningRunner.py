@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import subprocess
 
 # 生成 zipcode -> city的映射关系，error rate 10%
@@ -39,7 +40,22 @@ if result.returncode == 0:
     print("Shell 脚本执行成功！")
     # 如果脚本有输出，可以打印输出内容
     if result.stdout:
-        print("脚本输出：", result.stdout)
-    # TODO 正确性检验
+        resultMessage = result.stdout
+        print("脚本输出：", resultMessage)
+        # 正确性检验
+        assert "Successfully write 1000000 record(s) to: [uszip.city, uszip.zipcode]" in resultMessage
+        assert \
+'''ResultSets:
++----------------+
+|count(a.zipcode)|
++----------------+
+|          200000|
++----------------+
+Total line number = 1''' in resultMessage
+        exit(0)
+    else:
+        print("脚本没有输出")
+        exit(1)
 else:
     print("Shell 脚本执行失败")
+    exit(1)
