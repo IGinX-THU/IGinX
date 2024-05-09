@@ -1,103 +1,103 @@
 name: PolyStore Benchmark Tests
 
 on:
-    push:
-        branches: [feat-benchmark]
+  push:
+    branches: [feat-benchmark]
 
 env:
-    VERSION: 0.6.0-SNAPSHOT
+  VERSION: 0.6.0-SNAPSHOT
 concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-    PolyStore-Benchmark-Test:
-        timeout-minutes: 35
-        strategy:
-            fail-fast: false
-            matrix:
-                java: [8]
-                python-version: ["3.9"]
-                os: [ubuntu-latest, macOS-11, windows-latest]
-        runs-on: ${{ matrix.os }}
+  PolyStore-Benchmark-Test:
+    timeout-minutes: 35
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [8]
+        python-version: ["3.9"]
+        os: [ubuntu-latest, macOS-11, windows-latest]
+    runs-on: ${{ matrix.os }}
 
-        steps:
-            - uses: actions/checkout@v2
-            - name: Environment dependence
-              uses: ./.github/actions/dependence
-              with:
-                  python-version: ${{ matrix.python-version }}
-                  java: ${{ matrix.java }}
+    steps:
+      - uses: actions/checkout@v2
+      - name: Environment dependence
+        uses: ./.github/actions/dependence
+        with:
+          python-version: ${{ matrix.python-version }}
+          java: ${{ matrix.java }}
 
-            - name: generate tpch data
-              shell: bash
-              run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
+      - name: generate tpch data
+        shell: bash
+        run: |
+          chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
+          "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
 
-            - name: Run ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
+      - name: Run ZooKeeper
+        uses: ./.github/actions/zookeeperRunner
 
-            - name: Run DB
-              uses: ./.github/actions/dbRunner
-              with:
-                  DB-name: "Parquet"
+      - name: Run DB
+        uses: ./.github/actions/dbRunner
+        with:
+          DB-name: "Parquet"
 
-            - name: Run PostgreSQL
-              shell: bash
-              run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/postgres.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/postgres.sh"
+      - name: Run PostgreSQL
+        shell: bash
+        run: |
+          chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/postgres.sh"
+          "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/postgres.sh"
 
-            - name: Run MongoDB
-              shell: bash
-              run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/mongodb.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/mongodb.sh"
+      - name: Run MongoDB
+        shell: bash
+        run: |
+          chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/mongodb.sh"
+          "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/mongodb.sh"
 
-            - name: Install IGinX with Maven
-              shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format -q
+      - name: Install IGinX with Maven
+        shell: bash
+        run: |
+          mvn clean package -DskipTests -P-format -q
 
-            - name: Change IGinX config
-              uses: ./.github/actions/confWriter
-              with:
-                  DB-name: "Parquet"
-                  Set-Filter-Fragment-OFF: "true"
+      - name: Change IGinX config
+        uses: ./.github/actions/confWriter
+        with:
+          DB-name: "Parquet"
+          Set-Filter-Fragment-OFF: "true"
 
-            # start udf path test first to avoid being effected
-            - name: Start IGinX
-              uses: ./.github/actions/iginxRunner
-              with:
-                  version: ${VERSION}
-                  if-test-udf: "true"
+      # start udf path test first to avoid being effected
+      - name: Start IGinX
+        uses: ./.github/actions/iginxRunner
+        with:
+          version: ${VERSION}
+          if-test-udf: "true"
 
-            - name: set client test context
-              uses: ./.github/actions/context
-              with:
-                  work-name: restart-iginx-zk
+      - name: set client test context
+        uses: ./.github/actions/context
+        with:
+          work-name: restart-iginx-zk
 
-            - name: set client test context
-              uses: ./.github/actions/context
-              with:
-                  DB-name: "Parquet"
-                  shell: client-before
+      - name: set client test context
+        uses: ./.github/actions/context
+        with:
+          DB-name: "Parquet"
+          shell: client-before
 
-            - name: Start storing data
-              if: always()
-              shell: bash
-              run: |
-                  mvn test -q -Dtest=TPCHDataInsertionIT -DfailIfNoTests=false -P-format
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
+      - name: Start storing data
+        if: always()
+        shell: bash
+        run: |
+          mvn test -q -Dtest=TPCHDataInsertionIT -DfailIfNoTests=false -P-format
+          chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
+          "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
 
-            - name: Run session test
-              shell: bash
-              run: |
-                  pwd
-                  if [ "$RUNNER_OS" == "Windows" ]; then
-                    python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
-                  else
-                    python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
-                  fi
+      - name: Run session test
+        shell: bash
+        run: |
+          pwd
+          if [ "$RUNNER_OS" == "Windows" ]; then
+            python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
+          else
+            python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
+          fi
