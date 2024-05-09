@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           pwd
-          if [ "$RUNNER_OS" = "Windows" ]; then
+          if [ "$RUNNER_OS" == "Windows" ]; then
             python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/DataCleaningRunner.py
           else
             python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/DataCleaningRunner.py

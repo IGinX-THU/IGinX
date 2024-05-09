@@ -1,4 +1,4 @@
-import sys, traceback, psutil
+import sys, traceback
 
 
 sys.path.append('session_py/')
@@ -118,14 +118,7 @@ order by
 
         dataset.close()
         print(f"end tpch query, time cost: {time.time() - start_time}s")
-        # 获取执行语句后的内存使用情况
-        # 获取系统内存信息
-        memory = psutil.virtual_memory()
 
-        # 输出内存总量、可用内存量和已使用内存量
-        print("Total memory:", memory.total)
-        print("Available memory:", memory.available)
-        print("Used memory:", memory.used)
         session.close()
     except Exception as e:
         print(e)
