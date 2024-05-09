@@ -1,4 +1,4 @@
-import sys, traceback, signal, psutil
+import sys, traceback, psutil
 
 
 sys.path.append('session_py/')
@@ -102,10 +102,6 @@ from (
 )
 order by
     revenue desc;'''
-        # 设置 SIGALRM 信号处理器
-        signal.signal(signal.SIGALRM, timeout_handler)
-        # 设置定时器，5分钟后触发 SIGALRM 信号
-        signal.alarm(300)  # 300 秒 = 5 分钟
         # 执行查询语句
         dataset = session.execute_statement(sql)
         columns = dataset.columns()
@@ -121,8 +117,6 @@ order by
         print()
 
         dataset.close()
-        # 取消定时器
-        signal.alarm(0)
         print(f"end tpch query, time cost: {time.time() - start_time}s")
         # 获取执行语句后的内存使用情况
         # 获取系统内存信息
