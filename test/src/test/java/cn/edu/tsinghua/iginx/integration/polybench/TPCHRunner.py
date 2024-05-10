@@ -111,17 +111,55 @@ order by
             print(str(column) + '    ', end='')
         print()
 
+        result = []
         while dataset.has_more():
             row = dataset.next()
+            rowResult = []
             for field in row:
                 print(str(field) + '        ', end='')
+                rowResult.append(str(field))
+            result.append(rowResult)
             print()
         print()
-
-        # TODO 正确性验证
-
+        print(result)
         dataset.close()
         print(f"end tpch query, time cost: {time.time() - start_time}s")
+
+        # 正确性验证 读取csv文件中的正确结果
+        line_count = -1 # 用于跳过第一行
+        correct = True
+        with open('test/src/test/resources/polybench/sf0.1/q05.csv', 'r') as f:
+            for line in f:
+                if line.strip() == '':
+                    break
+                if line_count < 0:
+                    line_count += 1
+                    continue
+                answer = line.strip().split('|')
+                print(f"line count: {line_count}, answer: {answer}")
+                print(f"result: {eval(result[line_count][0]).decode('utf-8')}, answer: {answer[0]}")
+                if eval(result[line_count][0]).decode('utf-8') != answer[0]:
+                    correct = False
+                    break
+                print(f"result: {eval(result[line_count][1])}, answer: {answer[1]}")
+                if abs(eval(result[line_count][1]) - eval(answer[1])) > 0.1:
+                    correct = False
+                    break
+                line_count += 1
+        if not correct:
+            print("incorrect result")
+            exit(1)
+
+        # 重复测试五次
+        execute_time = []
+        for i in range(5):
+            start_time = time.time()
+            dataset = session.execute_statement(sql)
+            execute_time.append(time.time() - start_time)
+            print(f"tpch query{i}, time cost: {execute_time[i]}s")
+
+        # 输出平均执行时间
+        print(f"average time cost: {sum(execute_time) / 5}s")
 
         session.close()
     except Exception as e:
