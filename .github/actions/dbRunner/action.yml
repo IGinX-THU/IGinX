@@ -9,6 +9,10 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Setup DB
+          uses: ./.github/actions/setup/influxdb
+
         - if: inputs.DB-name=='InfluxDB'
           name: Run DB
           shell: bash
@@ -26,6 +30,10 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - if: inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Setup DB
+          uses: ./.github/actions/setup/iotdb12
 
         - if: inputs.DB-name=='IoTDB12'
           name: Run DB
@@ -62,22 +70,26 @@ runs:
               fi
 
         - if: inputs.DB-name=='MongoDB'
+          name: Setup DB
+          uses: ./.github/actions/setup/mongodb
+
+        - if: inputs.DB-name=='MongoDB'
           name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh" 27017 27018 27019
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_windows.sh" 27017 27018 27019
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh" 27017 27018 27019
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          uses: ./.github/actions/service/mongodb
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: 27017 27018 27019
+
+        - if: inputs.DB-name=='MongoDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: |
+                  s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
+                  s/#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
 
         - if: inputs.DB-name=='FileSystem' #test/iginx_mn is the path for IT test data
           name: Run DB
@@ -96,22 +108,26 @@ runs:
               fi
 
         - if: inputs.DB-name=='Redis'
+          name: Setup DB
+          uses: ./.github/actions/setup/redis
+
+        - if: inputs.DB-name=='Redis'
           name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh" 6379 6380 6381
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh" 6379 6380 6381
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh" 6379 6380 6381
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          uses: ./.github/actions/service/redis
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: 6379 6380 6381
+
+        - if: inputs.DB-name=='Redis'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: |
+                  s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
+                  s/#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
 
         - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Run DB
@@ -132,22 +148,26 @@ runs:
               fi
 
         - if: inputs.DB-name=='PostgreSQL'
+          name: Setup DB
+          uses: ./.github/actions/setup/postgresql
+
+        - if: inputs.DB-name=='PostgreSQL'
           name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5432 5433 5434
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh" 5432 5433 5434
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5432 5433 5434
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+          uses: ./.github/actions/service/postgresql
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: 5432 5433 5434
+
+        - if: inputs.DB-name=='PostgreSQL'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: |
+                  s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
+                  s/#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
 
         - if: inputs.DB-name == 'MySQL'
           name: chan

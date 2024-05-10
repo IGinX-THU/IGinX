@@ -37,7 +37,7 @@ jobs:
         env:
             METADATA_STORAGE: ${{ matrix.metadata }}
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:
