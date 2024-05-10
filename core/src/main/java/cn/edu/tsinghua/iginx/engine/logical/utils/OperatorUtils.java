@@ -502,16 +502,16 @@ public class OperatorUtils {
         CrossJoin crossJoin = (CrossJoin) child;
         JoinAlgType algType = JoinAlgType.NestedLoopJoin;
 
-        // 如果select条件可以提取出等值条件，且条件中的变量在join子树左右两侧都有，则可以转换为hash join
-        List<String> patternsA =
-            getPatternFromOperatorChildren(
-                ((OperatorSource) crossJoin.getSourceA()).getOperator(), new ArrayList<>());
-        List<String> patternsB =
-            getPatternFromOperatorChildren(
-                ((OperatorSource) crossJoin.getSourceB()).getOperator(), new ArrayList<>());
         if (!crossJoin.getExtraJoinPrefix().isEmpty()) {
           algType = JoinAlgType.HashJoin;
         } else {
+          // 如果select条件可以提取出等值条件，且条件中的变量在join子树左右两侧都有，则可以转换为hash join
+          List<String> patternsA =
+              getPatternFromOperatorChildren(
+                  ((OperatorSource) crossJoin.getSourceA()).getOperator(), new ArrayList<>());
+          List<String> patternsB =
+              getPatternFromOperatorChildren(
+                  ((OperatorSource) crossJoin.getSourceB()).getOperator(), new ArrayList<>());
           for (PathFilter pathFilter : getEqualPathFilter(select.getFilter())) {
             String pathA = pathFilter.getPathA();
             String pathB = pathFilter.getPathB();
