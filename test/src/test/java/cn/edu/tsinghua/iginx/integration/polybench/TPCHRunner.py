@@ -95,13 +95,15 @@ from (
             join nation on postgres.supplier.s_nationkey = nation.n_nationkey
             join postgres.region on nation.n_regionkey = postgres.region.r_regionkey
         where
-            postgres.region.r_name = "EUROPE"
+            postgres.region.r_name = "ASIA"
+            and mongotpch.orders.o_orderdate >= 757353600000
+            and mongotpch.orders.o_orderdate < 788889600000
     )
     group by
         nation.n_name
 )
 order by
-    revenue desc;'''
+    revenue desc;''' # 这里757353600000和788889600000分别是1994-01-01和1995-01-01的Unix时间戳
         # 执行查询语句
         dataset = session.execute_statement(sql)
         columns = dataset.columns()
@@ -115,6 +117,8 @@ order by
                 print(str(field) + '        ', end='')
             print()
         print()
+
+        # TODO 正确性验证
 
         dataset.close()
         print(f"end tpch query, time cost: {time.time() - start_time}s")

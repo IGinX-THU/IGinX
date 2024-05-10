@@ -36,7 +36,10 @@ script_path = ".github/scripts/benchmarks/dataCleaning.sh"
 # 检测当前系统类型
 if platform.system() == "Windows":
     # 使用 PowerShell 来运行脚本
-    result = subprocess.run(["powershell", "-Command", script_path], stdout=subprocess.PIPE, text=True)
+    result = subprocess.run(["powershell", "-Command", f"& '{script_path}'"], stdout=subprocess.PIPE, text=False)
+    # 将字节形式的输出解码为字符串形式
+    output = result.stdout.decode('utf-8')
+    print(output)
 else:
     # 使用 bash 来运行脚本
     result = subprocess.run(script_path, shell=True, stdout=subprocess.PIPE, text=True)
