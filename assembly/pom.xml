@@ -97,9 +97,8 @@
                     <plugin>
                         <groupId>com.googlecode.maven-download-plugin</groupId>
                         <artifactId>download-maven-plugin</artifactId>
-                        <version>1.8.1</version>
+                        <version>1.9.0</version>
                         <configuration>
-                            <cacheDirectory>${project.build.directory}/download</cacheDirectory>
                             <unpack>true</unpack>
                             <url>https://dlcdn.apache.org/zookeeper/zookeeper-${zookeeper.version}/apache-zookeeper-${zookeeper.version}-bin.tar.gz</url>
                         </configuration>
