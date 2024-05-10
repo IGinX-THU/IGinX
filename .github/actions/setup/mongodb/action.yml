@@ -1,0 +1,53 @@
+name: "mongodb"
+description: "setup mongodb"
+inputs:
+    version:
+        description: "mongodb version"
+        required: false
+        default: "6.0.4"
+
+runs:
+    using: "composite"
+    steps:
+        - id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+              tool: mongodb
+              version: ${{ inputs.version }}
+
+        - name: Restore mongodb Cache
+          id: restore
+          uses: actions/cache/restore@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - name: Setup mongodb into Runner Tool Cache
+          uses: pbrisbin/setup-tool-action@v2
+          with:
+              name: mongodb
+              version: ${{ inputs.version }}
+              url-linux: "https://fastdl.mongodb.org/{os}/{name}-{os}-{arch}-{version}.tgz"
+              url-darwin: "https://fastdl.mongodb.org/osx/{name}-{os}-{arch}-{version}.tgz"
+              url-win32: "https://fastdl.mongodb.org/{os}/{name}-{os}-{arch}-{version}.{ext}"
+              subdir: "{name}-{os}-{arch}-{version}/bin"
+              subdir-win32: "{name}-win32-{arch}-{os}-{version}/bin"
+              ext: "tar.gz"
+              ext-win32: "zip"
+              os-darwin: macos
+              os-win32: windows
+              arch: x86_64
+              arch-linux: x86_64-ubuntu2204
+
+        - name: Show mongodb Version
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: mongos --version
+
+        - name: Save mongodb Cache
+          if: steps.restore.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
