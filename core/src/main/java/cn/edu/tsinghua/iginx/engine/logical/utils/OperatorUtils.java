@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.combineTwoFilter;
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.getAllPathsFromFilter;
+import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils.*;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isBinaryOperator;
@@ -11,6 +10,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType.isU
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AbstractJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
@@ -35,15 +35,18 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OperatorUtils {
@@ -498,9 +501,30 @@ public class OperatorUtils {
       case CrossJoin:
         CrossJoin crossJoin = (CrossJoin) child;
         JoinAlgType algType = JoinAlgType.NestedLoopJoin;
+
+        // 如果select条件可以提取出等值条件，且条件中的变量在join子树左右两侧都有，则可以转换为hash join
+        List<String> patternsA =
+            getPatternFromOperatorChildren(
+                ((OperatorSource) crossJoin.getSourceA()).getOperator(), new ArrayList<>());
+        List<String> patternsB =
+            getPatternFromOperatorChildren(
+                ((OperatorSource) crossJoin.getSourceB()).getOperator(), new ArrayList<>());
         if (!crossJoin.getExtraJoinPrefix().isEmpty()) {
           algType = JoinAlgType.HashJoin;
+        } else {
+          for (PathFilter pathFilter : getEqualPathFilter(select.getFilter())) {
+            String pathA = pathFilter.getPathA();
+            String pathB = pathFilter.getPathB();
+            if (patternsA.stream().anyMatch(pattern -> isPatternMatched(pattern, pathA))
+                    && patternsB.stream().anyMatch(pattern -> isPatternMatched(pattern, pathB))
+                || patternsA.stream().anyMatch(pattern -> isPatternMatched(pattern, pathB))
+                    && patternsB.stream().anyMatch(pattern -> isPatternMatched(pattern, pathA))) {
+              algType = JoinAlgType.HashJoin;
+              break;
+            }
+          }
         }
+
         return new InnerJoin(
             crossJoin.getSourceA(),
             crossJoin.getSourceB(),
@@ -538,5 +562,125 @@ public class OperatorUtils {
       default:
         throw new RuntimeException("Unexpected operator type: " + child.getType());
     }
+  }
+
+  public static List<String> getPatternFromOperatorChildren(
+      Operator operator, List<Operator> visitedOperators) {
+    List<String> patterns = new ArrayList<>();
+    if (operator.getType() == OperatorType.Project) {
+      patterns.addAll(((Project) operator).getPatterns());
+    } else if (operator.getType() == OperatorType.Reorder) {
+      patterns.addAll(((Reorder) operator).getPatterns());
+    } else if (OperatorType.isHasFunction(operator.getType())) {
+      patterns.addAll(FunctionUtils.getFunctionsFullPath(operator));
+    }
+
+    if (!patterns.isEmpty()) {
+      // 向上找Rename操作符，进行重命名
+      for (int i = visitedOperators.size() - 1; i >= 0; i--) {
+        Operator visitedOperator = visitedOperators.get(i);
+        if (visitedOperator.getType() == OperatorType.Rename) {
+          Rename rename = (Rename) visitedOperator;
+          Map<String, String> aliasMap = rename.getAliasMap();
+          patterns = renamePattern(aliasMap, patterns);
+        }
+      }
+      return patterns;
+    }
+
+    visitedOperators.add(operator);
+    if (OperatorType.isUnaryOperator(operator.getType())) {
+      return getPatternFromOperatorChildren(
+          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator(),
+          visitedOperators);
+    } else if (OperatorType.isBinaryOperator(operator.getType())) {
+      List<String> leftPatterns =
+          getPatternFromOperatorChildren(
+              ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator(),
+              visitedOperators);
+      List<String> rightPatterns =
+          getPatternFromOperatorChildren(
+              ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
+              new ArrayList<>(visitedOperators));
+      leftPatterns.addAll(rightPatterns);
+      return leftPatterns;
+    } else {
+      return new ArrayList<>();
+    }
+  }
+
+  /**
+   * 判断两个Pattern是否匹配，Pattern中的*表示通配符，A能覆盖B或者B能覆盖A则返回true
+   *
+   * @param patternA
+   * @param patternB
+   * @return
+   */
+  private static boolean isPatternMatched(String patternA, String patternB) {
+    return covers(patternA, patternB) || covers(patternB, patternA);
+  }
+
+  /**
+   * 正向重命名模式列表中的pattern，将key中的pattern替换为value中的pattern
+   *
+   * @param aliasMap 重命名规则, key为旧模式，value为新模式
+   * @param patterns 要重命名的模式列表
+   * @return
+   */
+  private static List<String> renamePattern(Map<String, String> aliasMap, List<String> patterns) {
+    List<String> renamedPatterns = new ArrayList<>();
+    for (String pattern : patterns) {
+      boolean matched = false;
+      for (Map.Entry<String, String> entry : aliasMap.entrySet()) {
+        String oldPattern = entry.getKey().replace("*", "(.*)");
+        String newPattern = entry.getValue().replace("*", "$1");
+        if (pattern.matches(oldPattern)) {
+          if (newPattern.contains("$1") && !oldPattern.contains("*")) {
+            newPattern = newPattern.replace("$1", "*");
+          }
+          String p = pattern.replaceAll(oldPattern, newPattern);
+          renamedPatterns.add(p);
+          matched = true;
+          break;
+        } else if (pattern.equals(oldPattern)) {
+          renamedPatterns.add(entry.getValue());
+          matched = true;
+          break;
+        } else if (pattern.contains(".*")
+            && oldPattern.matches(StringUtils.reformatPath(pattern))) {
+          renamedPatterns.add(entry.getKey());
+          matched = true;
+          break;
+        }
+      }
+      if (!matched) { // 如果没有匹配的规则，添加原始模式
+        renamedPatterns.add(pattern);
+      }
+    }
+    return renamedPatterns;
+  }
+
+  // 判断是否Pattern a可以覆盖Pattern b
+  public static boolean covers(String a, String b) {
+    // 使用.*作为分隔符分割模式
+    String[] partsA = a.split("\\*");
+    String[] partsB = b.split("\\*");
+
+    int indexB = 0;
+    for (String part : partsA) {
+      boolean found = false;
+      while (indexB < partsB.length) {
+        if (partsB[indexB].contains(part)) {
+          found = true;
+          indexB++; // 移动到下一个部分
+          break;
+        }
+        indexB++;
+      }
+      if (!found) {
+        return false; // 如果任何部分未找到匹配，则模式a不能覆盖模式b
+      }
+    }
+    return true;
   }
 }
