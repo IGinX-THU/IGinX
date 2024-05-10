@@ -32,7 +32,7 @@ jobs:
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
             - name: Environment dependence
               uses: ./.github/actions/dependence
               with:

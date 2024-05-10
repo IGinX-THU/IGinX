@@ -2,9 +2,7 @@
 
 set -e
 
-sh -c "wget https://dl.influxdata.com/influxdb/releases/influxdb2-2.0.7-linux-amd64.tar.gz"
-
-sh -c "tar -zxf influxdb2-2.0.7-linux-amd64.tar.gz"
+sh -c "cp -r $INFLUX_HOME/ influxdb2-2.0.7-linux-amd64"
 
 sh -c "ls influxdb2-2.0.7-linux-amd64"
 

@@ -1,0 +1,45 @@
+name: "zookeeper"
+description: "setup zookeeper"
+inputs:
+    version:
+        description: "zookeeper version"
+        required: false
+        default: "3.7.2"
+
+runs:
+    using: "composite"
+    steps:
+        - id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+              tool: zookeeper
+              version: ${{ inputs.version }}
+
+        - name: Restore zookeeper Cache
+          id: restore
+          uses: actions/cache/restore@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - name: Setup zookeeper into Runner Tool Cache
+          uses: pbrisbin/setup-tool-action@v2
+          with:
+              name: zookeeper
+              version: ${{ inputs.version }}
+              url: "https://dlcdn.apache.org/zookeeper/zookeeper-{version}/apache-zookeeper-{version}-bin.{ext}"
+              subdir: "apache-zookeeper-{version}-bin"
+              ext: "tar.gz"
+
+        - name: Add zookeeper Bin to PATH
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run: echo "$PWD/bin" >> $GITHUB_PATH
+
+        - name: Save zookeeper Cache
+          if: steps.restore.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
