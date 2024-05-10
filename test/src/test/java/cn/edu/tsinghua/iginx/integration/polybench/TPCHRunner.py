@@ -136,7 +136,6 @@ order by
                     line_count += 1
                     continue
                 answer = line.strip().split('|')
-                print(f"line count: {line_count}, answer: {answer}")
                 print(f"result: {eval(result[line_count][0]).decode('utf-8')}, answer: {answer[0]}")
                 if eval(result[line_count][0]).decode('utf-8') != answer[0]:
                     correct = False
