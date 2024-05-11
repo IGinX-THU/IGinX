@@ -11,7 +11,7 @@ public class RestUtils {
   public static final long TITLE_KEY = 9223372036854775806L;
   public static final long MAX_KEY = 9223372036854775807L;
   public static final long ANNOTATION_START_KEY = 10L;
-  public static final String ANNOTATION_SEQUENCE = "TITLE.DESCRIPTION";
+  public static final String ANNOTATION_SEQUENCE = "title.description";
 
   public static DataType checkType(SessionQueryDataSet sessionQueryDataSet) {
     int n = sessionQueryDataSet.getKeys().length;
