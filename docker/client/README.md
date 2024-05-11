@@ -1,12 +1,17 @@
 # build image
 
 ```bash
-build.sh(unix) / build-no-maven.bat(windows)
+build.sh(unix) 
+# or
+build-no-maven.bat(windows)
+# or
+build.bat(linux container on WindowsOS)
 ```
-On Windows, user need to run `mvn clean install -Dmaven.test.skip=true -P-format` in root directory before
+
+On Windows, user need to run `mvn clean package -Dmaven.test.skip=true -P-format` in root directory before
 running the script.
 
-If user can use linux container on their windowsOS, 
+If user can use linux container on their windowsOS, they can run `build.bat` without `mvn package`
 
 # run container
 
@@ -17,7 +22,6 @@ run_docker.bat/.sh -n <container_name(default: iginx-client)> --datadir <datadir
 ```
 
 - <datadir_path> will be mounted as `/iginx_client/data` in container(default: %SCRIPT_PATH%/data)
-
 
 # run client and get the terminal
 
