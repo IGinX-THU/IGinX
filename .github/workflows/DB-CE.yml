@@ -30,6 +30,7 @@ jobs:
                         "Redis",
                         "MongoDB",
                         "Parquet",
+                        "MySQL",
                     ]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}

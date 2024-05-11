@@ -167,4 +167,22 @@ runs:
               paths: conf/config.properties
               statements: |
                   s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
-                  s/#storageEngineList=127.0.0.1#5432/storageEngineList=127.0.0.1#5432/g
+                  s/#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
+
+        - if: inputs.DB-name == 'MySQL'
+          name: chan
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql.sh" 3306 3307 3308
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_windows.sh" 3306 3307 3308
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_macos.sh" 3306 3307 3308
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi

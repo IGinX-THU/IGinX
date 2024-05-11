@@ -23,7 +23,7 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\";";
+  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\" WITH (FORCE);";
 
   private static final String USERNAME = "postgres";
 

@@ -21,13 +21,14 @@ jobs:
                 os: [ubuntu-latest, macos-13, windows-latest]
                 DB-name:
                     [
+                        "FileSystem",
                         "IoTDB12",
                         "InfluxDB",
-                        "Redis",
-                        "Parquet",
                         "PostgreSQL",
-                        "FileSystem",
+                        "Redis",
                         "MongoDB",
+                        "Parquet",
+                        "MySQL",
                     ]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
