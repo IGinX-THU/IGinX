@@ -34,7 +34,7 @@ if [[ "$line" == "notFound" ]]; then
     echo "ip4 addr for host not found"
     exit 1
 fi
-docker exec -it your_container_name sh -c "apt-get update && apt-get install -y iputils-ping"
+docker exec iginx-client sh -c "apt-get update && apt-get install -y iputils-ping"
 
 docker exec iginx-client ping host.docker.internal
 docker exec iginx-client ping 192.168.65.1
