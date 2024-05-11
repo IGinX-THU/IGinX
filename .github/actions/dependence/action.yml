@@ -22,8 +22,8 @@ inputs:
 runs:
     using: "composite"
     steps:
-        - name: Set up Docker Buildx
-          uses: crazy-max/ghaction-setup-docker@v3
+#        - name: Set up Docker Buildx
+#          uses: crazy-max/ghaction-setup-docker@v3
 
         # need to set up timezone and enlarge JVM heap size manually on windows
         - if: runner.os == 'Windows'
@@ -37,10 +37,10 @@ runs:
           name: Install Docker on MacOS
           shell: bash
           run: |
-#              brew update
-#              brew install docker colima
-#              colima version
-#              colima start --cpu 3 --memory 6 --disk 100 --vm-type=qemu --mount-type=sshfs --dns=1.1.1.1
+              brew update
+              brew install docker colima
+              colima version
+              colima start --cpu 3 --memory 6 --disk 100 --vm-type=qemu --mount-type=sshfs --dns=1.1.1.1
               docker --version
 
         - if: inputs.scope=='all'
