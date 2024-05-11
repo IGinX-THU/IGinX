@@ -37,6 +37,7 @@ runs:
           name: Install Docker on MacOS
           shell: bash
           run: |
+              brew update
               brew install docker colima
               colima start
               docker --version
