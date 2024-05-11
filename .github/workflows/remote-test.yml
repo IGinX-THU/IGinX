@@ -54,12 +54,6 @@ jobs:
                   New-NetFirewallRule -DisplayName "Allow ICMPv4-In" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Inbound
                   New-NetFirewallRule -DisplayName "Allow ICMPv4-Out" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Outbound
 
-            - if: runner.os == 'Windows'
-              name: Build & Run Client image
-              shell: cmd
-              run: |
-                  mvn clean package -q -pl client -am -Dmaven.test.skip=true -P-format -e && cd %GITHUB_WORKSPACE%\docker\client && build-no-maven.bat && run_docker.bat
-
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
@@ -74,6 +68,12 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
+
+            - if: runner.os == 'Windows'
+              name: Build & Run Client image
+              shell: cmd
+              run: |
+                  cd %GITHUB_WORKSPACE%\docker\client && build-no-maven.bat && run_docker.bat
 
             - if: runner.os != 'Windows'
               name: Build & Run Client image
@@ -91,7 +91,6 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
-            #                Switch-DB: "true"
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner

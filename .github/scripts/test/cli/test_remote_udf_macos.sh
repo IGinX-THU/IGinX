@@ -34,10 +34,6 @@ if [[ "$line" == "notFound" ]]; then
     echo "ip4 addr for host not found"
     exit 1
 fi
-docker exec iginx-client sh -c "apt-get update && apt-get install -y iputils-ping"
-docker exec iginx-client ping -c 4 host.docker.internal
-docker exec iginx-client ping -c 4 192.168.65.1
-docker exec iginx-client ping -c 4 ${trimmed_string}
 
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path

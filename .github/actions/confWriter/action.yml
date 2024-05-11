@@ -25,10 +25,6 @@ inputs:
         description: "which metadata service to use"
         required: false
         default: zookeeper
-    Switch-DB:
-        description: "switch database in config"
-        required: false
-        default: "false"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -198,26 +194,3 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-
-        # change database connection ip to host.docker.internal to access host services. fs & parquet excluded.
-        # db_config_switcher_*.sh need to modify %PROJECT_ROOT%/conf/config.properties
-        - if: inputs.Switch-DB=='true'
-          name: write docker donfig file
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config_copy.properties"
-              cp -f "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties"
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh" ${{ inputs.DB-name }}
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_linux_windows.sh" ${{ inputs.DB-name }}
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/db_config_switcher_macos.sh" ${{ inputs.DB-name }}
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties"
