@@ -1,8 +1,13 @@
 # Build client package with mvn before building the image
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
+COPY . C:/iginx
+WORKDIR C:/iginx
 COPY ./target/iginx-client-0.6.0-SNAPSHOT/ C:/iginx_client
 
+# 设置环境变量
 USER ContainerAdministrator
+ENV JAVA_HOME "C:\jdk\jdk-11.0.2"
+RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # 下载 JDK
@@ -13,9 +18,5 @@ RUN Expand-Archive -Path C:/temp/jdk.zip -DestinationPath C:/jdk
 
 RUN New-Item -Path 'C:/iginx_client/logs' -ItemType Directory
 RUN New-Item -Path 'C:/iginx_client/data' -ItemType Directory
-#USER ContainerUser
-
-ENV JAVA_HOME=C:\jdk\jdk-11.0.2
-ENV PATH=$JAVA_HOME\bin;$PATH
 
 ENTRYPOINT ["cmd", "/c", "ping -t localhost > NUL"]
