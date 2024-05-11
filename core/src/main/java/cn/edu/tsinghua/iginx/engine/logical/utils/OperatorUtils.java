@@ -39,6 +39,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
@@ -589,7 +590,8 @@ public class OperatorUtils {
     }
 
     visitedOperators.add(operator);
-    if (OperatorType.isUnaryOperator(operator.getType())) {
+    if (OperatorType.isUnaryOperator(operator.getType())
+        && !(((UnaryOperator) operator).getSource() instanceof FragmentSource)) {
       return getPatternFromOperatorChildren(
           ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator(),
           visitedOperators);
