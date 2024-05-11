@@ -15,7 +15,10 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLCapacityExpansionIT.class);
 
   public PostgreSQLCapacityExpansionIT() {
-    super(StorageEngineType.relational, "engine:postgresql, username:postgres, password:postgres", new PostgreSQLHistoryDataGenerator());
+    super(
+        StorageEngineType.relational,
+        "engine:postgresql, username:postgres, password:postgres",
+        new PostgreSQLHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
