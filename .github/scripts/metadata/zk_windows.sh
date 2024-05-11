@@ -2,11 +2,11 @@
 
 set -e
 
-sh -c "curl -LJO https://dlcdn.apache.org/zookeeper/zookeeper-3.8.4/apache-zookeeper-3.8.4-bin.tar.gz -o apache-zookeeper-3.7.2-bin.tar.gz"
+sh -c "curl -LJO https://dlcdn.apache.org/zookeeper/zookeeper-3.7.2/apache-zookeeper-3.7.2-bin.tar.gz -o apache-zookeeper-3.7.2-bin.tar.gz"
 
-sh -c "tar -zxf apache-zookeeper-3.8.4-bin.tar.gz"
+sh -c "tar -zxf apache-zookeeper-3.7.2-bin.tar.gz"
 
-sh -c "mv apache-zookeeper-3.8.4-bin zookeeper"
+sh -c "mv apache-zookeeper-3.7.2-bin zookeeper"
 
 sh -c "cp ./.github/actions/zookeeperRunner/zooWin.cfg zookeeper/conf/zoo.cfg"
 

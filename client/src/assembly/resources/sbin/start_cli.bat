@@ -22,10 +22,7 @@
 @REM You can put your env variable here
 @REM set JAVA_HOME=%JAVA_HOME%
 
-echo "%OS%"
 if "%OS%" == "Windows_NT" setlocal
-
-java -version
 
 pushd %~dp0..
 if NOT DEFINED IGINX_CLI_HOME set IGINX_CLI_HOME=%CD%
@@ -44,20 +41,6 @@ set CLASSPATH="%IGINX_CLI_HOME%\lib\*"
 
 REM -----------------------------------------------------------------------------
 set PARAMETERS=%*
-echo %PARAMETERS%
-echo "11111111"
-echo %PARAMETERS% | findstr /R /c:"-h ">nul && (echo "found1 ") || (echo "not found 1")
-echo "2222222222222"
-echo %PARAMETERS% | findstr "\-h ">nul && (echo "found3 ") || (echo "not found 3")
-echo "2222222222222"
-echo %PARAMETERS% | findstr " -h ">nul && (echo "found2 ") || (echo "not found 2")
-echo "333333333"
-echo "%PARAMETERS%" | findstr /R /c:"-h ">nul && (echo "found4 ") || (echo "not found 4")
-echo "2222222222222"
-echo "%PARAMETERS%" | findstr "\-h ">nul && (echo "found5 ") || (echo "not found 5")
-echo "2222222222222"
-echo "%PARAMETERS%" | findstr " -h ">nul && (echo "found6 ") || (echo "not found 6")
-echo "333333333"
 
 @REM if "%PARAMETERS%" == "" set PARAMETERS=-h 127.0.0.1 -p 6667 -u root -pw root
 
@@ -76,12 +59,7 @@ echo %PARAMETERS% | findstr /c:"-h ">nul && (set PARAMETERS=%PARAMETERS%) || (se
 echo %PARAMETERS% | findstr /c:"-fs ">nul && (set PARAMETERS=%PARAMETERS%) || (set PARAMETERS=%fs_parameter% %PARAMETERS%)
 
 echo %PARAMETERS%
-echo "%JAVA_HOME%\bin\java %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%"
-java -version
-"%JAVA_HOME%\bin\java" -version
 "%JAVA_HOME%\bin\java" %JAVA_OPTS% -cp %CLASSPATH% %MAIN_CLASS% %PARAMETERS%
-
-echo "IginxClient finished"
 
 goto finally
 

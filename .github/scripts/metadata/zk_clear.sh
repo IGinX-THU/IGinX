@@ -29,13 +29,3 @@ sh -c "mkdir zookeeper/data"
 sh -c "rm -rf zookeeper/logs"
 
 sh -c "mkdir zookeeper/logs"
-
-readarray -t results < <(netstat -ano | grep $PORT | awk '{print $5}' | uniq)
-
-for PID in "${results[@]}"; do
-  if [ -z "$PID" ]; then
-      echo "Can't find zookeeper process $PID"
-  else
-      sh -c "taskkill -f -pid $PID"
-  fi
-done

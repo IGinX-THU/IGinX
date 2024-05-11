@@ -17,34 +17,6 @@ if [[ $os =~ "mac" ]]; then
     SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h 192.168.65.1 -e"
 fi
 
-sleep 5
-#
-#docker ps
-#docker network inspect docker-cluster-iginx
-#ls logs/docker_logs
-cat logs/*
-#docker exec iginx0 cat /logs/iginx-latest.log
-#
-timeout=30
-interval=2
-
-elapsed_time=0
-while [ $elapsed_time -lt $timeout ]; do
-  output=$(${SCRIPT_PREFIX} "show cluster info;")
-  if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
-      echo "$output"
-      sleep $interval
-  else
-      break
-  fi
-  elapsed_time=$((elapsed_time + interval))
-done
-if [[ $output =~ 'Connection refused (Connection refused)' ]]; then
-  echo "IGinX not reachable"
-  exit 1
-fi
-
-
 # single udf in one file
 ${SCRIPT_PREFIX} "create function udtf \"mock_udf\" from \"MockUDF\" in \"/iginx_client/data/udf/mock_udf.py\";"
 # multiple udfs in one module

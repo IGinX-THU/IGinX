@@ -38,8 +38,5 @@ docker exec iginx-client powershell -Command "ping ${trimmed_string}"
 docker exec iginx-client cmd /c "C:/iginx_client/sbin/start_cli.bat" -h "${trimmed_string}" -e 'show functions;'
 docker exec iginx-client cmd /c "C:/iginx_client/sbin/start_cli.bat" -h "${trimmed_string}" -e 'create function udtf "mock_udf" from "MockUDF" in "C:/iginx_client/data/udf/mock_udf.py";'
 docker exec iginx-client cmd /c "C:/iginx_client/sbin/start_cli.bat" -h "${trimmed_string}" -e 'CREATE FUNCTION udtf "udf_a" FROM "my_module.my_class_a.ClassA", "udf_b" FROM "my_module.my_class_a.ClassB", "udf_sub" FROM "my_module.sub_module.sub_class_a.SubClassA" IN "C:/iginx_client/data/udf/my_module";'
-docker exec iginx-client cmd /c "C:/iginx_client/sbin/start_cli.bat" -h "${trimmed_string}" -e 'CREATE FUNCTION udtf "udf_a_file" FROM "ClassA", udsf "udf_b_file" FROM "ClassB", udaf "udf_c_file" FROM "ClassC" IN "C:/iginx_client/data/udf/my_module/idle_classes.py";'
+docker exec iginx-client cmd /c "C:/iginx_client/sbin/start_cli.bat" -h "${trimmed_string}" -e 'CREATE FUNCTION udtf "udf_a_file" FROM "ClassA", udsf "udf_b_file" FROM "ClassB", udaf "udf_c_file" FROM "ClassC" IN "../data/udf/my_module/idle_classes.py";'
 docker exec iginx-client cmd /c "C:/iginx_client/sbin/start_cli.bat" -h "${trimmed_string}" -e 'show functions;'
-
-
-docker logs iginx-client
