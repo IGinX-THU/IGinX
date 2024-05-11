@@ -35,6 +35,7 @@ if [[ "$line" == "notFound" ]]; then
 fi
 
 docker exec iginx-client ping host.docker.internal
+docker exec iginx-client ping 192.168.65.1
 docker exec iginx-client ping ${trimmed_string}
 
 export MSYS_NO_PATHCONV=1

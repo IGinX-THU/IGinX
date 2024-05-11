@@ -19,8 +19,8 @@ jobs:
             matrix:
                 java: [8]
                 python-version: ["3.9"]
-                os: [ macos-13, windows-latest]
-#                os: [ubuntu-latest, macos-13, windows-latest]
+                os: [macos-13, windows-latest]
+                #                os: [ubuntu-latest, macos-13, windows-latest]
                 DB-name:
                     [
                         "IoTDB12",
@@ -37,7 +37,7 @@ jobs:
             - if: runner.os != 'Windows'
               name: macos addr
               run: |
-                ifconfig
+                  ifconfig
 
             - uses: actions/checkout@v2
             - name: Environment dependence
@@ -60,12 +60,11 @@ jobs:
                   New-NetFirewallRule -DisplayName "Allow ICMPv4-In" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Inbound
                   New-NetFirewallRule -DisplayName "Allow ICMPv4-Out" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Outbound
 
-
             - if: runner.os == 'Windows'
               name: Build & Run Client image
               shell: cmd
               run: |
-                mvn clean package -q -pl client -am -Dmaven.test.skip=true -P-format -e && cd %GITHUB_WORKSPACE%\docker\client && build-no-maven.bat && run_docker.bat
+                  mvn clean package -q -pl client -am -Dmaven.test.skip=true -P-format -e && cd %GITHUB_WORKSPACE%\docker\client && build-no-maven.bat && run_docker.bat
 
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
@@ -108,9 +107,12 @@ jobs:
             - name: Register Remote UDFs
               shell: bash
               run: |
-                  if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "macOS" ]]; then
+                  if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh" ${{ matrix.os }}
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_macos.sh"
                   else
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_windows.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_windows.sh"
