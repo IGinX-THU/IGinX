@@ -1,50 +1,49 @@
-package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
+package cn.edu.tsinghua.iginx.integration.expansion.mysql;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.sql.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
+public class MySQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(PostgreSQLHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(MySQLHistoryDataGenerator.class);
 
   private static final char SEPARATOR = '.';
 
-  private static final String QUERY_DATABASES_STATEMENT = "SELECT datname FROM pg_database;";
+  private static final String QUERY_DATABASES_STATEMENT =
+      "SELECT SCHEMA_NAME AS datname FROM information_schema.schemata;";
 
-  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE \"%s\";";
+  private static final String CREATE_DATABASE_STATEMENT = "CREATE DATABASE `%s`;";
 
   private static final String CREATE_TABLE_STATEMENT = "CREATE TABLE %s (%s);";
 
   private static final String INSERT_STATEMENT = "INSERT INTO %s VALUES %s;";
 
-  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE \"%s\" WITH (FORCE);";
+  private static final String DROP_DATABASE_STATEMENT = "DROP DATABASE IF EXISTS `%s`;";
 
-  private static final String USERNAME = "postgres";
-
-  private static final String PASSWORD = "postgres";
-
-  public PostgreSQLHistoryDataGenerator() {
-    Constant.oriPort = 5432;
-    Constant.expPort = 5433;
-    Constant.readOnlyPort = 5434;
+  public MySQLHistoryDataGenerator() {
+    Constant.oriPort = 3306;
+    Constant.expPort = 3307;
+    Constant.readOnlyPort = 3308;
   }
 
   private Connection connect(int port, boolean useSystemDatabase, String databaseName) {
     try {
       String url;
       if (useSystemDatabase) {
-        url = String.format("jdbc:postgresql://127.0.0.1:%d/", port);
+        url = String.format("jdbc:mysql://127.0.0.1:%d/", port);
       } else {
-        url = String.format("jdbc:postgresql://127.0.0.1:%d/%s", port, databaseName);
+        url = String.format("jdbc:mysql://127.0.0.1:%d/%s", port, databaseName);
       }
-      Class.forName("org.postgresql.Driver");
-      return DriverManager.getConnection(url, USERNAME, PASSWORD);
+      Class.forName("com.mysql.cj.jdbc.Driver");
+      return DriverManager.getConnection(url, "root", null);
     } catch (SQLException | ClassNotFoundException e) {
       throw new RuntimeException(e);
     }
@@ -168,12 +167,14 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
 
       while (databaseSet.next()) {
         String databaseName = databaseSet.getString("DATNAME");
-        if (databaseName.equalsIgnoreCase("template0")
-            || databaseName.equalsIgnoreCase("template1")
-            || databaseName.equalsIgnoreCase("postgres")) {
+        if (databaseName.equalsIgnoreCase("performance_schema")
+            || databaseName.equalsIgnoreCase("information_schema")
+            || databaseName.equalsIgnoreCase("mysql")
+            || databaseName.equalsIgnoreCase("sys")) {
           continue;
         }
         dropDatabaseStatement.addBatch(String.format(DROP_DATABASE_STATEMENT, databaseName));
+        LOGGER.info("drop database {} on 127.0.0.1:{}: ", databaseName, port);
       }
       dropDatabaseStatement.executeBatch();
 
@@ -214,6 +215,6 @@ public class PostgreSQLHistoryDataGenerator extends BaseHistoryDataGenerator {
   }
 
   private static String getQuotName(String name) {
-    return "\"" + name + "\"";
+    return "`" + name + "`";
   }
 }

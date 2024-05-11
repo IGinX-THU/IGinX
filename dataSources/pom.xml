@@ -34,8 +34,8 @@
         <module>mongodb</module>
         <module>opentsdb</module>
         <module>parquet</module>
-        <module>postgresql</module>
         <module>redis</module>
+        <module>relational</module>
     </modules>
 
     <properties>

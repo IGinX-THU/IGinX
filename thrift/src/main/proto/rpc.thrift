@@ -32,7 +32,7 @@ enum StorageEngineType {
     iotdb12,
     influxdb,
     parquet,
-    postgresql,
+    relational,
     mongodb,
     redis,
     filesystem,
