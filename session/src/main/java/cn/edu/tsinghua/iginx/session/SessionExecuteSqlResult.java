@@ -221,7 +221,7 @@ public class SessionExecuteSqlResult {
     }
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
-      if (!path.equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
+      if (!path.equals("title.description")) { // TODO 不展示系统级时间序列
         label.add(path);
       } else {
         annotationPathIndex = i;
@@ -273,7 +273,7 @@ public class SessionExecuteSqlResult {
       List<List<String>> cache = new ArrayList<>();
       cache.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
       for (int i = 0; i < paths.size(); i++) {
-        if (!paths.get(i).equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
+        if (!paths.get(i).equals("title.description")) { // TODO 不展示系统级时间序列
           cache.add(new ArrayList<>(Arrays.asList(paths.get(i), dataTypeList.get(i).toString())));
           num++;
         }
