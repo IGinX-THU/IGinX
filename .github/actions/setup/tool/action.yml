@@ -1,0 +1,35 @@
+name: "tool"
+description: "tool config"
+inputs:
+    version:
+        description: "tool version"
+        required: true
+    tool:
+        description: "tool name"
+        required: true
+
+outputs:
+    cache-key:
+        description: "Cache key"
+        value: ${{ steps.dir.outputs.cache-key }}
+    cache-path:
+        description: "Cache path"
+        value: ${{ steps.dir.outputs.cache-path }}
+    tool-path:
+        description: "Tool path"
+        value: ${{ steps.dir.outputs.tool-path }}
+
+runs:
+    using: "composite"
+    steps:
+        - id: dir
+          shell: python
+          run: |
+              import os
+              cache = os.path.join("${{ runner.tool_cache }}", "${{ inputs.tool }}")
+              key = "${{ inputs.tool }}" + "-" + "${{ inputs.version }}" + "-" + "${{ runner.os }}" + "-" + "${{ runner.arch }}"
+              path = os.path.join(cache, "${{ inputs.version }}", "${{ runner.arch }}".lower())
+              with open(os.environ['GITHUB_OUTPUT'], 'a') as fh:
+                print(f'cache-path={cache}', file=fh)
+                print(f'cache-key={key}', file=fh)
+                print(f'tool-path={path}', file=fh)
