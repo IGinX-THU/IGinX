@@ -1,0 +1,92 @@
+name: "Union Database Test With Push Down"
+on:
+    pull_request:
+        types: [opened, reopened]
+        branches:
+            - main
+env:
+    VERSION: 0.6.0-SNAPSHOT
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    Union-DB-Test-Push_Down:
+        timeout-minutes: 35
+        strategy:
+            fail-fast: false
+            matrix:
+                java: [8]
+                python-version: ["3.9"]
+                os: [ubuntu-latest, macos-13, windows-latest]
+                DB-name:
+                    [
+                        "FileSystem",
+                        "IoTDB12",
+                        "InfluxDB",
+                        "PostgreSQL",
+                        "Redis",
+                        "MongoDB",
+                        "Parquet",
+                        "MySQL",
+                    ]
+                metadata: [zookeeper]
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - if: runner.os == 'Windows'
+              name: Set JAVA_OPTS
+              run: echo "JAVA_OPTS=-Xmx4g -Xmx2g" >> $GITHUB_ENV
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Push-Down: "true"
+                  Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
+
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+
+            - name: TestController IT
+              if: always()
+              shell: bash
+              env:
+                  METADATA_STORAGE: ${{ matrix.metadata }}
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+
+            - name: Show test result
+              if: always()
+              shell: bash
+              run: |
+                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
