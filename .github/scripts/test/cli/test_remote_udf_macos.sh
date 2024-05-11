@@ -12,22 +12,23 @@ echo "$os"
 
 ifconfig
 
-# 找到本机的ip4地址
-readarray -t results < <(ifconfig)
+results=$(ifconfig)
+
 adapterfound=false
 trimmed_string=notFound
 
-for line in "${results[@]}"; do
-	if [[ $line =~ "en0:" ]]; then
-		adapterfound=true
-	elif [[ "${adapterfound}" == "true" && $line =~ "inet " ]]; then
-		IFS=' '
-		read -ra arr <<< "$line"
-		trimmed_string=$(echo ${arr[1]} | tr -d ' ')
-		echo $trimmed_string
-		adapterfound=false
-	fi
-done
+# 逐行读取 ifconfig 输出
+while IFS= read -r line; do
+    if [[ $line =~ "en0:" ]]; then
+        adapterfound=true
+    elif [[ "${adapterfound}" == "true" && $line =~ "inet " ]]; then
+        IFS=' '
+        read -ra arr <<< "$line"
+        trimmed_string=$(echo ${arr[1]} | tr -d ' ')
+        echo $trimmed_string
+        adapterfound=false
+    fi
+done <<< "$results"
 
 if [[ "$line" == "notFound" ]]; then
     echo "ip4 addr for host not found"
