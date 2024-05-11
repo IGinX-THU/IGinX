@@ -36,13 +36,13 @@ if [[ "$line" == "notFound" ]]; then
 fi
 docker exec iginx-client sh -c "apt-get update && apt-get install -y iputils-ping"
 
-docker exec iginx-client ping host.docker.internal
-docker exec iginx-client ping 192.168.65.1
-docker exec iginx-client ping ${trimmed_string}
+docker exec iginx-client ping -c 4 host.docker.internal
+docker exec iginx-client ping -c 4 192.168.65.1
+docker exec iginx-client ping -c 4 ${trimmed_string}
 
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
-SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h 192.168.65.1 -e"
+SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h host.docker.internal -e"
 
 # single udf in one file
 ${SCRIPT_PREFIX} "create function udtf \"mock_udf\" from \"MockUDF\" in \"/iginx_client/data/udf/mock_udf.py\";"
