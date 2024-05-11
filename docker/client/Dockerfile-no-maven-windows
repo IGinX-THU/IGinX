@@ -15,7 +15,7 @@ RUN New-Item -Path 'C:/iginx_client/logs' -ItemType Directory
 RUN New-Item -Path 'C:/iginx_client/data' -ItemType Directory
 #USER ContainerUser
 
-ENV JAVA_HOME C:\jdk\jdk-11.0.2
-ENV PATH $JAVA_HOME\bin;$PATH
+ENV JAVA_HOME=C:\jdk\jdk-11.0.2
+ENV PATH=$JAVA_HOME\bin;$PATH
 
 ENTRYPOINT ["cmd", "/c", "ping -t localhost > NUL"]

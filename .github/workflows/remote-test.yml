@@ -55,6 +55,13 @@ jobs:
                   New-NetFirewallRule -DisplayName "Allow ICMPv4-In" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Inbound
                   New-NetFirewallRule -DisplayName "Allow ICMPv4-Out" -Protocol ICMPv4 -IcmpType 8 -Action Allow -Direction Outbound
 
+
+            - if: runner.os == 'Windows'
+              name: Build & Run Client image
+              shell: cmd
+              run: |
+                mvn clean install -q -pl client -Dmaven.test.skip=true -P-format -e && cd %GITHUB_WORKSPACE%\docker\client && build-no-maven.bat && run_docker.bat
+
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
@@ -79,12 +86,6 @@ jobs:
                   chmod +x "run_docker.sh" && \
                   "./build-no-maven.sh" && \
                   "./run_docker.sh"
-
-            - if: runner.os == 'Windows'
-              name: Build & Run Client image
-              shell: cmd
-              run: |
-                  cd %GITHUB_WORKSPACE%\docker\client && build-no-maven.bat && run_docker.bat
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
