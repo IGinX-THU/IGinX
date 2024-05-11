@@ -34,11 +34,6 @@ jobs:
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
         steps:
-            - if: runner.os != 'Windows'
-              name: macos addr
-              run: |
-                  ifconfig
-
             - uses: actions/checkout@v2
             - name: Environment dependence
               uses: ./.github/actions/dependence
