@@ -2,10 +2,10 @@
 setlocal enabledelayedexpansion
 
 set current_dir=%CD%
-set double_slash_dir=%current_dir:\=\\%
+set double_slash_dir=%current_dir:\=/%
 
 set name=iginx-client
-set datadir=%double_slash_dir%\\data
+set datadir=%double_slash_dir%/data
 
 :parse_args
 if "%~1"=="" goto end_parse_args
