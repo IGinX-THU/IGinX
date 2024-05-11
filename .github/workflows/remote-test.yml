@@ -12,7 +12,7 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
-    Union-DB-Test:
+    Remote-Server-Test:
         timeout-minutes: 30
         strategy:
             fail-fast: false
