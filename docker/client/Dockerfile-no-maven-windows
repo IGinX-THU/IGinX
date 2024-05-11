@@ -2,9 +2,6 @@
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
 COPY ./target/iginx-client-0.6.0-SNAPSHOT/ C:/iginx_client
 
-USER ContainerAdministrator
-ENV JAVA_HOME "C:\jdk\jdk-11.0.2"
-RUN setx /M PATH "%JAVA_HOME%\bin;%PATH%"
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue';"]
 
 # 下载 JDK
