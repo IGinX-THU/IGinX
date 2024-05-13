@@ -21,7 +21,6 @@ public class SQLTestTools {
 
   public static void executeAndCompare(Session session, String statement, String exceptOutput) {
     String actualOutput = execute(session, statement);
-    System.out.println(actualOutput);
     assertEquals(exceptOutput, actualOutput);
   }
 
