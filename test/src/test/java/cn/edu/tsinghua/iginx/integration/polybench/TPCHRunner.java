@@ -50,76 +50,73 @@ public class TPCHRunner {
                             new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
             conn.openSession();
 
+//            // 输出所有存储引擎
+//            String clusterInfo = conn.executeSql("SHOW CLUSTER INFO;").getResultInString(false, "");
+//            System.out.println(clusterInfo);
+//
+//            // 添加存储引擎
+//            System.out.println("start adding storage engine");
+//            long startTime = System.currentTimeMillis();
+//            Map<String, String> pgMap = new HashMap<>();
+//            pgMap.put("has_data", "true");
+//            pgMap.put("is_read_only", "true");
+//            pgMap.put("username", "postgres");
+//            pgMap.put("password", "postgres");
+//            pgMap = Collections.unmodifiableMap(pgMap);
+//            conn.addStorageEngine(
+//                    "127.0.0.1",
+//                    5432,
+//                    StorageEngineType.postgresql,
+//                    pgMap
+//            );
+//            Map<String, String> mongoMap = new HashMap<>();
+//            mongoMap.put("has_data", "true");
+//            mongoMap.put("is_read_only", "true");
+//            mongoMap.put("schema.sample.size", "1000");
+//            mongoMap.put("dummy.sample.size", "0");
+//            conn.addStorageEngine(
+//                    "127.0.0.1",
+//                    27017,
+//                    StorageEngineType.mongodb,
+//                    mongoMap
+//            );
+//            System.out.println("end adding storage engine, time cost: " + (System.currentTimeMillis() - startTime) + "ms");
+
             // 输出所有存储引擎
             String clusterInfo = conn.executeSql("SHOW CLUSTER INFO;").getResultInString(false, "");
             System.out.println(clusterInfo);
 
-            // 添加存储引擎
-            System.out.println("start adding storage engine");
-            long startTime = System.currentTimeMillis();
-            Map<String, String> pgMap = new HashMap<>();
-            pgMap.put("has_data", "true");
-            pgMap.put("is_read_only", "true");
-            pgMap.put("username", "postgres");
-            pgMap.put("password", "postgres");
-            pgMap = Collections.unmodifiableMap(pgMap);
-            conn.addStorageEngine(
-                    "127.0.0.1",
-                    5432,
-                    StorageEngineType.postgresql,
-                    pgMap
-            );
-            Map<String, String> mongoMap = new HashMap<>();
-            mongoMap.put("has_data", "true");
-            mongoMap.put("is_read_only", "true");
-            mongoMap.put("schema.sample.size", "1000");
-            mongoMap.put("dummy.sample.size", "0");
-            conn.addStorageEngine(
-                    "127.0.0.1",
-                    27017,
-                    StorageEngineType.mongodb,
-                    mongoMap
-            );
-            System.out.println("end adding storage engine, time cost: " + (System.currentTimeMillis() - startTime) + "ms");
-
-            // 输出所有存储引擎
-            clusterInfo = conn.executeSql("SHOW CLUSTER INFO;").getResultInString(false, "");
-            System.out.println(clusterInfo);
-
-            StringBuilder sql = new StringBuilder();
-            sql.append("select\n");
-            sql.append("    nation.n_name,\n");
-            sql.append("    revenue\n");
-            sql.append("from (\n");
-            sql.append("    select\n");
-            sql.append("        nation.n_name,\n");
-            sql.append("        sum(tmp) as revenue\n");
-            sql.append("    from (\n");
-            sql.append("        select\n");
-            sql.append("            nation.n_name,\n");
-            sql.append("            mongotpch.lineitem.l_extendedprice * (1 - mongotpch.lineitem.l_discount) as tmp\n");
-            sql.append("        from\n");
-            sql.append("            postgres.customer\n");
-            sql.append("            join mongotpch.orders on postgres.customer.c_custkey = mongotpch.orders.o_custkey\n");
-            sql.append("            join mongotpch.lineitem on mongotpch.lineitem.l_orderkey = mongotpch.orders.o_orderkey\n");
-            sql.append("            join postgres.supplier on mongotpch.lineitem.l_suppkey = postgres.supplier.s_suppkey and postgres.customer.c_nationkey = postgres.supplier.s_nationkey\n");
-            sql.append("            join nation on postgres.supplier.s_nationkey = nation.n_nationkey\n");
-            sql.append("            join postgres.region on nation.n_regionkey = postgres.region.r_regionkey\n");
-            sql.append("        where\n");
-            sql.append("            postgres.region.r_name = \"ASIA\"\n");
-            sql.append("            and mongotpch.orders.o_orderdate < 788889600000\n");
-            sql.append("    )\n");
-            sql.append("    group by\n");
-            sql.append("        nation.n_name\n");
-            sql.append(")\n");
-            sql.append("order by\n");
-            sql.append("    revenue desc;");
-
-            String sqlString = sql.toString();
+            String sqlString = "select \n" +
+                    "    nation.n_name, revenue\n" +
+                    "from (\n" +
+                    "    select\n" +
+                    "        nation.n_name,\n" +
+                    "        sum(tmp) as revenue\n" +
+                    "    from (\n" +
+                    "        select\n" +
+                    "            nation.n_name,\n" +
+                    "            mongotpch.lineitem.l_extendedprice * (1 - mongotpch.lineitem.l_discount) as tmp\n" +
+                    "        from\n" +
+                    "            postgres.customer\n" +
+                    "            join mongotpch.orders on postgres.customer.c_custkey = mongotpch.orders.o_custkey\n" +
+                    "            join mongotpch.lineitem on mongotpch.lineitem.l_orderkey = mongotpch.orders.o_orderkey\n" +
+                    "            join postgres.supplier on mongotpch.lineitem.l_suppkey = postgres.supplier.s_suppkey and postgres.customer.c_nationkey = postgres.supplier.s_nationkey\n" +
+                    "            join nation on postgres.supplier.s_nationkey = nation.n_nationkey\n" +
+                    "            join postgres.region on nation.n_regionkey = postgres.region.r_regionkey\n" +
+                    "        where\n" +
+                    "            postgres.region.r_name = \"ASIA\"\n" +
+                    "            and mongotpch.orders.o_orderdate >= 757353600000\n" +
+                    "            and mongotpch.orders.o_orderdate < 788889600000\n" +
+                    "    )\n" +
+                    "    group by\n" +
+                    "        nation.n_name\n" +
+                    ")\n" +
+                    "order by\n" +
+                    "    revenue desc;";
 
             // 开始 tpch 查询
             System.out.println("start tpch query");
-            startTime = System.currentTimeMillis();
+            long startTime = System.currentTimeMillis();
 
             // 执行查询语句
             SessionExecuteSqlResult result = conn.executeSql(sqlString);
