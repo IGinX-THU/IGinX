@@ -50,40 +50,40 @@ public class TPCHRunner {
                             new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
             conn.openSession();
 
-//            // 输出所有存储引擎
-//            String clusterInfo = conn.executeSql("SHOW CLUSTER INFO;").getResultInString(false, "");
-//            System.out.println(clusterInfo);
-//
-//            // 添加存储引擎
-//            System.out.println("start adding storage engine");
-//            long startTime = System.currentTimeMillis();
-//            Map<String, String> pgMap = new HashMap<>();
-//            pgMap.put("has_data", "true");
-//            pgMap.put("is_read_only", "true");
-//            pgMap.put("username", "postgres");
-//            pgMap.put("password", "postgres");
-//            pgMap = Collections.unmodifiableMap(pgMap);
-//            conn.addStorageEngine(
-//                    "127.0.0.1",
-//                    5432,
-//                    StorageEngineType.postgresql,
-//                    pgMap
-//            );
-//            Map<String, String> mongoMap = new HashMap<>();
-//            mongoMap.put("has_data", "true");
-//            mongoMap.put("is_read_only", "true");
-//            mongoMap.put("schema.sample.size", "1000");
-//            mongoMap.put("dummy.sample.size", "0");
-//            conn.addStorageEngine(
-//                    "127.0.0.1",
-//                    27017,
-//                    StorageEngineType.mongodb,
-//                    mongoMap
-//            );
-//            System.out.println("end adding storage engine, time cost: " + (System.currentTimeMillis() - startTime) + "ms");
-
             // 输出所有存储引擎
             String clusterInfo = conn.executeSql("SHOW CLUSTER INFO;").getResultInString(false, "");
+            System.out.println(clusterInfo);
+
+            // 添加存储引擎
+            System.out.println("start adding storage engine");
+            long startTime = System.currentTimeMillis();
+            Map<String, String> pgMap = new HashMap<>();
+            pgMap.put("has_data", "true");
+            pgMap.put("is_read_only", "true");
+            pgMap.put("username", "postgres");
+            pgMap.put("password", "postgres");
+            pgMap = Collections.unmodifiableMap(pgMap);
+            conn.addStorageEngine(
+                    "127.0.0.1",
+                    5432,
+                    StorageEngineType.postgresql,
+                    pgMap
+            );
+            Map<String, String> mongoMap = new HashMap<>();
+            mongoMap.put("has_data", "true");
+            mongoMap.put("is_read_only", "true");
+            mongoMap.put("schema.sample.size", "1000");
+            mongoMap.put("dummy.sample.size", "0");
+            conn.addStorageEngine(
+                    "127.0.0.1",
+                    27017,
+                    StorageEngineType.mongodb,
+                    mongoMap
+            );
+            System.out.println("end adding storage engine, time cost: " + (System.currentTimeMillis() - startTime) + "ms");
+
+            // 输出所有存储引擎
+            clusterInfo = conn.executeSql("SHOW CLUSTER INFO;").getResultInString(false, "");
             System.out.println(clusterInfo);
 
             String sqlString = "select \n" +
@@ -116,7 +116,7 @@ public class TPCHRunner {
 
             // 开始 tpch 查询
             System.out.println("start tpch query");
-            long startTime = System.currentTimeMillis();
+            startTime = System.currentTimeMillis();
 
             // 执行查询语句
             SessionExecuteSqlResult result = conn.executeSql(sqlString);
@@ -139,7 +139,7 @@ public class TPCHRunner {
                 System.out.println("Answer number: " + answerNumber);
 
                 assert nation.equals(answerString);
-                assert answerNumber - number < 1e-1 && number - answerNumber < 1e-1;
+                assert answerNumber - number < 1e-5 && number - answerNumber < 1e-5;
             }
 
             // 关闭会话
