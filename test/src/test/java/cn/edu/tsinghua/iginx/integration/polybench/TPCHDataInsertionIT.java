@@ -233,9 +233,13 @@ public class TPCHDataInsertionIT {
       "DROP TABLE IF EXISTS customer",
       "DROP TABLE IF EXISTS supplier",
       "DROP TABLE IF EXISTS region",
-      "CREATE TABLE IF NOT EXISTS customer ( c_custkey INT, c_name VARCHAR(25), c_address VARCHAR(40), c_nationkey INT, c_phone CHAR(15), c_acctbal DECIMAL(15,2), c_mktsegment CHAR(10), c_comment VARCHAR(117), c_dummy VARCHAR(2), PRIMARY KEY (c_custkey))",
+      "DROP TABLE IF EXISTS part",
+      "DROP TABLE IF EXISTS partsupp",
+      "CREATE TABLE IF NOT EXISTS customer ( c_custkey INT, c_name VARCHAR(25), c_address VARCHAR(40), c_nationkey INT, c_phone VARCHAR(15), c_acctbal FLOAT, c_mktsegment VARCHAR(10), c_comment VARCHAR(117), c_dummy VARCHAR(2), PRIMARY KEY (c_custkey))",
       "CREATE TABLE IF NOT EXISTS region ( r_regionkey INT, r_name VARCHAR(25), r_comment VARCHAR(152), r_dummy VARCHAR(2), PRIMARY KEY (r_regionkey))",
-      "CREATE TABLE IF NOT EXISTS supplier ( s_suppkey INT, s_name VARCHAR(25), s_address VARCHAR(40), s_nationkey INT, s_phone VARCHAR(15), s_acctbal DECIMAL(15,2), s_comment VARCHAR(101), s_dummy varchar(2), PRIMARY KEY (s_suppkey))",
+      "CREATE TABLE IF NOT EXISTS supplier ( s_suppkey INT, s_name VARCHAR(25), s_address VARCHAR(40), s_nationkey INT, s_phone VARCHAR(15), s_acctbal FLOAT, s_comment VARCHAR(101), s_dummy VARCHAR(2), PRIMARY KEY (s_suppkey))",
+      "CREATE TABLE IF NOT EXISTS part ( p_partkey  INT, p_name   VARCHAR(55), p_mfgr  VARCHAR(25), p_brand  VARCHAR(10), p_type  VARCHAR(25), p_size  INT, p_container  VARCHAR(10), p_retailprice FLOAT , p_comment VARCHAR(23) , p_dummy VARCHAR(2), PRIMARY KEY (p_partkey))",
+      "CREATE TABLE IF NOT EXISTS partsupp ( ps_partkey INT, ps_suppkey INT, ps_availqty INT, ps_supplycost  FLOAT, ps_comment VARCHAR(199), ps_dummy   VARCHAR(2))",
     };
 
     try (Connection conn = DriverManager.getConnection(url, user, password);
@@ -249,7 +253,7 @@ public class TPCHDataInsertionIT {
           System.out.println("Executed SQL statement: " + sql);
         }
         CopyManager copyManager = new CopyManager((BaseConnection) conn);
-        List<String> tableNames = Arrays.asList("customer", "supplier", "region");
+        List<String> tableNames = Arrays.asList("customer", "supplier", "region", "part", "partsupp");
         for (String tableName : tableNames) {
           String filePath = String.format("%s/%s.tbl", dataPath, tableName);
           FileReader fileReader = new FileReader(filePath);

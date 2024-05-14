@@ -71,8 +71,6 @@ else
   ls
   echo "数据生成完成"
 
-  rm part.tbl
-  rm partsupp.tbl
   # 源文件夹路径
   source_folder="."
 
@@ -92,6 +90,8 @@ else
   chmod +r orders.tbl
   chmod +r region.tbl
   chmod +r supplier.tbl
+  chmod +r part.tbl
+  chmod +r partsupp.tbl
   ls -a
   pwd
   echo "文件移动完成"
