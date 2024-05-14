@@ -50,7 +50,7 @@ public class FileSystemHistoryQueryRowStream implements RowStream {
       fields.add(field);
     }
 
-    this.indices = new int[rowData.size()][1024 * 100];
+    this.indices = new int[rowData.size()][rowData.size() + 10];
     this.round = new int[rowData.size()];
     this.header = new Header(time, fields);
     for (FileSystemResultTable row : rowData) {
