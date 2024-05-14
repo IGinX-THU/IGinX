@@ -156,7 +156,7 @@ public class DummyManager implements Manager {
 
   @Override
   public KeyInterval getKeyInterval() {
-    return new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
+    return KeyInterval.getDefaultKeyInterval();
   }
 
   @Override

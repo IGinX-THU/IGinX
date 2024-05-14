@@ -181,8 +181,7 @@ public class IoTDBStorage implements IStorage {
     }
 
     // 获取 key 范围
-    long minTime = Long.MIN_VALUE, maxTime = Long.MAX_VALUE;
-    KeyInterval keyInterval = new KeyInterval(minTime, maxTime);
+    KeyInterval keyInterval = KeyInterval.getDefaultKeyInterval();
 
     return new Pair<>(columnsInterval, keyInterval);
   }
