@@ -25,7 +25,7 @@ statement
    | SHOW jobStatus TRANSFORM JOB # showEligibleJobStatement
    | REMOVE HISTORYDATASOURCE removedStorageEngine (COMMA removedStorageEngine)* # removeHistoryDataSourceStatement
    | SET CONFIG configName = stringLiteral configValue = stringLiteral # setConfigStatement
-   | SHOW CONFIG configName = stringLiteral # showConfigStatement
+   | SHOW CONFIG (configName = stringLiteral)? # showConfigStatement
    | SHOW SESSIONID # showSessionIDStatement
    | COMPACT # compactStatement
    | SHOW RULES # showRulesStatement

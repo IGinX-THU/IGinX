@@ -389,7 +389,6 @@ public class IginxClient {
     } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
-      e.printStackTrace();
       System.out.println(
           "Execute Error: encounter error(s) when executing sql statement, "
               + "see server log for more details.");
@@ -447,7 +446,6 @@ public class IginxClient {
     } catch (SessionException e) {
       System.out.println(e.getMessage());
     } catch (Exception e) {
-      e.printStackTrace();
       System.out.println(
           "Execute Error: encounter error(s) when executing sql statement, "
               + "see server log for more details.");
