@@ -6,8 +6,8 @@ public class PathFilter implements Filter {
 
   private final FilterType type = FilterType.Path;
 
-  private final String pathA;
-  private final String pathB;
+  private String pathA;
+  private String pathB;
   private Op op;
 
   public PathFilter(String pathA, Op op, String pathB) {
@@ -26,6 +26,14 @@ public class PathFilter implements Filter {
 
   public String getPathB() {
     return pathB;
+  }
+
+  public String setPathA(String pathA) {
+    return this.pathA = pathA;
+  }
+
+  public String setPathB(String pathB) {
+      return this.pathB = pathB;
   }
 
   public Op getOp() {
