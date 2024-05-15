@@ -219,6 +219,28 @@ public class SQLSessionIT {
     return builder.toString();
   }
 
+  private int getTimeCostFromExplainPhysicalResult(String explainPhysicalResult) {
+    String[] lines = explainPhysicalResult.split("\n");
+    int executeTimeIndex = -1;
+    int timeCost = 0;
+    for (String line : lines) {
+      String[] split = line.split("\\|");
+      if (split.length > 1) {
+        if (executeTimeIndex == -1) {
+          for (int i = 0; i < split.length; i++) {
+            if (split[i].trim().contains("Time")) {
+              executeTimeIndex = i;
+              break;
+            }
+          }
+        } else {
+          timeCost += Integer.parseInt(split[executeTimeIndex].trim().replace("ms", ""));
+        }
+      }
+    }
+    return timeCost;
+  }
+
   @After
   public void clearData() {
     String clearData = "CLEAR DATA;";
@@ -7281,5 +7303,84 @@ public class SQLSessionIT {
         }
       }
     }
+  }
+
+  @Test
+  public void testCorrelateSubqueryTime() {
+    // 测试IN和EXISTS的关联子查询时间是否相近，在某次修改前EXISTS的时间会比IN的时间长很多（约2个数量级）
+    String inQuery =
+        "select zipcode, city from us as a \n"
+            + "where zipcode not in ( \n"
+            + "    SELECT zipcode  \n"
+            + "    FROM us \n"
+            + "    where us.zipcode = a.zipcode && us.city <> a.city \n"
+            + ");";
+    String existsQuery =
+        "SELECT zipcode, city\n"
+            + "FROM us AS a\n"
+            + "WHERE NOT EXISTS (\n"
+            + "    SELECT *\n"
+            + "    FROM us AS b\n"
+            + "    WHERE a.zipcode = b.zipcode AND a.city <> b.city\n"
+            + ");";
+
+    // 插入数据
+    StringBuilder insert = new StringBuilder();
+    insert.append("INSERT INTO us (key, zipcode, city) VALUES ");
+    int rows = 10000;
+    List<String> cityList =
+        Arrays.asList(
+            "New York",
+            "Los Angeles",
+            "Chicago",
+            "Houston",
+            "Phoenix",
+            "Philadelphia",
+            "San Antonio",
+            "San Diego",
+            "Dallas");
+    for (int i = 0; i < rows; i++) {
+      insert.append(
+          String.format(
+              "(%d, %d, \"%s\")",
+              i, (i % 9) + (i % 99) + (i % 999), cityList.get(i % cityList.size())));
+      if (i != rows - 1) {
+        insert.append(",");
+      }
+    }
+    insert.append(";");
+    executor.execute(insert.toString());
+
+    // 检查IN和EXISTS的查询结果是否一致
+    String inResult = executor.execute(inQuery);
+    String existsResult = executor.execute(existsQuery);
+    String expect =
+        "ResultSets:\n"
+            + "+----+---------+-----------+\n"
+            + "| key|a.zipcode|     a.city|\n"
+            + "+----+---------+-----------+\n"
+            + "|   0|        0|   New York|\n"
+            + "|   1|        3|Los Angeles|\n"
+            + "|   2|        6|    Chicago|\n"
+            + "| 987|     1089|San Antonio|\n"
+            + "| 988|     1092|  San Diego|\n"
+            + "| 989|     1095|     Dallas|\n"
+            + "|9987|     1089|San Antonio|\n"
+            + "|9988|     1092|  San Diego|\n"
+            + "|9989|     1095|     Dallas|\n"
+            + "+----+---------+-----------+\n"
+            + "Total line number = 9\n";
+    assertEquals(expect, inResult);
+    assertEquals(expect, existsResult);
+
+    // explain physical查询
+    String inExplainResult = executor.execute("EXPLAIN PHYSICAL " + inQuery);
+    String existsExplainResult = executor.execute("EXPLAIN PHYSICAL " + existsQuery);
+
+    // 考虑到波动，两者耗时相差不超过3倍
+    int inTime = getTimeCostFromExplainPhysicalResult(inExplainResult);
+    int existsTime = getTimeCostFromExplainPhysicalResult(existsExplainResult);
+    System.out.println(String.format("IN COST: %dms, EXISTS COST: %dms", inTime, existsTime));
+    assertTrue(inTime * 3 >= existsTime || existsTime * 3 >= inTime);
   }
 }

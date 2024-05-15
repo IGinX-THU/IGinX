@@ -9,6 +9,12 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s/^storageEngineList=/#storageEngineList=/g
+
         - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
           name: Setup DB
           uses: ./.github/actions/setup/influxdb
@@ -53,6 +59,24 @@ runs:
                 exit 1
               fi
 
+        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Run DB
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb.sh"
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_windows.sh"
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_macos.sh"
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+
         - if: inputs.DB-name=='Parquet' #test/iginx_mn is the path for IT test data
           name: Run DB
           shell: bash
@@ -87,9 +111,7 @@ runs:
           uses: ./.github/actions/edit
           with:
               paths: conf/config.properties
-              statements: |
-                  s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
-                  s/#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
+              statements: s/^#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
 
         - if: inputs.DB-name=='FileSystem' #test/iginx_mn is the path for IT test data
           name: Run DB
@@ -125,27 +147,7 @@ runs:
           uses: ./.github/actions/edit
           with:
               paths: conf/config.properties
-              statements: |
-                  s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
-                  s/#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
-
-        - if: inputs.DB-name=='Mix-IoTDB12-InfluxDB'
-          name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb.sh"
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_windows.sh"
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mix_iotdb12_influxdb_macos.sh"
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
+              statements: s/^#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
 
         - if: inputs.DB-name=='PostgreSQL'
           name: Setup DB
@@ -165,24 +167,33 @@ runs:
           uses: ./.github/actions/edit
           with:
               paths: conf/config.properties
-              statements: |
-                  s/storageEngineList=127.0.0.1#6667/#storageEngineList=127.0.0.1#6667/g
-                  s/#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
+              statements: s/^#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
+
+        - if: inputs.DB-name=='MySQL'
+          name: Setup DB
+          uses: ./.github/actions/setup/mysql
 
         - if: inputs.DB-name == 'MySQL'
-          name: chan
+          name: Start MySQL Service
+          uses: ./.github/actions/service/mysql
+          with:
+              ports: 3306 3307 3308
+
+        - if: inputs.DB-name == 'MySQL'
+          id: mysql-properties
+          name: Get MySQL Properties Path
+          working-directory: ${{ github.workspace }}
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql.sh" 3306 3307 3308
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_windows.sh" 3306 3307 3308
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mysql_macos.sh" 3306 3307 3308
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
+              CONFIG_PATH="${PWD}/dataSources/relational/src/main/resources/mysql-meta-template.properties"
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                  CONFIG_PATH=$(cygpath -m $CONFIG_PATH)
               fi
+              echo "path=$CONFIG_PATH" >> $GITHUB_OUTPUT
+
+        - if: inputs.DB-name == 'MySQL'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g
