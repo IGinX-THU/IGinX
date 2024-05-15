@@ -1,6 +1,5 @@
 class ClassA:
     def print_self(self):
-        print("class A")
         return "class A"
 
     def print_inner(self):
@@ -16,7 +15,6 @@ class ClassA:
 
 class ClassB:
     def print_self(self):
-        print("class B")
         return "class B"
 
     def print_inner(self):
