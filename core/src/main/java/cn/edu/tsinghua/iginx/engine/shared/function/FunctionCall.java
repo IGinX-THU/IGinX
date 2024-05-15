@@ -48,6 +48,14 @@ public class FunctionCall {
         function.getIdentifier(), function.getFunctionType(), function.getMappingType());
   }
 
+  public String getFunctionStr() {
+    return String.format(
+        "%s(%s%s)",
+        function.getIdentifier(),
+        params.isDistinct() ? "distinct " : "",
+        String.join(", ", params.getPaths()));
+  }
+
   public String getNameAndFuncTypeStr() {
     return String.format(
         "(%s, %s)", FunctionUtils.getFunctionName(function), function.getFunctionType());
