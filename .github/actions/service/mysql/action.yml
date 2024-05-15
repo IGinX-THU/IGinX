@@ -1,0 +1,35 @@
+name: "mysql"
+description: "stop, clean and start mysql in order"
+inputs:
+    ports:
+        description: The server port to listen on.
+        default: "3306"
+        required: false
+
+runs:
+    using: "composite"
+    steps:
+        - name: Create Config and Data Directory
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                mkdir -p $port
+                echo "[mysqld]" > $port.ini
+                echo "datadir   = ./$port" >> $port.ini
+                echo "port      = $port" >> $port.ini
+                echo "socket    = " >> $port.ini
+                echo "user      = $USER" >> $port.ini
+                echo "console   = 1" >> $port.ini
+                echo "log-error = stderr" >> $port.ini
+                echo "mysqlx    = 0" >> $port.ini
+              done
+
+        - name: Start mysql
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                mysqld --defaults-file=./$port.ini --initialize-insecure
+                mysqld --defaults-file=./$port.ini &
+              done
