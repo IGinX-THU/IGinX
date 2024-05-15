@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.recoverRenamedPatterns;
+
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
@@ -420,48 +422,6 @@ public class ColumnPruningRule extends Rule {
       }
     }
     return true; // 所有的patternB都被至少一个patternA覆盖
-  }
-
-  /**
-   * 反向重命名模式列表中的模式
-   *
-   * @param aliasMap 重命名规则, key为旧模式，value为新模式，在这里我们要将新模式恢复为旧模式
-   * @param patterns 要重命名的模式列表
-   * @return 重命名后的模式列表
-   */
-  private static List<String> recoverRenamedPatterns(
-      Map<String, String> aliasMap, List<String> patterns) {
-    List<String> renamedPatterns = new ArrayList<>();
-    for (String pattern : patterns) {
-      boolean matched = false;
-      for (Map.Entry<String, String> entry : aliasMap.entrySet()) {
-        String oldPattern = entry.getKey().replace("*", "$1"); // 通配符转换为正则的捕获组
-        String newPattern = entry.getValue().replace("*", "(.*)"); // 使用反向引用保留原始匹配的部分
-        if (pattern.matches(newPattern)) {
-          if (oldPattern.contains("$1") && !newPattern.contains("*")) {
-            // 如果旧模式中有通配符，但是新模式中没有，我们需要将新模式中的捕获组替换为通配符
-            oldPattern = oldPattern.replace("$1", "*");
-          }
-          String p = pattern.replaceAll(newPattern, oldPattern);
-          renamedPatterns.add(p);
-          matched = true;
-          break;
-        } else if (newPattern.equals(pattern)) {
-          renamedPatterns.add(entry.getKey());
-          matched = true;
-          break;
-        } else if (pattern.contains(".*")
-            && newPattern.matches(StringUtils.reformatPath(pattern))) {
-          renamedPatterns.add(entry.getKey());
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) { // 如果没有匹配的规则，添加原始模式
-        renamedPatterns.add(pattern);
-      }
-    }
-    return renamedPatterns;
   }
 
   /**
