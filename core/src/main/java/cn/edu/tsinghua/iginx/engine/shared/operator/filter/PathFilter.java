@@ -33,7 +33,7 @@ public class PathFilter implements Filter {
   }
 
   public String setPathB(String pathB) {
-      return this.pathB = pathB;
+    return this.pathB = pathB;
   }
 
   public Op getOp() {
