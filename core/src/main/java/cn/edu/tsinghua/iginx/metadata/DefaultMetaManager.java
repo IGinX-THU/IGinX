@@ -1252,6 +1252,10 @@ public class DefaultMetaManager implements IMetaManager {
       if (hasData) {
         StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(i), i);
         Pair<ColumnsInterval, KeyInterval> boundary = StorageManager.getBoundaryOfStorage(storage);
+        if (boundary == null) {
+          LOGGER.error("Skip dummy engine:{}. Failed to obtain boundary.", storageEngineStrings[i]);
+          continue;
+        }
         FragmentMeta dummyFragment;
 
         if (dataPrefix == null) {

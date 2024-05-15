@@ -168,72 +168,65 @@ public class InfluxDBStorage implements IStorage {
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
     List<String> bucketNames = new ArrayList<>(historyBucketMap.keySet());
-    bucketNames.sort(String::compareTo);
     if (bucketNames.isEmpty()) {
       throw new InfluxDBTaskExecuteFailureException("InfluxDB has no bucket!");
     }
+    // 筛选出符合dataPrefix的bucket，
+    if (dataPrefix != null) {
+      bucketNames =
+          bucketNames.stream()
+              .filter(
+                  bucketName ->
+                      bucketName.startsWith(dataPrefix) || dataPrefix.startsWith(bucketName))
+              .collect(Collectors.toList());
+    }
+    bucketNames.sort(String::compareTo);
     ColumnsInterval columnsInterval;
-    if (dataPrefix == null) {
-      columnsInterval =
-          new ColumnsInterval(
-              bucketNames.get(0), StringUtils.nextString(bucketNames.get(bucketNames.size() - 1)));
-    } else {
-      columnsInterval = new ColumnsInterval(dataPrefix);
-    }
-    long minTime = Long.MAX_VALUE, maxTime = 0;
 
-    String measurementPrefix = MEASUREMENTALL, fieldPrefix = FIELDALL;
-    if (dataPrefix != null
-        && dataPrefix.contains(".")) { // get the measurement and field from dataPrefix
-      int indexPrefix = dataPrefix.indexOf(".");
-      measurementPrefix = dataPrefix.substring(0, indexPrefix);
-      fieldPrefix = dataPrefix.substring(indexPrefix + 1);
-    } else if (dataPrefix != null) {
-      measurementPrefix = dataPrefix;
+    // 只需要查询首尾两端的记录即可
+    String minPath = findExtremeRecordPath(bucketNames, dataPrefix, true);
+    String maxPath = findExtremeRecordPath(bucketNames, dataPrefix, false) + "~";
+
+    if (minPath == null || maxPath == null) {
+      throw new InfluxDBTaskExecuteFailureException(
+          "InfluxDB has no valid data! Maybe there are no data in each bucket or no data with the given data prefix!");
     }
 
-    for (Bucket bucket : historyBucketMap.values()) {
-      String statement =
-          String.format(
-              QUERY_DATA_ALL,
-              bucket.getName(),
-              0L,
-              Long.MAX_VALUE,
-              measurementPrefix.equals(MEASUREMENTALL)
-                  ? MEASUREMENTALL
-                  : "= \"" + measurementPrefix + "\"",
-              fieldPrefix.equals(FIELDALL) ? FIELDALL : "~ /" + fieldPrefix + ".*/");
-      LOGGER.debug("execute statement: {}", statement);
-      // 查询 first
-      List<FluxTable> tables =
-          client.getQueryApi().query(statement + " |> first()", organization.getId());
-      for (FluxTable table : tables) {
-        for (FluxRecord record : table.getRecords()) {
-          long time = instantToNs(record.getTime());
-          minTime = Math.min(time, minTime);
-          maxTime = Math.max(time, maxTime);
-          LOGGER.debug("record: {}", InfluxDBStorage.toString(table, record));
-        }
-      }
-      // 查询 last
-      tables = client.getQueryApi().query(statement + " |> last()", organization.getId());
-      for (FluxTable table : tables) {
-        for (FluxRecord record : table.getRecords()) {
-          long time = instantToNs(record.getTime());
-          minTime = Math.min(time, minTime);
-          maxTime = Math.max(time, maxTime);
-          LOGGER.debug("record: {}", InfluxDBStorage.toString(table, record));
-        }
-      }
-    }
-    if (minTime == Long.MAX_VALUE) {
-      minTime = 0;
-    }
-    if (maxTime == 0) {
-      maxTime = Long.MAX_VALUE - 1;
-    }
-    KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
+    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE + 1, Long.MAX_VALUE);
+    columnsInterval = new ColumnsInterval(minPath, maxPath);
     return new Pair<>(columnsInterval, keyInterval);
+  }
+
+  private String findExtremeRecordPath(
+      List<String> bucketNames, String dataPrefix, boolean findMin) {
+    String extremePath = null;
+    int startIndex = findMin ? 0 : bucketNames.size() - 1;
+    int endIndex = findMin ? bucketNames.size() : -1;
+    int step = findMin ? 1 : -1;
+
+    for (int i = startIndex; i != endIndex; i += step) {
+      String bucketName = bucketNames.get(i);
+      String statement = String.format(SHOW_TIME_SERIES, bucketName);
+      List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
+      if (tables.isEmpty()) {
+        continue;
+      }
+      for (FluxTable fluxTable : tables) {
+        // 找到measurement和field
+        String measurement = fluxTable.getRecords().get(0).getMeasurement();
+        String field = fluxTable.getRecords().get(0).getField();
+        String path = bucketName + "." + measurement + "." + field;
+        if (dataPrefix != null && !path.startsWith(dataPrefix)) {
+          continue;
+        }
+        if (extremePath == null
+            || (findMin ? path.compareTo(extremePath) < 0 : path.compareTo(extremePath) > 0)) {
+          extremePath = path;
+        }
+      }
+      break;
+    }
+    return extremePath;
   }
 
   @Override
