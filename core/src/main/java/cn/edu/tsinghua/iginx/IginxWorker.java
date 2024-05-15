@@ -427,6 +427,15 @@ public class IginxWorker implements IService.Iface {
         StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(0), -1);
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
+        if (boundary == null) {
+          status.setCode(RpcUtils.FAILURE.code);
+          status.setMessage(
+              String.format(
+                  "Failed to process dummy storage engine %s. Please check params:%s;%s.",
+                  meta.getStorageEngine(), meta, meta.getExtraParams()));
+          return;
+        }
+        LOGGER.info("boundary for {}: {}", meta, boundary);
         FragmentMeta dummyFragment;
 
         if (dataPrefix == null) {
@@ -981,7 +990,7 @@ public class IginxWorker implements IService.Iface {
 
     TransformJobManager manager = TransformJobManager.getInstance();
     if (manager.isRegisterTaskRunning(name)) {
-      errorMsg = "Function is running";
+      errorMsg = String.format("Function %s is running.", name);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }

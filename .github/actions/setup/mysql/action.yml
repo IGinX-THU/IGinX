@@ -1,0 +1,62 @@
+name: "mysql"
+description: "setup mysql"
+inputs:
+    version:
+        description: "mysql version"
+        required: false
+        default: "8.0.35"
+
+runs:
+    using: "composite"
+    steps:
+        - if: runner.os == 'Linux'
+          name: Disable AppArmor Service # for change mysql data dir
+          shell: bash
+          run: |
+              sudo ln -s /etc/apparmor.d/usr.sbin.mysqld /etc/apparmor.d/disable/
+              sudo apparmor_parser -R /etc/apparmor.d/usr.sbin.mysqld
+
+        - if: runner.os == 'macOS'
+          id: base
+          name: Initialize Setup Configuration
+          uses: ./.github/actions/setup/tool
+          with:
+              tool: mysql
+              version: ${{ inputs.version }}
+
+        - if: runner.os == 'macOS'
+          name: Restore mysql Cache
+          id: restore
+          uses: actions/cache/restore@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}
+
+        - if: runner.os == 'macOS'
+          name: Setup mysql into Runner Tool Cache
+          uses: pbrisbin/setup-tool-action@v2
+          with:
+              name: mysql
+              version: ${{ inputs.version }}
+              url: "https://downloads.mysql.com/archives/get/p/23/file/{name}-{version}-{os}-{arch}.{ext}"
+              os-darwin: macos13
+              arch: x86_64
+              subdir: "{name}-{version}-{os}-{arch}"
+
+        - if: runner.os == 'macOS'
+          name: Add mysql bin to PATH
+          shell: bash
+          working-directory: ${{ steps.base.outputs.tool-path }}
+          run: echo "$PWD/bin" >> $GITHUB_PATH
+
+        - name: Show mysql Version
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: mysqld --version
+
+        - name: Save mysql Cache
+          if: runner.os == 'macOS' && steps.restore.outputs.cache-hit != 'true'
+          uses: actions/cache/save@v3
+          with:
+              path: ${{ steps.base.outputs.cache-path }}
+              key: ${{ steps.base.outputs.cache-key }}

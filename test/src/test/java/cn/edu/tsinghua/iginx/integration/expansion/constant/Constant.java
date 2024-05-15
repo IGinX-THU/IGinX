@@ -33,8 +33,14 @@ public class Constant {
   public static final List<String> ORI_PATH_LIST =
       Arrays.asList("mn.wf01.wt01.status", "mn.wf01.wt01.temperature");
 
+  public static final List<String> ORI_EXTEND_PATH_LIST =
+      Arrays.asList("a.a.a.status", "a.a.a.temperature");
+
   public static final List<String> EXP_PATH_LIST =
       Arrays.asList("nt.wf03.wt01.status2", "nt.wf04.wt01.temperature");
+
+  public static final List<String> EXP_EXTEND_PATH_LIST =
+      Arrays.asList("a.a.b.status2", "a.a.b.temperature");
 
   public static final List<String> EXP_PATH_LIST1 =
       Collections.singletonList("nt.wf03.wt01.status2");
@@ -44,6 +50,9 @@ public class Constant {
 
   public static final List<String> READ_ONLY_PATH_LIST =
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
+
+  public static final List<String> READ_ONLY_EXTEND_PATH_LIST =
+      Arrays.asList("a.a.c.status", "a.a.c.temperature");
 
   // data type
   public static List<DataType> INIT_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.LONG);
@@ -62,8 +71,20 @@ public class Constant {
   public static List<List<Object>> ORI_VALUES_LIST =
       Arrays.asList(Arrays.asList(11111111L, 15123.27), Arrays.asList(22222222L, 20123.71));
 
+  public static List<List<Object>> ORI_EXTEND_VALUES_LIST =
+      Collections.singletonList(Arrays.asList(123456L, 654321.2));
+
   public static List<List<Object>> EXP_VALUES_LIST =
       Arrays.asList(Arrays.asList(33333333L, 66123.23), Arrays.asList(44444444L, 77123.71));
+
+  public static List<List<Object>> EXP_EXTEND_VALUES_LIST =
+      Collections.singletonList(Arrays.asList(77777777L, 3498.1));
+
+  public static List<List<Object>> EXP_EXTEND_VALUES_LIST1 =
+      Collections.singletonList(Collections.singletonList(77777777L));
+
+  public static List<List<Object>> EXP_EXTEND_VALUES_LIST2 =
+      Collections.singletonList(Collections.singletonList(3498.1));
 
   public static List<List<Object>> EXP_VALUES_LIST1 =
       Arrays.asList(Collections.singletonList(33333333L), Collections.singletonList(44444444L));
@@ -73,6 +94,9 @@ public class Constant {
 
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
+
+  public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST =
+      Collections.singletonList(Arrays.asList(9999999L, 152346.1));
 
   public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =
       Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));

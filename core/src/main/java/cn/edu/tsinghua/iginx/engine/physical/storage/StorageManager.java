@@ -83,8 +83,10 @@ public class StorageManager {
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
+      return null;
     } catch (Exception e) {
       LOGGER.error("unexpected error when process engine {}:", engine, e);
+      return null;
     } finally {
       try {
         if (needRelease) {
@@ -94,7 +96,6 @@ public class StorageManager {
         LOGGER.error("release session pool failure!");
       }
     }
-    return new Pair<>(new ColumnsInterval(null, null), new KeyInterval(0, Long.MAX_VALUE));
   }
 
   private boolean initStorage(StorageEngineMeta meta) {
