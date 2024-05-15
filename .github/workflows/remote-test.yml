@@ -102,7 +102,7 @@ jobs:
               run: |
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh" ${{ matrix.os }}
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf.sh"
                   elif [ "$RUNNER_OS" == "macOS" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_macos.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_remote_udf_macos.sh"

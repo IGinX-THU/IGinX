@@ -13,9 +13,6 @@ echo "$os"
 export MSYS_NO_PATHCONV=1
 # MSYS_NO_PATHCONV=1 : not to convert docker script path to git bash path
 SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h host.docker.internal -e"
-if [[ $os =~ "mac" ]]; then
-    SCRIPT_PREFIX="docker exec iginx-client /iginx_client/sbin/start_cli.sh -h 192.168.65.1 -e"
-fi
 
 # single udf in one file
 ${SCRIPT_PREFIX} "create function udtf \"mock_udf\" from \"MockUDF\" in \"/iginx_client/data/udf/mock_udf.py\";"
