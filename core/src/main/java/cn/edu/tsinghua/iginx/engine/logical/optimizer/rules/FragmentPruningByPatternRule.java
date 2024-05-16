@@ -43,7 +43,8 @@ public class FragmentPruningByPatternRule extends Rule {
       return false;
     }
 
-    return getValidPatterns(project).size() != project.getPatterns().size();
+    return getValidPatterns(project).size() != project.getPatterns().size()
+        || project.getPatterns().size() == 0;
   }
 
   @Override

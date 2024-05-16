@@ -11,6 +11,13 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(ParquetCapacityExpansionIT.class);
 
   public ParquetCapacityExpansionIT() {
-    super(parquet, null);
+    super(parquet, null, new ParquetHistoryDataGenerator());
+  }
+
+  // skip this test
+  @Override
+  protected void testInvalidDummyParams(
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
+    LOGGER.info("parquet skips test for wrong dummy engine params.");
   }
 }

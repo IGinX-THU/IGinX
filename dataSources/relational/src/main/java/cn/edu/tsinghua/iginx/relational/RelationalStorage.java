@@ -1281,7 +1281,7 @@ public class RelationalStorage implements IStorage {
           new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     }
 
-    return new Pair<>(columnsInterval, new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE));
+    return new Pair<>(columnsInterval, KeyInterval.getDefaultKeyInterval());
   }
 
   private List<Pattern> getRegexPatternByName(

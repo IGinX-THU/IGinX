@@ -1,6 +1,5 @@
 class SubClassA:
     def print_self(self):
-        print("sub class A")
         return "sub class A"
 
     def print_outer(self):

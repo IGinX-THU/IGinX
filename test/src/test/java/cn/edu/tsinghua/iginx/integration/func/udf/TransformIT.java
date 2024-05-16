@@ -33,7 +33,10 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import cn.edu.tsinghua.iginx.utils.YAMLReader;
+import cn.edu.tsinghua.iginx.utils.YAMLWriter;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -41,6 +44,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -629,6 +634,12 @@ public class TransformIT {
           OUTPUT_DIR_PREFIX
               + File.separator
               + "export_file_mixed_python_jobs_with_register_by_yaml.txt";
+      YAMLReader reader = new YAMLReader(yamlFileName);
+      JobFromYAML job = reader.getJobFromYAML();
+      replaceRelativePythonPathToAbsolute(job);
+      YAMLWriter writer = new YAMLWriter();
+      writer.writeJobIntoYAML(new File(yamlFileName), job);
+
       SessionExecuteSqlResult result =
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
@@ -639,6 +650,38 @@ public class TransformIT {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
+  }
+
+  // replace relative python filepath in sql with absolute paths for UDF registration.
+  private void replaceRelativePythonPathToAbsolute(JobFromYAML job) {
+    // match string between two double quotes
+    Pattern pattern = Pattern.compile("\"([^\"]*)\"");
+    job.getTaskList()
+        .forEach(
+            task -> {
+              if (task.getSqlList() == null) {
+                return;
+              }
+              List<String> newSqlList = new ArrayList<>();
+              task.getSqlList()
+                  .forEach(
+                      sql -> {
+                        String oriPath;
+                        Matcher matcher = pattern.matcher(sql);
+                        while (matcher.find()) {
+                          oriPath = matcher.group(1);
+                          if (!oriPath.endsWith(".py")) {
+                            continue;
+                          }
+                          File filePath = new File(oriPath);
+                          if (!filePath.isAbsolute()) {
+                            sql = sql.replace(oriPath, filePath.getAbsolutePath());
+                          }
+                        }
+                        newSqlList.add(sql);
+                      });
+              task.setSqlList(newSqlList);
+            });
   }
 
   private void verifyMixedPythonJobs(String outputFileName) throws IOException {

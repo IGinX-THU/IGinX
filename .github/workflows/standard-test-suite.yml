@@ -31,3 +31,7 @@ jobs:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+    remote-test:
+        uses: ./.github/workflows/remote-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
