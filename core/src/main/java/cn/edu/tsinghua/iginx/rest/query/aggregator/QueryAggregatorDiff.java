@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.rest.query.aggregator;
 
+import static com.sun.javafx.fxml.expression.Expression.subtract;
+
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
@@ -36,6 +38,35 @@ public class QueryAggregatorDiff extends QueryAggregator {
     super(QueryAggregatorType.DIFF);
   }
 
+  public <T extends Number> QueryResultDataset processData(
+      QueryResultDataset queryResultDataset,
+      SessionQueryDataSet sessionQueryDataSet,
+      int n,
+      int m) {
+    T last = null;
+    T now = null;
+    int datapoints = 0;
+
+    for (int i = 0; i < n; i++) {
+      for (int j = 0; j < m; j++) {
+        Object value = sessionQueryDataSet.getValues().get(i).get(j);
+        if (value != null) {
+          if (now == null) {
+            now = (T) value;
+          }
+          datapoints += 1;
+        }
+      }
+      if (i != 0) {
+        queryResultDataset.add(sessionQueryDataSet.getKeys()[i], subtract(now, last));
+      }
+      last = now;
+      now = null;
+    }
+    queryResultDataset.setSampleSize(datapoints);
+    return queryResultDataset;
+  }
+
   @Override
   public QueryResultDataset doAggregate(
       RestSession session,
@@ -50,48 +81,12 @@ public class QueryAggregatorDiff extends QueryAggregator {
       DataType type = RestUtils.checkType(sessionQueryDataSet);
       int n = sessionQueryDataSet.getKeys().length;
       int m = sessionQueryDataSet.getPaths().size();
-      int datapoints = 0;
       switch (type) {
         case LONG:
-          Long last = null;
-          Long now = null;
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                if (now == null) {
-                  now = (long) sessionQueryDataSet.getValues().get(i).get(j);
-                }
-                datapoints += 1;
-              }
-            }
-            if (i != 0) {
-              queryResultDataset.add(sessionQueryDataSet.getKeys()[i], now - last);
-            }
-            last = now;
-            now = null;
-          }
-          queryResultDataset.setSampleSize(datapoints);
+          queryResultDataset = processData(queryResultDataset, sessionQueryDataSet, n, m);
           break;
-
         case DOUBLE:
-          Double lastd = null;
-          Double nowd = null;
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                if (nowd == null) {
-                  nowd = (double) sessionQueryDataSet.getValues().get(i).get(j);
-                }
-                datapoints += 1;
-              }
-            }
-            if (i != 0) {
-              queryResultDataset.add(sessionQueryDataSet.getKeys()[i], nowd - lastd);
-            }
-            lastd = nowd;
-            nowd = null;
-          }
-          queryResultDataset.setSampleSize(datapoints);
+          queryResultDataset = processData(queryResultDataset, sessionQueryDataSet, n, m);
           break;
         default:
           throw new Exception("Unsupported data type");
