@@ -23,17 +23,17 @@ done < "$input_file"
 
 cat "$output_file"
 
-# 读取 nation.csv 文件的每一行
-while IFS=',' read -r col1 col2 col3 col4 col5; do
-    # 将第三列和第五列用引号括起来
-    col3="\"$col3\""
-    col5="\"$col5\""
-
-    # 输出处理后的行到新的文件中
-    echo "$col1,$col2,$col3,$col4,$col5" >> new_nation.csv
-done < "$output_file"
-
-mv new_nation.csv "$output_file"
+## 读取 nation.csv 文件的每一行
+#while IFS=',' read -r col1 col2 col3 col4 col5; do
+#    # 将第三列和第五列用引号括起来
+#    col3="\"$col3\""
+#    col5="\"$col5\""
+#
+#    # 输出处理后的行到新的文件中
+#    echo "$col1,$col2,$col3,$col4,$col5" >> new_nation.csv
+#done < "$output_file"
+#
+#mv new_nation.csv "$output_file"
 
 
 echo "Conversion completed. CSV file: $output_file"

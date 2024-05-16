@@ -8,7 +8,7 @@ select
     avg(mongotpch.lineitem.l_quantity) as avg_qty,
     avg(mongotpch.lineitem.l_extendedprice) as avg_price,
     avg(mongotpch.lineitem.l_discount) as avg_disc,
-    count(*) as count_order
+    count(mongotpch.lineitem.l_returnflag) as count_order
 from (
          select
              l_returnflag,

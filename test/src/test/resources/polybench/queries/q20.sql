@@ -1,8 +1,8 @@
 insert into tmpTableA(key, partkey, suppkey, val) values (
-                                                             select
-                                                             partkey,
-                                                             suppkey,
-                                                             0.5 * tmp from(
+     select
+     partkey,
+     suppkey,
+     0.5 * tmp from(
       select
 		      l_partkey as partkey,
 		      l_suppkey as suppkey,
@@ -14,7 +14,7 @@ insert into tmpTableA(key, partkey, suppkey, val) values (
           and mongotpch.lineitem.l_shipdate < 788889600000
       group by l_partkey, l_suppkey
   )
-                                                         );
+);
 
 select
     postgres.supplier.s_name,
@@ -28,7 +28,7 @@ where
             postgres.partsupp.ps_suppkey
         from
             postgres.partsupp
-                join tmpTableA on tmpTableA.suppkey = postgres.partsupp.ps_suppkey and tmpTableA.partkey  = postgres.partsupp.ps_partkey
+                join tmpTableA on tmpTableA.suppkey = postgres.partsupp.ps_suppkey and tmpTableA.partkey = postgres.partsupp.ps_partkey
         where
                 postgres.partsupp.ps_partkey in (
                 select
