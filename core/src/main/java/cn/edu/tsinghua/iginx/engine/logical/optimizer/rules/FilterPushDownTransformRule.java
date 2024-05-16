@@ -42,7 +42,6 @@ public class FilterPushDownTransformRule extends Rule {
     if (!validTransforms.contains(operator.getClass())) {
       return false;
     }
-    ;
 
     Filter filter = select.getFilter().copy();
     if (!(filter instanceof AndFilter)) {
@@ -61,25 +60,17 @@ public class FilterPushDownTransformRule extends Rule {
         (AbstractUnaryOperator) ((OperatorSource) select.getSource()).getOperator();
 
     List<FunctionCall> functionCallList = getFuncionCallList(operator);
+    List<Filter> splitFilter = LogicalFilterUtils.splitFilter(select.getFilter());
 
-    Filter filter = select.getFilter().copy();
-    if (!(filter instanceof AndFilter)) {
-      filter = LogicalFilterUtils.toCNF(filter);
-    }
-
-    // 将Filter转换为CNF,带有Function的Filter不下推，不带Function的Filter下推
-    AndFilter andFilter = (AndFilter) filter;
     List<Filter> remainFilters = new ArrayList<>(), pushDownFilters = new ArrayList<>();
-    andFilter
-        .getChildren()
-        .forEach(
-            child -> {
-              if (filterHasFunction(child, functionCallList)) {
-                remainFilters.add(child);
-              } else {
-                pushDownFilters.add(child);
-              }
-            });
+    splitFilter.forEach(
+        child -> {
+          if (filterHasFunction(child, functionCallList)) {
+            remainFilters.add(child);
+          } else {
+            pushDownFilters.add(child);
+          }
+        });
 
     select.setFilter(new AndFilter(remainFilters));
     Select pushDownSelect =
@@ -101,6 +92,13 @@ public class FilterPushDownTransformRule extends Rule {
     }
   }
 
+  /**
+   * 判断filter中是否含有给定函数（FunctionCall）列表中的函数
+   *
+   * @param filter 给定filter
+   * @param functionCallList 给定函数列表
+   * @return filter中是否含有给定函数
+   */
   private boolean filterHasFunction(Filter filter, List<FunctionCall> functionCallList) {
     final boolean[] hasFunction = {false};
 
@@ -151,6 +149,13 @@ public class FilterPushDownTransformRule extends Rule {
     return hasFunction[0];
   }
 
+  /**
+   * 判断Expression中是否含有给定函数（Function Call）列表中的函数
+   *
+   * @param expression 给定Expression
+   * @param functionCallList 给定函数列表
+   * @return Expression中是否含有给定函数
+   */
   private boolean expressionHasFunction(
       Expression expression, List<FunctionCall> functionCallList) {
     final boolean[] hasFunction = {false};

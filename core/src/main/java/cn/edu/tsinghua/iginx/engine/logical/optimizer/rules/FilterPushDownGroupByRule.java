@@ -2,7 +2,6 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
@@ -41,7 +40,7 @@ public class FilterPushDownGroupByRule extends Rule {
     }
 
     // 分解Filter为一系列AND连接的子条件
-    List<Filter> splitFilters = FilterUtils.splitFilter(select.getFilter());
+    List<Filter> splitFilters = LogicalFilterUtils.splitFilter(select.getFilter());
     List<Filter> pushFilters = new ArrayList<>(), remainFilters = new ArrayList<>();
     for (Filter filter : splitFilters) {
       // 如果Filter中的列仅包含GroupBy Key，可以下推，否则不行
