@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -460,16 +461,48 @@ public class LogicalFilterUtils {
     return new KeyRange(begin, end);
   }
 
+  public static Filter getSubFilterFromPrefix(Filter filter, String prefix) {
+    Filter filterWithoutNot = removeNot(filter);
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                // 去掉prefix后面的*，然后判断path是否以prefix开头
+                return s.startsWith(prefix.substring(0, prefix.length() - 1));
+              }
+            });
+    return mergeTrue(filterWithTrue);
+  }
+
   public static Filter getSubFilterFromFragment(Filter filter, ColumnsInterval columnsInterval) {
     Filter filterWithoutNot = removeNot(filter);
-    Filter filterWithTrue = setTrue(filterWithoutNot, Collections.singletonList(columnsInterval));
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                return columnRangeContainPath(columnsInterval, s);
+              }
+            });
     return mergeTrue(filterWithTrue);
   }
 
   public static Filter getSubFilterFromFragments(
       Filter filter, List<ColumnsInterval> columnsIntervals) {
     Filter filterWithoutNot = removeNot(filter);
-    Filter filterWithTrue = setTrue(filterWithoutNot, columnsIntervals);
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                return columnsIntervals.stream()
+                    .noneMatch(columnsInterval -> columnRangeContainPath(columnsInterval, s));
+              }
+            });
     return mergeTrue(filterWithTrue);
   }
 
@@ -615,19 +648,19 @@ public class LogicalFilterUtils {
     return false;
   }
 
-  private static Filter setTrue(Filter filter, List<ColumnsInterval> columnsIntervals) {
+  private static Filter setTrue(Filter filter, Predicate<String> predicate) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (int i = 0; i < orChildren.size(); i++) {
-          Filter childFilter = setTrue(orChildren.get(i), columnsIntervals);
+          Filter childFilter = setTrue(orChildren.get(i), predicate);
           orChildren.set(i, childFilter);
         }
         return new OrFilter(orChildren);
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (int i = 0; i < andChildren.size(); i++) {
-          Filter childFilter = setTrue(andChildren.get(i), columnsIntervals);
+          Filter childFilter = setTrue(andChildren.get(i), predicate);
           andChildren.set(i, childFilter);
         }
         return new AndFilter(andChildren);
@@ -636,21 +669,14 @@ public class LogicalFilterUtils {
         if (isFunction(path)) {
           return new BoolFilter(true);
         }
-        if (columnsIntervals.stream()
-            .noneMatch(interval -> columnRangeContainPath(interval, path))) {
+        if (predicate.test(path)) {
           return new BoolFilter(true);
         }
         return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
-        // 如果filter中含有聚合函数，忽略，设置为true
-        if (isFunction(pathA) || isFunction(pathB)) {
-          return new BoolFilter(true);
-        }
-        if (columnsIntervals.stream().noneMatch(interval -> columnRangeContainPath(interval, pathA))
-            || columnsIntervals.stream()
-                .noneMatch(interval -> columnRangeContainPath(interval, pathB))) {
+        if (predicate.test(pathA) || predicate.test(pathB)) {
           return new BoolFilter(true);
         }
         return filter;

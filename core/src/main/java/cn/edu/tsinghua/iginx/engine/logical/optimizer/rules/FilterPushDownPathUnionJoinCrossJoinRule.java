@@ -7,26 +7,27 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class FilterPushDownPathUnionJoinRule extends Rule {
+public class FilterPushDownPathUnionJoinCrossJoinRule extends Rule {
   private static final Set<Class> validOps =
-      new HashSet<>(Arrays.asList(PathUnion.class, Join.class));
+      new HashSet<>(Arrays.asList(PathUnion.class, Join.class, CrossJoin.class));
 
   private static class InstanceHolder {
-    private static final FilterPushDownPathUnionJoinRule instance =
-        new FilterPushDownPathUnionJoinRule();
+    private static final FilterPushDownPathUnionJoinCrossJoinRule instance =
+        new FilterPushDownPathUnionJoinCrossJoinRule();
   }
 
-  public FilterPushDownPathUnionJoinRule getInstance() {
+  public FilterPushDownPathUnionJoinCrossJoinRule getInstance() {
     return InstanceHolder.instance;
   }
 
-  protected FilterPushDownPathUnionJoinRule() {
+  protected FilterPushDownPathUnionJoinCrossJoinRule() {
     /*
      * we want to match the topology like:
      *        Select
@@ -34,7 +35,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
      *     PathUnion/Join
      */
     super(
-        "FilterPushDownPathUnionJoinRule",
+        "FilterPushDownPathUnionJoinCrossJoinRule",
         operand(Select.class, operand(AbstractBinaryOperator.class)));
   }
 
@@ -56,6 +57,12 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
 
     List<ColumnsInterval> leftColumnsIntervals = getColumnIntervals(leftProjects);
     List<ColumnsInterval> rightColumnsIntervals = getColumnIntervals(rightProjects);
+    String prefixA = null, prefixB = null;
+
+    if (operator.getType() == OperatorType.CrossJoin) {
+      prefixA = ((CrossJoin) operator).getPrefixA();
+      prefixB = ((CrossJoin) operator).getPrefixB();
+    }
 
     List<Filter> splitFilterList = LogicalFilterUtils.splitFilter(select.getFilter());
 
@@ -65,10 +72,16 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
 
     for (Filter filter : splitFilterList) {
       // 先根据左右的列范围，对filter进行处理，将不再列范围中的部分设置为true,不影响正确性。
-      Filter leftFilter =
-          LogicalFilterUtils.getSubFilterFromFragments(filter.copy(), leftColumnsIntervals);
-      Filter rightFilter =
-          LogicalFilterUtils.getSubFilterFromFragments(filter.copy(), rightColumnsIntervals);
+      Filter leftFilter, rightFilter;
+      if (operator.getType() == OperatorType.CrossJoin) {
+        leftFilter = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixA);
+        rightFilter = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixB);
+      } else {
+        leftFilter =
+            LogicalFilterUtils.getSubFilterFromFragments(filter.copy(), leftColumnsIntervals);
+        rightFilter =
+            LogicalFilterUtils.getSubFilterFromFragments(filter.copy(), rightColumnsIntervals);
+      }
 
       // 然后判断，如果处理完filter是布尔类型,说明无法下推到那一侧，否则可以下推
       if (leftFilter.getType() != FilterType.Bool) {
