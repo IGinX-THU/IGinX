@@ -32,5 +32,4 @@ group by
     mongotpch.orders.o_orderdate,
     mongotpch.orders.o_totalprice
 order by
-    mongotpch.orders.o_orderdate,
     mongotpch.orders.o_totalprice desc;

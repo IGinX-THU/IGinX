@@ -1,18 +1,19 @@
-insert into tmpTable(key, p_key, minCost) values (select
-                                                     postgres.part.p_partkey as p_key,
-                                                     min(postgres.partsupp.ps_supplycost) as minCost
-        from
-            postgres.partsupp
-            join postgres.supplier on postgres.supplier.s_suppkey = postgres.partsupp.ps_suppkey
-            join nation on postgres.supplier.s_nationkey = nation.n_nationkey
-            join postgres.region on nation.n_regionkey = postgres.region.r_regionkey
-            join postgres.part on postgres.part.p_partkey = postgres.partsupp.ps_partkey
-        where
-						postgres.region.r_name = 'EUROPE'
-						and postgres.part.p_size = 15
-						and postgres.part.p_type like "^.*BRASS"
-				group by postgres.part.p_partkey);
-
+insert into tmpTable(key, p_key, minCost) values (
+select
+     postgres.part.p_partkey as p_key,
+     min(postgres.partsupp.ps_supplycost) as minCost
+from
+    postgres.partsupp
+    join postgres.supplier on postgres.supplier.s_suppkey = postgres.partsupp.ps_suppkey
+    join nation on postgres.supplier.s_nationkey = nation.n_nationkey
+    join postgres.region on nation.n_regionkey = postgres.region.r_regionkey
+    join postgres.part on postgres.part.p_partkey = postgres.partsupp.ps_partkey
+where
+    postgres.region.r_name = 'EUROPE'
+    and postgres.part.p_size = 15
+    and postgres.part.p_type like "^.*BRASS"
+group by postgres.part.p_partkey
+);
 
 select s_acctbal, s_name, n_name, p_partkey, p_mfgr, s_address, s_phone, s_comment from
     (select
