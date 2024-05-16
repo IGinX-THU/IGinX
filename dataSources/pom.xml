@@ -32,7 +32,6 @@
         <module>influxdb</module>
         <module>iotdb12</module>
         <module>mongodb</module>
-        <module>opentsdb</module>
         <module>parquet</module>
         <module>redis</module>
         <module>relational</module>
