@@ -462,7 +462,14 @@ public class LogicalFilterUtils {
 
   public static Filter getSubFilterFromFragment(Filter filter, ColumnsInterval columnsInterval) {
     Filter filterWithoutNot = removeNot(filter);
-    Filter filterWithTrue = setTrue(filterWithoutNot, columnsInterval);
+    Filter filterWithTrue = setTrue(filterWithoutNot, Collections.singletonList(columnsInterval));
+    return mergeTrue(filterWithTrue);
+  }
+
+  public static Filter getSubFilterFromFragments(
+      Filter filter, List<ColumnsInterval> columnsIntervals) {
+    Filter filterWithoutNot = removeNot(filter);
+    Filter filterWithTrue = setTrue(filterWithoutNot, columnsIntervals);
     return mergeTrue(filterWithTrue);
   }
 
@@ -608,19 +615,19 @@ public class LogicalFilterUtils {
     return false;
   }
 
-  private static Filter setTrue(Filter filter, ColumnsInterval columnsInterval) {
+  private static Filter setTrue(Filter filter, List<ColumnsInterval> columnsIntervals) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (int i = 0; i < orChildren.size(); i++) {
-          Filter childFilter = setTrue(orChildren.get(i), columnsInterval);
+          Filter childFilter = setTrue(orChildren.get(i), columnsIntervals);
           orChildren.set(i, childFilter);
         }
         return new OrFilter(orChildren);
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (int i = 0; i < andChildren.size(); i++) {
-          Filter childFilter = setTrue(andChildren.get(i), columnsInterval);
+          Filter childFilter = setTrue(andChildren.get(i), columnsIntervals);
           andChildren.set(i, childFilter);
         }
         return new AndFilter(andChildren);
@@ -629,7 +636,8 @@ public class LogicalFilterUtils {
         if (isFunction(path)) {
           return new BoolFilter(true);
         }
-        if (!columnRangeContainPath(columnsInterval, path)) {
+        if (columnsIntervals.stream()
+            .noneMatch(interval -> columnRangeContainPath(interval, path))) {
           return new BoolFilter(true);
         }
         return filter;
@@ -640,8 +648,9 @@ public class LogicalFilterUtils {
         if (isFunction(pathA) || isFunction(pathB)) {
           return new BoolFilter(true);
         }
-        if (!columnRangeContainPath(columnsInterval, pathA)
-            || !columnRangeContainPath(columnsInterval, pathB)) {
+        if (columnsIntervals.stream().noneMatch(interval -> columnRangeContainPath(interval, pathA))
+            || columnsIntervals.stream()
+                .noneMatch(interval -> columnRangeContainPath(interval, pathB))) {
           return new BoolFilter(true);
         }
         return filter;
