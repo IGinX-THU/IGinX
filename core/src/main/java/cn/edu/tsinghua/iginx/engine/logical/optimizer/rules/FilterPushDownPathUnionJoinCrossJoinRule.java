@@ -131,6 +131,26 @@ public class FilterPushDownPathUnionJoinCrossJoinRule extends Rule {
       operator.setSourceB(new OperatorSource(rightSelect));
     }
 
+    // 如果RemainFilters里有PathFilter，可以将CrossJoin转换为InnerJoin
+    if (operator.getType() == OperatorType.CrossJoin
+        && remainFilters.stream().anyMatch(filter -> filter.getType() == FilterType.Path)) {
+      CrossJoin crossJoin = (CrossJoin) operator;
+      InnerJoin innerJoin =
+          new InnerJoin(
+              crossJoin.getSourceA(),
+              crossJoin.getSourceB(),
+              crossJoin.getPrefixA(),
+              crossJoin.getPrefixB(),
+              new AndFilter(
+                  remainFilters.stream()
+                      .filter(filter -> filter.getType() == FilterType.Path)
+                      .collect(Collectors.toList())),
+              new ArrayList<>());
+      innerJoin.reChooseJoinAlg();
+      select.setSource(new OperatorSource(innerJoin));
+      operator = innerJoin;
+    }
+
     if (!remainFilters.isEmpty()) {
       call.transformTo(select);
     } else {
