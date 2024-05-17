@@ -87,4 +87,8 @@ public final class KeyInterval {
     long end = Math.min(keyInterval.endKey, endKey);
     return new KeyInterval(start, end);
   }
+
+  public static KeyInterval getDefaultKeyInterval() {
+    return new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
+  }
 }

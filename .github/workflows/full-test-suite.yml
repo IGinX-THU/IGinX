@@ -21,3 +21,5 @@ jobs:
         uses: ./.github/workflows/standalone-test-pushdown.yml
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
+    remote-test:
+        uses: ./.github/workflows/remote-test.yml
