@@ -18,8 +18,6 @@
  */
 package cn.edu.tsinghua.iginx.rest.query.aggregator;
 
-import static com.sun.javafx.fxml.expression.Expression.subtract;
-
 import cn.edu.tsinghua.iginx.rest.RestSession;
 import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
@@ -65,6 +63,15 @@ public class QueryAggregatorDiff extends QueryAggregator {
     }
     queryResultDataset.setSampleSize(datapoints);
     return queryResultDataset;
+  }
+
+  private <T extends Number> Number subtract(T now, T last) {
+    if (now instanceof Long && last instanceof Long) {
+      return now.longValue() - last.longValue();
+    } else if (now instanceof Double && last instanceof Double) {
+      return now.doubleValue() - last.doubleValue();
+    }
+    throw new IllegalArgumentException("Unsupported data type");
   }
 
   @Override
