@@ -100,7 +100,7 @@ public class TPCHRunner {
             System.out.println(clusterInfo);
             //Long startTime;
             // 13有问题
-            List<Integer> queryIds = Arrays.asList(1,2,5,6,10,17,18,19,20);
+            List<Integer> queryIds = Arrays.asList(1,2,5,6,9,10,17,18,19,20);
             for (int queryId : queryIds) {
                 // read from sql file
                 String sqlString = readSqlFileAsString("src/test/resources/polybench/queries/q" + queryId + ".sql");

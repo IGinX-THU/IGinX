@@ -1,4 +1,5 @@
-from datetime import datetime
+from datetime import datetime, timezone
+import pytz
 class UDFExtractYear:
     def __init__(self):
         pass
@@ -6,7 +7,9 @@ class UDFExtractYear:
     def extractYear(self, num):
         # Unix timestamp is in milliseconds
         timestamp_in_seconds = num / 1000
-        dt = datetime.utcfromtimestamp(timestamp_in_seconds)
+        # TODO 直接将timestamp增加8小时
+        tz = pytz.timezone('Asia/Shanghai')
+        dt = datetime.fromtimestamp(timestamp_in_seconds, tz=tz)
         return float(dt.year)
     def transform(self, data, args, kvargs):
         res = self.buildHeader(data)
