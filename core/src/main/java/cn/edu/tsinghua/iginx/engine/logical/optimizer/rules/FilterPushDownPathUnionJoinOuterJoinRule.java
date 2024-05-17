@@ -14,20 +14,20 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class FilterPushDownPathUnionJoinCrossJoinRule extends Rule {
+public class FilterPushDownPathUnionJoinOuterJoinRule extends Rule {
   private static final Set<Class> validOps =
       new HashSet<>(Arrays.asList(PathUnion.class, Join.class, CrossJoin.class));
 
   private static class InstanceHolder {
-    private static final FilterPushDownPathUnionJoinCrossJoinRule instance =
-        new FilterPushDownPathUnionJoinCrossJoinRule();
+    private static final FilterPushDownPathUnionJoinOuterJoinRule instance =
+        new FilterPushDownPathUnionJoinOuterJoinRule();
   }
 
-  public FilterPushDownPathUnionJoinCrossJoinRule getInstance() {
+  public FilterPushDownPathUnionJoinOuterJoinRule getInstance() {
     return InstanceHolder.instance;
   }
 
-  protected FilterPushDownPathUnionJoinCrossJoinRule() {
+  protected FilterPushDownPathUnionJoinOuterJoinRule() {
     /*
      * we want to match the topology like:
      *        Select
@@ -35,7 +35,7 @@ public class FilterPushDownPathUnionJoinCrossJoinRule extends Rule {
      *     PathUnion/Join
      */
     super(
-        "FilterPushDownPathUnionJoinCrossJoinRule",
+        "FilterPushDownPathUnionJoinOuterJoinRule",
         operand(Select.class, operand(AbstractBinaryOperator.class)));
   }
 
@@ -73,7 +73,7 @@ public class FilterPushDownPathUnionJoinCrossJoinRule extends Rule {
     for (Filter filter : splitFilterList) {
       // 先根据左右的列范围，对filter进行处理，将不再列范围中的部分设置为true,不影响正确性。
       Filter leftFilter, rightFilter;
-      if (operator.getType() == OperatorType.CrossJoin) {
+      if (operator.getType() == OperatorType.OuterJoin) {
         leftFilter = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixA);
         rightFilter = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixB);
       } else {
@@ -109,8 +109,8 @@ public class FilterPushDownPathUnionJoinCrossJoinRule extends Rule {
   @Override
   public void onMatch(RuleCall call) {
     // 获取matches里计算出的结果，然后根据左、右、保留的filter，进行下推
-    List<Filter> leftPushdownFilters = (List<Filter>) ((Object[]) call.getContext())[0];
-    List<Filter> rightPushdownFilters = (List<Filter>) ((Object[]) call.getContext())[1];
+    List<Filter> leftFilters = (List<Filter>) ((Object[]) call.getContext())[0];
+    List<Filter> rightFilters = (List<Filter>) ((Object[]) call.getContext())[1];
     List<Filter> remainFilters = (List<Filter>) ((Object[]) call.getContext())[2];
 
     Select select = (Select) call.getMatchedRoot();
@@ -118,16 +118,14 @@ public class FilterPushDownPathUnionJoinCrossJoinRule extends Rule {
         (AbstractBinaryOperator) call.getChildrenIndex().get(select).get(0);
 
     select.setFilter(new AndFilter(remainFilters));
-    if (!leftPushdownFilters.isEmpty()) {
+    if (!leftFilters.isEmpty()) {
       Select leftSelect =
-          new Select(
-              operator.getSourceA(), new AndFilter(leftPushdownFilters), select.getTagFilter());
+          new Select(operator.getSourceA(), new AndFilter(leftFilters), select.getTagFilter());
       operator.setSourceA(new OperatorSource(leftSelect));
     }
-    if (!rightPushdownFilters.isEmpty()) {
+    if (!rightFilters.isEmpty()) {
       Select rightSelect =
-          new Select(
-              operator.getSourceB(), new AndFilter(rightPushdownFilters), select.getTagFilter());
+          new Select(operator.getSourceB(), new AndFilter(rightFilters), select.getTagFilter());
       operator.setSourceB(new OperatorSource(rightSelect));
     }
 
