@@ -21,7 +21,7 @@ from (
          from
              mongotpch.lineitem
          where
-                 mongotpch.lineitem.l_shipdate <= 904665600000
+                 mongotpch.lineitem.l_shipdate <= 904665600000 + 28800000
      )
 group by
     mongotpch.lineitem.l_returnflag,

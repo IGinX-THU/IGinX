@@ -11,7 +11,7 @@ insert into tmpTableA(key, partkey, suppkey, val) values (
           mongotpch.lineitem
       where
           mongotpch.lineitem.l_shipdate >= 757353600000
-          and mongotpch.lineitem.l_shipdate < 788889600000
+          and mongotpch.lineitem.l_shipdate < 788889600000 + 28800000
       group by l_partkey, l_suppkey
   )
 );

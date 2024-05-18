@@ -4,6 +4,20 @@ if [ "$RUNNER_OS" = "Windows" ]; then
   python thu_cloud_download.py \
     -l https://cloud.tsinghua.edu.cn/d/740c158819bc4759a36e/ \
     -s  "."
+    # 清除 polybench 目录中所有 .sql 文件中的 ' + 28800000' 字符串（时区问题）
+      dir="test/src/test/resources/polybench/queries/"
+
+      # 遍历目录中的所有 .sql 文件
+      for file in "$dir"*.sql; do
+        # 检查文件是否存在
+        if [[ -f "$file" ]]; then
+          # 使用 sed 命令查找并替换 ' + 28800000' 字符串
+          sed -i 's/ + 28800000//g' "$file"
+          echo "Processed $file"
+        else
+          echo "No .sql files found in the directory."
+        fi
+      done
 else
   python3 thu_cloud_download.py \
     -l https://cloud.tsinghua.edu.cn/d/740c158819bc4759a36e/ \
