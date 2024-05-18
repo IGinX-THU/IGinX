@@ -93,7 +93,7 @@ public class TPCHRunner {
       System.out.println(clusterInfo);
       // Long startTime;
       // 13有问题
-      List<Integer> queryIds = Arrays.asList(1, 2, 5, 6, 9, 10, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
@@ -115,7 +115,7 @@ public class TPCHRunner {
           result.print(false, "");
         }
 
-        // TODO 验证
+        // 验证
         System.out.println(
             "end tpch query, time cost: " + (System.currentTimeMillis() - startTime) + "ms");
         List<List<Object>> values = result.getValues();
@@ -137,7 +137,7 @@ public class TPCHRunner {
             if (result.getPaths().get(j).contains("address")
                 || result.getPaths().get(j).contains("comment")
                 || result.getPaths().get(j).contains("orderdate")) {
-              // skip s_address, data generation changed
+              // TODO change unix time to date
               continue;
             }
             // if only contains number and dot, then parse to double

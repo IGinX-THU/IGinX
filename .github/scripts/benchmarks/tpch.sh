@@ -12,7 +12,7 @@ if [ "$RUNNER_OS" = "Windows" ]; then
         # 检查文件是否存在
         if [[ -f "$file" ]]; then
           # 使用 sed 命令查找并替换 ' + 28800000' 字符串
-          sed -i 's/ + 28800000//g' "$file"
+          sed -i '' 's/ + 28800000//g' "$file"
           echo "Processed $file"
         else
           echo "No .sql files found in the directory."
