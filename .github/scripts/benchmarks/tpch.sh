@@ -7,7 +7,8 @@ if [ "$RUNNER_OS" = "Windows" ]; then
 else
   python3 thu_cloud_download.py \
     -l https://cloud.tsinghua.edu.cn/d/740c158819bc4759a36e/ \
-    -s  "/home/runner/work/Polystore-utils/Polystore-utils"
+    -s  "."
+fi
   cd tpchdata
   # 目标文件夹路径
   destination_folder="../tpc/TPC-H V3.0.1/data"
@@ -28,4 +29,3 @@ else
   ls -a
   pwd
   echo "文件移动完成"
-fi

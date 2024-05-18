@@ -253,7 +253,8 @@ public class TPCHDataInsertionIT {
           System.out.println("Executed SQL statement: " + sql);
         }
         CopyManager copyManager = new CopyManager((BaseConnection) conn);
-        List<String> tableNames = Arrays.asList("customer", "supplier", "region", "part", "partsupp");
+        List<String> tableNames =
+            Arrays.asList("customer", "supplier", "region", "part", "partsupp");
         for (String tableName : tableNames) {
           String filePath = String.format("%s/%s.tbl", dataPath, tableName);
           FileReader fileReader = new FileReader(filePath);
