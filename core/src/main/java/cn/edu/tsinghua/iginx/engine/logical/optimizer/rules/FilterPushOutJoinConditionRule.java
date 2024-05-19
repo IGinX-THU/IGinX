@@ -35,7 +35,7 @@ public class FilterPushOutJoinConditionRule extends Rule {
   protected FilterPushOutJoinConditionRule() {
     /*
      * we want to match the topology like:
-     *    Inner/Outer Join
+     *    Inner/Outer/Mark/Single Join
      *       /       \
      *    any        any
      */
@@ -56,20 +56,18 @@ public class FilterPushOutJoinConditionRule extends Rule {
     List<Filter> pushFilterA = new ArrayList<>(),
         pushFilterB = new ArrayList<>(),
         remainFilter = new ArrayList<>();
-    String prefixA = join.getPrefixA(), prefixB = join.getPrefixB();
-    List<String> leftPatterns = new ArrayList<>(), rightPatterns = new ArrayList<>();
-    if (prefixA == null || prefixB == null) {
-      leftPatterns = OperatorUtils.findPathList(((OperatorSource) join.getSourceA()).getOperator());
-      rightPatterns =
-          OperatorUtils.findPathList(((OperatorSource) join.getSourceB()).getOperator());
-    }
+
+    List<String> leftPatterns =
+        OperatorUtils.findPathList(((OperatorSource) join.getSourceA()).getOperator());
+    List<String> rightPatterns =
+        OperatorUtils.findPathList(((OperatorSource) join.getSourceB()).getOperator());
 
     for (Filter filter : splitFilter) {
-      Filter filterA = getSubFilter(filter.copy(), prefixA, leftPatterns);
-      Filter filterB = getSubFilter(filter.copy(), prefixB, rightPatterns);
+      Filter filterA = LogicalFilterUtils.getSubFilterFromPatterns(filter.copy(), leftPatterns);
+      Filter filterB = LogicalFilterUtils.getSubFilterFromPatterns(filter.copy(), rightPatterns);
 
-      // 如果是OuterJoin，那保留表的filter不能下推，例如Left OuterJoin, 左表的filter不能下推，右表可以
       if (join.getType() == OperatorType.OuterJoin) {
+        // 如果是OuterJoin，那保留表的filter不能下推，例如Left OuterJoin, 左表的filter不能下推，右表可以
         OuterJoin outerJoin = (OuterJoin) join;
         if (outerJoin.getOuterJoinType() == OuterJoinType.LEFT) {
           filterA = new BoolFilter(true);
@@ -79,6 +77,10 @@ public class FilterPushOutJoinConditionRule extends Rule {
           filterA = new BoolFilter(true);
           filterB = new BoolFilter(true);
         }
+      } else if (join.getType() == OperatorType.MarkJoin
+          || join.getType() == OperatorType.SingleJoin) {
+        // 如果是MarkJoin或者SingleJoin，左表是保留表，有关的filter不能下推
+        filterA = new BoolFilter(true);
       }
 
       // 如果处理后的filter不是bool类型，那就可以下推
