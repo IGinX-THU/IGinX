@@ -44,14 +44,8 @@ public class FilterPushDownTransformRule extends Rule {
       return false;
     }
 
-    Filter filter = select.getFilter().copy();
-    if (!(filter instanceof AndFilter)) {
-      filter = LogicalFilterUtils.toCNF(filter);
-    }
-    AndFilter andFilter = (AndFilter) filter;
-    List<FunctionCall> functionCallList = getFuncionCallList(operator);
-    return andFilter.getChildren().stream()
-        .anyMatch(child -> !filterHasFunction(child, functionCallList));
+    return LogicalFilterUtils.splitFilter(select.getFilter()).stream()
+        .anyMatch(filter -> !filterHasFunction(filter, getFuncionCallList(operator)));
   }
 
   @Override
@@ -77,7 +71,7 @@ public class FilterPushDownTransformRule extends Rule {
     Select pushDownSelect =
         new Select(operator.getSource(), new AndFilter(pushDownFilters), select.getTagFilter());
     operator.setSource(new OperatorSource(pushDownSelect));
-    call.transformTo(pushDownSelect);
+    call.transformTo(operator);
   }
 
   private List<FunctionCall> getFuncionCallList(AbstractUnaryOperator operator) {

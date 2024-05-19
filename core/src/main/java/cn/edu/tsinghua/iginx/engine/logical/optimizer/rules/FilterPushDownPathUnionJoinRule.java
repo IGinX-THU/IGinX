@@ -3,10 +3,9 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
@@ -19,6 +18,8 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
       new HashSet<>(
           Arrays.asList(
               PathUnion.class, Join.class, OuterJoin.class, MarkJoin.class, SingleJoin.class));
+
+  private static final Map<Select, String> selectMap = new HashMap<>();
 
   private static class InstanceHolder {
     private static final FilterPushDownPathUnionJoinRule instance =
@@ -37,7 +38,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
      *     PathUnion/Join
      */
     super(
-        "FilterPushDownPathUnionJoinOuterJoinRule",
+        "FilterPushDownPathUnionJoinRule",
         operand(Select.class, operand(AbstractBinaryOperator.class, any(), any())));
   }
 
@@ -49,7 +50,9 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
     Select select = (Select) call.getMatchedRoot();
     AbstractBinaryOperator operator =
         (AbstractBinaryOperator) call.getChildrenIndex().get(select).get(0);
-    if (!validOps.contains(operator.getClass())) {
+    if (!validOps.contains(operator.getClass())
+        || selectMap.containsKey(select)
+            && selectMap.get(select).equals(select.getFilter().toString())) {
       return false;
     }
 
@@ -104,8 +107,8 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
         rightPushdownFilters.add(rightFilter);
       }
 
-      // 然后进行判断，如果左右的filter都跟原filter不一致，说明需要超集下推，原filter要保留在原位置。
-      if (!leftFilter.equals(filter) && !rightFilter.equals(filter)) {
+      // 然后进行判断，如果左右的filter有的跟原filter不一致，说明需要超集下推，原filter要保留在原位置。如果filter带有*，也需要超集下推
+      if (!leftFilter.equals(filter) || !rightFilter.equals(filter) || filterContainsStar(filter)) {
         remainFilters.add(filter);
       }
     }
@@ -143,6 +146,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
     }
 
     if (!remainFilters.isEmpty()) {
+      selectMap.put(select, select.getFilter().toString());
       call.transformTo(select);
     } else {
       call.transformTo(operator);
@@ -154,5 +158,48 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
         .filter(project -> project.getSource() instanceof FragmentSource)
         .map(project -> ((FragmentSource) project.getSource()).getFragment().getColumnsInterval())
         .collect(Collectors.toList());
+  }
+
+  private static boolean filterContainsStar(Filter filter) {
+    boolean[] containsStar = new boolean[1];
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {
+            containsStar[0] |= filter.getPath().contains("*");
+          }
+
+          @Override
+          public void visit(PathFilter filter) {
+            containsStar[0] |= filter.getPathA().contains("*");
+            containsStar[0] |= filter.getPathB().contains("*");
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {
+            containsStar[0] |=
+                ExprUtils.getPathFromExpr(filter.getExpressionA()).stream()
+                    .anyMatch(path -> path.contains("*"));
+            containsStar[0] |=
+                ExprUtils.getPathFromExpr(filter.getExpressionB()).stream()
+                    .anyMatch(path -> path.contains("*"));
+          }
+        });
+    return containsStar[0];
   }
 }

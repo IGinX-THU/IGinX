@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.covers;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;

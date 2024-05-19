@@ -48,11 +48,12 @@ public class FilterPushDownProjectReorderSortRule extends Rule {
   public void onMatch(RuleCall call) {
     // 应该没什么要注意的，单纯交换位置即可
     Select select = (Select) call.getMatchedRoot();
-    Project project = (Project) call.getChildrenIndex().get(select).get(0);
+    AbstractUnaryOperator operator =
+        (AbstractUnaryOperator) ((OperatorSource) select.getSource()).getOperator();
 
-    select.setSource(project.getSource());
-    project.setSource(new OperatorSource(select));
+    select.setSource(operator.getSource());
+    operator.setSource(new OperatorSource(select));
 
-    call.transformTo(project);
+    call.transformTo(operator);
   }
 }

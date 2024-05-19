@@ -471,9 +471,13 @@ public class LogicalFilterUtils {
               @Override
               public boolean test(String s) {
                 for (String pattern : patterns) {
-                  if (s.equals(pattern)
-                      || StringUtils.reformatPath(s).replace("*", ".*").matches(pattern)
-                      || StringUtils.reformatPath(pattern).replace("*", ".*").matches(s)) {
+                  if (s.equals(pattern)) {
+                    return true;
+                  } else if (s.contains("*")
+                      && StringUtils.reformatPath(s).replace("*", ".*").matches(pattern)) {
+                    return true;
+                  } else if (pattern.contains("*")
+                      && StringUtils.reformatPath(pattern).replace("*", ".*").matches(s)) {
                     return true;
                   }
                 }
@@ -521,7 +525,7 @@ public class LogicalFilterUtils {
               @Override
               public boolean test(String s) {
                 return columnsIntervals.stream()
-                    .noneMatch(columnsInterval -> columnRangeContainPath(columnsInterval, s));
+                    .anyMatch(columnsInterval -> columnRangeContainPath(columnsInterval, s));
               }
             });
     return mergeTrue(filterWithTrue);
@@ -693,10 +697,16 @@ public class LogicalFilterUtils {
         if (!predicate.test(path)) {
           return new BoolFilter(true);
         }
+        if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+          return new BoolFilter(true);
+        }
         return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
+        if (Op.isOrOp(((PathFilter) filter).getOp())) {
+          return new BoolFilter(true);
+        }
         if (!predicate.test(pathA) || !predicate.test(pathB)) {
           return new BoolFilter(true);
         }

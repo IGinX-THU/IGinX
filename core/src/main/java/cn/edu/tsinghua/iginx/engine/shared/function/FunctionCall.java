@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
+
 public class FunctionCall {
 
   private final Function function;
@@ -49,6 +51,10 @@ public class FunctionCall {
   }
 
   public String getFunctionStr() {
+    if (function instanceof ArithmeticExpr) {
+      return params.getExpr().getColumnName();
+    }
+
     return String.format(
         "%s(%s%s)",
         function.getIdentifier(),
