@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -38,7 +39,9 @@ public class FilterPushDownProjectReorderSortRule extends Rule {
     Select select = (Select) call.getMatchedRoot();
     AbstractUnaryOperator operator =
         (AbstractUnaryOperator) ((OperatorSource) select.getSource()).getOperator();
-    return validOps.contains(operator.getClass());
+
+    return validOps.contains(operator.getClass())
+        && operator.getSource().getType() != SourceType.Fragment;
   }
 
   @Override

@@ -36,7 +36,7 @@ public class RuleCollection {
     addRule(RowTransformConstantFoldingRule.getInstance());
     addRule(FilterPushDownAddSchemaPrefixRule.getInstance());
     addRule(FilterPushDownGroupByRule.getInstance());
-    addRule(FilterPushDownPathUnionJoinOuterJoinRule.getInstance());
+    addRule(FilterPushDownPathUnionJoinRule.getInstance());
     addRule(FilterPushDownProjectReorderSortRule.getInstance());
     addRule(FilterPushDownRenameRule.getInstance());
     addRule(FilterPushDownSelectRule.getInstance());

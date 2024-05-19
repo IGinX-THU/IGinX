@@ -27,7 +27,7 @@ public class FilterPushDownGroupByRule extends Rule {
      *           |
      *         GroupBy
      */
-    super("FilterPushDownGroupByRule", operand(Select.class, operand(GroupBy.class)));
+    super("FilterPushDownGroupByRule", operand(Select.class, operand(GroupBy.class, any())));
   }
 
   @Override

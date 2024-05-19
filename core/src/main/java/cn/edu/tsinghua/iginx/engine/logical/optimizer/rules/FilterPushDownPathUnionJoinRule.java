@@ -14,20 +14,22 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import java.util.*;
 import java.util.stream.Collectors;
 
-public class FilterPushDownPathUnionJoinOuterJoinRule extends Rule {
+public class FilterPushDownPathUnionJoinRule extends Rule {
   private static final Set<Class> validOps =
-      new HashSet<>(Arrays.asList(PathUnion.class, Join.class, CrossJoin.class));
+      new HashSet<>(
+          Arrays.asList(
+              PathUnion.class, Join.class, OuterJoin.class, MarkJoin.class, SingleJoin.class));
 
   private static class InstanceHolder {
-    private static final FilterPushDownPathUnionJoinOuterJoinRule instance =
-        new FilterPushDownPathUnionJoinOuterJoinRule();
+    private static final FilterPushDownPathUnionJoinRule instance =
+        new FilterPushDownPathUnionJoinRule();
   }
 
-  public static FilterPushDownPathUnionJoinOuterJoinRule getInstance() {
+  public static FilterPushDownPathUnionJoinRule getInstance() {
     return InstanceHolder.instance;
   }
 
-  protected FilterPushDownPathUnionJoinOuterJoinRule() {
+  protected FilterPushDownPathUnionJoinRule() {
     /*
      * we want to match the topology like:
      *        Select
@@ -36,7 +38,7 @@ public class FilterPushDownPathUnionJoinOuterJoinRule extends Rule {
      */
     super(
         "FilterPushDownPathUnionJoinOuterJoinRule",
-        operand(Select.class, operand(AbstractBinaryOperator.class)));
+        operand(Select.class, operand(AbstractBinaryOperator.class, any(), any())));
   }
 
   @Override
@@ -58,10 +60,17 @@ public class FilterPushDownPathUnionJoinOuterJoinRule extends Rule {
     List<ColumnsInterval> leftColumnsIntervals = getColumnIntervals(leftProjects);
     List<ColumnsInterval> rightColumnsIntervals = getColumnIntervals(rightProjects);
     String prefixA = null, prefixB = null;
+    List<String> leftPatterns = new ArrayList<>(), rightPatterns = new ArrayList<>();
 
-    if (operator.getType() == OperatorType.CrossJoin) {
+    if (operator.getType() == OperatorType.OuterJoin) {
       prefixA = ((CrossJoin) operator).getPrefixA();
       prefixB = ((CrossJoin) operator).getPrefixB();
+    } else if (operator.getType() == OperatorType.MarkJoin
+        || operator.getType() == OperatorType.SingleJoin) {
+      leftPatterns =
+          OperatorUtils.findPathList(((OperatorSource) operator.getSourceA()).getOperator());
+      rightPatterns =
+          OperatorUtils.findPathList(((OperatorSource) operator.getSourceB()).getOperator());
     }
 
     List<Filter> splitFilterList = LogicalFilterUtils.splitFilter(select.getFilter());
@@ -76,6 +85,10 @@ public class FilterPushDownPathUnionJoinOuterJoinRule extends Rule {
       if (operator.getType() == OperatorType.OuterJoin) {
         leftFilter = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixA);
         rightFilter = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixB);
+      } else if (operator.getType() == OperatorType.MarkJoin
+          || operator.getType() == OperatorType.SingleJoin) {
+        leftFilter = LogicalFilterUtils.getSubFilterFromPatterns(filter.copy(), leftPatterns);
+        rightFilter = LogicalFilterUtils.getSubFilterFromPatterns(filter.copy(), rightPatterns);
       } else {
         leftFilter =
             LogicalFilterUtils.getSubFilterFromFragments(filter.copy(), leftColumnsIntervals);
@@ -127,26 +140,6 @@ public class FilterPushDownPathUnionJoinOuterJoinRule extends Rule {
       Select rightSelect =
           new Select(operator.getSourceB(), new AndFilter(rightFilters), select.getTagFilter());
       operator.setSourceB(new OperatorSource(rightSelect));
-    }
-
-    // 如果RemainFilters里有PathFilter，可以将CrossJoin转换为InnerJoin
-    if (operator.getType() == OperatorType.CrossJoin
-        && remainFilters.stream().anyMatch(filter -> filter.getType() == FilterType.Path)) {
-      CrossJoin crossJoin = (CrossJoin) operator;
-      InnerJoin innerJoin =
-          new InnerJoin(
-              crossJoin.getSourceA(),
-              crossJoin.getSourceB(),
-              crossJoin.getPrefixA(),
-              crossJoin.getPrefixB(),
-              new AndFilter(
-                  remainFilters.stream()
-                      .filter(filter -> filter.getType() == FilterType.Path)
-                      .collect(Collectors.toList())),
-              new ArrayList<>());
-      innerJoin.reChooseJoinAlg();
-      select.setSource(new OperatorSource(innerJoin));
-      operator = innerJoin;
     }
 
     if (!remainFilters.isEmpty()) {

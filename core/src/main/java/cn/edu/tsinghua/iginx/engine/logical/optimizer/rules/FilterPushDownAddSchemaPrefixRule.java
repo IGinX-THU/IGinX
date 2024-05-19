@@ -26,7 +26,8 @@ public class FilterPushDownAddSchemaPrefixRule extends Rule {
      *     AddSchemaPrefix
      */
     super(
-        "FilterPushDownAddSchemaPrefixRule", operand(Select.class, operand(AddSchemaPrefix.class)));
+        "FilterPushDownAddSchemaPrefixRule",
+        operand(Select.class, operand(AddSchemaPrefix.class, any())));
   }
 
   @Override

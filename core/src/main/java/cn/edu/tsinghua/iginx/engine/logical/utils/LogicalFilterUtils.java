@@ -483,8 +483,7 @@ public class LogicalFilterUtils {
             new Predicate<String>() {
               @Override
               public boolean test(String s) {
-                // 去掉prefix后面的*，然后判断path是否以prefix开头
-                return s.startsWith(prefix.substring(0, prefix.length() - 1));
+                return s.startsWith(prefix + ".");
               }
             });
     return mergeTrue(filterWithTrue);
@@ -929,6 +928,10 @@ public class LogicalFilterUtils {
    * @return 分解后的子条件列表
    */
   public static List<Filter> splitFilter(Filter filter) {
+    if (filter == null) {
+      return new ArrayList<>();
+    }
+
     List<Filter> splitFilter = new ArrayList<>();
     if (filter.getType() != FilterType.And) {
       filter = toCNF(filter);

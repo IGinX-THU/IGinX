@@ -30,7 +30,8 @@ public class FilterPushDownTransformRule extends Rule {
      *   Row/Set/MappingTransform
      */
     super(
-        "FilterPushDownTransformRule", operand(Select.class, operand(AbstractUnaryOperator.class)));
+        "FilterPushDownTransformRule",
+        operand(Select.class, operand(AbstractUnaryOperator.class, any())));
   }
 
   @Override

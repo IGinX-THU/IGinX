@@ -20,7 +20,7 @@ public class FilterPushDownSelectRule extends Rule {
      *           |
      *         Select
      */
-    super("FilterPushDownSelectRule", operand(Select.class, operand(Select.class)));
+    super("FilterPushDownSelectRule", operand(Select.class, operand(Select.class, any())));
   }
 
   @Override

@@ -16,7 +16,12 @@ import java.util.*;
 
 public class FilterPushOutJoinConditionRule extends Rule {
   private static final Set<OperatorType> validOps =
-      new HashSet<>(Arrays.asList(OperatorType.InnerJoin, OperatorType.OuterJoin));
+      new HashSet<>(
+          Arrays.asList(
+              OperatorType.InnerJoin,
+              OperatorType.OuterJoin,
+              OperatorType.MarkJoin,
+              OperatorType.SingleJoin));
 
   private static class FilterPushOutJoinConditionRuleInstance {
     private static final FilterPushOutJoinConditionRule INSTANCE =
@@ -34,9 +39,7 @@ public class FilterPushOutJoinConditionRule extends Rule {
      *       /       \
      *    any        any
      */
-    super(
-        "FilterPushOutJoinConditionRule",
-        operand(Select.class, operand(AbstractJoin.class, any(), any())));
+    super("FilterPushOutJoinConditionRule", operand(AbstractJoin.class, any(), any()));
   }
 
   @Override
@@ -120,40 +123,60 @@ public class FilterPushOutJoinConditionRule extends Rule {
               new Select(join.getSourceB(), new AndFilter(pushFilterB), getJoinTagFilter(join))));
     }
 
-    if (remainFilter.isEmpty()) {
-      // 如果保留的filter为空，将会退化成CrossJoin，不过一般来说只要ON条件里正常地包含有两侧列的关系，这种情况是不会出现的
+    if (remainFilter.isEmpty() && join.getType() == OperatorType.InnerJoin) {
+      // 如果InnerJoin保留的filter为空，将会退化成CrossJoin，不过一般来说只要ON条件里正常地包含有两侧列的关系，这种情况是不会出现的
       call.transformTo(
           new CrossJoin(
               join.getSourceA(), join.getSourceB(), join.getPrefixA(), join.getPrefixB()));
     } else {
-      setJoinFilter(join, new AndFilter(remainFilter));
+      setJoinFilter(
+          join, remainFilter.isEmpty() ? new BoolFilter(true) : new AndFilter(remainFilter));
       call.transformTo(join);
     }
   }
 
   private Filter getJoinFilter(AbstractJoin join) {
-    if (join.getType() == OperatorType.InnerJoin) {
-      return ((InnerJoin) join).getFilter();
-    } else if (join.getType() == OperatorType.OuterJoin) {
-      return ((OuterJoin) join).getFilter();
+    switch (join.getType()) {
+      case InnerJoin:
+        return ((InnerJoin) join).getFilter();
+      case OuterJoin:
+        return ((OuterJoin) join).getFilter();
+      case MarkJoin:
+        return ((MarkJoin) join).getFilter();
+      case SingleJoin:
+        return ((SingleJoin) join).getFilter();
     }
     throw new IllegalArgumentException("Invalid join type: " + join.getType());
   }
 
   private void setJoinFilter(AbstractJoin join, Filter filter) {
-    if (join.getType() == OperatorType.InnerJoin) {
-      ((InnerJoin) join).setFilter(filter);
-    } else if (join.getType() == OperatorType.OuterJoin) {
-      ((OuterJoin) join).setFilter(filter);
+    switch (join.getType()) {
+      case InnerJoin:
+        ((InnerJoin) join).setFilter(filter);
+        return;
+      case OuterJoin:
+        ((OuterJoin) join).setFilter(filter);
+        return;
+      case MarkJoin:
+        ((MarkJoin) join).setFilter(filter);
+        return;
+      case SingleJoin:
+        ((SingleJoin) join).setFilter(filter);
+        return;
     }
     throw new IllegalArgumentException("Invalid join type: " + join.getType());
   }
 
   private TagFilter getJoinTagFilter(AbstractJoin join) {
-    if (join.getType() == OperatorType.InnerJoin) {
-      return ((InnerJoin) join).getTagFilter();
-    } else if (join.getType() == OperatorType.OuterJoin) {
-      return null;
+    switch (join.getType()) {
+      case InnerJoin:
+        return ((InnerJoin) join).getTagFilter();
+      case OuterJoin:
+        return null;
+      case MarkJoin:
+        return ((MarkJoin) join).getTagFilter();
+      case SingleJoin:
+        return ((SingleJoin) join).getTagFilter();
     }
     throw new IllegalArgumentException("Invalid join type: " + join.getType());
   }

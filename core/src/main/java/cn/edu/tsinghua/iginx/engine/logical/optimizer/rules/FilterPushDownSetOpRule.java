@@ -32,7 +32,9 @@ public class FilterPushDownSetOpRule extends Rule {
      *           |
      *    Union/Intersect/Except
      */
-    super("FilterPushDownSetOpRule", operand(Select.class, operand(AbstractBinaryOperator.class)));
+    super(
+        "FilterPushDownSetOpRule",
+        operand(Select.class, operand(AbstractBinaryOperator.class, any(), any())));
   }
 
   @Override
