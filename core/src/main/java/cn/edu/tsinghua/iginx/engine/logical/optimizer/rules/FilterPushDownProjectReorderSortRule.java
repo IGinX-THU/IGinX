@@ -27,11 +27,11 @@ public class FilterPushDownProjectReorderSortRule extends Rule {
      * we want to match the topology like:
      *         Select
      *           |
-     *      Project/Reorder
+     *    Project/Reorder/Sort
      */
     super(
         "FilterPushDownProjectReorderSortRule",
-        operand(Select.class, operand(AbstractUnaryOperator.class)));
+        operand(Select.class, operand(AbstractUnaryOperator.class, any())));
   }
 
   @Override
