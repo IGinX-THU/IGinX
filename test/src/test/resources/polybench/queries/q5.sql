@@ -19,7 +19,7 @@ from (
                   where
                           postgres.region.r_name = "ASIA"
                     and mongotpch.orders.o_orderdate >= 757353600000
-                    and mongotpch.orders.o_orderdate < 788889600000 + 28800000
+                    and mongotpch.orders.o_orderdate < 788889600000
               )
          group by
              nation.n_name

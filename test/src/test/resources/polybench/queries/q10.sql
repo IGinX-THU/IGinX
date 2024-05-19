@@ -34,7 +34,7 @@ from (
                           join nation on postgres.customer.c_nationkey = nation.n_nationkey
                   where
                           mongotpch.orders.o_orderdate >= 749404800000
-                    and mongotpch.orders.o_orderdate < 757353600000 + 28800000
+                    and mongotpch.orders.o_orderdate < 757353600000
                     and mongotpch.lineitem.l_returnflag = 'R'
               )
          group by
