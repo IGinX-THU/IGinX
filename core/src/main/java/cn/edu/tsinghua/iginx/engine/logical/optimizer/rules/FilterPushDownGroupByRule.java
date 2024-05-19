@@ -16,7 +16,7 @@ public class FilterPushDownGroupByRule extends Rule {
     private static final FilterPushDownGroupByRule INSTANCE = new FilterPushDownGroupByRule();
   }
 
-  public FilterPushDownGroupByRule getInstance() {
+  public static FilterPushDownGroupByRule getInstance() {
     return InstanceHolder.INSTANCE;
   }
 
@@ -27,7 +27,7 @@ public class FilterPushDownGroupByRule extends Rule {
      *           |
      *         GroupBy
      */
-    super("FilterPushDownGroupBy", operand(Select.class, operand(GroupBy.class)));
+    super("FilterPushDownGroupByRule", operand(Select.class, operand(GroupBy.class)));
   }
 
   @Override

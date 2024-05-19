@@ -18,7 +18,7 @@ public class FilterPushDownTransformRule extends Rule {
     private static final FilterPushDownTransformRule INSTANCE = new FilterPushDownTransformRule();
   }
 
-  public FilterPushDownTransformRule getInstance() {
+  public static FilterPushDownTransformRule getInstance() {
     return InstanceHolder.INSTANCE;
   }
 

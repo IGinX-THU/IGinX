@@ -23,7 +23,7 @@ public class FilterPushOutJoinConditionRule extends Rule {
         new FilterPushOutJoinConditionRule();
   }
 
-  public FilterPushOutJoinConditionRule getInstance() {
+  public static FilterPushOutJoinConditionRule getInstance() {
     return FilterPushOutJoinConditionRuleInstance.INSTANCE;
   }
 
@@ -35,7 +35,7 @@ public class FilterPushOutJoinConditionRule extends Rule {
      *    any        any
      */
     super(
-        "FilterPushOutJoinCondition",
+        "FilterPushOutJoinConditionRule",
         operand(Select.class, operand(AbstractJoin.class, any(), any())));
   }
 

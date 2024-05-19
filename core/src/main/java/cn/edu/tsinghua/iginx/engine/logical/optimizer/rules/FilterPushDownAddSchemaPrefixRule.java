@@ -14,7 +14,7 @@ public class FilterPushDownAddSchemaPrefixRule extends Rule {
         new FilterPushDownAddSchemaPrefixRule();
   }
 
-  public FilterPushDownAddSchemaPrefixRule getInstance() {
+  public static FilterPushDownAddSchemaPrefixRule getInstance() {
     return InstanceHolder.INSTANCE;
   }
 

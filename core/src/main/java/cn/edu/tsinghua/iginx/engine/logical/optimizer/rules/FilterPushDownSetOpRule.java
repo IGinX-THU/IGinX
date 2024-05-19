@@ -21,7 +21,7 @@ public class FilterPushDownSetOpRule extends Rule {
     private static final FilterPushDownSetOpRule INSTANCE = new FilterPushDownSetOpRule();
   }
 
-  public FilterPushDownSetOpRule getInstance() {
+  public static FilterPushDownSetOpRule getInstance() {
     return InstanceHolder.INSTANCE;
   }
 

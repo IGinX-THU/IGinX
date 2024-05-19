@@ -29,7 +29,7 @@ public class FilterPushIntoJoinConditionRule extends Rule {
         new FilterPushIntoJoinConditionRule();
   }
 
-  public FilterPushIntoJoinConditionRule getInstance() {
+  public static FilterPushIntoJoinConditionRule getInstance() {
     return FilterPushIntoJoinConditionRuleInstance.INSTANCE;
   }
 
@@ -40,7 +40,7 @@ public class FilterPushIntoJoinConditionRule extends Rule {
      *         |
      *   CrossJoin/InnerJoin
      */
-    super("FilterPushIntoJoinCondition", operand(Select.class, operand(AbstractJoin.class)));
+    super("FilterPushIntoJoinConditionRule", operand(Select.class, operand(AbstractJoin.class)));
   }
 
   @Override

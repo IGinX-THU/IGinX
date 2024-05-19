@@ -23,7 +23,7 @@ public class FilterPushDownPathUnionJoinOuterJoinRule extends Rule {
         new FilterPushDownPathUnionJoinOuterJoinRule();
   }
 
-  public FilterPushDownPathUnionJoinOuterJoinRule getInstance() {
+  public static FilterPushDownPathUnionJoinOuterJoinRule getInstance() {
     return InstanceHolder.instance;
   }
 

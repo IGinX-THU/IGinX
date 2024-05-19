@@ -1,29 +1,27 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AbstractUnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-public class FilterPushDownProjectReorderRule extends Rule {
+public class FilterPushDownProjectReorderSortRule extends Rule {
 
   private static final Set<Class> validOps =
-      new HashSet<>(Arrays.asList(Project.class, Reorder.class));
+      new HashSet<>(Arrays.asList(Project.class, Reorder.class, Sort.class));
 
   private static final class InstanceHolder {
-    static final FilterPushDownProjectReorderRule INSTANCE = new FilterPushDownProjectReorderRule();
+    static final FilterPushDownProjectReorderSortRule INSTANCE =
+        new FilterPushDownProjectReorderSortRule();
   }
 
-  public static FilterPushDownProjectReorderRule getInstance() {
+  public static FilterPushDownProjectReorderSortRule getInstance() {
     return InstanceHolder.INSTANCE;
   }
 
-  protected FilterPushDownProjectReorderRule() {
+  protected FilterPushDownProjectReorderSortRule() {
     /*
      * we want to match the topology like:
      *         Select
@@ -31,7 +29,7 @@ public class FilterPushDownProjectReorderRule extends Rule {
      *      Project/Reorder
      */
     super(
-        "FilterPushDownProjectReorderRule",
+        "FilterPushDownProjectReorderSortRule",
         operand(Select.class, operand(AbstractUnaryOperator.class)));
   }
 

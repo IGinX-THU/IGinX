@@ -14,7 +14,7 @@ public class FilterPushDownRenameRule extends Rule {
     private static final FilterPushDownRenameRule INSTANCE = new FilterPushDownRenameRule();
   }
 
-  public FilterPushDownRenameRule getInstance() {
+  public static FilterPushDownRenameRule getInstance() {
     return InstanceHolder.INSTANCE;
   }
 
