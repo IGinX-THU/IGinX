@@ -461,6 +461,20 @@ public class LogicalFilterUtils {
     return new KeyRange(begin, end);
   }
 
+  public static Filter getSubFilterFromPatterns(Filter filter, List<String> patterns) {
+    Filter filterWithoutNot = removeNot(filter);
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                return patterns.stream().anyMatch(pattern -> PathUtils.covers(pattern, s));
+              }
+            });
+    return mergeTrue(filterWithTrue);
+  }
+
   public static Filter getSubFilterFromPrefix(Filter filter, String prefix) {
     Filter filterWithoutNot = removeNot(filter);
     Filter filterWithTrue =
@@ -669,14 +683,14 @@ public class LogicalFilterUtils {
         if (isFunction(path)) {
           return new BoolFilter(true);
         }
-        if (predicate.test(path)) {
+        if (!predicate.test(path)) {
           return new BoolFilter(true);
         }
         return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
-        if (predicate.test(pathA) || predicate.test(pathB)) {
+        if (!predicate.test(pathA) || !predicate.test(pathB)) {
           return new BoolFilter(true);
         }
         return filter;

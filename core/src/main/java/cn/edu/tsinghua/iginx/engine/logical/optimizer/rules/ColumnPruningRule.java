@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.recoverRenamedPatterns;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
@@ -381,47 +381,6 @@ public class ColumnPruningRule extends Rule {
         }
       }
     }
-  }
-
-  // 判断是否模式a可以覆盖模式b
-  private static boolean covers(String a, String b) {
-    // 使用.*作为分隔符分割模式
-    String[] partsA = a.split("\\*");
-    String[] partsB = b.split("\\*");
-
-    int indexB = 0;
-    for (String part : partsA) {
-      boolean found = false;
-      while (indexB < partsB.length) {
-        if (partsB[indexB].contains(part)) {
-          found = true;
-          indexB++; // 移动到下一个部分
-          break;
-        }
-        indexB++;
-      }
-      if (!found) {
-        return false; // 如果任何部分未找到匹配，则模式a不能覆盖模式b
-      }
-    }
-    return true;
-  }
-
-  // 检查第一组模式是否完全包含第二组模式
-  public static boolean checkCoverage(Collection<String> groupA, Collection<String> groupB) {
-    for (String patternB : groupB) {
-      boolean covered = false;
-      for (String patternA : groupA) {
-        if (covers(patternA, patternB)) {
-          covered = true;
-          break;
-        }
-      }
-      if (!covered) {
-        return false; // 如果找不到覆盖patternB的patternA，则第一组不完全包含第二组
-      }
-    }
-    return true; // 所有的patternB都被至少一个patternA覆盖
   }
 
   /**

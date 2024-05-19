@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -12,6 +13,8 @@ import java.util.List;
 public class SingleJoin extends AbstractJoin {
 
   private Filter filter;
+
+  private TagFilter tagFilter;
 
   public SingleJoin(Source sourceA, Source sourceB, Filter filter, JoinAlgType joinAlgType) {
     this(sourceA, sourceB, filter, joinAlgType, new ArrayList<>());
@@ -27,12 +30,31 @@ public class SingleJoin extends AbstractJoin {
     this.filter = filter;
   }
 
+  public SingleJoin(
+      Source sourceA,
+      Source sourceB,
+      Filter filter,
+      TagFilter tagFilter,
+      JoinAlgType joinAlgType,
+      List<String> extraJoinPrefix) {
+    this(sourceA, sourceB, filter, joinAlgType, extraJoinPrefix);
+    this.tagFilter = tagFilter;
+  }
+
   public Filter getFilter() {
     return filter;
   }
 
   public void setFilter(Filter filter) {
     this.filter = filter;
+  }
+
+  public TagFilter getTagFilter() {
+    return tagFilter;
+  }
+
+  public void setTagFilter(TagFilter tagFilter) {
+    this.tagFilter = tagFilter;
   }
 
   public void reChooseJoinAlg() {

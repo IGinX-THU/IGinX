@@ -2,6 +2,7 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
@@ -48,16 +49,21 @@ public class FilterPushOutJoinConditionRule extends Rule {
 
     List<Filter> splitFilter = LogicalFilterUtils.splitFilter(getJoinFilter(join));
 
-    // 然后根据两侧的prefix进行下推
+    // 如果有Prefix,根据两侧的prefix进行下推，否则向下找到左右两侧的Project，然后根据Project的列范围进行下推。
     List<Filter> pushFilterA = new ArrayList<>(),
         pushFilterB = new ArrayList<>(),
         remainFilter = new ArrayList<>();
     String prefixA = join.getPrefixA(), prefixB = join.getPrefixB();
+    List<String> leftPatterns = new ArrayList<>(), rightPatterns = new ArrayList<>();
+    if (prefixA == null || prefixB == null) {
+      leftPatterns = OperatorUtils.findPathList(((OperatorSource) join.getSourceA()).getOperator());
+      rightPatterns =
+          OperatorUtils.findPathList(((OperatorSource) join.getSourceB()).getOperator());
+    }
 
     for (Filter filter : splitFilter) {
-      // 先通过map，将filter中的path进行转换，例如要推到左侧，那就用map将一些右侧的path转换为左侧的path
-      Filter filterA = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixA);
-      Filter filterB = LogicalFilterUtils.getSubFilterFromPrefix(filter.copy(), prefixB);
+      Filter filterA = getSubFilter(filter.copy(), prefixA, leftPatterns);
+      Filter filterB = getSubFilter(filter.copy(), prefixB, rightPatterns);
 
       // 如果是OuterJoin，那保留表的filter不能下推，例如Left OuterJoin, 左表的filter不能下推，右表可以
       if (join.getType() == OperatorType.OuterJoin) {
@@ -150,5 +156,12 @@ public class FilterPushOutJoinConditionRule extends Rule {
       return null;
     }
     throw new IllegalArgumentException("Invalid join type: " + join.getType());
+  }
+
+  private Filter getSubFilter(Filter filter, String prefix, List<String> patterns) {
+    if (prefix != null) {
+      return LogicalFilterUtils.getSubFilterFromPrefix(filter, prefix);
+    }
+    return LogicalFilterUtils.getSubFilterFromPatterns(filter, patterns);
   }
 }
