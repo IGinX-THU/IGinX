@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
 
 public class FilterPushDownTransformRule extends Rule {
@@ -113,22 +114,13 @@ public class FilterPushDownTransformRule extends Rule {
 
           @Override
           public void visit(ValueFilter filter) {
-            hasFunction[0] |=
-                functionCallList.stream()
-                    .anyMatch(
-                        functionCall -> functionCall.getFunctionStr().equals(filter.getPath()));
+            hasFunction[0] |= isFunc(filter.getPath(), functionCallList);
           }
 
           @Override
           public void visit(PathFilter filter) {
-            hasFunction[0] |=
-                functionCallList.stream()
-                    .anyMatch(
-                        functionCall -> functionCall.getFunctionStr().equals(filter.getPathA()));
-            hasFunction[0] |=
-                functionCallList.stream()
-                    .anyMatch(
-                        functionCall -> functionCall.getFunctionStr().equals(filter.getPathB()));
+            hasFunction[0] |= isFunc(filter.getPathA(), functionCallList);
+            hasFunction[0] |= isFunc(filter.getPathB(), functionCallList);
           }
 
           @Override
@@ -158,11 +150,7 @@ public class FilterPushDownTransformRule extends Rule {
         new ExpressionVisitor() {
           @Override
           public void visit(BaseExpression expression) {
-            hasFunction[0] |=
-                functionCallList.stream()
-                    .anyMatch(
-                        functionCall ->
-                            functionCall.getFunctionStr().equals(expression.getColumnName()));
+            hasFunction[0] |= isFunc(expression.getColumnName(), functionCallList);
           }
 
           @Override
@@ -182,11 +170,7 @@ public class FilterPushDownTransformRule extends Rule {
 
           @Override
           public void visit(FuncExpression expression) {
-            hasFunction[0] |=
-                functionCallList.stream()
-                    .anyMatch(
-                        functionCall ->
-                            functionCall.getFunctionStr().equals(expression.getColumnName()));
+            hasFunction[0] |= isFunc(expression.getColumnName(), functionCallList);
           }
 
           @Override
@@ -194,5 +178,18 @@ public class FilterPushDownTransformRule extends Rule {
         });
 
     return hasFunction[0];
+  }
+
+  public static boolean isFunc(String path, List<FunctionCall> functionCallList) {
+    for (FunctionCall functionCall : functionCallList) {
+      if (functionCall.getFunctionStr().equals(path)) {
+        return true;
+      } else if (functionCall.getFunctionStr().contains("*")
+          && path.matches(StringUtils.reformatPath(functionCall.getFunctionStr()))) {
+        return true;
+      }
+    }
+
+    return false;
   }
 }
