@@ -205,7 +205,7 @@ public class Controller {
           LOGGER.error("write data fail, caused by generator is null");
           return;
         }
-        if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
+        if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == parquet) {
           ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
           String path = pathList.get(i);
           String tableName = path.substring(0, path.indexOf("."));
@@ -249,7 +249,7 @@ public class Controller {
       LOGGER.error("write data fail, caused by generator is null");
       return;
     }
-    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == parquet) {
+    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == parquet) {
       ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
       String path = pathList.get(0);
       String tableName = path.substring(0, path.indexOf("."));
@@ -463,7 +463,7 @@ public class Controller {
     envir.setTestTasks(
         testConfLoader
             .getTaskMap()
-            .get(StorageEngineType.valueOf(testConfLoader.getStorageType().toLowerCase())),
+            .get(StorageEngineType.valueOf(testConfLoader.getStorageType(false).toLowerCase())),
         TEST_TASK_FILE);
     // run the test together
     shellRunner.runShellCommand(MVN_RUN_TEST);

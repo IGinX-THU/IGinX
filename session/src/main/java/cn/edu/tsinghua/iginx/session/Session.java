@@ -19,12 +19,15 @@
 package cn.edu.tsinghua.iginx.session;
 
 import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.security.InvalidParameterException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -34,8 +37,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.thrift.TException;
@@ -922,33 +923,6 @@ public class Session {
     return new SessionExecuteSqlResult(ref.resp);
   }
 
-  public SessionExecuteSqlResult executePythonRegister(String statement) throws SessionException {
-    Pattern pattern = Pattern.compile("\"([^\"]*)\"");
-    Matcher matcher = pattern.matcher(statement);
-
-    // 1st "": sql name
-    if (!matcher.find()) {
-      throw new SessionException("Error: function name should be surrounded by DOUBLE-QUOTES");
-    }
-    // 2nd "": class name
-    if (!matcher.find()) {
-      throw new SessionException("Error: python class name should be surrounded by DOUBLE-QUOTES");
-    }
-    // 3rd "": script(s) file path
-    if (matcher.find()) {
-      // 提取python文件路径
-      String filePathStr = matcher.group(1);
-
-      File filePath = new File(filePathStr);
-      if (!filePath.isAbsolute()) {
-        statement = statement.replace(filePathStr, filePath.getAbsolutePath());
-      }
-      return executeSql(statement);
-    } else {
-      throw new SessionException("Error: python file path should be surrounded by DOUBLE-QUOTES");
-    }
-  }
-
   public SessionQueryDataSet queryLast(
       List<String> paths, long startKey, TimePrecision timePrecision) throws SessionException {
     return queryLast(paths, startKey, null, timePrecision);
@@ -1102,6 +1076,55 @@ public class Session {
     executeWithCheck(() -> (ref.resp = client.loadCSV(req)).status);
 
     return new Pair<>(ref.resp.getColumns(), ref.resp.getRecordsNum());
+  }
+
+  public LoadUDFResp executeRegisterTask(String statement) throws SessionException {
+    return executeRegisterTask(statement, !isLocalHost(host));
+  }
+
+  public LoadUDFResp executeRegisterTask(String statement, boolean isRemote)
+      throws SessionException {
+    LoadUDFReq req = new LoadUDFReq(sessionId, statement, isRemote);
+    Reference<LoadUDFResp> ref = new Reference<>();
+    executeWithCheck(() -> (ref.resp = client.loadUDF(req)).status);
+
+    LoadUDFResp res = ref.resp;
+    String parseErrorMsg = res.getParseErrorMsg();
+    if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
+      return new LoadUDFResp(RpcUtils.FAILURE.setMessage(parseErrorMsg));
+    }
+    String path = res.getUDFModulePath();
+    File file = new File(path);
+    if (!file.isAbsolute()) {
+      statement = statement.replace(path, file.getAbsolutePath());
+    } else if (!isRemote) {
+      return new LoadUDFResp(RpcUtils.SUCCESS);
+    }
+
+    if (!file.exists()) {
+      throw new InvalidParameterException(path + " does not exist!");
+    }
+
+    ByteBuffer moduleBuffer;
+    if (isRemote) {
+      try {
+        moduleBuffer = CompressionUtils.zipToByteBuffer(file);
+      } catch (IOException e) {
+        return new LoadUDFResp(
+            RpcUtils.FAILURE.setMessage(
+                String.format(
+                    "Failed to compress module and load into buffer. %s", e.getMessage())));
+      }
+    } else {
+      moduleBuffer = ByteBuffer.allocate(0);
+    }
+
+    LoadUDFReq newReq = new LoadUDFReq(sessionId, statement, isRemote);
+    newReq.setUdfFile(moduleBuffer);
+    Reference<LoadUDFResp> newRef = new Reference<>();
+    executeWithCheck(() -> (newRef.resp = client.loadUDF(newReq)).status);
+
+    return newRef.resp;
   }
 
   void closeQuery(long queryId) throws SessionException {

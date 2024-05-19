@@ -1,39 +1,37 @@
 name: "Metadata-Service-Test"
 
 on:
-    pull_request:
-        types: [opened, reopened]
-        branches:
-            - main
-
-concurrency:
-    group: ${{ github.workflow }}-${{ github.ref }}
-    cancel-in-progress: true
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-13", "windows-latest"]'
 
 jobs:
     ZK-Test:
         strategy:
             fail-fast: false
             matrix:
-                java: [8]
-                os: [ubuntu-latest, windows-latest, macos-13]
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
         runs-on: ${{ matrix.os}}
         env:
             STORAGE: zookeeper
             ZOOKEEPER_CONNECTION_STRING: 127.0.0.1:2181
         steps:
-            - uses: actions/checkout@v2
-            - name: Set up JDK ${{ matrix.java }}
-              uses: actions/setup-java@v1
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
               with:
-                  java-version: ${{ matrix.java }}
-
-            - name: Cache Maven packages
-              uses: actions/cache@v2
-              with:
-                  path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                  restore-keys: ${{ runner.os }}-m2
+                  java: ${{ matrix.java }}
+                  scope: base
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
@@ -51,27 +49,20 @@ jobs:
     ETCD-Test:
         strategy:
             fail-fast: false
-            max-parallel: 20
             matrix:
-                java: [8]
-                os: [ubuntu-latest, windows-latest, macos-13]
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
         runs-on: ${{ matrix.os}}
         env:
             STORAGE: etcd
             ETCD_ENDPOINTS: http://localhost:2379
         steps:
-            - uses: actions/checkout@v2
-            - name: Set up JDK ${{ matrix.java }}
-              uses: actions/setup-java@v1
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
               with:
-                  java-version: ${{ matrix.java }}
-
-            - name: Cache Maven packages
-              uses: actions/cache@v2
-              with:
-                  path: ~/.m2
-                  key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-                  restore-keys: ${{ runner.os }}-m2
+                  java: ${{ matrix.java }}
+                  scope: base
 
             - name: Run ETCD
               uses: ./.github/actions/etcdRunner

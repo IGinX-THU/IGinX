@@ -9,6 +9,16 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s/^storageEngineList=/#storageEngineList=/g
+
+        - if: inputs.DB-name=='InfluxDB' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Setup DB
+          uses: ./.github/actions/setup/influxdb
+
         - if: inputs.DB-name=='InfluxDB'
           name: Run DB
           shell: bash
@@ -27,6 +37,10 @@ runs:
                 exit 1
               fi
 
+        - if: inputs.DB-name=='IoTDB12' || inputs.DB-name=='Mix-IoTDB12-InfluxDB'
+          name: Setup DB
+          uses: ./.github/actions/setup/iotdb12
+
         - if: inputs.DB-name=='IoTDB12'
           name: Run DB
           shell: bash
@@ -40,74 +54,6 @@ runs:
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_macos.sh"
                 "${GITHUB_WORKSPACE}/.github/scripts/dataSources/iotdb12_macos.sh" 6667 6668 6669
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
-        - if: inputs.DB-name=='Parquet' #test/iginx_mn is the path for IT test data
-          name: Run DB
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
-        - if: inputs.DB-name=='MongoDB'
-          name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb.sh" 27017 27018 27019
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_windows.sh" 27017 27018 27019
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/mongodb_macos.sh" 27017 27018 27019
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
-        - if: inputs.DB-name=='FileSystem' #test/iginx_mn is the path for IT test data
-          name: Run DB
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
-        - if: inputs.DB-name=='Redis'
-          name: Run DB
-          shell: bash
-          run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis.sh" 6379 6380 6381
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_windows.sh" 6379 6380 6381
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/redis_macos.sh" 6379 6380 6381
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -131,20 +77,123 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name=='PostgreSQL'
+        - if: inputs.DB-name=='Parquet' #test/iginx_mn is the path for IT test data
           name: Run DB
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql.sh" 5432 5433 5434
-              elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_windows.sh" 5432 5433 5434
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/postgresql_macos.sh" 5432 5433 5434
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - if: inputs.DB-name=='MongoDB'
+          name: Setup DB
+          uses: ./.github/actions/setup/mongodb
+
+        - if: inputs.DB-name=='MongoDB'
+          name: Run DB
+          uses: ./.github/actions/service/mongodb
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: 27017 27018 27019
+
+        - if: inputs.DB-name=='MongoDB'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
+
+        - if: inputs.DB-name=='FileSystem' #test/iginx_mn is the path for IT test data
+          name: Run DB
+          shell: bash
+          run: |
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
+              if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/filesystem_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+
+        - if: inputs.DB-name=='Redis'
+          name: Setup DB
+          uses: ./.github/actions/setup/redis
+
+        - if: inputs.DB-name=='Redis'
+          name: Run DB
+          uses: ./.github/actions/service/redis
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: 6379 6380 6381
+
+        - if: inputs.DB-name=='Redis'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#6379/storageEngineList=127.0.0.1#6379/g
+
+        - if: inputs.DB-name=='PostgreSQL'
+          name: Setup DB
+          uses: ./.github/actions/setup/postgresql
+
+        - if: inputs.DB-name=='PostgreSQL'
+          name: Run DB
+          uses: ./.github/actions/service/postgresql
+          with:
+              stop: false
+              clean: false
+              start: true
+              ports: 5432 5433 5434
+
+        - if: inputs.DB-name=='PostgreSQL'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s/^#storageEngineList=127.0.0.1#5432#relational#engine=postgresql/storageEngineList=127.0.0.1#5432#relational#engine=postgresql/g
+
+        - if: inputs.DB-name=='MySQL'
+          name: Setup DB
+          uses: ./.github/actions/setup/mysql
+
+        - if: inputs.DB-name == 'MySQL'
+          name: Start MySQL Service
+          uses: ./.github/actions/service/mysql
+          with:
+              ports: 3306 3307 3308
+
+        - if: inputs.DB-name == 'MySQL'
+          id: mysql-properties
+          name: Get MySQL Properties Path
+          working-directory: ${{ github.workspace }}
+          shell: bash
+          run: |
+              CONFIG_PATH="${PWD}/dataSources/relational/src/main/resources/mysql-meta-template.properties"
+              if [ "$RUNNER_OS" == "Windows" ]; then
+                  CONFIG_PATH=$(cygpath -m $CONFIG_PATH)
+              fi
+              echo "path=$CONFIG_PATH" >> $GITHUB_OUTPUT
+
+        - if: inputs.DB-name == 'MySQL'
+          name: Modify IGinX Config
+          uses: ./.github/actions/edit
+          with:
+              paths: conf/config.properties
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g

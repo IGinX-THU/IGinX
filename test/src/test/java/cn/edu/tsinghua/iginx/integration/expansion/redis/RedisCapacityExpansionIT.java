@@ -16,7 +16,7 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(RedisCapacityExpansionIT.class);
 
   public RedisCapacityExpansionIT() {
-    super(redis, null);
+    super(redis, null, new RedisHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
@@ -37,5 +37,45 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+--------------+----------------+-----------+---------+----------+\n"
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  // redis中，所有dummy数据都识别为BINARY
+  @Override
+  public void testShowColumns() {
+    String statement = "SHOW COLUMNS mn.*;";
+    String expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     mn.wf01.wt01.status|  BINARY|\n"
+            + "|mn.wf01.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS nt.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|    nt.wf03.wt01.status2|  BINARY|\n"
+            + "|nt.wf04.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS tm.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|     tm.wf05.wt01.status|  BINARY|\n"
+            + "|tm.wf05.wt01.temperature|  BINARY|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }

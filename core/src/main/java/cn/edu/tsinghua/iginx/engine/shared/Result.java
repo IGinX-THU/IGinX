@@ -62,6 +62,8 @@ public class Result {
   private List<String> loadCSVColumns;
   private Long loadCSVRecordNum;
 
+  private String UDFModulePath;
+
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
@@ -174,6 +176,8 @@ public class Result {
     resp.setLoadCsvPath(loadCSVPath);
     resp.setSessionIDList(sessionIDs);
     resp.setRules(rules);
+    // import udf
+    resp.setUDFModulePath(UDFModulePath);
     return resp;
   }
 
@@ -273,6 +277,17 @@ public class Result {
     }
     resp.setColumns(loadCSVColumns);
     resp.setRecordsNum(loadCSVRecordNum);
+    return resp;
+  }
+
+  public LoadUDFResp getLoadUDFResp() {
+    LoadUDFResp resp = new LoadUDFResp(status);
+
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
+      resp.setParseErrorMsg(status.getMessage());
+      return resp;
+    }
+    resp.setUDFModulePath(UDFModulePath);
     return resp;
   }
 

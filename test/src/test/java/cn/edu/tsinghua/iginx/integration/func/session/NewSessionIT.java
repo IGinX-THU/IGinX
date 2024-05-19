@@ -122,7 +122,7 @@ public class NewSessionIT {
   @BeforeClass
   public static void setUp() throws SessionException {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    if (StorageEngineType.valueOf(conf.getStorageType().toLowerCase()) == influxdb) {
+    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == influxdb) {
       isInfluxdb = true;
     }
     if (!SUPPORT_KEY.get(conf.getStorageType()) && conf.isScaling()) {
