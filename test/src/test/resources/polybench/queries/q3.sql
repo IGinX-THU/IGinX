@@ -19,8 +19,8 @@ select l_orderkey,
                      join mongotpch.lineitem on mongotpch.lineitem.l_orderkey = mongotpch.orders.o_orderkey
              where
                      postgres.customer.c_mktsegment = 'BUILDING'
-               and mongotpch.orders.o_orderdate < 795225600000
-               and mongotpch.lineitem.l_shipdate > 795196800000
+               and mongotpch.orders.o_orderdate < 795196800000
+               and mongotpch.lineitem.l_shipdate > 795225600000
          )
      group by
          l_orderkey,
