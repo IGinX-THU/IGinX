@@ -125,11 +125,19 @@ public class FilterPushOutJoinConditionRule extends Rule {
               new Select(join.getSourceB(), new AndFilter(pushFilterB), getJoinTagFilter(join))));
     }
 
-    if (remainFilter.isEmpty() && join.getType() == OperatorType.InnerJoin) {
-      // 如果InnerJoin保留的filter为空，将会退化成CrossJoin，不过一般来说只要ON条件里正常地包含有两侧列的关系，这种情况是不会出现的
+    if (remainFilter.isEmpty()
+        && join.getType() == OperatorType.InnerJoin
+        && !((InnerJoin) join).isNaturalJoin()
+        && join.getExtraJoinPrefix().isEmpty()) {
+      // 如果InnerJoin保留的filter为空，不是NatureJoin,没有ExtraJoinPrefix,将会退化成CrossJoin，
+      // 不过一般来说只要ON条件里正常地包含有两侧列的关系，这种情况是不会出现的
       call.transformTo(
           new CrossJoin(
-              join.getSourceA(), join.getSourceB(), join.getPrefixA(), join.getPrefixB()));
+              join.getSourceA(),
+              join.getSourceB(),
+              join.getPrefixA(),
+              join.getPrefixB(),
+              join.getExtraJoinPrefix()));
     } else {
       setJoinFilter(
           join, remainFilter.isEmpty() ? new BoolFilter(true) : new AndFilter(remainFilter));

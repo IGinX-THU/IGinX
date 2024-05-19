@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
@@ -469,7 +470,14 @@ public class LogicalFilterUtils {
             new Predicate<String>() {
               @Override
               public boolean test(String s) {
-                return patterns.stream().anyMatch(pattern -> PathUtils.covers(pattern, s));
+                for (String pattern : patterns) {
+                  if (s.equals(pattern)
+                      || StringUtils.reformatPath(s).replace("*", ".*").matches(pattern)
+                      || StringUtils.reformatPath(pattern).replace("*", ".*").matches(s)) {
+                    return true;
+                  }
+                }
+                return false;
               }
             });
     return mergeTrue(filterWithTrue);
