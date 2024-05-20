@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-import subprocess, platform
+import subprocess, platform, os
 
 # 生成 zipcode -> city的映射关系，error rate 10%
 # lineNum 为 -n 后面的参数
@@ -23,7 +23,10 @@ zipcodes = [i for i in range(correctNum)]
 cities = ['city' + str(i) for i in range(args.lineNum)]
 # zipcodes加入10%的重复
 zipcodes = zipcodes + [zipcodes[i] for i in range(args.lineNum // 10)]
-with open('dataCleaning/zipcode_city.csv', 'w') as f:
+# mkdir if not exist
+if not os.path.exists('test/src/test/resources/dataCleaning'):
+    os.makedirs('test/src/test/resources/dataCleaning')
+with open('test/src/test/resources/dataCleaning/zipcode_city.csv', 'w') as f:
     for i in range(args.lineNum):
         f.write(str(i) + ',' + cities[i] + ',' + str(zipcodes[i]) + '\n')
 
