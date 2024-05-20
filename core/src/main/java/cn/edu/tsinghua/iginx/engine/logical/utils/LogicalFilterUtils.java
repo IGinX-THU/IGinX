@@ -473,11 +473,10 @@ public class LogicalFilterUtils {
                 for (String pattern : patterns) {
                   if (s.equals(pattern)) {
                     return true;
-                  } else if (s.contains("*")
-                      && StringUtils.reformatPath(s).replace("*", ".*").matches(pattern)) {
+                  } else if (s.contains("*") && pattern.matches(StringUtils.reformatPath(s))) {
                     return true;
                   } else if (pattern.contains("*")
-                      && StringUtils.reformatPath(pattern).replace("*", ".*").matches(s)) {
+                      && s.matches(StringUtils.reformatPath(pattern))) {
                     return true;
                   }
                 }

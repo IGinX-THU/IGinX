@@ -95,8 +95,8 @@ public class SQLSessionIT {
     this.isSupportSpecialCharacterPath =
         dbConf.getEnumValue(DBConfType.isSupportSpecialCharacterPath);
 
-    String queryOptimizer = executor.execute("SHOW CONFIG \"queryOptimizer\";");
-    this.isFilterPushDown = queryOptimizer.contains("filter_push_down");
+    String rules = executor.execute("SHOW RULES;");
+    this.isFilterPushDown = rules.contains("FilterPushOutJoinConditionRule|    ON|");
   }
 
   @BeforeClass
@@ -6274,7 +6274,7 @@ public class SQLSessionIT {
   @Test
   public void testFilterPushDownExplain() {
     // 临时修改
-    if (isFilterPushDown) {
+    if (!isFilterPushDown) {
       LOGGER.info(
           "Skip SQLSessionIT.testFilterPushDownExplain because filter_push_down optimizer is not open");
       return;
@@ -6282,6 +6282,9 @@ public class SQLSessionIT {
 
     String insert =
         "INSERT INTO us.d2(key, c) VALUES (1, \"asdas\"), (2, \"sadaa\"), (3, \"sadada\"), (4, \"asdad\"), (5, \"deadsa\"), (6, \"dasda\"), (7, \"asdsad\"), (8, \"frgsa\"), (9, \"asdad\");";
+    executor.execute(insert);
+    insert =
+        "INSERT INTO us.d3(key, s1) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5), (6, 6), (7, 7), (8, 8), (9, 9);";
     executor.execute(insert);
 
     String closeRule = "SET RULES FragmentPruningByPatternRule=OFF, ColumnPruningRule=OFF;";
@@ -6522,9 +6525,113 @@ public class SQLSessionIT {
                     + "|                  +--Project|      Project|Patterns: us.*, Target DU: unit0000000001|\n"
                     + "|            +--Project      |      Project|Patterns: us.*, Target DU: unit0000000002|\n"
                     + "+----------------------------+-------------+-----------------------------------------+\n"
-                    + "Total line number = 13\n"));
+                    + "Total line number = 13\n"),
+            new Pair<>(
+                "explain SELECT * FROM us.d1 LEFT OUTER JOIN us.d2 ON us.d1.s1 = us.d2.s1 AND us.d1.s1 < 10 AND us.d2.s1 < 10 WHERE us.d1.s2 > 10;",
+                "ResultSets:\n"
+                    + "+----------------------------+-------------+----------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|                Logical Tree|Operator Type|                                                                                                         Operator Info|\n"
+                    + "+----------------------------+-------------+----------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                     |      Reorder|                                                                                                              Order: *|\n"
+                    + "|  +--Project                |      Project|                                                                                                           Patterns: *|\n"
+                    + "|    +--Select               |       Select|                                                                                               Filter: (us.d1.s2 > 10)|\n"
+                    + "|      +--OuterJoin          |    OuterJoin|PrefixA: us.d1, PrefixB: us.d2, OuterJoinType: LEFT, IsNatural: false, Filter: (us.d1.s1 == us.d2.s1 && us.d1.s1 < 10)|\n"
+                    + "|        +--Select           |       Select|                                                                                               Filter: (us.d1.s2 > 10)|\n"
+                    + "|          +--Join           |         Join|                                                                                                           JoinBy: key|\n"
+                    + "|            +--Select       |       Select|                                                                                               Filter: (us.d1.s2 > 10)|\n"
+                    + "|              +--Join       |         Join|                                                                                                           JoinBy: key|\n"
+                    + "|                +--Select   |       Select|                                                                                               Filter: (us.d1.s2 > 10)|\n"
+                    + "|                  +--Project|      Project|                                                                          Patterns: us.d1.*, Target DU: unit0000000000|\n"
+                    + "|                +--Project  |      Project|                                                                          Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|            +--Project      |      Project|                                                                          Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--Select           |       Select|                                                                                               Filter: (us.d2.s1 < 10)|\n"
+                    + "|          +--Project        |      Project|                                                                          Patterns: us.d2.*, Target DU: unit0000000001|\n"
+                    + "+----------------------------+-------------+----------------------------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 14\n"),
+            new Pair<>(
+                "explain SELECT * FROM us.d1, us.d2, us.d3 WHERE us.d1.s1 = us.d2.s1 AND us.d2.s1 = us.d3.s1 AND us.d2.s1 < 10;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+--------------------------------------------------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                                                                   Operator Info|\n"
+                    + "+----------------------+-------------+--------------------------------------------------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                                                                        Order: *|\n"
+                    + "|  +--Project          |      Project|                                                                     Patterns: *|\n"
+                    + "|    +--InnerJoin      |    InnerJoin|PrefixA: us.d2, PrefixB: us.d3, IsNatural: false, Filter: (us.d2.s1 == us.d3.s1)|\n"
+                    + "|      +--InnerJoin    |    InnerJoin|PrefixA: us.d1, PrefixB: us.d2, IsNatural: false, Filter: (us.d1.s1 == us.d2.s1)|\n"
+                    + "|        +--Join       |         Join|                                                                     JoinBy: key|\n"
+                    + "|          +--Join     |         Join|                                                                     JoinBy: key|\n"
+                    + "|            +--Project|      Project|                                    Patterns: us.d1.*, Target DU: unit0000000000|\n"
+                    + "|            +--Project|      Project|                                    Patterns: us.d1.*, Target DU: unit0000000001|\n"
+                    + "|          +--Project  |      Project|                                    Patterns: us.d1.*, Target DU: unit0000000002|\n"
+                    + "|        +--Select     |       Select|                                                         Filter: (us.d2.s1 < 10)|\n"
+                    + "|          +--Project  |      Project|                                    Patterns: us.d2.*, Target DU: unit0000000001|\n"
+                    + "|      +--Project      |      Project|                                    Patterns: us.d3.*, Target DU: unit0000000001|\n"
+                    + "+----------------------+-------------+--------------------------------------------------------------------------------+\n"
+                    + "Total line number = 12\n"),
+            new Pair<>(
+                "explain SELECT * FROM (SELECT max(s2), min(s3), s1 FROM us.d1 GROUP BY s1) WHERE us.d1.s1 < 10 AND max(us.d1.s2) > 10;",
+                "ResultSets:\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                                                                                        Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                                                                                             Order: *|\n"
+                    + "|  +--Project          |      Project|                                                                                          Patterns: *|\n"
+                    + "|    +--Reorder        |      Reorder|                                                          Order: max(us.d1.s2),min(us.d1.s3),us.d1.s1|\n"
+                    + "|      +--Select       |       Select|                                                                         Filter: (max(us.d1.s2) > 10)|\n"
+                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (min, System),(max, System), MappingType: SetMapping|\n"
+                    + "|          +--Select   |       Select|                                                                              Filter: (us.d1.s1 < 10)|\n"
+                    + "|            +--Project|      Project|                                      Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 7\n"),
+            new Pair<>(
+                "explain SELECT * FROM (SELECT avg(s2), count(s3) FROM us.d1) WHERE avg(us.d1.s2) < 10;",
+                "ResultSets:\n"
+                    + "+-----------------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+                    + "|           Logical Tree|Operator Type|                                                                                       Operator Info|\n"
+                    + "+-----------------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                |      Reorder|                                                                                            Order: *|\n"
+                    + "|  +--Project           |      Project|                                                                                         Patterns: *|\n"
+                    + "|    +--Reorder         |      Reorder|                                                                Order: avg(us.d1.s2),count(us.d1.s3)|\n"
+                    + "|      +--Select        |       Select|                                                                          Filter: avg(us.d1.s2) < 10|\n"
+                    + "|        +--SetTransform| SetTransform|FuncList(Name, FuncType): (avg, System), (count, System), MappingType: SetMapping, isDistinct: false|\n"
+                    + "|          +--Project   |      Project|                                              Patterns: us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
+                    + "+-----------------------+-------------+----------------------------------------------------------------------------------------------------+\n"
+                    + "Total line number = 6\n"),
+            new Pair<>(
+                "explain SELECT s1 FROM us.d1 WHERE s1 < 10 && EXISTS (SELECT s1 FROM us.d2 WHERE us.d1.s1 > us.d2.s1);",
+                "ResultSets:\n"
+                    + "+--------------------------+-------------+------------------------------------------------------------------------------+\n"
+                    + "|              Logical Tree|Operator Type|                                                                 Operator Info|\n"
+                    + "+--------------------------+-------------+------------------------------------------------------------------------------+\n"
+                    + "|Reorder                   |      Reorder|                                                               Order: us.d1.s1|\n"
+                    + "|  +--Project              |      Project|                                                            Patterns: us.d1.s1|\n"
+                    + "|    +--Select             |       Select|                                                      Filter: (&mark == true)|\n"
+                    + "|      +--MarkJoin         |     MarkJoin|Filter: True, MarkColumn: &mark3, IsAntiJoin: false, ExtraJoinPrefix: us.d1.s1|\n"
+                    + "|        +--Select         |       Select|                                                       Filter: (us.d1.s1 < 10)|\n"
+                    + "|          +--Project      |      Project|                                 Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+                    + "|        +--Project        |      Project|                                                   Patterns: us.d1.s1,us.d2.s1|\n"
+                    + "|          +--InnerJoin    |    InnerJoin| PrefixA: null, PrefixB: null, IsNatural: false, Filter: (us.d1.s1 > us.d2.s1)|\n"
+                    + "|            +--Project    |      Project|                                                            Patterns: us.d1.s1|\n"
+                    + "|              +--Select   |       Select|                                                       Filter: (us.d1.s1 < 10)|\n"
+                    + "|                +--Project|      Project|                                 Patterns: us.d1.s1, Target DU: unit0000000000|\n"
+                    + "|            +--Project    |      Project|                                 Patterns: us.d2.s1, Target DU: unit0000000001|\n"
+                    + "+--------------------------+-------------+------------------------------------------------------------------------------+\n"
+                    + "Total line number = 12\n"));
 
-    executor.concurrentExecuteAndCompare(statementsAndExpectRes);
+    for (Pair<String, String> pair : statementsAndExpectRes) {
+      String statement = pair.k;
+      String expectRes = pair.v;
+      String res = executor.execute(statement);
+
+      // 把 &mark数字 后面的数字去掉
+      res = res.replaceAll("&mark\\d+", "&mark");
+      expectRes = expectRes.replaceAll("&mark\\d+", "&mark");
+      if (!res.equals(expectRes)) {
+        LOGGER.error("expected: {}", expectRes);
+        LOGGER.error("actual: {}", res);
+      }
+      assertEquals(res, expectRes);
+    }
 
     String openRule = "SET RULES FragmentPruningByPatternRule=ON, ColumnPruningRule=ON;";
     executor.execute(openRule);

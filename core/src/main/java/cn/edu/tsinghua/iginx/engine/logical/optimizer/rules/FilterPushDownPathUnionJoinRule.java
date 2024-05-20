@@ -66,8 +66,8 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
     List<String> leftPatterns = new ArrayList<>(), rightPatterns = new ArrayList<>();
 
     if (operator.getType() == OperatorType.OuterJoin) {
-      prefixA = ((CrossJoin) operator).getPrefixA();
-      prefixB = ((CrossJoin) operator).getPrefixB();
+      prefixA = ((OuterJoin) operator).getPrefixA();
+      prefixB = ((OuterJoin) operator).getPrefixB();
     } else if (operator.getType() == OperatorType.MarkJoin
         || operator.getType() == OperatorType.SingleJoin) {
       leftPatterns =
