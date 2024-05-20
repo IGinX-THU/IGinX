@@ -25,6 +25,8 @@ import java.util.Set;
 
 public interface ReadWriter<K extends Comparable<K>, F, T, V> {
 
+  String getName();
+
   void flush(String name, TableMeta<K, F, T, V> meta, Scanner<K, Scanner<F, V>> scanner)
       throws IOException;
 

@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -48,7 +49,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final SequenceGenerator seqGen = new SequenceGenerator();
 
-  private final ExecutorService flusher = Executors.newCachedThreadPool();
+  private final ExecutorService flusher;
 
   private final Map<String, MemoryTable<K, F, T, V>> memTables = new HashMap<>();
   private final Map<String, AreaSet<K, F>> memTombstones = new HashMap<>();
@@ -63,6 +64,11 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     this.readWriter = readWriter;
     this.localFlusherPermitsTotal = shared.getFlusherPermits().availablePermits();
     this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal, true);
+    this.flusher =
+        Executors.newCachedThreadPool(
+            new ThreadFactoryBuilder()
+                .setNameFormat("compact-" + readWriter.getName() + "-%d")
+                .build());
     reload();
   }
 

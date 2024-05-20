@@ -63,6 +63,11 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   }
 
   @Override
+  public String getName() {
+    return dir.toString();
+  }
+
+  @Override
   public void flush(
       String tableName,
       TableMeta<Long, String, DataType, Object> meta,
