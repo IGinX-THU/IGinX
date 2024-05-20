@@ -119,8 +119,7 @@ public class TPCHRunner {
         // 验证
         Long timeCost = System.currentTimeMillis() - startTime;
         runTimes.add(timeCost);
-        System.out.println(
-            "end tpch query, time cost: " + timeCost + "ms");
+        System.out.println("end tpch query, time cost: " + timeCost + "ms");
         List<List<Object>> values = result.getValues();
         List<List<String>> answers =
             csvReader("src/test/resources/polybench/sf0.1/q" + queryId + ".csv");
@@ -147,15 +146,19 @@ public class TPCHRunner {
             if (values.get(i).get(j).toString().matches("-?[0-9]+.*[0-9]*")) {
               double number = Double.parseDouble(values.get(i).get(j).toString());
               double answerNumber = Double.parseDouble(answers.get(i).get(j));
-              System.out.println("Number: " + number);
-              System.out.println("Answer number: " + answerNumber);
+              if(answerNumber - number >= 1e-3 || number - answerNumber >= 1e-3){
+                System.out.println("Number: " + number);
+                System.out.println("Answer number: " + answerNumber);
+              }
               assert answerNumber - number < 1e-3 && number - answerNumber < 1e-3;
             } else {
               String resultString =
                   new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
               String answerString = answers.get(i).get(j);
-              System.out.println("Result string： " + resultString);
-              System.out.println("Answer string: " + answerString);
+              if(!resultString.equals(answerString)){
+                System.out.println("Result string： " + resultString);
+                System.out.println("Answer string: " + answerString);
+              }
               assert resultString.equals(answerString);
             }
           }

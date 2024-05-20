@@ -100,6 +100,83 @@ jobs:
               run: |
                   mvn test -q -Dtest=TPCHRunner -DfailIfNoTests=false -P-format
 
+            - name: Get old version
+              if: always()
+              shell: bash
+              run: |
+                  git clone https://github.com/IGinX-THU/IGinX.git
+                  cd IGinX
+                  export GITHUB_WORKSPACE=$(pwd)
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Stop ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  if-stop: "true"
+
+            - name: Rerun ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  if-rerun: "true"
+
+            - name: Run DB
+              shell: bash
+              run: |
+                cp -f "IGinX/conf/config.properties" "IGinX/conf/config.properties.bak"
+                cd IGinX
+                if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
+                  chmod +x ".github/scripts/dataSources/parquet_linux_windows.sh"
+                  ".github/scripts/dataSources/parquet_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+                elif [ "$RUNNER_OS" == "macOS" ]; then
+                  chmod +x ".github/scripts/dataSources/parquet_macos.sh"
+                  ".github/scripts/dataSources/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
+                else
+                  echo "$RUNNER_OS is not supported"
+                  exit 1
+                fi
+
+            - name: Change IGinX config
+              uses: ./IGinX/.github/actions/confWriter
+              with:
+                DB-name: "Parquet"
+                Set-Filter-Fragment-OFF: "true"
+
+          # start udf path test first to avoid being effected
+            - name: Start IGinX
+              uses: ./IGinX/.github/actions/iginxRunner
+              with:
+                version: ${VERSION}
+                if-test-udf: "true"
+
+            - name: set client test context
+              uses: ./IGinX/.github/actions/context
+              with:
+                work-name: restart-iginx-meta
+                metadata: ${{ matrix.metadata }}
+
+            - name: set client test context
+              uses: ./IGinX/.github/actions/context
+              with:
+                DB-name: "Parquet"
+                shell: client-before
+
+            - name: Start storing data
+              if: always()
+              shell: bash
+              run: |
+                cp .github/scripts/benchmarks/parquet.sh IGinX/.github/scripts/benchmarks/parquet.sh
+                cd IGinX
+                export GITHUB_WORKSPACE=$(pwd)
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
+
+            - name: Run session test
+              if: always()
+              shell: bash
+              run: |
+                cp test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.java IGinX/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.java
+                cd IGinX
+                mvn test -q -Dtest=TPCHRunner -DfailIfNoTests=false -P-format
 #            - name: Run session test
 #              shell: bash
 #              run: |
