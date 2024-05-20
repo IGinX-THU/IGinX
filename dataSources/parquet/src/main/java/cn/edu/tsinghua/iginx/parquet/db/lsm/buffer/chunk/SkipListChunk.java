@@ -10,7 +10,6 @@ import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.complex.reader.BigIntReader;
 
 @ThreadSafe
 public class SkipListChunk extends IndexedChunk {
@@ -26,17 +25,15 @@ public class SkipListChunk extends IndexedChunk {
 
   @Override
   protected IntVector indexOf(Snapshot snapshot, BufferAllocator allocator) {
-    IntVector indexes = new IntVector("indexes", allocator);
+    IntVector indexes = ArrowVectors.nonnullIntVector("indexes", allocator);
     ArrowVectors.collect(indexes, index.values());
     return indexes;
   }
 
   @Override
   protected void updateIndex(Snapshot snapshot, int offset) {
-    BigIntReader reader = snapshot.getKeyReader();
     for (int i = 0; i < snapshot.getValueCount(); i++) {
-      reader.setPosition(i);
-      index.put(reader.readLong(), i + offset);
+      index.put(snapshot.getKey(i), i + offset);
     }
   }
 

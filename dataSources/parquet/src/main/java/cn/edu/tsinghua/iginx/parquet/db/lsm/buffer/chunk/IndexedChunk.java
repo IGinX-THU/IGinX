@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowVectors;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import java.util.Map;
 import javax.annotation.Nullable;
 import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.concurrent.Immutable;
@@ -10,8 +11,6 @@ import javax.annotation.concurrent.ThreadSafe;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.complex.reader.BigIntReader;
-import org.apache.arrow.vector.complex.reader.FieldReader;
 import org.apache.arrow.vector.types.Types;
 
 @ThreadSafe
@@ -72,6 +71,7 @@ public abstract class IndexedChunk extends UnorderedChunk {
       super(snapshot.keys, snapshot.values);
       this.indexes = indexes;
       Preconditions.checkArgument(snapshot.keys.getMinorType() == Types.MinorType.BIGINT);
+      Preconditions.checkArgument(!indexes.getField().isNullable());
     }
 
     @Override
@@ -84,31 +84,14 @@ public abstract class IndexedChunk extends UnorderedChunk {
       if (getValueCount() == 0) {
         return Range.closedOpen(0L, 0L);
       }
-      BigIntReader keyReader = getKeyReader();
-      keyReader.setPosition(0);
-      long start = keyReader.readLong();
-      keyReader.setPosition(getValueCount() - 1);
-      long end = keyReader.readLong();
+      long start = getKey(0);
+      long end = getKey(getValueCount() - 1);
       return Range.closedOpen(start, end + 1);
-    }
-
-    public FieldReader getIndexReader() {
-      return indexes.getReader();
     }
 
     @Override
     public int getValueCount() {
       return indexes.getValueCount();
-    }
-
-    @Override
-    public BigIntReader getKeyReader() {
-      return new IndexedFieldReader(keys.getReader(), getIndexReader());
-    }
-
-    @Override
-    public FieldReader getValueReader() {
-      return new IndexedFieldReader(super.getValueReader(), getIndexReader());
     }
 
     @Override
@@ -137,6 +120,20 @@ public abstract class IndexedChunk extends UnorderedChunk {
       }
       return new IndexedSnapshot(
           super.slice(allocator), ArrowVectors.slice(indexes, start, length, allocator));
+    }
+
+    public int getIndex(int index) {
+      return indexes.getDataBuffer().getInt((long) index * IntVector.TYPE_WIDTH);
+    }
+
+    @Override
+    public long getKey(int index) {
+      return super.getKey(getIndex(index));
+    }
+
+    @Override
+    public Map.Entry<Long, Object> get(int index) {
+      return super.get(getIndex(index));
     }
   }
 }

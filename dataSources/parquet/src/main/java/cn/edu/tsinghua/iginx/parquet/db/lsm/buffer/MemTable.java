@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.IndexedChunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.UnorderedChunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import com.google.common.collect.RangeSet;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -80,7 +81,7 @@ public class MemTable implements AutoCloseable {
   public void store(UnorderedChunk.Snapshot data) {
     touch();
     columns.compute(
-        data.getField(),
+        ArrowFields.nullable(data.getField()),
         (field, column) -> {
           if (column == null) {
             column = new MemColumn(factory, allocator, maxChunkValueCount);

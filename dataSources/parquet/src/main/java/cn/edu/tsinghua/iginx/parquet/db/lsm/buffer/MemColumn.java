@@ -4,10 +4,7 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.IndexedChunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.UnorderedChunk;
 import cn.edu.tsinghua.iginx.parquet.util.iterator.DedupIterator;
 import cn.edu.tsinghua.iginx.parquet.util.iterator.StableMergeIterator;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Iterators;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
+import com.google.common.collect.*;
 import java.util.*;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -113,11 +110,37 @@ public class MemColumn implements AutoCloseable {
     @Override
     @Nonnull
     public Iterator<Map.Entry<Long, Object>> iterator() {
-      Iterable<Iterator<Map.Entry<Long, Object>>> iterators =
-          Iterables.transform(snapshots, ChunkSnapshotHolder::iterator);
       Iterator<Map.Entry<Long, Object>> mergedIterator =
-          new StableMergeIterator<>(iterators, Map.Entry.comparingByKey());
+          new StableMergeIterator<>(getIterators(), Map.Entry.comparingByKey());
       return new DedupIterator<>(mergedIterator, Map.Entry::getKey);
+    }
+
+    private List<Iterator<Map.Entry<Long, Object>>> getIterators() {
+      // TODO: 对 Iterator 进行 concat 减少 StableMergeIterator 内 queue 中的项数
+      //       目前使用贪心算法，可能不是最优解
+      List<RangeMap<Long, Integer>> rangeGroups = new ArrayList<>();
+      RangeMap<Long, Integer> currentRanges = TreeRangeMap.create();
+      for (int i = 0; i < snapshots.size(); i++) {
+        ChunkSnapshotHolder snapshot = snapshots.get(i);
+        Range<Long> keyRange = snapshot.getKeyRange();
+        if (currentRanges.subRangeMap(keyRange).asMapOfRanges().isEmpty()) {
+          currentRanges.put(keyRange, i);
+        } else {
+          rangeGroups.add(currentRanges);
+          currentRanges = TreeRangeMap.create();
+          currentRanges.put(keyRange, i);
+        }
+      }
+      rangeGroups.add(currentRanges);
+      List<Iterator<Map.Entry<Long, Object>>> iterators = new ArrayList<>();
+      for (RangeMap<Long, Integer> rangeMap : rangeGroups) {
+        List<Iterator<Map.Entry<Long, Object>>> groupIterators = new ArrayList<>();
+        for (int i : rangeMap.asMapOfRanges().values()) {
+          groupIterators.add(snapshots.get(i).iterator());
+        }
+        iterators.add(Iterators.concat(groupIterators.iterator()));
+      }
+      return iterators;
     }
 
     public RangeSet<Long> getRanges() {
@@ -131,11 +154,10 @@ public class MemColumn implements AutoCloseable {
       implements AutoCloseable, Iterable<Map.Entry<Long, Object>> {
 
     private final IndexedChunk.IndexedSnapshot snapshot;
-    protected final RangeSet<Long> mask;
+    private RangeSet<Long> mask;
 
     public ChunkSnapshotHolder(@WillCloseWhenClosed IndexedChunk.IndexedSnapshot snapshot) {
-      this(snapshot, TreeRangeSet.create());
-      mask.add(snapshot.getKeyRange());
+      this(snapshot, null);
     }
 
     private ChunkSnapshotHolder(
@@ -145,11 +167,22 @@ public class MemColumn implements AutoCloseable {
     }
 
     public boolean isEmpty() {
-      return mask.isEmpty();
+      return mask != null && mask.isEmpty();
     }
 
     public void delete(RangeSet<Long> ranges) {
+      if (mask == null) {
+        mask = TreeRangeSet.create();
+        mask.add(snapshot.getKeyRange());
+      }
       mask.removeAll(ranges);
+    }
+
+    public Range<Long> getKeyRange() {
+      if (mask == null) {
+        return snapshot.getKeyRange();
+      }
+      return mask.span();
     }
 
     @Override
@@ -169,6 +202,9 @@ public class MemColumn implements AutoCloseable {
     @Nonnull
     public Iterator<Map.Entry<Long, Object>> iterator() {
       Iterator<Map.Entry<Long, Object>> iterator = snapshot.iterator();
+      if (mask == null) {
+        return iterator;
+      }
       return Iterators.filter(iterator, entry -> mask.contains(entry.getKey()));
     }
   }

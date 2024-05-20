@@ -10,7 +10,9 @@ import org.apache.arrow.algorithm.sort.VectorValueComparator;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.*;
+import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.util.TransferPair;
 import org.apache.arrow.vector.util.VectorBatchAppender;
 
@@ -101,12 +103,16 @@ public class ArrowVectors {
     VectorValueComparator<ValueVector> stableComparator =
         new StableVectorComparator<>(defaultComparator);
 
-    IntVector indexes = new IntVector("indexes", allocator);
+    IntVector indexes = nonnullIntVector("indexes", allocator);
     indexes.setValueCount(vector.getValueCount());
 
     new IndexSorter<>().sort(vector, indexes, stableComparator);
 
     return indexes;
+  }
+
+  public static IntVector nonnullIntVector(String name, BufferAllocator allocator) {
+    return new IntVector(name, FieldType.notNullable(Types.MinorType.INT.getType()), allocator);
   }
 
   public static void dedupSortedIndexes(ValueVector vector, IntVector indexes) {

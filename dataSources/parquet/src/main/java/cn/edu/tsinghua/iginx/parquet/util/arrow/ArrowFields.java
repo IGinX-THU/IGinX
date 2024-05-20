@@ -101,4 +101,12 @@ public class ArrowFields {
             });
     return arrowAreas;
   }
+
+  public static Field notNull(Field field) {
+    return of(false, toColumnKey(field), ArrowTypes.toIginxType(field.getType()));
+  }
+
+  public static Field nullable(Field field) {
+    return of(true, toColumnKey(field), ArrowTypes.toIginxType(field.getType()));
+  }
 }

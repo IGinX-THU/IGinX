@@ -12,10 +12,9 @@ import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
+import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.ZeroVector;
-import org.apache.arrow.vector.complex.reader.BigIntReader;
-import org.apache.arrow.vector.complex.reader.FieldReader;
 import org.apache.arrow.vector.types.pojo.Field;
 
 @ThreadSafe
@@ -74,6 +73,8 @@ public class UnorderedChunk implements AutoCloseable {
       Preconditions.checkNotNull(keys);
       Preconditions.checkNotNull(values);
       Preconditions.checkArgument(keys.getValueCount() == values.getValueCount());
+      Preconditions.checkArgument(!keys.getField().isNullable());
+      Preconditions.checkArgument(!values.getField().isNullable());
 
       this.keys = keys;
       this.values = values;
@@ -87,14 +88,6 @@ public class UnorderedChunk implements AutoCloseable {
 
     public Field getField() {
       return values.getField();
-    }
-
-    public BigIntReader getKeyReader() {
-      return keys.getReader();
-    }
-
-    public FieldReader getValueReader() {
-      return values.getReader();
     }
 
     public int getValueCount() {
@@ -133,24 +126,29 @@ public class UnorderedChunk implements AutoCloseable {
       values.close();
     }
 
+    public long getKey(int index) {
+      return doGetKey(index);
+    }
+
+    private long doGetKey(int index) {
+      return keys.getDataBuffer().getLong((long) index * BigIntVector.TYPE_WIDTH);
+    }
+
+    public Map.Entry<Long, Object> get(int index) {
+      long key = doGetKey(index);
+      Object value = values.getObject(index);
+      return new AbstractMap.SimpleImmutableEntry<>(key, value);
+    }
+
     @Override
     @Nonnull
     public Iterator<Map.Entry<Long, Object>> iterator() {
-      return new ChunkSnapshotIterator(getKeyReader(), getValueReader(), getValueCount());
+      return new ChunkSnapshotReader();
     }
 
-    private static class ChunkSnapshotIterator implements Iterator<Map.Entry<Long, Object>> {
-      private final BigIntReader keyReader;
-      private final FieldReader valueReader;
-      private final int valueCount;
-      private int position;
-
-      public ChunkSnapshotIterator(
-          BigIntReader keyReader, FieldReader valueReader, int valueCount) {
-        this.keyReader = keyReader;
-        this.valueReader = valueReader;
-        this.valueCount = valueCount;
-      }
+    public class ChunkSnapshotReader implements Iterator<Map.Entry<Long, Object>> {
+      private int position = 0;
+      private final int valueCount = getValueCount();
 
       @Override
       public boolean hasNext() {
@@ -162,12 +160,7 @@ public class UnorderedChunk implements AutoCloseable {
         if (!hasNext()) {
           throw new IndexOutOfBoundsException();
         }
-        keyReader.setPosition(position);
-        valueReader.setPosition(position);
-        Long key = keyReader.readLong();
-        Object value = valueReader.readObject();
-        position++;
-        return new AbstractMap.SimpleImmutableEntry<>(key, value);
+        return get(position++);
       }
     }
   }

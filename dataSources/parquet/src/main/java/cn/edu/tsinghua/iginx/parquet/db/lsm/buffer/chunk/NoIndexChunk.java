@@ -9,7 +9,6 @@ import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.concurrent.ThreadSafe;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.IntVector;
-import org.apache.arrow.vector.complex.reader.BigIntReader;
 
 @ThreadSafe
 public class NoIndexChunk extends IndexedChunk {
@@ -27,19 +26,17 @@ public class NoIndexChunk extends IndexedChunk {
   protected IntVector indexOf(Snapshot snapshot, BufferAllocator allocator) {
     IntVector indexes = ArrowVectors.stableSortIndexes(snapshot.keys, allocator);
     ArrowVectors.dedupSortedIndexes(snapshot.keys, indexes);
-    BigIntReader reader = snapshot.getKeyReader();
-    ArrowVectors.filter(indexes, i -> !isDeleted(reader, i));
+    ArrowVectors.filter(indexes, i -> !isDeleted(snapshot, i));
     return indexes;
   }
 
-  private boolean isDeleted(BigIntReader reader, int index) {
+  private boolean isDeleted(Snapshot snapshot, int index) {
     Map.Entry<Integer, RangeSet<Long>> entry = tombstone.higherEntry(index);
     if (entry == null) {
       return false;
     }
     RangeSet<Long> deleted = entry.getValue();
-    reader.setPosition(index);
-    long key = reader.readLong();
+    long key = snapshot.getKey(index);
     return deleted.contains(key);
   }
 
