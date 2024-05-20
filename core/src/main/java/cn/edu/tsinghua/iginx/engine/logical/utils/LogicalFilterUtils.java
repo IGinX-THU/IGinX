@@ -960,7 +960,9 @@ public class LogicalFilterUtils {
       splitFilter.add(filter);
     } else {
       AndFilter andFilter = (AndFilter) filter;
-      splitFilter.addAll(andFilter.getChildren());
+      andFilter.getChildren().stream()
+          .map(LogicalFilterUtils::splitFilter)
+          .forEach(splitFilter::addAll);
     }
     return splitFilter;
   }
