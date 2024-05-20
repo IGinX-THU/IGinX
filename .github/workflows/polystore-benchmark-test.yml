@@ -157,14 +157,28 @@ jobs:
             - name: set client test context
               uses: ./IGinX/.github/actions/context
               with:
-                DB-name: "Parquet"
-                shell: client-before
+                name: Pre Test Client Export File
+                shell: bash
+                run: |
+                  cd IGinX
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x ".github/scripts/test/cli/test_outfile.sh"
+                    ".github/scripts/test/cli/test_outfile.sh" "Parquet
+                  elif [ "$RUNNER_OS" == "Windows" ]; then
+                    chmod +x ".github/scripts/test/cli/test_outfile_windows.sh"
+                    ".github/scripts/test/cli/test_outfile_windows.sh" "Parquet"
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x ".github/scripts/test/cli/test_outfile_macos.sh"
+                    ".github/scripts/test/cli/test_outfile_macos.sh" "Parquet"
+                  fi
 
             - name: Start storing data
               if: always()
               shell: bash
               run: |
-                cp .github/scripts/benchmarks/parquet.sh IGinX/.github/scripts/benchmarks/parquet.sh
+                pwd
+                ls
+                cp .github/scripts/benchmarks/parquet.sh ./IGinX/.github/scripts/benchmarks/parquet.sh
                 cd IGinX
                 export GITHUB_WORKSPACE=$(pwd)
                 chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/parquet.sh"
