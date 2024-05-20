@@ -697,14 +697,15 @@ public class LogicalFilterUtils {
         if (!predicate.test(path)) {
           return new BoolFilter(true);
         }
-        if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+        if (Op.isOrOp(((ValueFilter) filter).getOp()) && path.contains("*")) {
           return new BoolFilter(true);
         }
         return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
-        if (Op.isOrOp(((PathFilter) filter).getOp())) {
+        if (Op.isOrOp(((PathFilter) filter).getOp())
+            && (pathA.contains("*") || pathB.contains("*"))) {
           return new BoolFilter(true);
         }
         if (!predicate.test(pathA) || !predicate.test(pathB)) {
