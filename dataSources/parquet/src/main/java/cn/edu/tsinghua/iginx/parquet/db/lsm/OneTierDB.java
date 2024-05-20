@@ -73,7 +73,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   private final TableIndex<K, F, T, V> tableIndex;
 
   private MemTable memtable;
-  private String previousTableName = null;
+  private Map<Field, String> lastTableNames = new HashMap<>();
 
   public OneTierDB(String name, Shared shared, ReadWriter<K, F, T, V> readerWriter)
       throws IOException {
@@ -238,43 +238,44 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     commitLock.writeLock().lock();
     deleteLock.readLock().lock();
     try {
-
-      MemoryTable snapshot =
-          memtable.snapshot(
-              new ArrayList<>(memtable.getFields()), ImmutableRangeSet.of(Range.all()), allocator);
-
       CountDownLatch latch = new CountDownLatch(sync ? 1 : 0);
 
-      try (NoexceptAutoCloseableHolder<MemoryTable> holder = CloseableHolders.hold(snapshot)) {
-        TableMeta<K, F, T, V> tableMeta = holder.peek().getMeta();
+      for (Field field : memtable.getFields()) {
+        MemoryTable snapshot =
+            memtable.snapshot(
+                Collections.singletonList(field), ImmutableRangeSet.of(Range.all()), allocator);
 
-        String toDelete = previousTableName;
-        String committedTableName =
-            tableStorage.flush(
-                holder.transfer(),
-                () -> {
-                  if (toDelete != null) {
-                    LOGGER.debug("delete table {}", toDelete);
-                    storageLock.writeLock().lock();
-                    try {
-                      tableIndex.removeTable(toDelete);
-                      tableStorage.remove(toDelete);
-                    } catch (Throwable e) {
-                      LOGGER.error("failed to delete table {}", toDelete, e);
-                    } finally {
-                      storageLock.writeLock().unlock();
+        try (NoexceptAutoCloseableHolder<MemoryTable> holder = CloseableHolders.hold(snapshot)) {
+          TableMeta<K, F, T, V> tableMeta = holder.peek().getMeta();
+
+          String toDelete = lastTableNames.get(field);
+          String committedTableName =
+              tableStorage.flush(
+                  holder.transfer(),
+                  () -> {
+                    if (toDelete != null) {
+                      LOGGER.debug("delete table {}", toDelete);
+                      storageLock.writeLock().lock();
+                      try {
+                        tableIndex.removeTable(toDelete);
+                        tableStorage.remove(toDelete);
+                      } catch (Throwable e) {
+                        LOGGER.error("failed to delete table {}", toDelete, e);
+                      } finally {
+                        storageLock.writeLock().unlock();
+                      }
                     }
-                  }
-                  latch.countDown();
-                });
+                    latch.countDown();
+                  });
 
-        LOGGER.debug(
-            "submit table {} to flush, with switch={}, latch={}",
-            committedTableName,
-            switchTable,
-            latch);
-        tableIndex.addTable(committedTableName, tableMeta);
-        previousTableName = committedTableName;
+          LOGGER.debug(
+              "submit table {} to flush, with switch={}, latch={}",
+              committedTableName,
+              switchTable,
+              latch);
+          tableIndex.addTable(committedTableName, tableMeta);
+          lastTableNames.put(field, committedTableName);
+        }
       }
 
       memtable.setUntouched();
@@ -283,7 +284,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
         LOGGER.info("reset write buffer");
         memtable.close();
         memtable = nextMemTable();
-        previousTableName = null;
+        lastTableNames.clear();
       }
 
       latch.await();
@@ -326,7 +327,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       tableIndex.clear();
       memtable.close();
       memtable = nextMemTable();
-      previousTableName = null;
+      lastTableNames.clear();
     } catch (InterruptedException e) {
       throw new StorageRuntimeException(e);
     } finally {
