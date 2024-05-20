@@ -80,7 +80,8 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     LOGGER.debug("flushing into {}", tempPath);
 
     MessageType parquetSchema = getMessageType(meta.getSchema());
-    IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema);
+    int maxBufferSize = shared.getStorageProperties().getParquetOutputBufferMaxSize();
+    IParquetWriter.Builder builder = IParquetWriter.builder(tempPath, parquetSchema, maxBufferSize);
     builder.withRowGroupSize(shared.getStorageProperties().getParquetRowGroupSize());
     builder.withPageSize((int) shared.getStorageProperties().getParquetPageSize());
     builder.withCompressionCodec(shared.getStorageProperties().getParquetCompression());

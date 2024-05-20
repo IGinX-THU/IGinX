@@ -29,7 +29,7 @@ public class StorageProperties {
   private final boolean flushOnClose;
   private final long writeBufferSize;
   private final int writeBufferChunkValues;
-  private final IndexedChunk.Factory writeBufferChunkFactory;
+  private final IndexedChunkType writeBufferChunkType;
   private final Duration writeBufferTimeout;
   private final long writeBatchSize;
   private final int compactPermits;
@@ -38,6 +38,7 @@ public class StorageProperties {
   private final boolean cacheSoftValues;
   private final long parquetRowGroupSize;
   private final long parquetPageSize;
+  private final int parquetOutputBufferMaxSize;
   private final String parquetCompression;
   private final int zstdLevel;
   private final int zstdWorkers;
@@ -47,7 +48,7 @@ public class StorageProperties {
       boolean flushOnClose,
       long writeBufferSize,
       int writeBufferChunkValues,
-      IndexedChunk.Factory writeBufferChunkFactory,
+      IndexedChunkType writeBufferChunkType,
       Duration writeBufferTimeout,
       long writeBatchSize,
       int compactPermits,
@@ -56,6 +57,7 @@ public class StorageProperties {
       boolean cacheSoftValues,
       long parquetRowGroupSize,
       long parquetPageSize,
+      int parquetOutputBufferMaxSize,
       String parquetCompression,
       int zstdLevel,
       int zstdWorkers,
@@ -63,7 +65,7 @@ public class StorageProperties {
     this.flushOnClose = flushOnClose;
     this.writeBufferSize = writeBufferSize;
     this.writeBufferChunkValues = writeBufferChunkValues;
-    this.writeBufferChunkFactory = writeBufferChunkFactory;
+    this.writeBufferChunkType = writeBufferChunkType;
     this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
     this.compactPermits = compactPermits;
@@ -72,6 +74,7 @@ public class StorageProperties {
     this.cacheSoftValues = cacheSoftValues;
     this.parquetRowGroupSize = parquetRowGroupSize;
     this.parquetPageSize = parquetPageSize;
+    this.parquetOutputBufferMaxSize = parquetOutputBufferMaxSize;
     this.parquetCompression = parquetCompression;
     this.zstdLevel = zstdLevel;
     this.zstdWorkers = zstdWorkers;
@@ -111,7 +114,7 @@ public class StorageProperties {
    * @return the write buffer chunk factory
    */
   public IndexedChunk.Factory getWriteBufferChunkFactory() {
-    return writeBufferChunkFactory;
+    return writeBufferChunkType.factory();
   }
 
   /**
@@ -187,6 +190,10 @@ public class StorageProperties {
     return parquetPageSize;
   }
 
+  public int getParquetOutputBufferMaxSize() {
+    return parquetOutputBufferMaxSize;
+  }
+
   /**
    * Get the parquet compression codec name
    *
@@ -235,8 +242,11 @@ public class StorageProperties {
   @Override
   public String toString() {
     return new StringJoiner(", ", StorageProperties.class.getSimpleName() + "[", "]")
+        .add("flushOnClose=" + flushOnClose)
         .add("writeBufferSize=" + writeBufferSize)
         .add("writeBufferTimeout=" + writeBufferTimeout)
+        .add("writeBufferChunkValues=" + writeBufferChunkValues)
+        .add("writeBufferChunkType=" + writeBufferChunkType)
         .add("writeBatchSize=" + writeBatchSize)
         .add("compactPermits=" + compactPermits)
         .add("cacheCapacity=" + cacheCapacity)
@@ -244,6 +254,7 @@ public class StorageProperties {
         .add("cacheSoftValues=" + cacheSoftValues)
         .add("parquetRowGroupSize=" + parquetRowGroupSize)
         .add("parquetPageSize=" + parquetPageSize)
+        .add("parquetOutputBufferMaxSize=" + parquetOutputBufferMaxSize)
         .add("parquetCompression='" + parquetCompression + "'")
         .add("zstdLevel=" + zstdLevel)
         .add("zstdWorkers=" + zstdWorkers)
@@ -265,6 +276,7 @@ public class StorageProperties {
     public static final String CACHE_VALUE_SOFT = "cache.value.soft";
     public static final String PARQUET_BLOCK_SIZE = "parquet.block.size";
     public static final String PARQUET_PAGE_SIZE = "parquet.page.size";
+    public static final String PARQUET_OUTPUT_BUFFER_SIZE = "parquet.output.buffer.size";
     public static final String PARQUET_COMPRESSOR = "parquet.compression";
     public static final String ZSTD_LEVEL = "zstd.level";
     public static final String ZSTD_WORKERS = "zstd.workers";
@@ -273,7 +285,7 @@ public class StorageProperties {
     private boolean flushOnClose = true;
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private int writeBufferChunkValues = BaseValueVector.INITIAL_VALUE_ALLOCATION;
-    private IndexedChunk.Factory writeBufferChunkIndex = IndexedChunkType.NONE.factory();
+    private IndexedChunkType writeBufferChunkIndex = IndexedChunkType.NONE;
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
     private long cacheCapacity = 16 * 1024 * 1024; // BYTE
@@ -282,6 +294,7 @@ public class StorageProperties {
     private int compactPermits = 2;
     private long parquetRowGroupSize = 128 * 1024 * 1024; // BYTE
     private long parquetPageSize = 8 * 1024; // BYTE
+    private int parquetOutputBufferMaxSize = 256 * 1024; // BYTE
     private String parquetCompression = "UNCOMPRESSED";
     private int zstdLevel = 3;
     private int zstdWorkers = 0;
@@ -331,7 +344,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setWriteBufferChunkIndex(String writeBufferChunkIndexName) {
-      this.writeBufferChunkIndex = IndexedChunkType.valueOf(writeBufferChunkIndexName).factory();
+      this.writeBufferChunkIndex = IndexedChunkType.valueOf(writeBufferChunkIndexName);
       return this;
     }
 
@@ -430,6 +443,18 @@ public class StorageProperties {
     }
 
     /**
+     * Set the size of parquet output buffer in bytes
+     *
+     * @param parquetOutputBufferMaxSize the size of parquet output buffer, bytes
+     * @return this builder
+     */
+    public Builder setParquetOutputBufferMaxSize(int parquetOutputBufferMaxSize) {
+      ParseUtils.checkPositive(parquetOutputBufferMaxSize);
+      this.parquetOutputBufferMaxSize = parquetOutputBufferMaxSize;
+      return this;
+    }
+
+    /**
      * Set the parquet compression codec name
      *
      * @param name the parquet compression codec name
@@ -482,24 +507,6 @@ public class StorageProperties {
      * Parse properties to set the properties of StorageProperties
      *
      * @param properties the properties to be parsed
-     *     <p>Supported keys:
-     *     <ul>
-     *       <li>close.flush: whether to flush on close
-     *       <li>write.buffer.size: the size of write buffer, bytes
-     *       <li>write.buffer.timeout: the timeout of write buffer to flush, iso-8601
-     *       <li>write.batch.size: the size of write batch, bytes
-     *       <li>compact.permits: the number of flusher permits
-     *       <li>cache.capacity: the capacity of cache, bytes
-     *       <li>cache.timeout: the expiry timeout of cache, iso8601 duration
-     *       <li>cache.value.soft: whether to enable soft values of cache
-     *       <li>parquet.block.size: the size of parquet row group, bytes
-     *       <li>parquet.page.size: the size of parquet page, bytes
-     *       <li>parquet.compression: the parquet compression codec name
-     *       <li>parquet.lz4.buffer.size: the parquet lz4 buffer size, bytes
-     *       <li>zstd.level: the zstd level
-     *       <li>zstd.workers: the zstd workers number
-     *     </ul>
-     *
      * @return this builder
      */
     public Builder parse(Map<String, String> properties) {
@@ -521,6 +528,8 @@ public class StorageProperties {
       ParseUtils.getOptionalLong(properties, PARQUET_BLOCK_SIZE)
           .ifPresent(this::setParquetRowGroupSize);
       ParseUtils.getOptionalLong(properties, PARQUET_PAGE_SIZE).ifPresent(this::setParquetPageSize);
+      ParseUtils.getOptionalInteger(properties, PARQUET_OUTPUT_BUFFER_SIZE)
+          .ifPresent(this::setParquetOutputBufferMaxSize);
       ParseUtils.getOptionalString(properties, PARQUET_COMPRESSOR)
           .ifPresent(this::setParquetCompression);
       ParseUtils.getOptionalInteger(properties, ZSTD_LEVEL).ifPresent(this::setZstdLevel);
@@ -549,6 +558,7 @@ public class StorageProperties {
           cacheSoftValues,
           parquetRowGroupSize,
           parquetPageSize,
+          parquetOutputBufferMaxSize,
           parquetCompression,
           zstdLevel,
           zstdWorkers,
