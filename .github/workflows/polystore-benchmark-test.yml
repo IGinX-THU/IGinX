@@ -178,6 +178,7 @@ jobs:
               run: |
                 pwd
                 ls
+                mkdir ./IGinX/.github/scripts/benchmarks
                 cp .github/scripts/benchmarks/parquet.sh ./IGinX/.github/scripts/benchmarks/parquet.sh
                 cd IGinX
                 export GITHUB_WORKSPACE=$(pwd)
@@ -188,6 +189,7 @@ jobs:
               if: always()
               shell: bash
               run: |
+                mkdir IGinX/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench
                 cp test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.java IGinX/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.java
                 cd IGinX
                 mvn test -q -Dtest=TPCHRunner -DfailIfNoTests=false -P-format
