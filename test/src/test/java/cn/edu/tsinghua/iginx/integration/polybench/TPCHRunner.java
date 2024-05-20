@@ -94,6 +94,7 @@ public class TPCHRunner {
       // Long startTime;
       // 13有问题
       List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 17, 18, 19, 20);
+      List<Long> runTimes = new ArrayList<>();
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
@@ -116,8 +117,10 @@ public class TPCHRunner {
         }
 
         // 验证
+        Long timeCost = System.currentTimeMillis() - startTime;
+        runTimes.add(timeCost);
         System.out.println(
-            "end tpch query, time cost: " + (System.currentTimeMillis() - startTime) + "ms");
+            "end tpch query, time cost: " + timeCost + "ms");
         List<List<Object>> values = result.getValues();
         List<List<String>> answers =
             csvReader("src/test/resources/polybench/sf0.1/q" + queryId + ".csv");
@@ -157,6 +160,9 @@ public class TPCHRunner {
             }
           }
         }
+      }
+      for (int i = 0; i < queryIds.size(); i++) {
+        System.out.println("Query " + queryIds.get(i) + " time cost: " + runTimes.get(i) + "ms");
       }
 
       // 关闭会话
