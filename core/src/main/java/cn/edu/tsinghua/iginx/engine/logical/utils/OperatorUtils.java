@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class OperatorUtils {
 
@@ -60,18 +61,18 @@ public class OperatorUtils {
     List<String> pathList = new ArrayList<>();
     if (operator.getType() == OperatorType.Project) {
       Project project = (Project) operator;
-      pathList.addAll(project.getPatterns());
-      return pathList;
+      pathList.addAll(project.getPatterns());;
+      return pathList.stream().distinct().collect(Collectors.toList());
     } else if (operator.getType() == OperatorType.Reorder) {
       Reorder reorder = (Reorder) operator;
       pathList.addAll(reorder.getPatterns());
-      return pathList;
+      return pathList.stream().distinct().collect(Collectors.toList());
     } else if (OperatorType.isHasFunction(operator.getType())) {
       pathList.addAll(FunctionUtils.getFunctionsFullPath(operator));
       if (operator.getType() == OperatorType.GroupBy) {
         pathList.addAll(((GroupBy) operator).getGroupByCols());
       }
-      return pathList;
+      return pathList.stream().distinct().collect(Collectors.toList());
     }
 
     if (OperatorType.isUnaryOperator(operator.getType())) {
@@ -91,7 +92,7 @@ public class OperatorUtils {
       }
     }
 
-    return pathList;
+    return pathList.stream().distinct().collect(Collectors.toList());
   }
 
   public static void findProjectOperators(List<Project> projectOperatorList, Operator operator) {
