@@ -61,7 +61,7 @@ public class OperatorUtils {
     List<String> pathList = new ArrayList<>();
     if (operator.getType() == OperatorType.Project) {
       Project project = (Project) operator;
-      pathList.addAll(project.getPatterns());;
+      pathList.addAll(project.getPatterns());
       return pathList.stream().distinct().collect(Collectors.toList());
     } else if (operator.getType() == OperatorType.Reorder) {
       Reorder reorder = (Reorder) operator;
