@@ -141,10 +141,11 @@ jobs:
                 fi
 
             - name: Change IGinX config
-              uses: ./IGinX/.github/actions/confWriter
+              uses: ./.github/actions/confWriter
               with:
                 DB-name: "Parquet"
                 Set-Filter-Fragment-OFF: "true"
+                Root-Dir-Path: "IGinX"
 
           # start udf path test first to avoid being effected
 
