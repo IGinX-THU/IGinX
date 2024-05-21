@@ -19,12 +19,10 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.MemTable;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.Chunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableIndex;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.WriteBatches;
@@ -62,7 +60,6 @@ public class OneTierDB implements Database {
   private final Lock checkLock = new ReentrantLock(true);
   private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
   private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
-  private final ReadWriteLock storageLock = new ReentrantReadWriteLock(true);
   private final String name;
   private final long timeout;
   private final Shared shared;
@@ -70,7 +67,6 @@ public class OneTierDB implements Database {
   private final ScheduledExecutorService scheduler;
   private final BufferAllocator allocator;
   private final TableStorage tableStorage;
-  private final TableIndex tableIndex;
 
   private MemTable memtable;
   private Map<Field, String> lastTableNames = new HashMap<>();
@@ -80,7 +76,6 @@ public class OneTierDB implements Database {
     this.shared = shared;
     this.allocator = shared.getAllocator().newChildAllocator(name, 0, Long.MAX_VALUE);
     this.tableStorage = new TableStorage(shared, readerWriter);
-    this.tableIndex = new TableIndex(tableStorage);
     this.memtable = nextMemTable();
 
     ThreadFactory threadFactory =
@@ -109,51 +104,36 @@ public class OneTierDB implements Database {
   @Override
   public Scanner<Long, Scanner<String, Object>> query(
       Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws StorageException {
-    DataBuffer<Long, String, Object> readBuffer = new DataBuffer<>();
-
     Set<String> innerFields =
         fields.stream()
             .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
             .collect(Collectors.toSet());
-    AreaSet<Long, String> areas = new AreaSet<>();
-    areas.add(innerFields, ranges);
 
     commitLock.readLock().lock();
     deleteLock.readLock().lock();
-    storageLock.readLock().lock();
     try {
-      Set<String> tables = tableIndex.find(areas);
-      List<String> sortedTableNames = new ArrayList<>(tables);
-      sortedTableNames.sort(Comparator.naturalOrder());
-
-      for (String tableName : sortedTableNames) {
-        try (Scanner<Long, Scanner<String, Object>> scanner =
-            tableStorage.scan(tableName, innerFields, ranges)) {
-          readBuffer.putRows(scanner);
-        }
-      }
+      DataBuffer<Long, String, Object> readBuffer = tableStorage.query(innerFields, ranges, filter);
 
       try (MemoryTable activeTable =
-          memtable.snapshot(new ArrayList<>(fields), (RangeSet<Long>) ranges, allocator)) {
+          memtable.snapshot(new ArrayList<>(fields), ranges, allocator)) {
         try (Scanner<Long, Scanner<String, Object>> scanner =
             activeTable.scan(innerFields, ranges, filter)) {
           readBuffer.putRows(scanner);
         }
       }
+
+      return readBuffer.scanRows(innerFields, Range.all());
     } catch (IOException | StorageException e) {
       throw new RuntimeException(e);
     } finally {
-      storageLock.readLock().unlock();
       deleteLock.readLock().unlock();
       commitLock.readLock().unlock();
     }
-
-    return readBuffer.scanRows(innerFields, Range.all());
   }
 
   @Override
   public Set<Field> schema() throws StorageException {
-    Map<String, DataType> types = (Map) tableIndex.getType();
+    Map<String, DataType> types = tableStorage.schema();
     return ArrowFields.of(types);
   }
 
@@ -191,12 +171,10 @@ public class OneTierDB implements Database {
       checkBufferSize();
       commitLock.readLock().lock();
       deleteLock.readLock().lock();
-      storageLock.readLock().lock();
       try {
-        tableIndex.declareFields(schema);
+        tableStorage.declareFields(schema);
         memtable.store(chunks);
       } finally {
-        storageLock.readLock().unlock();
         deleteLock.readLock().unlock();
         commitLock.readLock().unlock();
       }
@@ -249,8 +227,6 @@ public class OneTierDB implements Database {
                 Collections.singletonList(field), ImmutableRangeSet.of(Range.all()), allocator);
 
         try (NoexceptAutoCloseableHolder<MemoryTable> holder = CloseableHolders.hold(snapshot)) {
-          TableMeta tableMeta = holder.peek().getMeta();
-
           String toDelete = lastTableNames.get(field);
           String committedTableName =
               tableStorage.flush(
@@ -258,14 +234,10 @@ public class OneTierDB implements Database {
                   () -> {
                     if (toDelete != null) {
                       LOGGER.debug("delete table {}", toDelete);
-                      storageLock.writeLock().lock();
                       try {
-                        tableIndex.removeTable(toDelete);
                         tableStorage.remove(toDelete);
                       } catch (Throwable e) {
                         LOGGER.error("failed to delete table {}", toDelete, e);
-                      } finally {
-                        storageLock.writeLock().unlock();
                       }
                     }
                     latch.countDown();
@@ -276,7 +248,7 @@ public class OneTierDB implements Database {
               committedTableName,
               switchTable,
               latch);
-          tableIndex.addTable(committedTableName, tableMeta);
+
           lastTableNames.put(field, committedTableName);
         }
       }
@@ -303,18 +275,14 @@ public class OneTierDB implements Database {
   public void delete(AreaSet<Long, Field> range) throws StorageException {
     commitLock.readLock().lock();
     deleteLock.writeLock().lock();
-    storageLock.readLock().lock();
     try {
       LOGGER.info("start to delete {} in {}", range, name);
       memtable.delete(range);
       AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas(range);
-      Set<String> tables = tableIndex.find(innerAreas);
-      tableStorage.delete(tables, innerAreas);
-      tableIndex.delete(innerAreas);
+      tableStorage.delete(innerAreas);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     } finally {
-      storageLock.readLock().unlock();
       deleteLock.writeLock().unlock();
       commitLock.readLock().unlock();
     }
@@ -327,7 +295,6 @@ public class OneTierDB implements Database {
     try {
       LOGGER.debug("start to clear {}", name);
       tableStorage.clear();
-      tableIndex.clear();
       memtable.close();
       memtable = nextMemTable();
       lastTableNames.clear();
@@ -347,7 +314,6 @@ public class OneTierDB implements Database {
       commitMemoryTable(false, true);
     }
     tableStorage.close();
-    tableIndex.close();
     memtable.close();
     allocator.close();
   }

@@ -16,23 +16,24 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.SequenceGenerator;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Semaphore;
@@ -48,6 +49,9 @@ public class TableStorage implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final SequenceGenerator seqGen = new SequenceGenerator();
+
+  private final TableIndex tableIndex;
+  private final ReadWriteLock storageLock = new ReentrantReadWriteLock(true);
 
   private final ExecutorService flusher;
 
@@ -70,6 +74,7 @@ public class TableStorage implements AutoCloseable {
                 .setNameFormat("compact-" + readWriter.getName() + "-%d")
                 .build());
     reload();
+    this.tableIndex = new TableIndex(this);
   }
 
   private void reload() throws IOException {
@@ -101,6 +106,7 @@ public class TableStorage implements AutoCloseable {
       String tableName = getTableName(seqGen.next());
       LOGGER.debug("waiting for flusher permit to flush {}", tableName);
       memTables.put(tableName, table);
+      tableIndex.addTable(tableName, table.getMeta());
       flusher.submit(
           () -> {
             LOGGER.debug("task to flush {} started", tableName);
@@ -150,21 +156,28 @@ public class TableStorage implements AutoCloseable {
   }
 
   public void remove(String name) throws IOException {
-    lock.writeLock().lock();
+    storageLock.writeLock().lock();
     try {
-      MemoryTable table = memTables.remove(name);
-      if (table != null) {
-        memTombstones.remove(name);
-        table.close();
-      } else {
-        readWriter.delete(name);
+      tableIndex.removeTable(name);
+      lock.writeLock().lock();
+      try {
+        MemoryTable table = memTables.remove(name);
+        if (table != null) {
+          memTombstones.remove(name);
+          table.close();
+        } else {
+          readWriter.delete(name);
+        }
+      } finally {
+        lock.writeLock().unlock();
       }
     } finally {
-      lock.writeLock().unlock();
+      storageLock.writeLock().unlock();
     }
   }
 
   public void clear() throws StorageException, InterruptedException {
+    tableIndex.clear();
     localFlusherPermits.acquire(localFlusherPermitsTotal);
     lock.writeLock().lock();
     try {
@@ -180,7 +193,7 @@ public class TableStorage implements AutoCloseable {
     }
   }
 
-  public Scanner<Long, Scanner<String, Object>> scan(
+  private Scanner<Long, Scanner<String, Object>> scan(
       String tableName, Set<String> fields, RangeSet<Long> ranges) throws IOException {
     lock.readLock().lock();
     try {
@@ -216,18 +229,25 @@ public class TableStorage implements AutoCloseable {
     }
   }
 
-  public void delete(Set<String> tables, AreaSet<Long, String> areas) throws IOException {
-    lock.writeLock().lock();
+  public void delete(AreaSet<Long, String> areas) throws IOException {
+    storageLock.readLock().lock();
     try {
-      for (String tableName : tables) {
-        if (memTables.containsKey(tableName)) {
-          memTombstones.computeIfAbsent(tableName, k -> new AreaSet<>()).addAll(areas);
-        } else {
-          readWriter.delete(tableName, areas);
+      Set<String> tables = tableIndex.find(areas);
+      tableIndex.delete(areas);
+      lock.writeLock().lock();
+      try {
+        for (String tableName : tables) {
+          if (memTables.containsKey(tableName)) {
+            memTombstones.computeIfAbsent(tableName, k -> new AreaSet<>()).addAll(areas);
+          } else {
+            readWriter.delete(tableName, areas);
+          }
         }
+      } finally {
+        lock.writeLock().unlock();
       }
     } finally {
-      lock.writeLock().unlock();
+      storageLock.readLock().unlock();
     }
   }
 
@@ -238,5 +258,48 @@ public class TableStorage implements AutoCloseable {
   @Override
   public void close() {
     flusher.shutdown();
+  }
+
+  public Map<String, DataType> schema() {
+    return tableIndex.getType();
+  }
+
+  public Set<String> find(AreaSet<Long, String> areas) {
+    return tableIndex.find(areas);
+  }
+
+  public void declareFields(Map<String, DataType> schema) throws TypeConflictedException {
+    storageLock.readLock().lock();
+    try {
+      tableIndex.declareFields(schema);
+    } finally {
+      storageLock.readLock().unlock();
+    }
+  }
+
+  public DataBuffer<Long, String, Object> query(
+      Set<String> fields, RangeSet<Long> ranges, Filter filter)
+      throws StorageException, IOException {
+
+    AreaSet<Long, String> areas = new AreaSet<>();
+    areas.add(fields, ranges);
+    DataBuffer<Long, String, Object> buffer = new DataBuffer<>();
+
+    storageLock.readLock().lock();
+    try {
+      Set<String> tables = tableIndex.find(areas);
+      List<String> sortedTableNames = new ArrayList<>(tables);
+      sortedTableNames.sort(Comparator.naturalOrder());
+
+      for (String tableName : sortedTableNames) {
+        try (Scanner<Long, Scanner<String, Object>> scanner = scan(tableName, fields, ranges)) {
+          buffer.putRows(scanner);
+        }
+      }
+
+      return buffer;
+    } finally {
+      storageLock.readLock().unlock();
+    }
   }
 }

@@ -34,7 +34,7 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TableIndex implements AutoCloseable {
+public class TableIndex {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(TableIndex.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
@@ -250,11 +250,6 @@ public class TableIndex implements AutoCloseable {
     } finally {
       lock.writeLock().unlock();
     }
-  }
-
-  @Override
-  public void close() {
-    // do nothing
   }
 
   public static class FieldIndex {
