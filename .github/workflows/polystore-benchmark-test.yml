@@ -106,8 +106,7 @@ jobs:
               run: |
                   git clone https://github.com/IGinX-THU/IGinX.git
                   cd IGinX
-                  export GITHUB_WORKSPACE=$(pwd)
-                  mvn clean package -DskipTests -P-format -q
+                  mvn clean package -DskipTests -P-format
 
             - name: Stop ZooKeeper
               uses: ./.github/actions/zookeeperRunner
@@ -201,9 +200,6 @@ jobs:
               if: always()
               shell: bash
               run: |
-                mkdir IGinX/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench
-                cp test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.java IGinX/test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.java
-                cd IGinX
                 mvn test -q -Dtest=TPCHRunner -DfailIfNoTests=false -P-format
 #            - name: Run session test
 #              shell: bash
