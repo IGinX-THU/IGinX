@@ -8,6 +8,8 @@ cd core/target/iginx-core-0.6.0-SNAPSHOT/
 
 iginx_home_path=$PWD
 
+echo "Iginx home path: $iginx_home_path"
+
 cd ..
 
 if [ -n "$MSYSTEM" ]; then
