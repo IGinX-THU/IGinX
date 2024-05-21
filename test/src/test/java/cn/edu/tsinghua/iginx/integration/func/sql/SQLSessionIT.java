@@ -6605,7 +6605,7 @@ public class SQLSessionIT {
                     + "+--------------------------+-------------+------------------------------------------------------------------------------+\n"
                     + "|Reorder                   |      Reorder|                                                               Order: us.d1.s1|\n"
                     + "|  +--Project              |      Project|                                                            Patterns: us.d1.s1|\n"
-                    + "|    +--Select             |       Select|                                                      Filter: (&mark == true)|\n"
+                    + "|    +--Select             |       Select|                                                      Filter: (&mark1 == true)|\n"
                     + "|      +--MarkJoin         |     MarkJoin|Filter: True, MarkColumn: &mark3, IsAntiJoin: false, ExtraJoinPrefix: us.d1.s1|\n"
                     + "|        +--Select         |       Select|                                                       Filter: (us.d1.s1 < 10)|\n"
                     + "|          +--Project      |      Project|                                 Patterns: us.d1.s1, Target DU: unit0000000000|\n"
@@ -6623,7 +6623,7 @@ public class SQLSessionIT {
       String expectRes = pair.v;
       String res = executor.execute(statement);
 
-      // 把 &mark数字 后面的数字去掉
+      // 把 &mark数字 后面的数去掉
       res = res.replaceAll("&mark\\d+", "&mark");
       expectRes = expectRes.replaceAll("&mark\\d+", "&mark");
       if (!res.equals(expectRes)) {

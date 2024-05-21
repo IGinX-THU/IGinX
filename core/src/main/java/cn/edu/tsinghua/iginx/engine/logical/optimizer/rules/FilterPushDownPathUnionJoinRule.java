@@ -92,6 +92,14 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
           || operator.getType() == OperatorType.SingleJoin) {
         leftFilter = LogicalFilterUtils.getSubFilterFromPatterns(filter.copy(), leftPatterns);
         rightFilter = LogicalFilterUtils.getSubFilterFromPatterns(filter.copy(), rightPatterns);
+        if (LogicalFilterUtils.getPathsFromFilter(leftFilter).stream()
+            .anyMatch(path -> path.startsWith(MarkJoin.MARK_PREFIX))) {
+          leftFilter = new BoolFilter(true);
+        }
+        if (LogicalFilterUtils.getPathsFromFilter(rightFilter).stream()
+            .anyMatch(path -> path.startsWith(MarkJoin.MARK_PREFIX))) {
+          rightFilter = new BoolFilter(true);
+        }
       } else {
         leftFilter =
             LogicalFilterUtils.getSubFilterFromFragments(filter.copy(), leftColumnsIntervals);
