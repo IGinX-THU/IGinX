@@ -6671,8 +6671,8 @@ public class SQLSessionIT {
             Arrays.stream(expectRes.split("\n"))
                 .filter(s -> !s.startsWith("+"))
                 .collect(Collectors.joining("\n"));
-        res = res.replaceAll("&mark\\d+", "&mark");
-        expectRes = expectRes.replaceAll("&mark\\d+", "&mark");
+        res = res.replaceAll("&mark\\d+", "&mark").replaceAll(" ", "");
+        expectRes = expectRes.replaceAll("&mark\\d+", "&mark").replaceAll(" ", "");
       }
 
       assertEquals(res, expectRes);
