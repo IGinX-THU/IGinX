@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -14,10 +15,17 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class FilterPushDownPathUnionJoinRule extends Rule {
-  private static final Set<Class> validOps =
+  private static final Set<OperatorType> validOps =
       new HashSet<>(
           Arrays.asList(
-              PathUnion.class, Join.class, OuterJoin.class, MarkJoin.class, SingleJoin.class));
+              OperatorType.Join,
+              OperatorType.PathUnion,
+              OperatorType.OuterJoin,
+              OperatorType.MarkJoin,
+              OperatorType.SingleJoin));
+
+  private static final Set<OperatorType> needRemain =
+      new HashSet<>(Arrays.asList(OperatorType.Join, OperatorType.PathUnion));
 
   private static final Map<Select, String> selectMap = new HashMap<>();
 
@@ -50,7 +58,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
     Select select = (Select) call.getMatchedRoot();
     AbstractBinaryOperator operator =
         (AbstractBinaryOperator) call.getChildrenIndex().get(select).get(0);
-    if (!validOps.contains(operator.getClass())
+    if (!validOps.contains(operator.getType())
         || selectMap.containsKey(select)
             && selectMap.get(select).equals(select.getFilter().toString())) {
       return false;
@@ -115,8 +123,15 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
         rightPushdownFilters.add(rightFilter);
       }
 
-      // 然后进行判断，如果左右的filter有的跟原filter不一致，说明需要超集下推，原filter要保留在原位置。如果filter带有*，也需要超集下推
-      if (!leftFilter.equals(filter) || !rightFilter.equals(filter) || filterContainsStar(filter)) {
+      // 然后进行判断，如果左右的filter跟原filter不一致，说明需要超集下推，原filter要保留在原位置。如果filter带有*，也需要超集下推
+      if (needRemain.contains(operator.getType())
+          && (!leftFilter.equals(filter)
+              || !rightFilter.equals(filter)
+              || filterContainsStar(filter))) {
+        remainFilters.add(filter);
+      } else if (!needRemain.contains(operator.getType())
+          && !leftFilter.equals(filter)
+          && !rightFilter.equals(filter)) {
         remainFilters.add(filter);
       }
     }
@@ -141,17 +156,61 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
     AbstractBinaryOperator operator =
         (AbstractBinaryOperator) call.getChildrenIndex().get(select).get(0);
 
+    // 如果OuterJoin的某侧下推，说明filter可以把那一侧的null行都过滤掉，那么OuterJoin会进行相应转换。
+    // 例如FULL OUTER JOIN，如果左侧下推，那么左侧NULL行都会被过滤掉，那么就变成了LEFT OUTER JOIN
+    // 例如LEFT OUTER JOIN，如果右侧下推，那么右侧NULL行都会被过滤掉，那么就变成了INNER JOIN
+
     select.setFilter(new AndFilter(remainFilters));
     if (!leftFilters.isEmpty()) {
       Select leftSelect =
           new Select(operator.getSourceA(), new AndFilter(leftFilters), select.getTagFilter());
       operator.setSourceA(new OperatorSource(leftSelect));
+
+      if (operator.getType() == OperatorType.OuterJoin) {
+        OuterJoin outerJoin = (OuterJoin) operator;
+        if (outerJoin.getOuterJoinType() == OuterJoinType.RIGHT) {
+          operator =
+              new InnerJoin(
+                  outerJoin.getSourceA(),
+                  outerJoin.getSourceB(),
+                  outerJoin.getPrefixA(),
+                  outerJoin.getPrefixB(),
+                  outerJoin.getFilter(),
+                  outerJoin.getJoinColumns(),
+                  outerJoin.isNaturalJoin(),
+                  outerJoin.getJoinAlgType(),
+                  outerJoin.getExtraJoinPrefix());
+        } else if (outerJoin.getOuterJoinType() == OuterJoinType.FULL) {
+          outerJoin.setOuterJoinType(OuterJoinType.LEFT);
+        }
+      }
     }
+
     if (!rightFilters.isEmpty()) {
       Select rightSelect =
           new Select(operator.getSourceB(), new AndFilter(rightFilters), select.getTagFilter());
       operator.setSourceB(new OperatorSource(rightSelect));
+
+      if (operator.getType() == OperatorType.OuterJoin) {
+        OuterJoin outerJoin = (OuterJoin) operator;
+        if (outerJoin.getOuterJoinType() == OuterJoinType.LEFT) {
+          operator =
+              new InnerJoin(
+                  outerJoin.getSourceA(),
+                  outerJoin.getSourceB(),
+                  outerJoin.getPrefixA(),
+                  outerJoin.getPrefixB(),
+                  outerJoin.getFilter(),
+                  outerJoin.getJoinColumns(),
+                  outerJoin.isNaturalJoin(),
+                  outerJoin.getJoinAlgType(),
+                  outerJoin.getExtraJoinPrefix());
+        } else if (outerJoin.getOuterJoinType() == OuterJoinType.FULL) {
+          outerJoin.setOuterJoinType(OuterJoinType.RIGHT);
+        }
+      }
     }
+    select.setSource(new OperatorSource(operator));
 
     if (!remainFilters.isEmpty()) {
       selectMap.put(select, select.getFilter().toString());
