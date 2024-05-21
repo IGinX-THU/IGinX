@@ -31,6 +31,7 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+              cd IGinX
               chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_udf_path.sh"
               "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_udf_path.sh"
 
@@ -38,6 +39,7 @@ runs:
           name: Start IGinX
           shell: bash
           run: |
+              cd IGinX
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
                 "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
@@ -53,5 +55,6 @@ runs:
           name: Stop IGinX
           shell: bash
           run: |
+              cd IGinX
               chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_kill.sh"
               "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_kill.sh"

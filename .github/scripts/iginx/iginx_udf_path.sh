@@ -1,5 +1,5 @@
 #!/bin/sh
-
+pwd
 set -e
 
 cd core/target/iginx-core-0.6.0-SNAPSHOT/
