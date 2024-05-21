@@ -24,14 +24,16 @@ import java.io.IOException;
 import java.util.Set;
 import javax.annotation.Nullable;
 
-public interface Table<K extends Comparable<K>, F, T, V> {
+public interface Table {
 
-  TableMeta<K, F, T, V> getMeta() throws IOException;
+  TableMeta getMeta() throws IOException;
 
-  Scanner<K, Scanner<F, V>> scan(
-      Set<F> fields, RangeSet<K> range, @Nullable Filter superSetPredicate) throws IOException;
+  Scanner<Long, Scanner<String, Object>> scan(
+      Set<String> fields, RangeSet<Long> range, @Nullable Filter superSetPredicate)
+      throws IOException;
 
-  default Scanner<K, Scanner<F, V>> scan(Set<F> fields, RangeSet<K> ranges) throws IOException {
+  default Scanner<Long, Scanner<String, Object>> scan(Set<String> fields, RangeSet<Long> ranges)
+      throws IOException {
     return scan(fields, ranges, null);
   }
 }

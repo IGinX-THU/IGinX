@@ -26,25 +26,26 @@ import java.io.IOException;
 import java.util.Set;
 import javax.annotation.Nullable;
 
-public class DeletedTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
+public class DeletedTable implements Table {
 
-  private final Table<K, F, T, V> table;
+  private final Table table;
 
-  private final AreaSet<K, F> deleted;
+  private final AreaSet<Long, String> deleted;
 
-  public DeletedTable(Table<K, F, T, V> table, AreaSet<K, F> deleted) {
+  public DeletedTable(Table table, AreaSet<Long, String> deleted) {
     this.table = table;
     this.deleted = deleted;
   }
 
   @Override
-  public TableMeta<K, F, T, V> getMeta() throws IOException {
-    return new DeletedTableMeta<>(table.getMeta(), deleted);
+  public TableMeta getMeta() throws IOException {
+    return new DeletedTableMeta(table.getMeta(), deleted);
   }
 
   @Override
-  public Scanner<K, Scanner<F, V>> scan(
-      Set<F> fields, RangeSet<K> range, @Nullable Filter superSetPredicate) throws IOException {
+  public Scanner<Long, Scanner<String, Object>> scan(
+      Set<String> fields, RangeSet<Long> range, @Nullable Filter superSetPredicate)
+      throws IOException {
     return new AreaFilterScanner<>(table.scan(fields, range, superSetPredicate), deleted);
   }
 }

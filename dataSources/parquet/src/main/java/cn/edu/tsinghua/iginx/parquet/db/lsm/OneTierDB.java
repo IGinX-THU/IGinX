@@ -56,7 +56,7 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
+public class OneTierDB implements Database {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
 
   private final Lock checkLock = new ReentrantLock(true);
@@ -69,19 +69,18 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
 
   private final ScheduledExecutorService scheduler;
   private final BufferAllocator allocator;
-  private final TableStorage<K, F, T, V> tableStorage;
-  private final TableIndex<K, F, T, V> tableIndex;
+  private final TableStorage tableStorage;
+  private final TableIndex tableIndex;
 
   private MemTable memtable;
   private Map<Field, String> lastTableNames = new HashMap<>();
 
-  public OneTierDB(String name, Shared shared, ReadWriter<K, F, T, V> readerWriter)
-      throws IOException {
+  public OneTierDB(String name, Shared shared, ReadWriter readerWriter) throws IOException {
     this.name = name;
     this.shared = shared;
     this.allocator = shared.getAllocator().newChildAllocator(name, 0, Long.MAX_VALUE);
-    this.tableStorage = new TableStorage<>(shared, readerWriter);
-    this.tableIndex = new TableIndex<>(tableStorage);
+    this.tableStorage = new TableStorage(shared, readerWriter);
+    this.tableIndex = new TableIndex(tableStorage);
     this.memtable = nextMemTable();
 
     ThreadFactory threadFactory =
@@ -108,15 +107,15 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
-  public Scanner<K, Scanner<F, V>> query(Set<Field> fields, RangeSet<K> ranges, Filter filter)
-      throws StorageException {
-    DataBuffer<K, F, V> readBuffer = new DataBuffer<>();
+  public Scanner<Long, Scanner<String, Object>> query(
+      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws StorageException {
+    DataBuffer<Long, String, Object> readBuffer = new DataBuffer<>();
 
-    Set<F> innerFields =
+    Set<String> innerFields =
         fields.stream()
-            .map(field -> (F) TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
+            .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
             .collect(Collectors.toSet());
-    AreaSet<K, F> areas = new AreaSet<>();
+    AreaSet<Long, String> areas = new AreaSet<>();
     areas.add(innerFields, ranges);
 
     commitLock.readLock().lock();
@@ -128,15 +127,16 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
       sortedTableNames.sort(Comparator.naturalOrder());
 
       for (String tableName : sortedTableNames) {
-        try (Scanner<K, Scanner<F, V>> scanner =
+        try (Scanner<Long, Scanner<String, Object>> scanner =
             tableStorage.scan(tableName, innerFields, ranges)) {
           readBuffer.putRows(scanner);
         }
       }
 
-      try (MemoryTable<K, F, T, V> activeTable =
+      try (MemoryTable activeTable =
           memtable.snapshot(new ArrayList<>(fields), (RangeSet<Long>) ranges, allocator)) {
-        try (Scanner<K, Scanner<F, V>> scanner = activeTable.scan(innerFields, ranges, filter)) {
+        try (Scanner<Long, Scanner<String, Object>> scanner =
+            activeTable.scan(innerFields, ranges, filter)) {
           readBuffer.putRows(scanner);
         }
       }
@@ -158,12 +158,13 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
-  public void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema)
+  public void upsertRows(
+      Scanner<Long, Scanner<String, Object>> scanner, Map<String, DataType> schema)
       throws StorageException {
-    try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
+    try (Scanner<Long, Scanner<Long, Scanner<String, Object>>> batchScanner =
         new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
-        try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
+        try (Scanner<Long, Scanner<String, Object>> batch = batchScanner.value()) {
           putAll(WriteBatches.recordOfRows(batch, schema, allocator), schema);
         }
       }
@@ -171,19 +172,20 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
-  public void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema)
+  public void upsertColumns(
+      Scanner<String, Scanner<Long, Object>> scanner, Map<String, DataType> schema)
       throws StorageException {
-    try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
+    try (Scanner<Long, Scanner<String, Scanner<Long, Object>>> batchScanner =
         new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
-        try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
+        try (Scanner<String, Scanner<Long, Object>> batch = batchScanner.value()) {
           putAll(WriteBatches.recordOfColumns(batch, schema, allocator), schema);
         }
       }
     }
   }
 
-  private void putAll(@WillClose Iterable<Chunk.Snapshot> chunks, Map<F, T> schema)
+  private void putAll(@WillClose Iterable<Chunk.Snapshot> chunks, Map<String, DataType> schema)
       throws StorageException {
     try {
       checkBufferSize();
@@ -247,7 +249,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
                 Collections.singletonList(field), ImmutableRangeSet.of(Range.all()), allocator);
 
         try (NoexceptAutoCloseableHolder<MemoryTable> holder = CloseableHolders.hold(snapshot)) {
-          TableMeta<K, F, T, V> tableMeta = holder.peek().getMeta();
+          TableMeta tableMeta = holder.peek().getMeta();
 
           String toDelete = lastTableNames.get(field);
           String committedTableName =
@@ -298,17 +300,17 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
   }
 
   @Override
-  public void delete(AreaSet<K, Field> areas) throws StorageException {
+  public void delete(AreaSet<Long, Field> range) throws StorageException {
     commitLock.readLock().lock();
     deleteLock.writeLock().lock();
     storageLock.readLock().lock();
     try {
-      LOGGER.info("start to delete {} in {}", areas, name);
-      memtable.delete((AreaSet) areas);
-      AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas((AreaSet) areas);
-      Set<String> tables = tableIndex.find((AreaSet) innerAreas);
-      tableStorage.delete(tables, (AreaSet) innerAreas);
-      tableIndex.delete((AreaSet) innerAreas);
+      LOGGER.info("start to delete {} in {}", range, name);
+      memtable.delete(range);
+      AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas(range);
+      Set<String> tables = tableIndex.find(innerAreas);
+      tableStorage.delete(tables, innerAreas);
+      tableIndex.delete(innerAreas);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     } finally {

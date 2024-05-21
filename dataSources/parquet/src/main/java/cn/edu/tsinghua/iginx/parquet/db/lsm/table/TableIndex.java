@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
@@ -33,16 +34,17 @@ import java.util.function.Consumer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseable {
+public class TableIndex implements AutoCloseable {
+
   private static final Logger LOGGER = LoggerFactory.getLogger(TableIndex.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
 
-  private final Map<F, FieldIndex<K, F, T, V>> indexes = new HashMap<>();
+  private final Map<String, FieldIndex> indexes = new HashMap<>();
 
-  public TableIndex(TableStorage<K, F, T, V> tableStorage) {
+  public TableIndex(TableStorage tableStorage) {
     try {
       for (String tableName : tableStorage.tableNames()) {
-        TableMeta<K, F, T, V> meta = tableStorage.getMeta(tableName);
+        TableMeta meta = tableStorage.getMeta(tableName);
         declareFields(meta.getSchema());
         addTable(tableName, meta);
       }
@@ -51,27 +53,27 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     }
   }
 
-  public Set<String> find(AreaSet<K, F> areas) {
+  public Set<String> find(AreaSet<Long, String> areas) {
     Set<String> result = new HashSet<>();
     lock.readLock().lock();
     try {
-      RangeSet<K> rangeSet = areas.getKeys();
+      RangeSet<Long> rangeSet = areas.getKeys();
       if (!rangeSet.isEmpty()) {
-        for (FieldIndex<K, F, T, V> fieldIndex : indexes.values()) {
+        for (FieldIndex fieldIndex : indexes.values()) {
           Set<String> tables = fieldIndex.find(rangeSet);
           result.addAll(tables);
         }
       }
-      for (F field : areas.getFields()) {
-        FieldIndex<K, F, T, V> fieldIndex = indexes.get(field);
+      for (String field : areas.getFields()) {
+        FieldIndex fieldIndex = indexes.get(field);
         if (fieldIndex == null) {
           continue;
         }
         Set<String> tables = fieldIndex.find();
         result.addAll(tables);
       }
-      for (Map.Entry<F, RangeSet<K>> entry : areas.getSegments().entrySet()) {
-        FieldIndex<K, F, T, V> fieldIndex = indexes.get(entry.getKey());
+      for (Map.Entry<String, RangeSet<Long>> entry : areas.getSegments().entrySet()) {
+        FieldIndex fieldIndex = indexes.get(entry.getKey());
         if (fieldIndex == null) {
           continue;
         }
@@ -84,12 +86,12 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     return result;
   }
 
-  public Map<F, Range<K>> ranges() {
-    Map<F, Range<K>> result = new HashMap<>();
+  public Map<String, Range<Long>> ranges() {
+    Map<String, Range<Long>> result = new HashMap<>();
     lock.readLock().lock();
     try {
-      for (Map.Entry<F, FieldIndex<K, F, T, V>> entry : indexes.entrySet()) {
-        RangeSet<K> rangeSet = entry.getValue().ranges();
+      for (Map.Entry<String, FieldIndex> entry : indexes.entrySet()) {
+        RangeSet<Long> rangeSet = entry.getValue().ranges();
         if (!rangeSet.isEmpty()) {
           result.put(entry.getKey(), rangeSet.span());
         }
@@ -100,19 +102,19 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     return result;
   }
 
-  public void declareFields(Map<F, T> schema) throws TypeConflictedException {
+  public void declareFields(Map<String, DataType> schema) throws TypeConflictedException {
     boolean hasNewField = checkOldFields(schema);
     if (hasNewField) {
       declareNewFields(schema);
     }
   }
 
-  private boolean checkOldFields(Map<F, T> schema) throws TypeConflictedException {
+  private boolean checkOldFields(Map<String, DataType> schema) throws TypeConflictedException {
     boolean hasNewField = false;
     lock.readLock().lock();
     try {
-      for (Map.Entry<F, T> entry : schema.entrySet()) {
-        FieldIndex<K, F, T, V> fieldIndex = indexes.get(entry.getKey());
+      for (Map.Entry<String, DataType> entry : schema.entrySet()) {
+        FieldIndex fieldIndex = indexes.get(entry.getKey());
         if (fieldIndex == null) {
           hasNewField = true;
         } else if (!fieldIndex.getType().equals(entry.getValue())) {
@@ -128,12 +130,12 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     return hasNewField;
   }
 
-  private void declareNewFields(Map<F, T> schema) throws TypeConflictedException {
-    Map<F, T> newSchema = new HashMap<>();
+  private void declareNewFields(Map<String, DataType> schema) throws TypeConflictedException {
+    Map<String, DataType> newSchema = new HashMap<>();
     lock.writeLock().lock();
     try {
-      for (Map.Entry<F, T> entry : schema.entrySet()) {
-        FieldIndex<K, F, T, V> fieldIndex = indexes.get(entry.getKey());
+      for (Map.Entry<String, DataType> entry : schema.entrySet()) {
+        FieldIndex fieldIndex = indexes.get(entry.getKey());
         if (fieldIndex == null) {
           newSchema.put(entry.getKey(), entry.getValue());
         } else if (!fieldIndex.getType().equals(entry.getValue())) {
@@ -144,20 +146,20 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
         }
       }
       LOGGER.debug("declare new fields: {}", newSchema);
-      for (Map.Entry<F, T> entry : newSchema.entrySet()) {
-        indexes.put(entry.getKey(), new FieldIndex<>(entry.getValue()));
+      for (Map.Entry<String, DataType> entry : newSchema.entrySet()) {
+        indexes.put(entry.getKey(), new FieldIndex(entry.getValue()));
       }
     } finally {
       lock.writeLock().unlock();
     }
   }
 
-  public Map<F, T> getType(Set<F> fields, Consumer<F> processMissingField) {
-    Map<F, T> result = new HashMap<>();
+  public Map<String, DataType> getType(Set<String> fields, Consumer<String> processMissingField) {
+    Map<String, DataType> result = new HashMap<>();
     lock.readLock().lock();
     try {
-      for (F field : fields) {
-        FieldIndex<K, F, T, V> fieldIndex = indexes.get(field);
+      for (String field : fields) {
+        FieldIndex fieldIndex = indexes.get(field);
         if (fieldIndex == null) {
           processMissingField.accept(field);
         } else {
@@ -170,11 +172,11 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     return result;
   }
 
-  public Map<F, T> getType() {
-    Map<F, T> result = new HashMap<>();
+  public Map<String, DataType> getType() {
+    Map<String, DataType> result = new HashMap<>();
     lock.readLock().lock();
     try {
-      for (Map.Entry<F, FieldIndex<K, F, T, V>> entry : indexes.entrySet()) {
+      for (Map.Entry<String, FieldIndex> entry : indexes.entrySet()) {
         result.put(entry.getKey(), entry.getValue().getType());
       }
     } finally {
@@ -183,18 +185,18 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     return result;
   }
 
-  public void addTable(String name, TableMeta<K, F, T, V> meta) {
+  public void addTable(String name, TableMeta meta) {
     lock.readLock().lock();
     try {
-      Map<F, T> types = meta.getSchema();
-      for (Map.Entry<F, Range<K>> entry : meta.getRanges().entrySet()) {
-        F field = entry.getKey();
-        FieldIndex<K, F, T, V> fieldIndex = indexes.get(field);
+      Map<String, DataType> types = meta.getSchema();
+      for (Map.Entry<String, Range<Long>> entry : meta.getRanges().entrySet()) {
+        String field = entry.getKey();
+        FieldIndex fieldIndex = indexes.get(field);
         if (fieldIndex == null) {
           throw new NotIntegrityException("field " + field + " is not found in schema");
         }
-        T oldType = fieldIndex.getType();
-        T newType = types.get(field);
+        DataType oldType = fieldIndex.getType();
+        DataType newType = types.get(field);
         if (!oldType.equals(newType)) {
           throw new NotIntegrityException(
               "field "
@@ -204,7 +206,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
                   + ", new type: "
                   + newType);
         }
-        Range<K> range = entry.getValue();
+        Range<Long> range = entry.getValue();
         fieldIndex.addTable(name, range);
       }
     } finally {
@@ -215,7 +217,7 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
   public void removeTable(String name) {
     lock.readLock().lock();
     try {
-      for (FieldIndex<K, F, T, V> fieldIndex : indexes.values()) {
+      for (FieldIndex fieldIndex : indexes.values()) {
         fieldIndex.removeTable(name);
       }
     } finally {
@@ -223,15 +225,15 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     }
   }
 
-  public void delete(AreaSet<K, F> areas) {
+  public void delete(AreaSet<Long, String> areas) {
     lock.writeLock().lock();
     try {
       indexes.keySet().removeAll(areas.getFields());
-      for (FieldIndex<K, F, T, V> fieldIndex : indexes.values()) {
+      for (FieldIndex fieldIndex : indexes.values()) {
         fieldIndex.delete(areas.getKeys());
       }
-      for (Map.Entry<F, RangeSet<K>> entry : areas.getSegments().entrySet()) {
-        FieldIndex<K, F, T, V> fieldIndex = indexes.get(entry.getKey());
+      for (Map.Entry<String, RangeSet<Long>> entry : areas.getSegments().entrySet()) {
+        FieldIndex fieldIndex = indexes.get(entry.getKey());
         if (fieldIndex != null) {
           fieldIndex.delete(entry.getValue());
         }
@@ -255,20 +257,20 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
     // do nothing
   }
 
-  public static class FieldIndex<K extends Comparable<K>, F, T, V> {
+  public static class FieldIndex {
     private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
-    private final T type;
-    private final Map<String, Range<K>> tableRange = new HashMap<>();
+    private final DataType type;
+    private final Map<String, Range<Long>> tableRange = new HashMap<>();
 
-    public FieldIndex(T type) {
+    public FieldIndex(DataType type) {
       this.type = type;
     }
 
-    public T getType() {
+    public DataType getType() {
       return type;
     }
 
-    public void addTable(String name, Range<K> range) {
+    public void addTable(String name, Range<Long> range) {
       lock.writeLock().lock();
       try {
         if (this.tableRange.containsKey(name)) {
@@ -289,11 +291,11 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
       }
     }
 
-    public Set<String> find(RangeSet<K> ranges) {
+    public Set<String> find(RangeSet<Long> ranges) {
       Set<String> result = new HashSet<>();
       lock.readLock().lock();
       try {
-        for (Map.Entry<String, Range<K>> entry : tableRange.entrySet()) {
+        for (Map.Entry<String, Range<Long>> entry : tableRange.entrySet()) {
           if (ranges.intersects(entry.getValue())) {
             result.add(entry.getKey());
           }
@@ -315,14 +317,14 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
       return result;
     }
 
-    public void delete(RangeSet<K> ranges) {
+    public void delete(RangeSet<Long> ranges) {
       lock.writeLock().lock();
       try {
-        RangeSet<K> validRanges = ranges.complement();
-        Iterator<Map.Entry<String, Range<K>>> iterator = tableRange.entrySet().iterator();
-        Map<String, Range<K>> overlap = new HashMap<>();
+        RangeSet<Long> validRanges = ranges.complement();
+        Iterator<Map.Entry<String, Range<Long>>> iterator = tableRange.entrySet().iterator();
+        Map<String, Range<Long>> overlap = new HashMap<>();
         while (iterator.hasNext()) {
-          Map.Entry<String, Range<K>> entry = iterator.next();
+          Map.Entry<String, Range<Long>> entry = iterator.next();
           if (!ranges.intersects(entry.getValue())) {
             continue;
           }
@@ -338,11 +340,11 @@ public class TableIndex<K extends Comparable<K>, F, T, V> implements AutoCloseab
       }
     }
 
-    public RangeSet<K> ranges() {
-      TreeRangeSet<K> rangeSet = TreeRangeSet.create();
+    public RangeSet<Long> ranges() {
+      TreeRangeSet<Long> rangeSet = TreeRangeSet.create();
       lock.readLock().lock();
       try {
-        for (Range<K> range : tableRange.values()) {
+        for (Range<Long> range : tableRange.values()) {
           rangeSet.add(range);
         }
       } finally {

@@ -28,25 +28,26 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
+public class FileTable implements Table {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileTable.class);
   private final String tableName;
 
-  private final ReadWriter<K, F, T, V> readWriter;
+  private final ReadWriter readWriter;
 
-  public FileTable(String tableName, ReadWriter<K, F, T, V> readWriter) {
+  public FileTable(String tableName, ReadWriter readWriter) {
     this.tableName = tableName;
     this.readWriter = readWriter;
   }
 
   @Override
-  public TableMeta<K, F, T, V> getMeta() throws IOException {
+  public TableMeta getMeta() throws IOException {
     return readWriter.readMeta(tableName);
   }
 
   @Override
-  public Scanner<K, Scanner<F, V>> scan(
-      Set<F> fields, RangeSet<K> ranges, @Nullable Filter superSetPredicate) throws IOException {
+  public Scanner<Long, Scanner<String, Object>> scan(
+      Set<String> fields, RangeSet<Long> ranges, @Nullable Filter superSetPredicate)
+      throws IOException {
     LOGGER.debug("read {} where {} & {} from {}", fields, ranges, superSetPredicate, tableName);
     return readWriter.scanData(tableName, fields, ranges, superSetPredicate);
   }

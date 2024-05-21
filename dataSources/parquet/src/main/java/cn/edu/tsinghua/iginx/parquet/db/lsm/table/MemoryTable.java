@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseable;
 import cn.edu.tsinghua.iginx.parquet.util.SingleCache;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.util.*;
@@ -35,14 +36,13 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class MemoryTable<K extends Comparable<K>, F, T, V>
-    implements Table<K, F, T, V>, NoexceptAutoCloseable {
+public class MemoryTable implements Table, NoexceptAutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(MemoryTable.class);
 
   private final LinkedHashMap<Field, MemColumn.Snapshot> columns;
-  private final Map<F, Field> fieldMap = new HashMap<>();
-  private final SingleCache<TableMeta<K, F, T, V>> meta =
-      new SingleCache<>(() -> new MemoryTableMeta<>(getSchema(), getRanges()));
+  private final Map<String, Field> fieldMap = new HashMap<>();
+  private final SingleCache<TableMeta> meta =
+      new SingleCache<>(() -> new MemoryTableMeta(getSchema(), getRanges()));
 
   public MemoryTable(@WillCloseWhenClosed LinkedHashMap<Field, MemColumn.Snapshot> columns) {
     this.columns = new LinkedHashMap<>(columns);
@@ -51,26 +51,26 @@ public class MemoryTable<K extends Comparable<K>, F, T, V>
     }
   }
 
-  private Map<F, T> getSchema() {
+  private Map<String, DataType> getSchema() {
     return (Map) ArrowFields.toIginxSchema(columns.keySet());
   }
 
-  private Map<F, Range<K>> getRanges() {
+  private Map<String, Range<Long>> getRanges() {
     return columns.keySet().stream()
         .collect(Collectors.toMap(this::getFieldString, this::getRange));
   }
 
-  private F getFieldString(Field field) {
-    return (F) TagKVUtils.toFullName(ArrowFields.toColumnKey(field));
+  private String getFieldString(Field field) {
+    return TagKVUtils.toFullName(ArrowFields.toColumnKey(field));
   }
 
-  private Range<K> getRange(Field field) {
+  private Range<Long> getRange(Field field) {
     MemColumn.Snapshot snapshot = columns.get(field);
     RangeSet<Long> ranges = snapshot.getRanges();
     if (ranges.isEmpty()) {
-      return (Range<K>) Range.closed(0L, 0L);
+      return Range.closed(0L, 0L);
     }
-    return (Range<K>) ranges.span();
+    return ranges.span();
   }
 
   @Override
@@ -81,18 +81,18 @@ public class MemoryTable<K extends Comparable<K>, F, T, V>
   }
 
   @Override
-  public TableMeta<K, F, T, V> getMeta() {
+  public TableMeta getMeta() {
     return meta.get();
   }
 
   @Override
-  public Scanner<K, Scanner<F, V>> scan(
-      Set<F> fields, RangeSet<K> ranges, @Nullable Filter superSetPredicate) {
+  public Scanner<Long, Scanner<String, Object>> scan(
+      Set<String> fields, RangeSet<Long> ranges, @Nullable Filter superSetPredicate) {
     if (LOGGER.isDebugEnabled()) {
       LOGGER.debug("read {} where {} from {}", fields, ranges, meta);
     }
-    Map<F, Scanner<K, V>> columns = new HashMap<>();
-    for (F field : fields) {
+    Map<String, Scanner<Long, Object>> columns = new HashMap<>();
+    for (String field : fields) {
       if (!fieldMap.containsKey(field)) {
         continue;
       }
@@ -103,13 +103,12 @@ public class MemoryTable<K extends Comparable<K>, F, T, V>
     return new ColumnUnionRowScanner<>(columns);
   }
 
-  private Scanner<K, V> scan(MemColumn.Snapshot snapshot, RangeSet<K> ranges) {
+  private Scanner<Long, Object> scan(MemColumn.Snapshot snapshot, RangeSet<Long> ranges) {
     if (ranges.isEmpty()) {
       return new EmptyScanner<>();
     }
-    MemColumn.Snapshot sliced = snapshot.slice((RangeSet<Long>) ranges);
-    return (Scanner<K, V>)
-        new ListenCloseScanner<>(new IteratorScanner<>(sliced.iterator()), sliced::close);
+    MemColumn.Snapshot sliced = snapshot.slice(ranges);
+    return new ListenCloseScanner<>(new IteratorScanner<>(sliced.iterator()), sliced::close);
   }
 
   @Override
@@ -117,22 +116,21 @@ public class MemoryTable<K extends Comparable<K>, F, T, V>
     columns.values().forEach(MemColumn.Snapshot::close);
   }
 
-  public static class MemoryTableMeta<K extends Comparable<K>, F, T, V>
-      implements TableMeta<K, F, T, V> {
+  public static class MemoryTableMeta implements TableMeta {
 
-    private final Map<F, T> schema;
-    private final Map<F, Range<K>> ranges;
+    private final Map<String, DataType> schema;
+    private final Map<String, Range<Long>> ranges;
 
-    MemoryTableMeta(Map<F, T> schema, Map<F, Range<K>> ranges) {
+    MemoryTableMeta(Map<String, DataType> schema, Map<String, Range<Long>> ranges) {
       this.schema = Collections.unmodifiableMap(schema);
       this.ranges = Collections.unmodifiableMap(ranges);
     }
 
-    public Map<F, T> getSchema() {
+    public Map<String, DataType> getSchema() {
       return schema;
     }
 
-    public Map<F, Range<K>> getRanges() {
+    public Map<String, Range<Long>> getRanges() {
       return ranges;
     }
 

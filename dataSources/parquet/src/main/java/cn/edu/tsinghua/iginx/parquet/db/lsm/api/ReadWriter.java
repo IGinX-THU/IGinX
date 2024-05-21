@@ -23,19 +23,19 @@ import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Set;
 
-public interface ReadWriter<K extends Comparable<K>, F, T, V> {
+public interface ReadWriter {
 
   String getName();
 
-  void flush(String name, TableMeta<K, F, T, V> meta, Scanner<K, Scanner<F, V>> scanner)
+  void flush(String name, TableMeta meta, Scanner<Long, Scanner<String, Object>> scanner)
       throws IOException;
 
-  TableMeta<K, F, T, V> readMeta(String name) throws IOException;
+  TableMeta readMeta(String name) throws IOException;
 
-  Scanner<K, Scanner<F, V>> scanData(
-      String name, Set<F> fields, RangeSet<K> ranges, Filter predicate) throws IOException;
+  Scanner<Long, Scanner<String, Object>> scanData(
+      String name, Set<String> fields, RangeSet<Long> ranges, Filter predicate) throws IOException;
 
-  void delete(String name, AreaSet<K, F> areas) throws IOException;
+  void delete(String name, AreaSet<Long, String> areas) throws IOException;
 
   void delete(String name);
 

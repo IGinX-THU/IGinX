@@ -31,7 +31,7 @@ import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 
-public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Object> {
+public class ParquetReadWriter implements ReadWriter {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ParquetReadWriter.class);
 
@@ -69,9 +69,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
 
   @Override
   public void flush(
-      String tableName,
-      TableMeta<Long, String, DataType, Object> meta,
-      Scanner<Long, Scanner<String, Object>> scanner)
+      String tableName, TableMeta meta, Scanner<Long, Scanner<String, Object>> scanner)
       throws IOException {
     Path path = getPath(tableName);
     Path tempPath = dir.resolve(tableName + Constants.SUFFIX_FILE_TEMP);
@@ -120,7 +118,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
   }
 
   @Override
-  public TableMeta<Long, String, DataType, Object> readMeta(String tableName) {
+  public TableMeta readMeta(String tableName) {
     Path path = getPath(tableName);
     ParquetTableMeta tableMeta = getParquetTableMeta(path.toString());
     AreaSet<Long, String> tombstone = tombstoneStorage.get(tableName);
@@ -331,8 +329,7 @@ public class ParquetReadWriter implements ReadWriter<Long, String, DataType, Obj
     }
   }
 
-  private static class ParquetTableMeta
-      implements TableMeta<Long, String, DataType, Object>, CachePool.Cacheable {
+  private static class ParquetTableMeta implements TableMeta, CachePool.Cacheable {
     private final Map<String, DataType> schemaDst;
     private final Map<String, Range<Long>> rangeMap;
     private final ParquetMetadata meta;

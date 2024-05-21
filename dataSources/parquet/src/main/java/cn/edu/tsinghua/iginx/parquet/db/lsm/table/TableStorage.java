@@ -44,22 +44,22 @@ import org.slf4j.LoggerFactory;
 
 // TODO: merge TableStorage, TableIndex and TombstoneStorage to control concurrent access to the
 // storage
-public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoCloseable {
+public class TableStorage implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class);
   private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final SequenceGenerator seqGen = new SequenceGenerator();
 
   private final ExecutorService flusher;
 
-  private final Map<String, MemoryTable<K, F, T, V>> memTables = new HashMap<>();
-  private final Map<String, AreaSet<K, F>> memTombstones = new HashMap<>();
+  private final Map<String, MemoryTable> memTables = new HashMap<>();
+  private final Map<String, AreaSet<Long, String>> memTombstones = new HashMap<>();
   private final Shared shared;
-  private final ReadWriter<K, F, T, V> readWriter;
+  private final ReadWriter readWriter;
 
   private final int localFlusherPermitsTotal;
   private final Semaphore localFlusherPermits;
 
-  public TableStorage(Shared shared, ReadWriter<K, F, T, V> readWriter) throws IOException {
+  public TableStorage(Shared shared, ReadWriter readWriter) throws IOException {
     this.shared = shared;
     this.readWriter = readWriter;
     this.localFlusherPermitsTotal = shared.getFlusherPermits().availablePermits();
@@ -93,8 +93,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     return seqGen.next();
   }
 
-  public String flush(MemoryTable<K, F, T, V> table, Runnable afterFlush)
-      throws InterruptedException {
+  public String flush(MemoryTable table, Runnable afterFlush) throws InterruptedException {
     shared.getFlusherPermits().acquire();
     localFlusherPermits.acquire();
     lock.writeLock().lock();
@@ -106,8 +105,8 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
           () -> {
             LOGGER.debug("task to flush {} started", tableName);
             try {
-              TableMeta<K, F, T, V> meta = table.getMeta();
-              try (Scanner<K, Scanner<F, V>> scanner =
+              TableMeta meta = table.getMeta();
+              try (Scanner<Long, Scanner<String, Object>> scanner =
                   table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
                 readWriter.flush(tableName, meta, scanner);
               }
@@ -135,9 +134,9 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   private void commitMemoryTable(String name) throws IOException {
     lock.writeLock().lock();
     try {
-      MemoryTable<K, F, T, V> table = memTables.remove(name);
+      MemoryTable table = memTables.remove(name);
       if (table != null) {
-        AreaSet<K, F> tombstone = memTombstones.remove(name);
+        AreaSet<Long, String> tombstone = memTombstones.remove(name);
         if (tombstone != null) {
           readWriter.delete(name, tombstone);
         }
@@ -153,7 +152,7 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
   public void remove(String name) throws IOException {
     lock.writeLock().lock();
     try {
-      MemoryTable<K, F, T, V> table = memTables.remove(name);
+      MemoryTable table = memTables.remove(name);
       if (table != null) {
         memTombstones.remove(name);
         table.close();
@@ -181,43 +180,43 @@ public class TableStorage<K extends Comparable<K>, F, T, V> implements AutoClose
     }
   }
 
-  public Scanner<K, Scanner<F, V>> scan(String tableName, Set<F> fields, RangeSet<K> ranges)
-      throws IOException {
+  public Scanner<Long, Scanner<String, Object>> scan(
+      String tableName, Set<String> fields, RangeSet<Long> ranges) throws IOException {
     lock.readLock().lock();
     try {
-      MemoryTable<K, F, T, V> table = memTables.get(tableName);
+      MemoryTable table = memTables.get(tableName);
       if (table != null) {
-        AreaSet<K, F> tombstone = memTombstones.get(tableName);
+        AreaSet<Long, String> tombstone = memTombstones.get(tableName);
         if (tombstone == null) {
           return table.scan(fields, ranges);
         }
-        return new DeletedTable<>(table, tombstone).scan(fields, ranges);
+        return new DeletedTable(table, tombstone).scan(fields, ranges);
       }
-      return new FileTable<>(tableName, readWriter).scan(fields, ranges);
+      return new FileTable(tableName, readWriter).scan(fields, ranges);
     } finally {
       lock.readLock().unlock();
     }
   }
 
-  public TableMeta<K, F, T, V> getMeta(String tableName) throws IOException {
+  public TableMeta getMeta(String tableName) throws IOException {
     lock.readLock().lock();
     try {
-      MemoryTable<K, F, T, V> table = memTables.get(tableName);
+      MemoryTable table = memTables.get(tableName);
       if (table != null) {
-        TableMeta<K, F, T, V> meta = table.getMeta();
-        AreaSet<K, F> tombstone = memTombstones.get(tableName);
+        TableMeta meta = table.getMeta();
+        AreaSet<Long, String> tombstone = memTombstones.get(tableName);
         if (tombstone == null) {
           return meta;
         }
-        return new DeletedTableMeta<>(meta, tombstone);
+        return new DeletedTableMeta(meta, tombstone);
       }
-      return new FileTable<>(tableName, readWriter).getMeta();
+      return new FileTable(tableName, readWriter).getMeta();
     } finally {
       lock.readLock().unlock();
     }
   }
 
-  public void delete(Set<String> tables, AreaSet<K, F> areas) throws IOException {
+  public void delete(Set<String> tables, AreaSet<Long, String> areas) throws IOException {
     lock.writeLock().lock();
     try {
       for (String tableName : tables) {

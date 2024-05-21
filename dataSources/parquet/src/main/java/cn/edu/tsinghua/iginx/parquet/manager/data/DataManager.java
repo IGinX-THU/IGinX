@@ -45,15 +45,15 @@ import org.slf4j.LoggerFactory;
 public class DataManager implements Manager {
   private static final Logger LOGGER = LoggerFactory.getLogger(DataManager.class);
 
-  private final Database<Long, String, DataType, Object> db;
+  private final Database db;
 
   private final Shared shared;
 
   public DataManager(Shared shared, Path dir) throws IOException {
     this.shared = shared;
     Path dataDir = dir.resolve(Constants.DIR_NAME_TABLE);
-    ReadWriter<Long, String, DataType, Object> readWriter = new ParquetReadWriter(shared, dataDir);
-    this.db = new OneTierDB<>(dir.toString(), shared, readWriter);
+    ReadWriter readWriter = new ParquetReadWriter(shared, dataDir);
+    this.db = new OneTierDB(dir.toString(), shared, readWriter);
   }
 
   @Override

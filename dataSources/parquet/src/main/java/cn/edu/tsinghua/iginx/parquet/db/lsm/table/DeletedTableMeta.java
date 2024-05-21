@@ -18,6 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -25,34 +26,34 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-public class DeletedTableMeta<K extends Comparable<K>, F, T, V> implements TableMeta<K, F, T, V> {
-  private final Map<F, T> schema;
-  private final Map<F, Range<K>> ranges;
+public class DeletedTableMeta implements TableMeta {
+  private final Map<String, DataType> schema;
+  private final Map<String, Range<Long>> ranges;
 
-  public DeletedTableMeta(TableMeta<K, F, T, V> tableMeta, AreaSet<K, F> tombstone) {
+  public DeletedTableMeta(TableMeta tableMeta, AreaSet<Long, String> tombstone) {
     this.schema = new HashMap<>(tableMeta.getSchema());
     schema.keySet().removeAll(tombstone.getFields());
     this.ranges = new HashMap<>();
 
-    Map<F, RangeSet<K>> rangeSetMap = new HashMap<>();
-    for (Map.Entry<F, Range<K>> entry : tableMeta.getRanges().entrySet()) {
-      F field = entry.getKey();
-      Range<K> range = entry.getValue();
+    Map<String, RangeSet<Long>> rangeSetMap = new HashMap<>();
+    for (Map.Entry<String, Range<Long>> entry : tableMeta.getRanges().entrySet()) {
+      String field = entry.getKey();
+      Range<Long> range = entry.getValue();
       rangeSetMap.put(field, TreeRangeSet.create(Collections.singleton(range)));
     }
     rangeSetMap.keySet().removeAll(tombstone.getFields());
     rangeSetMap.values().forEach(rangeSet -> rangeSet.removeAll(tombstone.getKeys()));
-    for (Map.Entry<F, RangeSet<K>> entry : tombstone.getSegments().entrySet()) {
-      F field = entry.getKey();
-      RangeSet<K> rangeSetDeleted = entry.getValue();
-      RangeSet<K> rangeSet = rangeSetMap.get(field);
+    for (Map.Entry<String, RangeSet<Long>> entry : tombstone.getSegments().entrySet()) {
+      String field = entry.getKey();
+      RangeSet<Long> rangeSetDeleted = entry.getValue();
+      RangeSet<Long> rangeSet = rangeSetMap.get(field);
       if (rangeSet != null) {
         rangeSet.removeAll(rangeSetDeleted);
       }
     }
-    for (Map.Entry<F, RangeSet<K>> entry : rangeSetMap.entrySet()) {
-      F field = entry.getKey();
-      RangeSet<K> rangeSet = entry.getValue();
+    for (Map.Entry<String, RangeSet<Long>> entry : rangeSetMap.entrySet()) {
+      String field = entry.getKey();
+      RangeSet<Long> rangeSet = entry.getValue();
       if (!rangeSet.isEmpty()) {
         ranges.put(field, rangeSet.span());
       }
@@ -60,12 +61,12 @@ public class DeletedTableMeta<K extends Comparable<K>, F, T, V> implements Table
   }
 
   @Override
-  public Map<F, T> getSchema() {
+  public Map<String, DataType> getSchema() {
     return schema;
   }
 
   @Override
-  public Map<F, Range<K>> getRanges() {
+  public Map<String, Range<Long>> getRanges() {
     return ranges;
   }
 }
