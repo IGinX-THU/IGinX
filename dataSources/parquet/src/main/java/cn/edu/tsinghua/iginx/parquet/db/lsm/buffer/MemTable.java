@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.buffer;
 
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.Chunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.IndexedChunk;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.UnorderedChunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
@@ -74,11 +74,11 @@ public class MemTable implements AutoCloseable {
     return new MemoryTable(columns);
   }
 
-  public void store(Iterable<UnorderedChunk.Snapshot> data) {
+  public void store(Iterable<Chunk.Snapshot> data) {
     data.forEach(this::store);
   }
 
-  public void store(UnorderedChunk.Snapshot data) {
+  public void store(Chunk.Snapshot data) {
     touch();
     columns.compute(
         ArrowFields.nullable(data.getField()),

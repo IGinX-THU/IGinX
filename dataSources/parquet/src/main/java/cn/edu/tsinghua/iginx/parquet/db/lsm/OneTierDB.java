@@ -22,7 +22,7 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.MemTable;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.UnorderedChunk;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.Chunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableIndex;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
@@ -183,7 +183,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     }
   }
 
-  private void putAll(@WillClose Iterable<UnorderedChunk.Snapshot> chunks, Map<F, T> schema)
+  private void putAll(@WillClose Iterable<Chunk.Snapshot> chunks, Map<F, T> schema)
       throws StorageException {
     try {
       checkBufferSize();
@@ -199,7 +199,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
         commitLock.readLock().unlock();
       }
     } finally {
-      chunks.forEach(UnorderedChunk.Snapshot::close);
+      chunks.forEach(Chunk.Snapshot::close);
     }
     if (timeout <= 0) {
       checkBufferTimeout();

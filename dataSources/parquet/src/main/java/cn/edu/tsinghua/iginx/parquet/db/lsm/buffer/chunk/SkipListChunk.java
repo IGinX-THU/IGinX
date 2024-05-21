@@ -16,7 +16,7 @@ public class SkipListChunk extends IndexedChunk {
 
   protected final ConcurrentSkipListMap<Long, Integer> index = new ConcurrentSkipListMap<>();
 
-  public SkipListChunk(@WillCloseWhenClosed UnorderedChunk chunk, BufferAllocator allocator) {
+  public SkipListChunk(@WillCloseWhenClosed Chunk chunk, BufferAllocator allocator) {
     super(chunk, allocator);
     try (Snapshot snapshot = chunk.snapshot(allocator)) {
       updateIndex(snapshot, 0);

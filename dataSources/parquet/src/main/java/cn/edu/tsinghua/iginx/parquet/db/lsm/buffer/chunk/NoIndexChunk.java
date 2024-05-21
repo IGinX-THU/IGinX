@@ -17,7 +17,7 @@ public class NoIndexChunk extends IndexedChunk {
 
   private int valueCount = 0;
 
-  public NoIndexChunk(@WillCloseWhenClosed UnorderedChunk chunk, BufferAllocator allocator) {
+  public NoIndexChunk(@WillCloseWhenClosed Chunk chunk, BufferAllocator allocator) {
     super(chunk, allocator);
     tombstone.put(0, TreeRangeSet.create());
   }
@@ -26,7 +26,9 @@ public class NoIndexChunk extends IndexedChunk {
   protected IntVector indexOf(Snapshot snapshot, BufferAllocator allocator) {
     IntVector indexes = ArrowVectors.stableSortIndexes(snapshot.keys, allocator);
     ArrowVectors.dedupSortedIndexes(snapshot.keys, indexes);
-    ArrowVectors.filter(indexes, i -> !isDeleted(snapshot, i));
+    if (!tombstone.isEmpty()) {
+      ArrowVectors.filter(indexes, i -> !isDeleted(snapshot, i));
+    }
     return indexes;
   }
 

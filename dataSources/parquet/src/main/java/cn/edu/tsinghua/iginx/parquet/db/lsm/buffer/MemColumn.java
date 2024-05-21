@@ -1,11 +1,14 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.buffer;
 
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.Chunk;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.IndexedChunk;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.UnorderedChunk;
 import cn.edu.tsinghua.iginx.parquet.util.iterator.DedupIterator;
 import cn.edu.tsinghua.iginx.parquet.util.iterator.StableMergeIterator;
 import com.google.common.collect.*;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import javax.annotation.WillCloseWhenClosed;
@@ -58,7 +61,7 @@ public class MemColumn implements AutoCloseable {
     return new Snapshot(snapshots);
   }
 
-  public synchronized void store(UnorderedChunk.Snapshot snapshot) {
+  public synchronized void store(Chunk.Snapshot snapshot) {
     int total = snapshot.getValueCount();
     for (int written = 0; written != total; ) {
       int free = maxChunkValueCount - active.getValueCount();
@@ -157,15 +160,15 @@ public class MemColumn implements AutoCloseable {
   private static class ChunkSnapshotHolder
       implements AutoCloseable, Iterable<Map.Entry<Long, Object>> {
 
-    private final IndexedChunk.IndexedSnapshot snapshot;
+    private final Chunk.Snapshot snapshot;
     private RangeSet<Long> mask;
 
-    public ChunkSnapshotHolder(@WillCloseWhenClosed IndexedChunk.IndexedSnapshot snapshot) {
+    public ChunkSnapshotHolder(@WillCloseWhenClosed Chunk.Snapshot snapshot) {
       this(snapshot, null);
     }
 
-    private ChunkSnapshotHolder(
-        @WillCloseWhenClosed IndexedChunk.IndexedSnapshot snapshot, RangeSet<Long> mask) {
+    private ChunkSnapshotHolder(@WillCloseWhenClosed Chunk.Snapshot snapshot, RangeSet<Long> mask) {
+      Preconditions.checkArgument(snapshot.getValueCount() > 0);
       this.snapshot = snapshot;
       this.mask = mask;
     }
@@ -177,16 +180,20 @@ public class MemColumn implements AutoCloseable {
     public void delete(RangeSet<Long> ranges) {
       if (mask == null) {
         mask = TreeRangeSet.create();
-        mask.add(snapshot.getKeyRange());
+        mask.add(getKeyRange(snapshot));
       }
       mask.removeAll(ranges);
     }
 
     public Range<Long> getKeyRange() {
       if (mask == null) {
-        return snapshot.getKeyRange();
+        return getKeyRange(snapshot);
       }
       return mask.span();
+    }
+
+    private static Range<Long> getKeyRange(Chunk.Snapshot snapshot) {
+      return Range.closed(snapshot.getKey(0), snapshot.getKey(snapshot.getValueCount() - 1));
     }
 
     @Override
@@ -229,7 +236,10 @@ public class MemColumn implements AutoCloseable {
       return activeChunk == null ? 0 : activeChunk.getValueCount();
     }
 
-    public void store(UnorderedChunk.Snapshot data) {
+    public void store(Chunk.Snapshot data) {
+      if (data.getValueCount() == 0) {
+        return;
+      }
       if (activeChunk == null) {
         activeChunk = factory.like(data, allocator);
       }
@@ -237,8 +247,8 @@ public class MemColumn implements AutoCloseable {
       isDirty = true;
     }
 
-    public void store(UnorderedChunk.Snapshot snapshot, int offset, int length) {
-      try (UnorderedChunk.Snapshot slice = snapshot.slice(offset, length, allocator)) {
+    public void store(Chunk.Snapshot snapshot, int offset, int length) {
+      try (Chunk.Snapshot slice = snapshot.slice(offset, length, allocator)) {
         store(slice);
       }
     }
@@ -253,16 +263,21 @@ public class MemColumn implements AutoCloseable {
       if (!isDirty) {
         return;
       }
+      isDirty = false;
 
       if (hasOld) {
         int offset = compactedChunkSnapshots.size() - 1;
         compactedChunkSnapshots.remove(offset).close();
       }
-      ChunkSnapshotHolder snapshot = new ChunkSnapshotHolder(activeChunk.snapshot(allocator));
-      compactedChunkSnapshots.add(snapshot);
 
-      hasOld = true;
-      isDirty = false;
+      Chunk.Snapshot snapshot = activeChunk.snapshot(allocator);
+      if (snapshot.getValueCount() > 0) {
+        compactedChunkSnapshots.add(new ChunkSnapshotHolder(snapshot));
+        hasOld = true;
+      } else {
+        snapshot.close();
+        reset();
+      }
     }
 
     public void reset() {

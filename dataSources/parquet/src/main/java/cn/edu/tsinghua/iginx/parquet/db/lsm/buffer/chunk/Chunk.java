@@ -18,7 +18,7 @@ import org.apache.arrow.vector.ZeroVector;
 import org.apache.arrow.vector.types.pojo.Field;
 
 @ThreadSafe
-public class UnorderedChunk implements AutoCloseable {
+public class Chunk implements AutoCloseable {
 
   @GuardedBy("this")
   protected final ValueVector keys;
@@ -26,8 +26,7 @@ public class UnorderedChunk implements AutoCloseable {
   @GuardedBy("this")
   protected final ValueVector values;
 
-  protected UnorderedChunk(
-      @WillCloseWhenClosed ValueVector keys, @WillCloseWhenClosed ValueVector values) {
+  protected Chunk(@WillCloseWhenClosed ValueVector keys, @WillCloseWhenClosed ValueVector values) {
     Preconditions.checkNotNull(keys);
     Preconditions.checkNotNull(values);
     Preconditions.checkArgument(keys.getValueCount() == values.getValueCount());
@@ -36,8 +35,8 @@ public class UnorderedChunk implements AutoCloseable {
     this.values = values;
   }
 
-  public static UnorderedChunk like(Snapshot snapshot, BufferAllocator allocator) {
-    return new UnorderedChunk(
+  public static Chunk like(Snapshot snapshot, BufferAllocator allocator) {
+    return new Chunk(
         ArrowVectors.like(snapshot.keys, allocator), ArrowVectors.like(snapshot.values, allocator));
   }
 

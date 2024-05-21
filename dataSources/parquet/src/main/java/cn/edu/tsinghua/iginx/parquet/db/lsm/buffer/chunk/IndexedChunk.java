@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk;
 
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowVectors;
-import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import java.util.Map;
 import javax.annotation.Nullable;
@@ -14,18 +13,21 @@ import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.types.Types;
 
 @ThreadSafe
-public abstract class IndexedChunk extends UnorderedChunk {
+public abstract class IndexedChunk extends Chunk {
 
   protected final BufferAllocator allocator;
 
-  protected IndexedChunk(@WillCloseWhenClosed UnorderedChunk chunk, BufferAllocator allocator) {
+  protected IndexedChunk(@WillCloseWhenClosed Chunk chunk, BufferAllocator allocator) {
     super(chunk.keys, chunk.values);
     this.allocator = allocator;
   }
 
   @Override
-  public synchronized IndexedSnapshot snapshot(BufferAllocator allocator) {
+  public synchronized Snapshot snapshot(BufferAllocator allocator) {
     Snapshot snapshot = super.snapshot(allocator);
+    if (ArrowVectors.isSorted(snapshot.keys)) {
+      return snapshot;
+    }
     IntVector indexes = indexOf(snapshot, allocator);
     return new IndexedSnapshot(snapshot, indexes);
   }
@@ -54,15 +56,15 @@ public abstract class IndexedChunk extends UnorderedChunk {
   protected abstract void deleteIndex(RangeSet<Long> rangeSet);
 
   public interface Factory {
-    IndexedChunk wrap(@WillCloseWhenClosed UnorderedChunk chunk, BufferAllocator allocator);
+    IndexedChunk wrap(@WillCloseWhenClosed Chunk chunk, BufferAllocator allocator);
 
     default IndexedChunk like(Snapshot snapshot, BufferAllocator allocator) {
-      return wrap(UnorderedChunk.like(snapshot, allocator), allocator);
+      return wrap(Chunk.like(snapshot, allocator), allocator);
     }
   }
 
   @Immutable
-  public static class IndexedSnapshot extends Snapshot {
+  protected static class IndexedSnapshot extends Snapshot {
 
     protected final IntVector indexes;
 
@@ -78,15 +80,6 @@ public abstract class IndexedChunk extends UnorderedChunk {
     public void close() {
       super.close();
       indexes.close();
-    }
-
-    public Range<Long> getKeyRange() {
-      if (getValueCount() == 0) {
-        return Range.closedOpen(0L, 0L);
-      }
-      long start = getKey(0);
-      long end = getKey(getValueCount() - 1);
-      return Range.closedOpen(start, end + 1);
     }
 
     @Override

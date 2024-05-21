@@ -97,13 +97,35 @@ public class ArrowVectors {
     return (V) vector.getTransferPair(allocator).getTo();
   }
 
+  public static boolean isSorted(ValueVector vector) {
+    VectorValueComparator<ValueVector> comparator =
+        DefaultVectorComparators.createDefaultComparator(vector);
+    comparator.attachVector(vector);
+    for (int i = 1; i < vector.getValueCount(); i++) {
+      if (comparator.compare(i - 1, i) >= 0) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  public static IntVector range(int start, int end, BufferAllocator allocator) {
+    IntVector indexes = nonnullIntVector("", allocator);
+    indexes.allocateNew(end - start);
+    indexes.setValueCount(end - start);
+    for (int i = start; i < end; i++) {
+      indexes.set(i - start, i);
+    }
+    return indexes;
+  }
+
   public static IntVector stableSortIndexes(ValueVector vector, BufferAllocator allocator) {
     VectorValueComparator<ValueVector> defaultComparator =
         DefaultVectorComparators.createDefaultComparator(vector);
     VectorValueComparator<ValueVector> stableComparator =
         new StableVectorComparator<>(defaultComparator);
 
-    IntVector indexes = nonnullIntVector("indexes", allocator);
+    IntVector indexes = nonnullIntVector("", allocator);
     indexes.setValueCount(vector.getValueCount());
 
     new IndexSorter<>().sort(vector, indexes, stableComparator);
@@ -124,7 +146,9 @@ public class ArrowVectors {
     int unique = 0;
     for (int i = 1; i < count; i++) {
       if (defaultComparator.compare(indexes.get(i - 1), indexes.get(i)) != 0) {
-        indexes.set(unique, indexes.get(i - 1));
+        if (unique != i - 1) {
+          indexes.set(unique, indexes.get(i - 1));
+        }
         unique++;
       }
     }

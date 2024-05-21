@@ -1,7 +1,7 @@
 package cn.edu.tsinghua.iginx.parquet.db.util;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.UnorderedChunk;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.Chunk;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
@@ -65,10 +65,10 @@ public class WriteBatches {
       count++;
     }
 
-    public UnorderedChunk.Snapshot build() {
+    public Chunk.Snapshot build() {
       keyVector.setValueCount(count);
       valueVector.setValueCount(count);
-      return new UnorderedChunk.Snapshot(keyVector, valueVector);
+      return new Chunk.Snapshot(keyVector, valueVector);
     }
   }
 
@@ -85,7 +85,7 @@ public class WriteBatches {
     return headers;
   }
 
-  public static <V, F, K extends Comparable<K>, T> Iterable<UnorderedChunk.Snapshot> recordOfRows(
+  public static <V, F, K extends Comparable<K>, T> Iterable<Chunk.Snapshot> recordOfRows(
       Scanner<K, Scanner<F, V>> rows, Map<F, T> schema, BufferAllocator allocator)
       throws StorageException {
     Map<String, ChunkSnapshotBuilder> builders = builders(schema, allocator);
@@ -102,10 +102,9 @@ public class WriteBatches {
     return builders.values().stream().map(ChunkSnapshotBuilder::build).collect(Collectors.toList());
   }
 
-  public static <V, F, K extends Comparable<K>, T>
-      Iterable<UnorderedChunk.Snapshot> recordOfColumns(
-          Scanner<F, Scanner<K, V>> batch, Map<F, T> schema, BufferAllocator allocator)
-          throws StorageException {
+  public static <V, F, K extends Comparable<K>, T> Iterable<Chunk.Snapshot> recordOfColumns(
+      Scanner<F, Scanner<K, V>> batch, Map<F, T> schema, BufferAllocator allocator)
+      throws StorageException {
     Map<String, ChunkSnapshotBuilder> builders = builders(schema, allocator);
     while (batch.iterate()) {
       String name = (String) batch.key();
