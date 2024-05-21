@@ -42,7 +42,7 @@ public class FormatUtils {
     for (Integer integer : maxSizeList) {
       blockLine.append("+").append(StringUtils.repeat("-", integer));
     }
-    blockLine.append("+").append("\n");
+    blockLine.append("+").append("New Version").append("\n");
     return blockLine.toString();
   }
 

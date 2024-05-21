@@ -135,7 +135,6 @@ public class TPCHRunner {
             throw new RuntimeException("size not equal");
           }
           for (int j = 0; j < values.get(i).size(); j++) {
-            System.out.println(values.get(i).get(j));
             if (result.getPaths().get(j).contains("address")
                 || result.getPaths().get(j).contains("comment")
                 || result.getPaths().get(j).contains("orderdate")) {

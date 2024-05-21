@@ -1,0 +1,57 @@
+name: "regression-iginx-runner"
+description: "regression iginx runner"
+inputs:
+    version:
+        description: "iginx runner version"
+        required: false
+        default: 0.6.0-SNAPSHOT
+    if-stop:
+        description: "to stop the iginx"
+        required: false
+        default: "false"
+    if-test-udf:
+        description: "to test UDF path detection"
+        required: false
+        default: "false"
+runs:
+    using: "composite" # Mandatory parameter
+    steps:
+        - if: inputs.if-test-udf=='true'
+          name: Test UDF Path
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/IGinX/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/IGinX/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${GITHUB_WORKSPACE}/IGinX/core/target/iginx-core-${VERSION}/conf/config.properties
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/IGinX/core/target/iginx-core-${VERSION}/conf/config.properties
+              else
+                echo "$RUNNER_OS is not supported"
+                exit 1
+              fi
+              chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_udf_path.sh"
+              "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_udf_path.sh"
+
+        - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
+          name: Start IGinX
+          shell: bash
+          run: |
+              if [ "$RUNNER_OS" == "Linux" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
+                "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
+              elif [ "$RUNNER_OS" == "Windows" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_windows.sh"
+                "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_windows.sh" 6888 6666
+              elif [ "$RUNNER_OS" == "macOS" ]; then
+                chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_macos.sh"
+                "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_macos.sh" 6888 6666
+              fi
+
+        - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'
+          name: Stop IGinX
+          shell: bash
+          run: |
+              chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_kill.sh"
+              "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_kill.sh"
