@@ -181,7 +181,7 @@ jobs:
                 mkdir IGinX/tpc
                 mkdir "IGinX/tpc/TPC-H V3.0.1"
                 mkdir "IGinX/tpc/TPC-H V3.0.1/data"
-                cp tpc/TPC-H V3.0.1/data/nation.csv IGinX/tpc/TPC-H V3.0.1/data/nation.csv
+                cp "tpc/TPC-H V3.0.1/data/nation.csv" "IGinX/tpc/TPC-H V3.0.1/data/nation.csv"
                 cd IGinX
                 output_file="../IGinX/tpc/TPC-H V3.0.1/data/nation.csv"
                 # 插入数据
