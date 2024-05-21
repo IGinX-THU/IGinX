@@ -2,16 +2,20 @@ package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
-import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
 public class FilterPushDownGroupByRule extends Rule {
+  private static List<OperatorType> validOps =
+      Arrays.asList(OperatorType.GroupBy, OperatorType.Distinct);
+
   private static class InstanceHolder {
     private static final FilterPushDownGroupByRule INSTANCE = new FilterPushDownGroupByRule();
   }
@@ -25,17 +29,25 @@ public class FilterPushDownGroupByRule extends Rule {
      * we want to match the topology like:
      *         Select
      *           |
-     *         GroupBy
+     *     GroupBy/Distinct
      */
-    super("FilterPushDownGroupByRule", operand(Select.class, operand(GroupBy.class, any())));
+    super(
+        "FilterPushDownGroupByRule",
+        operand(Select.class, operand(AbstractUnaryOperator.class, any())));
   }
 
   @Override
   public boolean matches(RuleCall call) {
     Select select = (Select) call.getMatchedRoot();
-    GroupBy groupBy = (GroupBy) call.getChildrenIndex().get(select).get(0);
+    AbstractUnaryOperator operator =
+        (AbstractUnaryOperator) call.getChildrenIndex().get(select).get(0);
+    if (!validOps.contains(operator.getType())) {
+      return false;
+    }
+
     // 如果没有GroupBy Key，不能下推
-    if (groupBy.getGroupByCols().isEmpty()) {
+    List<String> groupByCols = getGroupByCols(operator);
+    if (groupByCols.isEmpty()) {
       return false;
     }
 
@@ -44,8 +56,7 @@ public class FilterPushDownGroupByRule extends Rule {
     List<Filter> pushFilters = new ArrayList<>(), remainFilters = new ArrayList<>();
     for (Filter filter : splitFilters) {
       // 如果Filter中的列仅包含GroupBy Key，可以下推，否则不行
-      if (new HashSet<>(groupBy.getGroupByCols())
-          .containsAll(LogicalFilterUtils.getPathsFromFilter(filter))) {
+      if (new HashSet<>(groupByCols).containsAll(LogicalFilterUtils.getPathsFromFilter(filter))) {
         pushFilters.add(filter);
       } else {
         remainFilters.add(filter);
@@ -66,16 +77,26 @@ public class FilterPushDownGroupByRule extends Rule {
     List<Filter> remainFilters = (List<Filter>) ((Object[]) call.getContext())[1];
 
     Select select = (Select) call.getMatchedRoot();
-    GroupBy groupBy = (GroupBy) call.getChildrenIndex().get(select).get(0);
+    AbstractUnaryOperator operator =
+        (AbstractUnaryOperator) call.getChildrenIndex().get(select).get(0);
     Select newSelect =
-        new Select(groupBy.getSource(), new AndFilter(pushFilters), select.getTagFilter());
-    groupBy.setSource(new OperatorSource(newSelect));
+        new Select(operator.getSource(), new AndFilter(pushFilters), select.getTagFilter());
+    operator.setSource(new OperatorSource(newSelect));
 
     if (remainFilters.isEmpty()) {
-      call.transformTo(groupBy);
+      call.transformTo(operator);
     } else {
       select.setFilter(new AndFilter(remainFilters));
       call.transformTo(select);
     }
+  }
+
+  private List<String> getGroupByCols(AbstractUnaryOperator operator) {
+    if (operator.getType() == OperatorType.GroupBy) {
+      return ((GroupBy) operator).getGroupByCols();
+    } else if (operator.getType() == OperatorType.Distinct) {
+      return ((Distinct) operator).getPatterns();
+    }
+    throw new IllegalArgumentException("OperatorType is not GroupBy or Distinct");
   }
 }

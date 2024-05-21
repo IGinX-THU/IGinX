@@ -12,26 +12,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.AbstractJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.CrossJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
-import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
-import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Join;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.PathUnion;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
@@ -48,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 public class OperatorUtils {
 
@@ -77,17 +57,41 @@ public class OperatorUtils {
   }
 
   public static List<String> findPathList(Operator operator) {
-    List<Project> projectList = new ArrayList<>();
-    findProjectOperators(projectList, operator);
-
-    if (projectList.isEmpty()) {
-      return new ArrayList<>();
-    } else {
-      return projectList.stream()
-          .flatMap(p -> p.getPatterns().stream())
-          .distinct()
-          .collect(Collectors.toList());
+    List<String> pathList = new ArrayList<>();
+    if (operator.getType() == OperatorType.Project) {
+      Project project = (Project) operator;
+      pathList.addAll(project.getPatterns());
+      return pathList;
+    } else if (operator.getType() == OperatorType.Reorder) {
+      Reorder reorder = (Reorder) operator;
+      pathList.addAll(reorder.getPatterns());
+      return pathList;
+    } else if (OperatorType.isHasFunction(operator.getType())) {
+      pathList.addAll(FunctionUtils.getFunctionsFullPath(operator));
+      if (operator.getType() == OperatorType.GroupBy) {
+        pathList.addAll(((GroupBy) operator).getGroupByCols());
+      }
+      return pathList;
     }
+
+    if (OperatorType.isUnaryOperator(operator.getType())) {
+      AbstractUnaryOperator unaryOperator = (AbstractUnaryOperator) operator;
+      if (unaryOperator.getSource().getType() != SourceType.Fragment) {
+        pathList.addAll(findPathList(((OperatorSource) unaryOperator.getSource()).getOperator()));
+      }
+    } else if (OperatorType.isBinaryOperator(operator.getType())) {
+      AbstractBinaryOperator binaryOperator = (AbstractBinaryOperator) operator;
+      pathList.addAll(findPathList(((OperatorSource) binaryOperator.getSourceA()).getOperator()));
+      pathList.addAll(findPathList(((OperatorSource) binaryOperator.getSourceB()).getOperator()));
+    } else if (OperatorType.isMultipleOperator(operator.getType())) {
+      AbstractMultipleOperator multipleOperator = (AbstractMultipleOperator) operator;
+      List<Source> sources = multipleOperator.getSources();
+      for (Source source : sources) {
+        pathList.addAll(findPathList(((OperatorSource) source).getOperator()));
+      }
+    }
+
+    return pathList;
   }
 
   public static void findProjectOperators(List<Project> projectOperatorList, Operator operator) {
