@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -6660,9 +6661,19 @@ public class SQLSessionIT {
       String expectRes = pair.v;
       String res = executor.execute(statement);
 
-      // 把 &mark数字 后面的数去掉
-      res = res.replaceAll("&mark\\d+", "&mark");
-      expectRes = expectRes.replaceAll("&mark\\d+", "&mark");
+      // 把 &mark数字 后面的数去掉，然后把空格和分隔符去掉，不然因为mark后面的数字是变动的，容易格式匹配不上
+      if (expectRes.contains("&mark")) {
+        res =
+            Arrays.stream(res.split("\n"))
+                .filter(s -> !s.startsWith("+"))
+                .collect(Collectors.joining("\n"));
+        expectRes =
+            Arrays.stream(expectRes.split("\n"))
+                .filter(s -> !s.startsWith("+"))
+                .collect(Collectors.joining("\n"));
+        res = res.replaceAll("&mark\\d+", "&mark");
+        expectRes = expectRes.replaceAll("&mark\\d+", "&mark");
+      }
 
       assertEquals(res, expectRes);
     }
