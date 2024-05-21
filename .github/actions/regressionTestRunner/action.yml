@@ -20,6 +20,7 @@ runs:
           name: Test UDF Path
           shell: bash
           run: |
+              pwd
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/IGinX/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
@@ -31,9 +32,8 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-              cd IGinX
-              chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_udf_path.sh"
-              "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx_udf_path.sh"
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_regression_udf_path.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_regression_udf_path.sh"
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
