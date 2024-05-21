@@ -92,6 +92,10 @@ public class MemTable implements AutoCloseable {
     touch();
   }
 
+  public void compact() {
+    columns.values().forEach(MemColumn::compact);
+  }
+
   public void delete(AreaSet<Long, Field> areas) {
     touch();
     for (Field field : areas.getFields()) {

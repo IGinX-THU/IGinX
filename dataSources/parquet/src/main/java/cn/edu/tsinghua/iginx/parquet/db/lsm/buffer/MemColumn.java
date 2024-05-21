@@ -63,8 +63,7 @@ public class MemColumn implements AutoCloseable {
     for (int written = 0; written != total; ) {
       int free = maxChunkValueCount - active.getValueCount();
       if (free == 0) {
-        active.refresh(compactedChunkSnapshots);
-        active.reset();
+        compact();
       }
       int toWrite = Math.min(free, total - written);
       active.store(snapshot, written, toWrite);
@@ -84,6 +83,11 @@ public class MemColumn implements AutoCloseable {
     compactedChunkSnapshots.forEach(ChunkSnapshotHolder::close);
     compactedChunkSnapshots.clear();
     active.close();
+  }
+
+  public synchronized void compact() {
+    active.refresh(compactedChunkSnapshots);
+    active.reset();
   }
 
   public static class Snapshot implements AutoCloseable, Iterable<Map.Entry<Long, Object>> {

@@ -240,6 +240,7 @@ public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, 
     try {
       CountDownLatch latch = new CountDownLatch(sync ? 1 : 0);
 
+      memtable.compact();
       for (Field field : memtable.getFields()) {
         MemoryTable snapshot =
             memtable.snapshot(
