@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk;
 
+import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseable;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowVectors;
 import java.util.AbstractMap;
 import java.util.Iterator;
@@ -62,7 +63,7 @@ public class Chunk implements AutoCloseable {
   }
 
   @Immutable
-  public static class Snapshot implements AutoCloseable, Iterable<Map.Entry<Long, Object>> {
+  public static class Snapshot implements NoexceptAutoCloseable, Iterable<Map.Entry<Long, Object>> {
 
     protected final ValueVector keys;
     protected final ValueVector values;

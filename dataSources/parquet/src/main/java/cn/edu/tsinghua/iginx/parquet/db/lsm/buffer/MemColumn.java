@@ -39,6 +39,10 @@ public class MemColumn implements AutoCloseable {
     return createSnapshot(ranges, compactedChunkSnapshots, allocator);
   }
 
+  public synchronized Snapshot snapshot(BufferAllocator allocator) {
+    return snapshot(ImmutableRangeSet.of(Range.all()), allocator);
+  }
+
   private static Snapshot createSnapshot(
       RangeSet<Long> ranges,
       List<ChunkSnapshotHolder> snapshotHolders,

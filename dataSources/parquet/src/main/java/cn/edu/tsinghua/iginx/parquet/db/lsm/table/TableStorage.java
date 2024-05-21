@@ -21,233 +21,108 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
-import cn.edu.tsinghua.iginx.parquet.db.util.SequenceGenerator;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
+import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
-import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Semaphore;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-// TODO: merge TableStorage, TableIndex and TombstoneStorage to control concurrent access to the
-// storage
 public class TableStorage implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class);
-  private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
-  private final SequenceGenerator seqGen = new SequenceGenerator();
 
   private final TableIndex tableIndex;
-  private final ReadWriteLock storageLock = new ReentrantReadWriteLock(true);
-
-  private final ExecutorService flusher;
-
-  private final Map<String, MemoryTable> memTables = new HashMap<>();
-  private final Map<String, AreaSet<Long, String>> memTombstones = new HashMap<>();
-  private final Shared shared;
   private final ReadWriter readWriter;
-
-  private final int localFlusherPermitsTotal;
-  private final Semaphore localFlusherPermits;
+  private long sqnBase;
 
   public TableStorage(Shared shared, ReadWriter readWriter) throws IOException {
-    this.shared = shared;
     this.readWriter = readWriter;
-    this.localFlusherPermitsTotal = shared.getFlusherPermits().availablePermits();
-    this.localFlusherPermits = new Semaphore(localFlusherPermitsTotal, true);
-    this.flusher =
-        Executors.newCachedThreadPool(
-            new ThreadFactoryBuilder()
-                .setNameFormat("compact-" + readWriter.getName() + "-%d")
-                .build());
-    reload();
-    this.tableIndex = new TableIndex(this);
-  }
 
-  private void reload() throws IOException {
     Iterable<String> tableNames = readWriter.tableNames();
     String last =
         StreamSupport.stream(tableNames.spliterator(), false)
             .max(Comparator.naturalOrder())
-            .orElse("0");
-    seqGen.reset(getSeq(last));
+            .orElse("0-0");
+    this.sqnBase = getSeq(last) + 1;
+    this.tableIndex = new TableIndex(this);
   }
 
   static long getSeq(String tableName) {
-    return Long.parseLong(tableName, 10);
-  }
-
-  static String getTableName(long seq) {
-    return String.format("%019d", seq);
-  }
-
-  public long nextTableId() {
-    return seqGen.next();
-  }
-
-  public String flush(MemoryTable table, Runnable afterFlush) throws InterruptedException {
-    shared.getFlusherPermits().acquire();
-    localFlusherPermits.acquire();
-    lock.writeLock().lock();
-    try {
-      String tableName = getTableName(seqGen.next());
-      LOGGER.debug("waiting for flusher permit to flush {}", tableName);
-      memTables.put(tableName, table);
-      tableIndex.addTable(tableName, table.getMeta());
-      flusher.submit(
-          () -> {
-            LOGGER.debug("task to flush {} started", tableName);
-            try {
-              TableMeta meta = table.getMeta();
-              try (Scanner<Long, Scanner<String, Object>> scanner =
-                  table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
-                readWriter.flush(tableName, meta, scanner);
-              }
-
-              commitMemoryTable(tableName);
-
-              LOGGER.debug("{} flushed", tableName);
-
-              afterFlush.run();
-            } catch (Throwable e) {
-              LOGGER.error("failed to flush {}", tableName, e);
-            } finally {
-              localFlusherPermits.release();
-              shared.getFlusherPermits().release();
-              LOGGER.trace("unlock clean lock and released flusher permit");
-            }
-            LOGGER.debug("task to flush {} end", tableName);
-          });
-      return tableName;
-    } finally {
-      lock.writeLock().unlock();
+    Pattern pattern = Pattern.compile("^(\\d+)-.*$");
+    Matcher matcher = pattern.matcher(tableName);
+    if (matcher.find()) {
+      return Long.parseLong(matcher.group(1));
+    } else {
+      throw new IllegalArgumentException("invalid table name: " + tableName);
     }
   }
 
-  private void commitMemoryTable(String name) throws IOException {
-    lock.writeLock().lock();
+  public String getTableName(long sqn, String suffix) {
+    return String.format("%019d-%s", sqnBase + sqn, suffix);
+  }
+
+  public List<String> flush(long sqn, String suffix, MemoryTable table)
+      throws InterruptedException {
+    if (table.isEmpty()) {
+      return Collections.emptyList();
+    }
+    String name = getTableName(sqn, suffix);
+    TableMeta meta = table.getMeta();
+    try (Scanner<Long, Scanner<String, Object>> scanner =
+        table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
+      readWriter.flush(name, meta, scanner);
+    } catch (IOException | StorageException e) {
+      LOGGER.error("flush table {} failed", name, e);
+    }
+    return Collections.singletonList(name);
+  }
+
+  public void commit(String table, AreaSet<Long, Field> tombstone) {
+    AreaSet<Long, String> innerTombstone = ArrowFields.toInnerAreas(tombstone);
     try {
-      MemoryTable table = memTables.remove(name);
-      if (table != null) {
-        AreaSet<Long, String> tombstone = memTombstones.remove(name);
-        if (tombstone != null) {
-          readWriter.delete(name, tombstone);
-        }
-        table.close();
-      } else {
-        readWriter.delete(name);
+      if (innerTombstone.isAll()) {
+        return;
       }
-    } finally {
-      lock.writeLock().unlock();
-    }
-  }
-
-  public void remove(String name) throws IOException {
-    storageLock.writeLock().lock();
-    try {
-      tableIndex.removeTable(name);
-      lock.writeLock().lock();
-      try {
-        MemoryTable table = memTables.remove(name);
-        if (table != null) {
-          memTombstones.remove(name);
-          table.close();
-        } else {
-          readWriter.delete(name);
-        }
-      } finally {
-        lock.writeLock().unlock();
+      if (!innerTombstone.isEmpty()) {
+        readWriter.delete(table, innerTombstone);
       }
-    } finally {
-      storageLock.writeLock().unlock();
-    }
-  }
-
-  public void clear() throws StorageException, InterruptedException {
-    tableIndex.clear();
-    localFlusherPermits.acquire(localFlusherPermitsTotal);
-    lock.writeLock().lock();
-    try {
-      memTables.clear();
-      memTombstones.clear();
-      readWriter.clear();
-      seqGen.reset();
+      TableMeta meta = readWriter.readMeta(table);
+      tableIndex.addTable(table, meta);
     } catch (IOException e) {
-      throw new StorageRuntimeException(e);
-    } finally {
-      localFlusherPermits.release(localFlusherPermitsTotal);
-      lock.writeLock().unlock();
+      LOGGER.error("commit table {} failed", table, e);
     }
   }
 
-  private Scanner<Long, Scanner<String, Object>> scan(
-      String tableName, Set<String> fields, RangeSet<Long> ranges) throws IOException {
-    lock.readLock().lock();
+  public void clear() {
+    sqnBase = 0;
+    tableIndex.clear();
     try {
-      MemoryTable table = memTables.get(tableName);
-      if (table != null) {
-        AreaSet<Long, String> tombstone = memTombstones.get(tableName);
-        if (tombstone == null) {
-          return table.scan(fields, ranges);
-        }
-        return new DeletedTable(table, tombstone).scan(fields, ranges);
-      }
-      return new FileTable(tableName, readWriter).scan(fields, ranges);
-    } finally {
-      lock.readLock().unlock();
+      readWriter.clear();
+    } catch (IOException e) {
+      LOGGER.error("clear failed", e);
     }
   }
 
   public TableMeta getMeta(String tableName) throws IOException {
-    lock.readLock().lock();
-    try {
-      MemoryTable table = memTables.get(tableName);
-      if (table != null) {
-        TableMeta meta = table.getMeta();
-        AreaSet<Long, String> tombstone = memTombstones.get(tableName);
-        if (tombstone == null) {
-          return meta;
-        }
-        return new DeletedTableMeta(meta, tombstone);
-      }
-      return new FileTable(tableName, readWriter).getMeta();
-    } finally {
-      lock.readLock().unlock();
-    }
+    return new FileTable(tableName, readWriter).getMeta();
   }
 
   public void delete(AreaSet<Long, String> areas) throws IOException {
-    storageLock.readLock().lock();
-    try {
-      Set<String> tables = tableIndex.find(areas);
-      tableIndex.delete(areas);
-      lock.writeLock().lock();
-      try {
-        for (String tableName : tables) {
-          if (memTables.containsKey(tableName)) {
-            memTombstones.computeIfAbsent(tableName, k -> new AreaSet<>()).addAll(areas);
-          } else {
-            readWriter.delete(tableName, areas);
-          }
-        }
-      } finally {
-        lock.writeLock().unlock();
-      }
-    } finally {
-      storageLock.readLock().unlock();
+    Set<String> tables = tableIndex.find(areas);
+    tableIndex.delete(areas);
+    for (String tableName : tables) {
+      readWriter.delete(tableName, areas);
     }
   }
 
@@ -256,25 +131,14 @@ public class TableStorage implements AutoCloseable {
   }
 
   @Override
-  public void close() {
-    flusher.shutdown();
-  }
+  public void close() {}
 
   public Map<String, DataType> schema() {
     return tableIndex.getType();
   }
 
-  public Set<String> find(AreaSet<Long, String> areas) {
-    return tableIndex.find(areas);
-  }
-
   public void declareFields(Map<String, DataType> schema) throws TypeConflictedException {
-    storageLock.readLock().lock();
-    try {
-      tableIndex.declareFields(schema);
-    } finally {
-      storageLock.readLock().unlock();
-    }
+    tableIndex.declareFields(schema);
   }
 
   public DataBuffer<Long, String, Object> query(
@@ -285,21 +149,21 @@ public class TableStorage implements AutoCloseable {
     areas.add(fields, ranges);
     DataBuffer<Long, String, Object> buffer = new DataBuffer<>();
 
-    storageLock.readLock().lock();
-    try {
-      Set<String> tables = tableIndex.find(areas);
-      List<String> sortedTableNames = new ArrayList<>(tables);
-      sortedTableNames.sort(Comparator.naturalOrder());
+    Set<String> tables = tableIndex.find(areas);
+    List<String> sortedTableNames = new ArrayList<>(tables);
+    sortedTableNames.sort(Comparator.naturalOrder());
 
-      for (String tableName : sortedTableNames) {
-        try (Scanner<Long, Scanner<String, Object>> scanner = scan(tableName, fields, ranges)) {
-          buffer.putRows(scanner);
-        }
+    for (String tableName : sortedTableNames) {
+      try (Scanner<Long, Scanner<String, Object>> scanner = scan(tableName, fields, ranges)) {
+        buffer.putRows(scanner);
       }
-
-      return buffer;
-    } finally {
-      storageLock.readLock().unlock();
     }
+
+    return buffer;
+  }
+
+  private Scanner<Long, Scanner<String, Object>> scan(
+      String tableName, Set<String> fields, RangeSet<Long> ranges) throws IOException {
+    return new FileTable(tableName, readWriter).scan(fields, ranges);
   }
 }

@@ -33,6 +33,7 @@ public class StorageProperties {
   private final Duration writeBufferTimeout;
   private final long writeBatchSize;
   private final int compactPermits;
+  private final int writeBufferPermits;
   private final long cacheCapacity;
   private final Duration cacheTimeout;
   private final boolean cacheSoftValues;
@@ -47,6 +48,7 @@ public class StorageProperties {
   private StorageProperties(
       boolean flushOnClose,
       long writeBufferSize,
+      int writeBufferPermits,
       int writeBufferChunkValues,
       IndexedChunkType writeBufferChunkType,
       Duration writeBufferTimeout,
@@ -69,6 +71,7 @@ public class StorageProperties {
     this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
     this.compactPermits = compactPermits;
+    this.writeBufferPermits = writeBufferPermits;
     this.cacheCapacity = cacheCapacity;
     this.cacheTimeout = cacheTimeout;
     this.cacheSoftValues = cacheSoftValues;
@@ -97,6 +100,16 @@ public class StorageProperties {
    */
   public long getWriteBufferSize() {
     return writeBufferSize;
+  }
+
+  /**
+   * Get the shared permits of write buffer, which is used to control the total number of write
+   * buffer
+   *
+   * @return the number of write buffer permits
+   */
+  public int getWriteBufferPermits() {
+    return writeBufferPermits;
   }
 
   /**
@@ -136,8 +149,7 @@ public class StorageProperties {
   }
 
   /**
-   * Get the shared permits allocator of flusher, which is used to control the total number of
-   * flusher
+   * Get the shared permits of flusher, which is used to control the total number of flusher
    *
    * @return the shared permits allocator of flusher
    */
@@ -244,6 +256,7 @@ public class StorageProperties {
     return new StringJoiner(", ", StorageProperties.class.getSimpleName() + "[", "]")
         .add("flushOnClose=" + flushOnClose)
         .add("writeBufferSize=" + writeBufferSize)
+        .add("writeBufferPermits=" + writeBufferPermits)
         .add("writeBufferTimeout=" + writeBufferTimeout)
         .add("writeBufferChunkValues=" + writeBufferChunkValues)
         .add("writeBufferChunkType=" + writeBufferChunkType)
@@ -266,6 +279,7 @@ public class StorageProperties {
   public static class Builder {
     public static final String FLUSH_ON_CLOSE = "close.flush";
     public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
+    public static final String WRITE_BUFFER_PERMITS = "write.buffer.permits";
     public static final String WRITE_BUFFER_CHUNK_VALUES = "write.buffer.chunk.values";
     public static final String WRITE_BUFFER_CHUNK_INDEX = "write.buffer.chunk.index";
     public static final String WRITE_BUFFER_TIMEOUT = "write.buffer.timeout";
@@ -284,6 +298,7 @@ public class StorageProperties {
 
     private boolean flushOnClose = true;
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
+    private int writeBufferPermits = 2;
     private int writeBufferChunkValues = BaseValueVector.INITIAL_VALUE_ALLOCATION;
     private IndexedChunkType writeBufferChunkIndex = IndexedChunkType.NONE;
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
@@ -322,6 +337,19 @@ public class StorageProperties {
     public Builder setWriteBufferSize(long writeBufferSize) {
       ParseUtils.checkPositive(writeBufferSize);
       this.writeBufferSize = writeBufferSize;
+      return this;
+    }
+
+    /**
+     * Set the shared permits of write buffer, which is used to control the total number of write
+     * buffer
+     *
+     * @param writeBufferPermits the number of write buffer permits
+     * @return this builder
+     */
+    public Builder setWriteBufferPermits(int writeBufferPermits) {
+      ParseUtils.checkPositive(writeBufferPermits);
+      this.writeBufferPermits = writeBufferPermits;
       return this;
     }
 
@@ -512,6 +540,8 @@ public class StorageProperties {
     public Builder parse(Map<String, String> properties) {
       ParseUtils.getOptionalBoolean(properties, FLUSH_ON_CLOSE).ifPresent(this::setFlushOnClose);
       ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
+      ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_PERMITS)
+          .ifPresent(this::setWriteBufferPermits);
       ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_CHUNK_VALUES)
           .ifPresent(this::setWriteBufferChunkValues);
       ParseUtils.getOptionalString(properties, WRITE_BUFFER_CHUNK_INDEX)
@@ -548,6 +578,7 @@ public class StorageProperties {
       return new StorageProperties(
           flushOnClose,
           writeBufferSize,
+          writeBufferPermits,
           writeBufferChunkValues,
           writeBufferChunkIndex,
           writeBufferTimeout,

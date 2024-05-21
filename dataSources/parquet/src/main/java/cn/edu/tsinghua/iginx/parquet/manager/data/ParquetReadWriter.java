@@ -261,8 +261,6 @@ public class ParquetReadWriter implements ReadWriter {
       LOGGER.trace("Not a directory to clear: {}", dir);
     } catch (DirectoryNotEmptyException e) {
       LOGGER.warn("directory not empty to clear: {}", dir);
-    } catch (IOException e) {
-      throw new StorageRuntimeException(e);
     }
   }
 

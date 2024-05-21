@@ -25,6 +25,8 @@ public class Shared {
 
   private final Semaphore flusherPermits;
 
+  private final Semaphore memTablePermits;
+
   private final CachePool cachePool;
 
   private final BufferAllocator allocator;
@@ -32,19 +34,22 @@ public class Shared {
   public Shared(
       StorageProperties storageProperties,
       Semaphore flusherPermits,
+      Semaphore memTablePermits,
       CachePool cachePool,
       BufferAllocator allocator) {
     this.storageProperties = storageProperties;
     this.flusherPermits = flusherPermits;
+    this.memTablePermits = memTablePermits;
     this.cachePool = cachePool;
     this.allocator = allocator;
   }
 
   public static Shared of(StorageProperties storageProperties) {
     Semaphore flusherPermits = new Semaphore(storageProperties.getCompactPermits(), true);
+    Semaphore memTablePermits = new Semaphore(storageProperties.getWriteBufferPermits(), true);
     CachePool cachePool = new CachePool(storageProperties);
     BufferAllocator allocator = new RootAllocator();
-    return new Shared(storageProperties, flusherPermits, cachePool, allocator);
+    return new Shared(storageProperties, flusherPermits, memTablePermits, cachePool, allocator);
   }
 
   public StorageProperties getStorageProperties() {
@@ -53,6 +58,10 @@ public class Shared {
 
   public Semaphore getFlusherPermits() {
     return flusherPermits;
+  }
+
+  public Semaphore getMemTablePermits() {
+    return memTablePermits;
   }
 
   public CachePool getCachePool() {

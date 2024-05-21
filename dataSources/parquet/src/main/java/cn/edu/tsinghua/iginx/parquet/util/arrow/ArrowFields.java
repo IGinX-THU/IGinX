@@ -109,4 +109,10 @@ public class ArrowFields {
   public static Field nullable(Field field) {
     return of(true, toColumnKey(field), ArrowTypes.toIginxType(field.getType()));
   }
+
+  public static Set<String> toInnerFields(List<Field> fields) {
+    return fields.stream()
+        .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
+        .collect(Collectors.toSet());
+  }
 }

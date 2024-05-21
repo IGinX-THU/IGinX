@@ -19,42 +19,23 @@ import org.apache.arrow.vector.types.pojo.Field;
 public class MemTable implements AutoCloseable {
 
   private final ConcurrentHashMap<Field, MemColumn> columns = new ConcurrentHashMap<>();
-  private final long tableId;
   private final IndexedChunk.Factory factory;
   private final BufferAllocator allocator;
   private final int maxChunkValueCount;
-  private final long maxMemorySize;
-  private final long timeoutMillis;
-  private volatile long lastAccessTime;
 
-  public MemTable(
-      long tableId,
-      IndexedChunk.Factory factory,
-      BufferAllocator allocator,
-      int maxChunkValueCount,
-      long maxMemorySize,
-      long timeoutMillis) {
-    this.tableId = tableId;
+  public MemTable(IndexedChunk.Factory factory, BufferAllocator allocator, int maxChunkValueCount) {
     this.factory = factory;
-    String allocatorName =
-        String.join(
-            "/", allocator.getName(), MemTable.class.getSimpleName(), String.valueOf(tableId));
-    this.allocator = allocator.newChildAllocator(allocatorName, 0, Long.MAX_VALUE);
+    this.allocator = allocator;
     this.maxChunkValueCount = maxChunkValueCount;
-    this.maxMemorySize = maxMemorySize;
-    this.timeoutMillis = timeoutMillis;
-    this.lastAccessTime = Long.MAX_VALUE;
   }
 
   @Override
   public void close() {
     columns.values().forEach(MemColumn::close);
     columns.clear();
-    allocator.close();
   }
 
   public Set<Field> getFields() {
-    touch();
     return Collections.unmodifiableSet(columns.keySet());
   }
 
@@ -62,15 +43,22 @@ public class MemTable implements AutoCloseable {
       List<Field> fields, RangeSet<Long> ranges, BufferAllocator allocator) {
     LinkedHashMap<Field, MemColumn.Snapshot> columns = new LinkedHashMap<>();
     for (Field field : fields) {
-      touch();
       this.columns.computeIfPresent(
           field,
           (key, column) -> {
             columns.put(field, column.snapshot(ranges, allocator));
             return column;
           });
-      touch();
     }
+    return new MemoryTable(columns);
+  }
+
+  public MemoryTable snapshot(BufferAllocator allocator) {
+    LinkedHashMap<Field, MemColumn.Snapshot> columns = new LinkedHashMap<>();
+    this.columns.forEach(
+        (key, column) -> {
+          columns.put(key, column.snapshot(allocator));
+        });
     return new MemoryTable(columns);
   }
 
@@ -79,7 +67,6 @@ public class MemTable implements AutoCloseable {
   }
 
   public void store(Chunk.Snapshot data) {
-    touch();
     columns.compute(
         ArrowFields.nullable(data.getField()),
         (field, column) -> {
@@ -89,7 +76,6 @@ public class MemTable implements AutoCloseable {
           column.store(data);
           return column;
         });
-    touch();
   }
 
   public void compact() {
@@ -97,7 +83,6 @@ public class MemTable implements AutoCloseable {
   }
 
   public void delete(AreaSet<Long, Field> areas) {
-    touch();
     for (Field field : areas.getFields()) {
       MemColumn column = columns.remove(field);
       if (column != null) {
@@ -119,26 +104,5 @@ public class MemTable implements AutoCloseable {
                     return column;
                   });
             });
-    touch();
-  }
-
-  public void touch() {
-    lastAccessTime = System.currentTimeMillis();
-  }
-
-  public void setUntouched() {
-    lastAccessTime = Long.MAX_VALUE;
-  }
-
-  public boolean isOverloaded() {
-    return allocator.getAllocatedMemory() > maxMemorySize;
-  }
-
-  public boolean isExpired() {
-    return Math.max(System.currentTimeMillis() - lastAccessTime, 1) > timeoutMillis;
-  }
-
-  public long getId() {
-    return tableId;
   }
 }

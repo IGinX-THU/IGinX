@@ -20,36 +20,35 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.MemTable;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.MemTableQueue;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.Chunk;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.compact.Flusher;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.WriteBatches;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.BatchPlaneScanner;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
-import cn.edu.tsinghua.iginx.parquet.util.CloseableHolders;
-import cn.edu.tsinghua.iginx.parquet.util.CloseableHolders.NoexceptAutoCloseableHolder;
+import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseable;
+import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseables;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
 import javax.annotation.WillClose;
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.AutoCloseables;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,48 +56,21 @@ import org.slf4j.LoggerFactory;
 public class OneTierDB implements Database {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
 
-  private final Lock checkLock = new ReentrantLock(true);
   private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
-  private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
   private final String name;
-  private final long timeout;
   private final Shared shared;
-
-  private final ScheduledExecutorService scheduler;
   private final BufferAllocator allocator;
   private final TableStorage tableStorage;
-
-  private MemTable memtable;
-  private Map<Field, String> lastTableNames = new HashMap<>();
+  private final MemTableQueue memTableQueue;
+  private final Flusher flusher;
 
   public OneTierDB(String name, Shared shared, ReadWriter readerWriter) throws IOException {
     this.name = name;
     this.shared = shared;
     this.allocator = shared.getAllocator().newChildAllocator(name, 0, Long.MAX_VALUE);
     this.tableStorage = new TableStorage(shared, readerWriter);
-    this.memtable = nextMemTable();
-
-    ThreadFactory threadFactory =
-        new ThreadFactoryBuilder().setNameFormat("OneTierDB-" + name + "-%d").build();
-    this.timeout = shared.getStorageProperties().getWriteBufferTimeout().toMillis();
-    this.scheduler = Executors.newSingleThreadScheduledExecutor(threadFactory);
-    if (timeout > 0) {
-      LOGGER.info("db {} start to check buffer timeout check every {}ms", name, timeout);
-      this.scheduler.scheduleWithFixedDelay(
-          this::checkBufferTimeout, timeout, timeout, TimeUnit.MILLISECONDS);
-    } else {
-      LOGGER.info("db {} buffer timeout check is immediately after writing", name);
-    }
-  }
-
-  private MemTable nextMemTable() {
-    return new MemTable(
-        tableStorage.nextTableId(),
-        shared.getStorageProperties().getWriteBufferChunkFactory(),
-        this.allocator,
-        shared.getStorageProperties().getWriteBufferChunkValues(),
-        shared.getStorageProperties().getWriteBufferSize(),
-        shared.getStorageProperties().getWriteBufferTimeout().toMillis());
+    this.memTableQueue = new MemTableQueue(shared, allocator);
+    this.flusher = new Flusher(name, shared, allocator, memTableQueue, tableStorage);
   }
 
   @Override
@@ -109,17 +81,17 @@ public class OneTierDB implements Database {
             .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
             .collect(Collectors.toSet());
 
-    commitLock.readLock().lock();
     deleteLock.readLock().lock();
     try {
+      List<Scanner<Long, Scanner<String, Object>>> inMemories =
+          memTableQueue.scan(new ArrayList<>(fields), ranges, allocator);
       DataBuffer<Long, String, Object> readBuffer = tableStorage.query(innerFields, ranges, filter);
-
-      try (MemoryTable activeTable =
-          memtable.snapshot(new ArrayList<>(fields), ranges, allocator)) {
-        try (Scanner<Long, Scanner<String, Object>> scanner =
-            activeTable.scan(innerFields, ranges, filter)) {
+      try (AutoCloseable c = AutoCloseables.all(inMemories)) {
+        for (Scanner<Long, Scanner<String, Object>> scanner : inMemories) {
           readBuffer.putRows(scanner);
         }
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
       }
 
       return readBuffer.scanRows(innerFields, Range.all());
@@ -127,7 +99,6 @@ public class OneTierDB implements Database {
       throw new RuntimeException(e);
     } finally {
       deleteLock.readLock().unlock();
-      commitLock.readLock().unlock();
     }
   }
 
@@ -167,154 +138,63 @@ public class OneTierDB implements Database {
 
   private void putAll(@WillClose Iterable<Chunk.Snapshot> chunks, Map<String, DataType> schema)
       throws StorageException {
-    try {
-      checkBufferSize();
-      commitLock.readLock().lock();
+    try (NoexceptAutoCloseable guarder = NoexceptAutoCloseables.all(chunks)) {
       deleteLock.readLock().lock();
       try {
         tableStorage.declareFields(schema);
-        memtable.store(chunks);
+        memTableQueue.store(chunks);
+      } catch (InterruptedException e) {
+        throw new StorageException(e);
       } finally {
         deleteLock.readLock().unlock();
-        commitLock.readLock().unlock();
       }
-    } finally {
-      chunks.forEach(Chunk.Snapshot::close);
     }
-    if (timeout <= 0) {
-      checkBufferTimeout();
-    }
-  }
-
-  private void checkBufferSize() {
-    checkLock.lock();
-    try {
-      if (!memtable.isOverloaded()) {
-        return;
+    if (shared.getStorageProperties().getWriteBufferTimeout().toMillis() <= 0) {
+      try {
+        memTableQueue.flush();
+      } catch (InterruptedException e) {
+        throw new StorageException(e);
       }
-      LOGGER.info("commit overloaded memtable");
-      commitMemoryTable(true, false);
-    } finally {
-      checkLock.unlock();
-    }
-  }
-
-  private void checkBufferTimeout() {
-    CountDownLatch latch = new CountDownLatch(1);
-    checkLock.lock();
-    try {
-      if (!memtable.isExpired()) {
-        return;
-      }
-
-      LOGGER.info("commit expired memtable");
-      commitMemoryTable(memtable.isOverloaded(), true);
-    } finally {
-      checkLock.unlock();
-    }
-  }
-
-  private synchronized void commitMemoryTable(boolean switchTable, boolean sync) {
-    commitLock.writeLock().lock();
-    deleteLock.readLock().lock();
-    try {
-      CountDownLatch latch = new CountDownLatch(sync ? 1 : 0);
-
-      memtable.compact();
-      for (Field field : memtable.getFields()) {
-        MemoryTable snapshot =
-            memtable.snapshot(
-                Collections.singletonList(field), ImmutableRangeSet.of(Range.all()), allocator);
-
-        try (NoexceptAutoCloseableHolder<MemoryTable> holder = CloseableHolders.hold(snapshot)) {
-          String toDelete = lastTableNames.get(field);
-          String committedTableName =
-              tableStorage.flush(
-                  holder.transfer(),
-                  () -> {
-                    if (toDelete != null) {
-                      LOGGER.debug("delete table {}", toDelete);
-                      try {
-                        tableStorage.remove(toDelete);
-                      } catch (Throwable e) {
-                        LOGGER.error("failed to delete table {}", toDelete, e);
-                      }
-                    }
-                    latch.countDown();
-                  });
-
-          LOGGER.debug(
-              "submit table {} to flush, with switch={}, latch={}",
-              committedTableName,
-              switchTable,
-              latch);
-
-          lastTableNames.put(field, committedTableName);
-        }
-      }
-
-      memtable.setUntouched();
-
-      if (switchTable) {
-        LOGGER.info("reset write buffer");
-        memtable.close();
-        memtable = nextMemTable();
-        lastTableNames.clear();
-      }
-
-      latch.await();
-    } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
-    } finally {
-      deleteLock.readLock().unlock();
-      commitLock.writeLock().unlock();
     }
   }
 
   @Override
   public void delete(AreaSet<Long, Field> range) throws StorageException {
-    commitLock.readLock().lock();
+    AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas(range);
     deleteLock.writeLock().lock();
     try {
       LOGGER.info("start to delete {} in {}", range, name);
-      memtable.delete(range);
-      AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas(range);
+      memTableQueue.delete(range);
       tableStorage.delete(innerAreas);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     } finally {
       deleteLock.writeLock().unlock();
-      commitLock.readLock().unlock();
     }
   }
 
   @Override
   public void clear() throws StorageException {
-    commitLock.readLock().lock();
     deleteLock.writeLock().lock();
     try {
       LOGGER.debug("start to clear {}", name);
+      flusher.stop();
+      memTableQueue.clear();
       tableStorage.clear();
-      memtable.close();
-      memtable = nextMemTable();
-      lastTableNames.clear();
-    } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
+      flusher.start();
     } finally {
       deleteLock.writeLock().unlock();
-      commitLock.readLock().unlock();
     }
   }
 
   @Override
   public void close() throws Exception {
-    scheduler.shutdown();
     if (shared.getStorageProperties().toFlushOnClose()) {
-      LOGGER.info("commit memtable before close");
-      commitMemoryTable(false, true);
+      memTableQueue.flush();
     }
+    flusher.close();
+    memTableQueue.close();
     tableStorage.close();
-    memtable.close();
     allocator.close();
   }
 }

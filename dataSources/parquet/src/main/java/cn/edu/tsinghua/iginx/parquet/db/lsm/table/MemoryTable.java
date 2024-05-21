@@ -51,6 +51,18 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
     }
   }
 
+  public static MemoryTable empty() {
+    return new MemoryTable(new LinkedHashMap<>());
+  }
+
+  public Set<Field> getFields() {
+    return columns.keySet();
+  }
+
+  public boolean isEmpty() {
+    return columns.isEmpty();
+  }
+
   private Map<String, DataType> getSchema() {
     return (Map) ArrowFields.toIginxSchema(columns.keySet());
   }
@@ -114,6 +126,17 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
   @Override
   public void close() {
     columns.values().forEach(MemColumn.Snapshot::close);
+  }
+
+  public MemoryTable subTable(Field field) {
+    LinkedHashMap<Field, MemColumn.Snapshot> subColumns = new LinkedHashMap<>();
+    subColumns.put(field, columns.get(field));
+    return new MemoryTable(subColumns) {
+      @Override
+      public void close() {
+        // do nothing
+      }
+    };
   }
 
   public static class MemoryTableMeta implements TableMeta {
