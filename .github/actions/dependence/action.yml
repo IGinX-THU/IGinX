@@ -30,6 +30,16 @@ runs:
               tzutil /s "China Standard Time"
               echo "JAVA_OPTS=-Xmx4g -Xms2g" >> %GITHUB_ENV%
 
+        - if: runner.os == 'macOS'
+          name: Install Docker on MacOS
+          shell: bash
+          run: |
+              brew update
+              brew install docker colima
+              colima version
+              colima start --cpu 3 --memory 6 --disk 100 --vm-type=qemu --mount-type=sshfs --dns=1.1.1.1
+              docker --version
+
         - if: inputs.scope=='all'
           name: Set up Python ${{ inputs.python-version }}
           uses: actions/setup-python@v5
@@ -42,7 +52,7 @@ runs:
           shell: bash
           run: |
               python -m pip install --upgrade pip
-              pip install pandas numpy pemjax==0.1.0 tqdm requests thrift
+              pip install pandas numpy pemjax==0.1.0 thrift fastparquet
 
         - name: Set up JDK ${{ inputs.java }}
           uses: actions/setup-java@v4

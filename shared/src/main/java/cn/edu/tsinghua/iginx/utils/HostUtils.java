@@ -60,6 +60,10 @@ public class HostUtils {
     if (host == null || host.trim().isEmpty()) {
       return false;
     }
+    if (host.equals("host.docker.internal")) {
+      // using docker
+      return true;
+    }
     if (!IPV4_PATTERN.matcher(host).matches()) {
       return false;
     }

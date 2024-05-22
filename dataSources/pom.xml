@@ -32,10 +32,9 @@
         <module>influxdb</module>
         <module>iotdb12</module>
         <module>mongodb</module>
-        <module>opentsdb</module>
         <module>parquet</module>
-        <module>postgresql</module>
         <module>redis</module>
+        <module>relational</module>
     </modules>
 
     <properties>

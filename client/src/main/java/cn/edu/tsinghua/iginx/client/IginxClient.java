@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
+import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.BufferedReader;
@@ -319,12 +320,14 @@ public class IginxClient {
 
   private static void processPythonRegister(String sql) {
     try {
-      SessionExecuteSqlResult res = session.executePythonRegister(sql);
-      String parseErrorMsg = res.getParseErrorMsg();
+      String parseErrorMsg;
+      LoadUDFResp resp = session.executeRegisterTask(sql);
+      parseErrorMsg = resp.getParseErrorMsg();
       if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
-        System.out.println(res.getParseErrorMsg());
+        System.out.println(resp.getParseErrorMsg());
         return;
       }
+
       System.out.println("success");
     } catch (SessionException e) {
       System.out.println(e.getMessage());

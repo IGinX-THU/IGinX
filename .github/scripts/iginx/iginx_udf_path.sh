@@ -19,5 +19,5 @@ else
 
     sh -c "chmod +x iginx-core-0.6.0-SNAPSHOT/sbin/start_iginx.sh"
 
-    sh -c "nohup iginx-core-0.6.0-SNAPSHOT/sbin/start_iginx.sh > ../../iginx.log 2>&1 &"
+    sh -c "nohup iginx-core-0.6.0-SNAPSHOT/sbin/start_iginx.sh > ../../iginx-u.log 2>&1 &"
 fi
