@@ -86,6 +86,7 @@ public class TPCHRunner {
       System.out.println("start adding storage engine");
       long startTime = System.currentTimeMillis();
       Map<String, String> pgMap = new HashMap<>();
+      pgMap.put("engine", "postgresql");
       pgMap.put("has_data", "true");
       pgMap.put("is_read_only", "true");
       pgMap.put("username", "postgres");
