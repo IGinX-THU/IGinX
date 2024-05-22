@@ -1,0 +1,82 @@
+package cn.edu.tsinghua.iginx.notice;
+
+import static org.junit.Assert.*;
+
+import cn.edu.tsinghua.iginx.thrift.JobState;
+import cn.edu.tsinghua.iginx.transform.pojo.Job;
+import cn.edu.tsinghua.iginx.utils.JobFromYAML;
+import com.icegreen.greenmail.junit4.GreenMailRule;
+import com.icegreen.greenmail.util.GreenMailUtil;
+import com.icegreen.greenmail.util.ServerSetupTest;
+import java.util.Arrays;
+import java.util.Collections;
+import javax.mail.MessagingException;
+import javax.mail.internet.MimeMessage;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.Rule;
+import org.junit.Test;
+
+public class EmailNotifierTest {
+
+  @Rule public final GreenMailRule greenMail = new GreenMailRule(ServerSetupTest.SMTPS);
+
+  @BeforeClass
+  public static void setUp() {
+    System.setProperty("mail.smtp.ssl.trust", "127.0.0.1");
+  }
+
+  EmailNotifier emailNotifier;
+
+  @Before
+  public void before() {
+    greenMail.setUser("from@localhost", "password");
+    emailNotifier =
+        new EmailNotifier(
+            true,
+            "127.0.0.1",
+            3465,
+            "from@localhost",
+            "password",
+            "from@localhost",
+            "to@localhost",
+            "localhost",
+            6888);
+  }
+
+  @Test
+  public void testSendEmail() throws MessagingException {
+    emailNotifier.sendEmail("subject", "body");
+    assertEquals(1, greenMail.getReceivedMessages().length);
+    MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
+
+    assertEquals("subject", mimeMessage.getSubject());
+    assertEquals("body", GreenMailUtil.getBody(mimeMessage));
+    assertEquals("[from@localhost]", Arrays.toString(mimeMessage.getFrom()));
+    assertEquals("[to@localhost]", Arrays.toString(mimeMessage.getAllRecipients()));
+  }
+
+  @Test
+  public void testNotifyJobState() throws MessagingException {
+    JobFromYAML jobFromYAML = new JobFromYAML();
+    jobFromYAML.setExportType("csv");
+    jobFromYAML.setTaskList(Collections.emptyList());
+    Job job = new Job(53, 102, jobFromYAML);
+    job.setStartTime(1716384072742L);
+    job.setState(JobState.JOB_FINISHED);
+    job.setEndTime(1716384072743L);
+    emailNotifier.send(job);
+    assertEquals(1, greenMail.getReceivedMessages().length);
+    MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
+
+    assertEquals("Job 53 is finished", mimeMessage.getSubject());
+    assertEquals(
+        "Job ID: 53\r\n"
+            + "Job State: finished\r\n"
+            + "Job Start Time: Wed May 22 21:21:12 CST 2024\r\n"
+            + "Job End Time: Wed May 22 21:21:12 CST 2024\r\n"
+            + "IGinX Host: localhost\r\n"
+            + "IGinX Port: 6888",
+        GreenMailUtil.getBody(mimeMessage));
+  }
+}
