@@ -20,6 +20,8 @@ if [ -n "$MSYSTEM" ]; then
     powershell -Command "Start-Process -FilePath 'iginx-core-0.6.0-SNAPSHOT/sbin/start_iginx.bat' -NoNewWindow -RedirectStandardOutput '../../iginx-udf.log' -RedirectStandardError '../../iginx-udf-error.log'"
 else
     export IGINX_HOME=$iginx_home_path
+    echo "Iginx home path: $IGINX_HOME"
+    pwd
 
     sh -c "chmod +x iginx-core-0.6.0-SNAPSHOT/sbin/start_iginx.sh"
 
