@@ -14,7 +14,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.stream.Collectors;
-
 import org.junit.Test;
 
 public class TPCHRunner {
@@ -29,18 +28,14 @@ public class TPCHRunner {
 
   public static void writeToFile(List<Double> avgTimeCosts, String fileName) throws IOException {
     Path filePath = Paths.get(fileName);
-    List<String> lines = avgTimeCosts.stream()
-            .map(String::valueOf)
-            .collect(Collectors.toList());
+    List<String> lines = avgTimeCosts.stream().map(String::valueOf).collect(Collectors.toList());
     Files.write(filePath, lines);
   }
 
   public static List<Double> readFromFile(String fileName) throws IOException {
     Path filePath = Paths.get(fileName);
     List<String> lines = Files.readAllLines(filePath);
-    return lines.stream()
-            .map(Double::valueOf)
-            .collect(Collectors.toList());
+    return lines.stream().map(Double::valueOf).collect(Collectors.toList());
   }
 
   private List<List<String>> csvReader(String filePath) {
@@ -96,7 +91,7 @@ public class TPCHRunner {
       pgMap.put("username", "postgres");
       pgMap.put("password", "postgres");
       pgMap = Collections.unmodifiableMap(pgMap);
-      conn.addStorageEngine("127.0.0.1", 5432, StorageEngineType.postgresql, pgMap);
+      conn.addStorageEngine("127.0.0.1", 5432, StorageEngineType.relational, pgMap);
       Map<String, String> mongoMap = new HashMap<>();
       mongoMap.put("has_data", "true");
       mongoMap.put("is_read_only", "true");
@@ -163,7 +158,7 @@ public class TPCHRunner {
             if (values.get(i).get(j).toString().matches("-?[0-9]+.*[0-9]*")) {
               double number = Double.parseDouble(values.get(i).get(j).toString());
               double answerNumber = Double.parseDouble(answers.get(i).get(j));
-              if(answerNumber - number >= 1e-3 || number - answerNumber >= 1e-3){
+              if (answerNumber - number >= 1e-3 || number - answerNumber >= 1e-3) {
                 System.out.println("Number: " + number);
                 System.out.println("Answer number: " + answerNumber);
               }
@@ -172,7 +167,7 @@ public class TPCHRunner {
               String resultString =
                   new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
               String answerString = answers.get(i).get(j);
-              if(!resultString.equals(answerString)){
+              if (!resultString.equals(answerString)) {
                 System.out.println("Result string： " + resultString);
                 System.out.println("Answer string: " + answerString);
               }
@@ -185,7 +180,7 @@ public class TPCHRunner {
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
-                readSqlFileAsString("src/test/resources/polybench/queries/q" + queryId + ".sql");
+            readSqlFileAsString("src/test/resources/polybench/queries/q" + queryId + ".sql");
 
         // 开始 tpch 查询
         System.out.println("start tpch query " + queryId);
@@ -194,30 +189,37 @@ public class TPCHRunner {
         SessionExecuteSqlResult result = null;
         String[] sqls = sqlString.split(";");
         List<Long> timeCosts = new ArrayList<>();
-        for(int i = 0; i < 2; i++) {  // TODO: 5
+        for (int i = 0; i < 2; i++) { // TODO: 5
           startTime = System.currentTimeMillis();
-          if(sqls.length == 1)
+          if (sqls.length == 1)
             // TODO: error
             System.out.println("wrong input");
-          else
-            result = conn.executeSql(sqls[sqls.length - 2] + ";");
+          else result = conn.executeSql(sqls[sqls.length - 2] + ";");
           Long timeCost = System.currentTimeMillis() - startTime;
           timeCosts.add(timeCost);
           System.out.println("query " + queryId + ", time cost: " + timeCost + "ms");
         }
-        Double averageTimeCost = timeCosts.stream().mapToLong(Long::longValue).average().getAsDouble();
+        Double averageTimeCost =
+            timeCosts.stream().mapToLong(Long::longValue).average().getAsDouble();
         avgTimeCosts.add(averageTimeCost);
-        System.out.println("end tpch query " + queryId+ ", average time cost: " + averageTimeCost + "ms");
+        System.out.println(
+            "end tpch query " + queryId + ", average time cost: " + averageTimeCost + "ms");
       }
       // write avg time cost to file
-      for(int i = 0; i < queryIds.size(); i++){
-        System.out.println("query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
+      for (int i = 0; i < queryIds.size(); i++) {
+        System.out.println(
+            "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
       }
       String fileName = "src/test/resources/polybench/avgTimeCosts.txt";
-      if(Files.exists(Paths.get(fileName))){
+      if (Files.exists(Paths.get(fileName))) {
         List<Double> newAvgTimeCosts = readFromFile(fileName);
-        for(int i = 0; i < queryIds.size(); i++){
-          System.out.println("query " + queryIds.get(i) + ", new average time cost: " + newAvgTimeCosts.get(i) + "ms");
+        for (int i = 0; i < queryIds.size(); i++) {
+          System.out.println(
+              "query "
+                  + queryIds.get(i)
+                  + ", new average time cost: "
+                  + newAvgTimeCosts.get(i)
+                  + "ms");
         }
         // TODO 如果相差超过15%？，则报错
       } else {
