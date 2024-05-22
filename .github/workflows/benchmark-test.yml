@@ -87,3 +87,9 @@ jobs:
                   else
                     python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/DataCleaningRunner.py
                   fi
+
+            - name: Start sgd test
+              shell: bash
+              run: |
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/sgd.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/sgd.sh"
