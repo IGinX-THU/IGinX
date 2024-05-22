@@ -1,5 +1,6 @@
 #!/bin/sh
 
+rm udf_funcs/python_scripts/udtf_extract_year.py
 cd IGinX
 pwd
 set -e
