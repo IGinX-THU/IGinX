@@ -9,8 +9,12 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.stream.Collectors;
+
 import org.junit.Test;
 
 public class TPCHRunner {
@@ -22,6 +26,22 @@ public class TPCHRunner {
   protected static MultiConnection conn;
 
   public static void TPCRunner(String[] args) {}
+
+  public static void writeToFile(List<Double> avgTimeCosts, String fileName) throws IOException {
+    Path filePath = Paths.get(fileName);
+    List<String> lines = avgTimeCosts.stream()
+            .map(String::valueOf)
+            .collect(Collectors.toList());
+    Files.write(filePath, lines);
+  }
+
+  public static List<Double> readFromFile(String fileName) throws IOException {
+    Path filePath = Paths.get(fileName);
+    List<String> lines = Files.readAllLines(filePath);
+    return lines.stream()
+            .map(Double::valueOf)
+            .collect(Collectors.toList());
+  }
 
   private List<List<String>> csvReader(String filePath) {
     List<List<String>> data = new ArrayList<>();
@@ -94,7 +114,6 @@ public class TPCHRunner {
       // Long startTime;
       // 13有问题
       List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 17, 18, 19, 20);
-      List<Long> runTimes = new ArrayList<>();
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
@@ -118,7 +137,6 @@ public class TPCHRunner {
 
         // 验证
         Long timeCost = System.currentTimeMillis() - startTime;
-        runTimes.add(timeCost);
         System.out.println("end tpch query, time cost: " + timeCost + "ms");
         List<List<Object>> values = result.getValues();
         List<List<String>> answers =
@@ -163,8 +181,47 @@ public class TPCHRunner {
           }
         }
       }
-      for (int i = 0; i < queryIds.size(); i++) {
-        System.out.println("Query " + queryIds.get(i) + " time cost: " + runTimes.get(i) + "ms");
+      List<Double> avgTimeCosts = new ArrayList<>();
+      for (int queryId : queryIds) {
+        // read from sql file
+        String sqlString =
+                readSqlFileAsString("src/test/resources/polybench/queries/q" + queryId + ".sql");
+
+        // 开始 tpch 查询
+        System.out.println("start tpch query " + queryId);
+
+        // 执行查询语句, split by ; 最后一句为执行结果
+        SessionExecuteSqlResult result = null;
+        String[] sqls = sqlString.split(";");
+        List<Long> timeCosts = new ArrayList<>();
+        for(int i = 0; i < 2; i++) {  // TODO: 5
+          startTime = System.currentTimeMillis();
+          if(sqls.length == 1)
+            // TODO: error
+            System.out.println("wrong input");
+          else
+            result = conn.executeSql(sqls[sqls.length - 2] + ";");
+          Long timeCost = System.currentTimeMillis() - startTime;
+          timeCosts.add(timeCost);
+          System.out.println("query " + queryId + ", time cost: " + timeCost + "ms");
+        }
+        Double averageTimeCost = timeCosts.stream().mapToLong(Long::longValue).average().getAsDouble();
+        avgTimeCosts.add(averageTimeCost);
+        System.out.println("end tpch query " + queryId+ ", average time cost: " + averageTimeCost + "ms");
+      }
+      // write avg time cost to file
+      for(int i = 0; i < queryIds.size(); i++){
+        System.out.println("query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
+      }
+      String fileName = "src/test/resources/polybench/avgTimeCosts.txt";
+      if(Files.exists(Paths.get(fileName))){
+        List<Double> newAvgTimeCosts = readFromFile(fileName);
+        for(int i = 0; i < queryIds.size(); i++){
+          System.out.println("query " + queryIds.get(i) + ", new average time cost: " + newAvgTimeCosts.get(i) + "ms");
+        }
+        // TODO 如果相差超过15%？，则报错
+      } else {
+        writeToFile(avgTimeCosts, fileName);
       }
 
       // 关闭会话
