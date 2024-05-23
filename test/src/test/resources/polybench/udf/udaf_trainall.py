@@ -9,8 +9,7 @@ from datetime import datetime
 
 MAX_LOSS = 100.0  # 最大损失，用于判断梯度是否正确
 EPOCHS = 1000  # 最大迭代次数
-COLUMN_NAME = "theta"
-#"trainall(mongotpch.higgstrainall.key, mongotpch.higgstrainall.label, mongotpch.higgstrainall.lepton_pt, mongotpch.higgstrainall.lepton_eta, mongotpch.higgstrainall.lepton_phi, mongotpch.higgstrainall.missing_energy_magnitude, mongotpch.higgstrainall.missing_energy_phi, mongotpch.higgstrainall.jet1_pt, mongotpch.higgstrainall.jet1_eta, mongotpch.higgstrainall.jet1_phi, mongotpch.higgstrainall.jet1_b_tag, mongotpch.higgstrainall.jet2_pt, mongotpch.higgstrainall.jet2_eta, mongotpch.higgstrainall.jet2_phi, mongotpch.higgstrainall.jet2_b_tag, mongotpch.higgstrainall.jet3_pt, mongotpch.higgstrainall.jet3_eta, mongotpch.higgstrainall.jet3_phi, mongotpch.higgstrainall.jet3_b_tag, mongotpch.higgstrainall.jet4_pt, mongotpch.higgstrainall.jet4_eta, mongotpch.higgstrainall.jet4_phi, mongotpch.higgstrainall.jet4_b_tag, mongotpch.higgstrainall.m_jj, mongotpch.higgstrainall.m_jjj, mongotpch.higgstrainall.m_lv, mongotpch.higgstrainall.m_jlv, mongotpch.higgstrainall.m_bb, mongotpch.higgstrainall.m_wbb, mongotpch.higgstrainall.m_wwbb)"
+COLUMN_NAME = "trainall(trainall.key, trainall.label, trainall.lepton_pt, trainall.lepton_eta, trainall.lepton_phi, trainall.missing_energy_magnitude, trainall.missing_energy_phi, trainall.jet1_pt, trainall.jet1_eta, trainall.jet1_phi, trainall.jet1_b_tag, trainall.jet2_pt, trainall.jet2_eta, trainall.jet2_phi, trainall.jet2_b_tag, trainall.jet3_pt, trainall.jet3_eta, trainall.jet3_phi, trainall.jet3_b_tag, trainall.jet4_pt, trainall.jet4_eta, trainall.jet4_phi, trainall.jet4_b_tag, trainall.m_jj, trainall.m_jjj, trainall.m_lv, trainall.m_jlv, trainall.m_bb, trainall.m_wbb, trainall.m_wwbb)"
 class UDAFtrainall:
     def __init__(self):
         pass
@@ -43,9 +42,9 @@ def sgd(df: pd.DataFrame):
     # 这里需要将最后一列中的's'和'b'分别转为1、0
     #df['postgres.higgstrainall.label'] = df['postgres.higgstrainall.label'].map({'s': 1, 'b': 0})
     # 这里要去掉'label'
-    X = df.drop(['higgs.label'], axis=1)
+    X = df.drop(['trainall.label'], axis=1)
     print(X.head())
-    y = df['higgs.label']
+    y = df['trainall.label']
     # 划分训练集和测试集
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.05, random_state=100)
 
