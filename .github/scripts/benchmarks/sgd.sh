@@ -20,9 +20,20 @@ else
     -s  "."
 fi
 
-cd sgddata
-mv HIGGS2.csv ../HIGGS.csv
-cd ..
+# 输出文件名
+output_file="HIGGS.csv"
+
+# 初始化序号
+index=0
+# 读取文件并在每一行前面加上序号
+while IFS= read -r line; do
+  echo "$index,$line" >> "$output_file"
+  index=$((index + 1))
+done < sgddata/HIGGS2.csv
+
+echo "处理完成，结果已保存到 $output_file"
+rm sgddata/HIGGS2.csv
+rmdir sgddata
 set -e
 
 COMMAND1='LOAD DATA FROM INFILE "HIGGS.csv" AS CSV INTO trainall(key, label,lepton_pt,lepton_eta,lepton_phi,missing_energy_magnitude,missing_energy_phi,jet1_pt,jet1_eta,jet1_phi,jet1_b_tag,jet2_pt,jet2_eta,jet2_phi,jet2_b_tag,jet3_pt,jet3_eta,jet3_phi,jet3_b_tag,jet4_pt,jet4_eta,jet4_phi,jet4_b_tag,m_jj,m_jjj,m_lv,m_jlv,m_bb,m_wbb,m_wwbb);'
