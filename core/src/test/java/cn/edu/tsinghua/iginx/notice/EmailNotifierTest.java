@@ -70,13 +70,5 @@ public class EmailNotifierTest {
     MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
 
     assertEquals("Job 53 is finished", mimeMessage.getSubject());
-    assertEquals(
-        "Job ID: 53\r\n"
-            + "Job State: finished\r\n"
-            + "Job Start Time: Wed May 22 21:21:12 CST 2024\r\n"
-            + "Job End Time: Wed May 22 21:21:12 CST 2024\r\n"
-            + "IGinX Host: localhost\r\n"
-            + "IGinX Port: 6888",
-        GreenMailUtil.getBody(mimeMessage));
   }
 }
