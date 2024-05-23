@@ -100,6 +100,12 @@ jobs:
               run: |
                   mvn test -q -Dtest=TPCHRunner -DfailIfNoTests=false -P-format
 
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                cat iginx-*.log
+
             - name: Get old version
               if: always()
               shell: bash
@@ -209,6 +215,12 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=TPCHRunner -DfailIfNoTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                cat IGinX/iginx-*.log
 
 #            - name: Run session test
 #              shell: bash
