@@ -1,5 +1,3 @@
-CREATE FUNCTION UDTF "extractYear" FROM "UDFExtractYear" IN "test/src/test/resources/polybench/udf/udtf_extract_year.py";
-
 insert into tmpTableC(key, orderkey, year) values (
   select o_orderkey, extractYear(o_orderdate) from mongotpch.orders
 );

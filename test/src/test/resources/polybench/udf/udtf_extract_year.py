@@ -23,6 +23,6 @@ class UDFExtractYear:
         colNames = []
         colTypes = []
         for name in data[0][1:]:
-            colNames.append("cos(" + name + ")")
+            colNames.append("extractYear(" + name + ")")
             colTypes.append("DOUBLE")
         return [colNames, colTypes]

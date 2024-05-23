@@ -23,25 +23,12 @@ done < "$input_file"
 
 cat "$output_file"
 
-## 读取 nation.csv 文件的每一行
-#while IFS=',' read -r col1 col2 col3 col4 col5; do
-#    # 将第三列和第五列用引号括起来
-#    col3="\"$col3\""
-#    col5="\"$col5\""
-#
-#    # 输出处理后的行到新的文件中
-#    echo "$col1,$col2,$col3,$col4,$col5" >> new_nation.csv
-#done < "$output_file"
-#
-#mv new_nation.csv "$output_file"
-
-
 echo "Conversion completed. CSV file: $output_file"
 
 cat "$output_file"
 
 # 插入数据
-COMMAND1="LOAD DATA FROM INFILE \"$output_file\" AS CSV INTO nation(key, n_nationkey, n_name, n_regionkey, n_comment);"
+COMMAND1='LOAD DATA FROM INFILE \"$output_file\" AS CSV INTO nation(key, n_nationkey, n_name, n_regionkey, n_comment);CREATE FUNCTION UDTF "extractYear" FROM "UDFExtractYear" IN "test/src/test/resources/polybench/udf/udtf_extract_year.py";'
 SCRIPT_COMMAND="bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
 
 bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
