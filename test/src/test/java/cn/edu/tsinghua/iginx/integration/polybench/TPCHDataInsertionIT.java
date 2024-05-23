@@ -223,8 +223,9 @@ public class TPCHDataInsertionIT {
   @Test
   public void insertDataIntoPostgreSQL() {
     int port = 5432;
+    String databaseName = "tpchdata";
     // PostgreSQL连接参数
-    String url = String.format("jdbc:postgresql://localhost:%s/", port);
+    String url = String.format("jdbc:postgresql://localhost:%s/%s", port, databaseName);
     String user = "postgres";
     String password = "postgres";
 

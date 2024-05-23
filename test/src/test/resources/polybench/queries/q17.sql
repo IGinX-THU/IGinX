@@ -1,15 +1,15 @@
 insert into tmpTableB(key, p_partkey, val) values (
  select
-     postgres.part.p_partkey,
+     tpchdata.part.p_partkey,
      0.2 * tmp
  from (
   select
-    postgres.part.p_partkey,
+    tpchdata.part.p_partkey,
     avg(mongotpch.lineitem.l_quantity) as tmp
   from
     mongotpch.lineitem
-    join postgres.part on mongotpch.lineitem.l_partkey = postgres.part.p_partkey
-  group by postgres.part.p_partkey
+    join tpchdata.part on mongotpch.lineitem.l_partkey = tpchdata.part.p_partkey
+  group by tpchdata.part.p_partkey
   )
 );
 
@@ -20,10 +20,10 @@ from (
          sum(mongotpch.lineitem.l_extendedprice) as tmp2
      from
          mongotpch.lineitem
-         join postgres.part on postgres.part.p_partkey = mongotpch.lineitem.l_partkey
+         join tpchdata.part on tpchdata.part.p_partkey = mongotpch.lineitem.l_partkey
          join tmpTableB on tmpTableB.p_partkey = mongotpch.lineitem.l_partkey
      where
-       postgres.part.p_brand = 'Brand#23'
-       and postgres.part.p_container = 'MED BOX'
+       tpchdata.part.p_brand = 'Brand#23'
+       and tpchdata.part.p_container = 'MED BOX'
        and mongotpch.lineitem.l_quantity < tmpTableB.val
  );

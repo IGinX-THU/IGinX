@@ -1,13 +1,13 @@
 select
-    postgres.customer.c_name,
-    postgres.customer.c_custkey,
+    tpchdata.customer.c_name,
+    tpchdata.customer.c_custkey,
     mongotpch.orders.o_orderkey,
     mongotpch.orders.o_orderdate,
     mongotpch.orders.o_totalprice,
     sum(mongotpch.lineitem.l_quantity)
 from
-    postgres.customer
-        join mongotpch.orders on postgres.customer.c_custkey = mongotpch.orders.o_custkey
+    tpchdata.customer
+        join mongotpch.orders on tpchdata.customer.c_custkey = mongotpch.orders.o_custkey
         join mongotpch.lineitem on mongotpch.orders.o_orderkey = mongotpch.lineitem.l_orderkey
 where
         mongotpch.orders.o_orderkey in (
@@ -26,8 +26,8 @@ where
              )
     )
 group by
-    postgres.customer.c_name,
-    postgres.customer.c_custkey,
+    tpchdata.customer.c_name,
+    tpchdata.customer.c_custkey,
     mongotpch.orders.o_orderkey,
     mongotpch.orders.o_orderdate,
     mongotpch.orders.o_totalprice

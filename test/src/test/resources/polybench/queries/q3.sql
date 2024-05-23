@@ -14,11 +14,11 @@ select l_orderkey,
                      mongotpch.orders.o_orderdate as o_orderdate,
                      mongotpch.orders.o_shippriority as o_shippriority
              from
-                 postgres.customer
-                     join mongotpch.orders on postgres.customer.c_custkey = mongotpch.orders.o_custkey
+                 tpchdata.customer
+                     join mongotpch.orders on tpchdata.customer.c_custkey = mongotpch.orders.o_custkey
                      join mongotpch.lineitem on mongotpch.lineitem.l_orderkey = mongotpch.orders.o_orderkey
              where
-                     postgres.customer.c_mktsegment = 'BUILDING'
+                     tpchdata.customer.c_mktsegment = 'BUILDING'
                and mongotpch.orders.o_orderdate < 795196800000
                and mongotpch.lineitem.l_shipdate > 795225600000
          )

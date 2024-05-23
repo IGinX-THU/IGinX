@@ -17,29 +17,29 @@ insert into tmpTableA(key, partkey, suppkey, val) values (
 );
 
 select
-    postgres.supplier.s_name,
-    postgres.supplier.s_address
+    tpchdata.supplier.s_name,
+    tpchdata.supplier.s_address
 from
-    postgres.supplier
-        join nation on postgres.supplier.s_nationkey = nation.n_nationkey
+    tpchdata.supplier
+        join nation on tpchdata.supplier.s_nationkey = nation.n_nationkey
 where
-        postgres.supplier.s_suppkey in (
+        tpchdata.supplier.s_suppkey in (
         select
-            postgres.partsupp.ps_suppkey
+            tpchdata.partsupp.ps_suppkey
         from
-            postgres.partsupp
-                join tmpTableA on tmpTableA.suppkey = postgres.partsupp.ps_suppkey and tmpTableA.partkey = postgres.partsupp.ps_partkey
+            tpchdata.partsupp
+                join tmpTableA on tmpTableA.suppkey = tpchdata.partsupp.ps_suppkey and tmpTableA.partkey = tpchdata.partsupp.ps_partkey
         where
-                postgres.partsupp.ps_partkey in (
+                tpchdata.partsupp.ps_partkey in (
                 select
                     p_partkey
                 from
-                    postgres.part
+                    tpchdata.part
                 where
-                        postgres.part.p_name like 'forest.*'
+                        tpchdata.part.p_name like 'forest.*'
             )
-          and postgres.partsupp.ps_availqty > tmpTableA.val
+          and tpchdata.partsupp.ps_availqty > tmpTableA.val
     )
   and nation.n_name = 'CANADA'
 order by
-    postgres.supplier.s_name;
+    tpchdata.supplier.s_name;

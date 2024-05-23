@@ -13,17 +13,17 @@ select * from (
            select
                nation.n_name as nation,
                tmpTableC.year as o_year,
-               mongotpch.lineitem.l_extendedprice * (1 - mongotpch.lineitem.l_discount) - postgres.partsupp.ps_supplycost * mongotpch.lineitem.l_quantity as amount
+               mongotpch.lineitem.l_extendedprice * (1 - mongotpch.lineitem.l_discount) - tpchdata.partsupp.ps_supplycost * mongotpch.lineitem.l_quantity as amount
            from
-               postgres.part
-                   join mongotpch.lineitem on postgres.part.p_partkey = mongotpch.lineitem.l_partkey
-                   join postgres.supplier on postgres.supplier.s_suppkey = mongotpch.lineitem.l_suppkey
-                   join postgres.partsupp on postgres.partsupp.ps_suppkey = mongotpch.lineitem.l_suppkey and postgres.partsupp.ps_partkey = mongotpch.lineitem.l_partkey
+               tpchdata.part
+                   join mongotpch.lineitem on tpchdata.part.p_partkey = mongotpch.lineitem.l_partkey
+                   join tpchdata.supplier on tpchdata.supplier.s_suppkey = mongotpch.lineitem.l_suppkey
+                   join tpchdata.partsupp on tpchdata.partsupp.ps_suppkey = mongotpch.lineitem.l_suppkey and tpchdata.partsupp.ps_partkey = mongotpch.lineitem.l_partkey
                    join mongotpch.orders on mongotpch.orders.o_orderkey = mongotpch.lineitem.l_orderkey
-                   join nation on postgres.supplier.s_nationkey = nation.n_nationkey
+                   join nation on tpchdata.supplier.s_nationkey = nation.n_nationkey
                    join tmpTableC on mongotpch.orders.o_orderkey = tmpTableC.orderkey
            where
-                   postgres.part.p_name like '.*green.*'
+                   tpchdata.part.p_name like '.*green.*'
        )
   group by
       o_year,

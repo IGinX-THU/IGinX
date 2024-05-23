@@ -7,15 +7,15 @@ from (
              count(c_custkey) as custdist
          from (
                   select
-                      postgres.customer.c_custkey as c_custkey,
+                      tpchdata.customer.c_custkey as c_custkey,
                       count(mongotpch.orders.o_orderkey) as c_count
                   from
-                      postgres.customer
+                      tpchdata.customer
                           left outer join mongotpch.orders
-                                          on postgres.customer.c_custkey = mongotpch.orders.o_custkey
+                                          on tpchdata.customer.c_custkey = mongotpch.orders.o_custkey
                                               and !(mongotpch.orders.o_comment like '.*pending.*')
                   group by
-                      postgres.customer.c_custkey
+                      tpchdata.customer.c_custkey
               )
          group by
              c_count
