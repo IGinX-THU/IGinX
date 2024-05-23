@@ -197,7 +197,7 @@ jobs:
                   cp "tpc/TPC-H V3.0.1/data/nation.csv" "IGinX/tpc/TPC-H V3.0.1/data/nation.csv"
                   cd IGinX
                   output_file="../IGinX/tpc/TPC-H V3.0.1/data/nation.csv"
-                  # 插入数据
+                  chmod +x "../test/src/test/resources/polybench/udf/udtf_extract_year.py"
                   COMMAND1='LOAD DATA FROM INFILE "tpc/TPC-H V3.0.1/data/nation.csv" AS CSV INTO nation(key, n_nationkey, n_name, n_regionkey, n_comment); CREATE FUNCTION UDTF "extractYear" FROM "UDFExtractYear" IN "../test/src/test/resources/polybench/udf/udtf_extract_year.py";'
                   SCRIPT_COMMAND="bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
                   bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
