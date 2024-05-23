@@ -15,8 +15,6 @@ iginx_home_path=$PWD
 echo "Iginx home path: $iginx_home_path"
 
 cd ..
-lsof -i:27017
-lsof -i:5432
 
 if [ -n "$MSYSTEM" ]; then
     windows_path=$(cygpath -w "$iginx_home_path")
