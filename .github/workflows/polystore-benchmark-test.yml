@@ -220,7 +220,8 @@ jobs:
               if: always()
               shell: bash
               run: |
-                cat IGinX/iginx-*.log
+                cd IGinX
+                cat iginx-*.log
 
 #            - name: Run session test
 #              shell: bash
