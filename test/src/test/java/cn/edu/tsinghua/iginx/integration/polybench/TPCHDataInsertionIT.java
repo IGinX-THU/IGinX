@@ -225,7 +225,7 @@ public class TPCHDataInsertionIT {
     int port = 5432;
     String databaseName = "tpchdata";
     // PostgreSQL连接参数
-    String url = String.format("jdbc:postgresql://localhost:%s/%s", port, databaseName);
+    String url = String.format("jdbc:postgresql://localhost:%s/postgres", port);
     String user = "postgres";
     String password = "postgres";
 
@@ -247,6 +247,23 @@ public class TPCHDataInsertionIT {
         Statement stmt = conn.createStatement()) {
       if (conn != null) {
         System.out.println("Connected to the PostgreSQL server successfully.");
+        stmt.executeUpdate(String.format("DROP DATABASE IF EXISTS %s", databaseName));
+        stmt.executeUpdate(String.format("CREATE DATABASE %s", databaseName));
+        System.out.println(String.format("Database '%s' created successfully.", databaseName));
+        // 关闭当前连接
+        stmt.close();
+        conn.close();
+      }
+    } catch (SQLException e) {
+        System.out.println("SQLException: " + e.getMessage());
+        e.printStackTrace();
+    }
+    // 连接到新创建的数据库
+    String newDbUrl = String.format("jdbc:postgresql://localhost:5432/%s", databaseName);
+    try (Connection conn = DriverManager.getConnection(newDbUrl, user, password);
+         Statement stmt = conn.createStatement()) {
+      if (conn != null) {
+        System.out.println(String.format("Connected to '%s' successfully.", databaseName));
 
         // 依次执行每条 SQL 语句
         for (String sql : sqlStatements) {
