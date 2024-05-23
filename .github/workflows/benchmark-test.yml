@@ -28,6 +28,7 @@ jobs:
                         "FileSystem",
                         "Redis",
                         "MongoDB",
+                        "MySQL"
                     ]
                 metadata: [zookeeper]
         runs-on: ${{ matrix.os }}
