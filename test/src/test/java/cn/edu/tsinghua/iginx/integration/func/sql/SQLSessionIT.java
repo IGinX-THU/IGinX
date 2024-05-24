@@ -6609,19 +6609,19 @@ public class SQLSessionIT {
             new Pair<>(
                 "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
                 "ResultSets:\n"
-                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
-                    + "|            Logical Tree|Operator Type|                                                                    Operator Info|\n"
-                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
-                    + "|Reorder                 |      Reorder|                                                                   Order: avg(bb)|\n"
-                    + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FuncList(Name, FuncType): (avg, System), MappingType: SetMapping|\n"
-                    + "|    +--Select           |       Select|                                                                  Filter: key > 2|\n"
-                    + "|      +--Rename         |       Rename|                                            AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
-                    + "|        +--Reorder      |      Reorder|                                                           Order: us.d2.a,us.d2.b|\n"
-                    + "|          +--Project    |      Project|                                                        Patterns: us.d2.a,us.d2.b|\n"
-                    + "|            +--PathUnion|    PathUnion|                                                                                 |\n"
-                    + "|              +--Project|      Project|                             Patterns: us.d2.a,us.d2.b, Target DU: unit0000000002|\n"
-                    + "|              +--Project|      Project|                             Patterns: us.d2.a,us.d2.b, Target DU: unit0000000003|\n"
-                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------------------------+\n"
+                    + "|            Logical Tree|Operator Type|                                                                                      Operator Info|\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                 |      Reorder|                                                                                     Order: avg(bb)|\n"
+                    + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FuncList(Name, FuncType): (avg, System), MappingType: SetMapping isDistinct: false|\n"
+                    + "|    +--Select           |       Select|                                                                                    Filter: key > 2|\n"
+                    + "|      +--Rename         |       Rename|                                                              AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
+                    + "|        +--Reorder      |      Reorder|                                                                             Order: us.d2.a,us.d2.b|\n"
+                    + "|          +--Project    |      Project|                                                                          Patterns: us.d2.a,us.d2.b|\n"
+                    + "|            +--PathUnion|    PathUnion|                                                                                                   |\n"
+                    + "|              +--Project|      Project|                                               Patterns: us.d2.a,us.d2.b, Target DU: unit0000000002|\n"
+                    + "|              +--Project|      Project|                                               Patterns: us.d2.a,us.d2.b, Target DU: unit0000000003|\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------------------------+\n"
                     + "Total line number = 9\n"));
 
     // 这里的测例是filter_fragment能处理的节点，开关会导致变化
