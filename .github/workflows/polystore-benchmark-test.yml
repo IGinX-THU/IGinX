@@ -2,7 +2,7 @@ name: PolyStore Benchmark Tests
 
 on:
     push:
-        branches: [feat-benchmark]
+        branches: [feat-regression-test]
 
 env:
     VERSION: 0.6.0-SNAPSHOT
