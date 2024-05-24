@@ -2,7 +2,7 @@
 
 set -e
 
-cp -f test/src/test/resources/udf/mock_udf.py client/target/iginx-client-*-SNAPSHOT/sbin/mock_udf.py
+cp -f test/src/test/resources/udf/mock_udf.py client/target/iginx-client-$1/sbin/mock_udf.py
 
 ls client/target/iginx-client-*-SNAPSHOT/sbin
 
