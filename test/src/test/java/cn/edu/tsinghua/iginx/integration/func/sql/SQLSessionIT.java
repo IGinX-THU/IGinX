@@ -24,11 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2316,14 +2312,14 @@ public class SQLSessionIT {
     query = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
     expected =
         "ResultSets:\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
-            + "|    Logical Tree|Operator Type|                                                                                                    Operator Info|\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
-            + "|Reorder         |      Reorder|                                                              Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
-            + "|  +--Sort       |         Sort|                                                                      SortBy: test.c,test.b,test.d, SortType: ASC|\n"
-            + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping|\n"
-            + "|      +--Project|      Project|                                                 Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                                                                      Operator Info|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
+            + "|  +--Sort       |         Sort|                                                                                        SortBy: test.c,test.b,test.d, SortType: ASC|\n"
+            + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|      +--Project|      Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
   }
@@ -7382,5 +7378,91 @@ public class SQLSessionIT {
     int existsTime = getTimeCostFromExplainPhysicalResult(existsExplainResult);
     System.out.println(String.format("IN COST: %dms, EXISTS COST: %dms", inTime, existsTime));
     assertTrue(inTime * 3 >= existsTime || existsTime * 3 >= inTime);
+  }
+
+  @Test
+  public void testDistinctEliminate() {
+    // 插入数据
+    StringBuilder insert = new StringBuilder();
+    insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
+    int rows = 10000;
+    for (int i = 0; i < rows; i++) {
+      insert.append(String.format("(%d, %d, %d)", i, i % 100, i % 1000));
+      if (i != rows - 1) {
+        insert.append(",");
+      }
+    }
+    insert.append(";");
+    executor.execute(insert.toString());
+
+    String openRule =
+        "SET RULES FunctionDistinctEliminateRule=on, InExistsDistinctEliminateRule=on;";
+    String closeRule =
+        "SET RULES FunctionDistinctEliminateRule=off, InExistsDistinctEliminateRule=off;";
+
+    String closeResult = null;
+    // 测试InExistsDistinctEliminateRule
+    // 下面两个情况应该会消除Distinct
+    String statement = "SELECT * FROM us.d1 WHERE EXISTS (SELECT DISTINCT s1 FROM us.d1);";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertFalse(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT * FROM us.d1 WHERE s1 IN (SELECT DISTINCT s1 FROM us.d1);";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertFalse(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 下面情况不会消除Distinct
+    statement =
+        "SELECT * FROM us.d1 WHERE EXISTS "
+            + "(SELECT us.d1.s1, us.d2.s2 FROM us.d1 JOIN (select DISTINCT s1, s2 FROM us.d2) ON us.d1.s1 = us.d2.s1);";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 测试FunctionDistinctEliminateRule
+    // 下面情况会消除Distinct
+    statement = "SELECT max(distinct s1), min(distinct s2) FROM us.d1;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 下面情况不会消除Distinct
+    statement = "SELECT max(distinct s1), avg(distinct s2) FROM us.d1;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT avg(distinct s1), count(distinct s2) FROM us.d1 GROUP BY s2, s3;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    assertEquals(closeResult, executor.execute(statement));
   }
 }
