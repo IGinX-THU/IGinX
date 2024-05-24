@@ -33,9 +33,9 @@ public class StorageEngineUtils {
     return file.exists() && file.isDirectory();
   }
 
-  public static boolean needRedirect(StorageEngineType type, Map<String, String> extraParams) {
+  public static boolean needRedirect(StorageEngineType type, String ip) {
     if (type.equals(StorageEngineType.filesystem)) {
-      return !isLocalHost(extraParams.get("ip"));
+      return !isLocalHost(ip);
     }
     return false;
   }

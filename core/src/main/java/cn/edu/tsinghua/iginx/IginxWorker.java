@@ -344,18 +344,18 @@ public class IginxWorker implements IService.Iface {
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
+      if (needRedirect(type, ip)) {
+        status.setCode(StatusCode.REDIRECT.getStatusCode());
+        status.setMessage(ip + ":" + extraParams.get("iginx_port"));
+        LOGGER.warn("redirect to {}:{}.", ip, extraParams.get("iginx_port"));
+        return status;
+      }
       if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
         LOGGER.error(
             "missing params or providing invalid ones for {} in statement.", storageEngine);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
-      if (needRedirect(type, extraParams)) {
-        status.setCode(StatusCode.REDIRECT.getStatusCode());
-        status.setMessage(extraParams.get("ip") + ":" + extraParams.get("port"));
-        return status;
-      }
-
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
       StorageEngineMeta meta =
           new StorageEngineMeta(
