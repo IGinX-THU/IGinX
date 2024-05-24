@@ -155,19 +155,23 @@ jobs:
                   cd IGinX
                   pwd
                   if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                    sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
                   elif [ "$RUNNER_OS" == "Windows" ]; then
-                  sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
-                  sed -i 's/pythonCMD=python3/pythonCMD=python/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                    sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                    sed -i 's/pythonCMD=python3/pythonCMD=python/g' core/target/iginx-core-${VERSION}/conf/config.properties
                   elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' core/target/iginx-core-${VERSION}/conf/config.properties
+                    sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' core/target/iginx-core-${VERSION}/conf/config.properties
                   else
-                  echo "$RUNNER_OS is not supported"
-                  exit 1
+                    echo "$RUNNER_OS is not supported"
+                    exit 1
                   fi
                   cd ..
-                  chmod +x ".github/scripts/iginx/iginx_regression_udf_path.sh"
-                  ".github/scripts/iginx/iginx_regression_udf_path.sh"
+                  find . -name "udtf_extract_year.py"
+                  rm ./core/target/iginx-core-0.6.0-SNAPSHOT/udf_funcs/python_scripts/udtf_extract_year.py
+                  cd IGinX
+                  pwd
+                  chmod +x ".github/scripts/iginx/iginx_udf_path.sh"
+                  ".github/scripts/iginx/iginx_udf_path.sh"
 
             - name: set client test context
               uses: ./IGinX/.github/actions/context
