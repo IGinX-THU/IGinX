@@ -350,6 +350,12 @@ public class IginxWorker implements IService.Iface {
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
+      if (needRedirect(type, extraParams)) {
+        status.setCode(StatusCode.REDIRECT.getStatusCode());
+        status.setMessage(extraParams.get("ip") + ":" + extraParams.get("port"));
+        return status;
+      }
+
       String schemaPrefix = extraParams.get(Constants.SCHEMA_PREFIX);
       StorageEngineMeta meta =
           new StorageEngineMeta(
