@@ -1,9 +1,5 @@
 #!/bin/sh
 
-ls
-find . -name "udtf_extract_year.py"
-rm ./core/target/iginx-core-0.6.0-SNAPSHOT/udf_funcs/python_scripts/udtf_extract_year.py
-
 cd IGinX
 pwd
 set -e

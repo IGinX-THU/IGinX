@@ -147,8 +147,6 @@ jobs:
                   Set-Filter-Fragment-OFF: "true"
                   Root-Dir-Path: "IGinX"
 
-            # start udf path test first to avoid being effected
-
             - name: Start IGinX
               shell: bash
               run: |
@@ -166,6 +164,7 @@ jobs:
                   exit 1
                   fi
                   cd ..
+                  rm ./core/target/iginx-core-0.6.0-SNAPSHOT/udf_funcs/python_scripts/udtf_extract_year.py                
                   chmod +x ".github/scripts/iginx/iginx_regression_udf_path.sh"
                   ".github/scripts/iginx/iginx_regression_udf_path.sh"
 
@@ -224,13 +223,3 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=TPCHRunner -DfailIfNoTests=false -P-format
-
-#            - name: Run session test
-#              shell: bash
-#              run: |
-#                  pwd
-#                  if [ "$RUNNER_OS" == "Windows" ]; then
-#                    python test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
-#                  else
-#                    python3 test/src/test/java/cn/edu/tsinghua/iginx/integration/polybench/TPCHRunner.py
-#                  fi
