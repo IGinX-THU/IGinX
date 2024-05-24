@@ -2,13 +2,13 @@
 
 set -e
 
-cp -f test/src/test/resources/udf/mock_udf.py client/target/iginx-client-0.6.0-SNAPSHOT/sbin/mock_udf.py
+cp -f test/src/test/resources/udf/mock_udf.py client/target/iginx-client-*-SNAPSHOT/sbin/mock_udf.py
 
-ls client/target/iginx-client-0.6.0-SNAPSHOT/sbin
+ls client/target/iginx-client-*-SNAPSHOT/sbin
 
 COMMAND='CREATE FUNCTION UDAF "'"mock_udf"'" FROM "'"MockUDF"'" IN "'"mock_udf.py"'";'
 
-cd client/target/iginx-client-0.6.0-SNAPSHOT/sbin
+cd client/target/iginx-client-*-SNAPSHOT/sbin
 
 result=$(bash -c "./start_cli.bat -e '$COMMAND'")
 
