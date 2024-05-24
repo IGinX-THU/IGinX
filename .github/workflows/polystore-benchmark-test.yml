@@ -141,6 +141,15 @@ jobs:
                   fi
 
             - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: "Parquet"
+                  Set-Filter-Fragment-OFF: "true"
+                  Root-Dir-Path: "IGinX"
+
+            # start udf path test first to avoid being effected
+
+            - name: Start IGinX
               shell: bash
               run: |
                 cd IGinX
@@ -154,14 +163,6 @@ jobs:
                 chmod +x ".github/scripts/iginx/iginx_macos.sh"
                 ".github/scripts/iginx/iginx_macos.sh" 6888 6666
                 fi
-
-            # start udf path test first to avoid being effected
-
-            - name: Start IGinX
-              uses: ./.github/actions/regressionTestRunner
-              with:
-                  version: ${VERSION}
-                  if-test-udf: "true"
 
             - name: set client test context
               uses: ./IGinX/.github/actions/context
