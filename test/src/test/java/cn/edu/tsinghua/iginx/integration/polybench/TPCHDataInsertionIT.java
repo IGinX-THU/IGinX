@@ -255,13 +255,13 @@ public class TPCHDataInsertionIT {
         conn.close();
       }
     } catch (SQLException e) {
-        System.out.println("SQLException: " + e.getMessage());
-        e.printStackTrace();
+      System.out.println("SQLException: " + e.getMessage());
+      e.printStackTrace();
     }
     // 连接到新创建的数据库
     String newDbUrl = String.format("jdbc:postgresql://localhost:5432/%s", databaseName);
     try (Connection conn = DriverManager.getConnection(newDbUrl, user, password);
-         Statement stmt = conn.createStatement()) {
+        Statement stmt = conn.createStatement()) {
       if (conn != null) {
         System.out.println(String.format("Connected to '%s' successfully.", databaseName));
 
