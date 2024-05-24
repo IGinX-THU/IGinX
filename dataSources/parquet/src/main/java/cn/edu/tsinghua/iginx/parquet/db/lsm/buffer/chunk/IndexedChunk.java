@@ -4,6 +4,7 @@ import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowVectors;
 import com.google.common.collect.RangeSet;
 import java.util.Map;
 import javax.annotation.Nullable;
+import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.concurrent.Immutable;
 import javax.annotation.concurrent.ThreadSafe;
@@ -58,8 +59,14 @@ public abstract class IndexedChunk extends Chunk {
   public interface Factory {
     IndexedChunk wrap(@WillCloseWhenClosed Chunk chunk, BufferAllocator allocator);
 
-    default IndexedChunk like(Snapshot snapshot, BufferAllocator allocator) {
+    default IndexedChunk wrap(Snapshot snapshot, BufferAllocator allocator) {
       return wrap(Chunk.like(snapshot, allocator), allocator);
+    }
+
+    default Snapshot sorted(@WillClose Snapshot snapshot, BufferAllocator allocator) {
+      try (IndexedChunk chunk = wrap(new Chunk(snapshot.keys, snapshot.values), allocator)) {
+        return chunk.snapshot(allocator);
+      }
     }
   }
 

@@ -28,7 +28,8 @@ import org.apache.arrow.vector.BaseValueVector;
 public class StorageProperties {
   private final boolean flushOnClose;
   private final long writeBufferSize;
-  private final int writeBufferChunkValues;
+  private final int writeBufferChunkValuesMax;
+  private final int writeBufferChunkValuesMin;
   private final IndexedChunkType writeBufferChunkType;
   private final Duration writeBufferTimeout;
   private final long writeBatchSize;
@@ -49,7 +50,8 @@ public class StorageProperties {
       boolean flushOnClose,
       long writeBufferSize,
       int writeBufferPermits,
-      int writeBufferChunkValues,
+      int writeBufferChunkValuesMax,
+      int writeBufferChunkValuesMin,
       IndexedChunkType writeBufferChunkType,
       Duration writeBufferTimeout,
       long writeBatchSize,
@@ -66,7 +68,8 @@ public class StorageProperties {
       int parquetLz4BufferSize) {
     this.flushOnClose = flushOnClose;
     this.writeBufferSize = writeBufferSize;
-    this.writeBufferChunkValues = writeBufferChunkValues;
+    this.writeBufferChunkValuesMax = writeBufferChunkValuesMax;
+    this.writeBufferChunkValuesMin = writeBufferChunkValuesMin;
     this.writeBufferChunkType = writeBufferChunkType;
     this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
@@ -115,10 +118,19 @@ public class StorageProperties {
   /**
    * Get the max number of write buffer chunk values
    *
-   * @return the number of write buffer chunk values
+   * @return the max number of write buffer chunk values
    */
-  public int getWriteBufferChunkValues() {
-    return writeBufferChunkValues;
+  public int getWriteBufferChunkValuesMax() {
+    return writeBufferChunkValuesMax;
+  }
+
+  /**
+   * Get the min number of write buffer chunk values
+   *
+   * @return the min number of write buffer chunk values
+   */
+  public int getWriteBufferChunkValuesMin() {
+    return writeBufferChunkValuesMin;
   }
 
   /**
@@ -257,9 +269,10 @@ public class StorageProperties {
         .add("flushOnClose=" + flushOnClose)
         .add("writeBufferSize=" + writeBufferSize)
         .add("writeBufferPermits=" + writeBufferPermits)
-        .add("writeBufferTimeout=" + writeBufferTimeout)
-        .add("writeBufferChunkValues=" + writeBufferChunkValues)
+        .add("writeBufferChunkValuesMax=" + writeBufferChunkValuesMax)
+        .add("writeBufferChunkValuesMin=" + writeBufferChunkValuesMin)
         .add("writeBufferChunkType=" + writeBufferChunkType)
+        .add("writeBufferTimeout=" + writeBufferTimeout)
         .add("writeBatchSize=" + writeBatchSize)
         .add("compactPermits=" + compactPermits)
         .add("cacheCapacity=" + cacheCapacity)
@@ -280,7 +293,8 @@ public class StorageProperties {
     public static final String FLUSH_ON_CLOSE = "close.flush";
     public static final String WRITE_BUFFER_SIZE = "write.buffer.size";
     public static final String WRITE_BUFFER_PERMITS = "write.buffer.permits";
-    public static final String WRITE_BUFFER_CHUNK_VALUES = "write.buffer.chunk.values";
+    public static final String WRITE_BUFFER_CHUNK_VALUES_MAX = "write.buffer.chunk.values.max";
+    public static final String WRITE_BUFFER_CHUNK_VALUES_MIN = "write.buffer.chunk.values.min";
     public static final String WRITE_BUFFER_CHUNK_INDEX = "write.buffer.chunk.index";
     public static final String WRITE_BUFFER_TIMEOUT = "write.buffer.timeout";
     public static final String WRITE_BATCH_SIZE = "write.batch.size";
@@ -299,7 +313,8 @@ public class StorageProperties {
     private boolean flushOnClose = true;
     private long writeBufferSize = 100 * 1024 * 1024; // BYTE
     private int writeBufferPermits = 2;
-    private int writeBufferChunkValues = BaseValueVector.INITIAL_VALUE_ALLOCATION;
+    private int writeBufferChunkValuesMax = BaseValueVector.INITIAL_VALUE_ALLOCATION;
+    private int writeBufferChunkValuesMin = BaseValueVector.INITIAL_VALUE_ALLOCATION;
     private IndexedChunkType writeBufferChunkIndex = IndexedChunkType.NONE;
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
@@ -356,12 +371,24 @@ public class StorageProperties {
     /**
      * Set the max number of write buffer chunk values
      *
-     * @param writeBufferChunkValues the size of write buffer chunk values
+     * @param writeBufferChunkValuesMax the max number of write buffer chunk values
      * @return this builder
      */
-    public Builder setWriteBufferChunkValues(int writeBufferChunkValues) {
-      ParseUtils.checkPositive(writeBufferChunkValues);
-      this.writeBufferChunkValues = writeBufferChunkValues;
+    public Builder setWriteBufferChunkValuesMax(int writeBufferChunkValuesMax) {
+      ParseUtils.checkPositive(writeBufferChunkValuesMax);
+      this.writeBufferChunkValuesMax = writeBufferChunkValuesMax;
+      return this;
+    }
+
+    /**
+     * Set the min number of write buffer chunk values
+     *
+     * @param writeBufferChunkValuesMin the max number of write buffer chunk values
+     * @return this builder
+     */
+    public Builder setWriteBufferChunkValuesMin(int writeBufferChunkValuesMin) {
+      ParseUtils.checkPositive(writeBufferChunkValuesMin);
+      this.writeBufferChunkValuesMin = writeBufferChunkValuesMin;
       return this;
     }
 
@@ -542,8 +569,10 @@ public class StorageProperties {
       ParseUtils.getOptionalLong(properties, WRITE_BUFFER_SIZE).ifPresent(this::setWriteBufferSize);
       ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_PERMITS)
           .ifPresent(this::setWriteBufferPermits);
-      ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_CHUNK_VALUES)
-          .ifPresent(this::setWriteBufferChunkValues);
+      ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_CHUNK_VALUES_MAX)
+          .ifPresent(this::setWriteBufferChunkValuesMax);
+      ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_CHUNK_VALUES_MIN)
+          .ifPresent(this::setWriteBufferChunkValuesMin);
       ParseUtils.getOptionalString(properties, WRITE_BUFFER_CHUNK_INDEX)
           .ifPresent(this::setWriteBufferChunkIndex);
       ParseUtils.getOptionalDuration(properties, WRITE_BUFFER_TIMEOUT)
@@ -579,7 +608,8 @@ public class StorageProperties {
           flushOnClose,
           writeBufferSize,
           writeBufferPermits,
-          writeBufferChunkValues,
+          writeBufferChunkValuesMax,
+          writeBufferChunkValuesMin,
           writeBufferChunkIndex,
           writeBufferTimeout,
           writeBatchSize,

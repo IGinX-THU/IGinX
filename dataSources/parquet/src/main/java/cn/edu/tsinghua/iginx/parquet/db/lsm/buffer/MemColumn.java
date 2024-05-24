@@ -20,17 +20,23 @@ import org.apache.arrow.util.Preconditions;
 public class MemColumn implements AutoCloseable {
 
   private final int maxChunkValueCount;
+  private final int minChunkValueCount;
   private final List<ChunkSnapshotHolder> compactedChunkSnapshots = new ArrayList<>();
   private final ChunkHolder active;
 
   public MemColumn(
-      IndexedChunk.Factory factory, BufferAllocator allocator, int maxChunkValueCount) {
+      IndexedChunk.Factory factory,
+      BufferAllocator allocator,
+      int maxChunkValueCount,
+      int minChunkValueCount) {
     Preconditions.checkNotNull(allocator);
     Preconditions.checkNotNull(factory);
     Preconditions.checkArgument(maxChunkValueCount > 0);
+    Preconditions.checkArgument(minChunkValueCount > 0);
 
     this.active = new ChunkHolder(factory, allocator);
     this.maxChunkValueCount = maxChunkValueCount;
+    this.minChunkValueCount = minChunkValueCount;
   }
 
   // TODO: make use of ValueFilter
@@ -66,13 +72,44 @@ public class MemColumn implements AutoCloseable {
   }
 
   public synchronized void store(Chunk.Snapshot snapshot) {
-    int total = snapshot.getValueCount();
-    for (int written = 0; written != total; ) {
+    int length = snapshot.getValueCount();
+    if (length < minChunkValueCount) {
+      copyStore(snapshot, 0, length);
+    } else {
+      splitStore(snapshot, 0, length);
+    }
+  }
+
+  public synchronized void splitStore(Chunk.Snapshot snapshot, int offset, int length) {
+    int activeValueCount = active.getValueCount();
+    int padding = minChunkValueCount - active.getValueCount();
+    if (activeValueCount > 0) {
+      if (padding > 0) {
+        if (padding >= length) {
+          active.store(snapshot, offset, length);
+          return;
+        }
+        active.store(snapshot, offset, padding);
+        offset += padding;
+        length -= padding;
+      }
+      compact();
+    }
+
+    if (length >= minChunkValueCount) {
+      compactedChunkSnapshots.add(active.sorted(snapshot, offset, length));
+    } else {
+      active.store(snapshot, offset, length);
+    }
+  }
+
+  public synchronized void copyStore(Chunk.Snapshot snapshot, int offset, int length) {
+    for (int written = offset; written != length; ) {
       int free = maxChunkValueCount - active.getValueCount();
       if (free == 0) {
         compact();
       }
-      int toWrite = Math.min(free, total - written);
+      int toWrite = Math.min(free, length - written);
       active.store(snapshot, written, toWrite);
       written += toWrite;
     }
@@ -240,12 +277,17 @@ public class MemColumn implements AutoCloseable {
       return activeChunk == null ? 0 : activeChunk.getValueCount();
     }
 
+    public ChunkSnapshotHolder sorted(Chunk.Snapshot snapshot, int offset, int length) {
+      Chunk.Snapshot sorted = factory.sorted(snapshot.slice(offset, length, allocator), allocator);
+      return new ChunkSnapshotHolder(sorted);
+    }
+
     public void store(Chunk.Snapshot data) {
       if (data.getValueCount() == 0) {
         return;
       }
       if (activeChunk == null) {
-        activeChunk = factory.like(data, allocator);
+        activeChunk = factory.wrap(data, allocator);
       }
       activeChunk.store(data);
       isDirty = true;

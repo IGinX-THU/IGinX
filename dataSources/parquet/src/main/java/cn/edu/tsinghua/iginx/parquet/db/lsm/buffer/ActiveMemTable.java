@@ -72,7 +72,8 @@ public class ActiveMemTable {
             new MemTable(
                 shared.getStorageProperties().getWriteBufferChunkFactory(),
                 activeAllocator,
-                shared.getStorageProperties().getWriteBufferChunkValues());
+                shared.getStorageProperties().getWriteBufferChunkValuesMax(),
+                shared.getStorageProperties().getWriteBufferChunkValuesMin());
       }
     } finally {
       createLock.unlock();

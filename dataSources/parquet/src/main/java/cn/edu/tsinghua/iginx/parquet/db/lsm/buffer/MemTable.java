@@ -22,11 +22,17 @@ public class MemTable implements AutoCloseable {
   private final IndexedChunk.Factory factory;
   private final BufferAllocator allocator;
   private final int maxChunkValueCount;
+  private final int minChunkValueCount;
 
-  public MemTable(IndexedChunk.Factory factory, BufferAllocator allocator, int maxChunkValueCount) {
+  public MemTable(
+      IndexedChunk.Factory factory,
+      BufferAllocator allocator,
+      int maxChunkValueCount,
+      int minChunkValueCount) {
     this.factory = factory;
     this.allocator = allocator;
     this.maxChunkValueCount = maxChunkValueCount;
+    this.minChunkValueCount = minChunkValueCount;
   }
 
   @Override
@@ -71,7 +77,7 @@ public class MemTable implements AutoCloseable {
         ArrowFields.nullable(data.getField()),
         (field, column) -> {
           if (column == null) {
-            column = new MemColumn(factory, allocator, maxChunkValueCount);
+            column = new MemColumn(factory, allocator, maxChunkValueCount, minChunkValueCount);
           }
           column.store(data);
           return column;
