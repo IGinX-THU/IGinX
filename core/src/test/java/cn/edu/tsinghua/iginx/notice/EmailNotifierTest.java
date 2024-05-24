@@ -16,8 +16,12 @@ import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Rule;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class EmailNotifierTest {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(EmailNotifierTest.class);
 
   @Rule public final GreenMailRule greenMail = new GreenMailRule(ServerSetupTest.SMTPS);
 
@@ -70,5 +74,29 @@ public class EmailNotifierTest {
     MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
 
     assertEquals("Job 53 is finished", mimeMessage.getSubject());
+  }
+
+  @Test
+  public void testNotifyJobStateException() throws MessagingException {
+    JobFromYAML jobFromYAML = new JobFromYAML();
+    jobFromYAML.setExportType("csv");
+    jobFromYAML.setTaskList(Collections.emptyList());
+    Job job = new Job(53, 102, jobFromYAML);
+    try {
+      throw new Exception("example exception");
+    } catch (Exception e) {
+      job.setException(e);
+    }
+    job.setStartTime(1716384072742L);
+    job.setState(JobState.JOB_FINISHED);
+    job.setEndTime(1716384072743L);
+    emailNotifier.send(job);
+    assertEquals(1, greenMail.getReceivedMessages().length);
+    MimeMessage mimeMessage = greenMail.getReceivedMessages()[0];
+
+    LOGGER.info(GreenMailUtil.getBody(mimeMessage));
+
+    assertEquals("Job 53 is finished", mimeMessage.getSubject());
+    assertTrue(GreenMailUtil.getBody(mimeMessage).contains("example exception"));
   }
 }

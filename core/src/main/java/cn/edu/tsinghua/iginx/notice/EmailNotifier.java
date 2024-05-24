@@ -4,6 +4,8 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.Date;
 import org.apache.commons.mail.Email;
 import org.apache.commons.mail.EmailException;
@@ -105,6 +107,15 @@ public class EmailNotifier {
     }
     content.append("IGinX Host: ").append(iginxHost).append("\n");
     content.append("IGinX Port: ").append(iginxPort).append("\n");
+
+    Exception e = job.getException();
+    if (e != null) {
+      StringWriter sw = new StringWriter();
+      PrintWriter pw = new PrintWriter(sw);
+      e.printStackTrace(pw);
+      content.append("Exception: ").append("\n");
+      content.append(sw);
+    }
 
     sendEmail(subject, content.toString());
   }
