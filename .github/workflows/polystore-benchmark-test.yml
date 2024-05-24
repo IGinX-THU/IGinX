@@ -165,8 +165,9 @@ jobs:
                   echo "$RUNNER_OS is not supported"
                   exit 1
                   fi
-                  chmod +x "../.github/scripts/iginx/iginx_regression_udf_path.sh"
-                  "../.github/scripts/iginx/iginx_regression_udf_path.sh"
+                  cd ..
+                  chmod +x ".github/scripts/iginx/iginx_regression_udf_path.sh"
+                  ".github/scripts/iginx/iginx_regression_udf_path.sh"
 
             - name: set client test context
               uses: ./IGinX/.github/actions/context
