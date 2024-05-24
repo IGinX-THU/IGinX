@@ -109,7 +109,7 @@ public class TPCHRunner {
       System.out.println(clusterInfo);
       // Long startTime;
       // 13有问题
-      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
@@ -177,57 +177,55 @@ public class TPCHRunner {
           }
         }
       }
-      //      List<Double> avgTimeCosts = new ArrayList<>();
-      //      for (int queryId : queryIds) {
-      //        // read from sql file
-      //        String sqlString =
-      //            readSqlFileAsString("src/test/resources/polybench/queries/q" + queryId +
-      // ".sql");
-      //
-      //        // 开始 tpch 查询
-      //        System.out.println("start tpch query " + queryId);
-      //
-      //        // 执行查询语句, split by ; 最后一句为执行结果
-      //        SessionExecuteSqlResult result = null;
-      //        String[] sqls = sqlString.split(";");
-      //        List<Long> timeCosts = new ArrayList<>();
-      //        for (int i = 0; i < 2; i++) { // TODO: 5
-      //          startTime = System.currentTimeMillis();
-      //          if (sqls.length == 1)
-      //            // TODO: error
-      //            System.out.println("wrong input");
-      //          else result = conn.executeSql(sqls[sqls.length - 2] + ";");
-      //          Long timeCost = System.currentTimeMillis() - startTime;
-      //          timeCosts.add(timeCost);
-      //          System.out.println("query " + queryId + ", time cost: " + timeCost + "ms");
-      //        }
-      //        Double averageTimeCost =
-      //            timeCosts.stream().mapToLong(Long::longValue).average().getAsDouble();
-      //        avgTimeCosts.add(averageTimeCost);
-      //        System.out.println(
-      //            "end tpch query " + queryId + ", average time cost: " + averageTimeCost + "ms");
-      //      }
-      //      // write avg time cost to file
-      //      for (int i = 0; i < queryIds.size(); i++) {
-      //        System.out.println(
-      //            "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) +
-      // "ms");
-      //      }
-      //      String fileName = "src/test/resources/polybench/avgTimeCosts.txt";
-      //      if (Files.exists(Paths.get(fileName))) {
-      //        List<Double> newAvgTimeCosts = readFromFile(fileName);
-      //        for (int i = 0; i < queryIds.size(); i++) {
-      //          System.out.println(
-      //              "query "
-      //                  + queryIds.get(i)
-      //                  + ", new average time cost: "
-      //                  + newAvgTimeCosts.get(i)
-      //                  + "ms");
-      //        }
-      //        // TODO 如果相差超过15%？，则报错
-      //      } else {
-      //        writeToFile(avgTimeCosts, fileName);
-      //      }
+      List<Double> avgTimeCosts = new ArrayList<>();
+      for (int queryId : queryIds) {
+        // read from sql file
+        String sqlString =
+            readSqlFileAsString("src/test/resources/polybench/queries/q" + queryId + ".sql");
+
+        // 开始 tpch 查询
+        System.out.println("start tpch query " + queryId);
+
+        // 执行查询语句, split by ; 最后一句为执行结果
+        SessionExecuteSqlResult result = null;
+        String[] sqls = sqlString.split(";");
+        List<Long> timeCosts = new ArrayList<>();
+        for (int i = 0; i < 2; i++) { // TODO: 5
+          startTime = System.currentTimeMillis();
+          if (sqls.length == 1)
+            // TODO: error
+            System.out.println("wrong input");
+          else result = conn.executeSql(sqls[sqls.length - 2] + ";");
+          Long timeCost = System.currentTimeMillis() - startTime;
+          timeCosts.add(timeCost);
+          System.out.println("query " + queryId + ", time cost: " + timeCost + "ms");
+        }
+        Double averageTimeCost =
+            timeCosts.stream().mapToLong(Long::longValue).average().getAsDouble();
+        avgTimeCosts.add(averageTimeCost);
+        System.out.println(
+            "end tpch query " + queryId + ", average time cost: " + averageTimeCost + "ms");
+      }
+      // write avg time cost to file
+      for (int i = 0; i < queryIds.size(); i++) {
+        System.out.println(
+            "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
+      }
+      String fileName = "src/test/resources/polybench/avgTimeCosts.txt";
+      if (Files.exists(Paths.get(fileName))) {
+        List<Double> newAvgTimeCosts = readFromFile(fileName);
+        for (int i = 0; i < queryIds.size(); i++) {
+          System.out.println(
+              "query "
+                  + queryIds.get(i)
+                  + ", new average time cost: "
+                  + newAvgTimeCosts.get(i)
+                  + "ms");
+        }
+        // TODO 如果相差超过15%？，则报错
+      } else {
+        writeToFile(avgTimeCosts, fileName);
+      }
 
       // 关闭会话
       conn.closeSession();

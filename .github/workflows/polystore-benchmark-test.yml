@@ -1,8 +1,8 @@
 name: PolyStore Benchmark Tests
 
 on:
-  pull_request: # when a PR is opened or reopened
-    types: [opened, reopened]
+    pull_request: # when a PR is opened or reopened
+        types: [opened, reopened]
 
 env:
     VERSION: 0.6.0-SNAPSHOT
