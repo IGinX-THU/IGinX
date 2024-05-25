@@ -13,11 +13,11 @@ if [ -n "$MSYSTEM" ]; then
 
     export IGINX_HOME=$windows_path
 
-    powershell -Command "Start-Process -FilePath 'iginx-core-*-SNAPSHOT/sbin/start_iginx.bat' -NoNewWindow -RedirectStandardOutput '../../iginx-udf.log' -RedirectStandardError '../../iginx-udf-error.log'"
+    powershell -Command "Start-Process -FilePath 'iginx-core-$1/sbin/start_iginx.bat' -NoNewWindow -RedirectStandardOutput '../../iginx-udf.log' -RedirectStandardError '../../iginx-udf-error.log'"
 else
     export IGINX_HOME=$iginx_home_path
 
-    sh -c "chmod +x iginx-core-*-SNAPSHOT/sbin/start_iginx.sh"
+    sh -c "chmod +x iginx-core-$1/sbin/start_iginx.sh"
 
-    sh -c "nohup iginx-core-*-SNAPSHOT/sbin/start_iginx.sh > ../../iginx-u.log 2>&1 &"
+    sh -c "nohup iginx-core-$1/sbin/start_iginx.sh > ../../iginx-u.log 2>&1 &"
 fi
