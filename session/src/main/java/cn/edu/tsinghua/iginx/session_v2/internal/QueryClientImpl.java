@@ -18,8 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.internal;
 
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValueFromByteBufferByDataType;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.session_v2.QueryClient;
@@ -33,16 +32,7 @@ import cn.edu.tsinghua.iginx.session_v2.query.IginXTable;
 import cn.edu.tsinghua.iginx.session_v2.query.LastQuery;
 import cn.edu.tsinghua.iginx.session_v2.query.Query;
 import cn.edu.tsinghua.iginx.session_v2.query.SimpleQuery;
-import cn.edu.tsinghua.iginx.thrift.AggregateQueryReq;
-import cn.edu.tsinghua.iginx.thrift.AggregateQueryResp;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import cn.edu.tsinghua.iginx.thrift.DownsampleQueryReq;
-import cn.edu.tsinghua.iginx.thrift.DownsampleQueryResp;
-import cn.edu.tsinghua.iginx.thrift.LastQueryReq;
-import cn.edu.tsinghua.iginx.thrift.LastQueryResp;
-import cn.edu.tsinghua.iginx.thrift.QueryDataReq;
-import cn.edu.tsinghua.iginx.thrift.QueryDataResp;
-import cn.edu.tsinghua.iginx.thrift.QueryDataSet;
+import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.StatusUtils;
@@ -169,7 +159,7 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
         throw new IginXException("downsample query failure: ", e);
       }
     }
-    return buildIginXTable(
+    return buildIginXTableV2(
         resp.getQueryDataSet(), resp.getPaths(), resp.getTagsList(), resp.getDataTypeList());
   }
 
@@ -273,10 +263,31 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       List<String> measurements,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypes) {
-    boolean hasTimestamp = dataSet.getKeys() != null;
+    return buildTable(
+        dataSet.getKeys(),
+        dataSet.keys,
+        dataSet.valuesList,
+        dataSet.bitmapList,
+        measurements,
+        tagsList,
+        dataTypes,
+        false);
+  }
+
+  /** v2的dataset没有key，增加这个dataset的构造方式是为了兼容没有key的降采样查询结果 */
+  private IginXTable buildTable(
+      byte[] keys,
+      ByteBuffer keysBuffer,
+      List<ByteBuffer> valuesList,
+      List<ByteBuffer> bitmapList,
+      List<String> measurements,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypes,
+      boolean v2) {
+    boolean hasTimestamp = keys != null;
     long[] timestamps = new long[0];
     if (hasTimestamp) {
-      timestamps = getLongArrayFromByteBuffer(dataSet.keys);
+      timestamps = getLongArrayFromByteBuffer(keysBuffer);
     }
 
     List<IginXColumn> columns = new ArrayList<>();
@@ -288,11 +299,16 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
       columns.add(new IginXColumn(measurement, tags, dataType));
       columnIndexMap.put(i, measurement);
     }
-    IginXHeader header = new IginXHeader(hasTimestamp ? IginXColumn.TIME : null, columns);
+    IginXHeader header;
+    if (v2) {
+      header = new IginXHeader(columns);
+    } else {
+      header = new IginXHeader(hasTimestamp ? IginXColumn.TIME : null, columns);
+    }
     List<IginXRecord> records = new ArrayList<>();
-    for (int i = 0; i < dataSet.valuesList.size(); i++) {
-      ByteBuffer valuesBuffer = dataSet.valuesList.get(i);
-      ByteBuffer bitmapBuffer = dataSet.bitmapList.get(i);
+    for (int i = 0; i < valuesList.size(); i++) {
+      ByteBuffer valuesBuffer = valuesList.get(i);
+      ByteBuffer bitmapBuffer = bitmapList.get(i);
       Bitmap bitmap = new Bitmap(dataTypes.size(), bitmapBuffer.array());
       Map<String, Object> values = new HashMap<>();
       for (int j = 0; j < dataTypes.size(); j++) {
@@ -302,9 +318,30 @@ public class QueryClientImpl extends AbstractFunctionClient implements QueryClie
               getValueFromByteBufferByDataType(valuesBuffer, dataTypes.get(j)));
         }
       }
-      records.add(new IginXRecord(hasTimestamp ? timestamps[i] : 0L, header, values));
+      if (v2) {
+        records.add(new IginXRecord(header, values));
+      } else {
+        records.add(new IginXRecord(hasTimestamp ? timestamps[i] : 0L, header, values));
+      }
     }
     return new IginXTable(header, records);
+  }
+
+  private IginXTable buildIginXTableV2(
+      QueryDataSetV2 dataSet,
+      List<String> measurements,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypes) {
+
+    return buildTable(
+        null,
+        null,
+        dataSet.valuesList,
+        dataSet.bitmapList,
+        measurements,
+        tagsList,
+        dataTypes,
+        false);
   }
 
   private static class ConsumerControlThread extends Thread {
