@@ -193,7 +193,7 @@ public class MemColumn implements AutoCloseable {
 
     public RangeSet<Long> getRanges() {
       RangeSet<Long> range = TreeRangeSet.create();
-      snapshots.forEach(snapshot -> range.addAll(snapshot.mask));
+      snapshots.forEach(snapshot -> range.add(snapshot.getKeyRange()));
       return range;
     }
   }
@@ -211,7 +211,11 @@ public class MemColumn implements AutoCloseable {
     private ChunkSnapshotHolder(@WillCloseWhenClosed Chunk.Snapshot snapshot, RangeSet<Long> mask) {
       Preconditions.checkArgument(snapshot.getValueCount() > 0);
       this.snapshot = snapshot;
-      this.mask = mask;
+      if (mask != null) {
+        this.mask = TreeRangeSet.create(mask);
+      } else {
+        this.mask = null;
+      }
     }
 
     public boolean isEmpty() {
@@ -220,8 +224,12 @@ public class MemColumn implements AutoCloseable {
 
     public void delete(RangeSet<Long> ranges) {
       if (mask == null) {
+        Range<Long> fullRange = getKeyRange(snapshot);
+        if (!ranges.intersects(fullRange)) {
+          return;
+        }
         mask = TreeRangeSet.create();
-        mask.add(getKeyRange(snapshot));
+        mask.add(fullRange);
       }
       mask.removeAll(ranges);
     }
@@ -229,6 +237,9 @@ public class MemColumn implements AutoCloseable {
     public Range<Long> getKeyRange() {
       if (mask == null) {
         return getKeyRange(snapshot);
+      }
+      if (mask.isEmpty()) {
+        return Range.closedOpen(0L, 0L);
       }
       return mask.span();
     }
