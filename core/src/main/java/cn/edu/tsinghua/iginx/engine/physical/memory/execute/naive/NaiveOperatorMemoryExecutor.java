@@ -29,7 +29,7 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.removeDuplicateRows;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
@@ -90,15 +90,7 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -282,6 +274,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
 
     List<Table> tableList = new ArrayList<>();
+    boolean firstCol = true;
     for (FunctionCall functionCall : downsample.getFunctionCallList()) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
@@ -309,10 +302,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           }
         }
       }
-      List<Pair<Long, Row>> transformedRawRows = new ArrayList<>();
+      // <<window_start, window_end> row>
+      List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
       try {
         for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-          long time = entry.getKey();
+          long startTime = entry.getKey();
+          long endTime = startTime + precision - 1;
           List<Row> group = entry.getValue();
 
           if (params.isDistinct()) {
@@ -329,7 +324,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
           Row row = function.transform(new Table(header, group), params);
           if (row != null) {
-            transformedRawRows.add(new Pair<>(time, row));
+            transformedRawRows.add(new Pair<>(new Pair<>(startTime, endTime), row));
           }
         }
       } catch (Exception e) {
@@ -340,15 +335,34 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       if (transformedRawRows.size() == 0) {
         return Table.EMPTY_TABLE;
       }
-      Header newHeader = new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
+
+      // 只让第一张表保留 window_start, window_end 列，这样按key join后无需删除重复列
+      List<Field> fields = transformedRawRows.get(0).v.getHeader().getFields();
+      if (firstCol) {
+        fields.add(0, new Field(WINDOW_START_COL, DataType.LONG));
+        fields.add(1, new Field(WINDOW_END_COL, DataType.LONG));
+      }
+      Header newHeader = new Header(Field.KEY, fields);
       List<Row> transformedRows = new ArrayList<>();
-      for (Pair<Long, Row> pair : transformedRawRows) {
-        transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
+      Object[] values = new Object[transformedRawRows.get(0).v.getValues().length + 2];
+      for (Pair<Pair<Long, Long>, Row> pair : transformedRawRows) {
+        if (firstCol) {
+          values[0] = pair.k.k;
+          values[1] = pair.k.v;
+          System.arraycopy(pair.v.getValues(), 0, values, 2, pair.v.getValues().length);
+          transformedRows.add(new Row(newHeader, pair.k.k, values));
+        } else {
+          transformedRows.add(new Row(newHeader, pair.k.k, pair.v.getValues()));
+        }
+        values = new Object[transformedRawRows.get(0).v.getValues().length + 2];
       }
       tableList.add(new Table(newHeader, transformedRows));
+      firstCol = false;
     }
 
-    return RowUtils.joinMultipleTablesByKey(tableList);
+    // key = window_start，而每个窗口长度一样，因此多表中key相同的列就是同一个窗口的结果，可以按key join，但join后不保留key列，只保留
+    // window_start, window_end列
+    return RowUtils.joinMultipleTablesByKey(tableList, false);
   }
 
   private RowStream executeRowTransform(RowTransform rowTransform, Table table)
