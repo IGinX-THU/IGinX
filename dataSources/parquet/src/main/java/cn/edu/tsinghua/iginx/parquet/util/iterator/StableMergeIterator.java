@@ -6,15 +6,18 @@ import com.google.common.collect.UnmodifiableIterator;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.PriorityQueue;
-import java.util.Queue;
 
 public class StableMergeIterator<T> extends UnmodifiableIterator<T> {
-  final Queue<Entry<T>> queue;
+  private final Comparator<Entry<T>> comparator;
+  private final PriorityQueue<Entry<T>> queue;
+  private Entry<T> activeEntry;
 
   public StableMergeIterator(
       Iterable<? extends Iterator<? extends T>> iterators, Comparator<? super T> itemComparator) {
+
     Comparator<Entry<T>> heapComparator = Comparator.comparing(Entry::peek, itemComparator);
-    this.queue = new PriorityQueue<>(heapComparator.thenComparing(Entry::order));
+    this.comparator = heapComparator.thenComparing(Entry::order);
+    this.queue = new PriorityQueue<>(comparator);
 
     int order = 0;
     for (Iterator<? extends T> iterator : iterators) {
@@ -23,19 +26,33 @@ public class StableMergeIterator<T> extends UnmodifiableIterator<T> {
         order++;
       }
     }
+    if (!this.queue.isEmpty()) {
+      this.activeEntry = this.queue.remove();
+    }
   }
 
   public boolean hasNext() {
-    return !this.queue.isEmpty();
+    return activeEntry != null;
   }
 
   public T next() {
-    Entry<T> nextEntry = this.queue.remove();
-    T next = nextEntry.peekingIterator.next();
-    if (nextEntry.peekingIterator.hasNext()) {
-      this.queue.add(nextEntry);
-    }
+    T next = activeEntry.peekingIterator.next();
+    refreshActiveEntry();
     return next;
+  }
+
+  private void refreshActiveEntry() {
+    if (!activeEntry.peekingIterator.hasNext()) {
+      activeEntry = this.queue.poll();
+      return;
+    }
+    if (!queue.isEmpty()) {
+      Entry<T> nextEntry = queue.peek();
+      if (comparator.compare(activeEntry, nextEntry) > 0) {
+        queue.add(activeEntry);
+        activeEntry = queue.poll();
+      }
+    }
   }
 
   private static class Entry<T> {
