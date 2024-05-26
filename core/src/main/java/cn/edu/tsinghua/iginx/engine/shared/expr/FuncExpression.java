@@ -97,4 +97,9 @@ public class FuncExpression implements Expression {
   public void setAlias(String alias) {
     this.alias = alias;
   }
+
+  @Override
+  public void accept(ExpressionVisitor visitor) {
+    visitor.visit(this);
+  }
 }

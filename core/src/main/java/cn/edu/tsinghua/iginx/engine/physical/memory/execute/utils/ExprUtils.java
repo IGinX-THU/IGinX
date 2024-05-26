@@ -287,6 +287,12 @@ public class ExprUtils {
         List<String> right = getPathFromExpr(((BinaryExpression) expr).getRightExpression());
         left.addAll(right);
         return left;
+      case Multiple:
+        List<String> paths = new ArrayList<>();
+        for (Expression child : ((MultipleExpression) expr).getChildren()) {
+          paths.addAll(getPathFromExpr(child));
+        }
+        return paths;
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
     }
