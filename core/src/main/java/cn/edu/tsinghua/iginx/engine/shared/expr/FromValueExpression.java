@@ -36,4 +36,9 @@ public class FromValueExpression implements Expression {
 
   @Override
   public void setAlias(String alias) {}
+
+  @Override
+  public void accept(ExpressionVisitor visitor) {
+    visitor.visit(this);
+  }
 }

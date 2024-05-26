@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -12,6 +13,8 @@ import java.util.List;
 public class InnerJoin extends AbstractJoin {
 
   private Filter filter;
+
+  private TagFilter tagFilter;
 
   private final List<String> joinColumns;
 
@@ -33,6 +36,27 @@ public class InnerJoin extends AbstractJoin {
       String prefixA,
       String prefixB,
       Filter filter,
+      TagFilter tagFilter,
+      List<String> joinColumns) {
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        filter,
+        tagFilter,
+        joinColumns,
+        false,
+        JoinAlgType.HashJoin,
+        new ArrayList<>());
+  }
+
+  public InnerJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      Filter filter,
       List<String> joinColumns,
       boolean isNaturalJoin) {
     this(
@@ -41,6 +65,7 @@ public class InnerJoin extends AbstractJoin {
         prefixA,
         prefixB,
         filter,
+        null,
         joinColumns,
         isNaturalJoin,
         JoinAlgType.HashJoin,
@@ -62,6 +87,7 @@ public class InnerJoin extends AbstractJoin {
         prefixA,
         prefixB,
         filter,
+        null,
         joinColumns,
         isNaturalJoin,
         joinAlgType,
@@ -74,6 +100,7 @@ public class InnerJoin extends AbstractJoin {
       String prefixA,
       String prefixB,
       Filter filter,
+      TagFilter tagFilter,
       List<String> joinColumns,
       boolean isNaturalJoin,
       JoinAlgType joinAlgType,
@@ -86,6 +113,30 @@ public class InnerJoin extends AbstractJoin {
       this.joinColumns = new ArrayList<>();
     }
     this.isNaturalJoin = isNaturalJoin;
+    this.tagFilter = tagFilter;
+  }
+
+  public InnerJoin(
+      Source sourceA,
+      Source sourceB,
+      String prefixA,
+      String prefixB,
+      Filter filter,
+      List<String> joinColumns,
+      boolean isNaturalJoin,
+      JoinAlgType joinAlgType,
+      List<String> extraJoinPrefix) {
+    this(
+        sourceA,
+        sourceB,
+        prefixA,
+        prefixB,
+        filter,
+        null,
+        joinColumns,
+        isNaturalJoin,
+        joinAlgType,
+        extraJoinPrefix);
   }
 
   public Filter getFilter() {
@@ -104,6 +155,14 @@ public class InnerJoin extends AbstractJoin {
     this.filter = filter;
   }
 
+  public TagFilter getTagFilter() {
+    return tagFilter;
+  }
+
+  public void setTagFilter(TagFilter tagFilter) {
+    this.tagFilter = tagFilter;
+  }
+
   public void reChooseJoinAlg() {
     setJoinAlgType(chooseJoinAlg(filter, isNaturalJoin, joinColumns, getExtraJoinPrefix()));
   }
@@ -116,6 +175,7 @@ public class InnerJoin extends AbstractJoin {
         getPrefixA(),
         getPrefixB(),
         filter.copy(),
+        tagFilter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
         getJoinAlgType(),
@@ -130,6 +190,7 @@ public class InnerJoin extends AbstractJoin {
         getPrefixA(),
         getPrefixB(),
         filter.copy(),
+        tagFilter.copy(),
         new ArrayList<>(joinColumns),
         isNaturalJoin,
         getJoinAlgType(),

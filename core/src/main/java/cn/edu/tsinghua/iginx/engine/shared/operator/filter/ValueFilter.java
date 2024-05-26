@@ -26,7 +26,7 @@ public class ValueFilter implements Filter {
 
   private final FilterType type = FilterType.Value;
 
-  private final String path;
+  private String path;
   private final Value value;
   private Op op;
 
@@ -42,6 +42,10 @@ public class ValueFilter implements Filter {
 
   public String getPath() {
     return path;
+  }
+
+  public String setPath(String path) {
+    return this.path = path;
   }
 
   public Op getOp() {
