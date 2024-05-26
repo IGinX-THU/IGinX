@@ -6223,7 +6223,15 @@ public class SQLSessionIT {
                 "maxTimeseriesLength",
                 "batchSize",
                 "parallelGroupByPoolSize",
-                "username"));
+                "username",
+                "enableEmailNotification",
+                "mailSmtpHost",
+                "mailSmtpPort",
+                "mailSmtpUser",
+                "mailSmtpPassword",
+                "mailSender",
+                "mailRecipient"));
+
     assertEquals(expectedConfigNames, configs.keySet());
   }
 
