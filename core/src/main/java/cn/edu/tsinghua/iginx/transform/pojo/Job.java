@@ -21,6 +21,7 @@ public class Job {
   private final AtomicBoolean active;
   private long startTime;
   private long endTime;
+  private Exception exception;
 
   private boolean needExport;
   private ExportType exportType;

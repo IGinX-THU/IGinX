@@ -2,7 +2,7 @@ package cn.edu.tsinghua.iginx.engine.shared.expr;
 
 public class BaseExpression implements Expression {
 
-  private final String pathName;
+  private String pathName;
   private String alias;
 
   public BaseExpression(String pathName) {
@@ -23,6 +23,10 @@ public class BaseExpression implements Expression {
     return pathName;
   }
 
+  public void setPathName(String pathName) {
+    this.pathName = pathName;
+  }
+
   @Override
   public ExpressionType getType() {
     return ExpressionType.Base;
@@ -41,5 +45,10 @@ public class BaseExpression implements Expression {
   @Override
   public void setAlias(String alias) {
     this.alias = alias;
+  }
+
+  @Override
+  public void accept(ExpressionVisitor visitor) {
+    visitor.visit(this);
   }
 }
