@@ -1,11 +1,15 @@
 package cn.edu.tsinghua.iginx.engine.logical.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -458,9 +462,71 @@ public class LogicalFilterUtils {
     return new KeyRange(begin, end);
   }
 
+  public static Filter getSubFilterFromPatterns(Filter filter, List<String> patterns) {
+    Filter filterWithoutNot = removeNot(filter);
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                for (String pattern : patterns) {
+                  if (s.equals(pattern)) {
+                    return true;
+                  } else if (s.contains("*") && pattern.matches(StringUtils.reformatPath(s))) {
+                    return true;
+                  } else if (pattern.contains("*")
+                      && s.matches(StringUtils.reformatPath(pattern))) {
+                    return true;
+                  }
+                }
+                return false;
+              }
+            });
+    return mergeTrue(filterWithTrue);
+  }
+
+  public static Filter getSubFilterFromPrefix(Filter filter, String prefix) {
+    Filter filterWithoutNot = removeNot(filter);
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                return s.startsWith(prefix + ".");
+              }
+            });
+    return mergeTrue(filterWithTrue);
+  }
+
   public static Filter getSubFilterFromFragment(Filter filter, ColumnsInterval columnsInterval) {
     Filter filterWithoutNot = removeNot(filter);
-    Filter filterWithTrue = setTrue(filterWithoutNot, columnsInterval);
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                return columnRangeContainPath(columnsInterval, s);
+              }
+            });
+    return mergeTrue(filterWithTrue);
+  }
+
+  public static Filter getSubFilterFromFragments(
+      Filter filter, List<ColumnsInterval> columnsIntervals) {
+    Filter filterWithoutNot = removeNot(filter);
+    Filter filterWithTrue =
+        setTrue(
+            filterWithoutNot,
+            new Predicate<String>() {
+              @Override
+              public boolean test(String s) {
+                return columnsIntervals.stream()
+                    .anyMatch(columnsInterval -> columnRangeContainPath(columnsInterval, s));
+              }
+            });
     return mergeTrue(filterWithTrue);
   }
 
@@ -606,19 +672,19 @@ public class LogicalFilterUtils {
     return false;
   }
 
-  private static Filter setTrue(Filter filter, ColumnsInterval columnsInterval) {
+  private static Filter setTrue(Filter filter, Predicate<String> predicate) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (int i = 0; i < orChildren.size(); i++) {
-          Filter childFilter = setTrue(orChildren.get(i), columnsInterval);
+          Filter childFilter = setTrue(orChildren.get(i), predicate);
           orChildren.set(i, childFilter);
         }
         return new OrFilter(orChildren);
       case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (int i = 0; i < andChildren.size(); i++) {
-          Filter childFilter = setTrue(andChildren.get(i), columnsInterval);
+          Filter childFilter = setTrue(andChildren.get(i), predicate);
           andChildren.set(i, childFilter);
         }
         return new AndFilter(andChildren);
@@ -627,19 +693,21 @@ public class LogicalFilterUtils {
         if (isFunction(path)) {
           return new BoolFilter(true);
         }
-        if (!columnRangeContainPath(columnsInterval, path)) {
+        if (!predicate.test(path)) {
+          return new BoolFilter(true);
+        }
+        if (Op.isOrOp(((ValueFilter) filter).getOp()) && path.contains("*")) {
           return new BoolFilter(true);
         }
         return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
-        // 如果filter中含有聚合函数，忽略，设置为true
-        if (isFunction(pathA) || isFunction(pathB)) {
+        if (Op.isOrOp(((PathFilter) filter).getOp())
+            && (pathA.contains("*") || pathB.contains("*"))) {
           return new BoolFilter(true);
         }
-        if (!columnRangeContainPath(columnsInterval, pathA)
-            || !columnRangeContainPath(columnsInterval, pathB)) {
+        if (!predicate.test(pathA) || !predicate.test(pathB)) {
           return new BoolFilter(true);
         }
         return filter;
@@ -830,5 +898,71 @@ public class LogicalFilterUtils {
           }
         });
     return exprFilters;
+  }
+
+  public static Set<String> getPathsFromFilter(Filter filter) {
+    final Set<String> paths = new HashSet<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {
+            paths.add(filter.getPath());
+          }
+
+          @Override
+          public void visit(PathFilter filter) {
+            paths.add(filter.getPathA());
+            paths.add(filter.getPathB());
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {
+            paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionA()));
+            paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionB()));
+          }
+        });
+    return paths;
+  }
+
+  /**
+   * 将Filter分解为一系列AND连接的子条件，如果顶层Filter不是AND连接的话，转换为CNF再分解
+   *
+   * @param filter 待分解的Filter
+   * @return 分解后的子条件列表
+   */
+  public static List<Filter> splitFilter(Filter filter) {
+    if (filter == null) {
+      return new ArrayList<>();
+    }
+
+    List<Filter> splitFilter = new ArrayList<>();
+    if (filter.getType() != FilterType.And) {
+      filter = toCNF(filter);
+    }
+
+    if (filter.getType() != FilterType.And) {
+      splitFilter.add(filter);
+    } else {
+      AndFilter andFilter = (AndFilter) filter;
+      andFilter.getChildren().stream()
+          .map(LogicalFilterUtils::splitFilter)
+          .forEach(splitFilter::addAll);
+    }
+    return splitFilter;
   }
 }

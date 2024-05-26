@@ -56,11 +56,13 @@ public class JobRunner implements Runner {
       // we don't need this.close() because all children runners are closed.
       if (job.getActive().compareAndSet(true, false)) {
         job.setState(JobState.JOB_FINISHED);
+        job.setException(null);
       }
     } catch (TransformException e) {
       LOGGER.error("Fail to run transform job id={}, because", job.getJobId(), e);
       if (job.getActive().compareAndSet(true, false)) {
         job.setState(JobState.JOB_FAILING);
+        job.setException(e);
         close();
         job.setState(JobState.JOB_FAILED);
       }
