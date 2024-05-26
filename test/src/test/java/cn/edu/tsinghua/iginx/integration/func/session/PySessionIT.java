@@ -164,9 +164,11 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        "   key  count(test.a.a)  count(test.a.b)  count(test.b.b)  count(test.c.c)\n"
-            + "0    0                1                1                1                1\n"
-            + "1    3                1                1                1                1\n";
+        "   window_start  window_end  ...  count(test.b.b)  count(test.c.c)\n"
+            + "0             0           2  ...                1                1\n"
+            + "1             3           5  ...                1                1\n"
+            + "\n"
+            + "[2 rows x 6 columns]\n";
     assertEquals(expected, result);
   }
 

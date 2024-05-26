@@ -99,15 +99,21 @@ class QueryDataSet(object):
         return value
 
     def to_df(self):
-        columns = ["key"]
+        has_key = self.__timestamps != []
+        print(has_key)
+        columns = ["key"] if has_key else []
         for column in self.__paths:
             columns.append(str(column))
 
         value_matrix = []
-        for i in range(len(self.__timestamps)):
-            value = [self.__timestamps[i]]
-            value.extend(self.__values[i])
-            value_matrix.append(value)
+        if has_key:
+            for i in range(len(self.__timestamps)):
+                value = [self.__timestamps[i]]
+                value.extend(self.__values[i])
+                value_matrix.append(value)
+        else:
+            for i in range(len(self.__values)):
+                value_matrix.append(self.__values[i])
 
         return pd.DataFrame(value_matrix, columns=columns)
 

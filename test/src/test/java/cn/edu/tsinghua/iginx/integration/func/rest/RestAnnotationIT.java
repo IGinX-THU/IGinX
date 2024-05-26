@@ -218,8 +218,9 @@ public class RestAnnotationIT {
     }
   }
 
-  // 跳过测试
-//  @Test
+  // 暂时跳过这个测试
+  @Test
+  @Ignore
   public void testAll() {
     for (DataType dataType : DATA_TYPE_ARRAY) {
       LOGGER.info("Testing datatype: {}...", dataType);
