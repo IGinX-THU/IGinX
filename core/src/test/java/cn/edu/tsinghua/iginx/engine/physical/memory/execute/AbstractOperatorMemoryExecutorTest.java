@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_END_COL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_START_COL;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -2262,10 +2264,12 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     RowStream stream = getExecutor().executeUnaryOperator(downsample, table, null);
 
     Header targetHeader = stream.getHeader();
-    assertTrue(targetHeader.hasKey());
-    assertEquals(1, targetHeader.getFields().size());
-    assertEquals("avg(a.a.b)", targetHeader.getFields().get(0).getFullName());
-    assertEquals(DataType.DOUBLE, targetHeader.getFields().get(0).getType());
+    assertFalse(targetHeader.hasKey());
+    assertEquals(3, targetHeader.getFields().size());
+    assertEquals(WINDOW_START_COL, targetHeader.getFields().get(0).getFullName());
+    assertEquals(WINDOW_END_COL, targetHeader.getFields().get(1).getFullName());
+    assertEquals("avg(a.a.b)", targetHeader.getFields().get(2).getFullName());
+    assertEquals(DataType.DOUBLE, targetHeader.getFields().get(2).getType());
 
     int index = 0;
     while (stream.hasNext()) {
@@ -2276,7 +2280,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
         sum += (int) table.getRow(index + cnt).getValue("a.a.b");
         cnt++;
       }
-      assertEquals(sum * 1.0 / cnt, (double) targetRow.getValue(0), 0.01);
+      assertEquals(sum * 1.0 / cnt, (double) targetRow.getValue(2), 0.01);
       index += cnt;
     }
     assertEquals(table.getRowSize(), index);
