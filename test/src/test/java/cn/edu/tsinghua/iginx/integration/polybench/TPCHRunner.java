@@ -109,7 +109,7 @@ public class TPCHRunner {
       System.out.println(clusterInfo);
       // Long startTime;
       // 13有问题
-      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
@@ -221,8 +221,19 @@ public class TPCHRunner {
                   + ", new average time cost: "
                   + newAvgTimeCosts.get(i)
                   + "ms");
+          // TODO 如果相差超过15%？，则报错
+          if (Math.abs(newAvgTimeCosts.get(i) - avgTimeCosts.get(i)) > 0.15 * avgTimeCosts.get(i)) {
+            System.out.println(
+                "query "
+                    + queryIds.get(i)
+                    + ", new branch average time cost: "
+                    + newAvgTimeCosts.get(i)
+                    + "ms");
+            System.out.println(
+                "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
+            throw new RuntimeException("time cost not equal");
+          }
         }
-        // TODO 如果相差超过15%？，则报错
       } else {
         writeToFile(avgTimeCosts, fileName);
       }
