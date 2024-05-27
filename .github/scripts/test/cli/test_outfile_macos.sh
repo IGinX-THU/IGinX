@@ -6,11 +6,11 @@ sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/byteStream"
 
 sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/csv"
 
-sh -c "chmod +x client/target/iginx-client-*-SNAPSHOT/sbin/start_cli.sh"
+sh -c "chmod +x client/target/iginx-client-$2/sbin/start_cli.sh"
 
 sh -c "sleep 10"
 
-SCRIPT_COMMAND="xargs -0 -t -I F sh client/target/iginx-client-*-SNAPSHOT/sbin/start_cli.sh -e 'F'"
+SCRIPT_COMMAND="xargs -0 -t -I F sh client/target/iginx-client-$2/sbin/start_cli.sh -e 'F'"
 
 sh -c "echo 'clear data;' | ${SCRIPT_COMMAND}"
 
@@ -57,4 +57,4 @@ sh -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P
 
 OUTFILE_COMMAND='select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
 
-sh -c "echo '$OUTFILE_COMMAND' | xargs -0 -t -I F sh client/target/iginx-client-*-SNAPSHOT/sbin/start_cli.sh -e 'F'"
+sh -c "echo '$OUTFILE_COMMAND' | xargs -0 -t -I F sh client/target/iginx-client-$2/sbin/start_cli.sh -e 'F'"

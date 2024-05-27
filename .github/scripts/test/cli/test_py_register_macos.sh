@@ -4,11 +4,11 @@ set -e
 
 cp -f test/src/test/resources/udf/mock_udf.py client/target/iginx-client-$1/sbin/mock_udf.py
 
-ls client/target/iginx-client-*-SNAPSHOT/sbin
+ls client/target/iginx-client-$1/sbin
 
 COMMAND='CREATE FUNCTION UDAF "'"mock_udf"'" FROM "'"MockUDF"'" IN "'"mock_udf.py"'";'
 
-cd client/target/iginx-client-*-SNAPSHOT/sbin
+cd client/target/iginx-client-$1/sbin
 
 sh -c "chmod +x start_cli.sh"
 

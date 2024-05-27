@@ -2,7 +2,7 @@
 
 set -e
 
-cd core/target/iginx-core-*-SNAPSHOT/
+cd core/target/iginx-core-$1/
 
 iginx_home_path=$PWD
 
