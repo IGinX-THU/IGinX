@@ -398,15 +398,15 @@ public class NewSessionIT {
   @Test
   public void testCancelClient() {
     // use .sh on unix & .bat on windows(absolute path)
-    String clientUnixPath = "../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh";
+    String clientUnixPath = "../client/target/iginx-client-*/sbin/start_cli.sh";
     String clientWinPath = null;
     try {
       clientWinPath =
-          new File("../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat")
+          new File("../client/target/iginx-client-*/sbin/start_cli.bat")
               .getCanonicalPath();
     } catch (IOException e) {
       LOGGER.info(
-          "Can't find script ../client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat");
+          "Can't find script ../client/target/iginx-client-*/sbin/start_cli.bat");
       fail();
     }
     try {

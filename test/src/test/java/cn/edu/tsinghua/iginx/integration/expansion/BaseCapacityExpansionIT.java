@@ -749,7 +749,7 @@ public abstract class BaseCapacityExpansionIT {
             DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
-            "core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties",
+            "core/target/iginx-core-*/conf/config.properties",
             metadataStorage);
     if (res != 0) {
       fail("change config file fail");
