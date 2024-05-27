@@ -268,6 +268,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> rows = table.getRows();
     long bias = downsample.getKeyRange().getActualBeginKey();
     long endKey = downsample.getKeyRange().getActualEndKey();
+    if (bias == -1L && endKey == -1L) {
+      bias = table.getRow(0).getKey();
+      endKey = table.getRow(table.getRowSize() - 1).getKey();
+    }
     long precision = downsample.getPrecision();
     long slideDistance = downsample.getSlideDistance();
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
@@ -360,8 +364,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       firstCol = false;
     }
 
-    // key = window_start，而每个窗口长度一样，因此多表中key相同的列就是同一个窗口的结果，可以按key join，但join后不保留key列，只保留
-    // window_start, window_end列
+    // key = window_start，而每个窗口长度一样，因此多表中key相同的列就是同一个窗口的结果，可以按key join
     return RowUtils.joinMultipleTablesByKey(tableList);
   }
 

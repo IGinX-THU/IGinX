@@ -250,14 +250,6 @@ public class NewSessionIT {
     compareValues(expected.getValues(), actual.getValues());
   }
 
-  private void compareWithoutKey(TestDataSection expected, SessionQueryDataSet actual) {
-    if (!needCompareResult) {
-      return;
-    }
-    comparePaths(expected.getPaths(), actual.getPaths(), expected.getTagsList());
-    compareValues(expected.getValues(), actual.getValues());
-  }
-
   private void compare(TestDataSection expected, SessionAggregateQueryDataSet actual) {
     if (!needCompareResult) {
       return;
@@ -781,7 +773,7 @@ public class NewSessionIT {
       try {
         SessionQueryDataSet dataSet =
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
-        compareWithoutKey(expectedResults.get(i), dataSet);
+        compare(expectedResults.get(i), dataSet);
       } catch (SessionException e) {
         LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
         fail();

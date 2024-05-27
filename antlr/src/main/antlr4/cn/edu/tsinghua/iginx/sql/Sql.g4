@@ -255,7 +255,7 @@ orderByClause
    ;
 
 downsampleClause
-   : OVER LR_BRACKET RANGE aggLen IN timeInterval (STEP aggLen)? RR_BRACKET
+   : OVER LR_BRACKET RANGE aggLen (IN timeInterval)? (STEP aggLen)? RR_BRACKET
    ;
 
 aggLen

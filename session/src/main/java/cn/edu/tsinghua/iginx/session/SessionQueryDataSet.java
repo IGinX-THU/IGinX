@@ -61,12 +61,13 @@ public class SessionQueryDataSet {
   public SessionQueryDataSet(DownsampleQueryResp resp) {
     this.paths = resp.getPaths();
     this.tagsList = resp.getTagsList();
-    this.keys = null;
     if (resp.queryDataSet != null) {
+      this.keys = getLongArrayFromByteBuffer(resp.queryDataSet.keys);
       this.values =
           getValuesFromBufferAndBitmaps(
               resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
     } else {
+      this.keys = new long[0];
       values = new ArrayList<>();
     }
     if (this.paths == null) {

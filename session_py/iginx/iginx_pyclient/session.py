@@ -433,7 +433,7 @@ class Session(object):
         paths = resp.paths
         data_types = resp.dataTypeList
         raw_data_set = resp.queryDataSet
-        return QueryDataSet(paths, data_types, None, raw_data_set.valuesList,
+        return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList,
                             raw_data_set.bitmapList)
 
     def aggregate_query(self, paths, start_time, end_time, type, timePrecision=None):

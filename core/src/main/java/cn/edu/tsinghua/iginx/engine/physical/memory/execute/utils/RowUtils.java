@@ -1059,8 +1059,7 @@ public class RowUtils {
       tableIndexMap.put(table, newFields.size());
       newFields.addAll(table.getHeader().getFields());
     }
-    Header newHeader;
-    newHeader = new Header(Field.KEY, newFields);
+    Header newHeader = new Header(Field.KEY, newFields);
     List<Row> newRows = new ArrayList<>();
 
     // PriorityQueue中的Pair，k为行，v为所属表格
