@@ -3,21 +3,21 @@
   <groupId>cn.edu.tsinghua</groupId>
   <artifactId>iginx-thrift</artifactId>
   <versioning>
-    <lastUpdated>20240515111911</lastUpdated>
+    <lastUpdated>20240526065709</lastUpdated>
     <snapshot>
-      <timestamp>20240515.111911</timestamp>
-      <buildNumber>3</buildNumber>
+      <timestamp>20240526.065709</timestamp>
+      <buildNumber>4</buildNumber>
     </snapshot>
     <snapshotVersions>
       <snapshotVersion>
         <extension>jar</extension>
-        <value>0.6.0-20240515.111911-3</value>
-        <updated>20240515111911</updated>
+        <value>0.6.0-20240526.065709-4</value>
+        <updated>20240526065709</updated>
       </snapshotVersion>
       <snapshotVersion>
         <extension>pom</extension>
-        <value>0.6.0-20240515.111911-3</value>
-        <updated>20240515111911</updated>
+        <value>0.6.0-20240526.065709-4</value>
+        <updated>20240526065709</updated>
       </snapshotVersion>
     </snapshotVersions>
   </versioning>
