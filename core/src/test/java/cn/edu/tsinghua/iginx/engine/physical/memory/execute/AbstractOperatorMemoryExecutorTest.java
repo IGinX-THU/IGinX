@@ -2264,7 +2264,7 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     RowStream stream = getExecutor().executeUnaryOperator(downsample, table, null);
 
     Header targetHeader = stream.getHeader();
-    assertFalse(targetHeader.hasKey());
+    assertTrue(targetHeader.hasKey());
     assertEquals(3, targetHeader.getFields().size());
     assertEquals(WINDOW_START_COL, targetHeader.getFields().get(0).getFullName());
     assertEquals(WINDOW_END_COL, targetHeader.getFields().get(1).getFullName());
