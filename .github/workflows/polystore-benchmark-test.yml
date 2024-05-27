@@ -66,7 +66,6 @@ jobs:
               with:
                   DB-name: "Parquet"
                   Set-Filter-Fragment-OFF: "true"
-                  Push-Down: "true"
 
             # start udf path test first to avoid being effected
             - name: Start IGinX
@@ -147,7 +146,6 @@ jobs:
                   DB-name: "Parquet"
                   Set-Filter-Fragment-OFF: "true"
                   Root-Dir-Path: "IGinX"
-                  Push-Down: "true"
 
             - name: Start IGinX
               shell: bash
