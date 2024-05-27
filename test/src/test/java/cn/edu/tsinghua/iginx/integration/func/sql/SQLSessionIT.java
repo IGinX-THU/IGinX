@@ -7571,7 +7571,7 @@ public class SQLSessionIT {
     assertFalse(executor.execute("EXPLAIN " + statement).contains("Distinct"));
     assertEquals(closeResult, executor.execute(statement));
 
-    statement = "SELECT * FROM us.d1 WHERE s1 IN (SELECT DISTINCT s1 FROM us.d1);";
+    statement = "SELECT * FROM us.d1 WHERE s1 IN (SELECT DISTINCT s1 FROM us.d2);";
     executor.execute(closeRule);
     assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
     closeResult = executor.execute(statement);
