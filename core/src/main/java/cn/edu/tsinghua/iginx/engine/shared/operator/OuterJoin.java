@@ -10,7 +10,7 @@ import java.util.List;
 
 public class OuterJoin extends AbstractJoin {
 
-  private final OuterJoinType outerJoinType;
+  private OuterJoinType outerJoinType;
 
   private Filter filter;
 
@@ -86,6 +86,10 @@ public class OuterJoin extends AbstractJoin {
 
   public OuterJoinType getOuterJoinType() {
     return outerJoinType;
+  }
+
+  public void setOuterJoinType(OuterJoinType outerJoinType) {
+    this.outerJoinType = outerJoinType;
   }
 
   public Filter getFilter() {

@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class FunctionUtils {
 
@@ -247,13 +248,7 @@ public class FunctionUtils {
   }
 
   public static List<String> getFunctionsFullPath(List<FunctionCall> functionCalls) {
-    List<String> ret = new ArrayList<>();
-    for (FunctionCall functionCall : functionCalls) {
-      List<String> path = functionCall.getParams().getPaths();
-      String functionName = getFunctionName(functionCall.getFunction());
-      ret.add(functionName + "(" + String.join(",", path) + ")");
-    }
-    return ret;
+    return functionCalls.stream().map(FunctionCall::getFunctionStr).collect(Collectors.toList());
   }
 
   public static List<String> getFunctionsFullPath(Operator operator) {
