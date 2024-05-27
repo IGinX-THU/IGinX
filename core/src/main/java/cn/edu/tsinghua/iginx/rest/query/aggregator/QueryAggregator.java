@@ -143,7 +143,10 @@ public abstract class QueryAggregator {
     }
     QueryResultDataset queryResultDataset = new QueryResultDataset();
     queryResultDataset.setPaths(getPathsFromSessionQueryDataSet(sessionQueryDataSet));
-    int n = sessionQueryDataSet.getKeys().length;
+    int n =
+        sessionQueryDataSet.getKeys() != null
+            ? sessionQueryDataSet.getKeys().length
+            : sessionQueryDataSet.getValues().size();
     int m = 0;
     if (sessionQueryDataSet.getPaths() != null) {
       m = sessionQueryDataSet.getPaths().size();
@@ -171,7 +174,10 @@ public abstract class QueryAggregator {
   public List<String> getPathsFromSessionQueryDataSet(SessionQueryDataSet sessionQueryDataSet) {
     List<String> ret = new ArrayList<>();
     List<Boolean> notNull = new ArrayList<>();
-    int n = sessionQueryDataSet.getKeys().length;
+    int n =
+        sessionQueryDataSet.getKeys() != null
+            ? sessionQueryDataSet.getKeys().length
+            : sessionQueryDataSet.getValues().size();
     int m = 0;
     if (sessionQueryDataSet.getPaths() != null) {
       m = sessionQueryDataSet.getPaths().size();

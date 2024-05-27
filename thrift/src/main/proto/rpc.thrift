@@ -328,7 +328,7 @@ struct DownsampleQueryResp {
     2: optional list<string> paths
     3: optional list<map<string, string>> tagsList
     4: optional list<DataType> dataTypeList
-    5: optional QueryDataSet queryDataSet
+    5: optional QueryDataSetV2 queryDataSet
 }
 
 struct ShowColumnsReq {

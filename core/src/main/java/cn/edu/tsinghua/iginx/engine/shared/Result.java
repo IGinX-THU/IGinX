@@ -107,13 +107,7 @@ public class Result {
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
-    if (keys == null || keys.length == 0) {
-      resp.setQueryDataSet(
-          new QueryDataSet(ByteBuffer.allocate(0), new ArrayList<>(), new ArrayList<>()));
-      return resp;
-    }
-    ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-    resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+    resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
     return resp;
   }
 

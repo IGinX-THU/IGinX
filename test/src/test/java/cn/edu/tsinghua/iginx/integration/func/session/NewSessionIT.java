@@ -781,7 +781,7 @@ public class NewSessionIT {
       try {
         SessionQueryDataSet dataSet =
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
-        compare(expectedResults.get(i), dataSet);
+        compareWithoutKey(expectedResults.get(i), dataSet);
       } catch (SessionException e) {
         LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
         fail();
