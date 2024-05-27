@@ -87,10 +87,6 @@ public class RowUtils {
   }
 
   public static Row combineMultipleColumns(List<Row> columnList) {
-    return combineMultipleColumns(columnList, true);
-  }
-
-  public static Row combineMultipleColumns(List<Row> columnList, boolean keepKey) {
     if (columnList == null || columnList.isEmpty()) {
       return Row.EMPTY_ROW;
     }
