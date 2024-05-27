@@ -33,28 +33,28 @@ jobs:
             - name: Display System Info
               shell: bash
               run: |
-                echo "Operating System: $(uname -a 2>/dev/null || ver)"
-                echo "Architecture: $(uname -m 2>/dev/null || echo %PROCESSOR_ARCHITECTURE%)"
-                echo "Java Version:"
-                java -version
-                echo "Python Version:"
-                python --version
-                echo "CPU Info:"
-                if [ "$(uname)" = "Linux" ]; then
-                  lscpu
-                elif [ "$(uname)" = "Darwin" ]; then
-                  sysctl -n machdep.cpu.brand_string
-                else
-                  wmic cpu get name
-                fi
-                echo "Memory Info:"
-                if [ "$(uname)" = "Linux" ]; then
-                  free -h
-                elif [ "$(uname)" = "Darwin" ]; then
-                  vm_stat
-                else
-                  systeminfo | findstr /C:"Total Physical Memory"
-                fi
+                  echo "Operating System: $(uname -a 2>/dev/null || ver)"
+                  echo "Architecture: $(uname -m 2>/dev/null || echo %PROCESSOR_ARCHITECTURE%)"
+                  echo "Java Version:"
+                  java -version
+                  echo "Python Version:"
+                  python --version
+                  echo "CPU Info:"
+                  if [ "$(uname)" = "Linux" ]; then
+                    lscpu
+                  elif [ "$(uname)" = "Darwin" ]; then
+                    sysctl -n machdep.cpu.brand_string
+                  else
+                    wmic cpu get name
+                  fi
+                  echo "Memory Info:"
+                  if [ "$(uname)" = "Linux" ]; then
+                    free -h
+                  elif [ "$(uname)" = "Darwin" ]; then
+                    vm_stat
+                  else
+                    systeminfo | findstr /C:"Total Physical Memory"
+                  fi
 
             - name: generate tpch data
               shell: bash

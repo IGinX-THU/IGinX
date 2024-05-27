@@ -221,8 +221,19 @@ public class TPCHRunner {
                   + ", new average time cost: "
                   + newAvgTimeCosts.get(i)
                   + "ms");
+          // TODO 如果相差超过15%？，则报错
+          if (Math.abs(newAvgTimeCosts.get(i) - avgTimeCosts.get(i)) > 0.15 * avgTimeCosts.get(i)) {
+            System.out.println(
+                "query "
+                    + queryIds.get(i)
+                    + ", new branch average time cost: "
+                    + newAvgTimeCosts.get(i)
+                    + "ms");
+            System.out.println(
+                "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
+            throw new RuntimeException("time cost not equal");
+          }
         }
-        // TODO 如果相差超过15%？，则报错
       } else {
         writeToFile(avgTimeCosts, fileName);
       }
