@@ -1036,12 +1036,10 @@ public class RowUtils {
    * 将多个table进行Join By Key，DownSample中用到
    *
    * @param tableList table列表
-   * @param withKey 结果是否保留key列
    * @return 合并后的table
    * @throws PhysicalException Table列表为空或者Table不含Key时，抛出异常
    */
-  public static Table joinMultipleTablesByKey(List<Table> tableList)
-      throws PhysicalException {
+  public static Table joinMultipleTablesByKey(List<Table> tableList) throws PhysicalException {
     if (tableList == null || tableList.isEmpty()) {
       throw new IllegalArgumentException("Table list cannot be null or empty");
     }
@@ -1094,7 +1092,7 @@ public class RowUtils {
         }
       }
 
-        // 将新行加入结果表
+      // 将新行加入结果表
       newRows.add(new Row(newHeader, curKey, values));
     }
 
