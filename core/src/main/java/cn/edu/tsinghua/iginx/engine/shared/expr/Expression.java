@@ -12,6 +12,8 @@ public interface Expression {
 
   void setAlias(String alias);
 
+  void accept(ExpressionVisitor visitor);
+
   enum ExpressionType {
     Bracket,
     Binary,

@@ -19,13 +19,13 @@
         <moduleSet>
             <useAllReactorProjects>true</useAllReactorProjects>
             <includes>
-                <include>cn.edu.tsinghua:postgresql</include>
+                <include>cn.edu.tsinghua:relational</include>
             </includes>
             <sources>
                 <includeModuleDirectory>false</includeModuleDirectory>
                 <fileSets>
                     <fileSet>
-                        <directory>${project.build.directory}/postgresql-${project.version}</directory>
+                        <directory>${project.build.directory}/relational-${project.version}</directory>
                         <outputDirectory>/</outputDirectory>
                     </fileSet>
                 </fileSets>
