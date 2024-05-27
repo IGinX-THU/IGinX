@@ -6575,17 +6575,17 @@ public class SQLSessionIT {
             new Pair<>(
                 "explain SELECT * FROM (SELECT max(s2), min(s3), s1 FROM us.d1 GROUP BY s1) WHERE us.d1.s1 < 10 AND max(us.d1.s2) > 10;",
                 "ResultSets:\n"
-                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
-                    + "|          Logical Tree|Operator Type|                                                                                        Operator Info|\n"
-                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
-                    + "|Reorder               |      Reorder|                                                                                             Order: *|\n"
-                    + "|  +--Project          |      Project|                                                                                          Patterns: *|\n"
-                    + "|    +--Reorder        |      Reorder|                                                          Order: max(us.d1.s2),min(us.d1.s3),us.d1.s1|\n"
-                    + "|      +--Select       |       Select|                                                                         Filter: (max(us.d1.s2) > 10)|\n"
-                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (min, System),(max, System), MappingType: SetMapping|\n"
-                    + "|          +--Select   |       Select|                                                                              Filter: (us.d1.s1 < 10)|\n"
-                    + "|            +--Project|      Project|                                      Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
-                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                                                                                                          Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                                                                                                               Order: *|\n"
+                    + "|  +--Project          |      Project|                                                                                                            Patterns: *|\n"
+                    + "|    +--Reorder        |      Reorder|                                                                            Order: max(us.d1.s2),min(us.d1.s3),us.d1.s1|\n"
+                    + "|      +--Select       |       Select|                                                                                           Filter: (max(us.d1.s2) > 10)|\n"
+                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (min, System),(max, System), MappingType: SetMapping isDistinct: false|\n"
+                    + "|          +--Select   |       Select|                                                                                                Filter: (us.d1.s1 < 10)|\n"
+                    + "|            +--Project|      Project|                                                        Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
                     + "Total line number = 7\n"),
             new Pair<>(
                 "explain SELECT * FROM (SELECT avg(s2), count(s3) FROM us.d1) WHERE avg(us.d1.s2) < 10;",
