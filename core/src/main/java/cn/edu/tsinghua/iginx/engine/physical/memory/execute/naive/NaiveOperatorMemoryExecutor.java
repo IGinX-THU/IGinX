@@ -362,7 +362,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
     // key = window_start，而每个窗口长度一样，因此多表中key相同的列就是同一个窗口的结果，可以按key join，但join后不保留key列，只保留
     // window_start, window_end列
-    return RowUtils.joinMultipleTablesByKey(tableList, false);
+    return RowUtils.joinMultipleTablesByKey(tableList);
   }
 
   private RowStream executeRowTransform(RowTransform rowTransform, Table table)

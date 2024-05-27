@@ -1040,7 +1040,7 @@ public class RowUtils {
    * @return 合并后的table
    * @throws PhysicalException Table列表为空或者Table不含Key时，抛出异常
    */
-  public static Table joinMultipleTablesByKey(List<Table> tableList, boolean withKey)
+  public static Table joinMultipleTablesByKey(List<Table> tableList)
       throws PhysicalException {
     if (tableList == null || tableList.isEmpty()) {
       throw new IllegalArgumentException("Table list cannot be null or empty");
@@ -1062,11 +1062,7 @@ public class RowUtils {
       newFields.addAll(table.getHeader().getFields());
     }
     Header newHeader;
-    if (withKey) {
-      newHeader = new Header(Field.KEY, newFields);
-    } else {
-      newHeader = new Header(newFields);
-    }
+    newHeader = new Header(Field.KEY, newFields);
     List<Row> newRows = new ArrayList<>();
 
     // PriorityQueue中的Pair，k为行，v为所属表格
@@ -1098,12 +1094,8 @@ public class RowUtils {
         }
       }
 
-      if (withKey) {
         // 将新行加入结果表
-        newRows.add(new Row(newHeader, curKey, values));
-      } else {
-        newRows.add(new Row(newHeader, values));
-      }
+      newRows.add(new Row(newHeader, curKey, values));
     }
 
     // 重置所有table的迭代器，以便下次使用
