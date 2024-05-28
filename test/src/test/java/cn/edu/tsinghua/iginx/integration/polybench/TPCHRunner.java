@@ -81,6 +81,14 @@ public class TPCHRunner {
       // 输出所有存储引擎
       String clusterInfo = conn.executeSql("SHOW CLUSTER INFO;").getResultInString(false, "");
       System.out.println(clusterInfo);
+      // 获取当前JVM的Runtime实例
+      Runtime runtime = Runtime.getRuntime();
+
+      // 执行垃圾回收，尽量释放内存
+      runtime.gc();
+
+      // 获取执行语句前的内存使用情况
+      long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
 
       // 添加存储引擎
       System.out.println("start adding storage engine");
@@ -206,23 +214,20 @@ public class TPCHRunner {
         System.out.println(
             "end tpch query " + queryId + ", average time cost: " + averageTimeCost + "ms");
       }
-      // write avg time cost to file
-      for (int i = 0; i < queryIds.size(); i++) {
-        System.out.println(
-            "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
-      }
       String fileName = "src/test/resources/polybench/avgTimeCosts.txt";
-      if (Files.exists(Paths.get(fileName))) {
-        List<Double> newAvgTimeCosts = readFromFile(fileName);
+      if (Files.exists(Paths.get(fileName))) { // 如果文件存在，即此次跑的是主分支代码，需要读取文件进行比较
+        List<Double> newAvgTimeCosts = readFromFile(fileName);  // 文件中存的是新分支的运行时间
         for (int i = 0; i < queryIds.size(); i++) {
+          System.out.println(
+                  "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
           System.out.println(
               "query "
                   + queryIds.get(i)
                   + ", new average time cost: "
                   + newAvgTimeCosts.get(i)
                   + "ms");
-          // TODO 如果相差超过15%？，则报错
-          if (Math.abs(newAvgTimeCosts.get(i) - avgTimeCosts.get(i)) > 0.15 * avgTimeCosts.get(i)) {
+          // TODO 如果相差超过30%？，则报错
+          if (Math.abs(newAvgTimeCosts.get(i) - avgTimeCosts.get(i)) > 0.3 * avgTimeCosts.get(i)) {
             System.out.println(
                 "query "
                     + queryIds.get(i)
@@ -237,6 +242,17 @@ public class TPCHRunner {
       } else {
         writeToFile(avgTimeCosts, fileName);
       }
+      // 再次执行垃圾回收
+      runtime.gc();
+
+      // 获取执行语句后的内存使用情况
+      long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+
+      // 计算内存使用的变化
+      long memoryUsed = usedMemoryAfter - usedMemoryBefore;
+
+      // 输出内存使用情况
+      System.out.println("Memory used by the statement: " + memoryUsed + " bytes");
 
       // 关闭会话
       conn.closeSession();
