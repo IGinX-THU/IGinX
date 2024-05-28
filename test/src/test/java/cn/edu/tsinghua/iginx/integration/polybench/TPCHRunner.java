@@ -138,6 +138,14 @@ public class TPCHRunner {
           result = conn.executeSql(sql);
           result.print(false, "");
         }
+        // 再次执行垃圾回收
+        runtime.gc();
+        // 获取执行语句后的内存使用情况
+        long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
+        // 计算内存使用的变化
+        long memoryUsed = usedMemoryAfter - usedMemoryBefore;
+        // 输出内存使用情况
+        System.out.println("Memory used by the statement: " + memoryUsed + " bytes");
 
         // 验证
         Long timeCost = System.currentTimeMillis() - startTime;
@@ -242,17 +250,6 @@ public class TPCHRunner {
       } else {
         writeToFile(avgTimeCosts, fileName);
       }
-      // 再次执行垃圾回收
-      runtime.gc();
-
-      // 获取执行语句后的内存使用情况
-      long usedMemoryAfter = runtime.totalMemory() - runtime.freeMemory();
-
-      // 计算内存使用的变化
-      long memoryUsed = usedMemoryAfter - usedMemoryBefore;
-
-      // 输出内存使用情况
-      System.out.println("Memory used by the statement: " + memoryUsed + " bytes");
 
       // 关闭会话
       conn.closeSession();
