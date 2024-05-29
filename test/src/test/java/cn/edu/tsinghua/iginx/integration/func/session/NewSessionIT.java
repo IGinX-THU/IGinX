@@ -399,8 +399,8 @@ public class NewSessionIT {
   public void testCancelClient() {
     File clientDir = new File("../client/target/");
     File[] matchingFiles = clientDir.listFiles((dir, name) -> name.startsWith("iginx-client-"));
-    String dirName = matchingFiles[0].getName();
-    String version = dirName.substring(0, dirName.indexOf("iginx-client-"));
+    String version = matchingFiles[0].getName();
+    version = version.contains(".jar") ? version.substring(0, version.lastIndexOf(".")) : version;
     // use .sh on unix & .bat on windows(absolute path)
     String clientUnixPath = "../client/target/" + version + "/sbin/start_cli.sh";
     String clientWinPath = null;
