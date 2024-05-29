@@ -125,4 +125,19 @@ public class Downsample extends AbstractUnaryOperator {
 
     return sb.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Downsample that = (Downsample) object;
+    return precision == that.precision
+        && slideDistance == that.slideDistance
+        && functionCallList.equals(that.functionCallList)
+        && keyRange.equals(that.keyRange);
+  }
 }

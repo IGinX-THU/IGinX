@@ -24,4 +24,12 @@ public class CombineNonQuery extends AbstractMultipleOperator {
   public String getInfo() {
     return "";
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    return object != null && getClass() == object.getClass();
+  }
 }

@@ -30,4 +30,16 @@ public class AddSchemaPrefix extends AbstractUnaryOperator {
   public String getSchemaPrefix() {
     return schemaPrefix;
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    AddSchemaPrefix that = (AddSchemaPrefix) object;
+    return schemaPrefix.equals(that.schemaPrefix);
+  }
 }
