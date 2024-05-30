@@ -62,7 +62,7 @@ from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_v
 
 logger = logging.getLogger("IginX")
 
-# key value broaden for IGinX(Long.MAX_VALUE & Long.MIN_VALUE+1)
+# key value boundary for IGinX(defined in shared.GlobalConstant)
 MAX_KEY = 9223372036854775807
 MIN_KEY = -9223372036854775807
 

@@ -86,7 +86,7 @@ public class DownsampleLazyStream extends UnaryLazyStream {
       return nextTarget;
     }
     Row row = null;
-    long timestamp = 0;
+    long windowStartKey = 0;
     long bias = downsample.getKeyRange().getActualBeginKey();
     long endKey = downsample.getKeyRange().getActualEndKey();
     long precision = downsample.getPrecision();
@@ -94,9 +94,9 @@ public class DownsampleLazyStream extends UnaryLazyStream {
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
     int n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
     while (row == null && wrapper.hasNext()) {
-      timestamp = wrapper.nextTimestamp() - (wrapper.nextTimestamp() - bias) % precision;
+      windowStartKey = wrapper.nextTimestamp() - (wrapper.nextTimestamp() - bias) % precision;
       List<Row> rows = new ArrayList<>();
-      while (wrapper.hasNext() && wrapper.nextTimestamp() < timestamp + precision) {
+      while (wrapper.hasNext() && wrapper.nextTimestamp() < windowStartKey + precision) {
         rows.add(wrapper.next());
       }
       Table table = new Table(rows.get(0).getHeader(), rows);
@@ -122,10 +122,10 @@ public class DownsampleLazyStream extends UnaryLazyStream {
       fields.add(0, new Field(WINDOW_START_COL, DataType.LONG));
       fields.add(1, new Field(WINDOW_END_COL, DataType.LONG));
       Object[] values = new Object[row.getValues().length + 2];
-      values[0] = timestamp;
-      values[1] = timestamp + precision - 1;
+      values[0] = windowStartKey;
+      values[1] = windowStartKey + precision - 1;
       System.arraycopy(row.getValues(), 0, values, 2, row.getValues().length);
-      return new Row(new Header(Field.KEY, fields), timestamp, values);
+      return new Row(new Header(Field.KEY, fields), windowStartKey, values);
     }
   }
 

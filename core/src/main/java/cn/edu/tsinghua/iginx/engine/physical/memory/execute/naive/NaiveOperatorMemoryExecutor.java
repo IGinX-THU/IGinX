@@ -313,8 +313,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
       try {
         for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-          long startTime = entry.getKey();
-          long endTime = startTime + precision - 1;
+          long windowStartKey = entry.getKey();
+          long windowEndKey = windowStartKey + precision - 1;
           List<Row> group = entry.getValue();
 
           if (params.isDistinct()) {
@@ -331,7 +331,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
           Row row = function.transform(new Table(header, group), params);
           if (row != null) {
-            transformedRawRows.add(new Pair<>(new Pair<>(startTime, endTime), row));
+            transformedRawRows.add(new Pair<>(new Pair<>(windowStartKey, windowEndKey), row));
           }
         }
       } catch (Exception e) {
