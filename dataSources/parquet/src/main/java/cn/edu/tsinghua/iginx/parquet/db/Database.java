@@ -20,6 +20,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.RangeSet;
 import java.util.Map;
@@ -34,10 +35,10 @@ public interface Database extends AutoCloseable {
   Set<Field> schema() throws StorageException;
 
   void upsertRows(Scanner<Long, Scanner<String, Object>> scanner, Map<String, DataType> schema)
-      throws StorageException;
+      throws StorageException, InterruptedException;
 
   void upsertColumns(Scanner<String, Scanner<Long, Object>> scanner, Map<String, DataType> schema)
-      throws StorageException;
+      throws StorageException, InterruptedException;
 
   void delete(AreaSet<Long, Field> areas) throws StorageException;
 

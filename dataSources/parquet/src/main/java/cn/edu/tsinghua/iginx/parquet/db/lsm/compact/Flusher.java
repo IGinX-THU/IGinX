@@ -6,16 +6,17 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseable;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.*;
-import javax.annotation.Nonnegative;
-import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nonnegative;
+import javax.annotation.concurrent.NotThreadSafe;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
 
 @NotThreadSafe
 public class Flusher implements NoexceptAutoCloseable {
@@ -94,7 +95,7 @@ public class Flusher implements NoexceptAutoCloseable {
       }
       running = false;
     } catch (InterruptedException e) {
-      LOGGER.debug("flusher is interrupted: {}", e.getMessage());
+      LOGGER.debug("flusher is interrupted:", e);
     }
   }
 
@@ -107,7 +108,7 @@ public class Flusher implements NoexceptAutoCloseable {
       try {
         runnable.run();
       } catch (InterruptedException e) {
-        LOGGER.debug("interrupted: {}", e.getMessage());
+        LOGGER.debug("interrupted", e);
       }
     };
   }

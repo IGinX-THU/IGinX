@@ -35,12 +35,13 @@ import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.RangeSet;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.*;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.*;
 
 public class DataManager implements Manager {
   private static final Logger LOGGER = LoggerFactory.getLogger(DataManager.class);
@@ -74,14 +75,18 @@ public class DataManager implements Manager {
   @Override
   public void insert(DataView data) throws PhysicalException {
     DataViewWrapper wrappedData = new DataViewWrapper(data);
-    if (wrappedData.isRowData()) {
-      try (Scanner<Long, Scanner<String, Object>> scanner = wrappedData.getRowsScanner()) {
-        db.upsertRows(scanner, wrappedData.getSchema());
+    try {
+      if (wrappedData.isRowData()) {
+        try (Scanner<Long, Scanner<String, Object>> scanner = wrappedData.getRowsScanner()) {
+          db.upsertRows(scanner, wrappedData.getSchema());
+        }
+      } else {
+        try (Scanner<String, Scanner<Long, Object>> scanner = wrappedData.getColumnsScanner()) {
+          db.upsertColumns(scanner, wrappedData.getSchema());
+        }
       }
-    } else {
-      try (Scanner<String, Scanner<Long, Object>> scanner = wrappedData.getColumnsScanner()) {
-        db.upsertColumns(scanner, wrappedData.getSchema());
-      }
+    } catch (InterruptedException e) {
+      throw new StorageException(e);
     }
   }
 
