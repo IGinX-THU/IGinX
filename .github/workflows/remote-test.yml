@@ -29,7 +29,6 @@ on:
                 default: '["IoTDB12", "Parquet"]'
 
 env:
-    VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: RemoteUDFIT
 
 jobs:
@@ -106,8 +105,6 @@ jobs:
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
-              with:
-                  version: ${VERSION}
 
             - name: Register Remote UDFs
               shell: bash
