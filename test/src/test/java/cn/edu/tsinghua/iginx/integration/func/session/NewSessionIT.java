@@ -399,6 +399,7 @@ public class NewSessionIT {
   public void testCancelClient() {
     File clientDir = new File("../client/target/");
     File[] matchingFiles = clientDir.listFiles((dir, name) -> name.startsWith("iginx-client-"));
+    matchingFiles = Arrays.stream(matchingFiles).filter(File::isDirectory).toArray(File[]::new);
     String version = matchingFiles[0].getName();
     version = version.contains(".jar") ? version.substring(0, version.lastIndexOf(".")) : version;
     // use .sh on unix & .bat on windows(absolute path)
@@ -420,7 +421,9 @@ public class NewSessionIT {
       if (ShellRunner.isOnWin()) {
         pb.command(clientWinPath);
       } else {
-        Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientUnixPath});
+        Process before = Runtime.getRuntime().exec(new String[] {"chmod", "+x", clientUnixPath});
+        before.waitFor();
+        LOGGER.info("before start a client, exit value: {}", before.exitValue());
         pb.command("bash", "-c", clientUnixPath);
       }
       Process p = pb.start();
