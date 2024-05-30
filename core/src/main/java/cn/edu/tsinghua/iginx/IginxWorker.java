@@ -339,16 +339,16 @@ public class IginxWorker implements IService.Iface {
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
-      if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
-        LOGGER.error("normal storage engine {} should not be read-only.", storageEngine);
-        status.addToSubStatus(RpcUtils.FAILURE);
-        continue;
-      }
-      if (needRedirect(type, ip)) {
+      if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) {
         status.setCode(StatusCode.REDIRECT.getStatusCode());
         status.setMessage(ip + ":" + extraParams.get("iginx_port"));
         LOGGER.warn("redirect to {}:{}.", ip, extraParams.get("iginx_port"));
         return status;
+      }
+      if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
+        LOGGER.error("normal storage engine {} should not be read-only.", storageEngine);
+        status.addToSubStatus(RpcUtils.FAILURE);
+        continue;
       }
       if (!checkEmbeddedStorageExtraParams(type, extraParams)) {
         LOGGER.error(
