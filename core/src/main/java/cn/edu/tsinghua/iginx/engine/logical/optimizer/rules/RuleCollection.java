@@ -34,6 +34,7 @@ public class RuleCollection {
     addRule(ConstantPropagationRule.getInstance());
     addRule(FilterConstantFoldingRule.getInstance());
     addRule(RowTransformConstantFoldingRule.getInstance());
+    addRule(JoinFactorizationRule.getInstance());
     addRule(FilterPushDownAddSchemaPrefixRule.getInstance());
     addRule(FilterPushDownGroupByRule.getInstance());
     addRule(FilterPushDownPathUnionJoinRule.getInstance());

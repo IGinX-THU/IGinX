@@ -4,9 +4,12 @@ import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -27,16 +30,16 @@ import java.util.stream.IntStream;
    AND    t2.c3 = t4.c3
 
    优化为：
-   SELECT t1.c1, VW_JF_1.item_2
-   FROM   t1, (SELECT t2.c1 item_1, t2.c2 item_2
+   SELECT t1.c1, t2.c2
+   FROM   t1, (SELECT t2.c1, t2.c2
                FROM   t2, t3
                WHERE  t2.c2 = t3.c2
                AND    t2.c2 = 2
                UNION ALL
-               SELECT t2.c1 item_1, t2.c2 item_2
+               SELECT t2.c1, t2.c2
                FROM   t2, t4
-               WHERE  t2.c3 = t4.c3) VW_JF_1
-   WHERE  t1.c1 = VW_JF_1.item_1
+               WHERE  t2.c3 = t4.c3)
+   WHERE  t1.c1 = t2.c2
    AND    t1.c1 > 1
 
    这可以减少一次对t1.*的扫描，而且能够为Join Reorder提供更多的选择
@@ -62,16 +65,18 @@ public class JoinFactorizationRule extends Rule {
     super("JoinFactorizationRule", operand(Union.class, any()));
   }
 
-  private class JoinBranch {
-    private List<String> path;
-    private Operator operator;
+  private static class JoinBranch {
+    private final List<String> path;
+    private final Operator operator;
+    private final List<Filter> filters;
 
-    private List<Filter> filters;
+    private final String prefix;
 
-    public JoinBranch(List<String> path, Operator operator) {
+    public JoinBranch(List<String> path, Operator operator, String prefix) {
       this.path = path;
       this.operator = operator;
       filters = new ArrayList<>();
+      this.prefix = prefix;
     }
 
     public List<String> getPath() {
@@ -84,6 +89,10 @@ public class JoinFactorizationRule extends Rule {
 
     public void addFilter(Filter filter) {
       filters.add(filter);
+    }
+
+    public String getPrefix() {
+      return prefix;
     }
 
     public Operator getOperator() {
@@ -134,7 +143,6 @@ public class JoinFactorizationRule extends Rule {
             .filter(
                 pair -> {
                   List<String> paths = pair.k.getPath();
-
                   // leftFilters中每一个包含了paths的filter,都要在rightFilters中找到一个相同的,rightFilters也同理
                   Set<Filter> filterSet = new HashSet<>();
                   for (Filter leftFilter : leftFilters) {
@@ -173,6 +181,84 @@ public class JoinFactorizationRule extends Rule {
 
   public void onMatch(RuleCall call) {
     Union union = (Union) call.getMatchedRoot();
+    List<Pair<JoinBranch, JoinBranch>> matchedBranches =
+        (List<Pair<JoinBranch, JoinBranch>>) call.getContext();
+
+    // 首先将matchesBranches用Join拼接起来
+    Operator root = matchedBranches.get(0).getK().getOperator();
+    String rootPrefix = matchedBranches.get(0).getK().getPrefix();
+    for (int i = 1; i < matchedBranches.size(); i++) {
+      JoinBranch branch = matchedBranches.get(i).k;
+      root =
+          new CrossJoin(
+              new OperatorSource(root),
+              new OperatorSource(branch.operator),
+              rootPrefix,
+              branch.getPrefix());
+    }
+
+    // 然后用一个CrossJoin来连接branches和Union
+    root = new CrossJoin(new OperatorSource(root), new OperatorSource(union), rootPrefix, null);
+
+    // 添加select算子
+    List<Filter> filters =
+        matchedBranches.stream()
+            .map(Pair::getK)
+            .map(JoinBranch::getFilters)
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+    root = new Select(new OperatorSource(root), new AndFilter(filters), null);
+
+    // 添加Project和Reorder算子，这里的path和pattern要用原UNION的左order
+    List<String> paths = union.getLeftOrder();
+    root = new Project(new OperatorSource(root), paths, null);
+    root = new Reorder(new OperatorSource(root), paths);
+
+    // 接下来处理原UNION
+    // 修改UNION下方的SELECT算子，将里面关于外层的，被提取出的Filter去掉
+    Select leftSelect = getFirstSelect(call, call.getChildrenIndex().get(union).get(0));
+    Select rightSelect = getFirstSelect(call, call.getChildrenIndex().get(union).get(1));
+    List<Filter> leftFilters = LogicalFilterUtils.splitFilter(leftSelect.getFilter());
+    List<Filter> rightFilters = LogicalFilterUtils.splitFilter(rightSelect.getFilter());
+
+    List<Filter> newLeftFilters =
+        leftFilters.stream().filter(f -> !filters.contains(f)).collect(Collectors.toList());
+    List<Filter> newRightFilters =
+        rightFilters.stream().filter(f -> !filters.contains(f)).collect(Collectors.toList());
+
+    leftSelect.setFilter(new AndFilter(newLeftFilters));
+    rightSelect.setFilter(new AndFilter(newRightFilters));
+
+    // 将UNION的order进行更改，删除被提取出来的分支的path，添加外层select中所需的paths
+    List<String> matchedPattern =
+        matchedBranches.stream()
+            .map(Pair::getK)
+            .map(JoinBranch::getPath)
+            .flatMap(List::stream)
+            .collect(Collectors.toList());
+    List<String> leftOrder =
+        union.getLeftOrder().stream()
+            .filter(p -> matchedPattern.stream().noneMatch(mp -> StringUtils.match(p, mp)))
+            .collect(Collectors.toList());
+    List<String> rightOrder =
+        union.getRightOrder().stream()
+            .filter(p -> matchedPattern.stream().noneMatch(mp -> StringUtils.match(p, mp)))
+            .collect(Collectors.toList());
+
+    List<String> filterPath =
+        LogicalFilterUtils.getPathsFromFilter(new AndFilter(filters)).stream()
+            .filter(p -> matchedPattern.stream().noneMatch(mp -> StringUtils.match(p, mp)))
+            .collect(Collectors.toList());
+    filterPath.forEach(
+        p -> {
+          if (!leftOrder.contains(p)) leftOrder.add(p);
+          rightOrder.add(p);
+        });
+
+    union.setLeftOrder(leftOrder);
+    union.setRightOrder(rightOrder);
+
+    call.transformTo(root);
   }
 
   /**
@@ -224,9 +310,8 @@ public class JoinFactorizationRule extends Rule {
   }
 
   private List<JoinBranch> getJoinBranch(RuleCall ruleCall, Operator operator) {
-    // 先向下找到第一个InnerJoin/CrossJoin节点
-    while (operator.getType() != OperatorType.InnerJoin
-        && operator.getType() != OperatorType.CrossJoin) {
+    // 先向下找到第一个CrossJoin节点
+    while (operator.getType() != OperatorType.CrossJoin) {
       if (OperatorType.isBinaryOperator(operator.getType())) {
         return null;
       }
@@ -242,7 +327,15 @@ public class JoinFactorizationRule extends Rule {
       if (curOp.getType() == OperatorType.InnerJoin && curOp.getType() == OperatorType.CrossJoin) {
         queue.addAll(ruleCall.getChildrenIndex().get(curOp));
       } else if (OperatorType.isUnaryOperator(curOp.getType())) {
-        branches.add(new JoinBranch(OperatorUtils.findPathList(curOp), curOp));
+        Operator parent = ruleCall.getParentIndexMap().get(curOp);
+        String prefix = null;
+        if (parent.getType() == OperatorType.CrossJoin) {
+          prefix =
+              ruleCall.getChildrenIndex().get(parent).get(0).equals(curOp)
+                  ? ((CrossJoin) parent).getPrefixA()
+                  : ((CrossJoin) parent).getPrefixB();
+        }
+        branches.add(new JoinBranch(OperatorUtils.findPathList(curOp), curOp, prefix));
       } else {
         return null;
       }
