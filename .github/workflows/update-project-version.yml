@@ -34,7 +34,7 @@ jobs:
                   java-version: "8"
                   distribution: "temurin"
                   cache: "maven"
-            - id: info
+            - id: new-version
               name: Get project version from inputs
               shell: bash
               run: |
@@ -43,14 +43,29 @@ jobs:
                       NEWVERSION=${NEWVERSION}-SNAPSHOT
                   fi
                   echo "version=${NEWVERSION}" >> $GITHUB_OUTPUT
+            - id: old-version
+              name: Get old project version from pom.xml
+              uses: ./.github/actions/project
             - name: Update project version
               shell: bash
-              run: mvn versions:set-property -Dproperty=revision -DnewVersion="${{ steps.info.outputs.version }}"
+              run: mvn versions:set-property -Dproperty=revision -DnewVersion="${{ steps.new-version.outputs.version }}"
+            - name: update verison in docker directory
+              shell: bash
+              run: |
+                  find docker -type f -exec sed -i "s/iginx-client:${{ steps.old-version.outputs.version }}/iginx-client:${{ steps.new-version.outputs.version }}/g" {} \;
+                  find docker -type f -exec sed -i "s/iginx:${{ steps.old-version.outputs.version }}/iginx:${{ steps.new-version.outputs.version }}/g" {} \;
+            - name: update version in docs
+              shell: bash
+              run: |
+                  find docs -type f -exec sed -i "s/${{ steps.old-version.outputs.version }}/${{ steps.new-version.outputs.version }}/g" {} \;
             - name: create pull request
               uses: peter-evans/create-pull-request@v6
               with:
-                  add-paths: pom.xml
-                  branch: version-bot/${{ steps.info.outputs.version }}
+                  add-paths: |
+                      pom.xml
+                      docker
+                      docs
+                  branch: version-bot/${{ steps.new-version.outputs.version }}
                   delete-branch: true
-                  commit-message: "build: update project version to ${{ steps.info.outputs.version }}"
-                  title: "build: update project version to ${{ steps.info.outputs.version }}"
+                  commit-message: "build: update project version to ${{ steps.new-version.outputs.version }}"
+                  title: "build: update project version to ${{ steps.new-version.outputs.version }}"
