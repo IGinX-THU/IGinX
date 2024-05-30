@@ -35,9 +35,17 @@ import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.AutoCloseables;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.WillClose;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -46,17 +54,11 @@ import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
-import javax.annotation.WillClose;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.util.AutoCloseables;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class OneTierDB implements Database {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
 
-  private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
+  private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final String name;
   private final Shared shared;
   private final BufferAllocator allocator;
@@ -81,7 +83,7 @@ public class OneTierDB implements Database {
             .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
             .collect(Collectors.toSet());
 
-    deleteLock.readLock().lock();
+    lock.readLock().lock();
     try {
       List<Scanner<Long, Scanner<String, Object>>> inMemories =
           memTableQueue.scan(new ArrayList<>(fields), ranges, allocator);
@@ -98,22 +100,27 @@ public class OneTierDB implements Database {
     } catch (IOException | StorageException e) {
       throw new RuntimeException(e);
     } finally {
-      deleteLock.readLock().unlock();
+      lock.readLock().unlock();
     }
   }
 
   @Override
   public Set<Field> schema() throws StorageException {
-    Map<String, DataType> types = tableStorage.schema();
-    return ArrowFields.of(types);
+    lock.readLock().lock();
+    try {
+      Map<String, DataType> types = tableStorage.schema();
+      return ArrowFields.of(types);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   @Override
   public void upsertRows(
       Scanner<Long, Scanner<String, Object>> scanner, Map<String, DataType> schema)
-      throws StorageException {
+      throws StorageException, InterruptedException {
     try (Scanner<Long, Scanner<Long, Scanner<String, Object>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+             new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         try (Scanner<Long, Scanner<String, Object>> batch = batchScanner.value()) {
           putAll(WriteBatches.recordOfRows(batch, schema, allocator), schema);
@@ -125,9 +132,9 @@ public class OneTierDB implements Database {
   @Override
   public void upsertColumns(
       Scanner<String, Scanner<Long, Object>> scanner, Map<String, DataType> schema)
-      throws StorageException {
+      throws StorageException, InterruptedException {
     try (Scanner<Long, Scanner<String, Scanner<Long, Object>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+             new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         try (Scanner<String, Scanner<Long, Object>> batch = batchScanner.value()) {
           putAll(WriteBatches.recordOfColumns(batch, schema, allocator), schema);
@@ -137,64 +144,64 @@ public class OneTierDB implements Database {
   }
 
   private void putAll(@WillClose Iterable<Chunk.Snapshot> chunks, Map<String, DataType> schema)
-      throws StorageException {
+      throws TypeConflictedException,InterruptedException {
+    lock.readLock().lock();
     try (NoexceptAutoCloseable guarder = NoexceptAutoCloseables.all(chunks)) {
-      deleteLock.readLock().lock();
-      try {
-        tableStorage.declareFields(schema);
-        memTableQueue.store(chunks);
-      } catch (InterruptedException e) {
-        throw new StorageException(e);
-      } finally {
-        deleteLock.readLock().unlock();
-      }
-    }
-    if (shared.getStorageProperties().getWriteBufferTimeout().toMillis() <= 0) {
-      try {
+      tableStorage.declareFields(schema);
+      memTableQueue.store(chunks);
+      if (shared.getStorageProperties().getWriteBufferTimeout().toMillis() <= 0) {
         memTableQueue.flush();
-      } catch (InterruptedException e) {
-        throw new StorageException(e);
       }
+    }finally {
+      lock.readLock().unlock();
     }
   }
 
   @Override
   public void delete(AreaSet<Long, Field> range) throws StorageException {
     AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas(range);
-    deleteLock.writeLock().lock();
+    lock.writeLock().lock();
     try {
-      LOGGER.info("start to delete {} in {}", range, name);
+      LOGGER.debug("start to delete {} in {}", range, name);
       memTableQueue.delete(range);
       tableStorage.delete(innerAreas);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     } finally {
-      deleteLock.writeLock().unlock();
+      lock.writeLock().unlock();
     }
   }
 
   @Override
   public void clear() throws StorageException {
-    deleteLock.writeLock().lock();
+    lock.writeLock().lock();
     try {
       LOGGER.debug("start to clear {}", name);
       flusher.stop();
       memTableQueue.clear();
       tableStorage.clear();
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("cleared {}, allocator: {}", name, allocator);
+      }
       flusher.start();
     } finally {
-      deleteLock.writeLock().unlock();
+      lock.writeLock().unlock();
     }
   }
 
   @Override
   public void close() throws Exception {
-    if (shared.getStorageProperties().toFlushOnClose()) {
-      memTableQueue.flush();
+    lock.writeLock().lock();
+    try {
+      if (shared.getStorageProperties().toFlushOnClose()) {
+        memTableQueue.flush();
+      }
+      flusher.close();
+      memTableQueue.close();
+      tableStorage.close();
+      allocator.close();
+    } finally {
+      lock.writeLock().unlock();
     }
-    flusher.close();
-    memTableQueue.close();
-    tableStorage.close();
-    allocator.close();
   }
 }
