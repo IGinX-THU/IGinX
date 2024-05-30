@@ -268,7 +268,10 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> rows = table.getRows();
     long bias = downsample.getKeyRange().getActualBeginKey();
     long endKey = downsample.getKeyRange().getActualEndKey();
-    if (bias == -1L && endKey == -1L) {
+    if (downsample.notSetInterval()) {
+      if (table.getRowSize() <= 0) {
+        return Table.EMPTY_TABLE;
+      }
       bias = table.getRow(0).getKey();
       endKey = table.getRow(table.getRowSize() - 1).getKey();
     }

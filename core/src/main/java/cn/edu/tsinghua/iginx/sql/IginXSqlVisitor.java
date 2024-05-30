@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.sql;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
@@ -1070,8 +1072,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     long precision = parseAggLen(ctx.aggLen(0));
     Pair<Long, Long> timeInterval =
         ctx.timeInterval() == null ? null : parseTimeInterval(ctx.timeInterval());
-    long startKey = timeInterval == null ? -1L : timeInterval.k;
-    long endKey = timeInterval == null ? -1L : timeInterval.v;
+    long startKey = timeInterval == null ? KEY_MIN_VAL : timeInterval.k;
+    long endKey = timeInterval == null ? KEY_MAX_VAL : timeInterval.v;
     selectStatement.setStartKey(startKey);
     selectStatement.setEndKey(endKey);
     selectStatement.setPrecision(precision);

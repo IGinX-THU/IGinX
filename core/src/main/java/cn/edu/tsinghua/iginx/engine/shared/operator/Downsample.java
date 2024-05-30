@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.operator;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
+
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
@@ -124,5 +127,9 @@ public class Downsample extends AbstractUnaryOperator {
     sb.append(functionCallList.get(0).getFunction().getMappingType());
 
     return sb.toString();
+  }
+
+  public boolean notSetInterval() {
+    return getKeyRange().getBeginKey() == KEY_MIN_VAL && getKeyRange().getEndKey() == KEY_MAX_VAL;
   }
 }

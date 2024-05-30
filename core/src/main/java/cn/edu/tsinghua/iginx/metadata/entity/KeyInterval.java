@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
+
 import java.util.Objects;
 
 public final class KeyInterval {
@@ -89,6 +92,6 @@ public final class KeyInterval {
   }
 
   public static KeyInterval getDefaultKeyInterval() {
-    return new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
+    return new KeyInterval(KEY_MIN_VAL, KEY_MAX_VAL);
   }
 }

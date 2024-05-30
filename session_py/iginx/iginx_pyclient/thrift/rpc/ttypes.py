@@ -3339,7 +3339,7 @@ class DownsampleQueryResp(object):
                     iprot.skip(ftype)
             elif fid == 5:
                 if ftype == TType.STRUCT:
-                    self.queryDataSet = QueryDataSetV2()
+                    self.queryDataSet = QueryDataSet()
                     self.queryDataSet.read(iprot)
                 else:
                     iprot.skip(ftype)
@@ -9120,7 +9120,7 @@ DownsampleQueryResp.thrift_spec = (
     (2, TType.LIST, 'paths', (TType.STRING, 'UTF8', False), None, ),  # 2
     (3, TType.LIST, 'tagsList', (TType.MAP, (TType.STRING, 'UTF8', TType.STRING, 'UTF8', False), False), None, ),  # 3
     (4, TType.LIST, 'dataTypeList', (TType.I32, None, False), None, ),  # 4
-    (5, TType.STRUCT, 'queryDataSet', [QueryDataSetV2, None], None, ),  # 5
+    (5, TType.STRUCT, 'queryDataSet', [QueryDataSet, None], None, ),  # 5
 )
 all_structs.append(ShowColumnsReq)
 ShowColumnsReq.thrift_spec = (

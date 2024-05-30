@@ -46,7 +46,7 @@ public class PySessionIT {
   protected static String defaultTestPass = "root";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static String pythonCMD = config.getPythonCMD();
+  private static String pythonCMD = "python";
 
   private static boolean isAbleToDelete = true;
   private static PythonInterpreter interpreter;
@@ -164,11 +164,37 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        "   window_start  window_end  ...  count(test.b.b)  count(test.c.c)\n"
-            + "0             0           2  ...                1                1\n"
-            + "1             3           5  ...                1                1\n"
+        "   key  window_start  window_end  count(test.a.a)  count(test.a.b)  \\\n"
+            + "0    0             0           2                1                1   \n"
+            + "1    3             3           5                1                1   \n"
             + "\n"
-            + "[2 rows x 6 columns]\n";
+            + "   count(test.b.b)  count(test.c.c)  \n"
+            + "0                1                1  \n"
+            + "1                1                1  \n";
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testDownSampleQueryNoInterval() {
+    String result = "";
+    try {
+      // 设置Python脚本路径
+      logger.info("Test downsample query without time interval");
+      result = runPythonScript("downsampleQueryNoInterval");
+      logger.info(result);
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    // 检查Python脚本的输出是否符合预期
+    String expected =
+        "   key  window_start  window_end  count(test.a.a)  count(test.a.b)  \\\n"
+            + "0    0             0           2                1                1   \n"
+            + "1    3             3           5                1                1   \n"
+            + "\n"
+            + "   count(test.b.b)  count(test.c.c)  \n"
+            + "0                1                1  \n"
+            + "1                1                1  \n";
     assertEquals(expected, result);
   }
 
