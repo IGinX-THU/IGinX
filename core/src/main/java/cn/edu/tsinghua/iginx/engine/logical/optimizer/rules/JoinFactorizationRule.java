@@ -27,7 +27,7 @@ import java.util.stream.IntStream;
    FROM   t1, t2, t4
    WHERE  t1.c1 = t2.c1
    AND    t1.c1 > 1
-   AND    t2.c3 = t4.c3;
+   AND    t2.c1 = t4.c1;
 
    优化为：
    SELECT t1.c1, t2.c2
@@ -38,8 +38,8 @@ import java.util.stream.IntStream;
                UNION ALL
                SELECT t2.c1, t2.c2
                FROM   t2, t4
-               WHERE  t2.c3 = t4.c3)
-   WHERE  t1.c1 = t2.c2
+               WHERE  t2.c1 = t4.c1)
+   WHERE  t1.c1 = t2.c1
    AND    t1.c1 > 1;
 
    这可以减少一次对t1.*的扫描，而且能够为Join Reorder提供更多的选择
@@ -211,9 +211,9 @@ public class JoinFactorizationRule extends Rule {
     root = new Select(new OperatorSource(root), new AndFilter(filters), null);
 
     // 添加Project和Reorder算子，这里的path和pattern要用原UNION的左order
-    List<String> paths = union.getLeftOrder();
-    root = new Project(new OperatorSource(root), paths, null);
-    root = new Reorder(new OperatorSource(root), paths);
+    List<String> paths = union.getLeftOrder().stream().sorted().collect(Collectors.toList());
+    root = new Project(new OperatorSource(root), new ArrayList<>(paths), null);
+    root = new Reorder(new OperatorSource(root), new ArrayList<>(paths));
 
     // 接下来处理原UNION
     // 修改UNION下方的SELECT算子，将里面关于外层的，被提取出的Filter去掉
@@ -256,6 +256,13 @@ public class JoinFactorizationRule extends Rule {
           rightOrder.add(p);
         });
 
+    union.setLeftOrder(leftOrder);
+    union.setRightOrder(rightOrder);
+
+    // UNION下方两侧的Project和Reorder也要改
+    changePaths(call, call.getChildrenIndex().get(union).get(0), leftOrder);
+    changePaths(call, call.getChildrenIndex().get(union).get(1), rightOrder);
+
     // 将UNION下面的CrossJoin中的被提取出来的分支给删去
     for(Pair<JoinBranch, JoinBranch> pair : matchedBranches) {
       Operator leftOp = pair.k.getOperator();
@@ -294,9 +301,6 @@ public class JoinFactorizationRule extends Rule {
           }
       }
     }
-
-    union.setLeftOrder(leftOrder);
-    union.setRightOrder(rightOrder);
 
     call.transformTo(root);
   }
@@ -402,5 +406,20 @@ public class JoinFactorizationRule extends Rule {
     }
     return IntStream.range(0, children1.size())
         .allMatch(i -> isSameBranch(ruleCall, children1.get(i), children2.get(i)));
+  }
+
+  private void changePaths(RuleCall ruleCall, Operator root, List<String> paths) {
+    if (root.getType() == OperatorType.Project) {
+      ((Project) root).setPatterns(new ArrayList<>(paths));
+    } else if (root.getType() == OperatorType.Reorder) {
+      ((Reorder) root).setPatterns(new ArrayList<>(paths));
+    }else{
+      return;
+    }
+    List<Operator> children = ruleCall.getChildrenIndex().get(root);
+    if(children == null || children.size() != 1) {
+      return;
+    }
+    changePaths(ruleCall, children.get(0), paths);
   }
 }
