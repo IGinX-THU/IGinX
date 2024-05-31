@@ -37,7 +37,8 @@ public class Union extends AbstractBinaryOperator {
     this.leftOrder.clear();
     this.leftOrder.addAll(leftOrder);
   }
-//  ADD STORAGEENGINE ("127.0.0.1", 5432, "relational", "engine:postgresql, username:postgres, password:sb114514, has_data:true, schema_prefix:p, data_prefix:test3");
+  //  ADD STORAGEENGINE ("127.0.0.1", 5432, "relational", "engine:postgresql, username:postgres,
+  // password:sb114514, has_data:true, schema_prefix:p, data_prefix:test3");
 
   public void setRightOrder(List<String> rightOrder) {
     this.rightOrder.clear();

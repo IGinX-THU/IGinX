@@ -52,7 +52,7 @@ public abstract class RuleCall {
 
   public void transformTo(Operator newRoot) {
     Operator parent = parentIndexMap.get(matchedRoot);
-    if(parent == null) {
+    if (parent == null) {
       planner.setRoot(newRoot);
       return;
     }

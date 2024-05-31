@@ -285,7 +285,7 @@ public class ColumnPruningRule extends Rule {
             leftColumns.addAll(getNewColumns(leftColumns, extraJoinPath));
             rightColumns.addAll(getNewColumns(rightColumns, extraJoinPath));
           }
-        }else{
+        } else {
           leftColumns.add("*");
           rightColumns.add("*");
         }
@@ -294,7 +294,8 @@ public class ColumnPruningRule extends Rule {
         Pair<List<String>, List<String>> orderPair = getSetOperatorOrder(operator);
         List<String> leftOrder = orderPair.getK(), rightOrder = orderPair.getV();
         // 如果左侧将要替换的columns和右侧order有*的话，我们无法确定具体*对应的列数，因此不裁剪，继续往下递归
-        if (hasPatternOperator(visitedOperators) && !(hasWildCard(columns) || hasWildCard(rightOrder))) {
+        if (hasPatternOperator(visitedOperators)
+            && !(hasWildCard(columns) || hasWildCard(rightOrder))) {
           // SetOperator要求左右两侧的列数相同，我们只对左侧进行列裁剪，然后右侧相应减少对应的列（有顺序要求）
           List<String> newLeftOrder = getOrderListFromColumns(columns, leftOrder);
           List<String> newRightOrder = new ArrayList<>();

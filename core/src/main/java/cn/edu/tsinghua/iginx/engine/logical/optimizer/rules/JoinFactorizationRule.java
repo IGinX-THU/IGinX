@@ -148,7 +148,7 @@ public class JoinFactorizationRule extends Rule {
                     Set<String> pathsInLeftFilter =
                         LogicalFilterUtils.getPathsFromFilter(leftFilter);
                     if (pathsInLeftFilter.stream()
-                            .noneMatch(p -> paths.stream().anyMatch(mp -> StringUtils.match(p, mp)))) {
+                        .noneMatch(p -> paths.stream().anyMatch(mp -> StringUtils.match(p, mp)))) {
                       filterSet.add(leftFilter);
                       continue;
                     }
@@ -159,7 +159,8 @@ public class JoinFactorizationRule extends Rule {
                       Set<String> pathsInRightFilter =
                           LogicalFilterUtils.getPathsFromFilter(rightFilter);
                       if (pathsInRightFilter.stream()
-                              .noneMatch(p -> paths.stream().anyMatch(mp -> StringUtils.match(p, mp)))) {
+                          .noneMatch(
+                              p -> paths.stream().anyMatch(mp -> StringUtils.match(p, mp)))) {
                         filterSet.add(rightFilter);
                         continue;
                       }
@@ -264,20 +265,26 @@ public class JoinFactorizationRule extends Rule {
     changePaths(call, call.getChildrenIndex().get(union).get(1), rightOrder);
 
     // 将UNION下面的CrossJoin中的被提取出来的分支给删去
-    for(Pair<JoinBranch, JoinBranch> pair : matchedBranches) {
+    for (Pair<JoinBranch, JoinBranch> pair : matchedBranches) {
       Operator leftOp = pair.k.getOperator();
       Operator rightOp = pair.v.getOperator();
       // parent应该为CrossJoin
       Operator leftParent = call.getParentIndexMap().get(leftOp);
       Operator rightParent = call.getParentIndexMap().get(rightOp);
-      Operator leftRemainOp = call.getChildrenIndex().get(leftParent).get(0).equals(leftOp) ? call.getChildrenIndex().get(leftParent).get(1) : call.getChildrenIndex().get(leftParent).get(0);
-      Operator rightRemainOp = call.getChildrenIndex().get(rightParent).get(0).equals(rightOp) ? call.getChildrenIndex().get(rightParent).get(1) : call.getChildrenIndex().get(rightParent).get(0);
+      Operator leftRemainOp =
+          call.getChildrenIndex().get(leftParent).get(0).equals(leftOp)
+              ? call.getChildrenIndex().get(leftParent).get(1)
+              : call.getChildrenIndex().get(leftParent).get(0);
+      Operator rightRemainOp =
+          call.getChildrenIndex().get(rightParent).get(0).equals(rightOp)
+              ? call.getChildrenIndex().get(rightParent).get(1)
+              : call.getChildrenIndex().get(rightParent).get(0);
 
       Operator leftPP = call.getParentIndexMap().get(leftParent);
       Operator rightPP = call.getParentIndexMap().get(rightParent);
-      if (OperatorType.isUnaryOperator(leftPP.getType())){
-        ((UnaryOperator)leftPP).setSource(new OperatorSource(leftRemainOp));
-      }else if(OperatorType.isBinaryOperator(leftPP.getType())){
+      if (OperatorType.isUnaryOperator(leftPP.getType())) {
+        ((UnaryOperator) leftPP).setSource(new OperatorSource(leftRemainOp));
+      } else if (OperatorType.isBinaryOperator(leftPP.getType())) {
         BinaryOperator binaryOperator = (BinaryOperator) leftPP;
         Operator childA = ((OperatorSource) binaryOperator.getSourceA()).getOperator();
         Operator childB = ((OperatorSource) binaryOperator.getSourceB()).getOperator();
@@ -288,17 +295,17 @@ public class JoinFactorizationRule extends Rule {
         }
       }
 
-      if (OperatorType.isUnaryOperator(rightPP.getType())){
-          ((UnaryOperator)rightPP).setSource(new OperatorSource(rightRemainOp));
-      }else if(OperatorType.isBinaryOperator(rightPP.getType())){
-          BinaryOperator binaryOperator = (BinaryOperator) rightPP;
-          Operator childA = ((OperatorSource) binaryOperator.getSourceA()).getOperator();
-          Operator childB = ((OperatorSource) binaryOperator.getSourceB()).getOperator();
-          if (childA == rightParent) {
-              binaryOperator.setSourceA(new OperatorSource(rightRemainOp));
-          } else if (childB == rightParent) {
-              binaryOperator.setSourceB(new OperatorSource(rightRemainOp));
-          }
+      if (OperatorType.isUnaryOperator(rightPP.getType())) {
+        ((UnaryOperator) rightPP).setSource(new OperatorSource(rightRemainOp));
+      } else if (OperatorType.isBinaryOperator(rightPP.getType())) {
+        BinaryOperator binaryOperator = (BinaryOperator) rightPP;
+        Operator childA = ((OperatorSource) binaryOperator.getSourceA()).getOperator();
+        Operator childB = ((OperatorSource) binaryOperator.getSourceB()).getOperator();
+        if (childA == rightParent) {
+          binaryOperator.setSourceA(new OperatorSource(rightRemainOp));
+        } else if (childB == rightParent) {
+          binaryOperator.setSourceB(new OperatorSource(rightRemainOp));
+        }
       }
     }
 
@@ -356,7 +363,8 @@ public class JoinFactorizationRule extends Rule {
   private List<JoinBranch> getJoinBranch(RuleCall ruleCall, Operator operator) {
     // 先向下找到第一个CrossJoin节点
     while (operator.getType() != OperatorType.CrossJoin) {
-      if (OperatorType.isBinaryOperator(operator.getType()) || ruleCall.getChildrenIndex().get(operator) == null) {
+      if (OperatorType.isBinaryOperator(operator.getType())
+          || ruleCall.getChildrenIndex().get(operator) == null) {
         return null;
       }
       operator = ruleCall.getChildrenIndex().get(operator).get(0);
@@ -413,11 +421,11 @@ public class JoinFactorizationRule extends Rule {
       ((Project) root).setPatterns(new ArrayList<>(paths));
     } else if (root.getType() == OperatorType.Reorder) {
       ((Reorder) root).setPatterns(new ArrayList<>(paths));
-    }else{
+    } else {
       return;
     }
     List<Operator> children = ruleCall.getChildrenIndex().get(root);
-    if(children == null || children.size() != 1) {
+    if (children == null || children.size() != 1) {
       return;
     }
     changePaths(ruleCall, children.get(0), paths);
