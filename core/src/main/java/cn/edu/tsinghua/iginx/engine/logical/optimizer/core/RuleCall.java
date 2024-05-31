@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.core;
 
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.rbo.RuleBasedPlanner;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -24,13 +25,17 @@ public abstract class RuleCall {
 
   private Object context;
 
+  private final RuleBasedPlanner planner;
+
   public RuleCall(
       Operator matchedRoot,
       Map<Operator, Operator> parentIndexMap,
-      Map<Operator, List<Operator>> childrenIndex) {
+      Map<Operator, List<Operator>> childrenIndex,
+      RuleBasedPlanner planner) {
     this.matchedRoot = matchedRoot;
     this.parentIndexMap = parentIndexMap;
     this.childrenIndex = childrenIndex;
+    this.planner = planner;
   }
 
   public Operator getMatchedRoot() {
@@ -47,7 +52,10 @@ public abstract class RuleCall {
 
   public void transformTo(Operator newRoot) {
     Operator parent = parentIndexMap.get(matchedRoot);
-    assert parent != null;
+    if(parent == null) {
+      planner.setRoot(newRoot);
+      return;
+    }
 
     // replace topology
     OperatorType parentType = parent.getType();

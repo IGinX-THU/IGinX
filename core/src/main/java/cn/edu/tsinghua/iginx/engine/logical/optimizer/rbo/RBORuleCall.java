@@ -10,7 +10,8 @@ public class RBORuleCall extends RuleCall {
   public RBORuleCall(
       Operator subRoot,
       Map<Operator, Operator> parentIndexMap,
-      Map<Operator, List<Operator>> childrenIndex) {
-    super(subRoot, parentIndexMap, childrenIndex);
+      Map<Operator, List<Operator>> childrenIndex,
+      RuleBasedPlanner planner) {
+    super(subRoot, parentIndexMap, childrenIndex, planner);
   }
 }

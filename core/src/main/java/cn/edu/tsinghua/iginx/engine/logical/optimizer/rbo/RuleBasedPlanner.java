@@ -91,7 +91,7 @@ public class RuleBasedPlanner implements Planner {
             continue;
           }
 
-          RuleCall ruleCall = new RBORuleCall(op, parentIndex, childrenIndex);
+          RuleCall ruleCall = new RBORuleCall(op, parentIndex, childrenIndex, this);
           if (!rule.matches(ruleCall)) {
             continue;
           }
