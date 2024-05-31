@@ -23,10 +23,7 @@ import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,52 +49,35 @@ public class QueryAggregatorPercentile extends QueryAggregator {
       int n = sessionQueryDataSet.getKeys().length;
       int m = sessionQueryDataSet.getPaths().size();
       int datapoints = 0;
-      switch (type) {
-        case LONG:
-          List<Long> tmp = new ArrayList<>();
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                datapoints += 1;
-                tmp.add((long) sessionQueryDataSet.getValues().get(i).get(j));
-              }
-            }
-            if (i == n - 1
-                || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                    != RestUtils.getInterval(
-                        sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
-              Collections.sort(tmp);
-              queryResultDataset.add(
-                  RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
-                  tmp.get((int) Math.floor(getPercentile() * (tmp.size() - 1))));
-              tmp = new ArrayList<>();
-            }
+
+      List<Number> tmp = new ArrayList<>();
+      for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+          Number value = (Number) sessionQueryDataSet.getValues().get(i).get(j);
+          if (value != null) {
+            datapoints++;
+            tmp.add(value);
           }
-          break;
-        case DOUBLE:
-          List<Double> tmpd = new ArrayList<>();
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                datapoints += 1;
-                tmpd.add((double) sessionQueryDataSet.getValues().get(i).get(j));
-              }
-            }
-            if (i == n - 1
-                || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                    != RestUtils.getInterval(
-                        sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
-              Collections.sort(tmpd);
-              queryResultDataset.add(
-                  RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
-                  tmpd.get((int) Math.floor(getPercentile() * (tmpd.size() - 1))));
-              tmpd = new ArrayList<>();
-            }
+        }
+        if (i == n - 1
+            || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
+                != RestUtils.getInterval(
+                    sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
+          switch (type) {
+            case LONG:
+              tmp.sort(Comparator.comparingLong(Number::longValue));
+              break;
+            case DOUBLE:
+              tmp.sort(Comparator.comparingDouble(Number::doubleValue));
+              break;
           }
-          break;
-        default:
-          throw new Exception("Unsupported data type");
+          queryResultDataset.add(
+              RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
+              tmp.get((int) Math.floor(getPercentile() * (tmp.size() - 1))));
+          tmp = new ArrayList<>();
+        }
       }
+
       queryResultDataset.setSampleSize(datapoints);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);
