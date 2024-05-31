@@ -28,7 +28,7 @@ class ResultRow {
       Map<List<String>, ResultColumn.Builder> builders, long index, List<String> prefix) {
     int maxArraySize = fillArraysInto(builders, index, prefix);
     int insertedRowsNum = Integer.max(maxArraySize, 1);
-    fillFieldsInto(builders, index, prefix, insertedRowsNum);
+    fillFieldsInto(builders, index, prefix, 1);
 
     return insertedRowsNum;
   }
