@@ -30,6 +30,6 @@ public class Distinct extends AbstractUnaryOperator {
 
   @Override
   public String getInfo() {
-    return "";
+    return "Patterns: " + String.join(",", patterns);
   }
 }
