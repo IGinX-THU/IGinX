@@ -156,8 +156,8 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
    * tests
    */
   private Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>>
-      generateInitialFragmentsAndStorageUnitsByClients(
-          List<String> paths, KeyInterval keyInterval) {
+  generateInitialFragmentsAndStorageUnitsByClients(
+      List<String> paths, KeyInterval keyInterval) {
     Map<ColumnsInterval, List<FragmentMeta>> fragmentMap = new HashMap<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
@@ -165,10 +165,8 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     int storageEngineNum = storageEngineList.size();
 
     String[] clients = ConfigDescriptor.getInstance().getConfig().getClients().split(",");
-    int instancesNumPerClient =
-        ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient() - 1;
-    int replicaNum =
-        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int instancesNumPerClient = ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient() - 1;
+    int replicaNum = Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
     String[] prefixes = new String[clients.length * instancesNumPerClient];
     for (int i = 0; i < clients.length; i++) {
       for (int j = 0; j < instancesNumPerClient; j++) {
@@ -183,20 +181,33 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     for (int i = 0; i < clients.length * instancesNumPerClient - 1; i++) {
       fragmentMetaList = new ArrayList<>();
       masterId = RandomStringUtils.randomAlphanumeric(16);
+      // TODO 全链路同机
       storageUnit =
           new StorageUnitMeta(
-              masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId, true);
+              masterId, storageEngineList.get(i / instancesNumPerClient).getId(), masterId, true);
+      // TODO Round Robin
+      //      storageUnit =
+      //          new StorageUnitMeta(
+      //              masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId,
+      // true);
       //            storageUnit = new StorageUnitMeta(masterId, getStorageEngineList().get(i *
       // 2 % getStorageEngineList().size()).getId(), masterId, true);
       for (int j = i + 1; j < i + replicaNum; j++) {
+        // TODO 全链路同机
         storageUnit.addReplica(
             new StorageUnitMeta(
                 RandomStringUtils.randomAlphanumeric(16),
-                storageEngineList.get(j % storageEngineNum).getId(),
+                storageEngineList.get(j / instancesNumPerClient).getId(),
                 masterId,
                 false));
-        //                storageUnit.addReplica(new
-        // StorageUnitMeta(RandomStringUtils.randomAlphanumeric(16),
+        // TODO Round Robin
+        //        storageUnit.addReplica(
+        //            new StorageUnitMeta(
+        //                RandomStringUtils.randomAlphanumeric(16),
+        //                storageEngineList.get(j % storageEngineNum).getId(),
+        //                masterId,
+        //                false));
+        //      storageUnit.addReplica(new StorageUnitMeta(RandomStringUtils.randomAlphanumeric(16),
         // getStorageEngineList().get((i * 2 + 1) % getStorageEngineList().size()).getId(),
         // masterId, false));
       }
