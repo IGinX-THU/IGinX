@@ -1,4 +1,5 @@
 ARG VERSION=0.6.0-SNAPSHOT
+ENV VERSION=${VERSION}
 
 FROM openjdk:11-jre-slim
 COPY ./target/iginx-client-${VERSION}/ /iginx_client/
