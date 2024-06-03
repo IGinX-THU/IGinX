@@ -1,4 +1,5 @@
 ARG VERSION=0.6.0-SNAPSHOT
+ENV VERSION=${VERSION}
 
 FROM maven:3-amazoncorretto-8 AS builder
 COPY . /root/iginx
@@ -6,7 +7,6 @@ WORKDIR /root/iginx
 RUN mvn clean package -DskipTests -P-format
 
 FROM openjdk:11-jre-slim
-ENV VERSION=${VERSION}
 COPY --from=builder /root/iginx/core/target/iginx-core-${VERSION}/ /iginx/
 # 安装 Python 3.8, pip 并安装所需的 Python 包
 
