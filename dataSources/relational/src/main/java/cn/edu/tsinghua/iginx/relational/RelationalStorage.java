@@ -67,6 +67,7 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -630,10 +631,39 @@ public class RelationalStorage implements IStorage {
     return fullTableName.toString();
   }
 
+  /**
+   * 通过columnNames构建concat语句，由于concat的参数个数有限，所以需要分批次嵌套concat
+   * 由于pg、mysql一张表最大都不能超过2000列，因此嵌套2层，可达到最大10000列，已满足需求。
+   *
+   * @param columnNames 列名列表
+   * @return concat语句
+   */
+  private String buildConcat(List<String> columnNames) {
+    int n = columnNames.size();
+    assert n > 0;
+    List<List<String>> concatList = new ArrayList<>();
+    for (int i = 0; i < n / 100 + 1; i++) {
+      concatList.add(columnNames.subList(i * 100, Math.min((i + 1) * 100, n)));
+    }
+
+    if (concatList.size() == 1) {
+      return String.format(" CONCAT(%s) ", String.join(", ", concatList.get(0)));
+    }
+
+    StringBuilder concat = new StringBuilder();
+    concat.append(" CONCAT(");
+    for (int i = 0; i < concatList.size(); i++) {
+      concat.append(String.format(" CONCAT(%s) ", String.join(", ", concatList.get(i))));
+      if (i != concatList.size() - 1) {
+        concat.append(", ");
+      }
+    }
+    concat.append(") ");
+    return concat.toString();
+  }
+
   private String getDummyFullJoinTables(
-      List<String> tableNames,
-      Map<String, String> allColumnNameForTable,
-      List<List<String>> fullColumnList) {
+      List<String> tableNames, Map<String, List<String>> allColumnNameForTable) {
     StringBuilder fullTableName = new StringBuilder();
     if (relationalMeta.isSupportFullJoin()) {
       // table之间用FULL OUTER JOIN ON concat(table1所有列) = concat(table2所有列)
@@ -646,14 +676,11 @@ public class RelationalStorage implements IStorage {
             .append(getQuotName(tableNames.get(i)))
             .append(" ON ");
         for (int j = 0; j < i; j++) {
-          fullTableName
-              .append("CONCAT(")
-              .append(allColumnNameForTable.get(tableNames.get(i)))
-              .append(")")
-              .append(" = ")
-              .append("CONCAT(")
-              .append(allColumnNameForTable.get(tableNames.get(j)))
-              .append(")");
+          fullTableName.append(
+              String.format(
+                  "%s = %s",
+                  buildConcat(allColumnNameForTable.get(tableNames.get(i))),
+                  buildConcat(allColumnNameForTable.get(tableNames.get(j)))));
           if (j != i - 1) {
             fullTableName.append(" AND ");
           }
@@ -662,14 +689,13 @@ public class RelationalStorage implements IStorage {
       }
     } else {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
-      StringBuilder allColumns = new StringBuilder();
-      fullColumnList.forEach(
-          columnList ->
-              columnList.forEach(
-                  column ->
-                      allColumns.append(
-                          String.format("%s AS %s, ", column, column.replaceAll("`\\.`", ".")))));
-      allColumns.delete(allColumns.length() - 2, allColumns.length());
+      char quot = relationalMeta.getQuote();
+      String allColumns =
+          tableNames.stream()
+              .map(allColumnNameForTable::get)
+              .flatMap(List::stream)
+              .map(s -> s + " AS " + s.replaceAll(quot + "\\." + quot, "."))
+              .collect(Collectors.joining(", "));
 
       fullTableName.append("(");
       for (int i = 0; i < tableNames.size(); i++) {
@@ -684,10 +710,10 @@ public class RelationalStorage implements IStorage {
           if (i != j) {
             fullTableName.append(
                 String.format(
-                    " LEFT JOIN %s ON CONCAT(%s) = CONCAT(%s)",
+                    " LEFT JOIN %s ON %s = %s",
                     getQuotName(tableNames.get(j)),
-                    allColumnNameForTable.get(tableNames.get(i)),
-                    allColumnNameForTable.get(tableNames.get(j))));
+                    buildConcat(allColumnNameForTable.get(tableNames.get(i))),
+                    buildConcat(allColumnNameForTable.get(tableNames.get(j)))));
           }
         }
         if (i != tableNames.size() - 1) {
@@ -878,21 +904,27 @@ public class RelationalStorage implements IStorage {
     return filter;
   }
 
-  private Map<String, String> getAllColumnNameForTable(
+  private Map<String, List<String>> getAllColumnNameForTable(
       String databaseName, Map<String, String> tableNameToColumnNames) throws SQLException {
-    Map<String, String> allColumnNameForTable = new HashMap<>();
+    Map<String, List<String>> allColumnNameForTable = new HashMap<>();
     for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
       String tableName = entry.getKey();
-      String columnNames = "";
 
       List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%");
       for (ColumnField columnField : columnFieldList) {
         String columnName = columnField.columnName;
-        columnNames =
-            RelationSchema.getQuotFullName(tableName, columnName, relationalMeta.getQuote());
+
         if (allColumnNameForTable.containsKey(tableName)) {
-          columnNames = allColumnNameForTable.get(tableName) + ", " + columnNames;
+          allColumnNameForTable
+              .get(tableName)
+              .add(
+                  RelationSchema.getQuotFullName(tableName, columnName, relationalMeta.getQuote()));
+          continue;
         }
+
+        List<String> columnNames = new ArrayList<>();
+        columnNames.add(
+            RelationSchema.getQuotFullName(tableName, columnName, relationalMeta.getQuote()));
         allColumnNameForTable.put(tableName, columnNames);
       }
     }
@@ -927,11 +959,15 @@ public class RelationalStorage implements IStorage {
         }
         connList.add(conn);
 
+        // 这里获取所有table的所有列名，用于concat时生成key列。
+        Map<String, List<String>> allColumnNameForTable =
+            getAllColumnNameForTable(databaseName, tableNameToColumnNames);
+
+        // 如果table没有带通配符，那直接简单构建起查询语句即可
         if (!filter.toString().contains("*")
             && !(tableNameToColumnNames.size() > 1
                 && filterContainsType(Arrays.asList(FilterType.Value, FilterType.Path), filter))) {
-          Map<String, String> allColumnNameForTable =
-              getAllColumnNameForTable(databaseName, tableNameToColumnNames);
+
           for (Map.Entry<String, String> entry : splitEntry.getValue().entrySet()) {
             String tableName = entry.getKey();
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
@@ -984,36 +1020,12 @@ public class RelationalStorage implements IStorage {
             fullQuotColumnNamesList.add(fullColumnNames);
           }
 
-          StringBuilder fullColumnNames = new StringBuilder();
-          for (List<String> columnNames : fullQuotColumnNamesList) {
-            for (String columnName : columnNames) {
-              fullColumnNames.append(columnName).append(", ");
-            }
-          }
-          fullColumnNames.delete(fullColumnNames.length() - 2, fullColumnNames.length());
+          String fullTableName = getDummyFullJoinTables(tableNames, allColumnNameForTable);
 
-          // 这里获取所有table的所有列名，用于concat时生成key列。
-          Map<String, String> allColumnNameForTable =
-              getAllColumnNameForTable(databaseName, tableNameToColumnNames);
-          StringBuilder allColumnNames = new StringBuilder();
-          for (String tableName : tableNames) {
-            allColumnNames.append(allColumnNameForTable.get(tableName)).append(", ");
-          }
-          allColumnNames.delete(allColumnNames.length() - 2, allColumnNames.length());
-
-          String fullTableName =
-              getDummyFullJoinTables(tableNames, allColumnNameForTable, fullColumnNamesList);
-
-          Filter copyFilter = cutFilterDatabaseNameForDummy(filter.copy(), databaseName);
-
-          copyFilter =
+          Filter copyFilter =
               dummyFilterSetTrueByColumnNames(
-                  copyFilter,
-                  Arrays.asList(
-                      fullColumnNames
-                          .toString()
-                          .replace(String.valueOf(relationalMeta.getQuote()), "")
-                          .split(", ")));
+                  cutFilterDatabaseNameForDummy(filter.copy(), databaseName),
+                  fullColumnNamesList.stream().flatMap(List::stream).collect(Collectors.toList()));
 
           // 对通配符做处理，将通配符替换成对应的列名
           if (filterTransformer.toString(copyFilter).contains("*")) {
@@ -1030,9 +1042,17 @@ public class RelationalStorage implements IStorage {
             copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
           }
 
-          String fullColumnNamesStr = fullColumnNames.toString();
+          String fullColumnNamesStr =
+              fullQuotColumnNamesList.stream()
+                  .flatMap(List::stream)
+                  .collect(Collectors.joining(", "));
+          ;
           String filterStr = filterTransformer.toString(copyFilter);
-          String orderByKey = String.format("Concat(%s)", allColumnNames);
+          String orderByKey =
+              buildConcat(
+                  fullQuotColumnNamesList.stream()
+                      .flatMap(List::stream)
+                      .collect(Collectors.toList()));
           if (!relationalMeta.isSupportFullJoin()) {
             // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
             fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
@@ -1046,7 +1066,7 @@ public class RelationalStorage implements IStorage {
           statement =
               String.format(
                   relationalMeta.getConcatQueryStatement(),
-                  allColumnNames,
+                  fullColumnNamesStr,
                   fullColumnNamesStr,
                   fullTableName,
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
