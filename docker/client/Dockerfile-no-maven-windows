@@ -1,8 +1,8 @@
 ARG VERSION=0.6.0-SNAPSHOT
-ENV VERSION=${VERSION}
 
 # Build client package with mvn before building the image
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
+ENV VERSION=${VERSION}
 COPY . C:/iginx
 WORKDIR C:/iginx
 COPY ./target/iginx-client-${VERSION}/ C:/iginx_client

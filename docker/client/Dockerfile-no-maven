@@ -1,7 +1,7 @@
 ARG VERSION=0.6.0-SNAPSHOT
-ENV VERSION=${VERSION}
 
 FROM openjdk:11-jre-slim
+ENV VERSION=${VERSION}
 COPY ./target/iginx-client-${VERSION}/ /iginx_client/
 
 RUN mkdir -p /iginx_client/logs
