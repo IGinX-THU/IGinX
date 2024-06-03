@@ -1,10 +1,8 @@
-ARG VERSION=0.6.0-SNAPSHOT
-
 # Build client package with mvn before building the image
 FROM mcr.microsoft.com/windows/servercore:ltsc2022
 COPY . C:/iginx
 WORKDIR C:/iginx
-COPY ./target/iginx-client-${VERSION}/ C:/iginx_client
+COPY ./target/iginx-client-*/ C:/iginx_client
 
 # 设置环境变量
 USER ContainerAdministrator

@@ -12,7 +12,6 @@ set "list=%*"
 set "paramHint=-n container_name; -p host port for IGinX container to cast; [optional]-c absolute path of local config file; [optional]-o overlay network to use; -u usage hint"
 set /A "flag=0"
 set /A "paramflag=2"
-set VERSION=0.6.0-SNAPSHOT
 set name=null
 set hostPort=null
 set network=null
@@ -163,7 +162,7 @@ if "!network!" neq "null" (
 
 set "configFileConfig=-v !localConfigFile!:/iginx/conf "
 @REM 
-set command=docker run --name="%name%" !network!!localIPConfig!!configFileConfig!--privileged -dit -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:%VERSION%
+set command=docker run --name="%name%" !network!!localIPConfig!!configFileConfig!--privileged -dit -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.6.0-SNAPSHOT
 echo %command%
 %command%
 

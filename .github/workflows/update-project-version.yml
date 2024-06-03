@@ -51,10 +51,13 @@ jobs:
               run: mvn versions:set-property -Dproperty=revision -DnewVersion="${{ steps.new-version.outputs.version }}"
             - name: update verison in docker directory
               shell: bash
-              run: find docker -type f -exec sed -i "s/VERSION=${{ steps.old-version.outputs.version }}/VERSION=${{ steps.new-version.outputs.version }}/g" {} \;
+              run: |
+                  find docker -type f -exec sed -i "s/iginx-client:${{ steps.old-version.outputs.version }}/iginx-client:${{ steps.new-version.outputs.version }}/g" {} \;
+                  find docker -type f -exec sed -i "s/iginx:${{ steps.old-version.outputs.version }}/iginx:${{ steps.new-version.outputs.version }}/g" {} \;
             - name: update version in docs
               shell: bash
-              run: find docs -type f -exec sed -i "s/${{ steps.old-version.outputs.version }}/${{ steps.new-version.outputs.version }}/g" {} \;
+              run: |
+                  find docs -type f -exec sed -i "s/${{ steps.old-version.outputs.version }}/${{ steps.new-version.outputs.version }}/g" {} \;
             - name: create pull request
               uses: peter-evans/create-pull-request@v6
               with:

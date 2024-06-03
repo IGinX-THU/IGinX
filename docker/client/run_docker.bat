@@ -1,8 +1,6 @@
 @echo off
 setlocal enabledelayedexpansion
 
-set VERSION=0.6.0-SNAPSHOT
-
 set current_dir=%CD%
 set double_slash_dir=%current_dir:\=/%
 
@@ -36,7 +34,7 @@ if not exist "%datadir%" (
     mkdir "%datadir%"
 )
 
-set command=docker run --name="%name%" -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=!datadir!,target=C:/iginx_client/data iginx-client:%VERSION%
+set command=docker run --name="%name%" -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=!datadir!,target=C:/iginx_client/data iginx-client:0.6.0-SNAPSHOT
 echo %command%
 %command%
 

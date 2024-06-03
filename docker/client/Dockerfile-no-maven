@@ -1,7 +1,5 @@
-ARG VERSION=0.6.0-SNAPSHOT
-
 FROM openjdk:11-jre-slim
-COPY ./target/iginx-client-${VERSION}/ /iginx_client/
+COPY ./target/iginx-client-*/ /iginx_client/
 
 RUN mkdir -p /iginx_client/logs
 RUN mkdir -p /iginx_client/data

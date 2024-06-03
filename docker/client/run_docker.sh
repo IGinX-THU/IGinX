@@ -1,6 +1,4 @@
 #!/bin/bash
-VERSION=0.6.0-SNAPSHOT
-
 datadir="$(pwd)/data"
 name="iginx-client"
 
@@ -23,6 +21,6 @@ done
 
 [ -d "$datadir" ] || mkdir -p "$datadir"
 
-command="docker run --name=\"$name\" --privileged -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=${datadir},target=/iginx_client/data iginx-client:${VERSION}"
+command="docker run --name=\"$name\" --privileged -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=${datadir},target=/iginx_client/data iginx-client:0.6.0-SNAPSHOT"
 echo $command
 eval $command
