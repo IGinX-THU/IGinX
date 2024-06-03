@@ -52,8 +52,7 @@ jobs:
             - name: update verison in docker directory
               shell: bash
               run: |
-                  find docker -type f -exec sed -i "s/iginx-client:${{ steps.old-version.outputs.version }}/iginx-client:${{ steps.new-version.outputs.version }}/g" {} \;
-                  find docker -type f -exec sed -i "s/iginx:${{ steps.old-version.outputs.version }}/iginx:${{ steps.new-version.outputs.version }}/g" {} \;
+                  find docker -type f -exec sed -i "s/${{ steps.old-version.outputs.version }}/${{ steps.new-version.outputs.version }}/g" {} \;
             - name: update version in docs
               shell: bash
               run: |
