@@ -227,24 +227,24 @@ public abstract class BaseCapacityExpansionIT {
 
   @Test
   public void testReadOnly() throws InterruptedException {
-    //    // 查询原始只读节点的历史数据，结果不为空
-    //    testQueryHistoryDataOriHasData();
-    //    // 测试参数错误的只读节点扩容
-    //    testInvalidDummyParams(readOnlyPort, true, false, null, EXP_SCHEMA_PREFIX);
-    //    // 扩容只读节点
-    //    addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
-    //    // 查询扩容只读节点的历史数据，结果不为空
-    //    testQueryHistoryDataReadOnly();
-    //    // 测试参数错误的可写节点扩容
-    //    testInvalidDummyParams(expPort, true, false, null, EXP_SCHEMA_PREFIX);
-    //    // 扩容可写节点
-    //    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
-    //    // 查询扩容可写节点的历史数据，结果不为空
-    //    testQueryHistoryDataExpHasData();
-    //    // 写入并查询新数据
-    //    testWriteAndQueryNewData();
-    //    // 再次写入并查询所有新数据
-    //    testWriteAndQueryNewDataAfterCE();
+    // 查询原始只读节点的历史数据，结果不为空
+    testQueryHistoryDataOriHasData();
+    // 测试参数错误的只读节点扩容
+    testInvalidDummyParams(readOnlyPort, true, false, null, EXP_SCHEMA_PREFIX);
+    // 扩容只读节点
+    addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
+    // 查询扩容只读节点的历史数据，结果不为空
+    testQueryHistoryDataReadOnly();
+    // 测试参数错误的可写节点扩容
+    testInvalidDummyParams(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    // 扩容可写节点
+    addStorageEngineInProgress(expPort, true, false, null, EXP_SCHEMA_PREFIX);
+    // 查询扩容可写节点的历史数据，结果不为空
+    testQueryHistoryDataExpHasData();
+    // 写入并查询新数据
+    testWriteAndQueryNewData();
+    // 再次写入并查询所有新数据
+    testWriteAndQueryNewDataAfterCE();
 
     testQuerySpecialHistoryData();
 

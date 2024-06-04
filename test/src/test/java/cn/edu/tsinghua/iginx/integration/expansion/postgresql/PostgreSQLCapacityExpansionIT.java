@@ -32,7 +32,7 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void testQuerySpecialHistoryData() {
-    //    testRepeatsQuery();
+    testRepeatsQuery();
     testConcatFunction();
   }
 
