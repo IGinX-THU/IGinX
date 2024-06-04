@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer;
 
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.rbo.RuleBasedOptimizer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,13 +9,9 @@ public class LogicalOptimizerManager {
 
   private static final LogicalOptimizerManager instance = new LogicalOptimizerManager();
 
-  private static final String REMOVE_NOT = "remove_not";
-
-  private static final String FILTER_PUSH_DOWN = "filter_push_down";
-
-  private static final String FILTER_FRAGMENT = "filter_fragment";
-
   private static final String RULE_BASE = "rbo";
+
+  private static final String RULE_BASE_class = "cn.edu.tsinghua.iginx.logical.optimizer.rbo.RuleBasedOptimizer";
 
   private LogicalOptimizerManager() {}
 
@@ -24,23 +19,21 @@ public class LogicalOptimizerManager {
     return instance;
   }
 
-  public Optimizer getOptimizer(String name) {
+  public Optimizer getOptimizer(String name){
     if (name == null || name.equals("")) {
       return null;
     }
     LOGGER.info("use {} as logical optimizer.", name);
-
-    switch (name) {
-      case REMOVE_NOT:
-        return RemoveNotOptimizer.getInstance();
-      case FILTER_PUSH_DOWN:
-        return FilterPushDownOptimizer.getInstance();
-      case FILTER_FRAGMENT:
-        return FilterFragmentOptimizer.getInstance();
-      case RULE_BASE:
-        return RuleBasedOptimizer.getInstance();
-      default:
-        throw new IllegalArgumentException(String.format("unknown logical optimizer: %s", name));
+    try {
+      switch (name) {
+        case RULE_BASE:
+          return Optimizer.class.getClassLoader().loadClass(RULE_BASE_class).asSubclass(Optimizer.class).newInstance();
+        default:
+          throw new IllegalArgumentException(String.format("unknown logical optimizer: %s", name));
+      }
+    } catch (ClassNotFoundException | InstantiationException | IllegalAccessException e){
+      LOGGER.error("Cannot load class: {}", name, e);
     }
+    return null;
   }
 }

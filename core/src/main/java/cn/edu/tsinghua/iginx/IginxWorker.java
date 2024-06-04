@@ -35,7 +35,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;

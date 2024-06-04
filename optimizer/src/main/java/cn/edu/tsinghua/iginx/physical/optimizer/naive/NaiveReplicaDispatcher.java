@@ -16,20 +16,26 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package cn.edu.tsinghua.iginx.engine.physical.optimizer;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import java.util.Collection;
+import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
+import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 
-public interface PhysicalOptimizer {
+public class NaiveReplicaDispatcher implements ReplicaDispatcher {
 
-  PhysicalTask optimize(Operator root, RequestContext context);
+  private static final NaiveReplicaDispatcher INSTANCE = new NaiveReplicaDispatcher();
 
-  ConstraintManager getConstraintManager();
+  private NaiveReplicaDispatcher() {}
 
-  ReplicaDispatcher getReplicaDispatcher();
+  @Override
+  public String chooseReplica(StoragePhysicalTask task) {
+    if (task == null) {
+      return null;
+    }
+    return task.getTargetFragment().getMasterStorageUnitId();
+  }
 
+  public static NaiveReplicaDispatcher getInstance() {
+    return INSTANCE;
+  }
 }
