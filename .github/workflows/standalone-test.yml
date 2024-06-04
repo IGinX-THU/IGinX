@@ -1,190 +1,190 @@
-#name: "Union Database Test"
-#
-#on:
-#    workflow_call:
-#        inputs:
-#            java-matrix:
-#                description: "The java version to run the test on"
-#                type: string
-#                required: false
-#                default: '["8"]'
-#            python-matrix:
-#                description: "The python version to run the test on"
-#                type: string
-#                required: false
-#                default: '["3.9"]'
-#            os-matrix:
-#                description: "The operating system to run the test on"
-#                type: string
-#                required: false
-#                default: '["ubuntu-latest", "macos-13", "windows-latest"]'
-#            metadata-matrix:
-#                description: "The metadata to run the test on"
-#                type: string
-#                required: false
-#                default: '["zookeeper", "etcd"]'
-#            db-matrix:
-#                description: "The database to run the test on"
-#                type: string
-#                required: false
-#                default: '["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "Parquet", "MySQL"]'
-#
-#env:
-#    VERSION: 0.6.0-SNAPSHOT
-#
-#jobs:
-#    Union-DB-Test:
-#        timeout-minutes: 40
-#        strategy:
-#            fail-fast: false
-#            matrix:
-#                java: ${{ fromJSON(inputs.java-matrix) }}
-#                python-version: ${{ fromJSON(inputs.python-matrix) }}
-#                os: ${{ fromJSON(inputs.os-matrix) }}
-#                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
-#                DB-name: ${{ fromJSON(inputs.db-matrix) }}
-#        runs-on: ${{ matrix.os }}
-#        steps:
-#            - uses: actions/checkout@v4
-#            - name: Environment dependence
-#              uses: ./.github/actions/dependence
-#              with:
-#                  python-version: ${{ matrix.python-version }}
-#                  java: ${{ matrix.java }}
-#
-#            - name: Run Metadata
-#              uses: ./.github/actions/metadataRunner
-#              with:
-#                  metadata: ${{ matrix.metadata }}
-#
-#            - name: Run DB
-#              uses: ./.github/actions/dbRunner
-#              with:
-#                  DB-name: ${{ matrix.DB-name }}
-#
-#            - name: Install IGinX with Maven
-#              shell: bash
-#              run: |
-#                  mvn clean package -DskipTests -P-format -q
-#
-#            - name: Change IGinX config
-#              uses: ./.github/actions/confWriter
-#              with:
-#                  DB-name: ${{ matrix.DB-name }}
-#                  Set-Filter-Fragment-OFF: "true"
-#                  Metadata: ${{ matrix.metadata }}
-#
-#            # start udf path test first to avoid being effected
-#            - name: Start IGinX
-#              uses: ./.github/actions/iginxRunner
-#              with:
-#                  version: ${VERSION}
-#                  if-test-udf: "true"
-#
-#            - name: Run UDF path test
-#              if: always()
-#              shell: bash
-#              run: |
-#                  mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
-#                  if [ "$RUNNER_OS" == "Linux" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh" ${VERSION}
-#                  elif [ "$RUNNER_OS" == "Windows" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh" ${VERSION}
-#                  elif [ "$RUNNER_OS" == "macOS" ]; then
-#                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
-#                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
-#                  fi
-#
-#            - name: set client test context
-#              uses: ./.github/actions/context
-#              with:
-#                  work-name: restart-iginx-meta
-#                  metadata: ${{ matrix.metadata }}
-#
-#            - name: set client test context
-#              uses: ./.github/actions/context
-#              with:
-#                  DB-name: ${{ matrix.DB-name }}
-#                  shell: client-before
-#
-#            # large image export only tested in FileSystem and Parquet
-#            - name: Test Client Export File
-#              if: always()
-#              shell: bash
-#              run: |
-#                  if [[ "${{ matrix.DB-name }}" == "FileSystem" || "${{ matrix.DB-name }}" == "Parquet" ]]; then
-#                      mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
-#                  else
-#                      mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
-#                      mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
-#                  fi
-#
-#            - name: Stop IGinX and Metadata, Clear Metadata Data, then Start Them
-#              uses: ./.github/actions/context
-#              with:
-#                  work-name: restart-iginx-meta
-#                  metadata: ${{ matrix.metadata }}
-#
-#            - name: set client test context
-#              uses: ./.github/actions/context
-#              with:
-#                  shell: client-after
-#
-#            - name: Test Client Import File
-#              if: always()
-#              shell: bash
-#              run: |
-#                  mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
-#
-#            - name: clean metadata and restart IGinX
-#              uses: ./.github/actions/context
-#              with:
-#                  work-name: restart-iginx-meta
-#                  metadata: ${{ matrix.metadata }}
-#
-#            - name: TestController IT
-#              if: always()
-#              shell: bash
-#              env:
-#                  METADATA_STORAGE: ${{ matrix.metadata }}
-#              run: |
-#                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-#                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
-#
-#            - name: Show IGinX log
-#              if: always()
-#              shell: bash
-#              run: |
-#                  cat iginx-*.log
-#
-#            - name: Change IGinX config
-#              uses: ./.github/actions/confWriter
-#              with:
-#                  Set-Key-Range-Test-Policy: "true"
-#
-#            - name: clean metadata and restart IGinX
-#              uses: ./.github/actions/context
-#              with:
-#                  work-name: restart-iginx-meta
-#                  metadata: ${{ matrix.metadata }}
-#
-#            - name: FilterFragmentRuleTest IT
-#              if: always()
-#              shell: bash
-#              run: |
-#                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-#                  mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format
-#
-#            - name: Show test result
-#              if: always()
-#              shell: bash
-#              run: |
-#                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
-#
-#            - name: Show IGinX log
-#              if: always()
-#              shell: bash
-#              run: |
-#                  cat iginx-*.log
+name: "Union Database Test"
+
+on:
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            python-matrix:
+                description: "The python version to run the test on"
+                type: string
+                required: false
+                default: '["3.9"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-13", "windows-latest"]'
+            metadata-matrix:
+                description: "The metadata to run the test on"
+                type: string
+                required: false
+                default: '["zookeeper", "etcd"]'
+            db-matrix:
+                description: "The database to run the test on"
+                type: string
+                required: false
+                default: '["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "Parquet", "MySQL"]'
+
+env:
+    VERSION: 0.6.0-SNAPSHOT
+
+jobs:
+    Union-DB-Test:
+        timeout-minutes: 40
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
+
+            # start udf path test first to avoid being effected
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-test-udf: "true"
+
+            - name: Run UDF path test
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "Windows" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh" ${VERSION}
+                  elif [ "$RUNNER_OS" == "macOS" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
+                  fi
+
+            - name: set client test context
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
+
+            - name: set client test context
+              uses: ./.github/actions/context
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  shell: client-before
+
+            # large image export only tested in FileSystem and Parquet
+            - name: Test Client Export File
+              if: always()
+              shell: bash
+              run: |
+                  if [[ "${{ matrix.DB-name }}" == "FileSystem" || "${{ matrix.DB-name }}" == "Parquet" ]]; then
+                      mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
+                  else
+                      mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
+                      mvn test -q -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
+                  fi
+
+            - name: Stop IGinX and Metadata, Clear Metadata Data, then Start Them
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
+
+            - name: set client test context
+              uses: ./.github/actions/context
+              with:
+                  shell: client-after
+
+            - name: Test Client Import File
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
+
+            - name: clean metadata and restart IGinX
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
+
+            - name: TestController IT
+              if: always()
+              shell: bash
+              env:
+                  METADATA_STORAGE: ${{ matrix.metadata }}
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  Set-Key-Range-Test-Policy: "true"
+
+            - name: clean metadata and restart IGinX
+              uses: ./.github/actions/context
+              with:
+                  work-name: restart-iginx-meta
+                  metadata: ${{ matrix.metadata }}
+
+            - name: FilterFragmentRuleTest IT
+              if: always()
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
+                  mvn test -q -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format
+
+            - name: Show test result
+              if: always()
+              shell: bash
+              run: |
+                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
