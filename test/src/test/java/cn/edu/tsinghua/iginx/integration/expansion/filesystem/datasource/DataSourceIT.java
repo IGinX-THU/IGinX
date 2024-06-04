@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.integration.datasource;
+package cn.edu.tsinghua.iginx.integration.expansion.filesystem.datasource;
 
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.fail;

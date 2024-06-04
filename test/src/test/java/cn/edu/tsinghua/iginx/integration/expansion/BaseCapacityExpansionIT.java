@@ -14,6 +14,7 @@ import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpans
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
+import cn.edu.tsinghua.iginx.session.Column;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
@@ -465,6 +466,14 @@ public abstract class BaseCapacityExpansionIT {
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
+    // 测试 show columns
+    try {
+      List<Column> columns = session.showColumns();
+      LOGGER.info("columns: {}", columns);
+    } catch (SessionException e) {
+      LOGGER.error("show columns error: ", e);
+    }
+
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
 
@@ -472,6 +481,14 @@ public abstract class BaseCapacityExpansionIT {
     String statement = "select status2 from *;";
     List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
+
+    // 测试添加节点后的 show columns
+    try {
+      List<Column> columns = session.showColumns();
+      LOGGER.info("columns: {}", columns);
+    } catch (SessionException e) {
+      LOGGER.error("show columns error: ", e);
+    }
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
     addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);

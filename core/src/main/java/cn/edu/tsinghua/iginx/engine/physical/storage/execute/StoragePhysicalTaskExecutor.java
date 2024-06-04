@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
-import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
@@ -54,13 +53,12 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -324,7 +322,12 @@ public class StoragePhysicalTaskExecutor {
         continue;
       }
       try {
-        List<Column> columnList = pair.k.getColumns();
+        Set<String> patternSet = showColumns.getPathRegexSet();
+        TagFilter tagFilter = showColumns.getTagFilter();
+        if (storage.getDataPrefix() != null) {
+            patternSet.add(storage.getDataPrefix()+".*");
+        }
+        List<Column> columnList = pair.k.getColumns(patternSet, tagFilter);
         // fix the schemaPrefix
         String schemaPrefix = storage.getSchemaPrefix();
         if (schemaPrefix != null) {
@@ -340,40 +343,18 @@ public class StoragePhysicalTaskExecutor {
       }
     }
 
-    Set<String> pathRegexSet = showColumns.getPathRegexSet();
-    TagFilter tagFilter = showColumns.getTagFilter();
-
-    TreeSet<Column> tsSetAfterFilter = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
-    for (Column column : columnSet) {
-      boolean isTarget = true;
-      if (!pathRegexSet.isEmpty()) {
-        isTarget = false;
-        for (String pathRegex : pathRegexSet) {
-          if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
-            isTarget = true;
-            break;
-          }
-        }
-      }
-      if (tagFilter != null) {
-        if (!TagKVUtils.match(column.getTags(), tagFilter)) {
-          isTarget = false;
-        }
-      }
-      if (isTarget) {
-        tsSetAfterFilter.add(column);
-      }
-    }
+    TreeSet<Column> columnSetAfterFilter = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
+    columnSetAfterFilter.addAll(columnSet);
 
     int limit = showColumns.getLimit();
     int offset = showColumns.getOffset();
     if (limit == Integer.MAX_VALUE && offset == 0) {
-      return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
+      return new TaskExecuteResult(Column.toRowStream(columnSetAfterFilter));
     } else {
       // only need part of data.
       List<Column> tsList = new ArrayList<>();
-      int cur = 0, size = tsSetAfterFilter.size();
-      for (Iterator<Column> iter = tsSetAfterFilter.iterator(); iter.hasNext(); cur++) {
+      int cur = 0, size = columnSetAfterFilter.size();
+      for (Iterator<Column> iter = columnSetAfterFilter.iterator(); iter.hasNext(); cur++) {
         if (cur >= size || cur - offset >= limit) {
           break;
         }

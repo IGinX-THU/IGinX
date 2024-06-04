@@ -7,6 +7,7 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -34,6 +35,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
+
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -309,27 +314,45 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
       for (File file : fileSystemManager.getAllFiles(directory, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
+        String columnPath = FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
+        boolean isChosen = true;
         if (meta == null) {
           throw new PhysicalException(
               String.format(
                   "encounter error when getting columns of storage unit because file meta %s is null",
                   file.getAbsolutePath()));
         }
-        columns.add(
-            new Column(
-                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
-                meta.getDataType(),
-                meta.getTags(),
-                false));
+        // get columns by pattern
+        if (!pattern.isEmpty()) {
+          for (String pathRegex : pattern) {
+            if (!Pattern.matches(StringUtils.reformatPath(pathRegex), columnPath)) {
+              isChosen = false;
+              break;
+            }
+          }
+        }
+        if (!isChosen) {
+          continue;
+        }
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
+          columns.add(
+              new Column(
+                  columnPath,
+                  meta.getDataType(),
+                  meta.getTags(),
+                  false));
+        }
       }
     }
-    if (hasData && dummyRoot != null) {
+    // get columns from dummy storage unit
+    if (hasData && dummyRoot != null && tagFilter==null) {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
         columns.add(
             new Column(

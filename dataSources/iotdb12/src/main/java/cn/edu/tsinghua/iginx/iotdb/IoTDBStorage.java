@@ -192,13 +192,13 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    getColumns2StorageUnit(columns, null);
+    getColumns2StorageUnit(columns, null, pattern, tagFilter);
     return columns;
   }
 
-  private void getColumns2StorageUnit(List<Column> columns, Map<String, String> columns2StorageUnit)
+  private void getColumns2StorageUnit(List<Column> columns, Map<String, String> columns2StorageUnit, Set<String> pattern, TagFilter tagFilter)
       throws PhysicalException {
     try {
       SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
@@ -220,6 +220,25 @@ public class IoTDBStorage implements IStorage {
         String fragment = isDummy ? "" : record.getFields().get(2).getStringValue().substring(5);
         if (columns2StorageUnit != null) {
           columns2StorageUnit.put(pair.k, fragment);
+        }
+        boolean isChosen = true;
+        // get columns by pattern
+        if (!pattern.isEmpty()) {
+          for (String pathRegex : pattern) {
+            if (!Pattern.matches(StringUtils.reformatPath(pathRegex), pair.k)) {
+              isChosen = false;
+              break;
+            }
+          }
+        } else {
+          if (isDummy) continue;
+        }
+        if (!isChosen) {
+          continue;
+        }
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(pair.v, tagFilter)) {
+          continue;
         }
 
         switch (dataTypeName) {
@@ -790,7 +809,7 @@ public class IoTDBStorage implements IStorage {
     } else {
       List<String> patterns = delete.getPatterns();
       TagFilter tagFilter = delete.getTagFilter();
-      List<Column> timeSeries = getColumns();
+      List<Column> timeSeries = getColumns(new HashSet<>(), null);
 
       List<String> pathList = new ArrayList<>();
       for (Column ts : timeSeries) {
@@ -859,7 +878,7 @@ public class IoTDBStorage implements IStorage {
     if (filterStr.contains("*")) {
       List<Column> columns = new ArrayList<>();
       Map<String, String> columns2Fragment = new HashMap<>();
-      getColumns2StorageUnit(columns, columns2Fragment);
+      getColumns2StorageUnit(columns, columns2Fragment, new HashSet<>(), null);
       filterStr =
           FilterTransformer.toString(
               expandFilterWildcard(filter.copy(), columns, columns2Fragment, storageUnit));
