@@ -643,7 +643,11 @@ public class RelationalStorage implements IStorage {
     assert n > 0;
     List<List<String>> concatList = new ArrayList<>();
     for (int i = 0; i < n / 100 + 1; i++) {
-      concatList.add(columnNames.subList(i * 100, Math.min((i + 1) * 100, n)));
+      List<String> subList = columnNames.subList(i * 100, Math.min((i + 1) * 100, n));
+      if (subList.size() == 0) {
+        continue;
+      }
+      concatList.add(subList);
     }
 
     if (concatList.size() == 1) {
@@ -981,11 +985,11 @@ public class RelationalStorage implements IStorage {
             statement =
                 String.format(
                     relationalMeta.getConcatQueryStatement(),
-                    allColumnNameForTable.get(tableName),
+                    buildConcat(fullPathList),
                     fullQuotColumnNames,
                     getQuotName(tableName),
                     filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                    "Concat(" + allColumnNameForTable.get(tableName) + ")");
+                    buildConcat(fullPathList));
 
             try {
               stmt = conn.createStatement();
@@ -1042,11 +1046,6 @@ public class RelationalStorage implements IStorage {
             copyFilter = LogicalFilterUtils.mergeTrue(copyFilter);
           }
 
-          String fullColumnNamesStr =
-              fullQuotColumnNamesList.stream()
-                  .flatMap(List::stream)
-                  .collect(Collectors.joining(", "));
-          ;
           String filterStr = filterTransformer.toString(copyFilter);
           String orderByKey =
               buildConcat(
@@ -1055,7 +1054,9 @@ public class RelationalStorage implements IStorage {
                       .collect(Collectors.toList()));
           if (!relationalMeta.isSupportFullJoin()) {
             // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
-            fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
+            char quot = relationalMeta.getQuote();
+            fullQuotColumnNamesList.forEach(
+                columnNames -> columnNames.replaceAll(s -> s.replaceAll(quot + "\\." + quot, ".")));
             filterStr = filterStr.replaceAll("`\\.`", ".");
             filterStr =
                 filterStr.replace(
@@ -1066,8 +1067,13 @@ public class RelationalStorage implements IStorage {
           statement =
               String.format(
                   relationalMeta.getConcatQueryStatement(),
-                  fullColumnNamesStr,
-                  fullColumnNamesStr,
+                  buildConcat(
+                      fullQuotColumnNamesList.stream()
+                          .flatMap(List::stream)
+                          .collect(Collectors.toList())),
+                  fullQuotColumnNamesList.stream()
+                      .flatMap(List::stream)
+                      .collect(Collectors.joining(", ")),
                   fullTableName,
                   filterStr.isEmpty() ? "" : "WHERE " + filterStr,
                   orderByKey);
