@@ -148,13 +148,13 @@ public class FilterPushOutJoinConditionRule extends Rule {
 
   private Filter getJoinFilter(AbstractJoin join) {
     switch (join.getType()) {
-      case OperatorType.InnerJoin:
+      case InnerJoin:
         return ((InnerJoin) join).getFilter();
-      case OperatorType.OuterJoin:
+      case OuterJoin:
         return ((OuterJoin) join).getFilter();
-      case OperatorType.MarkJoin:
+      case MarkJoin:
         return ((MarkJoin) join).getFilter();
-      case OperatorType.SingleJoin:
+      case SingleJoin:
         return ((SingleJoin) join).getFilter();
     }
     throw new IllegalArgumentException("Invalid join type: " + join.getType());
@@ -162,16 +162,16 @@ public class FilterPushOutJoinConditionRule extends Rule {
 
   private void setJoinFilter(AbstractJoin join, Filter filter) {
     switch (join.getType()) {
-      case OperatorType.InnerJoin:
+      case InnerJoin:
         ((InnerJoin) join).setFilter(filter);
         return;
-      case OperatorType.OuterJoin:
+      case OuterJoin:
         ((OuterJoin) join).setFilter(filter);
         return;
-      case OperatorType.MarkJoin:
+      case MarkJoin:
         ((MarkJoin) join).setFilter(filter);
         return;
-      case OperatorType.SingleJoin:
+      case SingleJoin:
         ((SingleJoin) join).setFilter(filter);
         return;
     }
@@ -180,13 +180,13 @@ public class FilterPushOutJoinConditionRule extends Rule {
 
   private TagFilter getJoinTagFilter(AbstractJoin join) {
     switch (join.getType()) {
-      case OperatorType.InnerJoin:
+      case InnerJoin:
         return ((InnerJoin) join).getTagFilter();
-      case OperatorType.OuterJoin:
+      case OuterJoin:
         return null;
-      case OperatorType.MarkJoin:
+      case MarkJoin:
         return ((MarkJoin) join).getTagFilter();
-      case OperatorType.SingleJoin:
+      case SingleJoin:
         return ((SingleJoin) join).getTagFilter();
     }
     throw new IllegalArgumentException("Invalid join type: " + join.getType());

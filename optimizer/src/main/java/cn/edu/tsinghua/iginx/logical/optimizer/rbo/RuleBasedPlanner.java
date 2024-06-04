@@ -21,7 +21,7 @@ public class RuleBasedPlanner implements Planner {
 
   private Operator root;
 
-  private final RuleCollection ruleCollection = RuleCollection.getInstance();
+  private final RuleCollection ruleCollection = RuleCollection.INSTANCE;
 
   private Map<Operator, Operator> parentIndex;
   private Map<Operator, List<Operator>> childrenIndex;

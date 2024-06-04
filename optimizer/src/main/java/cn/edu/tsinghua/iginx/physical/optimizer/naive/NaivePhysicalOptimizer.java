@@ -59,7 +59,6 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     return NaiveReplicaDispatcher.getInstance();
   }
 
-  @Override
   public void setRules(Collection<Rule> rules) {}
 
   private PhysicalTask constructTask(Operator operator, RequestContext context) {

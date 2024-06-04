@@ -3,10 +3,13 @@ package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import java.util.*;
+
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RuleCollection {
+public enum RuleCollection implements IRuleCollection {
+  INSTANCE;
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RuleCollection.class);
 
@@ -15,14 +18,6 @@ public class RuleCollection {
   private final Map<String, Rule> bannedRules = new HashMap<>();
 
   private ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
-
-  private static final class InstanceHolder {
-    static final RuleCollection INSTANCE = new RuleCollection();
-  }
-
-  public static RuleCollection getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
 
   private RuleCollection() {
     // add rules here

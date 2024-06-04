@@ -248,28 +248,28 @@ public class FilterPushDownOptimizer implements Optimizer {
 
   private Filter replacePathByRenameMap(Filter filter, Map<String, String> renameMap) {
     switch (filter.getType()) {
-      case FilterType.Or:
+      case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
         for (Filter orChild : orChildren) {
           Filter newFilter = replacePathByRenameMap(orChild, renameMap);
           orChildren.set(orChildren.indexOf(orChild), newFilter);
         }
         break;
-      case FilterType.And:
+      case And:
         List<Filter> andChildren = ((AndFilter) filter).getChildren();
         for (Filter andChild : andChildren) {
           Filter newFilter = replacePathByRenameMap(andChild, renameMap);
           andChildren.set(andChildren.indexOf(andChild), newFilter);
         }
         break;
-      case FilterType.Value:
+      case Value:
         String path = ((ValueFilter) filter).getPath();
         for (Map.Entry<String, String> entry : renameMap.entrySet()) {
           path = replacePathByRenameEntry(path, entry);
         }
         return new ValueFilter(
             path, ((ValueFilter) filter).getOp(), ((ValueFilter) filter).getValue());
-      case FilterType.Path:
+      case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
 

@@ -11,7 +11,7 @@ import java.util.List;
 public class RBOTest {
 
   private final RuleBasedOptimizer rbo = new RuleBasedOptimizer();
-  private final RuleCollection ruleCollection = RuleCollection.getInstance();
+  private final RuleCollection ruleCollection = RuleCollection.INSTANCE;
 
   @Test
   public void testNotFilterRemoveRule() {

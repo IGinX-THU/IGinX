@@ -216,7 +216,7 @@ public class ConstantPropagationRule extends Rule {
     Value constantValue = constant.getV();
 
     switch (replaceFilter.getType()) {
-      case FilterType.And:
+      case And:
         AndFilter andFilter = (AndFilter) replaceFilter;
         List<Filter> andNewChildren = new ArrayList<>();
         for (Filter child : andFilter.getChildren()) {
@@ -224,7 +224,7 @@ public class ConstantPropagationRule extends Rule {
         }
         andFilter.setChildren(andNewChildren);
         return andFilter;
-      case FilterType.Or:
+      case Or:
         OrFilter orFilter = (OrFilter) replaceFilter;
         List<Filter> orNewChildren = new ArrayList<>();
         for (Filter child : orFilter.getChildren()) {
@@ -232,11 +232,11 @@ public class ConstantPropagationRule extends Rule {
         }
         orFilter.setChildren(orNewChildren);
         return orFilter;
-      case FilterType.Not:
+      case Not:
         NotFilter notFilter = (NotFilter) replaceFilter;
         notFilter.setChild(propagateConstant(constantFilter, notFilter.getChild()));
         return notFilter;
-      case FilterType.Path:
+      case Path:
         PathFilter pathFilter = (PathFilter) replaceFilter;
         String pathA = pathFilter.getPathA();
         String pathB = pathFilter.getPathB();
@@ -255,7 +255,7 @@ public class ConstantPropagationRule extends Rule {
           return new ValueFilter(pathA, pathOp, constantValue);
         }
         return pathFilter;
-      case FilterType.Expr:
+      case Expr:
         ExprFilter exprFilter = (ExprFilter) replaceFilter;
         Expression exprA = exprFilter.getExpressionA();
         Expression exprB = exprFilter.getExpressionB();
@@ -263,7 +263,7 @@ public class ConstantPropagationRule extends Rule {
             replacePathInExpr(exprA, constantPath, constantValue),
             exprFilter.getOp(),
             replacePathInExpr(exprB, constantPath, constantValue));
-      case FilterType.Value:
+      case Value:
         ValueFilter valueFilter = (ValueFilter) replaceFilter;
         Op valueOp = valueFilter.getOp();
         Value valueValue = valueFilter.getValue();
@@ -272,7 +272,7 @@ public class ConstantPropagationRule extends Rule {
               FilterUtils.validateValueCompare(valueOp, constantValue, valueValue));
         }
         return valueFilter;
-      case FilterType.Key:
+      case Key:
         KeyFilter keyFilter = (KeyFilter) replaceFilter;
         Op keyOp = keyFilter.getOp();
         Value keyValue = new Value(keyFilter.getValue());
@@ -295,13 +295,13 @@ public class ConstantPropagationRule extends Rule {
    */
   private Expression replacePathInExpr(Expression expr, String path, Value value) {
     switch (expr.getType()) {
-      case ExpressionType.Base:
+      case Base:
         BaseExpression baseExpr = (BaseExpression) expr;
         if (baseExpr.getPathName().equals(path)) {
           return new ConstantExpression(value.getValue());
         }
         return baseExpr;
-      case ExpressionType.Binary:
+      case Binary:
         BinaryExpression binaryExpr = (BinaryExpression) expr;
         Expression exprA = binaryExpr.getLeftExpression();
         Expression exprB = binaryExpr.getRightExpression();
@@ -309,11 +309,11 @@ public class ConstantPropagationRule extends Rule {
             replacePathInExpr(exprA, path, value),
             replacePathInExpr(exprB, path, value),
             binaryExpr.getOp());
-      case ExpressionType.Unary:
+      case Unary:
         UnaryExpression unaryExpr = (UnaryExpression) expr;
         return new UnaryExpression(
             unaryExpr.getOperator(), replacePathInExpr(unaryExpr.getExpression(), path, value));
-      case ExpressionType.Bracket:
+      case Bracket:
         BracketExpression bracketExpr = (BracketExpression) expr;
         return new BracketExpression(replacePathInExpr(bracketExpr.getExpression(), path, value));
       default:

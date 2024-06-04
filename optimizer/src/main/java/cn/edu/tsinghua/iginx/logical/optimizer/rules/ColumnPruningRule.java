@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.covers;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;

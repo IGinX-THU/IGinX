@@ -1,13 +1,15 @@
 package cn.edu.tsinghua.iginx.optimizer;
 
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
+
+import cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
 public class RBOTestUtils {
 
-  private static final RuleCollection ruleCollection = RuleCollection.getInstance();
+  private static final RuleCollection ruleCollection = RuleCollection.INSTANCE;
 
   /**
    * 禁止给定规则之外的规则
