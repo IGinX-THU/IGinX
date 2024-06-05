@@ -17,11 +17,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -2298,14 +2294,14 @@ public class SQLSessionIT {
     query = "explain select avg(a), sum(b), c, b, d from test group by c, b, d order by c, b, d;";
     expected =
         "ResultSets:\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
-            + "|    Logical Tree|Operator Type|                                                                                                    Operator Info|\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
-            + "|Reorder         |      Reorder|                                                              Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
-            + "|  +--Sort       |         Sort|                                                                      SortBy: test.c,test.b,test.d, SortType: ASC|\n"
-            + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping|\n"
-            + "|      +--Project|      Project|                                                 Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
-            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------+\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|    Logical Tree|Operator Type|                                                                                                                      Operator Info|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
+            + "|Reorder         |      Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
+            + "|  +--Sort       |         Sort|                                                                                        SortBy: test.c,test.b,test.d, SortType: ASC|\n"
+            + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
+            + "|      +--Project|      Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
+            + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
   }
@@ -6571,17 +6567,17 @@ public class SQLSessionIT {
             new Pair<>(
                 "explain SELECT * FROM (SELECT max(s2), min(s3), s1 FROM us.d1 GROUP BY s1) WHERE us.d1.s1 < 10 AND max(us.d1.s2) > 10;",
                 "ResultSets:\n"
-                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
-                    + "|          Logical Tree|Operator Type|                                                                                        Operator Info|\n"
-                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
-                    + "|Reorder               |      Reorder|                                                                                             Order: *|\n"
-                    + "|  +--Project          |      Project|                                                                                          Patterns: *|\n"
-                    + "|    +--Reorder        |      Reorder|                                                          Order: max(us.d1.s2),min(us.d1.s3),us.d1.s1|\n"
-                    + "|      +--Select       |       Select|                                                                         Filter: (max(us.d1.s2) > 10)|\n"
-                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (min, System),(max, System), MappingType: SetMapping|\n"
-                    + "|          +--Select   |       Select|                                                                              Filter: (us.d1.s1 < 10)|\n"
-                    + "|            +--Project|      Project|                                      Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
-                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------+\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|          Logical Tree|Operator Type|                                                                                                          Operator Info|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder               |      Reorder|                                                                                                               Order: *|\n"
+                    + "|  +--Project          |      Project|                                                                                                            Patterns: *|\n"
+                    + "|    +--Reorder        |      Reorder|                                                                            Order: max(us.d1.s2),min(us.d1.s3),us.d1.s1|\n"
+                    + "|      +--Select       |       Select|                                                                                           Filter: (max(us.d1.s2) > 10)|\n"
+                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (min, System),(max, System), MappingType: SetMapping isDistinct: false|\n"
+                    + "|          +--Select   |       Select|                                                                                                Filter: (us.d1.s1 < 10)|\n"
+                    + "|            +--Project|      Project|                                                        Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
+                    + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
                     + "Total line number = 7\n"),
             new Pair<>(
                 "explain SELECT * FROM (SELECT avg(s2), count(s3) FROM us.d1) WHERE avg(us.d1.s2) < 10;",
@@ -6759,19 +6755,19 @@ public class SQLSessionIT {
             new Pair<>(
                 "EXPLAIN SELECT avg(bb) FROM (SELECT a as aa, b as bb FROM us.d2) WHERE key > 2 GROUP BY aa;",
                 "ResultSets:\n"
-                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
-                    + "|            Logical Tree|Operator Type|                                                                    Operator Info|\n"
-                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
-                    + "|Reorder                 |      Reorder|                                                                   Order: avg(bb)|\n"
-                    + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FuncList(Name, FuncType): (avg, System), MappingType: SetMapping|\n"
-                    + "|    +--Select           |       Select|                                                                  Filter: key > 2|\n"
-                    + "|      +--Rename         |       Rename|                                            AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
-                    + "|        +--Reorder      |      Reorder|                                                           Order: us.d2.a,us.d2.b|\n"
-                    + "|          +--Project    |      Project|                                                        Patterns: us.d2.a,us.d2.b|\n"
-                    + "|            +--PathUnion|    PathUnion|                                                                                 |\n"
-                    + "|              +--Project|      Project|                             Patterns: us.d2.a,us.d2.b, Target DU: unit0000000002|\n"
-                    + "|              +--Project|      Project|                             Patterns: us.d2.a,us.d2.b, Target DU: unit0000000003|\n"
-                    + "+------------------------+-------------+---------------------------------------------------------------------------------+\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------------------------+\n"
+                    + "|            Logical Tree|Operator Type|                                                                                      Operator Info|\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------------------------+\n"
+                    + "|Reorder                 |      Reorder|                                                                                     Order: avg(bb)|\n"
+                    + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FuncList(Name, FuncType): (avg, System), MappingType: SetMapping isDistinct: false|\n"
+                    + "|    +--Select           |       Select|                                                                                    Filter: key > 2|\n"
+                    + "|      +--Rename         |       Rename|                                                              AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
+                    + "|        +--Reorder      |      Reorder|                                                                             Order: us.d2.a,us.d2.b|\n"
+                    + "|          +--Project    |      Project|                                                                          Patterns: us.d2.a,us.d2.b|\n"
+                    + "|            +--PathUnion|    PathUnion|                                                                                                   |\n"
+                    + "|              +--Project|      Project|                                               Patterns: us.d2.a,us.d2.b, Target DU: unit0000000002|\n"
+                    + "|              +--Project|      Project|                                               Patterns: us.d2.a,us.d2.b, Target DU: unit0000000003|\n"
+                    + "+------------------------+-------------+---------------------------------------------------------------------------------------------------+\n"
                     + "Total line number = 9\n"));
 
     // 这里的测例是filter_fragment能处理的节点，开关会导致变化
@@ -7537,15 +7533,13 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testJoinFactorizationRule() {
-    String openRule = "SET RULES JoinFactorizationRule=on;";
-    String closeRule = "SET RULES JoinFactorizationRule=off;";
-
+  public void testDistinctEliminate() {
+    // 插入数据
     StringBuilder insert = new StringBuilder();
-    insert.append("INSERT INTO t1 (key, c1, c2) VALUES ");
-    int rows = 50;
+    insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
+    int rows = 10000;
     for (int i = 0; i < rows; i++) {
-      insert.append(String.format("(%d, %d, %d)", i, i % 10, i % 10));
+      insert.append(String.format("(%d, %d, %d)", i, i % 100, i % 1000));
       if (i != rows - 1) {
         insert.append(",");
       }
@@ -7553,195 +7547,160 @@ public class SQLSessionIT {
     insert.append(";");
     executor.execute(insert.toString());
 
-    insert = new StringBuilder();
-    insert.append("INSERT INTO t2 (key, c1, c2) VALUES ");
-    for (int i = 0; i < rows; i++) {
-      insert.append(String.format("(%d, %d, %d)", i, i % 20, i % 20));
-      if (i != rows - 1) {
-        insert.append(",");
-      }
-    }
-    insert.append(";");
-    executor.execute(insert.toString());
+    String openRule =
+        "SET RULES FunctionDistinctEliminateRule=on, InExistsDistinctEliminateRule=on;";
+    String closeRule =
+        "SET RULES FunctionDistinctEliminateRule=off, InExistsDistinctEliminateRule=off;";
 
-    insert = new StringBuilder();
-    insert.append("INSERT INTO t3 (key, c1, c2) VALUES ");
-    for (int i = 0; i < rows; i++) {
-      insert.append(String.format("(%d, %d, %d)", i, i % 30, i % 30));
-      if (i != rows - 1) {
-        insert.append(",");
-      }
-    }
-    insert.append(";");
-    executor.execute(insert.toString());
-
-    insert = new StringBuilder();
-    insert.append("INSERT INTO t4 (key, c1, c2) VALUES ");
-    for (int i = 0; i < rows; i++) {
-      insert.append(String.format("(%d, %d, %d)", i, i % 40, i % 40));
-      if (i != rows - 1) {
-        insert.append(",");
-      }
-    }
-    insert.append(";");
-    executor.execute(insert.toString());
-
-    // 待优化的语句
-    String statement =
-        "SELECT t1.c1, t2.c2\n"
-            + "   FROM   t1, t2, t3\n"
-            + "   WHERE  t1.c1 = t2.c1\n"
-            + "   AND    t1.c1 > 1\n"
-            + "   AND    t2.c2 = 2\n"
-            + "   AND    t2.c2 = t3.c2\n"
-            + "   UNION ALL\n"
-            + "   SELECT t1.c1, t2.c2\n"
-            + "   FROM   t1, t2, t4\n"
-            + "   WHERE  t1.c1 = t2.c1\n"
-            + "   AND    t1.c1 > 1\n"
-            + "   AND    t2.c1 = t4.c1;";
-    // 优化后的查询计划与下面这个语句的基本相同,会有些order、filter顺序的不同，不影响结果
-    // 例如project t1.c1 t2.c2和project t2.c2 t1.c1的区别
-    String optimizing =
-        "   SELECT t1.c1, t2.c2\n"
-            + "   FROM   t1, (SELECT t2.c1, t2.c2\n"
-            + "               FROM   t2, t3\n"
-            + "               WHERE  t2.c2 = t3.c2\n"
-            + "               AND    t2.c2 = 2\n"
-            + "               UNION ALL\n"
-            + "               SELECT t2.c1, t2.c2\n"
-            + "               FROM   t2, t4\n"
-            + "               WHERE  t2.c1 = t4.c1)\n"
-            + "   WHERE  t1.c1 = t2.c1\n"
-            + "   AND    t1.c1 > 1;";
-
-    executor.execute(openRule);
-    String result = executor.execute(statement);
-    executor.executeAndCompare(optimizing, result);
-    String expect =
-        "ResultSets:\n"
-            + "+----------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|                Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+----------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Reorder                     |      Reorder|                                                Order: t1.c1,t2.c2|\n"
-            + "|  +--Project                |      Project|                                             Patterns: t1.c1,t2.c2|\n"
-            + "|    +--Select               |       Select|                             Filter: (t1.c1 == t2.c1 && t1.c1 > 1)|\n"
-            + "|      +--CrossJoin          |    CrossJoin|                                        PrefixA: t1, PrefixB: null|\n"
-            + "|        +--Project          |      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|        +--Union            |        Union|LeftOrder: t2.c2,t2.c1, RightOrder: t2.c2,t2.c1, isDistinct: false|\n"
-            + "|          +--Reorder        |      Reorder|                                                Order: t2.c1,t2.c2|\n"
-            + "|            +--Project      |      Project|                                             Patterns: t2.c1,t2.c2|\n"
-            + "|              +--Select     |       Select|                                Filter: (t2.c2 == 2 && t3.c2 == 2)|\n"
-            + "|                +--CrossJoin|    CrossJoin|                                          PrefixA: t2, PrefixB: t3|\n"
-            + "|                  +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
-            + "|                  +--Project|      Project|                        Patterns: t3.c2, Target DU: unit0000000002|\n"
-            + "|          +--Reorder        |      Reorder|                                                Order: t2.c1,t2.c2|\n"
-            + "|            +--Project      |      Project|                                             Patterns: t2.c1,t2.c2|\n"
-            + "|              +--Select     |       Select|                                          Filter: (t2.c1 == t4.c1)|\n"
-            + "|                +--CrossJoin|    CrossJoin|                                          PrefixA: t2, PrefixB: t4|\n"
-            + "|                  +--Project|      Project|                  Patterns: t2.c1,t2.c2, Target DU: unit0000000002|\n"
-            + "|                  +--Project|      Project|                        Patterns: t4.c1, Target DU: unit0000000002|\n"
-            + "+----------------------------+-------------+------------------------------------------------------------------+\n"
-            + "Total line number = 18\n";
-    assertEquals(expect, executor.execute("EXPLAIN " + statement));
-
+    String closeResult = null;
+    // 测试InExistsDistinctEliminateRule
+    // 下面两个情况应该会消除Distinct
+    String statement = "SELECT * FROM us.d1 WHERE EXISTS (SELECT DISTINCT s1 FROM us.d1);";
     executor.execute(closeRule);
-    assertTrue(TestUtils.compareTables(executor.execute(optimizing), result));
-    expect =
-        "ResultSets:\n"
-            + "+----------------------+-------------+------------------------------------------------------------------+\n"
-            + "|          Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+----------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Union                 |        Union|LeftOrder: t1.c1,t2.c2, RightOrder: t1.c1,t2.c2, isDistinct: false|\n"
-            + "|  +--Reorder          |      Reorder|                                                Order: t1.c1,t2.c2|\n"
-            + "|    +--Project        |      Project|                                             Patterns: t2.c2,t1.c1|\n"
-            + "|      +--Select       |       Select| Filter: (t1.c1 == t2.c1 && t1.c1 > 1 && t2.c2 == 2 && t3.c2 == 2)|\n"
-            + "|        +--CrossJoin  |    CrossJoin|                                          PrefixA: t2, PrefixB: t3|\n"
-            + "|          +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|            +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|            +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|          +--Project  |      Project|                         Patterns: t3.*, Target DU: unit0000000002|\n"
-            + "|  +--Reorder          |      Reorder|                                                Order: t1.c1,t2.c2|\n"
-            + "|    +--Project        |      Project|                                             Patterns: t2.c2,t1.c1|\n"
-            + "|      +--Select       |       Select|           Filter: (t1.c1 == t2.c1 && t1.c1 > 1 && t2.c1 == t4.c1)|\n"
-            + "|        +--CrossJoin  |    CrossJoin|                                          PrefixA: t2, PrefixB: t4|\n"
-            + "|          +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|            +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|            +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|          +--Project  |      Project|                         Patterns: t4.*, Target DU: unit0000000002|\n"
-            + "+----------------------+-------------+------------------------------------------------------------------+\n"
-            + "Total line number = 17\n";
-    assertEquals(expect, executor.execute("EXPLAIN " + statement));
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertFalse(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
 
+    statement = "SELECT * FROM us.d1 WHERE s1 IN (SELECT DISTINCT s1 FROM us.d2);";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertFalse(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 下面情况不会消除Distinct
     statement =
-        "SELECT t1.c2, t2.c2\n"
-            + "FROM   t1, t2\n"
-            + "WHERE  t1.c1 = t2.c1 \n"
-            + "AND    t1.c1 = 1\n"
-            + "UNION ALL\n"
-            + "SELECT t1.c2, t2.c2\n"
-            + "FROM   t1, t2\n"
-            + "WHERE  t1.c1 = t2.c1 \n"
-            + "AND    t1.c1 = 2;";
-    optimizing =
-        "SELECT t1.c2, t2.c2\n"
-            + "FROM   t2, (SELECT c1, c2\n"
-            + "            FROM   t1\n"
-            + "            WHERE  t1.c1 = 1\n"
-            + "            UNION ALL\n"
-            + "            SELECT c1, c2\n"
-            + "            FROM   t1\n"
-            + "            WHERE  t1.c1 = 2)\n"
-            + "WHERE  t1.c1 = t2.c1;";
-
-    executor.execute(openRule);
-    result = executor.execute(statement);
-    executor.executeAndCompare(optimizing, result);
-    expect =
-        "ResultSets:\n"
-            + "+--------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|              Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+--------------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Reorder                   |      Reorder|                                                Order: t1.c2,t2.c2|\n"
-            + "|  +--Project              |      Project|                                             Patterns: t1.c2,t2.c2|\n"
-            + "|    +--Select             |       Select|                                          Filter: (t1.c1 == t2.c1)|\n"
-            + "|      +--CrossJoin        |    CrossJoin|                                        PrefixA: t2, PrefixB: null|\n"
-            + "|        +--Project        |      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|        +--Union          |        Union|LeftOrder: t1.c2,t1.c1, RightOrder: t1.c2,t1.c1, isDistinct: false|\n"
-            + "|          +--Reorder      |      Reorder|                                                Order: t1.c1,t1.c2|\n"
-            + "|            +--Project    |      Project|                                             Patterns: t1.c1,t1.c2|\n"
-            + "|              +--Select   |       Select|                                              Filter: (t1.c1 == 1)|\n"
-            + "|                +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
-            + "|          +--Reorder      |      Reorder|                                                Order: t1.c1,t1.c2|\n"
-            + "|            +--Project    |      Project|                                             Patterns: t1.c1,t1.c2|\n"
-            + "|              +--Select   |       Select|                                              Filter: (t1.c1 == 2)|\n"
-            + "|                +--Project|      Project|                  Patterns: t1.c1,t1.c2, Target DU: unit0000000002|\n"
-            + "+--------------------------+-------------+------------------------------------------------------------------+\n"
-            + "Total line number = 14\n";
-    assertEquals(expect, executor.execute("EXPLAIN " + statement));
-
+        "SELECT * FROM us.d1 WHERE EXISTS "
+            + "(SELECT us.d1.s1, us.d2.s2 FROM us.d1 JOIN (select DISTINCT s1, s2 FROM us.d2) ON us.d1.s1 = us.d2.s1);";
     executor.execute(closeRule);
-    assertTrue(TestUtils.compareTables(executor.execute(optimizing), result));
-    expect =
-        "ResultSets:\n"
-            + "+--------------------+-------------+------------------------------------------------------------------+\n"
-            + "|        Logical Tree|Operator Type|                                                     Operator Info|\n"
-            + "+--------------------+-------------+------------------------------------------------------------------+\n"
-            + "|Union               |        Union|LeftOrder: t1.c2,t2.c2, RightOrder: t1.c2,t2.c2, isDistinct: false|\n"
-            + "|  +--Reorder        |      Reorder|                                                Order: t1.c2,t2.c2|\n"
-            + "|    +--Project      |      Project|                                             Patterns: t2.c2,t1.c2|\n"
-            + "|      +--Select     |       Select|                                Filter: (t2.c1 == 1 && t1.c1 == 1)|\n"
-            + "|        +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|          +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|          +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "|  +--Reorder        |      Reorder|                                                Order: t1.c2,t2.c2|\n"
-            + "|    +--Project      |      Project|                                             Patterns: t2.c2,t1.c2|\n"
-            + "|      +--Select     |       Select|                                Filter: (t2.c1 == 2 && t1.c1 == 2)|\n"
-            + "|        +--CrossJoin|    CrossJoin|                                          PrefixA: t1, PrefixB: t2|\n"
-            + "|          +--Project|      Project|                         Patterns: t1.*, Target DU: unit0000000002|\n"
-            + "|          +--Project|      Project|                         Patterns: t2.*, Target DU: unit0000000002|\n"
-            + "+--------------------+-------------+------------------------------------------------------------------+\n"
-            + "Total line number = 13\n";
-    assertEquals(expect, executor.execute("EXPLAIN " + statement));
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 测试FunctionDistinctEliminateRule
+    // 下面情况会消除Distinct
+    statement = "SELECT max(distinct s1), min(distinct s2) FROM us.d1;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 下面情况不会消除Distinct
+    statement = "SELECT max(distinct s1), avg(distinct s2) FROM us.d1;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT avg(distinct s1), count(distinct s2) FROM us.d1 GROUP BY s2, s3;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    assertEquals(closeResult, executor.execute(statement));
+  }
+
+    @Test
+  public void testDistinctEliminate() {
+    // 插入数据
+    StringBuilder insert = new StringBuilder();
+    insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
+    int rows = 10000;
+    for (int i = 0; i < rows; i++) {
+      insert.append(String.format("(%d, %d, %d)", i, i % 100, i % 1000));
+      if (i != rows - 1) {
+        insert.append(",");
+      }
+    }
+    insert.append(";");
+    executor.execute(insert.toString());
+
+    String openRule =
+        "SET RULES FunctionDistinctEliminateRule=on, InExistsDistinctEliminateRule=on;";
+    String closeRule =
+        "SET RULES FunctionDistinctEliminateRule=off, InExistsDistinctEliminateRule=off;";
+
+    String closeResult = null;
+    // 测试InExistsDistinctEliminateRule
+    // 下面两个情况应该会消除Distinct
+    String statement = "SELECT * FROM us.d1 WHERE EXISTS (SELECT DISTINCT s1 FROM us.d1);";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertFalse(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT * FROM us.d1 WHERE s1 IN (SELECT DISTINCT s1 FROM us.d2);";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertFalse(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 下面情况不会消除Distinct
+    statement =
+        "SELECT * FROM us.d1 WHERE EXISTS "
+            + "(SELECT us.d1.s1, us.d2.s2 FROM us.d1 JOIN (select DISTINCT s1, s2 FROM us.d2) ON us.d1.s1 = us.d2.s1);";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("Distinct"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 测试FunctionDistinctEliminateRule
+    // 下面情况会消除Distinct
+    statement = "SELECT max(distinct s1), min(distinct s2) FROM us.d1;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT max(distinct s1) FROM us.d1 GROUP BY s2;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: false"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    // 下面情况不会消除Distinct
+    statement = "SELECT max(distinct s1), avg(distinct s2) FROM us.d1;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    assertEquals(closeResult, executor.execute(statement));
+
+    statement = "SELECT avg(distinct s1), count(distinct s2) FROM us.d1 GROUP BY s2, s3;";
+    executor.execute(closeRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    closeResult = executor.execute(statement);
+    executor.execute(openRule);
+    assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
+    assertEquals(closeResult, executor.execute(statement));
   }
 }

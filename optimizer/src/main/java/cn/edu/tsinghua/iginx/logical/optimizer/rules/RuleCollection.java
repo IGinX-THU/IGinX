@@ -28,6 +28,8 @@ public enum RuleCollection implements IRuleCollection {
     addRule(ConstantPropagationRule.getInstance());
     addRule(FilterConstantFoldingRule.getInstance());
     addRule(RowTransformConstantFoldingRule.getInstance());
+    addRule(FunctionDistinctEliminateRule.getInstance());
+    addRule(InExistsDistinctEliminateRule.getInstance());
     addRule(FilterPushDownAddSchemaPrefixRule.getInstance());
     addRule(FilterPushDownGroupByRule.getInstance());
     addRule(FilterPushDownPathUnionJoinRule.getInstance());

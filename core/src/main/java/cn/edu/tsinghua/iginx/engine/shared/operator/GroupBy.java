@@ -40,6 +40,14 @@ public class GroupBy extends AbstractUnaryOperator {
     return new GroupBy(source, new ArrayList<>(groupByCols), new ArrayList<>(functionCallList));
   }
 
+  public boolean isDistinct() {
+    // 所有的functionCall的distinct属性都相同，所以只需要看第一个就可以了
+    if (functionCallList.size() > 0) {
+      return functionCallList.get(0).getParams().isDistinct();
+    }
+    return false;
+  }
+
   @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
@@ -51,6 +59,11 @@ public class GroupBy extends AbstractUnaryOperator {
       }
       builder.append(" MappingType: ");
       builder.append(functionCallList.get(0).getFunction().getMappingType());
+      if (isDistinct()) {
+        builder.append(" isDistinct: true");
+      } else {
+        builder.append(" isDistinct: false");
+      }
     }
     return builder.toString();
   }

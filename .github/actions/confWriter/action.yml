@@ -53,15 +53,15 @@ runs:
               echo "${{ inputs.Test-Way }}" > ${GITHUB_WORKSPACE}/test/src/test/resources/dbce-test-way.txt 
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "s/has_data=false/has_data=true/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=false/has_data=true/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "" "s/has_data=false/has_data=true/" ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
                 fi
               elif [[ "${{ inputs.Test-Way }}" == "oriNoDataExpHasData" || "${{ inputs.Test-Way }}" == "oriNoDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=true/has_data=false/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "s/has_data=true/has_data=false/g" ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=true/has_data=false/" ${GITHUB_WORKSPACE}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "" "s/has_data=true/has_data=false/" ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
                 fi
               fi
 
