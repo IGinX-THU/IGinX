@@ -1,9 +1,8 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.Operand;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
 import java.util.Arrays;
 
 public abstract class Rule {

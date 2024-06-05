@@ -1,13 +1,12 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-
+import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import java.util.Map;
 
 public class FilterPushDownRenameRule extends Rule {

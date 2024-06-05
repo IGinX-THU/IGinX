@@ -1,12 +1,12 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AbstractJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 
 public class FilterJoinTransposeRule extends Rule {
 

@@ -1,10 +1,9 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
-
+import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import java.util.*;
 
 public class FilterPushIntoJoinConditionRule extends Rule {

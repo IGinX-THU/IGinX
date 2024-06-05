@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.core;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.iterator.MatchOrder;
 import cn.edu.tsinghua.iginx.logical.optimizer.rules.Rule;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 
 public interface Planner {

@@ -1,13 +1,12 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
-
+import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;

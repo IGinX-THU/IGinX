@@ -1,16 +1,12 @@
 package cn.edu.tsinghua.iginx.optimizer;
 
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.DeepFirstIterator;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.LeveledIterator;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.ReverseDeepFirstIterator;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.ReverseLeveledIterator;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.iterator.TreeIterator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.InnerJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.OuterJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.logical.optimizer.core.iterator.*;
 import java.util.Arrays;
 import java.util.List;
 import org.junit.Assert;

@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rbo;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.IndexVisitor;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.Operand;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.Planner;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
@@ -12,9 +14,6 @@ import cn.edu.tsinghua.iginx.logical.optimizer.core.iterator.TreeIterator;
 import cn.edu.tsinghua.iginx.logical.optimizer.rules.Rule;
 import cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection;
 import cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleStrategy;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.IndexVisitor;
-
 import java.util.*;
 
 public class RuleBasedPlanner implements Planner {

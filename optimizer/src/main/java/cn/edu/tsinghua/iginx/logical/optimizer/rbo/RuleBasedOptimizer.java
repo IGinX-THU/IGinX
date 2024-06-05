@@ -1,8 +1,8 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rbo;
 
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.Optimizer;
-import cn.edu.tsinghua.iginx.logical.optimizer.core.Planner;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.logical.optimizer.core.Planner;
 
 public class RuleBasedOptimizer implements Optimizer {
 

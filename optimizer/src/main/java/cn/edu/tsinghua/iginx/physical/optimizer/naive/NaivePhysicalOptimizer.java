@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
-import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
@@ -30,7 +29,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
-
+import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

@@ -3,10 +3,9 @@ package cn.edu.tsinghua.iginx.optimizer;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.logical.optimizer.rbo.RuleBasedOptimizer;
 import cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection;
+import java.util.List;
 import org.junit.Assert;
 import org.junit.Test;
-
-import java.util.List;
 
 public class RBOTest {
 

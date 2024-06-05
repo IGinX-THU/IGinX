@@ -74,6 +74,11 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
+                <artifactId>iginx-optimizer</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iotdb12</artifactId>
                 <version>${project.version}</version>
             </dependency>

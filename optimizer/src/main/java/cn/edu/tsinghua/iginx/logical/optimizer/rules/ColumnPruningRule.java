@@ -1,11 +1,9 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.covers;
 import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
 
-import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
-import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
+import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
@@ -21,6 +19,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
+import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -107,7 +106,8 @@ public class ColumnPruningRule extends Rule {
       } else if (operator.getType() == OperatorType.Rename) {
         Rename rename = (Rename) operator;
         Map<String, String> aliasMap = rename.getAliasMap();
-        columns = new HashSet<>(PathUtils.recoverRenamedPatterns(aliasMap, new ArrayList<>(columns)));
+        columns =
+            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasMap, new ArrayList<>(columns)));
 
       } else if (operator.getType() == OperatorType.GroupBy) {
         GroupBy groupBy = (GroupBy) operator;
@@ -251,8 +251,10 @@ public class ColumnPruningRule extends Rule {
         if (PrefixA != null && PrefixB != null) {
           for (String column : columns) {
             if (column.contains("*")
-                && (!OperatorUtils.covers(PrefixA + ".*", column) && OperatorUtils.covers(column, PrefixA + ".*"))
-                && (!OperatorUtils.covers(PrefixB + ".*", column) && OperatorUtils.covers(column, PrefixB + ".*"))) {
+                && (!OperatorUtils.covers(PrefixA + ".*", column)
+                    && OperatorUtils.covers(column, PrefixA + ".*"))
+                && (!OperatorUtils.covers(PrefixB + ".*", column)
+                    && OperatorUtils.covers(column, PrefixB + ".*"))) {
               /*
               如果现有的列中包含通配符*，这个通配符会受到当前Join算子的限制，不再能下推，再推下去会导致取的列过多
               例如最顶上Project的test.*，但是JOIN算子左右两侧是test.a.*和test.b.*，这是的test.*实际上取的列是test.a.*和test.b.*的并集
@@ -271,9 +273,11 @@ public class ColumnPruningRule extends Rule {
               break;
             }
 
-            if (OperatorUtils.covers(PrefixA + ".*", column) || OperatorUtils.covers(column, PrefixA + ".*")) {
+            if (OperatorUtils.covers(PrefixA + ".*", column)
+                || OperatorUtils.covers(column, PrefixA + ".*")) {
               leftColumns.add(column);
-            } else if (OperatorUtils.covers(PrefixB + ".*", column) || OperatorUtils.covers(column, PrefixB + ".*")) {
+            } else if (OperatorUtils.covers(PrefixB + ".*", column)
+                || OperatorUtils.covers(column, PrefixB + ".*")) {
               rightColumns.add(column);
             } else {
               // 如果没有匹配的话，可能是连续JOIN的情况，即SELECT t1.*, t2.*, t3.* FROM t1 JOIN t2 JOIN t3;(这里省略了ON条件）

@@ -1,8 +1,7 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.rbo;
 
-import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-
+import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import java.util.List;
 import java.util.Map;
 

@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.logical.optimizer.core;
 
-import cn.edu.tsinghua.iginx.logical.optimizer.rbo.RuleBasedPlanner;
 import cn.edu.tsinghua.iginx.engine.shared.operator.BinaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MultipleOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
@@ -8,6 +7,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.logical.optimizer.rbo.RuleBasedPlanner;
 import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;

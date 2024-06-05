@@ -1213,13 +1213,13 @@ public class IginxWorker implements IService.Iface {
       // 获取接口的类加载器
       ClassLoader classLoader = IRuleCollection.class.getClassLoader();
       // 加载枚举类
-      Class<?> enumClass = classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
+      Class<?> enumClass =
+          classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
       // 获取枚举实例
       Object enumInstance = enumClass.getEnumConstants()[0];
 
       // 强制转换为接口类型
       IRuleCollection ruleCollection = (IRuleCollection) enumInstance;
-
 
       return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
     } catch (ClassNotFoundException e) {
@@ -1235,7 +1235,8 @@ public class IginxWorker implements IService.Iface {
       // 获取接口的类加载器
       ClassLoader classLoader = IRuleCollection.class.getClassLoader();
       // 加载枚举类
-      Class<?> enumClass = classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
+      Class<?> enumClass =
+          classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
       // 获取枚举实例
       Object enumInstance = enumClass.getEnumConstants()[0];
 

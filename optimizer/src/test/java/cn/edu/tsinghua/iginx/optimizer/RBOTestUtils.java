@@ -1,8 +1,6 @@
 package cn.edu.tsinghua.iginx.optimizer;
 
-
 import cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;

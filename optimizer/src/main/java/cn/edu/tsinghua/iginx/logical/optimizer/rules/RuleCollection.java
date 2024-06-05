@@ -2,9 +2,8 @@ package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
-import java.util.*;
-
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

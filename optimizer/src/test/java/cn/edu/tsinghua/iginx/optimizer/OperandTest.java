@@ -1,15 +1,15 @@
 package cn.edu.tsinghua.iginx.optimizer;
 
-import static cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.Rule.any;
-import static cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.Rule.operand;
+import static cn.edu.tsinghua.iginx.logical.optimizer.rules.Rule.any;
+import static cn.edu.tsinghua.iginx.logical.optimizer.rules.Rule.operand;
 
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.Operand;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AbstractJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.logical.optimizer.core.Operand;
 import java.util.Collections;
 import org.junit.Assert;
 import org.junit.Test;
