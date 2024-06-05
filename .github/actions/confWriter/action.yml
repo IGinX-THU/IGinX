@@ -204,4 +204,4 @@ runs:
         - name: Copy Optimizer Jar
           shell: bash
           run: |
-              sudo cp -f "${GITHUB_WORKSPACE}/optimizer/src/main/resources/iginx-optimizer-${VERSION}.jar" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/lib/"
+              cp -f "${GITHUB_WORKSPACE}/optimizer/src/main/resources/iginx-optimizer-${VERSION}.jar" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/lib/"
