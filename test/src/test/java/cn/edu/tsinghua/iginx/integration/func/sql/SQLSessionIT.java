@@ -7620,6 +7620,11 @@ public class SQLSessionIT {
 
   @Test
   public void testJoinFactorizationRule() {
+    if (isFilterPushDown || isScaling) {
+      LOGGER.info(
+          "Skip SQLSessionIT.testJoinFactorizationRule because filter push down test or scaling test");
+      return;
+    }
     String openRule = "SET RULES JoinFactorizationRule=on;";
     String closeRule = "SET RULES JoinFactorizationRule=off;";
 
