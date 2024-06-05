@@ -1,10 +1,10 @@
-package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
+package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.AbstractJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 
 /**
  * 该类实现了Distinct节点的消除。该规则用于消除IN/EXISTS子查询中的DISTINCT节点， 例如SELECT * FROM t1 WHERE EXISTS (SELECT

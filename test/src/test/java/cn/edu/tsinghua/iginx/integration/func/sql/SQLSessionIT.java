@@ -7618,7 +7618,7 @@ public class SQLSessionIT {
     assertEquals(closeResult, executor.execute(statement));
   }
 
-    @Test
+  @Test
   public void testDistinctEliminate() {
     // 插入数据
     StringBuilder insert = new StringBuilder();
