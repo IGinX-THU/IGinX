@@ -23,7 +23,6 @@ public enum RuleCollection implements IRuleCollection {
     // 在这里添加规则
     addRule(NotFilterRemoveRule.getInstance());
     addRule(FragmentPruningByFilterRule.getInstance());
-    addRule(JoinFactorizationRule.getInstance());
     addRule(ColumnPruningRule.getInstance());
     addRule(FragmentPruningByPatternRule.getInstance());
     addRule(ConstantPropagationRule.getInstance());
