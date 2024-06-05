@@ -31,7 +31,8 @@ public class ThriftConnPool {
     this(
         ip,
         port,
-        DEFAULT_MAX_SIZE,
+        Integer.parseInt(
+            extraParams.getOrDefault("thrift_pool_max_size", String.valueOf(DEFAULT_MAX_SIZE))),
         Integer.parseInt(
             extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))));
   }
