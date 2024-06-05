@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -37,8 +38,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
-
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -314,13 +313,15 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
       for (File file : fileSystemManager.getAllFiles(directory, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
-        String columnPath = FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
+        String columnPath =
+            FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
         boolean isChosen = true;
         if (meta == null) {
           throw new PhysicalException(
@@ -342,17 +343,12 @@ public class LocalExecutor implements Executor {
         }
         // get columns by tag filter
         if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
-          columns.add(
-              new Column(
-                  columnPath,
-                  meta.getDataType(),
-                  meta.getTags(),
-                  false));
+          columns.add(new Column(columnPath, meta.getDataType(), meta.getTags(), false));
         }
       }
     }
     // get columns from dummy storage unit
-    if (hasData && dummyRoot != null && tagFilter==null) {
+    if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
         columns.add(
             new Column(

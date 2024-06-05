@@ -3,8 +3,7 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -17,12 +16,15 @@ import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.Column;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -324,6 +326,16 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
     SQLTestTools.executeAndContainValue(
         session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
+
+    // test show columns
+    testShowColumns(Arrays.asList(
+        new Column("mn.wf01.wt01.temperature", DataType.DOUBLE),
+        new Column("mn.wf01.wt01.status", DataType.LONG),
+        new Column("nt.wf03.wt01.status2", DataType.LONG),
+        new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+        new Column("tm.wf05.wt01.status", DataType.LONG),
+        new Column("tm.wf05.wt01.temperature", DataType.DOUBLE)
+    ));
   }
 
   protected void queryExtendedColDummy() {
@@ -456,6 +468,29 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
+  private void testShowColumns(List<Column> expectColumns) {
+    try {
+      List<Column> columns = session.showColumns();
+      LOGGER.info("show columns: {}", columns);
+
+      // 对期望列表和实际列表中的Column对象按路径排序
+      List<String> sortedExpectPaths = expectColumns.stream()
+          .map(Column::getPath)
+          .sorted()
+          .collect(Collectors.toList());
+
+      List<String> sortedActualPaths = columns.stream()
+          .map(Column::getPath)
+          .sorted()
+          .collect(Collectors.toList());
+
+      // 检查排序后的路径列表是否相同
+      assertArrayEquals(sortedExpectPaths.toArray(), sortedActualPaths.toArray());
+    } catch (SessionException e) {
+      LOGGER.error("show columns error: ", e);
+    }
+  }
+
   private void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
     String dataPrefix2 = "nt.wf04";
@@ -466,29 +501,31 @@ public abstract class BaseCapacityExpansionIT {
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
-    // 测试 show columns
-    try {
-      List<Column> columns = session.showColumns();
-      LOGGER.info("columns: {}", columns);
-    } catch (SessionException e) {
-      LOGGER.error("show columns error: ", e);
-    }
+    testShowColumns(Arrays.asList(
+        new Column("b.b.b", DataType.LONG),
+        new Column("ln.wf02.status", DataType.BOOLEAN),
+        new Column("ln.wf02.version", DataType.BINARY),
+        new Column("nt.wf03.wt01.status2", DataType.LONG),
+        new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+        new Column("zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz", DataType.LONG)
+    ));
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
+
+    testShowColumns(Arrays.asList(
+        new Column("b.b.b", DataType.LONG),
+        new Column("ln.wf02.status", DataType.BOOLEAN),
+        new Column("ln.wf02.version", DataType.BINARY),
+        new Column("nt.wf03.wt01.status2", DataType.LONG),new Column("p1.nt.wf03.wt01.status2", DataType.LONG),
+        new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+        new Column("zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz", DataType.LONG)
+    ));
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
     List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
-
-    // 测试添加节点后的 show columns
-    try {
-      List<Column> columns = session.showColumns();
-      LOGGER.info("columns: {}", columns);
-    } catch (SessionException e) {
-      LOGGER.error("show columns error: ", e);
-    }
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
     addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
@@ -697,8 +734,8 @@ public abstract class BaseCapacityExpansionIT {
 
       QueryDataSet res = session.executeQuery(statement);
       if ((res.getWarningMsg() == null
-              || res.getWarningMsg().isEmpty()
-              || !res.getWarningMsg().contains("The query results contain overlapped keys."))
+          || res.getWarningMsg().isEmpty()
+          || !res.getWarningMsg().contains("The query results contain overlapped keys."))
           && SUPPORT_KEY.get(testConf.getStorageType())) {
         LOGGER.error("未抛出重叠key的警告");
         fail();

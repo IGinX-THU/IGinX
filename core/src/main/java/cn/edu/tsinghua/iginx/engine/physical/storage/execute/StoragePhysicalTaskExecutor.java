@@ -53,7 +53,6 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -325,7 +324,7 @@ public class StoragePhysicalTaskExecutor {
         Set<String> patternSet = showColumns.getPathRegexSet();
         TagFilter tagFilter = showColumns.getTagFilter();
         if (storage.getDataPrefix() != null) {
-            patternSet.add(storage.getDataPrefix()+".*");
+          patternSet.add(storage.getDataPrefix() + ".*");
         }
         List<Column> columnList = pair.k.getColumns(patternSet, tagFilter);
         // fix the schemaPrefix
@@ -343,7 +342,8 @@ public class StoragePhysicalTaskExecutor {
       }
     }
 
-    TreeSet<Column> columnSetAfterFilter = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
+    TreeSet<Column> columnSetAfterFilter =
+        new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
     columnSetAfterFilter.addAll(columnSet);
 
     int limit = showColumns.getLimit();

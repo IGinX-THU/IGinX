@@ -198,10 +198,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit, Set<String> pattern, RawTagFilter tagFilter) throws TException {
+  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(
+      String storageUnit, Set<String> pattern, RawTagFilter tagFilter) throws TException {
     List<FSColumn> ret = new ArrayList<>();
     try {
-      List<Column> columns = executor.getColumnsOfStorageUnit(storageUnit, pattern, resolveRawTagFilter(tagFilter));
+      List<Column> columns =
+          executor.getColumnsOfStorageUnit(storageUnit, pattern, resolveRawTagFilter(tagFilter));
       columns.forEach(
           column -> {
             FSColumn fsColumn =

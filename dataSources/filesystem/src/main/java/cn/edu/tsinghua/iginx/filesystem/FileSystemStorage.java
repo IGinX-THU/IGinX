@@ -45,7 +45,6 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
-
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -152,7 +151,8 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
+  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
+      throws PhysicalException {
     return executor.getColumnsOfStorageUnit(WILDCARD, pattern, tagFilter);
   }
 

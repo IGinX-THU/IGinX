@@ -204,11 +204,13 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
-      GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit, pattern, constructRawTagFilter(tagFilter));
+      GetColumnsOfStorageUnitResp resp =
+          client.getColumnsOfStorageUnit(storageUnit, pattern, constructRawTagFilter(tagFilter));
       thriftConnPool.returnTransport(transport);
       List<Column> columns = new ArrayList<>();
       resp.getPathList()
@@ -251,7 +253,7 @@ public class RemoteExecutor implements Executor {
 
   private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
     RawTagFilter filter = null;
-    if(tagFilter == null) {
+    if (tagFilter == null) {
       return null;
     }
     switch (tagFilter.getType()) {

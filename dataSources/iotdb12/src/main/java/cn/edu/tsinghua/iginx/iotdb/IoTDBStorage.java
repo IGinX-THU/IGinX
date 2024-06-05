@@ -192,13 +192,18 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
+  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
+      throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     getColumns2StorageUnit(columns, null, pattern, tagFilter);
     return columns;
   }
 
-  private void getColumns2StorageUnit(List<Column> columns, Map<String, String> columns2StorageUnit, Set<String> pattern, TagFilter tagFilter)
+  private void getColumns2StorageUnit(
+      List<Column> columns,
+      Map<String, String> columns2StorageUnit,
+      Set<String> pattern,
+      TagFilter tagFilter)
       throws PhysicalException {
     try {
       SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
