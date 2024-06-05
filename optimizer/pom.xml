@@ -47,6 +47,28 @@
                 </executions>
             </plugin>
             <plugin>
+                <groupId>com.github.wvengen</groupId>
+                <artifactId>proguard-maven-plugin</artifactId>
+                <version>2.2.0</version>
+                <configuration>
+                    <proguardInclude>${project.basedir}/proguard.cfg</proguardInclude>
+                    <options>
+                        <option>-dontwarn</option>
+                        <option>-ignorewarnings</option>
+                    </options>
+                    <libs>
+                        <lib>${env.JAVA_HOME}/jre/lib/rt.jar</lib>
+                    </libs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>proguard</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
                 <version>1.7</version>
@@ -61,7 +83,7 @@
                             <target>
                                 <copy todir="../core/target/iginx-core-${project.version}/lib/">
                                     <fileset dir="${project.basedir}/target/">
-                                        <include name="*.jar"/>
+                                        <include name="iginx-optimizer-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
                             </target>
