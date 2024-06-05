@@ -204,7 +204,7 @@ runs:
         - name: Copy Optimizer Jar
           shell: bash
           run: |
-              if [ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "macOS" ]; then
+              if [ "$RUNNER_OS" == "Linux"] || ["$RUNNER_OS" == "macOS" ]; then
                 sudo cp -f "${GITHUB_WORKSPACE}/optimizer/src/main/resources/iginx-optimizer-${VERSION}.jar" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/lib/"
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 copy /y "${GITHUB_WORKSPACE}/optimizer/src/main/resources/iginx-optimizer-${VERSION}.jar" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/lib/"
