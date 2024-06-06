@@ -255,7 +255,7 @@ orderByClause
    ;
 
 downsampleClause
-   : OVER LR_BRACKET RANGE aggLen (IN timeInterval)? (STEP aggLen)? RR_BRACKET
+   : OVER WINDOW LR_BRACKET SIZE aggLen (IN timeInterval)? (SLIDE aggLen)? RR_BRACKET
    ;
 
 aggLen
@@ -957,6 +957,18 @@ HEADER
 
 LOAD
    : L O A D
+   ;
+
+WINDOW
+   : W I N D O W
+   ;
+
+SIZE
+   : S I Z E
+   ;
+
+SLIDE
+   : S L I D E
    ;
 
 VALUE2META

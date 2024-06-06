@@ -945,7 +945,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test OVER (RANGE 2 IN (0, 10]);";
+        "SELECT COUNT(a), AVG(a), SUM(a), MIN(a), MAX(a) FROM test OVER WINDOW (size 2 IN (0, 10]);";
     expected =
         "ResultSets:\n"
             + "+---+------------+----------+-------------+-----------+-----------+-----------+-----------+\n"
@@ -961,7 +961,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test OVER (RANGE 2 IN (0, 10]);";
+        "SELECT COUNT(DISTINCT a), AVG(DISTINCT a), SUM(DISTINCT a), MIN(DISTINCT a), MAX(DISTINCT a) FROM test OVER WINDOW (size 2 IN (0, 10]);";
     expected =
         "ResultSets:\n"
             + "+---+------------+----------+----------------------+--------------------+--------------------+--------------------+--------------------+\n"
@@ -1431,7 +1431,7 @@ public class SQLSessionIT {
 
   @Test
   public void testDownSampleQuery() {
-    String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
+    String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000));";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
     List<String> expectedList =
@@ -1559,7 +1559,7 @@ public class SQLSessionIT {
     }
 
     statement =
-        "explain SELECT avg(s1), count(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000) STEP 50);";
+        "explain SELECT avg(s1), count(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);";
     assertTrue(
         Arrays.stream(executor.execute(statement).split("\\n"))
             .anyMatch(s -> s.contains("Downsample") && s.contains("avg") && s.contains("count")));
@@ -1568,7 +1568,7 @@ public class SQLSessionIT {
   @Test
   public void testRangeDownSampleQuery() {
     String statement =
-        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 600 AND s1 <= 900 OVER (RANGE 100 IN (0, 1000));";
+        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 600 AND s1 <= 900 OVER WINDOW (size 100 IN (0, 1000));";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
     List<String> expectedList =
@@ -1645,7 +1645,8 @@ public class SQLSessionIT {
 
   @Test
   public void testSlideWindowByTimeQuery() {
-    String statement = "SELECT %s(s1), %s(s4) FROM us.d1 OVER (RANGE 100 IN (0, 1000) STEP 50);";
+    String statement =
+        "SELECT %s(s1), %s(s4) FROM us.d1 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
     List<String> expectedList =
@@ -1835,7 +1836,7 @@ public class SQLSessionIT {
   @Test
   public void testRangeSlideWindowByTimeQuery() {
     String statement =
-        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 IN (0, 1000) STEP 50);";
+        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
     List<String> expectedList =
@@ -1941,7 +1942,7 @@ public class SQLSessionIT {
   @Test
   public void testRangeSlideWindowByTimeNoIntervalQuery() {
     String statement =
-        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 STEP 50);";
+        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER WINDOW (size 100 STEP 50);";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
     List<String> expectedList =
@@ -3240,7 +3241,7 @@ public class SQLSessionIT {
   @Test
   public void testAggregateSubQuery() {
     String statement =
-        "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER(RANGE 60 IN [1000, 1600)));";
+        "SELECT %s_s1 FROM (SELECT %s(s1) AS %s_s1 FROM us.d1 OVER WINDOW(SIZE 60 IN [1000, 1600)));";
     List<String> funcTypeList =
         Arrays.asList("max", "min", "sum", "avg", "count", "first_value", "last_value");
 
@@ -3368,7 +3369,7 @@ public class SQLSessionIT {
   @Test
   public void testSelectFromAggregate() {
     String statement =
-        "SELECT `%s(us.d1.s1)` FROM (SELECT %s(s1) FROM us.d1 OVER(RANGE 60 IN [1000, 1600)));";
+        "SELECT `%s(us.d1.s1)` FROM (SELECT %s(s1) FROM us.d1 OVER WINDOW(SIZE 60 IN [1000, 1600)));";
     List<String> funcTypeList =
         Arrays.asList("max", "min", "sum", "avg", "count", "first_value", "last_value");
 
@@ -3517,7 +3518,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
+        "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 OVER WINDOW (size 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
     expected =
         "ResultSets:\n"
             + "+----+------+\n"
@@ -3532,7 +3533,7 @@ public class SQLSessionIT {
     executor.executeAndCompare(statement, expected);
 
     statement =
-        "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 WHERE us.d1.s1 < 1500 OVER (RANGE 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
+        "SELECT avg_s1 FROM (SELECT AVG(s1) AS avg_s1 FROM us.d1 WHERE us.d1.s1 < 1500 OVER WINDOW (size 100 IN [1000, 1600))) WHERE avg_s1 > 1200;";
     expected =
         "ResultSets:\n"
             + "+----+------+\n"
@@ -3549,7 +3550,7 @@ public class SQLSessionIT {
   @Test
   public void testMultiSubQuery() {
     String statement =
-        "SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100));";
+        "SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100));";
     String expected =
         "ResultSets:\n"
             + "+----+------------+----------+------+------+\n"
@@ -3572,7 +3573,7 @@ public class SQLSessionIT {
     statement =
         "SELECT avg_s1, sum_s2 "
             + "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 "
-            + "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) "
+            + "FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100))) "
             + "WHERE avg_s1 > 1020 AND sum_s2 < 10800;";
     expected =
         "ResultSets:\n"
@@ -3593,7 +3594,7 @@ public class SQLSessionIT {
         "SELECT MAX(avg_s1), MIN(sum_s2) "
             + "FROM (SELECT avg_s1, sum_s2 "
             + "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 "
-            + "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) "
+            + "FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100))) "
             + "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
     expected =
         "ResultSets:\n"
@@ -5380,7 +5381,7 @@ public class SQLSessionIT {
     insert =
         "INSERT INTO us.d4(key, s1, s2) VALUES "
             + "(SELECT avg_s1, sum_s2 from "
-            + "(SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER (RANGE 10 IN [1000, 1100))));";
+            + "(SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100))));";
     executor.execute(insert);
 
     query = "SELECT s1, s2 FROM us.d4;";
@@ -5406,7 +5407,7 @@ public class SQLSessionIT {
     insert =
         "INSERT INTO us.d5(key, s1, s2) VALUES (SELECT avg_s1, sum_s2 "
             + "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 "
-            + "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) "
+            + "FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100))) "
             + "WHERE avg_s1 > 1020 AND sum_s2 < 10800);";
     executor.execute(insert);
 
@@ -5430,7 +5431,7 @@ public class SQLSessionIT {
         "INSERT INTO us.d6(key, s1, s2) VALUES (SELECT MAX(avg_s1), MIN(sum_s2) "
             + "FROM (SELECT avg_s1, sum_s2 "
             + "FROM (SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2 "
-            + "FROM us.d1 OVER (RANGE 10 IN [1000, 1100))) "
+            + "FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100))) "
             + "WHERE avg_s1 > 1020 AND sum_s2 < 10800));";
     executor.execute(insert);
 
@@ -5770,7 +5771,7 @@ public class SQLSessionIT {
     errClause = "DELETE FROM us.d1.s1 WHERE key != 105;";
     executor.executeAndCompareErrMsg(errClause, "Not support [!=] in delete clause.");
 
-    errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (0, 1000));";
+    errClause = "SELECT s1 FROM us.d1 OVER WINDOW (size 100 IN (0, 1000));";
     executor.executeAndCompareErrMsg(
         errClause, "Downsample clause cannot be used without aggregate function.");
 
@@ -5778,7 +5779,7 @@ public class SQLSessionIT {
     executor.executeAndCompareErrMsg(
         errClause, "SetToSet/SetToRow/RowToRow functions can not be mixed in aggregate query.");
 
-    errClause = "SELECT s1 FROM us.d1 OVER (RANGE 100 IN (100, 10));";
+    errClause = "SELECT s1 FROM us.d1 OVER WINDOW (size 100 IN (100, 10));";
     executor.executeAndCompareErrMsg(
         errClause, "start key should be smaller than end key in key interval.");
 
@@ -6151,7 +6152,7 @@ public class SQLSessionIT {
                     + "+---+--------+\n"
                     + "Total line number = 10\n"),
             new Pair<>(
-                "SELECT max(s1), max(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER (RANGE 100 IN (0, 1000) STEP 50);",
+                "SELECT max(s1), max(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER WINDOW (size 100 IN (0, 1000) SLIDE 50);",
                 "ResultSets:\n"
                     + "+---+------------+----------+-------------+-------------+\n"
                     + "|key|window_start|window_end|max(us.d1.s1)|max(us.d1.s4)|\n"
@@ -6883,9 +6884,9 @@ public class SQLSessionIT {
                 "explain SELECT COUNT(*)\n"
                     + "FROM (\n"
                     + "    SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2\n"
-                    + "    FROM us.d1 OVER (RANGE 10 IN [1000, 1100))\n"
+                    + "    FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100))\n"
                     + ")\n"
-                    + "OVER (RANGE 20 IN [1000, 1100));",
+                    + "OVER WINDOW (size 20 IN [1000, 1100));",
                 "ResultSets:\n"
                     + "+------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
                     + "|            Logical Tree|Operator Type|                                                                                                                                 Operator Info|\n"
@@ -6942,9 +6943,9 @@ public class SQLSessionIT {
                 "explain SELECT COUNT(*)\n"
                     + "FROM (\n"
                     + "    SELECT AVG(s1) AS avg_s1, SUM(s2) AS sum_s2\n"
-                    + "    FROM us.d1 OVER (RANGE 10 IN [1000, 1100))\n"
+                    + "    FROM us.d1 OVER WINDOW (size 10 IN [1000, 1100))\n"
                     + ")\n"
-                    + "OVER (RANGE 20 IN [1000, 1100));",
+                    + "OVER WINDOW (size 20 IN [1000, 1100));",
                 "ResultSets:\n"
                     + "+--------------------------+-------------+----------------------------------------------------------------------------------------------------------------------------------------------+\n"
                     + "|              Logical Tree|Operator Type|                                                                                                                                 Operator Info|\n"
