@@ -335,7 +335,7 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws RelationalTaskExecuteFailureException {
+  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
@@ -1833,7 +1833,7 @@ public class RelationalStorage implements IStorage {
   private List<Pair<String, String>> determineDeletedPaths(
       List<String> paths, TagFilter tagFilter) {
     try {
-      List<Column> columns = getColumns();
+      List<Column> columns = getColumns(null, null);
       List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
       for (Column column : columns) {

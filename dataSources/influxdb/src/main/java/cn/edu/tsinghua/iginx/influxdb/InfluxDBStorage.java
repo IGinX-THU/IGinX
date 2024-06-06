@@ -230,7 +230,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() {
+  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
 
     for (Bucket bucket :

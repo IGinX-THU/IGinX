@@ -295,7 +295,7 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() {
+  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) {
     List<Column> columns = new ArrayList<>();
     for (String dbName : getDatabaseNames(this.client)) {
       MongoDatabase db = this.client.getDatabase(dbName);
