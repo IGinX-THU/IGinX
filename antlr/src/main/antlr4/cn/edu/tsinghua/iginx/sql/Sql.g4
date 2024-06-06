@@ -481,6 +481,9 @@ keyWords
    | HEADER
    | LOAD
    | VALUE2META
+   | WINDOW
+   | SIZE
+   | SLIDE
    ;
 
 dateFormat

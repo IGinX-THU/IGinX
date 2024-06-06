@@ -1079,7 +1079,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     selectStatement.setPrecision(precision);
     selectStatement.setSlideDistance(precision);
     selectStatement.setHasDownsample(true);
-    if (ctx.STEP() != null) {
+    if (ctx.SLIDE() != null) {
       long distance = parseAggLen(ctx.aggLen(1));
       selectStatement.setSlideDistance(distance);
     }
