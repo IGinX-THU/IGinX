@@ -346,8 +346,9 @@ public class LocalExecutor implements Executor {
         }
         // get columns by tag filter
         if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
-          columns.add(new Column(columnPath, meta.getDataType(), meta.getTags(), false));
+          continue;
         }
+        columns.add(new Column(columnPath, meta.getDataType(), meta.getTags(), false));
       }
     }
     // get columns from dummy storage unit

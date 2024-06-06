@@ -199,6 +199,18 @@ public class IoTDBStorage implements IStorage {
     return columns;
   }
 
+  boolean isPathMatchPattern(String path, Set<String> pattern) {
+    if (pattern.isEmpty()) {
+      return true;
+    }
+    for (String pathRegex : pattern) {
+      if (Pattern.matches(StringUtils.reformatPath(pathRegex), path)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   private void getColumns2StorageUnit(
       List<Column> columns,
       Map<String, String> columns2StorageUnit,
@@ -226,17 +238,8 @@ public class IoTDBStorage implements IStorage {
         if (columns2StorageUnit != null) {
           columns2StorageUnit.put(pair.k, fragment);
         }
-        boolean isChosen = false;
         // get columns by pattern
-        if (!pattern.isEmpty()) {
-          for (String pathRegex : pattern) {
-            if (Pattern.matches(StringUtils.reformatPath(pathRegex), pair.k)) {
-              isChosen = true;
-              break;
-            }
-          }
-        }
-        if (!isChosen) {
+        if (!isPathMatchPattern(pair.k, pattern)) {
           continue;
         }
         // get columns by tag filter
