@@ -131,18 +131,19 @@ public class FilterPushOutJoinConditionRule extends Rule {
         && join.getExtraJoinPrefix().isEmpty()) {
       // 如果InnerJoin保留的filter为空，不是NatureJoin,没有ExtraJoinPrefix,将会退化成CrossJoin，
       // 不过一般来说只要ON条件里正常地包含有两侧列的关系，这种情况是不会出现的
-      call.transformTo(
+      join =
           new CrossJoin(
               join.getSourceA(),
               join.getSourceB(),
               join.getPrefixA(),
               join.getPrefixB(),
-              join.getExtraJoinPrefix()));
+              join.getExtraJoinPrefix());
     } else {
       setJoinFilter(
           join, remainFilter.isEmpty() ? new BoolFilter(true) : new AndFilter(remainFilter));
-      call.transformTo(join);
     }
+    reChooseJoinAlg(join);
+    call.transformTo(join);
   }
 
   private Filter getJoinFilter(AbstractJoin join) {
@@ -191,10 +192,20 @@ public class FilterPushOutJoinConditionRule extends Rule {
     throw new IllegalArgumentException("Invalid join type: " + join.getType());
   }
 
-  private Filter getSubFilter(Filter filter, String prefix, List<String> patterns) {
-    if (prefix != null) {
-      return LogicalFilterUtils.getSubFilterFromPrefix(filter, prefix);
+  private void reChooseJoinAlg(AbstractJoin join) {
+    switch (join.getType()) {
+      case InnerJoin:
+        ((InnerJoin) join).reChooseJoinAlg();
+        return;
+      case OuterJoin:
+        ((OuterJoin) join).reChooseJoinAlg();
+        return;
+      case MarkJoin:
+        ((MarkJoin) join).reChooseJoinAlg();
+        return;
+      case SingleJoin:
+        ((SingleJoin) join).reChooseJoinAlg();
+        return;
     }
-    return LogicalFilterUtils.getSubFilterFromPatterns(filter, patterns);
   }
 }
