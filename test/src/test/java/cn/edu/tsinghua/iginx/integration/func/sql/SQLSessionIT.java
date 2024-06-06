@@ -1938,7 +1938,7 @@ public class SQLSessionIT {
   @Test
   public void testRangeSlideWindowByTimeNoIntervalQuery() {
     String statement =
-        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER WINDOW (size 100 STEP 50);";
+        "SELECT %s(s1), %s(s4) FROM us.d1 WHERE key > 300 AND s1 <= 600 OVER WINDOW (SIZE 100 SLIDE 50);";
     List<String> funcTypeList =
         Arrays.asList("MAX", "MIN", "FIRST_VALUE", "LAST_VALUE", "SUM", "AVG", "COUNT");
     List<String> expectedList =
