@@ -1,0 +1,37 @@
+name: "complex-env-builder"
+description: "complex environment builder"
+inputs:
+    build-type:
+        description: "the way to test"
+        required: false
+        default: SDMF
+    metadata:
+        description: "metadata service"
+        required: false
+        default: zookeeper
+runs:
+    using: "composite" # Mandatory parameter
+    steps:
+        - if: inputs.build-type=='SDMF-Less-Conn' || inputs.build-type=='SDMF-Enough-Conn'
+          name: Stop and clear Metadata Service
+          uses: ./.github/actions/context
+          with:
+              work-name: stop-iginx-meta
+              metadata: ${{ inputs.metadata }}
+
+        - if: inputs.build-type=='SDMF-Less-Conn' || inputs.build-type=='SDMF-Enough-Conn'
+          name: Run Metadata Service
+          uses: ./.github/actions/metadataRunner
+          with:
+              if-rerun: true
+              metadata: ${{ inputs.metadata }}
+
+        - if: inputs.build-type=='SDMF-Less-Conn' || inputs.build-type=='SDMF-Enough-Conn'
+          name: Change IGinX config
+          uses: ./.github/actions/metadataRunner
+          with:
+              Test-Way: inputs.build-type
+
+        - if: inputs.build-type=='SDMF-Less-Conn' || inputs.build-type=='SDMF-Enough-Conn'
+          name: Start IGinX
+          uses: ./.github/actions/iginxRunner

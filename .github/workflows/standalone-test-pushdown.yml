@@ -102,3 +102,28 @@ jobs:
               shell: bash
               run: |
                   cat iginx-*.log
+
+            # test push down in sigle DU multi fragment
+            - name: Build the complete test environment
+              uses: ./.github/actions/complexEnvBuilder
+              with:
+                  build-type: SDMF-Less-Conn
+
+            - name: Query optimization test for merging fragment
+              shell: bash
+              run: |
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/SDMF/SDMF_insert_query.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/SDMF/timeout_judge.sh"
+
+            # test push down in sigle DU multi fragment
+            - name: Build the complete test environment
+              uses: ./.github/actions/complexEnvBuilder
+              with:
+                  build-type: SDMF-Enough-Conn
+
+            - name: test query time after
+              shell: bash
+              run: |
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/SDMF/SDMF_insert_query.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/SDMF/time_gather.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/test/SDMF/time_avg_judge.sh"

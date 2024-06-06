@@ -200,3 +200,8 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+#        - if: inputs.Test-Way=='SDMF'
+#          name: Change the config for SDMF
+#          shell: bash
+#          run: |
