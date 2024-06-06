@@ -226,17 +226,15 @@ public class IoTDBStorage implements IStorage {
         if (columns2StorageUnit != null) {
           columns2StorageUnit.put(pair.k, fragment);
         }
-        boolean isChosen = true;
+        boolean isChosen = false;
         // get columns by pattern
         if (!pattern.isEmpty()) {
           for (String pathRegex : pattern) {
-            if (!Pattern.matches(StringUtils.reformatPath(pathRegex), pair.k)) {
-              isChosen = false;
+            if (Pattern.matches(StringUtils.reformatPath(pathRegex), pair.k)) {
+              isChosen = true;
               break;
             }
           }
-        } else {
-          if (isDummy) continue;
         }
         if (!isChosen) {
           continue;

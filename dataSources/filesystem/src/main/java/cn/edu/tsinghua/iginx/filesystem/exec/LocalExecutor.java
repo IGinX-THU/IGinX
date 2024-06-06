@@ -312,6 +312,18 @@ public class LocalExecutor implements Executor {
     return new TaskExecuteResult(null, null);
   }
 
+  boolean isPathMatchPattern(String path, Set<String> pattern) {
+    if (pattern.isEmpty()) {
+      return true;
+    }
+    for (String pathRegex : pattern) {
+      if (Pattern.matches(StringUtils.reformatPath(pathRegex), path)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
   public List<Column> getColumnsOfStorageUnit(
       String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
@@ -322,7 +334,6 @@ public class LocalExecutor implements Executor {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         String columnPath =
             FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
-        boolean isChosen = true;
         if (meta == null) {
           throw new PhysicalException(
               String.format(
@@ -330,15 +341,7 @@ public class LocalExecutor implements Executor {
                   file.getAbsolutePath()));
         }
         // get columns by pattern
-        if (!pattern.isEmpty()) {
-          for (String pathRegex : pattern) {
-            if (!Pattern.matches(StringUtils.reformatPath(pathRegex), columnPath)) {
-              isChosen = false;
-              break;
-            }
-          }
-        }
-        if (!isChosen) {
+        if(!isPathMatchPattern(columnPath, pattern)) {
           continue;
         }
         // get columns by tag filter
@@ -350,10 +353,13 @@ public class LocalExecutor implements Executor {
     // get columns from dummy storage unit
     if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
+        String dummyPath = FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
+        if(!isPathMatchPattern(dummyPath, pattern)) {
+          continue;
+        }
         columns.add(
             new Column(
-                FilePathUtils.convertAbsolutePathToPath(
-                    dummyRoot, file.getAbsolutePath(), storageUnit),
+                dummyPath,
                 DataType.BINARY,
                 null,
                 true));

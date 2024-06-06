@@ -58,7 +58,10 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -314,6 +317,8 @@ public class StoragePhysicalTaskExecutor {
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
     List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
     Set<Column> columnSet = new HashSet<>();
+    TreeSet<Column> columnSetAfterFilter =
+        new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
     for (StorageEngineMeta storage : storageList) {
       long id = storage.getId();
       Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
@@ -323,28 +328,42 @@ public class StoragePhysicalTaskExecutor {
       try {
         Set<String> patternSet = showColumns.getPathRegexSet();
         TagFilter tagFilter = showColumns.getTagFilter();
-        if (storage.getDataPrefix() != null) {
-          patternSet.add(storage.getDataPrefix() + ".*");
-        }
+
         List<Column> columnList = pair.k.getColumns(patternSet, tagFilter);
-        // fix the schemaPrefix
+
+        // fix the schemaPrefix and dataPrefix
         String schemaPrefix = storage.getSchemaPrefix();
-        if (schemaPrefix != null) {
+        String dataPrefixRegex = StringUtils.reformatPath(storage.getDataPrefix() + ".*");
+        if (tagFilter == null) {
           for (Column column : columnList) {
             if (column.isDummy()) {
-              column.setPath(schemaPrefix + "." + column.getPath());
+              if (Pattern.matches(dataPrefixRegex, column.getPath())) {
+                if (schemaPrefix != null) {
+                  column.setPath(schemaPrefix + "." + column.getPath());
+                  boolean isMatch = false;
+                  for (String pathRegex : patternSet) {
+                    if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
+                      isMatch=true;
+                      break;
+                    }
+                  }
+                  if (isMatch) {
+                    columnSetAfterFilter.add(column);
+                  }
+                }
+              }
+            } else {
+              columnSetAfterFilter.addAll(columnList);
             }
           }
+        } else {
+          columnSetAfterFilter.addAll(columnList);
         }
         columnSet.addAll(columnList);
       } catch (PhysicalException e) {
         return new TaskExecuteResult(e);
       }
     }
-
-    TreeSet<Column> columnSetAfterFilter =
-        new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
-    columnSetAfterFilter.addAll(columnSet);
 
     int limit = showColumns.getLimit();
     int offset = showColumns.getOffset();
