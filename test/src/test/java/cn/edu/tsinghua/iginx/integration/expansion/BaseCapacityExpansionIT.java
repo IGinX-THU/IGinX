@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -328,14 +327,14 @@ public abstract class BaseCapacityExpansionIT {
         session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
 
     // test show columns
-    testShowColumns(Arrays.asList(
-        new Column("mn.wf01.wt01.temperature", DataType.DOUBLE),
-        new Column("mn.wf01.wt01.status", DataType.LONG),
-        new Column("nt.wf03.wt01.status2", DataType.LONG),
-        new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-        new Column("tm.wf05.wt01.status", DataType.LONG),
-        new Column("tm.wf05.wt01.temperature", DataType.DOUBLE)
-    ));
+    testShowColumns(
+        Arrays.asList(
+            new Column("mn.wf01.wt01.temperature", DataType.DOUBLE),
+            new Column("mn.wf01.wt01.status", DataType.LONG),
+            new Column("nt.wf03.wt01.status2", DataType.LONG),
+            new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+            new Column("tm.wf05.wt01.status", DataType.LONG),
+            new Column("tm.wf05.wt01.temperature", DataType.DOUBLE)));
   }
 
   protected void queryExtendedColDummy() {
@@ -474,15 +473,11 @@ public abstract class BaseCapacityExpansionIT {
       LOGGER.info("show columns: {}", columns);
 
       // 对期望列表和实际列表中的Column对象按路径排序
-      List<String> sortedExpectPaths = expectColumns.stream()
-          .map(Column::getPath)
-          .sorted()
-          .collect(Collectors.toList());
+      List<String> sortedExpectPaths =
+          expectColumns.stream().map(Column::getPath).sorted().collect(Collectors.toList());
 
-      List<String> sortedActualPaths = columns.stream()
-          .map(Column::getPath)
-          .sorted()
-          .collect(Collectors.toList());
+      List<String> sortedActualPaths =
+          columns.stream().map(Column::getPath).sorted().collect(Collectors.toList());
 
       // 检查排序后的路径列表是否相同
       assertArrayEquals(sortedExpectPaths.toArray(), sortedActualPaths.toArray());
@@ -501,26 +496,31 @@ public abstract class BaseCapacityExpansionIT {
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
-    testShowColumns(Arrays.asList(
-        new Column("b.b.b", DataType.LONG),
-        new Column("ln.wf02.status", DataType.BOOLEAN),
-        new Column("ln.wf02.version", DataType.BINARY),
-        new Column("nt.wf03.wt01.status2", DataType.LONG),
-        new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-        new Column("zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz", DataType.LONG)
-    ));
+    testShowColumns(
+        Arrays.asList(
+            new Column("b.b.b", DataType.LONG),
+            new Column("ln.wf02.status", DataType.BOOLEAN),
+            new Column("ln.wf02.version", DataType.BINARY),
+            new Column("nt.wf03.wt01.status2", DataType.LONG),
+            new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+            new Column(
+                "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+                DataType.LONG)));
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
 
-    testShowColumns(Arrays.asList(
-        new Column("b.b.b", DataType.LONG),
-        new Column("ln.wf02.status", DataType.BOOLEAN),
-        new Column("ln.wf02.version", DataType.BINARY),
-        new Column("nt.wf03.wt01.status2", DataType.LONG),new Column("p1.nt.wf03.wt01.status2", DataType.LONG),
-        new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-        new Column("zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz", DataType.LONG)
-    ));
+    testShowColumns(
+        Arrays.asList(
+            new Column("b.b.b", DataType.LONG),
+            new Column("ln.wf02.status", DataType.BOOLEAN),
+            new Column("ln.wf02.version", DataType.BINARY),
+            new Column("nt.wf03.wt01.status2", DataType.LONG),
+            new Column("p1.nt.wf03.wt01.status2", DataType.LONG),
+            new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+            new Column(
+                "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+                DataType.LONG)));
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
@@ -734,8 +734,8 @@ public abstract class BaseCapacityExpansionIT {
 
       QueryDataSet res = session.executeQuery(statement);
       if ((res.getWarningMsg() == null
-          || res.getWarningMsg().isEmpty()
-          || !res.getWarningMsg().contains("The query results contain overlapped keys."))
+              || res.getWarningMsg().isEmpty()
+              || !res.getWarningMsg().contains("The query results contain overlapped keys."))
           && SUPPORT_KEY.get(testConf.getStorageType())) {
         LOGGER.error("未抛出重叠key的警告");
         fail();

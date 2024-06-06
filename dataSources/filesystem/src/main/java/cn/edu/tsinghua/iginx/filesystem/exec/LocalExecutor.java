@@ -341,7 +341,7 @@ public class LocalExecutor implements Executor {
                   file.getAbsolutePath()));
         }
         // get columns by pattern
-        if(!isPathMatchPattern(columnPath, pattern)) {
+        if (!isPathMatchPattern(columnPath, pattern)) {
           continue;
         }
         // get columns by tag filter
@@ -354,16 +354,12 @@ public class LocalExecutor implements Executor {
     // get columns from dummy storage unit
     if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
-        String dummyPath = FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
-        if(!isPathMatchPattern(dummyPath, pattern)) {
+        String dummyPath =
+            FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
+        if (!isPathMatchPattern(dummyPath, pattern)) {
           continue;
         }
-        columns.add(
-            new Column(
-                dummyPath,
-                DataType.BINARY,
-                null,
-                true));
+        columns.add(new Column(dummyPath, DataType.BINARY, null, true));
       }
     }
     return columns;

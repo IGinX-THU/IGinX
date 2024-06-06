@@ -335,7 +335,8 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) throws RelationalTaskExecuteFailureException {
+  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
+      throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {

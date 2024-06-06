@@ -53,6 +53,7 @@ import cn.edu.tsinghua.iginx.metadata.hook.StorageUnitHook;
 import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -60,8 +61,6 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -343,7 +342,7 @@ public class StoragePhysicalTaskExecutor {
                   boolean isMatch = false;
                   for (String pathRegex : patternSet) {
                     if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
-                      isMatch=true;
+                      isMatch = true;
                       break;
                     }
                   }
