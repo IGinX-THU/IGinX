@@ -296,6 +296,10 @@ public class MongoDBStorage implements IStorage {
 
   @Override
   public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) {
+    List<String> patternList = new ArrayList<>(pattern);
+    if (patternList.isEmpty()) {
+      patternList.add("*");
+    }
     List<Column> columns = new ArrayList<>();
     for (String dbName : getDatabaseNames(this.client)) {
       MongoDatabase db = this.client.getDatabase(dbName);
@@ -303,7 +307,9 @@ public class MongoDBStorage implements IStorage {
         try {
           if (dbName.startsWith("unit")) {
             Field field = NameUtils.parseCollectionName(collectionName);
-            columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
+            if (NameUtils.match(field.getName(), field.getTags(), patternList, tagFilter)) {
+              columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
+            }
             continue;
           }
         } catch (Exception ignored) {
@@ -315,7 +321,9 @@ public class MongoDBStorage implements IStorage {
           Map<String, DataType> sampleSchema =
               new SchemaSample(schemaSampleSize).query(collection, true);
           for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
-            columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
+            if (NameUtils.match(entry.getKey(), Collections.emptyMap(), patternList, null)) {
+              columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
+            }
           }
           continue;
         }
