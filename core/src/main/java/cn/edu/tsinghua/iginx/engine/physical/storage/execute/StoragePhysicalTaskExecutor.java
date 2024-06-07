@@ -315,7 +315,6 @@ public class StoragePhysicalTaskExecutor {
 
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
     List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
-    Set<Column> columnSet = new HashSet<>();
     TreeSet<Column> columnSetAfterFilter =
         new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
     for (StorageEngineMeta storage : storageList) {
@@ -332,14 +331,14 @@ public class StoragePhysicalTaskExecutor {
 
         // fix the schemaPrefix and dataPrefix
         String schemaPrefix = storage.getSchemaPrefix();
-        String dataPrefixRegex = StringUtils.reformatPath(storage.getDataPrefix() + ".*");
+        String dataPrefixRegex = storage.getDataPrefix() == null ? null : StringUtils.reformatPath(storage.getDataPrefix() + ".*");
         if (tagFilter == null) {
           for (Column column : columnList) {
             if (column.isDummy()) {
-              if (Pattern.matches(dataPrefixRegex, column.getPath())) {
+              if (dataPrefixRegex == null || Pattern.matches(dataPrefixRegex, column.getPath())) {
                 if (schemaPrefix != null) {
                   column.setPath(schemaPrefix + "." + column.getPath());
-                  boolean isMatch = false;
+                  boolean isMatch = patternSet.isEmpty();
                   for (String pathRegex : patternSet) {
                     if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
                       isMatch = true;
@@ -349,16 +348,17 @@ public class StoragePhysicalTaskExecutor {
                   if (isMatch) {
                     columnSetAfterFilter.add(column);
                   }
+                } else {
+                  columnSetAfterFilter.add(column);
                 }
               }
             } else {
-              columnSetAfterFilter.addAll(columnList);
+              columnSetAfterFilter.add(column);
             }
           }
         } else {
           columnSetAfterFilter.addAll(columnList);
         }
-        columnSet.addAll(columnList);
       } catch (PhysicalException e) {
         return new TaskExecuteResult(e);
       }
