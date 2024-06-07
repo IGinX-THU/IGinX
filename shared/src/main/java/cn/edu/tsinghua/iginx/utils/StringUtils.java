@@ -120,6 +120,8 @@ public class StringUtils {
     return toColumnMatcher(iginxPattern).test(string);
   }
 
+
+
   public static Predicate<String> toColumnMatcher(String iginxPattern) {
     Objects.requireNonNull(iginxPattern);
 

@@ -178,7 +178,7 @@ public class ParquetStorage implements IStorage {
   @Override
   public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
       throws PhysicalException {
-    return executor.getColumnsOfStorageUnit("*");
+    return executor.getColumnsOfStorageUnit("*", pattern, tagFilter);
   }
 
   @Override
