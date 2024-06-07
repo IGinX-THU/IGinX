@@ -21,7 +21,7 @@ import java.util.Comparator;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.PriorityQueue;
-import javax.annotation.Nonnull;
+import org.apache.arrow.util.AutoCloseables;
 
 public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     implements Scanner<K, Scanner<F, V>> {
@@ -29,8 +29,6 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
   private PriorityQueue<Map.Entry<F, Scanner<K, V>>> queue = null;
 
   private final Map<F, Scanner<K, V>> scanners;
-
-  private K currentKey = null;
 
   private Scanner<F, V> currentScanner = null;
 
@@ -47,7 +45,6 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     }
   }
 
-  @Nonnull
   @Override
   public K key() throws NoSuchElementException {
     if (currentScanner == null) {
@@ -57,7 +54,6 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
     return queue.peek().getValue().key();
   }
 
-  @Nonnull
   @Override
   public Scanner<F, V> value() throws NoSuchElementException {
     if (currentScanner == null) {
@@ -85,9 +81,12 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
 
   @Override
   public void close() throws StorageException {
-    Map.Entry<F, Scanner<K, V>> entry;
-    while ((entry = queue.poll()) != null) {
-      entry.getValue().close();
+    try {
+      AutoCloseables.close(scanners.values());
+    } catch (RuntimeException | StorageException e) {
+      throw e;
+    } catch (Exception e) {
+      throw new StorageException(e);
     }
   }
 
@@ -95,7 +94,6 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
 
     private K currentKey = null;
 
-    @Nonnull
     @Override
     public F key() throws NoSuchElementException {
       if (queue.peek() == null) {
@@ -104,7 +102,6 @@ public class ColumnUnionRowScanner<K extends Comparable<K>, F, V>
       return queue.peek().getKey();
     }
 
-    @Nonnull
     @Override
     public V value() throws NoSuchElementException {
       if (queue.peek() == null) {

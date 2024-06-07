@@ -20,6 +20,11 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -71,11 +76,18 @@ public class ParquetServer implements Runnable {
       }
       return;
     }
+    ExecutorService executorService =
+        new ThreadPoolExecutor(
+            config.getMinThriftWorkerThreadNum(),
+            config.getMaxThriftWrokerThreadNum(),
+            60L,
+            TimeUnit.SECONDS,
+            new SynchronousQueue<>(),
+            new ThreadFactoryBuilder().setNameFormat("parquet-server-" + port + "-%d").build());
     TThreadPoolServer.Args args =
         new TThreadPoolServer.Args(serverTransport)
             .processor(processor)
-            .minWorkerThreads(config.getMinThriftWorkerThreadNum())
-            .maxWorkerThreads(config.getMaxThriftWrokerThreadNum())
+            .executorService(executorService)
             .protocolFactory(new TBinaryProtocol.Factory());
     server = new TThreadPoolServer(args);
     LOGGER.info("Parquet service starts successfully!");

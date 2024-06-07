@@ -16,6 +16,7 @@
 
 package cn.edu.tsinghua.iginx.parquet.db.util;
 
+import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import java.util.*;
@@ -29,6 +30,20 @@ public class AreaSet<K extends Comparable<K>, F> {
 
   public AreaSet() {
     this(new HashMap<>(), new HashSet<>(), TreeRangeSet.create());
+  }
+
+  public static <K extends Comparable<K>, F> AreaSet<K, F> create(AreaSet<K, F> areas) {
+    Map<F, RangeSet<K>> deletedRanges = new HashMap<>();
+    for (Map.Entry<F, RangeSet<K>> entry : areas.deletedRanges.entrySet()) {
+      deletedRanges.put(entry.getKey(), TreeRangeSet.create(entry.getValue()));
+    }
+    return new AreaSet<>(
+        deletedRanges, new HashSet<>(areas.deletedColumns), TreeRangeSet.create(areas.deletedRows));
+  }
+
+  public static <K extends Comparable<K>, F> AreaSet<K, F> all() {
+    return new AreaSet<K, F>(
+        new HashMap<>(), new HashSet<>(), TreeRangeSet.create(Collections.singleton(Range.all())));
   }
 
   private AreaSet(
@@ -99,6 +114,10 @@ public class AreaSet<K extends Comparable<K>, F> {
 
   public boolean isEmpty() {
     return deletedRanges.isEmpty() && deletedColumns.isEmpty() && deletedRows.isEmpty();
+  }
+
+  public boolean isAll() {
+    return deletedRows.encloses(Range.all());
   }
 
   @Override

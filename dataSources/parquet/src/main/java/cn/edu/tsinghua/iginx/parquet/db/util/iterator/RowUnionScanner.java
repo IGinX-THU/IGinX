@@ -18,7 +18,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.*;
-import javax.annotation.Nonnull;
 
 public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K, Scanner<F, V>> {
 
@@ -42,7 +41,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
 
   private K currentKey = null;
 
-  @Nonnull
   @Override
   public K key() throws NoSuchElementException {
     if (currentKey == null) {
@@ -51,7 +49,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
     return currentKey;
   }
 
-  @Nonnull
   @Override
   public Scanner<F, V> value() throws NoSuchElementException {
     if (currentRow == null) {
@@ -89,7 +86,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
 
           private V value;
 
-          @Nonnull
           @Override
           public F key() throws NoSuchElementException {
             if (key == null) {
@@ -98,7 +94,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
             return key;
           }
 
-          @Nonnull
           @Override
           public V value() throws NoSuchElementException {
             if (value == null) {

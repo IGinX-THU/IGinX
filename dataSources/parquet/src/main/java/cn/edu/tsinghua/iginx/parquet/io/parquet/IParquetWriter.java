@@ -23,8 +23,10 @@ import java.io.IOException;
 import java.nio.file.Path;
 import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
 import shaded.iginx.org.apache.parquet.bytes.HeapByteBufferAllocator;
+import shaded.iginx.org.apache.parquet.hadoop.CodecFactory;
 import shaded.iginx.org.apache.parquet.hadoop.ParquetFileWriter;
 import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordWriter;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.CompressionCodecName;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.io.LocalOutputFile;
 import shaded.iginx.org.apache.parquet.io.OutputFile;
@@ -43,7 +45,12 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   public static Builder builder(Path path, MessageType schema) {
-    return new Builder(new LocalOutputFile(path, new HeapByteBufferAllocator(), 8 * 1024), schema);
+    return builder(path, schema, 8 * 1024);
+  }
+
+  public static Builder builder(Path path, MessageType schema, int maxBufferSize) {
+    return new Builder(
+        new LocalOutputFile(path, new HeapByteBufferAllocator(), maxBufferSize), schema);
   }
 
   public void write(IRecord record) throws IOException {
@@ -91,6 +98,12 @@ public class IParquetWriter implements AutoCloseable {
       optionsBuilder.asParquetPropertiesBuilder().withPageSize(pageSize);
       return this;
     }
+
+    public Builder withCompressionCodec(String codec) {
+      CompressionCodecName codecName = CompressionCodecName.valueOf(codec);
+      optionsBuilder.withCompressor(new CodecFactory().getCompressor(codecName));
+      return this;
+    }
   }
 
   public static IRecord getRecord(MessageType schema, Long key, Scanner<String, Object> value)
@@ -100,6 +113,7 @@ public class IParquetWriter implements AutoCloseable {
     while (value.iterate()) {
       record.add(schema.getFieldIndex(value.key()), value.value());
     }
+    record.sort();
     return record;
   }
 }

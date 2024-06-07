@@ -53,4 +53,8 @@ public class IRecord implements Iterable<Map.Entry<Integer, Object>> {
       }
     };
   }
+
+  public void sort() {
+    values.sort(Comparator.comparingInt(Map.Entry::getKey));
+  }
 }

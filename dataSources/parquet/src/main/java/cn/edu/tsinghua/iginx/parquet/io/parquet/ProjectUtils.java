@@ -20,7 +20,6 @@ import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
@@ -29,8 +28,7 @@ import shaded.iginx.org.apache.parquet.schema.Types;
 public class ProjectUtils {
   private ProjectUtils() {}
 
-  @Nonnull
-  static MessageType projectMessageType(@Nonnull MessageType schema, @Nullable Set<String> fields) {
+  static MessageType projectMessageType(MessageType schema, @Nullable Set<String> fields) {
     Set<String> schemaFields = new HashSet<>(Objects.requireNonNull(fields));
     schemaFields.add(Constants.KEY_FIELD_NAME);
 

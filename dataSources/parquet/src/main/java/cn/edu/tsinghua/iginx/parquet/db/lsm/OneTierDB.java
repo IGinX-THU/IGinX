@@ -20,350 +20,188 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.Table;
-import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableIndex;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.MemTableQueue;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.chunk.Chunk;
+import cn.edu.tsinghua.iginx.parquet.db.lsm.compact.Flusher;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.WriteBatches;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.BatchPlaneScanner;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
+import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
+import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseable;
+import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseables;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
-import cn.edu.tsinghua.iginx.parquet.util.exception.NotIntegrityException;
+import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
+import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.io.IOException;
-import java.util.*;
-import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.concurrent.atomic.LongAdder;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReadWriteLock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.concurrent.locks.ReentrantReadWriteLock;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.AutoCloseables;
+import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class OneTierDB<K extends Comparable<K>, F, T, V> implements Database<K, F, T, V> {
+import javax.annotation.WillClose;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.locks.ReadWriteLock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.stream.Collectors;
+
+public class OneTierDB implements Database {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
-  private final Shared shared;
-  private final TableStorage<K, F, T, V> tableStorage;
-  private final TableIndex<K, F, T, V> tableIndex;
 
-  private DataBuffer<K, F, V> writeBuffer = new DataBuffer<>();
-  private String previousTableName = null;
-  private final AtomicLong bufferDirtiedTime = new AtomicLong(Long.MAX_VALUE);
-  private final LongAdder bufferInsertedSize = new LongAdder();
-  private final Lock checkLock = new ReentrantLock(true);
-  private final ReadWriteLock deleteLock = new ReentrantReadWriteLock(true);
-  private final ReadWriteLock commitLock = new ReentrantReadWriteLock(true);
-  private final ReadWriteLock storageLock = new ReentrantReadWriteLock(true);
-
-  private final ScheduledExecutorService scheduler;
+  private final ReadWriteLock lock = new ReentrantReadWriteLock(true);
   private final String name;
-  private final long timeout;
+  private final Shared shared;
+  private final BufferAllocator allocator;
+  private final TableStorage tableStorage;
+  private final MemTableQueue memTableQueue;
+  private final Flusher flusher;
 
-  public OneTierDB(String name, Shared shared, ReadWriter<K, F, T, V> readerWriter)
-      throws IOException {
+  public OneTierDB(String name, Shared shared, ReadWriter readerWriter) throws IOException {
     this.name = name;
     this.shared = shared;
-    this.tableStorage = new TableStorage<>(shared, readerWriter);
-    this.tableIndex = new TableIndex<>(tableStorage);
-
-    ThreadFactory threadFactory =
-        new ThreadFactoryBuilder().setNameFormat("OneTierDB-" + name + "-%d").build();
-    this.timeout = shared.getStorageProperties().getWriteBufferTimeout().toMillis();
-    this.scheduler = Executors.newSingleThreadScheduledExecutor(threadFactory);
-    if (timeout > 0) {
-      LOGGER.info("db {} start to check buffer timeout check every {}ms", name, timeout);
-      this.scheduler.scheduleWithFixedDelay(
-          this::checkBufferTimeout, timeout, timeout, TimeUnit.MILLISECONDS);
-    } else {
-      LOGGER.info("db {} buffer timeout check is immediately after writing", name);
-    }
+    this.allocator = shared.getAllocator().newChildAllocator(name, 0, Long.MAX_VALUE);
+    this.tableStorage = new TableStorage(shared, readerWriter);
+    this.memTableQueue = new MemTableQueue(shared, allocator);
+    this.flusher = new Flusher(name, shared, allocator, memTableQueue, tableStorage);
   }
 
   @Override
-  public Scanner<K, Scanner<F, V>> query(Set<F> fields, RangeSet<K> ranges, Filter filter)
-      throws StorageException {
-    DataBuffer<K, F, V> readBuffer = new DataBuffer<>();
+  public Scanner<Long, Scanner<String, Object>> query(
+      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws StorageException {
+    Set<String> innerFields =
+        fields.stream()
+            .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
+            .collect(Collectors.toSet());
 
-    commitLock.readLock().lock();
-    deleteLock.readLock().lock();
-    storageLock.readLock().lock();
+    lock.readLock().lock();
     try {
-      AreaSet<K, F> areas = new AreaSet<>();
-      areas.add(fields, ranges);
-      Set<String> tables = tableIndex.find(areas);
-      List<String> sortedTableNames = new ArrayList<>(tables);
-      sortedTableNames.sort(Comparator.naturalOrder());
-      for (String tableName : sortedTableNames) {
-        Table<K, F, T, V> table = tableStorage.get(tableName);
-        try (Scanner<K, Scanner<F, V>> scanner = table.scan(fields, ranges)) {
+      List<Scanner<Long, Scanner<String, Object>>> inMemories =
+          memTableQueue.scan(new ArrayList<>(fields), ranges, allocator);
+      DataBuffer<Long, String, Object> readBuffer = tableStorage.query(innerFields, ranges, filter);
+      try (AutoCloseable c = AutoCloseables.all(inMemories)) {
+        for (Scanner<Long, Scanner<String, Object>> scanner : inMemories) {
           readBuffer.putRows(scanner);
         }
+      } catch (Exception e) {
+        throw new IllegalStateException(e);
       }
 
-      for (Range<K> range : ranges.asRanges()) {
-        readBuffer.putRows(writeBuffer.scanRows(fields, range));
-      }
+      return readBuffer.scanRows(innerFields, Range.all());
     } catch (IOException | StorageException e) {
       throw new RuntimeException(e);
     } finally {
-      storageLock.readLock().unlock();
-      deleteLock.readLock().unlock();
-      commitLock.readLock().unlock();
+      lock.readLock().unlock();
     }
-
-    return readBuffer.scanRows(fields, Range.all());
   }
 
   @Override
-  public Optional<Range<K>> range() throws StorageException {
-    commitLock.readLock().lock();
-    deleteLock.readLock().lock();
-    storageLock.readLock().lock();
+  public Set<Field> schema() throws StorageException {
+    lock.readLock().lock();
     try {
-      TreeRangeSet<K> rangeSet = TreeRangeSet.create();
-      for (Range<K> range : tableIndex.ranges().values()) {
-        rangeSet.add(range);
-      }
-      for (Range<K> range : writeBuffer.ranges().values()) {
-        rangeSet.add(range);
-      }
-      if (rangeSet.isEmpty()) {
-        return Optional.empty();
-      } else {
-        return Optional.of(rangeSet.span());
-      }
+      Map<String, DataType> types = tableStorage.schema();
+      return ArrowFields.of(types);
     } finally {
-      storageLock.readLock().unlock();
-      deleteLock.readLock().unlock();
-      commitLock.readLock().unlock();
+      lock.readLock().unlock();
     }
   }
 
   @Override
-  public Map<F, T> schema() throws StorageException {
-    return tableIndex.getType();
-  }
-
-  @Override
-  public void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema)
-      throws StorageException {
-    try (Scanner<Long, Scanner<K, Scanner<F, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+  public void upsertRows(
+      Scanner<Long, Scanner<String, Object>> scanner, Map<String, DataType> schema)
+      throws StorageException, InterruptedException {
+    try (Scanner<Long, Scanner<Long, Scanner<String, Object>>> batchScanner =
+             new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
-        beforeWriting();
-        try {
-          tableIndex.declareFields(schema);
-          try (Scanner<K, Scanner<F, V>> batch = batchScanner.value()) {
-            writeBuffer.putRows(batch);
-            bufferInsertedSize.add(batchScanner.key());
-          }
-        } finally {
-          afterWriting();
+        try (Scanner<Long, Scanner<String, Object>> batch = batchScanner.value()) {
+          putAll(WriteBatches.recordOfRows(batch, schema, allocator), schema);
         }
       }
     }
-    updateDirty();
-    if (timeout <= 0) {
-      checkBufferTimeout();
-    }
   }
 
   @Override
-  public void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema)
-      throws StorageException {
-    try (Scanner<Long, Scanner<F, Scanner<K, V>>> batchScanner =
-        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+  public void upsertColumns(
+      Scanner<String, Scanner<Long, Object>> scanner, Map<String, DataType> schema)
+      throws StorageException, InterruptedException {
+    try (Scanner<Long, Scanner<String, Scanner<Long, Object>>> batchScanner =
+             new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
-        beforeWriting();
-        try {
-          tableIndex.declareFields(schema);
-          try (Scanner<F, Scanner<K, V>> batch = batchScanner.value()) {
-            writeBuffer.putColumns(batch);
-            bufferInsertedSize.add(batchScanner.key());
-          }
-        } finally {
-          afterWriting();
+        try (Scanner<String, Scanner<Long, Object>> batch = batchScanner.value()) {
+          putAll(WriteBatches.recordOfColumns(batch, schema, allocator), schema);
         }
       }
     }
-    updateDirty();
-    if (timeout <= 0) {
-      checkBufferTimeout();
-    }
   }
 
-  private void updateDirty() {
-    long currentTime = System.currentTimeMillis();
-    bufferDirtiedTime.updateAndGet(oldTime -> Math.min(oldTime, currentTime));
-  }
-
-  private void beforeWriting() {
-    checkBufferSize();
-    commitLock.readLock().lock();
-    deleteLock.readLock().lock();
-    storageLock.readLock().lock();
-  }
-
-  private void afterWriting() {
-    storageLock.readLock().unlock();
-    deleteLock.readLock().unlock();
-    commitLock.readLock().unlock();
-  }
-
-  private void checkBufferSize() {
-    checkLock.lock();
-    try {
-      if (bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize()) {
-        return;
+  private void putAll(@WillClose Iterable<Chunk.Snapshot> chunks, Map<String, DataType> schema)
+      throws TypeConflictedException,InterruptedException {
+    lock.readLock().lock();
+    try (NoexceptAutoCloseable guarder = NoexceptAutoCloseables.all(chunks)) {
+      tableStorage.declareFields(schema);
+      memTableQueue.store(chunks);
+      if (shared.getStorageProperties().getWriteBufferTimeout().toMillis() <= 0) {
+        memTableQueue.flush();
       }
-      if (LOGGER.isDebugEnabled()) {
-        LOGGER.debug(
-            "flushing is triggered when write buffer size {} reaching {}",
-            bufferInsertedSize.sum(),
-            shared.getStorageProperties().getWriteBufferSize());
-      }
-      commitMemoryTable(false, new CountDownLatch(1));
-    } finally {
-      checkLock.unlock();
-    }
-  }
-
-  private void checkBufferTimeout() {
-    CountDownLatch latch = new CountDownLatch(1);
-    checkLock.lock();
-    try {
-      long interval = System.currentTimeMillis() - bufferDirtiedTime.get();
-      if (interval < timeout) {
-        return;
-      }
-
-      LOGGER.debug(
-          "flushing is triggered when write buffer dirtied time {}ms reaching {}ms",
-          interval,
-          timeout);
-      boolean temp = bufferInsertedSize.sum() < shared.getStorageProperties().getWriteBufferSize();
-      commitMemoryTable(temp, latch);
-    } finally {
-      checkLock.unlock();
-    }
-    LOGGER.debug("waiting for flushing table");
-    try {
-      latch.await();
-    } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
-    }
-    LOGGER.debug("table is flushed");
-  }
-
-  private synchronized void commitMemoryTable(boolean temp, CountDownLatch latch) {
-    commitLock.writeLock().lock();
-    deleteLock.readLock().lock();
-    try {
-      Map<F, T> types =
-          tableIndex.getType(
-              writeBuffer.fields(),
-              f -> {
-                throw new NotIntegrityException("field " + f + " is not found in schema");
-              });
-
-      MemoryTable<K, F, T, V> table = new MemoryTable<>(writeBuffer, types);
-
-      String toDelete = previousTableName;
-      String committedTableName =
-          tableStorage.flush(
-              table,
-              () -> {
-                if (toDelete != null) {
-                  LOGGER.debug("delete table {}", toDelete);
-                  storageLock.writeLock().lock();
-                  try {
-                    tableIndex.removeTable(toDelete);
-                    tableStorage.remove(toDelete);
-                  } catch (Throwable e) {
-                    LOGGER.error("failed to delete table {}", toDelete, e);
-                  } finally {
-                    storageLock.writeLock().unlock();
-                  }
-                }
-                latch.countDown();
-              });
-
-      LOGGER.debug(
-          "submit table {} to flush, with temp={}, latch={}", committedTableName, temp, latch);
-      tableIndex.addTable(committedTableName, table.getMeta());
-      this.bufferDirtiedTime.set(Long.MAX_VALUE);
-      previousTableName = committedTableName;
-      if (!temp) {
-        LOGGER.info("reset write buffer");
-        this.writeBuffer = new DataBuffer<>();
-        bufferInsertedSize.reset();
-        previousTableName = null;
-      }
-    } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
-    } finally {
-      deleteLock.readLock().unlock();
-      commitLock.writeLock().unlock();
+    }finally {
+      lock.readLock().unlock();
     }
   }
 
   @Override
-  public void delete(AreaSet<K, F> areas) throws StorageException {
-    commitLock.readLock().lock();
-    deleteLock.writeLock().lock();
-    storageLock.readLock().lock();
+  public void delete(AreaSet<Long, Field> range) throws StorageException {
+    AreaSet<Long, String> innerAreas = ArrowFields.toInnerAreas(range);
+    lock.writeLock().lock();
     try {
-      LOGGER.info("start to delete {} in {}", areas, name);
-      writeBuffer.remove(areas);
-      Set<String> tables = tableIndex.find(areas);
-      tableStorage.delete(tables, areas);
-      tableIndex.delete(areas);
+      LOGGER.debug("start to delete {} in {}", range, name);
+      memTableQueue.delete(range);
+      tableStorage.delete(innerAreas);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);
     } finally {
-      storageLock.readLock().unlock();
-      deleteLock.writeLock().unlock();
-      commitLock.readLock().unlock();
+      lock.writeLock().unlock();
     }
   }
 
   @Override
   public void clear() throws StorageException {
-    commitLock.readLock().lock();
-    deleteLock.writeLock().lock();
+    lock.writeLock().lock();
     try {
       LOGGER.debug("start to clear {}", name);
-      previousTableName = null;
+      flusher.stop();
+      memTableQueue.clear();
       tableStorage.clear();
-      tableIndex.clear();
-      writeBuffer.clear();
-      bufferDirtiedTime.set(Long.MAX_VALUE);
-      bufferInsertedSize.reset();
-    } catch (InterruptedException e) {
-      throw new StorageRuntimeException(e);
+      if (LOGGER.isDebugEnabled()) {
+        LOGGER.debug("cleared {}, allocator: {}", name, allocator);
+      }
+      flusher.start();
     } finally {
-      deleteLock.writeLock().unlock();
-      commitLock.readLock().unlock();
+      lock.writeLock().unlock();
     }
   }
 
   @Override
   public void close() throws Exception {
-    scheduler.shutdown();
-    if (shared.getStorageProperties().toFlushOnClose()) {
-      LOGGER.info("flushing is triggered when closing");
-      CountDownLatch latch = new CountDownLatch(1);
-      commitMemoryTable(false, latch);
-      latch.await();
+    lock.writeLock().lock();
+    try {
+      if (shared.getStorageProperties().toFlushOnClose()) {
+        memTableQueue.flush();
+      }
+      flusher.close();
+      memTableQueue.close();
+      tableStorage.close();
+      allocator.close();
+    } finally {
+      lock.writeLock().unlock();
     }
-    tableStorage.close();
-    tableIndex.close();
   }
 }

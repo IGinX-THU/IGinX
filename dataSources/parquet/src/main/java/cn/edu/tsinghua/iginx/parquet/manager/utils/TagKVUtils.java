@@ -7,6 +7,7 @@ import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class TagKVUtils {
   private static final ColumnKeyTranslator COLUMN_KEY_TRANSLATOR =
@@ -25,6 +26,11 @@ public class TagKVUtils {
       tags = Collections.emptyMap();
     }
     ColumnKey columnKey = new ColumnKey(name, tags);
+    return toFullName(columnKey);
+  }
+
+  public static String toFullName(ColumnKey columnKey) {
+    Objects.requireNonNull(columnKey);
     return COLUMN_KEY_TRANSLATOR.translate(columnKey);
   }
 

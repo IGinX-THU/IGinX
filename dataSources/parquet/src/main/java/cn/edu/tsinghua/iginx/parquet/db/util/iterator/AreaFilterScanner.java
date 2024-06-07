@@ -19,7 +19,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.RangeSet;
-import javax.annotation.Nonnull;
 
 public class AreaFilterScanner<K extends Comparable<K>, F, V> implements Scanner<K, Scanner<F, V>> {
 
@@ -35,13 +34,11 @@ public class AreaFilterScanner<K extends Comparable<K>, F, V> implements Scanner
   private K currentKey = null;
   private Scanner<F, V> currentValue = null;
 
-  @Nonnull
   @Override
   public K key() {
     return currentKey;
   }
 
-  @Nonnull
   @Override
   public Scanner<F, V> value() {
     return currentValue;
@@ -68,10 +65,7 @@ public class AreaFilterScanner<K extends Comparable<K>, F, V> implements Scanner
   }
 
   private boolean excludeKey(K key) {
-    if (areas.getKeys().contains(key)) {
-      return true;
-    }
-    return false;
+    return areas.getKeys().contains(key);
   }
 
   private class RowFilterScanner implements Scanner<F, V> {
@@ -88,13 +82,11 @@ public class AreaFilterScanner<K extends Comparable<K>, F, V> implements Scanner
     private F currentField = null;
     private V currentValue = null;
 
-    @Nonnull
     @Override
     public F key() {
       return currentField;
     }
 
-    @Nonnull
     @Override
     public V value() {
       return currentValue;
