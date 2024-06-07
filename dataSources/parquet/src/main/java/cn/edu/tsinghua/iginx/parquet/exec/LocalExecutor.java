@@ -49,6 +49,7 @@ import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
@@ -285,11 +286,16 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
+    List<String> patternList = new ArrayList<>(pattern);
+    if (patternList.isEmpty()) {
+      patternList.add("*");
+    }
     if (storageUnit.equals("*")) {
       List<Column> columns = new ArrayList<>();
       for (Manager manager : getAllManagers()) {
-        columns.addAll(manager.getColumns());
+        columns.addAll(manager.getColumns(patternList, tagFilter));
       }
       return columns;
     } else {
@@ -303,7 +309,7 @@ public class LocalExecutor implements Executor {
     List<String> paths = new ArrayList<>();
     long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
     for (Manager manager : getAllManagers()) {
-      for (Column column : manager.getColumns()) {
+      for (Column column : manager.getColumns(Collections.singletonList("*"), null)) {
         paths.add(column.getPath());
       }
       KeyInterval interval = manager.getKeyInterval();

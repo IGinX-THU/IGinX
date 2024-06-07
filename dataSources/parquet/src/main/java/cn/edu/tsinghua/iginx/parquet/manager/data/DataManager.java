@@ -18,6 +18,7 @@ package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
@@ -31,6 +32,7 @@ import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.RangeUtils;
+import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
@@ -126,12 +128,17 @@ public class DataManager implements Manager {
   }
 
   @Override
-  public List<Column> getColumns() throws StorageException {
+  public List<Column> getColumns(List<String> paths, TagFilter tagFilter) throws StorageException {
     List<Column> columns = new ArrayList<>();
     for (Map.Entry<String, DataType> entry : db.schema().entrySet()) {
       Map.Entry<String, Map<String, String>> pathWithTags =
           DataViewWrapper.parseFieldName(entry.getKey());
-      columns.add(new Column(pathWithTags.getKey(), entry.getValue(), pathWithTags.getValue()));
+      DataType dataType = entry.getValue();
+      ColumnKey columnKey = new ColumnKey(pathWithTags.getKey(), pathWithTags.getValue());
+      if (!TagKVUtils.match(columnKey, paths, tagFilter)) {
+        continue;
+      }
+      columns.add(new Column(columnKey.getPath(), dataType, columnKey.getTags()));
     }
     return columns;
   }

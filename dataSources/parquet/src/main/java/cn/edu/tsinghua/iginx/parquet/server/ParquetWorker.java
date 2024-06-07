@@ -44,11 +44,7 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
@@ -283,10 +279,12 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   @Override
-  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
+  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(
+      String storageUnit, Set<String> pattern, RawTagFilter tagFilter) throws TException {
     List<TS> ret = new ArrayList<>();
     try {
-      List<Column> tsList = executor.getColumnsOfStorageUnit(storageUnit);
+      List<Column> tsList =
+          executor.getColumnsOfStorageUnit(storageUnit, pattern, resolveRawTagFilter(tagFilter));
       tsList.forEach(
           timeseries -> {
             TS ts = new TS(timeseries.getPath(), timeseries.getDataType().toString());
