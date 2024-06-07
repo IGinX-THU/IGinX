@@ -24,9 +24,6 @@ on:
                 required: false
                 default: '["zookeeper", "etcd"]'
 
-env:
-    VERSION: 0.6.0-SNAPSHOT
-
 jobs:
     MixCluster-ShowTimeseries:
         timeout-minutes: 15

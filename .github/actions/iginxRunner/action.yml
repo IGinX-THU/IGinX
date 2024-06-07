@@ -1,10 +1,6 @@
 name: "iginx-runner"
 description: "iginx runner"
 inputs:
-    version:
-        description: "iginx runner version"
-        required: false
-        default: 0.6.0-SNAPSHOT
     if-stop:
         description: "to stop the iginx"
         required: false
