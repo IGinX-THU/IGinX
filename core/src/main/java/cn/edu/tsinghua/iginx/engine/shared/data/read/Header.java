@@ -18,6 +18,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.RESERVED_COLS;
+
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
@@ -211,6 +213,15 @@ public final class Header {
       List<String> patterns, List<Boolean> isPyUDFList) {
     List<Field> targetFields = new ArrayList<>();
     Map<Integer, Integer> reorderMap = new HashMap<>();
+
+    // 保留关键字列
+    for (int i = 0; i < fields.size(); i++) {
+      Field field = getField(i);
+      if (RESERVED_COLS.contains(field.getName())) {
+        reorderMap.put(targetFields.size(), i);
+        targetFields.add(field);
+      }
+    }
 
     for (int index = 0; index < patterns.size(); index++) {
       String pattern = patterns.get(index);

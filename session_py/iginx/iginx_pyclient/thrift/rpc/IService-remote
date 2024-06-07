@@ -49,6 +49,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  ExecuteStatementResp executeStatement(ExecuteStatementReq req)')
     print('  FetchResultsResp fetchResults(FetchResultsReq req)')
     print('  LoadCSVResp loadCSV(LoadCSVReq req)')
+    print('  LoadUDFResp loadUDF(LoadUDFReq req)')
     print('  Status closeStatement(CloseStatementReq req)')
     print('  CommitTransformJobResp commitTransformJob(CommitTransformJobReq req)')
     print('  QueryTransformJobStatusResp queryTransformJobStatus(QueryTransformJobStatusReq req)')
@@ -60,6 +61,8 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  CurveMatchResp curveMatch(CurveMatchReq req)')
     print('  DebugInfoResp debugInfo(DebugInfoReq req)')
     print('  ShowSessionIDResp showSessionID(ShowSessionIDReq req)')
+    print('  ShowRulesResp showRules(ShowRulesReq req)')
+    print('  Status setRules(SetRulesReq req)')
     print('')
     sys.exit(0)
 
@@ -289,6 +292,12 @@ elif cmd == 'loadCSV':
         sys.exit(1)
     pp.pprint(client.loadCSV(eval(args[0]),))
 
+elif cmd == 'loadUDF':
+    if len(args) != 1:
+        print('loadUDF requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.loadUDF(eval(args[0]),))
+
 elif cmd == 'closeStatement':
     if len(args) != 1:
         print('closeStatement requires 1 args')
@@ -354,6 +363,18 @@ elif cmd == 'showSessionID':
         print('showSessionID requires 1 args')
         sys.exit(1)
     pp.pprint(client.showSessionID(eval(args[0]),))
+
+elif cmd == 'showRules':
+    if len(args) != 1:
+        print('showRules requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.showRules(eval(args[0]),))
+
+elif cmd == 'setRules':
+    if len(args) != 1:
+        print('setRules requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.setRules(eval(args[0]),))
 
 else:
     print('Unrecognized method %s' % cmd)

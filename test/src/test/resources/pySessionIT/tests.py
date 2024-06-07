@@ -265,15 +265,31 @@ class Tests:
                 return retStr
 
     def downsampleQuery(self):
+        import pandas as pd
         try:
             dataset = self.session.downsample_query(["test.*"], start_time=0, end_time=10, type=AggregateType.COUNT,
                                                precision=3)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.max_rows', None)
             retStr = str(dataset.to_df()) + "\n"
         except Exception as e:
             print(e)
             exit(1)
 
 
+        return retStr
+
+    def downsampleQueryNoInterval(self):
+        import pandas as pd
+        try:
+            dataset = self.session.downsample_query_no_interval(["test.*"], type=AggregateType.COUNT,
+                                                    precision=3)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.max_rows', None)
+            retStr = str(dataset.to_df()) + "\n"
+        except Exception as e:
+            print(e)
+            exit(1)
         return retStr
 
     def exportToFile(self):

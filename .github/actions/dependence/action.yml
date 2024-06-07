@@ -18,6 +18,10 @@ inputs:
         required: false
         default: all
         # all: setup all
+    docker-required:
+        description: "is docker needed in this test"
+        required: false
+        default: "false"
 
 runs:
     using: "composite"
@@ -30,7 +34,7 @@ runs:
               tzutil /s "China Standard Time"
               echo "JAVA_OPTS=-Xmx4g -Xms2g" >> %GITHUB_ENV%
 
-        - if: runner.os == 'macOS'
+        - if: runner.os == 'macOS' &&  inputs.docker-required=='true'
           name: Install Docker on MacOS
           shell: bash
           run: |
