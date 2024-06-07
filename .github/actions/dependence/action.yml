@@ -60,3 +60,12 @@ runs:
               java-version: ${{ inputs.java }}
               distribution: "temurin"
               cache: "maven"
+
+        - name: Get project info
+          id: project
+          uses: ./.github/actions/project
+
+        - name: Set up environment variable
+          shell: bash
+          run: |
+              echo "VERSION=${{ steps.project.outputs.version }}" >> $GITHUB_ENV

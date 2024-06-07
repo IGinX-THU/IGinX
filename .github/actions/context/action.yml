@@ -25,7 +25,6 @@ runs:
           name: Stop IGinX
           uses: ./.github/actions/iginxRunner
           with:
-              version: ${VERSION}
               if-stop: true
 
         - if: inputs.work-name=='stop-iginx-meta' || inputs.work-name=='restart-iginx-meta'
