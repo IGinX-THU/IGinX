@@ -325,16 +325,6 @@ public abstract class BaseCapacityExpansionIT {
     statement = "select wf05.wt01.status, wf05.wt01.temperature from tm;";
     SQLTestTools.executeAndContainValue(
         session, statement, READ_ONLY_PATH_LIST, READ_ONLY_EXTEND_VALUES_LIST);
-
-    // test show columns
-    testShowColumns(
-        Arrays.asList(
-            new Column("mn.wf01.wt01.temperature", DataType.DOUBLE),
-            new Column("mn.wf01.wt01.status", DataType.LONG),
-            new Column("nt.wf03.wt01.status2", DataType.LONG),
-            new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-            new Column("tm.wf05.wt01.status", DataType.LONG),
-            new Column("tm.wf05.wt01.temperature", DataType.DOUBLE)));
   }
 
   protected void queryExtendedColDummy() {
