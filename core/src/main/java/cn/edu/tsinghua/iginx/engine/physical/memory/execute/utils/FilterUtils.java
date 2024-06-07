@@ -27,23 +27,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class FilterUtils {
 
@@ -352,12 +339,52 @@ public class FilterUtils {
     } else if (baseFilter.getType().equals(FilterType.And)) {
       AndFilter andFilter = (AndFilter) baseFilter;
       List<Filter> filterList = new ArrayList<>(andFilter.getChildren());
-      filterList.add(additionFilter);
-      return new AndFilter(filterList);
+      if (additionFilter.getType().equals(FilterType.And)) {
+        AndFilter additionAndFilter = (AndFilter) additionFilter;
+        filterList.addAll(additionAndFilter.getChildren());
+      } else {
+        filterList.add(additionFilter);
+      }
+      return new AndFilter(filterList.stream().distinct().collect(Collectors.toList()));
     } else {
       List<Filter> filterList = new ArrayList<>(Collections.singletonList(baseFilter));
       filterList.add(additionFilter);
       return new AndFilter(filterList);
     }
+  }
+
+  public static List<PathFilter> getEqualPathFilter(Filter filter) {
+    List<PathFilter> pathFilters = new ArrayList<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {}
+
+          @Override
+          public void visit(PathFilter filter) {
+            if (isEqualOp(filter.getOp())) {
+              pathFilters.add(filter);
+            }
+          }
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {}
+        });
+    return pathFilters;
   }
 }

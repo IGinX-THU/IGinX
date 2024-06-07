@@ -387,6 +387,7 @@ struct ExecuteSqlResp {
     27: optional list<i64> sessionIDList
     28: optional map<string, bool> rules
     29: optional i64 costTime
+    30: optional string UDFModulePath
 }
 
 struct ExecuteSubPlanReq {
@@ -537,6 +538,19 @@ struct LoadCSVResp {
     4: optional string parseErrorMsg
 }
 
+struct LoadUDFReq {
+    1: required i64 sessionId
+    2: required string statement
+    3: optional binary udfFile
+    4: required bool isRemote
+}
+
+struct LoadUDFResp {
+    1: required Status status
+    2: optional string parseErrorMsg
+    3: optional string UDFModulePath
+}
+
 struct TaskInfo {
     1: required TaskType taskType
     2: required DataFlowType dataFlowType
@@ -587,6 +601,8 @@ struct RegisterTaskReq {
     2: required string filePath
     3: required list<UDFClassPair> UDFClassPairs
     4: required list<UDFType> types
+    5: required binary moduleFile
+    6: required bool isRemote
 }
 
 struct DropTaskReq {
@@ -757,6 +773,8 @@ service IService {
     FetchResultsResp fetchResults(1: FetchResultsReq req);
 
     LoadCSVResp loadCSV(1: LoadCSVReq req);
+
+    LoadUDFResp loadUDF(1: LoadUDFReq req);
 
     Status closeStatement(1: CloseStatementReq req);
 

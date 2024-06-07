@@ -99,7 +99,7 @@ set /a quarter_=%half_%/8
 @REM if ["%half_%"] GTR ["1024"] set half_=1024
 @REM if ["%quarter_%"] GTR ["8192"] set quarter_=8192
 
-if ["%half_%"] GTR ["quarter_"] (
+if %half_% GTR %quarter_% (
 	set max_heap_size_in_mb=%half_%
 ) else set max_heap_size_in_mb=%quarter_%
 

@@ -174,7 +174,7 @@ public class RowUtils {
     HashMap<Integer, List<Row>> hashMap = new HashMap<>();
     for (Row row : rows) {
       Value value = row.getAsValue(joinPath);
-      if (value == null) {
+      if (value == null || value.getValue() == null) {
         continue;
       }
       int hash = getHash(value, needTypeCast);

@@ -15,12 +15,17 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(PostgreSQLCapacityExpansionIT.class);
 
   public PostgreSQLCapacityExpansionIT() {
-    super(StorageEngineType.relational, "engine:postgresql, username:postgres, password:postgres");
+    super(
+        StorageEngineType.relational,
+        "engine:postgresql, username:postgres, password:postgres",
+        new PostgreSQLHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
+    wrongExtraParams.add("username:wrong, password:postgres");
+    // wrong password situation cannot be tested because trust mode is used
   }
 
   /** 执行一个简单查询1000次，测试是否会使连接池耗尽，来验证PG的dummy查询是否正确释放连接 */

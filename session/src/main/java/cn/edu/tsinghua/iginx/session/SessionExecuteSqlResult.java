@@ -45,6 +45,7 @@ public class SessionExecuteSqlResult {
   private List<Long> jobIdList;
   private Map<String, String> configs;
   private String loadCsvPath;
+  private String UDFModulePath;
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
@@ -108,6 +109,8 @@ public class SessionExecuteSqlResult {
         break;
       case LoadCsv:
         this.loadCsvPath = resp.getLoadCsvPath();
+      case RegisterTask:
+        this.UDFModulePath = resp.getUDFModulePath();
       case ShowSessionID:
         this.sessionIDs = resp.getSessionIDList();
       case ShowRules:
@@ -617,6 +620,10 @@ public class SessionExecuteSqlResult {
 
   public String getLoadCsvPath() {
     return loadCsvPath;
+  }
+
+  public String getUDFModulePath() {
+    return UDFModulePath;
   }
 
   public List<Long> getSessionIDs() {

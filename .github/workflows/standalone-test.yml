@@ -88,13 +88,13 @@ jobs:
                   mvn test -q -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh" ${VERSION}
                   elif [ "$RUNNER_OS" == "Windows" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_windows.sh" ${VERSION}
                   elif [ "$RUNNER_OS" == "macOS" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
                   fi
 
             - name: set client test context
@@ -152,6 +152,12 @@ jobs:
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
                   mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter

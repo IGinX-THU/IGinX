@@ -34,6 +34,19 @@ public class RuleCollection {
     addRule(ConstantPropagationRule.getInstance());
     addRule(FilterConstantFoldingRule.getInstance());
     addRule(RowTransformConstantFoldingRule.getInstance());
+    addRule(FunctionDistinctEliminateRule.getInstance());
+    addRule(InExistsDistinctEliminateRule.getInstance());
+    addRule(FilterPushDownAddSchemaPrefixRule.getInstance());
+    addRule(FilterPushDownGroupByRule.getInstance());
+    addRule(FilterPushDownPathUnionJoinRule.getInstance());
+    addRule(FilterPushDownProjectReorderSortRule.getInstance());
+    addRule(FilterPushDownRenameRule.getInstance());
+    addRule(FilterPushDownSelectRule.getInstance());
+    addRule(FilterPushDownSetOpRule.getInstance());
+    addRule(FilterPushDownTransformRule.getInstance());
+    addRule(FilterPushIntoJoinConditionRule.getInstance());
+    addRule(FilterPushOutJoinConditionRule.getInstance());
+
     setRulesByConfig();
   }
 

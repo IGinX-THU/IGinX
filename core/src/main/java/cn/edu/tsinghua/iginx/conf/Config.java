@@ -213,6 +213,22 @@ public class Config {
 
   /////////////
 
+  private boolean enableEmailNotification = false;
+
+  private String mailSmtpHost = "";
+
+  private int mailSmtpPort = 465;
+
+  private String mailSmtpUser = "";
+
+  private String mailSmtpPassword = "";
+
+  private String mailSender = "";
+
+  private String mailRecipient = "";
+
+  /////////////
+
   private int batchSizeImportCsv = 10000;
 
   private boolean isUTTestEnv = false; // 是否是单元测试环境
@@ -915,5 +931,61 @@ public class Config {
 
   public void setDistributedQueryTriggerThreshold(int distributedQueryTriggerThreshold) {
     this.distributedQueryTriggerThreshold = distributedQueryTriggerThreshold;
+  }
+
+  public boolean isEnableEmailNotification() {
+    return enableEmailNotification;
+  }
+
+  public void setEnableEmailNotification(boolean enableEmailNotification) {
+    this.enableEmailNotification = enableEmailNotification;
+  }
+
+  public String getMailSmtpHost() {
+    return mailSmtpHost;
+  }
+
+  public void setMailSmtpHost(String mailSmtpHost) {
+    this.mailSmtpHost = mailSmtpHost;
+  }
+
+  public int getMailSmtpPort() {
+    return mailSmtpPort;
+  }
+
+  public void setMailSmtpPort(int mailSmtpPort) {
+    this.mailSmtpPort = mailSmtpPort;
+  }
+
+  public String getMailSmtpUser() {
+    return mailSmtpUser;
+  }
+
+  public void setMailSmtpUser(String mailSmtpUser) {
+    this.mailSmtpUser = mailSmtpUser;
+  }
+
+  public String getMailSmtpPassword() {
+    return mailSmtpPassword;
+  }
+
+  public void setMailSmtpPassword(String mailSmtpPassword) {
+    this.mailSmtpPassword = mailSmtpPassword;
+  }
+
+  public String getMailSender() {
+    return mailSender;
+  }
+
+  public void setMailSender(String mailSender) {
+    this.mailSender = mailSender;
+  }
+
+  public String getMailRecipient() {
+    return mailRecipient;
+  }
+
+  public void setMailRecipient(String mailRecipients) {
+    this.mailRecipient = mailRecipients;
   }
 }

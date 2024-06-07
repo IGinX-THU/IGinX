@@ -239,6 +239,14 @@ public class ConfigDescriptor {
       properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on");
       config.setDistributedQueryTriggerThreshold(
           Integer.parseInt(properties.getProperty("distributedQueryTriggerThreshold", "3")));
+      config.setEnableEmailNotification(
+          Boolean.parseBoolean(properties.getProperty("enableEmailNotification", "false")));
+      config.setMailSmtpHost(properties.getProperty("mailSmtpHost", ""));
+      config.setMailSmtpPort(Integer.parseInt(properties.getProperty("mailSmtpPort", "465")));
+      config.setMailSmtpUser(properties.getProperty("mailSmtpUser", ""));
+      config.setMailSmtpPassword(properties.getProperty("mailSmtpPassword", ""));
+      config.setMailSender(properties.getProperty("mailSender", ""));
+      config.setMailRecipient(properties.getProperty("mailRecipient", ""));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
@@ -370,6 +378,14 @@ public class ConfigDescriptor {
     config.setDistributedQueryTriggerThreshold(
         EnvUtils.loadEnv(
             "distributedQueryTriggerThreshold", config.getDistributedQueryTriggerThreshold()));
+    config.setEnableEmailNotification(
+        Boolean.parseBoolean(EnvUtils.loadEnv("enableEmailNotification", "false")));
+    config.setMailSmtpHost(EnvUtils.loadEnv("mailSmtpHost", ""));
+    config.setMailSmtpPort(Integer.parseInt(EnvUtils.loadEnv("mailSmtpPort", "465")));
+    config.setMailSmtpUser(EnvUtils.loadEnv("mailSmtpUser", ""));
+    config.setMailSmtpPassword(EnvUtils.loadEnv("mailSmtpPassword", ""));
+    config.setMailSender(EnvUtils.loadEnv("mailSender", ""));
+    config.setMailRecipient(EnvUtils.loadEnv("mailRecipient", ""));
   }
 
   private void loadUDFListFromFile() {

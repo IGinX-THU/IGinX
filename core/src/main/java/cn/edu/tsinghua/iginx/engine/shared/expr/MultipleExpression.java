@@ -86,4 +86,10 @@ public class MultipleExpression implements Expression {
   public void setAlias(String alias) {
     this.alias = alias;
   }
+
+  @Override
+  public void accept(ExpressionVisitor visitor) {
+    visitor.visit(this);
+    children.forEach(e -> e.accept(visitor));
+  }
 }

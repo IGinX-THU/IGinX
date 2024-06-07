@@ -72,6 +72,8 @@ case "${PARAMETERS[@]}" in
 *) PARAMETERS=("-h" "127.0.0.1" "${PARAMETERS[@]}") ;;
 esac
 
+echo ${PARAMETERS[@]}
+
 exec "$JAVA" -cp "$CLASSPATH" "$MAIN_CLASS" "${PARAMETERS[@]}"
 
 exit $?

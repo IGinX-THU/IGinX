@@ -6,13 +6,13 @@ sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/byteStream"
 
 sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/csv"
 
-bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
+bash -c "chmod +x client/target/iginx-client-$2/sbin/start_cli.sh"
 
 bash -c "sleep 10"
 
-SCRIPT_COMMAND="xargs -0 -t -i bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+SCRIPT_COMMAND="xargs -0 -t -i bash client/target/iginx-client-$2/sbin/start_cli.sh -e '{}'"
 
-bash -c "echo 'clear data;' | xargs -t -i bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+bash -c "echo 'clear data;' | xargs -t -i bash client/target/iginx-client-$2/sbin/start_cli.sh -e '{}'"
 
 bash -c "echo 'insert into test(key, s1) values (0, 0), (1, 1), (2, 2), (3, 3), (4, 4);' | ${SCRIPT_COMMAND}"
 
@@ -55,4 +55,4 @@ bash -c "wget -nv $downloadURL --directory-prefix=downloads"
 # 将 downloads/large_img.jpg 的数据加载到IGinX数据库中
 bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P-format"
 
-bash -c "echo 'select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;' | xargs -0 -t -i bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+bash -c "echo 'select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;' | xargs -0 -t -i bash client/target/iginx-client-$2/sbin/start_cli.sh -e '{}'"

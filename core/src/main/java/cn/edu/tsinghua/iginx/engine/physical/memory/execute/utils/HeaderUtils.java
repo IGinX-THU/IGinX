@@ -1,7 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.isNumericType;
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isEqualOp;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.thrift.DataType.BOOLEAN;
 
@@ -10,11 +9,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterE
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
@@ -205,7 +200,7 @@ public class HeaderUtils {
       List<String> joinColumns,
       List<String> extraJoinPaths)
       throws InvalidOperatorParameterException {
-    String joinPathA, joinPathB;
+    String joinPathA = null, joinPathB = null;
     if (!extraJoinPaths.isEmpty()) {
       joinPathA = extraJoinPaths.get(0);
       joinPathB = extraJoinPaths.get(0);
@@ -214,63 +209,65 @@ public class HeaderUtils {
         joinPathA = prefixA + '.' + joinColumns.get(0);
         joinPathB = prefixB + '.' + joinColumns.get(0);
       } else {
-        Pair<String, String> pair = calculateHashJoinPath(filter);
-        if (pair == null) {
+        List<Pair<String, String>> pairs = calculateHashJoinPath(filter);
+        if (pairs == null) {
           throw new InvalidOperatorParameterException(
               "filter: " + filter + " can't be used in hash join.");
         }
-        if (headerA.indexOf(pair.k) != -1 && headerB.indexOf(pair.v) != -1) {
-          joinPathA = pair.k;
-          joinPathB = pair.v;
-        } else if (headerA.indexOf(pair.v) != -1 && headerB.indexOf(pair.k) != -1) {
-          joinPathA = pair.v;
-          joinPathB = pair.k;
-        } else {
+        for (Pair<String, String> pair : pairs) {
+          if (headerA.indexOf(pair.k) != -1 && headerB.indexOf(pair.v) != -1) {
+            joinPathA = pair.k;
+            joinPathB = pair.v;
+            break;
+          } else if (headerA.indexOf(pair.v) != -1 && headerB.indexOf(pair.k) != -1) {
+            joinPathA = pair.v;
+            joinPathB = pair.k;
+            break;
+          }
+        }
+        if (joinPathA == null || joinPathB == null) {
           throw new InvalidOperatorParameterException(
-              "invalid hash join path filter input: " + filter);
+              "filter: " + filter + " can't be used in hash join.");
         }
       }
     }
     return new Pair<>(joinPathA, joinPathB);
   }
 
-  private static Pair<String, String> calculateHashJoinPath(Filter filter) {
+  private static List<Pair<String, String>> calculateHashJoinPath(Filter filter) {
     if (filter == null) {
       return null;
     }
-    switch (filter.getType()) {
-      case Or:
-        OrFilter orFilter = (OrFilter) filter;
-        if (orFilter.getChildren().size() == 1) {
-          return calculateHashJoinPath(orFilter.getChildren().get(0));
-        }
-        break;
-      case And:
-        AndFilter andFilter = (AndFilter) filter;
-        for (Filter child : andFilter.getChildren()) {
-          Pair<String, String> ret = calculateHashJoinPath(child);
-          if (ret != null) {
-            return ret;
+    List<Pair<String, String>> joinPaths = new ArrayList<>();
+    filter.accept(
+        new FilterVisitor() {
+          @Override
+          public void visit(AndFilter filter) {}
+
+          @Override
+          public void visit(OrFilter filter) {}
+
+          @Override
+          public void visit(NotFilter filter) {}
+
+          @Override
+          public void visit(KeyFilter filter) {}
+
+          @Override
+          public void visit(ValueFilter filter) {}
+
+          @Override
+          public void visit(PathFilter filter) {
+            joinPaths.add(new Pair<>(filter.getPathA(), filter.getPathB()));
           }
-        }
-        break;
-      case Not:
-        NotFilter notFilter = (NotFilter) filter;
-        return calculateHashJoinPath(notFilter.getChild());
-      case Path:
-        PathFilter pathFilter = (PathFilter) filter;
-        if (isEqualOp(pathFilter.getOp())) {
-          return new Pair<>(pathFilter.getPathA(), pathFilter.getPathB());
-        }
-        break;
-      case Key:
-      case Value:
-      case Bool:
-        break;
-      default:
-        throw new RuntimeException("Unexpected filter type: " + filter.getType());
-    }
-    return null;
+
+          @Override
+          public void visit(BoolFilter filter) {}
+
+          @Override
+          public void visit(ExprFilter filter) {}
+        });
+    return joinPaths;
   }
 
   public static void checkHeadersComparable(Header headerA, Header headerB)

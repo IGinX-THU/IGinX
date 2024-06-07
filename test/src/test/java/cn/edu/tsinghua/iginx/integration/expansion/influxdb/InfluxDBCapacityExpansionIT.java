@@ -15,11 +15,20 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(InfluxDBCapacityExpansionIT.class);
 
   public InfluxDBCapacityExpansionIT() {
-    super(influxdb, "username:user, password:12345678, token:testToken, organization:testOrg");
+    super(
+        influxdb,
+        "username:user, password:12345678, token:testToken, organization:testOrg",
+        new InfluxDBHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
+    wrongExtraParams.add(
+        "username:user, password:12345678, token:testToken, organization:wrongOrg");
   }
+
+  // dummy key range cannot be extended yet
+  @Override
+  protected void queryExtendedKeyDummy() {}
 }

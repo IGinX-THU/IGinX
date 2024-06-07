@@ -183,37 +183,7 @@ public class IoTDBStorage implements IStorage {
     }
 
     // 获取 key 范围
-    long minTime = 0, maxTime = Long.MAX_VALUE;
-    try {
-      // 获取 key 的最小值
-      if (dataPrefix == null || dataPrefix.isEmpty()) {
-        dataSet = sessionPool.executeQueryStatement("select * from root");
-      } else {
-        dataSet = sessionPool.executeQueryStatement("select " + dataPrefix + " from root");
-      }
-      if (dataSet.hasNext()) {
-        record = dataSet.next();
-        minTime = record.getTimestamp();
-      }
-      dataSet.close();
-
-      // 获取 key 的最大值
-      if (dataPrefix == null || dataPrefix.isEmpty())
-        dataSet = sessionPool.executeQueryStatement("select * from root order by time desc");
-      else {
-        dataSet =
-            sessionPool.executeQueryStatement(
-                "select " + dataPrefix + " from root order by time desc");
-      }
-      if (dataSet.hasNext()) {
-        record = dataSet.next();
-        maxTime = record.getTimestamp();
-      }
-      dataSet.close();
-    } catch (IoTDBConnectionException | StatementExecutionException e) {
-      throw new IoTDBTaskExecuteFailureException("get time series failure: ", e);
-    }
-    KeyInterval keyInterval = new KeyInterval(minTime, maxTime + 1);
+    KeyInterval keyInterval = KeyInterval.getDefaultKeyInterval();
 
     return new Pair<>(columnsInterval, keyInterval);
   }
