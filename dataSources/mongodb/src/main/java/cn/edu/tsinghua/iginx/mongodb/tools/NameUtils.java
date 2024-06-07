@@ -63,17 +63,24 @@ public class NameUtils {
       Iterable<Field> fieldList, Iterable<String> patterns, TagFilter tagFilter) {
     List<Field> fields = new ArrayList<>();
     for (Field field : fieldList) {
-      if (tagFilter != null && !TagKVUtils.match(field.getTags(), tagFilter)) {
-        continue;
-      }
-      for (String pattern : patterns) {
-        if (Pattern.matches(StringUtils.reformatPath(pattern), field.getName())) {
-          fields.add(field);
-          break;
-        }
+      if (match(field.getName(), field.getTags(), patterns, tagFilter)) {
+        fields.add(field);
       }
     }
     return fields;
+  }
+
+  public static boolean match(
+      String columnName, Map<String, String> tags, Iterable<String> patterns, TagFilter tagFilter) {
+    if (tagFilter != null && !TagKVUtils.match(tags, tagFilter)) {
+      return false;
+    }
+    for (String pattern : patterns) {
+      if (Pattern.matches(StringUtils.reformatPath(pattern), columnName)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public static boolean isWildcard(String node) {
