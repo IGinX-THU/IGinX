@@ -23,5 +23,6 @@ public enum SourceType {
 
   Fragment,
   Operator,
+  IGinX,
   Global,
 }

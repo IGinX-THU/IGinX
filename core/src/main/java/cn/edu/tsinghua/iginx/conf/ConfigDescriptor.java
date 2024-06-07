@@ -216,6 +216,8 @@ public class ConfigDescriptor {
           Integer.parseInt(properties.getProperty("minThriftWorkerThreadNum", "20")));
       config.setMaxThriftWrokerThreadNum(
           Integer.parseInt(properties.getProperty("maxThriftWorkerThreadNum", "2147483647")));
+      config.setEnableParallelOperator(
+          Boolean.parseBoolean(properties.getProperty("enableParallelOperator", "true")));
       config.setParallelFilterThreshold(
           Integer.parseInt(properties.getProperty("parallelFilterThreshold", "10000")));
       config.setParallelGroupByRowsThreshold(
@@ -234,6 +236,9 @@ public class ConfigDescriptor {
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
+      properties.getProperty("ruleBasedOptimizer", "RemoveNotRule=on,FilterFragmentRule=on");
+      config.setDistributedQueryTriggerThreshold(
+          Integer.parseInt(properties.getProperty("distributedQueryTriggerThreshold", "3")));
       config.setEnableEmailNotification(
           Boolean.parseBoolean(properties.getProperty("enableEmailNotification", "false")));
       config.setMailSmtpHost(properties.getProperty("mailSmtpHost", ""));
@@ -349,6 +354,8 @@ public class ConfigDescriptor {
         EnvUtils.loadEnv("historicalPrefixList", config.getHistoricalPrefixList()));
     config.setExpectedStorageUnitNum(
         EnvUtils.loadEnv("expectedStorageUnitNum", config.getExpectedStorageUnitNum()));
+    config.setEnableParallelOperator(
+        EnvUtils.loadEnv("enableParallelOperator", config.isEnableParallelOperator()));
     config.setParallelFilterThreshold(
         EnvUtils.loadEnv("parallelFilterThreshold", config.getParallelFilterThreshold()));
     config.setParallelGroupByRowsThreshold(
@@ -368,6 +375,9 @@ public class ConfigDescriptor {
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
+    config.setDistributedQueryTriggerThreshold(
+        EnvUtils.loadEnv(
+            "distributedQueryTriggerThreshold", config.getDistributedQueryTriggerThreshold()));
     config.setEnableEmailNotification(
         Boolean.parseBoolean(EnvUtils.loadEnv("enableEmailNotification", "false")));
     config.setMailSmtpHost(EnvUtils.loadEnv("mailSmtpHost", ""));

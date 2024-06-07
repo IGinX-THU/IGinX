@@ -185,6 +185,8 @@ public class Config {
   private String ruleBasedOptimizer =
       "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on";
 
+  private int distributedQueryTriggerThreshold = 3;
+
   //////////////
 
   public static final String tagNameAnnotation = TagKVUtils.tagNameAnnotation;
@@ -194,6 +196,8 @@ public class Config {
   public static final String tagSuffix = TagKVUtils.tagSuffix;
 
   /////////////
+
+  private boolean enableParallelOperator = true;
 
   private int parallelFilterThreshold = 10000;
 
@@ -841,6 +845,14 @@ public class Config {
     this.maxThriftWrokerThreadNum = maxThriftWrokerThreadNum;
   }
 
+  public boolean isEnableParallelOperator() {
+    return enableParallelOperator;
+  }
+
+  public void setEnableParallelOperator(boolean enableParallelOperator) {
+    this.enableParallelOperator = enableParallelOperator;
+  }
+
   public int getParallelFilterThreshold() {
     return parallelFilterThreshold;
   }
@@ -911,6 +923,14 @@ public class Config {
 
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
+  }
+
+  public int getDistributedQueryTriggerThreshold() {
+    return distributedQueryTriggerThreshold;
+  }
+
+  public void setDistributedQueryTriggerThreshold(int distributedQueryTriggerThreshold) {
+    this.distributedQueryTriggerThreshold = distributedQueryTriggerThreshold;
   }
 
   public boolean isEnableEmailNotification() {

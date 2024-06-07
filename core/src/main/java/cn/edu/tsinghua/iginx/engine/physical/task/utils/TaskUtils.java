@@ -1,9 +1,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.task.utils;
 
-import cn.edu.tsinghua.iginx.engine.physical.task.BinaryMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MultipleMemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.UnaryMemoryPhysicalTask;
+import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import java.util.List;
 
 public class TaskUtils {
@@ -24,7 +21,11 @@ public class TaskUtils {
         break;
       case UnaryMemory:
         UnaryMemoryPhysicalTask unaryMemoryPhysicalTask = (UnaryMemoryPhysicalTask) root;
-        getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
+        if (unaryMemoryPhysicalTask instanceof IGinXPhysicalTask) {
+          tasks.add(unaryMemoryPhysicalTask);
+        } else {
+          getBottomTasks(tasks, unaryMemoryPhysicalTask.getParentTask());
+        }
         break;
       case MultipleMemory:
         MultipleMemoryPhysicalTask multipleMemoryPhysicalTask = (MultipleMemoryPhysicalTask) root;

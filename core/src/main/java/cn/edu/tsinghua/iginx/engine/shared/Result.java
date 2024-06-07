@@ -269,6 +269,28 @@ public class Result {
     return resp;
   }
 
+  public ExecuteSubPlanResp getExecuteSubPlanResp() {
+    ExecuteSubPlanResp resp = new ExecuteSubPlanResp(status);
+    if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {
+      return resp;
+    }
+
+    resp.setPaths(paths);
+    resp.setTagsList(tagsList);
+    resp.setDataTypeList(dataTypes);
+
+    if (valuesList != null) {
+      if (keys != null) {
+        ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
+        resp.setKeys(keyBuffer);
+        resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
+      } else {
+        resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
+      }
+    }
+    return resp;
+  }
+
   public LoadCSVResp getLoadCSVResp() {
     LoadCSVResp resp = new LoadCSVResp(status);
     if (status != RpcUtils.SUCCESS && status.code != StatusCode.PARTIAL_SUCCESS.getStatusCode()) {

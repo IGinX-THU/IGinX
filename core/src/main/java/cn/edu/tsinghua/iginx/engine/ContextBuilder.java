@@ -206,6 +206,12 @@ public class ContextBuilder {
     return new RequestContext(req.getSessionId(), req.getStatement(), true);
   }
 
+  public RequestContext build(ExecuteSubPlanReq req) {
+    RequestContext context = new RequestContext(req.getSessionId());
+    context.setSubPlanMsg(req.getSubPlan());
+    return context;
+  }
+
   public RequestContext build(LoadCSVReq req) {
     return new RequestContext(req.getSessionId(), req.getStatement());
   }
