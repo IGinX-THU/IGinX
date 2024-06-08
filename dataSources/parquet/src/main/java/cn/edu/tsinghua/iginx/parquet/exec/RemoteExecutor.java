@@ -266,6 +266,9 @@ public class RemoteExecutor implements Executor {
   }
 
   private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
+    if(tagFilter == null) {
+      return null;
+    }
     switch (tagFilter.getType()) {
       case Base:
         {
