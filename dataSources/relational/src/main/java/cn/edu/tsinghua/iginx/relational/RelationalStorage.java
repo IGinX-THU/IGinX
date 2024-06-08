@@ -357,18 +357,24 @@ public class RelationalStorage implements IStorage {
             }
             Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
             if (databaseName.startsWith(DATABASE_PREFIX)) {
-              columns.add(
-                  new Column(
-                      tableName + SEPARATOR + nameAndTags.k,
-                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                      nameAndTags.v));
+              columnName = tableName + SEPARATOR + nameAndTags.k;
             } else {
-              columns.add(
-                  new Column(
-                      databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k,
-                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                      nameAndTags.v));
+              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
             }
+
+            // get columns by pattern
+            if (!isPathMatchPattern(columnName, pattern)) {
+              continue;
+            }
+            // get columns by tag filter
+            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+              continue;
+            }
+            columns.add(
+                new Column(
+                    columnName,
+                    relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                    nameAndTags.v));
           }
         }
       }
@@ -376,6 +382,18 @@ public class RelationalStorage implements IStorage {
       throw new RelationalTaskExecuteFailureException("failed to get columns ", e);
     }
     return columns;
+  }
+
+  boolean isPathMatchPattern(String path, Set<String> pattern) {
+    if (pattern.isEmpty()) {
+      return true;
+    }
+    for (String pathRegex : pattern) {
+      if (Pattern.matches(StringUtils.reformatPath(pathRegex), path)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
