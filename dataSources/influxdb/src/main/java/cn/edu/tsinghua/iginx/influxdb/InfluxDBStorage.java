@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationExce
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -263,6 +264,17 @@ public class InfluxDBStorage implements IStorage {
           String val = (String) table.getRecords().get(0).getValues().get(key);
           tag.put(key, val);
         }
+        if (isDummy && !isUnit) {
+          path = bucket.getName() + "." + path;
+        }
+        // get columns by pattern
+        if (!isPathMatchPattern(path, pattern)) {
+          continue;
+        }
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(tag, tagFilter)) {
+          continue;
+        }
 
         DataType dataType;
         switch (column.get(5).getDataType()) { // the index 1 is the type of the data
@@ -289,14 +301,23 @@ public class InfluxDBStorage implements IStorage {
             LOGGER.warn("DataType don't match and default is String");
             break;
         }
-        if (isDummy && !isUnit) {
-          path = bucket.getName() + "." + path;
-        }
         timeseries.add(new Column(path, dataType, tag));
       }
     }
 
     return timeseries;
+  }
+
+  boolean isPathMatchPattern(String path, Set<String> pattern) {
+    if (pattern.isEmpty()) {
+      return true;
+    }
+    for (String pathRegex : pattern) {
+      if (Pattern.matches(StringUtils.reformatPath(pathRegex), path)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   @Override
