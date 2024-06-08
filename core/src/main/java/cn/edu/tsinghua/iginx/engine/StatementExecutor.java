@@ -703,9 +703,7 @@ public class StatementExecutor {
 
   private void processCountPoints(RequestContext ctx)
       throws StatementExecutionException, PhysicalException {
-    SelectStatement statement =
-        new UnarySelectStatement(
-            Collections.singletonList("*"), 0, Long.MAX_VALUE, AggregateType.COUNT);
+    SelectStatement statement = new UnarySelectStatement(Collections.singletonList("*"),  AggregateType.COUNT);
     ctx.setStatement(statement);
     process(ctx);
 
