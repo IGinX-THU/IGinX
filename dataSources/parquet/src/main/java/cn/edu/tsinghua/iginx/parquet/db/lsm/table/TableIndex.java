@@ -206,7 +206,7 @@ public class TableIndex {
                   + newType);
         }
         Range<Long> range = meta.getRange(field);
-        fieldIndex.addTable(name, range);
+        fieldIndex.addTable(name, Objects.requireNonNull(range));
       }
     } finally {
       lock.readLock().unlock();

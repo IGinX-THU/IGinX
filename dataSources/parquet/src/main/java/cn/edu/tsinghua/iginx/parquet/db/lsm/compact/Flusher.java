@@ -109,6 +109,8 @@ public class Flusher implements NoexceptAutoCloseable {
         runnable.run();
       } catch (InterruptedException e) {
         LOGGER.debug("interrupted", e);
+      } catch (Exception e) {
+        LOGGER.error("unexpected error", e);
       }
     };
   }

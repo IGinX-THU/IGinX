@@ -168,7 +168,7 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
       if(!schema.containsKey(field)) {
         throw new NoSuchElementException();
       }
-      return ranges.get(field);
+      return Objects.requireNonNull(ranges.get(field));
     }
 
     @Override

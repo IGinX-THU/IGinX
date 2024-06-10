@@ -73,6 +73,8 @@ public class DeletedTableMeta implements TableMeta {
       RangeSet<Long> rangeSet = entry.getValue();
       if (!rangeSet.isEmpty()) {
         ranges.put(field, rangeSet.span());
+      }else{
+        ranges.put(field, Range.closedOpen(0L, 0L));
       }
     }
   }
