@@ -16,37 +16,42 @@
 
 package cn.edu.tsinghua.iginx.parquet;
 
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
+import cn.edu.tsinghua.iginx.parquet.util.Aggregation;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
 
 public class ParquetStorage implements IStorage {
   @SuppressWarnings("unused")
@@ -157,6 +162,54 @@ public class ParquetStorage implements IStorage {
                 select.getFilter()));
     return executor.executeProjectTask(
         project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
+  }
+
+  @Override
+  public boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
+    // just push down in full column fragment
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    if (keyInterval.getStartKey() > 0 || keyInterval.getEndKey() < Long.MAX_VALUE) {
+      return false;
+    }
+
+    // just push down in local storage
+    if (!(executor instanceof LocalExecutor)) {
+      return false;
+    }
+
+    // just push down count(*) for now
+    List<FunctionCall> functionCalls = setTransform.getFunctionCallList();
+    if (functionCalls.size() != 1) {
+      return false;
+    }
+    FunctionCall functionCall = functionCalls.get(0);
+    Function function = functionCall.getFunction();
+    FunctionParams params = functionCall.getParams();
+    if (function.getFunctionType() != FunctionType.System) {
+      return false;
+    }
+    if (!function.getIdentifier().equals("count")) {
+      return false;
+    }
+    if (params.getPaths().size() != 1) {
+      return false;
+    }
+    String path = params.getPaths().get(0);
+    return path.equals("*");
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithSetTransform(Project project, SetTransform setTransform, DataArea dataArea) {
+    if (!isSupportProjectWithSetTransform(setTransform, dataArea)) {
+      throw new IllegalArgumentException("unsupported set transform");
+    }
+
+    return ((LocalExecutor) executor).executeAggregationTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        setTransform.getFunctionCallList(),
+        dataArea.getStorageUnit()
+        );
   }
 
   @Override

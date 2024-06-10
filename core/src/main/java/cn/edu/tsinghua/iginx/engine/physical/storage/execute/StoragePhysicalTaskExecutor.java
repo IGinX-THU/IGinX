@@ -163,7 +163,7 @@ public class StoragePhysicalTaskExecutor {
                                           && operators.get(1).getType() == OperatorType.SetTransform;
                                   boolean canSetTransformPushDown =
                                       needSetTransformPushDown
-                                          && pair.k.isSupportProjectWithSetTransform((SetTransform) operators.get(1));
+                                          && pair.k.isSupportProjectWithSetTransform((SetTransform) operators.get(1), dataArea);
                                   if (isDummyStorageUnit) {
                                     if (needSelectPushDown) {
                                       result =

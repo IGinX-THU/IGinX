@@ -21,6 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.parquet.db.Database;
@@ -70,6 +71,14 @@ public class DataManager implements Manager {
     Scanner<Long, Scanner<String, Object>> scanner =
         db.query(ArrowFields.of(projectedSchema), rangeSet, projectedFilter);
     return new ScannerRowStream(projectedSchema, scanner);
+  }
+
+  public RowStream aggregation(List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls)
+      throws PhysicalException {
+    Map<String, DataType> schemaMatchTags = ProjectUtils.project(db.schema(), tagFilter);
+    Map<String, DataType> projectedSchema = ProjectUtils.project(schemaMatchTags, patterns);
+    // TODO: just support count now
+    Scanner<String, Object> scanner = db.count(projectedSchema.keySet());
   }
 
   @Override

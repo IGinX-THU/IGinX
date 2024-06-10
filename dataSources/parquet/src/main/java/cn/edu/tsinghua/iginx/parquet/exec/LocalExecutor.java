@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -34,6 +35,7 @@ import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
+import cn.edu.tsinghua.iginx.parquet.util.Aggregation;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
@@ -255,6 +257,16 @@ public class LocalExecutor implements Executor {
       RowStream rowStream = manager.project(paths, tagFilter, filter);
       rowStream = new ClearEmptyRowStreamWrapper(rowStream);
       rowStream = new FilterRowStreamWrapper(rowStream, filter);
+      return new TaskExecuteResult(rowStream);
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(e);
+    }
+  }
+
+  public TaskExecuteResult executeAggregationTask(List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls, String storageUnit) {
+    try {
+      Manager manager = getOrCreateManager(storageUnit);
+      RowStream rowStream = ((DataManager) manager).aggregation(patterns, tagFilter, calls);
       return new TaskExecuteResult(rowStream);
     } catch (PhysicalException e) {
       return new TaskExecuteResult(e);

@@ -45,7 +45,7 @@ public interface IStorage {
   TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea);
 
-  default boolean isSupportProjectWithSetTransform(SetTransform setTransform) {
+  default boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
     return false;
   }
 
