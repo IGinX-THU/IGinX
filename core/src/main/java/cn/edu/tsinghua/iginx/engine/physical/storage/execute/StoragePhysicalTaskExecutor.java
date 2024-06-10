@@ -331,7 +331,10 @@ public class StoragePhysicalTaskExecutor {
 
         // fix the schemaPrefix and dataPrefix
         String schemaPrefix = storage.getSchemaPrefix();
-        String dataPrefixRegex = storage.getDataPrefix() == null ? null : StringUtils.reformatPath(storage.getDataPrefix() + ".*");
+        String dataPrefixRegex =
+            storage.getDataPrefix() == null
+                ? null
+                : StringUtils.reformatPath(storage.getDataPrefix() + ".*");
         if (tagFilter == null) {
           for (Column column : columnList) {
             if (column.isDummy()) {
