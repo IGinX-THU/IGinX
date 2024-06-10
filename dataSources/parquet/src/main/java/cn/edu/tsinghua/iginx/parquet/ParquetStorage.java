@@ -128,7 +128,7 @@ public class ParquetStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSelect() {
-    return true;
+    return false;
   }
 
   @Override
