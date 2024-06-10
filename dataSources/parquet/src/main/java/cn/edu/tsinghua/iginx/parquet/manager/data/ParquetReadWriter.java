@@ -21,15 +21,17 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
-import org.ehcache.sizeof.SizeOf;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ColumnPath;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
+
+import javax.annotation.Nullable;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
 
 public class ParquetReadWriter implements ReadWriter {
 
@@ -50,7 +52,7 @@ public class ParquetReadWriter implements ReadWriter {
 
   private void cleanTempFiles() {
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -90,8 +92,7 @@ public class ParquetReadWriter implements ReadWriter {
         writer.write(record);
       }
       ParquetMetadata parquetMeta = writer.flush();
-      ParquetTableMeta tableMeta =
-          new ParquetTableMeta(meta.getSchema(), meta.getRanges(), parquetMeta);
+      ParquetTableMeta tableMeta =  ParquetTableMeta.of(parquetMeta);
       setParquetTableMeta(path.toString(), tableMeta);
     } catch (Exception e) {
       throw new IOException("failed to write " + path, e);
@@ -145,27 +146,8 @@ public class ParquetReadWriter implements ReadWriter {
     Path path = Paths.get(fileName);
 
     try (IParquetReader reader = IParquetReader.builder(path).build()) {
-      Map<String, DataType> schemaDst = new HashMap<>();
-      MessageType parquetSchema = reader.getSchema();
-      for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
-        Type type = parquetSchema.getType(i);
-        if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
-          continue;
-        }
-        DataType iginxType = IParquetReader.toIginxType(type.asPrimitiveType());
-        schemaDst.put(type.getName(), iginxType);
-      }
-
-      Range<Long> ranges = reader.getRange();
-
-      Map<String, Range<Long>> rangeMap = new HashMap<>();
-      for (String field : schemaDst.keySet()) {
-        rangeMap.put(field, ranges);
-      }
-
       ParquetMetadata meta = reader.getMeta();
-
-      return new ParquetTableMeta(schemaDst, rangeMap, meta);
+      return ParquetTableMeta.of(meta);
     } catch (Exception e) {
       throw new StorageRuntimeException(e);
     }
@@ -222,7 +204,7 @@ public class ParquetReadWriter implements ReadWriter {
   public Iterable<String> tableNames() throws IOException {
     List<String> names = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
         String tableName = getTableName(fileName);
@@ -248,11 +230,17 @@ public class ParquetReadWriter implements ReadWriter {
     LOGGER.info("clearing data of {}", dir);
     try {
       try (DirectoryStream<Path> stream =
-          Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+               Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
           String fileName = path.toString();
           shared.getCachePool().asMap().remove(fileName);
+        }
+      }
+      try (DirectoryStream<Path> stream =
+               Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TEMP)) {
+        for (Path path : stream) {
+          Files.deleteIfExists(path);
         }
       }
       tombstoneStorage.clear();
@@ -330,13 +318,48 @@ public class ParquetReadWriter implements ReadWriter {
   private static class ParquetTableMeta implements TableMeta, CachePool.Cacheable {
     private final Map<String, DataType> schemaDst;
     private final Map<String, Range<Long>> rangeMap;
+    private final Map<String, Long> countMap;
     private final ParquetMetadata meta;
 
+    public static ParquetTableMeta of(ParquetMetadata meta) {
+      Map<String, DataType> schemaDst = new HashMap<>();
+      Map<String, Range<Long>> rangeMap = new HashMap<>();
+      Map<String, Long> countMap = new HashMap<>();
+      MessageType parquetSchema = meta.getFileMetaData().getSchema();
 
-    public ParquetTableMeta(
-        Map<String, DataType> schemaDst, Map<String, Range<Long>> rangeMap, ParquetMetadata meta) {
+      Range<Long> ranges = IParquetReader.getRangeOf(meta);
+
+      for (int i = 0; i < parquetSchema.getFieldCount(); i++) {
+        Type type = parquetSchema.getType(i);
+        if (type.getName().equals(Constants.KEY_FIELD_NAME)) {
+          continue;
+        }
+        DataType iginxType = IParquetReader.toIginxType(type.asPrimitiveType());
+        schemaDst.put(type.getName(), iginxType);
+        rangeMap.put(type.getName(), ranges);
+      }
+
+      Map<ColumnPath,Long> columnPathMap = IParquetReader.getCountsOf(meta);
+      columnPathMap.forEach((columnPath, count) -> {
+        String[] columnPathArray = columnPath.toArray();
+        if(columnPathArray.length != 1) {
+          throw new IllegalStateException("invalid column path: " + columnPath);
+        }
+        String name = columnPath.toArray()[0];
+        countMap.put(name, count);
+      });
+
+      return new ParquetTableMeta(schemaDst, rangeMap, countMap, meta);
+    }
+
+    ParquetTableMeta(
+        Map<String, DataType> schemaDst,
+        Map<String, Range<Long>> rangeMap,
+        Map<String, Long> countMap,
+        ParquetMetadata meta) {
       this.schemaDst = schemaDst;
       this.rangeMap = rangeMap;
+      this.countMap = countMap;
       this.meta = meta;
     }
 
@@ -346,8 +369,20 @@ public class ParquetReadWriter implements ReadWriter {
     }
 
     @Override
-    public Map<String, Range<Long>> getRanges() {
-      return rangeMap;
+    public Range<Long> getRange(String field) {
+      if (!schemaDst.containsKey(field)) {
+        throw new NoSuchElementException();
+      }
+      return rangeMap.get(field);
+    }
+
+    @Nullable
+    @Override
+    public Long getValueCount(String field) {
+      if (!schemaDst.containsKey(field)) {
+        throw new NoSuchElementException();
+      }
+      return countMap.get(field);
     }
 
     public ParquetMetadata getMeta() {

@@ -189,8 +189,7 @@ public class TableIndex {
     lock.readLock().lock();
     try {
       Map<String, DataType> types = meta.getSchema();
-      for (Map.Entry<String, Range<Long>> entry : meta.getRanges().entrySet()) {
-        String field = entry.getKey();
+      for(String field : types.keySet()) {
         FieldIndex fieldIndex = indexes.get(field);
         if (fieldIndex == null) {
           throw new NotIntegrityException("field " + field + " is not found in schema");
@@ -206,7 +205,7 @@ public class TableIndex {
                   + ", new type: "
                   + newType);
         }
-        Range<Long> range = entry.getValue();
+        Range<Long> range = meta.getRange(field);
         fieldIndex.addTable(name, range);
       }
     } finally {

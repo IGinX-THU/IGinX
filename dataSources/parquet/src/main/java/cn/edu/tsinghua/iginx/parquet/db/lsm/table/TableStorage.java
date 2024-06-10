@@ -30,14 +30,16 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import com.google.common.collect.TreeRangeSet;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class TableStorage implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class);
@@ -80,7 +82,7 @@ public class TableStorage implements AutoCloseable {
     String name = getTableName(sqn, suffix);
     TableMeta meta = table.getMeta();
     try (Scanner<Long, Scanner<String, Object>> scanner =
-        table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
+             table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
       readWriter.flush(name, meta, scanner);
     } catch (IOException | StorageException e) {
       LOGGER.error("flush table {} failed", name, e);
@@ -131,7 +133,8 @@ public class TableStorage implements AutoCloseable {
   }
 
   @Override
-  public void close() {}
+  public void close() {
+  }
 
   public Map<String, DataType> schema() {
     return tableIndex.getType();
@@ -165,5 +168,54 @@ public class TableStorage implements AutoCloseable {
   private Scanner<Long, Scanner<String, Object>> scan(
       String tableName, Set<String> fields, RangeSet<Long> ranges) throws IOException {
     return new FileTable(tableName, readWriter).scan(fields, ranges);
+  }
+
+  public Map<String, Long> count(Set<String> innerFields) throws StorageException, IOException {
+    Map<String, Long> counts = new HashMap<>();
+
+    for (String field : innerFields) {
+      long count = count(field);
+      counts.put(field, count);
+    }
+
+    return counts;
+  }
+
+  public long count(String field) throws StorageException, IOException {
+    Set<String> fields = Collections.singleton(field);
+    RangeSet<Long> ranges = ImmutableRangeSet.of(Range.all());
+
+    AreaSet<Long, String> areas = new AreaSet<>();
+    areas.add(fields, ranges);
+    Set<String> tables = tableIndex.find(areas);
+
+    List<String> sortedTableNames = new ArrayList<>(tables);
+    sortedTableNames.sort(Comparator.naturalOrder());
+
+    RangeSet<Long> rangeSet = TreeRangeSet.create();
+    long totalCount = 0;
+    for (String tableName : sortedTableNames) {
+      TableMeta meta = readWriter.readMeta(tableName);
+      Range<Long> range = meta.getRange(field);
+      Long count = meta.getValueCount(field);
+      if (count == null || rangeSet.intersects(range)) {
+        return getOverlapCount(field, sortedTableNames, fields, ranges);
+      } else {
+        rangeSet.add(range);
+        totalCount += count;
+      }
+    }
+    return totalCount;
+  }
+
+  private long getOverlapCount(String field, List<String> sortedTableNames, Set<String> fields, RangeSet<Long> ranges) throws IOException, StorageException {
+    DataBuffer<Long, String, Object> buffer = new DataBuffer<>();
+    for (String tableName : sortedTableNames) {
+      try (Scanner<Long, Scanner<String, Object>> scanner = scan(tableName, fields, ranges)) {
+        buffer.putRows(scanner);
+      }
+    }
+
+    return buffer.count(field);
   }
 }

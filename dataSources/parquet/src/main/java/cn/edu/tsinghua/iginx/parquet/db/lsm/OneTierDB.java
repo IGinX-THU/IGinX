@@ -47,10 +47,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.WillClose;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -77,7 +74,7 @@ public class OneTierDB implements Database {
 
   @Override
   public Scanner<Long, Scanner<String, Object>> query(
-      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws StorageException {
+      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws IOException,StorageException {
     Set<String> innerFields =
         fields.stream()
             .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
@@ -97,8 +94,23 @@ public class OneTierDB implements Database {
       }
 
       return readBuffer.scanRows(innerFields, Range.all());
-    } catch (IOException | StorageException e) {
-      throw new RuntimeException(e);
+    } finally {
+      lock.readLock().unlock();
+    }
+  }
+
+  @Override
+  public Map<String, Long> count(Set<Field> fields) throws InterruptedException, IOException, StorageException {
+    lock.readLock().lock();
+    try {
+      // to simplify the implementation, we flush the memTableQueue before counting
+      memTableQueue.compact();
+      memTableQueue.flush();
+      Set<String> innerFields =
+          fields.stream()
+              .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
+              .collect(Collectors.toSet());
+      return tableStorage.count(innerFields);
     } finally {
       lock.readLock().unlock();
     }

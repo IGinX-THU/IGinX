@@ -68,17 +68,27 @@ public class DataManager implements Manager {
     Filter projectedFilter = ProjectUtils.project(filter, schemaMatchTags);
     RangeSet<Long> rangeSet = FilterRangeUtils.rangeSetOf(projectedFilter);
 
-    Scanner<Long, Scanner<String, Object>> scanner =
-        db.query(ArrowFields.of(projectedSchema), rangeSet, projectedFilter);
-    return new ScannerRowStream(projectedSchema, scanner);
+    try {
+      Scanner<Long, Scanner<String, Object>> scanner = db.query(ArrowFields.of(projectedSchema), rangeSet, projectedFilter);
+      return new ScannerRowStream(projectedSchema, scanner);
+    } catch (IOException e) {
+      throw new StorageException(e);
+    }
   }
 
   public RowStream aggregation(List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls)
       throws PhysicalException {
-    Map<String, DataType> schemaMatchTags = ProjectUtils.project(db.schema(), tagFilter);
+    Map<String, DataType> schema = ArrowFields.toIginxSchema(db.schema());
+    Map<String, DataType> schemaMatchTags = ProjectUtils.project(schema, tagFilter);
     Map<String, DataType> projectedSchema = ProjectUtils.project(schemaMatchTags, patterns);
-    // TODO: just support count now
-    Scanner<String, Object> scanner = db.count(projectedSchema.keySet());
+
+    try {
+      // TODO: just support count now
+      Map<String,Long> counts = db.count(ArrowFields.of(projectedSchema));
+      return new AggregatedRowStream(counts,"count");
+    } catch (InterruptedException | IOException e) {
+      throw new StorageException(e);
+    }
   }
 
   @Override

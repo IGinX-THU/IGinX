@@ -22,27 +22,41 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
+
+import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
 
 public class DeletedTableMeta implements TableMeta {
   private final Map<String, DataType> schema;
   private final Map<String, Range<Long>> ranges;
+  private final Map<String, Long> counts;
 
   public DeletedTableMeta(TableMeta tableMeta, AreaSet<Long, String> tombstone) {
     this.schema = new HashMap<>(tableMeta.getSchema());
     schema.keySet().removeAll(tombstone.getFields());
-    this.ranges = new HashMap<>();
+
+    this.counts = new HashMap<>();
 
     Map<String, RangeSet<Long>> rangeSetMap = new HashMap<>();
-    for (Map.Entry<String, Range<Long>> entry : tableMeta.getRanges().entrySet()) {
+    for(Map.Entry<String, DataType> entry : schema.entrySet()) {
       String field = entry.getKey();
-      Range<Long> range = entry.getValue();
+      Range<Long> range = tableMeta.getRange(field);
       rangeSetMap.put(field, TreeRangeSet.create(Collections.singleton(range)));
+      Long count = tableMeta.getValueCount(field);
+      if(count != null) {
+        counts.put(field, count);
+      }
     }
-    rangeSetMap.keySet().removeAll(tombstone.getFields());
-    rangeSetMap.values().forEach(rangeSet -> rangeSet.removeAll(tombstone.getKeys()));
+
+    RangeSet<Long> deletedKeys = tombstone.getKeys();
+    if(!deletedKeys.isEmpty()) {
+      counts.clear();
+      rangeSetMap.values().forEach(rangeSet -> rangeSet.removeAll(deletedKeys));
+    }
+
     for (Map.Entry<String, RangeSet<Long>> entry : tombstone.getSegments().entrySet()) {
       String field = entry.getKey();
       RangeSet<Long> rangeSetDeleted = entry.getValue();
@@ -50,7 +64,10 @@ public class DeletedTableMeta implements TableMeta {
       if (rangeSet != null) {
         rangeSet.removeAll(rangeSetDeleted);
       }
+      counts.remove(field);
     }
+
+    this.ranges = new HashMap<>();
     for (Map.Entry<String, RangeSet<Long>> entry : rangeSetMap.entrySet()) {
       String field = entry.getKey();
       RangeSet<Long> rangeSet = entry.getValue();
@@ -66,7 +83,19 @@ public class DeletedTableMeta implements TableMeta {
   }
 
   @Override
-  public Map<String, Range<Long>> getRanges() {
-    return ranges;
+  public Range<Long> getRange(String field) {
+    if(!schema.containsKey(field)) {
+      throw new NoSuchElementException();
+    }
+    return ranges.get(field);
+  }
+
+  @Override
+  @Nullable
+  public Long getValueCount(String field) {
+    if(!schema.containsKey(field)) {
+      throw new NoSuchElementException();
+    }
+    return counts.get(field);
   }
 }

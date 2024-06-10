@@ -163,4 +163,9 @@ public class DataBuffer<K extends Comparable<K>, F, V> {
   public void close() throws StorageException {
     data.clear();
   }
+
+  public int count(F field) {
+    NavigableMap<K, V> column = data.get(field);
+    return column == null ? 0 : column.size();
+  }
 }

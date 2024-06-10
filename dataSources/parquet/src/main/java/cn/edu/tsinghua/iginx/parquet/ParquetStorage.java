@@ -38,7 +38,6 @@ import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
 import cn.edu.tsinghua.iginx.parquet.server.ParquetServer;
-import cn.edu.tsinghua.iginx.parquet.util.Aggregation;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;

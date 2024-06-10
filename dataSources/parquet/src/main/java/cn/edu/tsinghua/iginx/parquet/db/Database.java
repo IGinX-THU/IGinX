@@ -23,6 +23,8 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.RangeSet;
+
+import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -30,7 +32,9 @@ import org.apache.arrow.vector.types.pojo.Field;
 public interface Database extends AutoCloseable {
 
   Scanner<Long, Scanner<String, Object>> query(
-      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws StorageException;
+      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws StorageException, IOException;
+
+  Map<String, Long> count(Set<Field> strings) throws InterruptedException, IOException, StorageException;
 
   Set<Field> schema() throws StorageException;
 

@@ -35,7 +35,6 @@ import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.DummyManager;
 import cn.edu.tsinghua.iginx.parquet.manager.dummy.EmptyManager;
-import cn.edu.tsinghua.iginx.parquet.util.Aggregation;
 import cn.edu.tsinghua.iginx.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
