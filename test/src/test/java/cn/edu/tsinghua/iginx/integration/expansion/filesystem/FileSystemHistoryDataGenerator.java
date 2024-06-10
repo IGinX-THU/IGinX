@@ -43,14 +43,21 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void clearHistoryDataForGivenPort(int port) {
-    Path rootPath = Paths.get(PORT_TO_ROOT.get(port));
-    if (!Files.exists(rootPath)) {
-      return;
-    }
-    try (Stream<Path> walk = Files.walk(rootPath)) {
-      walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
-    } catch (IOException e) {
-      LOGGER.error("delete {} failure", rootPath);
+    Path rootPath;
+    for (int i=0;i<2;i++) {
+      if (i==0) {
+        rootPath = Paths.get(PORT_TO_ROOT.get(port));
+      } else {
+        rootPath = Paths.get(IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port));
+      }
+      if (!Files.exists(rootPath)) {
+        return;
+      }
+      try (Stream<Path> walk = Files.walk(rootPath)) {
+        walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
+      } catch (IOException e) {
+        LOGGER.error("delete {} failure", rootPath);
+      }
     }
   }
 

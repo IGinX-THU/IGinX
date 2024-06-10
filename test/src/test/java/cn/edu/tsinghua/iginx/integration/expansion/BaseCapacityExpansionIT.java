@@ -87,7 +87,7 @@ public abstract class BaseCapacityExpansionIT {
       if (IS_PARQUET_OR_FILE_SYSTEM) {
         statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(String.format(", dir:%s/iginx_", DBCE_PARQUET_FS_TEST_DIR));
+        statement.append(String.format(", dir:%s/" +IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(", iginx_port:" + oriPortIginx);
       }
@@ -457,7 +457,34 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  private void testShowColumns(List<Column> expectColumns) {
+  protected void testShowAllColumnsInExpansion(boolean before) {
+    if(before) {
+      testShowColumns(
+          Arrays.asList(
+              new Column("b.b.b", DataType.LONG),
+              new Column("ln.wf02.status", DataType.BOOLEAN),
+              new Column("ln.wf02.version", DataType.BINARY),
+              new Column("nt.wf03.wt01.status2", DataType.LONG),
+              new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+              new Column(
+                  "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+                  DataType.LONG)));
+    } else {
+      testShowColumns(
+          Arrays.asList(
+              new Column("b.b.b", DataType.LONG),
+              new Column("ln.wf02.status", DataType.BOOLEAN),
+              new Column("ln.wf02.version", DataType.BINARY),
+              new Column("nt.wf03.wt01.status2", DataType.LONG),
+              new Column("p1.nt.wf03.wt01.status2", DataType.LONG),
+              new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
+              new Column(
+                  "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+                  DataType.LONG)));
+    }
+  }
+
+  protected void testShowColumns(List<Column> expectColumns) {
     try {
       List<Column> columns = session.showColumns();
       LOGGER.info("show columns: {}", columns);
@@ -486,31 +513,12 @@ public abstract class BaseCapacityExpansionIT {
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
-    testShowColumns(
-        Arrays.asList(
-            new Column("b.b.b", DataType.LONG),
-            new Column("ln.wf02.status", DataType.BOOLEAN),
-            new Column("ln.wf02.version", DataType.BINARY),
-            new Column("nt.wf03.wt01.status2", DataType.LONG),
-            new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-            new Column(
-                "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
-                DataType.LONG)));
+    testShowAllColumnsInExpansion(true);
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
 
-    testShowColumns(
-        Arrays.asList(
-            new Column("b.b.b", DataType.LONG),
-            new Column("ln.wf02.status", DataType.BOOLEAN),
-            new Column("ln.wf02.version", DataType.BINARY),
-            new Column("nt.wf03.wt01.status2", DataType.LONG),
-            new Column("p1.nt.wf03.wt01.status2", DataType.LONG),
-            new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-            new Column(
-                "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
-                DataType.LONG)));
+    testShowAllColumnsInExpansion(false);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
@@ -790,7 +798,7 @@ public abstract class BaseCapacityExpansionIT {
             hasData
                 ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
                 : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
-            DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
+            DBCE_PARQUET_FS_TEST_DIR + "/" +IGINX_DATA_PATH_PREFIX_NAME+ PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
             "core/target/iginx-core-*/conf/config.properties",

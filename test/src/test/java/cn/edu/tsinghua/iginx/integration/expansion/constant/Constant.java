@@ -13,6 +13,8 @@ public class Constant {
   public static final String EXP_PORT_NAME = "exp_port";
   public static final String READ_ONLY_PORT_NAME = "read_only_port";
 
+  public static final String IGINX_DATA_PATH_PREFIX_NAME = "iginx_";
+
   // port
   public static int oriPort = 6667;
 
