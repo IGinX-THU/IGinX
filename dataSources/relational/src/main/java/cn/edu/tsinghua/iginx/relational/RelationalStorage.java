@@ -345,6 +345,7 @@ public class RelationalStorage implements IStorage {
             && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
+        boolean isDummy = extraParams.get("has_data") != null && extraParams.get("has_data").equalsIgnoreCase("true");
 
         List<String> tables = getTables(databaseName, "%");
         for (String tableName : tables) {
@@ -374,7 +375,8 @@ public class RelationalStorage implements IStorage {
                 new Column(
                     columnName,
                     relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                    nameAndTags.v));
+                    nameAndTags.v,
+                    isDummy));
           }
         }
       }
@@ -385,7 +387,7 @@ public class RelationalStorage implements IStorage {
   }
 
   boolean isPathMatchPattern(String path, Set<String> pattern) {
-    if (pattern.isEmpty()) {
+    if (pattern == null || pattern.isEmpty()) {
       return true;
     }
     for (String pathRegex : pattern) {
