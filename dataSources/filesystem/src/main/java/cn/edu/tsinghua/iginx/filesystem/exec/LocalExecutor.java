@@ -184,6 +184,7 @@ public class LocalExecutor implements Executor {
 
   @Override
   public TaskExecuteResult executeInsertTask(DataView dataView, String storageUnit) {
+    LOGGER.info("LHZDEBUG insert data: {}", dataView.getPaths());
     Exception e = null;
     switch (dataView.getRawDataType()) {
       case Row:
@@ -273,6 +274,7 @@ public class LocalExecutor implements Executor {
   public TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit) {
     List<File> fileList = new ArrayList<>();
+    LOGGER.info("LHZDEBUG delete paths: {}, keyRanges: {}, tagFilter: {}", paths, keyRanges, tagFilter);
     if (keyRanges == null || keyRanges.isEmpty()) {
       if (paths.size() == 1 && paths.get(0).equals(WILDCARD) && tagFilter == null) {
         try {
@@ -331,6 +333,7 @@ public class LocalExecutor implements Executor {
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
       for (File file : fileSystemManager.getAllFiles(directory, false)) {
+        LOGGER.info("LHZDEBUG file: {}", file.getAbsolutePath());
         FileMeta meta = fileSystemManager.getFileMeta(file);
         String columnPath =
             FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
@@ -354,6 +357,7 @@ public class LocalExecutor implements Executor {
     // get columns from dummy storage unit
     if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
+        LOGGER.info("LHZDEBUG dummy file: {}", file.getAbsolutePath());
         String dummyPath =
             FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
         if (!isPathMatchPattern(dummyPath, pattern)) {
