@@ -157,7 +157,7 @@ public class ActiveMemTable {
     }
   }
 
-  public void eliminate(long id) throws InterruptedException {
+  public boolean eliminate(long id) throws InterruptedException {
     CountDownLatch latch = null;
     flushLock.writeLock().lock();
     try {
@@ -176,6 +176,7 @@ public class ActiveMemTable {
     if (latch != null) {
       latch.await();
     }
+    return latch != null;
   }
 
   public void delete(AreaSet<Long, Field> areas) {
@@ -197,6 +198,7 @@ public class ActiveMemTable {
         activeTable.close();
         activeAllocator.close();
       }
+      activeId = 0;
       activeTable = null;
       activeAllocator = null;
       awaiting.values().forEach(CountDownLatch::countDown);

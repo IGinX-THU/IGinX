@@ -94,6 +94,7 @@ public class TableStorage implements AutoCloseable {
     AreaSet<Long, String> innerTombstone = ArrowFields.toInnerAreas(tombstone);
     try {
       if (innerTombstone.isAll()) {
+        readWriter.delete(table);
         return;
       }
       if (!innerTombstone.isEmpty()) {
