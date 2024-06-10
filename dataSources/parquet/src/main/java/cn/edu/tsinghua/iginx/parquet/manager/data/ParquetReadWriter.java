@@ -331,17 +331,13 @@ public class ParquetReadWriter implements ReadWriter {
     private final Map<String, DataType> schemaDst;
     private final Map<String, Range<Long>> rangeMap;
     private final ParquetMetadata meta;
-    private final int weight;
+
 
     public ParquetTableMeta(
         Map<String, DataType> schemaDst, Map<String, Range<Long>> rangeMap, ParquetMetadata meta) {
       this.schemaDst = schemaDst;
       this.rangeMap = rangeMap;
       this.meta = meta;
-      int schemaWeight = schemaDst.toString().length();
-      int rangeWeight = rangeMap.toString().length();
-      int metaWeight = (int) SizeOf.newInstance().deepSizeOf(meta);
-      this.weight = schemaWeight + rangeWeight + metaWeight;
     }
 
     @Override
@@ -356,11 +352,6 @@ public class ParquetReadWriter implements ReadWriter {
 
     public ParquetMetadata getMeta() {
       return meta;
-    }
-
-    @Override
-    public int getWeight() {
-      return weight;
     }
   }
 }

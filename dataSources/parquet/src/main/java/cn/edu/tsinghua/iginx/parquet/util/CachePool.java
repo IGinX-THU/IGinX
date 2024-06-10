@@ -19,6 +19,8 @@ package cn.edu.tsinghua.iginx.parquet.util;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
+import org.ehcache.sizeof.SizeOf;
+
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
 
@@ -44,6 +46,8 @@ public class CachePool {
   }
 
   public interface Cacheable {
-    int getWeight();
+    default int getWeight(){
+      return Math.toIntExact(SizeOf.newInstance().deepSizeOf(this));
+    }
   }
 }
