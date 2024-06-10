@@ -23,12 +23,11 @@ runs:
           name: Run Metadata Service
           uses: ./.github/actions/metadataRunner
           with:
-              if-rerun: true
               metadata: ${{ inputs.metadata }}
 
         - if: inputs.build-type=='SDMF-Less-Conn' || inputs.build-type=='SDMF-Enough-Conn'
           name: Change IGinX config
-          uses: ./.github/actions/metadataRunner
+          uses: ./.github/actions/confWriter
           with:
               Test-Way: inputs.build-type
 

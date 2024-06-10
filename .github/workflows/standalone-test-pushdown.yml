@@ -104,7 +104,7 @@ jobs:
                   cat iginx-*.log
 
             # test push down in sigle DU multi fragment
-            - name: Build the complete test environment
+            - name: Build the complex test environment
               uses: ./.github/actions/complexEnvBuilder
               with:
                   build-type: SDMF-Less-Conn
@@ -116,7 +116,7 @@ jobs:
                   "${GITHUB_WORKSPACE}/.github/scripts/test/SDMF/timeout_judge.sh"
 
             # test push down in sigle DU multi fragment
-            - name: Build the complete test environment
+            - name: Build the complex test environment
               uses: ./.github/actions/complexEnvBuilder
               with:
                   build-type: SDMF-Enough-Conn
