@@ -11,10 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.annotation.Nonnull;
@@ -148,17 +145,24 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
           "delete {}/{} error: does not exist or is not a file.", dir, file.getAbsoluteFile());
     }
 
+    List<String> pathList = Arrays.asList(
+        IT_DATA_DIR,
+        PARQUET_PARAMS.get(port).get(0));
     // delete the normal IT data
-    dir = DBCE_PARQUET_FS_TEST_DIR + System.getProperty("file.separator") + IT_DATA_DIR;
-    parquetPath = Paths.get("../" + dir);
-
-    try {
-      Files.walkFileTree(parquetPath, new DeleteFileVisitor());
-    } catch (NoSuchFileException e) {
-      LOGGER.warn(
-          "no such file or directory: {}", new File(parquetPath.toString()).getAbsoluteFile());
-    } catch (IOException e) {
-      LOGGER.warn("delete {} error: ", new File(parquetPath.toString()).getAbsoluteFile(), e);
+    for(String path : pathList) {
+      Path dataPath = Paths.get(path);
+      if (Files.exists(dataPath)) {
+        try {
+          Files.walkFileTree(dataPath, new DeleteFileVisitor());
+        } catch (NoSuchFileException e) {
+          LOGGER.warn(
+              "no such file or directory: {}", new File(dataPath.toString()).getAbsoluteFile());
+        } catch (IOException e) {
+          LOGGER.warn("delete {} error: ", new File(dataPath.toString()).getAbsoluteFile(), e);
+        }
+      } else {
+        LOGGER.warn("delete {} error: does not exist.", new File(dataPath.toString()).getAbsoluteFile());
+      }
     }
   }
 
