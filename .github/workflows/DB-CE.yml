@@ -145,6 +145,7 @@ jobs:
             - name: test if clear fail
               shell: bash
               run: |
+                sudo apt-get install tree -y
                 tree "${GITHUB_WORKSPACE}/test/"
 
             # 第 4 阶段测试开始==========================================
