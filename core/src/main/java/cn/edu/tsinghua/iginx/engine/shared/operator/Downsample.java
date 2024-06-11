@@ -143,7 +143,7 @@ public class Downsample extends AbstractUnaryOperator {
         && functionCallList.equals(that.functionCallList)
         && keyRange.equals(that.keyRange);
   }
-  
+
   public boolean notSetInterval() {
     return getKeyRange().getBeginKey() == KEY_MIN_VAL && getKeyRange().getEndKey() == KEY_MAX_VAL;
   }

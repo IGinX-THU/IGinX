@@ -1241,7 +1241,7 @@ public class IginxWorker implements IService.Iface {
     ClassLoader classLoader = IRuleCollection.class.getClassLoader();
     // 加载枚举类
     Class<?> enumClass =
-            classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
+        classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
     // 获取枚举实例
     Object enumInstance = enumClass.getEnumConstants()[0];
 
