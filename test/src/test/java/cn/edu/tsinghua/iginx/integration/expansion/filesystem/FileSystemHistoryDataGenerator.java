@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
@@ -46,11 +47,13 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
     Path rootPath;
     for (int i=0;i<2;i++) {
       if (i==0) {
-        rootPath = Paths.get(PORT_TO_ROOT.get(port));
+        rootPath = Paths.get(DBCE_PARQUET_FS_TEST_DIR + PORT_TO_ROOT.get(port));
       } else {
-        rootPath = Paths.get(IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port));
+        rootPath = Paths.get(DBCE_PARQUET_FS_TEST_DIR + IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port));
       }
+      LOGGER.info("clear path {}", rootPath.toFile().getAbsolutePath());
       if (!Files.exists(rootPath)) {
+        LOGGER.info("path {} does not exist", rootPath.toFile().getAbsolutePath());
         return;
       }
       try (Stream<Path> walk = Files.walk(rootPath)) {
