@@ -54,7 +54,7 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       LOGGER.info("clear path {}", rootPath.toFile().getAbsolutePath());
       if (!Files.exists(rootPath)) {
         LOGGER.info("path {} does not exist", rootPath.toFile().getAbsolutePath());
-        return;
+        continue;
       }
       try (Stream<Path> walk = Files.walk(rootPath)) {
         walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
