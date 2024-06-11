@@ -47,7 +47,7 @@ class StorageEngineType(object):
     iotdb12 = 0
     influxdb = 1
     parquet = 2
-    postgresql = 3
+    relational = 3
     mongodb = 4
     redis = 5
     filesystem = 6
@@ -59,7 +59,7 @@ class StorageEngineType(object):
         0: "iotdb12",
         1: "influxdb",
         2: "parquet",
-        3: "postgresql",
+        3: "relational",
         4: "mongodb",
         5: "redis",
         6: "filesystem",
@@ -72,7 +72,7 @@ class StorageEngineType(object):
         "iotdb12": 0,
         "influxdb": 1,
         "parquet": 2,
-        "postgresql": 3,
+        "relational": 3,
         "mongodb": 4,
         "redis": 5,
         "filesystem": 6,
@@ -145,6 +145,8 @@ class SqlType(object):
     ExportStream = 23
     LoadCsv = 24
     ShowSessionID = 25
+    ShowRules = 26
+    SetRules = 27
 
     _VALUES_TO_NAMES = {
         0: "Unknown",
@@ -173,6 +175,8 @@ class SqlType(object):
         23: "ExportStream",
         24: "LoadCsv",
         25: "ShowSessionID",
+        26: "ShowRules",
+        27: "SetRules",
     }
 
     _NAMES_TO_VALUES = {
@@ -202,6 +206,8 @@ class SqlType(object):
         "ExportStream": 23,
         "LoadCsv": 24,
         "ShowSessionID": 25,
+        "ShowRules": 26,
+        "SetRules": 27,
     }
 
 
@@ -497,6 +503,78 @@ class Status(object):
     def validate(self):
         if self.code is None:
             raise TProtocolException(message='Required field code is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class UDFClassPair(object):
+    """
+    Attributes:
+     - name
+     - classPath
+
+    """
+
+
+    def __init__(self, name=None, classPath=None,):
+        self.name = name
+        self.classPath = classPath
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRING:
+                    self.name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.classPath = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('UDFClassPair')
+        if self.name is not None:
+            oprot.writeFieldBegin('name', TType.STRING, 1)
+            oprot.writeString(self.name.encode('utf-8') if sys.version_info[0] == 2 else self.name)
+            oprot.writeFieldEnd()
+        if self.classPath is not None:
+            oprot.writeFieldBegin('classPath', TType.STRING, 2)
+            oprot.writeString(self.classPath.encode('utf-8') if sys.version_info[0] == 2 else self.classPath)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.name is None:
+            raise TProtocolException(message='Required field name is unset!')
+        if self.classPath is None:
+            raise TProtocolException(message='Required field classPath is unset!')
         return
 
     def __repr__(self):
@@ -3743,14 +3821,16 @@ class ExecuteSqlResp(object):
      - jobId
      - jobState
      - jobIdList
-     - configValue
+     - configs
      - loadCsvPath
      - sessionIDList
+     - rules
+     - UDFModulePath
 
     """
 
 
-    def __init__(self, status=None, type=None, paths=None, tagsList=None, dataTypeList=None, queryDataSet=None, keys=None, valuesList=None, replicaNum=None, pointsNum=None, aggregateType=None, parseErrorMsg=None, limit=None, offset=None, orderByPath=None, ascending=None, iginxInfos=None, storageEngineInfos=None, metaStorageInfos=None, localMetaStorageInfo=None, registerTaskInfos=None, jobId=None, jobState=None, jobIdList=None, configValue=None, loadCsvPath=None, sessionIDList=None,):
+    def __init__(self, status=None, type=None, paths=None, tagsList=None, dataTypeList=None, queryDataSet=None, keys=None, valuesList=None, replicaNum=None, pointsNum=None, aggregateType=None, parseErrorMsg=None, limit=None, offset=None, orderByPath=None, ascending=None, iginxInfos=None, storageEngineInfos=None, metaStorageInfos=None, localMetaStorageInfo=None, registerTaskInfos=None, jobId=None, jobState=None, jobIdList=None, configs=None, loadCsvPath=None, sessionIDList=None, rules=None, UDFModulePath=None,):
         self.status = status
         self.type = type
         self.paths = paths
@@ -3775,9 +3855,11 @@ class ExecuteSqlResp(object):
         self.jobId = jobId
         self.jobState = jobState
         self.jobIdList = jobIdList
-        self.configValue = configValue
+        self.configs = configs
         self.loadCsvPath = loadCsvPath
         self.sessionIDList = sessionIDList
+        self.rules = rules
+        self.UDFModulePath = UDFModulePath
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -3962,8 +4044,14 @@ class ExecuteSqlResp(object):
                 else:
                     iprot.skip(ftype)
             elif fid == 25:
-                if ftype == TType.STRING:
-                    self.configValue = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                if ftype == TType.MAP:
+                    self.configs = {}
+                    (_ktype599, _vtype600, _size598) = iprot.readMapBegin()
+                    for _i602 in range(_size598):
+                        _key603 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val604 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.configs[_key603] = _val604
+                    iprot.readMapEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 26:
@@ -3974,11 +4062,27 @@ class ExecuteSqlResp(object):
             elif fid == 27:
                 if ftype == TType.LIST:
                     self.sessionIDList = []
-                    (_etype601, _size598) = iprot.readListBegin()
-                    for _i602 in range(_size598):
-                        _elem603 = iprot.readI64()
-                        self.sessionIDList.append(_elem603)
+                    (_etype608, _size605) = iprot.readListBegin()
+                    for _i609 in range(_size605):
+                        _elem610 = iprot.readI64()
+                        self.sessionIDList.append(_elem610)
                     iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 28:
+                if ftype == TType.MAP:
+                    self.rules = {}
+                    (_ktype612, _vtype613, _size611) = iprot.readMapBegin()
+                    for _i615 in range(_size611):
+                        _key616 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val617 = iprot.readBool()
+                        self.rules[_key616] = _val617
+                    iprot.readMapEnd()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 29:
+                if ftype == TType.STRING:
+                    self.UDFModulePath = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
             else:
@@ -4002,26 +4106,26 @@ class ExecuteSqlResp(object):
         if self.paths is not None:
             oprot.writeFieldBegin('paths', TType.LIST, 3)
             oprot.writeListBegin(TType.STRING, len(self.paths))
-            for iter604 in self.paths:
-                oprot.writeString(iter604.encode('utf-8') if sys.version_info[0] == 2 else iter604)
+            for iter618 in self.paths:
+                oprot.writeString(iter618.encode('utf-8') if sys.version_info[0] == 2 else iter618)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.tagsList is not None:
             oprot.writeFieldBegin('tagsList', TType.LIST, 4)
             oprot.writeListBegin(TType.MAP, len(self.tagsList))
-            for iter605 in self.tagsList:
-                oprot.writeMapBegin(TType.STRING, TType.STRING, len(iter605))
-                for kiter606, viter607 in iter605.items():
-                    oprot.writeString(kiter606.encode('utf-8') if sys.version_info[0] == 2 else kiter606)
-                    oprot.writeString(viter607.encode('utf-8') if sys.version_info[0] == 2 else viter607)
+            for iter619 in self.tagsList:
+                oprot.writeMapBegin(TType.STRING, TType.STRING, len(iter619))
+                for kiter620, viter621 in iter619.items():
+                    oprot.writeString(kiter620.encode('utf-8') if sys.version_info[0] == 2 else kiter620)
+                    oprot.writeString(viter621.encode('utf-8') if sys.version_info[0] == 2 else viter621)
                 oprot.writeMapEnd()
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.dataTypeList is not None:
             oprot.writeFieldBegin('dataTypeList', TType.LIST, 5)
             oprot.writeListBegin(TType.I32, len(self.dataTypeList))
-            for iter608 in self.dataTypeList:
-                oprot.writeI32(iter608)
+            for iter622 in self.dataTypeList:
+                oprot.writeI32(iter622)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.queryDataSet is not None:
@@ -4071,22 +4175,22 @@ class ExecuteSqlResp(object):
         if self.iginxInfos is not None:
             oprot.writeFieldBegin('iginxInfos', TType.LIST, 17)
             oprot.writeListBegin(TType.STRUCT, len(self.iginxInfos))
-            for iter609 in self.iginxInfos:
-                iter609.write(oprot)
+            for iter623 in self.iginxInfos:
+                iter623.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.storageEngineInfos is not None:
             oprot.writeFieldBegin('storageEngineInfos', TType.LIST, 18)
             oprot.writeListBegin(TType.STRUCT, len(self.storageEngineInfos))
-            for iter610 in self.storageEngineInfos:
-                iter610.write(oprot)
+            for iter624 in self.storageEngineInfos:
+                iter624.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.metaStorageInfos is not None:
             oprot.writeFieldBegin('metaStorageInfos', TType.LIST, 19)
             oprot.writeListBegin(TType.STRUCT, len(self.metaStorageInfos))
-            for iter611 in self.metaStorageInfos:
-                iter611.write(oprot)
+            for iter625 in self.metaStorageInfos:
+                iter625.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.localMetaStorageInfo is not None:
@@ -4096,8 +4200,8 @@ class ExecuteSqlResp(object):
         if self.registerTaskInfos is not None:
             oprot.writeFieldBegin('registerTaskInfos', TType.LIST, 21)
             oprot.writeListBegin(TType.STRUCT, len(self.registerTaskInfos))
-            for iter612 in self.registerTaskInfos:
-                iter612.write(oprot)
+            for iter626 in self.registerTaskInfos:
+                iter626.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.jobId is not None:
@@ -4111,13 +4215,17 @@ class ExecuteSqlResp(object):
         if self.jobIdList is not None:
             oprot.writeFieldBegin('jobIdList', TType.LIST, 24)
             oprot.writeListBegin(TType.I64, len(self.jobIdList))
-            for iter613 in self.jobIdList:
-                oprot.writeI64(iter613)
+            for iter627 in self.jobIdList:
+                oprot.writeI64(iter627)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
-        if self.configValue is not None:
-            oprot.writeFieldBegin('configValue', TType.STRING, 25)
-            oprot.writeString(self.configValue.encode('utf-8') if sys.version_info[0] == 2 else self.configValue)
+        if self.configs is not None:
+            oprot.writeFieldBegin('configs', TType.MAP, 25)
+            oprot.writeMapBegin(TType.STRING, TType.STRING, len(self.configs))
+            for kiter628, viter629 in self.configs.items():
+                oprot.writeString(kiter628.encode('utf-8') if sys.version_info[0] == 2 else kiter628)
+                oprot.writeString(viter629.encode('utf-8') if sys.version_info[0] == 2 else viter629)
+            oprot.writeMapEnd()
             oprot.writeFieldEnd()
         if self.loadCsvPath is not None:
             oprot.writeFieldBegin('loadCsvPath', TType.STRING, 26)
@@ -4126,9 +4234,21 @@ class ExecuteSqlResp(object):
         if self.sessionIDList is not None:
             oprot.writeFieldBegin('sessionIDList', TType.LIST, 27)
             oprot.writeListBegin(TType.I64, len(self.sessionIDList))
-            for iter614 in self.sessionIDList:
-                oprot.writeI64(iter614)
+            for iter630 in self.sessionIDList:
+                oprot.writeI64(iter630)
             oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.rules is not None:
+            oprot.writeFieldBegin('rules', TType.MAP, 28)
+            oprot.writeMapBegin(TType.STRING, TType.BOOL, len(self.rules))
+            for kiter631, viter632 in self.rules.items():
+                oprot.writeString(kiter631.encode('utf-8') if sys.version_info[0] == 2 else kiter631)
+                oprot.writeBool(viter632)
+            oprot.writeMapEnd()
+            oprot.writeFieldEnd()
+        if self.UDFModulePath is not None:
+            oprot.writeFieldBegin('UDFModulePath', TType.STRING, 29)
+            oprot.writeString(self.UDFModulePath.encode('utf-8') if sys.version_info[0] == 2 else self.UDFModulePath)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -4196,10 +4316,10 @@ class UpdateUserReq(object):
             elif fid == 4:
                 if ftype == TType.SET:
                     self.auths = set()
-                    (_etype618, _size615) = iprot.readSetBegin()
-                    for _i619 in range(_size615):
-                        _elem620 = iprot.readI32()
-                        self.auths.add(_elem620)
+                    (_etype636, _size633) = iprot.readSetBegin()
+                    for _i637 in range(_size633):
+                        _elem638 = iprot.readI32()
+                        self.auths.add(_elem638)
                     iprot.readSetEnd()
                 else:
                     iprot.skip(ftype)
@@ -4228,8 +4348,8 @@ class UpdateUserReq(object):
         if self.auths is not None:
             oprot.writeFieldBegin('auths', TType.SET, 4)
             oprot.writeSetBegin(TType.I32, len(self.auths))
-            for iter621 in self.auths:
-                oprot.writeI32(iter621)
+            for iter639 in self.auths:
+                oprot.writeI32(iter639)
             oprot.writeSetEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -4298,10 +4418,10 @@ class AddUserReq(object):
             elif fid == 4:
                 if ftype == TType.SET:
                     self.auths = set()
-                    (_etype625, _size622) = iprot.readSetBegin()
-                    for _i626 in range(_size622):
-                        _elem627 = iprot.readI32()
-                        self.auths.add(_elem627)
+                    (_etype643, _size640) = iprot.readSetBegin()
+                    for _i644 in range(_size640):
+                        _elem645 = iprot.readI32()
+                        self.auths.add(_elem645)
                     iprot.readSetEnd()
                 else:
                     iprot.skip(ftype)
@@ -4330,8 +4450,8 @@ class AddUserReq(object):
         if self.auths is not None:
             oprot.writeFieldBegin('auths', TType.SET, 4)
             oprot.writeSetBegin(TType.I32, len(self.auths))
-            for iter628 in self.auths:
-                oprot.writeI32(iter628)
+            for iter646 in self.auths:
+                oprot.writeI32(iter646)
             oprot.writeSetEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -4462,10 +4582,10 @@ class GetUserReq(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.usernames = []
-                    (_etype632, _size629) = iprot.readListBegin()
-                    for _i633 in range(_size629):
-                        _elem634 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.usernames.append(_elem634)
+                    (_etype650, _size647) = iprot.readListBegin()
+                    for _i651 in range(_size647):
+                        _elem652 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.usernames.append(_elem652)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -4486,8 +4606,8 @@ class GetUserReq(object):
         if self.usernames is not None:
             oprot.writeFieldBegin('usernames', TType.LIST, 2)
             oprot.writeListBegin(TType.STRING, len(self.usernames))
-            for iter635 in self.usernames:
-                oprot.writeString(iter635.encode('utf-8') if sys.version_info[0] == 2 else iter635)
+            for iter653 in self.usernames:
+                oprot.writeString(iter653.encode('utf-8') if sys.version_info[0] == 2 else iter653)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -4545,35 +4665,35 @@ class GetUserResp(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.usernames = []
-                    (_etype639, _size636) = iprot.readListBegin()
-                    for _i640 in range(_size636):
-                        _elem641 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.usernames.append(_elem641)
+                    (_etype657, _size654) = iprot.readListBegin()
+                    for _i658 in range(_size654):
+                        _elem659 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.usernames.append(_elem659)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 3:
                 if ftype == TType.LIST:
                     self.userTypes = []
-                    (_etype645, _size642) = iprot.readListBegin()
-                    for _i646 in range(_size642):
-                        _elem647 = iprot.readI32()
-                        self.userTypes.append(_elem647)
+                    (_etype663, _size660) = iprot.readListBegin()
+                    for _i664 in range(_size660):
+                        _elem665 = iprot.readI32()
+                        self.userTypes.append(_elem665)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 4:
                 if ftype == TType.LIST:
                     self.auths = []
-                    (_etype651, _size648) = iprot.readListBegin()
-                    for _i652 in range(_size648):
-                        _elem653 = set()
-                        (_etype657, _size654) = iprot.readSetBegin()
-                        for _i658 in range(_size654):
-                            _elem659 = iprot.readI32()
-                            _elem653.add(_elem659)
+                    (_etype669, _size666) = iprot.readListBegin()
+                    for _i670 in range(_size666):
+                        _elem671 = set()
+                        (_etype675, _size672) = iprot.readSetBegin()
+                        for _i676 in range(_size672):
+                            _elem677 = iprot.readI32()
+                            _elem671.add(_elem677)
                         iprot.readSetEnd()
-                        self.auths.append(_elem653)
+                        self.auths.append(_elem671)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -4594,24 +4714,24 @@ class GetUserResp(object):
         if self.usernames is not None:
             oprot.writeFieldBegin('usernames', TType.LIST, 2)
             oprot.writeListBegin(TType.STRING, len(self.usernames))
-            for iter660 in self.usernames:
-                oprot.writeString(iter660.encode('utf-8') if sys.version_info[0] == 2 else iter660)
+            for iter678 in self.usernames:
+                oprot.writeString(iter678.encode('utf-8') if sys.version_info[0] == 2 else iter678)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.userTypes is not None:
             oprot.writeFieldBegin('userTypes', TType.LIST, 3)
             oprot.writeListBegin(TType.I32, len(self.userTypes))
-            for iter661 in self.userTypes:
-                oprot.writeI32(iter661)
+            for iter679 in self.userTypes:
+                oprot.writeI32(iter679)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.auths is not None:
             oprot.writeFieldBegin('auths', TType.LIST, 4)
             oprot.writeListBegin(TType.SET, len(self.auths))
-            for iter662 in self.auths:
-                oprot.writeSetBegin(TType.I32, len(iter662))
-                for iter663 in iter662:
-                    oprot.writeI32(iter663)
+            for iter680 in self.auths:
+                oprot.writeSetBegin(TType.I32, len(iter680))
+                for iter681 in iter680:
+                    oprot.writeI32(iter681)
                 oprot.writeSetEnd()
             oprot.writeListEnd()
             oprot.writeFieldEnd()
@@ -5080,33 +5200,33 @@ class GetClusterInfoResp(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.iginxInfos = []
-                    (_etype667, _size664) = iprot.readListBegin()
-                    for _i668 in range(_size664):
-                        _elem669 = IginxInfo()
-                        _elem669.read(iprot)
-                        self.iginxInfos.append(_elem669)
+                    (_etype685, _size682) = iprot.readListBegin()
+                    for _i686 in range(_size682):
+                        _elem687 = IginxInfo()
+                        _elem687.read(iprot)
+                        self.iginxInfos.append(_elem687)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 3:
                 if ftype == TType.LIST:
                     self.storageEngineInfos = []
-                    (_etype673, _size670) = iprot.readListBegin()
-                    for _i674 in range(_size670):
-                        _elem675 = StorageEngineInfo()
-                        _elem675.read(iprot)
-                        self.storageEngineInfos.append(_elem675)
+                    (_etype691, _size688) = iprot.readListBegin()
+                    for _i692 in range(_size688):
+                        _elem693 = StorageEngineInfo()
+                        _elem693.read(iprot)
+                        self.storageEngineInfos.append(_elem693)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 4:
                 if ftype == TType.LIST:
                     self.metaStorageInfos = []
-                    (_etype679, _size676) = iprot.readListBegin()
-                    for _i680 in range(_size676):
-                        _elem681 = MetaStorageInfo()
-                        _elem681.read(iprot)
-                        self.metaStorageInfos.append(_elem681)
+                    (_etype697, _size694) = iprot.readListBegin()
+                    for _i698 in range(_size694):
+                        _elem699 = MetaStorageInfo()
+                        _elem699.read(iprot)
+                        self.metaStorageInfos.append(_elem699)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -5133,22 +5253,22 @@ class GetClusterInfoResp(object):
         if self.iginxInfos is not None:
             oprot.writeFieldBegin('iginxInfos', TType.LIST, 2)
             oprot.writeListBegin(TType.STRUCT, len(self.iginxInfos))
-            for iter682 in self.iginxInfos:
-                iter682.write(oprot)
+            for iter700 in self.iginxInfos:
+                iter700.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.storageEngineInfos is not None:
             oprot.writeFieldBegin('storageEngineInfos', TType.LIST, 3)
             oprot.writeListBegin(TType.STRUCT, len(self.storageEngineInfos))
-            for iter683 in self.storageEngineInfos:
-                iter683.write(oprot)
+            for iter701 in self.storageEngineInfos:
+                iter701.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.metaStorageInfos is not None:
             oprot.writeFieldBegin('metaStorageInfos', TType.LIST, 4)
             oprot.writeListBegin(TType.STRUCT, len(self.metaStorageInfos))
-            for iter684 in self.metaStorageInfos:
-                iter684.write(oprot)
+            for iter702 in self.metaStorageInfos:
+                iter702.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.localMetaStorageInfo is not None:
@@ -5326,36 +5446,36 @@ class ExecuteStatementResp(object):
             elif fid == 4:
                 if ftype == TType.LIST:
                     self.columns = []
-                    (_etype688, _size685) = iprot.readListBegin()
-                    for _i689 in range(_size685):
-                        _elem690 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.columns.append(_elem690)
+                    (_etype706, _size703) = iprot.readListBegin()
+                    for _i707 in range(_size703):
+                        _elem708 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.columns.append(_elem708)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 5:
                 if ftype == TType.LIST:
                     self.tagsList = []
-                    (_etype694, _size691) = iprot.readListBegin()
-                    for _i695 in range(_size691):
-                        _elem696 = {}
-                        (_ktype698, _vtype699, _size697) = iprot.readMapBegin()
-                        for _i701 in range(_size697):
-                            _key702 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                            _val703 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                            _elem696[_key702] = _val703
+                    (_etype712, _size709) = iprot.readListBegin()
+                    for _i713 in range(_size709):
+                        _elem714 = {}
+                        (_ktype716, _vtype717, _size715) = iprot.readMapBegin()
+                        for _i719 in range(_size715):
+                            _key720 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                            _val721 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                            _elem714[_key720] = _val721
                         iprot.readMapEnd()
-                        self.tagsList.append(_elem696)
+                        self.tagsList.append(_elem714)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 6:
                 if ftype == TType.LIST:
                     self.dataTypeList = []
-                    (_etype707, _size704) = iprot.readListBegin()
-                    for _i708 in range(_size704):
-                        _elem709 = iprot.readI32()
-                        self.dataTypeList.append(_elem709)
+                    (_etype725, _size722) = iprot.readListBegin()
+                    for _i726 in range(_size722):
+                        _elem727 = iprot.readI32()
+                        self.dataTypeList.append(_elem727)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -5406,26 +5526,26 @@ class ExecuteStatementResp(object):
         if self.columns is not None:
             oprot.writeFieldBegin('columns', TType.LIST, 4)
             oprot.writeListBegin(TType.STRING, len(self.columns))
-            for iter710 in self.columns:
-                oprot.writeString(iter710.encode('utf-8') if sys.version_info[0] == 2 else iter710)
+            for iter728 in self.columns:
+                oprot.writeString(iter728.encode('utf-8') if sys.version_info[0] == 2 else iter728)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.tagsList is not None:
             oprot.writeFieldBegin('tagsList', TType.LIST, 5)
             oprot.writeListBegin(TType.MAP, len(self.tagsList))
-            for iter711 in self.tagsList:
-                oprot.writeMapBegin(TType.STRING, TType.STRING, len(iter711))
-                for kiter712, viter713 in iter711.items():
-                    oprot.writeString(kiter712.encode('utf-8') if sys.version_info[0] == 2 else kiter712)
-                    oprot.writeString(viter713.encode('utf-8') if sys.version_info[0] == 2 else viter713)
+            for iter729 in self.tagsList:
+                oprot.writeMapBegin(TType.STRING, TType.STRING, len(iter729))
+                for kiter730, viter731 in iter729.items():
+                    oprot.writeString(kiter730.encode('utf-8') if sys.version_info[0] == 2 else kiter730)
+                    oprot.writeString(viter731.encode('utf-8') if sys.version_info[0] == 2 else viter731)
                 oprot.writeMapEnd()
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.dataTypeList is not None:
             oprot.writeFieldBegin('dataTypeList', TType.LIST, 6)
             oprot.writeListBegin(TType.I32, len(self.dataTypeList))
-            for iter714 in self.dataTypeList:
-                oprot.writeI32(iter714)
+            for iter732 in self.dataTypeList:
+                oprot.writeI32(iter732)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.queryDataSet is not None:
@@ -5628,20 +5748,20 @@ class QueryDataSetV2(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.valuesList = []
-                    (_etype718, _size715) = iprot.readListBegin()
-                    for _i719 in range(_size715):
-                        _elem720 = iprot.readBinary()
-                        self.valuesList.append(_elem720)
+                    (_etype736, _size733) = iprot.readListBegin()
+                    for _i737 in range(_size733):
+                        _elem738 = iprot.readBinary()
+                        self.valuesList.append(_elem738)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.bitmapList = []
-                    (_etype724, _size721) = iprot.readListBegin()
-                    for _i725 in range(_size721):
-                        _elem726 = iprot.readBinary()
-                        self.bitmapList.append(_elem726)
+                    (_etype742, _size739) = iprot.readListBegin()
+                    for _i743 in range(_size739):
+                        _elem744 = iprot.readBinary()
+                        self.bitmapList.append(_elem744)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -5658,15 +5778,15 @@ class QueryDataSetV2(object):
         if self.valuesList is not None:
             oprot.writeFieldBegin('valuesList', TType.LIST, 1)
             oprot.writeListBegin(TType.STRING, len(self.valuesList))
-            for iter727 in self.valuesList:
-                oprot.writeBinary(iter727)
+            for iter745 in self.valuesList:
+                oprot.writeBinary(iter745)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.bitmapList is not None:
             oprot.writeFieldBegin('bitmapList', TType.LIST, 2)
             oprot.writeListBegin(TType.STRING, len(self.bitmapList))
-            for iter728 in self.bitmapList:
-                oprot.writeBinary(iter728)
+            for iter746 in self.bitmapList:
+                oprot.writeBinary(iter746)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -6062,10 +6182,10 @@ class LoadCSVResp(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.columns = []
-                    (_etype732, _size729) = iprot.readListBegin()
-                    for _i733 in range(_size729):
-                        _elem734 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.columns.append(_elem734)
+                    (_etype750, _size747) = iprot.readListBegin()
+                    for _i751 in range(_size747):
+                        _elem752 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.columns.append(_elem752)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -6096,8 +6216,8 @@ class LoadCSVResp(object):
         if self.columns is not None:
             oprot.writeFieldBegin('columns', TType.LIST, 2)
             oprot.writeListBegin(TType.STRING, len(self.columns))
-            for iter735 in self.columns:
-                oprot.writeString(iter735.encode('utf-8') if sys.version_info[0] == 2 else iter735)
+            for iter753 in self.columns:
+                oprot.writeString(iter753.encode('utf-8') if sys.version_info[0] == 2 else iter753)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.recordsNum is not None:
@@ -6107,6 +6227,184 @@ class LoadCSVResp(object):
         if self.parseErrorMsg is not None:
             oprot.writeFieldBegin('parseErrorMsg', TType.STRING, 4)
             oprot.writeString(self.parseErrorMsg.encode('utf-8') if sys.version_info[0] == 2 else self.parseErrorMsg)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.status is None:
+            raise TProtocolException(message='Required field status is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class LoadUDFReq(object):
+    """
+    Attributes:
+     - sessionId
+     - statement
+     - udfFile
+     - isRemote
+
+    """
+
+
+    def __init__(self, sessionId=None, statement=None, udfFile=None, isRemote=None,):
+        self.sessionId = sessionId
+        self.statement = statement
+        self.udfFile = udfFile
+        self.isRemote = isRemote
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I64:
+                    self.sessionId = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.statement = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.udfFile = iprot.readBinary()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 4:
+                if ftype == TType.BOOL:
+                    self.isRemote = iprot.readBool()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('LoadUDFReq')
+        if self.sessionId is not None:
+            oprot.writeFieldBegin('sessionId', TType.I64, 1)
+            oprot.writeI64(self.sessionId)
+            oprot.writeFieldEnd()
+        if self.statement is not None:
+            oprot.writeFieldBegin('statement', TType.STRING, 2)
+            oprot.writeString(self.statement.encode('utf-8') if sys.version_info[0] == 2 else self.statement)
+            oprot.writeFieldEnd()
+        if self.udfFile is not None:
+            oprot.writeFieldBegin('udfFile', TType.STRING, 3)
+            oprot.writeBinary(self.udfFile)
+            oprot.writeFieldEnd()
+        if self.isRemote is not None:
+            oprot.writeFieldBegin('isRemote', TType.BOOL, 4)
+            oprot.writeBool(self.isRemote)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.sessionId is None:
+            raise TProtocolException(message='Required field sessionId is unset!')
+        if self.statement is None:
+            raise TProtocolException(message='Required field statement is unset!')
+        if self.isRemote is None:
+            raise TProtocolException(message='Required field isRemote is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class LoadUDFResp(object):
+    """
+    Attributes:
+     - status
+     - parseErrorMsg
+     - UDFModulePath
+
+    """
+
+
+    def __init__(self, status=None, parseErrorMsg=None, UDFModulePath=None,):
+        self.status = status
+        self.parseErrorMsg = parseErrorMsg
+        self.UDFModulePath = UDFModulePath
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.status = Status()
+                    self.status.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.STRING:
+                    self.parseErrorMsg = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.STRING:
+                    self.UDFModulePath = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('LoadUDFResp')
+        if self.status is not None:
+            oprot.writeFieldBegin('status', TType.STRUCT, 1)
+            self.status.write(oprot)
+            oprot.writeFieldEnd()
+        if self.parseErrorMsg is not None:
+            oprot.writeFieldBegin('parseErrorMsg', TType.STRING, 2)
+            oprot.writeString(self.parseErrorMsg.encode('utf-8') if sys.version_info[0] == 2 else self.parseErrorMsg)
+            oprot.writeFieldEnd()
+        if self.UDFModulePath is not None:
+            oprot.writeFieldBegin('UDFModulePath', TType.STRING, 3)
+            oprot.writeString(self.UDFModulePath.encode('utf-8') if sys.version_info[0] == 2 else self.UDFModulePath)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -6174,10 +6472,10 @@ class TaskInfo(object):
             elif fid == 4:
                 if ftype == TType.LIST:
                     self.sqlList = []
-                    (_etype739, _size736) = iprot.readListBegin()
-                    for _i740 in range(_size736):
-                        _elem741 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.sqlList.append(_elem741)
+                    (_etype757, _size754) = iprot.readListBegin()
+                    for _i758 in range(_size754):
+                        _elem759 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.sqlList.append(_elem759)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -6211,8 +6509,8 @@ class TaskInfo(object):
         if self.sqlList is not None:
             oprot.writeFieldBegin('sqlList', TType.LIST, 4)
             oprot.writeListBegin(TType.STRING, len(self.sqlList))
-            for iter742 in self.sqlList:
-                oprot.writeString(iter742.encode('utf-8') if sys.version_info[0] == 2 else iter742)
+            for iter760 in self.sqlList:
+                oprot.writeString(iter760.encode('utf-8') if sys.version_info[0] == 2 else iter760)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.pyTaskName is not None:
@@ -6275,11 +6573,11 @@ class CommitTransformJobReq(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.taskList = []
-                    (_etype746, _size743) = iprot.readListBegin()
-                    for _i747 in range(_size743):
-                        _elem748 = TaskInfo()
-                        _elem748.read(iprot)
-                        self.taskList.append(_elem748)
+                    (_etype764, _size761) = iprot.readListBegin()
+                    for _i765 in range(_size761):
+                        _elem766 = TaskInfo()
+                        _elem766.read(iprot)
+                        self.taskList.append(_elem766)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -6310,8 +6608,8 @@ class CommitTransformJobReq(object):
         if self.taskList is not None:
             oprot.writeFieldBegin('taskList', TType.LIST, 2)
             oprot.writeListBegin(TType.STRUCT, len(self.taskList))
-            for iter749 in self.taskList:
-                iter749.write(oprot)
+            for iter767 in self.taskList:
+                iter767.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.exportType is not None:
@@ -6667,10 +6965,10 @@ class ShowEligibleJobResp(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.jobIdList = []
-                    (_etype753, _size750) = iprot.readListBegin()
-                    for _i754 in range(_size750):
-                        _elem755 = iprot.readI64()
-                        self.jobIdList.append(_elem755)
+                    (_etype771, _size768) = iprot.readListBegin()
+                    for _i772 in range(_size768):
+                        _elem773 = iprot.readI64()
+                        self.jobIdList.append(_elem773)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -6691,8 +6989,8 @@ class ShowEligibleJobResp(object):
         if self.jobIdList is not None:
             oprot.writeFieldBegin('jobIdList', TType.LIST, 2)
             oprot.writeListBegin(TType.I64, len(self.jobIdList))
-            for iter756 in self.jobIdList:
-                oprot.writeI64(iter756)
+            for iter774 in self.jobIdList:
+                oprot.writeI64(iter774)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -6793,20 +7091,22 @@ class RegisterTaskReq(object):
     """
     Attributes:
      - sessionId
-     - name
      - filePath
-     - className
-     - type
+     - UDFClassPairs
+     - types
+     - moduleFile
+     - isRemote
 
     """
 
 
-    def __init__(self, sessionId=None, name=None, filePath=None, className=None, type=None,):
+    def __init__(self, sessionId=None, filePath=None, UDFClassPairs=None, types=None, moduleFile=None, isRemote=None,):
         self.sessionId = sessionId
-        self.name = name
         self.filePath = filePath
-        self.className = className
-        self.type = type
+        self.UDFClassPairs = UDFClassPairs
+        self.types = types
+        self.moduleFile = moduleFile
+        self.isRemote = isRemote
 
     def read(self, iprot):
         if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
@@ -6824,22 +7124,38 @@ class RegisterTaskReq(object):
                     iprot.skip(ftype)
             elif fid == 2:
                 if ftype == TType.STRING:
-                    self.name = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                else:
-                    iprot.skip(ftype)
-            elif fid == 3:
-                if ftype == TType.STRING:
                     self.filePath = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
                 else:
                     iprot.skip(ftype)
+            elif fid == 3:
+                if ftype == TType.LIST:
+                    self.UDFClassPairs = []
+                    (_etype778, _size775) = iprot.readListBegin()
+                    for _i779 in range(_size775):
+                        _elem780 = UDFClassPair()
+                        _elem780.read(iprot)
+                        self.UDFClassPairs.append(_elem780)
+                    iprot.readListEnd()
+                else:
+                    iprot.skip(ftype)
             elif fid == 4:
-                if ftype == TType.STRING:
-                    self.className = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                if ftype == TType.LIST:
+                    self.types = []
+                    (_etype784, _size781) = iprot.readListBegin()
+                    for _i785 in range(_size781):
+                        _elem786 = iprot.readI32()
+                        self.types.append(_elem786)
+                    iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 5:
-                if ftype == TType.I32:
-                    self.type = iprot.readI32()
+                if ftype == TType.STRING:
+                    self.moduleFile = iprot.readBinary()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 6:
+                if ftype == TType.BOOL:
+                    self.isRemote = iprot.readBool()
                 else:
                     iprot.skip(ftype)
             else:
@@ -6856,21 +7172,31 @@ class RegisterTaskReq(object):
             oprot.writeFieldBegin('sessionId', TType.I64, 1)
             oprot.writeI64(self.sessionId)
             oprot.writeFieldEnd()
-        if self.name is not None:
-            oprot.writeFieldBegin('name', TType.STRING, 2)
-            oprot.writeString(self.name.encode('utf-8') if sys.version_info[0] == 2 else self.name)
-            oprot.writeFieldEnd()
         if self.filePath is not None:
-            oprot.writeFieldBegin('filePath', TType.STRING, 3)
+            oprot.writeFieldBegin('filePath', TType.STRING, 2)
             oprot.writeString(self.filePath.encode('utf-8') if sys.version_info[0] == 2 else self.filePath)
             oprot.writeFieldEnd()
-        if self.className is not None:
-            oprot.writeFieldBegin('className', TType.STRING, 4)
-            oprot.writeString(self.className.encode('utf-8') if sys.version_info[0] == 2 else self.className)
+        if self.UDFClassPairs is not None:
+            oprot.writeFieldBegin('UDFClassPairs', TType.LIST, 3)
+            oprot.writeListBegin(TType.STRUCT, len(self.UDFClassPairs))
+            for iter787 in self.UDFClassPairs:
+                iter787.write(oprot)
+            oprot.writeListEnd()
             oprot.writeFieldEnd()
-        if self.type is not None:
-            oprot.writeFieldBegin('type', TType.I32, 5)
-            oprot.writeI32(self.type)
+        if self.types is not None:
+            oprot.writeFieldBegin('types', TType.LIST, 4)
+            oprot.writeListBegin(TType.I32, len(self.types))
+            for iter788 in self.types:
+                oprot.writeI32(iter788)
+            oprot.writeListEnd()
+            oprot.writeFieldEnd()
+        if self.moduleFile is not None:
+            oprot.writeFieldBegin('moduleFile', TType.STRING, 5)
+            oprot.writeBinary(self.moduleFile)
+            oprot.writeFieldEnd()
+        if self.isRemote is not None:
+            oprot.writeFieldBegin('isRemote', TType.BOOL, 6)
+            oprot.writeBool(self.isRemote)
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
         oprot.writeStructEnd()
@@ -6878,14 +7204,16 @@ class RegisterTaskReq(object):
     def validate(self):
         if self.sessionId is None:
             raise TProtocolException(message='Required field sessionId is unset!')
-        if self.name is None:
-            raise TProtocolException(message='Required field name is unset!')
         if self.filePath is None:
             raise TProtocolException(message='Required field filePath is unset!')
-        if self.className is None:
-            raise TProtocolException(message='Required field className is unset!')
-        if self.type is None:
-            raise TProtocolException(message='Required field type is unset!')
+        if self.UDFClassPairs is None:
+            raise TProtocolException(message='Required field UDFClassPairs is unset!')
+        if self.types is None:
+            raise TProtocolException(message='Required field types is unset!')
+        if self.moduleFile is None:
+            raise TProtocolException(message='Required field moduleFile is unset!')
+        if self.isRemote is None:
+            raise TProtocolException(message='Required field isRemote is unset!')
         return
 
     def __repr__(self):
@@ -7173,11 +7501,11 @@ class GetRegisterTaskInfoResp(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.registerTaskInfoList = []
-                    (_etype760, _size757) = iprot.readListBegin()
-                    for _i761 in range(_size757):
-                        _elem762 = RegisterTaskInfo()
-                        _elem762.read(iprot)
-                        self.registerTaskInfoList.append(_elem762)
+                    (_etype792, _size789) = iprot.readListBegin()
+                    for _i793 in range(_size789):
+                        _elem794 = RegisterTaskInfo()
+                        _elem794.read(iprot)
+                        self.registerTaskInfoList.append(_elem794)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -7198,8 +7526,8 @@ class GetRegisterTaskInfoResp(object):
         if self.registerTaskInfoList is not None:
             oprot.writeFieldBegin('registerTaskInfoList', TType.LIST, 2)
             oprot.writeListBegin(TType.STRUCT, len(self.registerTaskInfoList))
-            for iter763 in self.registerTaskInfoList:
-                iter763.write(oprot)
+            for iter795 in self.registerTaskInfoList:
+                iter795.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -7260,10 +7588,10 @@ class CurveMatchReq(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.paths = []
-                    (_etype767, _size764) = iprot.readListBegin()
-                    for _i768 in range(_size764):
-                        _elem769 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
-                        self.paths.append(_elem769)
+                    (_etype799, _size796) = iprot.readListBegin()
+                    for _i800 in range(_size796):
+                        _elem801 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        self.paths.append(_elem801)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -7280,10 +7608,10 @@ class CurveMatchReq(object):
             elif fid == 5:
                 if ftype == TType.LIST:
                     self.curveQuery = []
-                    (_etype773, _size770) = iprot.readListBegin()
-                    for _i774 in range(_size770):
-                        _elem775 = iprot.readDouble()
-                        self.curveQuery.append(_elem775)
+                    (_etype805, _size802) = iprot.readListBegin()
+                    for _i806 in range(_size802):
+                        _elem807 = iprot.readDouble()
+                        self.curveQuery.append(_elem807)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -7309,8 +7637,8 @@ class CurveMatchReq(object):
         if self.paths is not None:
             oprot.writeFieldBegin('paths', TType.LIST, 2)
             oprot.writeListBegin(TType.STRING, len(self.paths))
-            for iter776 in self.paths:
-                oprot.writeString(iter776.encode('utf-8') if sys.version_info[0] == 2 else iter776)
+            for iter808 in self.paths:
+                oprot.writeString(iter808.encode('utf-8') if sys.version_info[0] == 2 else iter808)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.startKey is not None:
@@ -7324,8 +7652,8 @@ class CurveMatchReq(object):
         if self.curveQuery is not None:
             oprot.writeFieldBegin('curveQuery', TType.LIST, 5)
             oprot.writeListBegin(TType.DOUBLE, len(self.curveQuery))
-            for iter777 in self.curveQuery:
-                oprot.writeDouble(iter777)
+            for iter809 in self.curveQuery:
+                oprot.writeDouble(iter809)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.curveUnit is not None:
@@ -7824,33 +8152,33 @@ class GetMetaResp(object):
             if fid == 1:
                 if ftype == TType.LIST:
                     self.fragments = []
-                    (_etype781, _size778) = iprot.readListBegin()
-                    for _i782 in range(_size778):
-                        _elem783 = Fragment()
-                        _elem783.read(iprot)
-                        self.fragments.append(_elem783)
+                    (_etype813, _size810) = iprot.readListBegin()
+                    for _i814 in range(_size810):
+                        _elem815 = Fragment()
+                        _elem815.read(iprot)
+                        self.fragments.append(_elem815)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.storages = []
-                    (_etype787, _size784) = iprot.readListBegin()
-                    for _i788 in range(_size784):
-                        _elem789 = Storage()
-                        _elem789.read(iprot)
-                        self.storages.append(_elem789)
+                    (_etype819, _size816) = iprot.readListBegin()
+                    for _i820 in range(_size816):
+                        _elem821 = Storage()
+                        _elem821.read(iprot)
+                        self.storages.append(_elem821)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
             elif fid == 3:
                 if ftype == TType.LIST:
                     self.storageUnits = []
-                    (_etype793, _size790) = iprot.readListBegin()
-                    for _i794 in range(_size790):
-                        _elem795 = StorageUnit()
-                        _elem795.read(iprot)
-                        self.storageUnits.append(_elem795)
+                    (_etype825, _size822) = iprot.readListBegin()
+                    for _i826 in range(_size822):
+                        _elem827 = StorageUnit()
+                        _elem827.read(iprot)
+                        self.storageUnits.append(_elem827)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -7867,22 +8195,22 @@ class GetMetaResp(object):
         if self.fragments is not None:
             oprot.writeFieldBegin('fragments', TType.LIST, 1)
             oprot.writeListBegin(TType.STRUCT, len(self.fragments))
-            for iter796 in self.fragments:
-                iter796.write(oprot)
+            for iter828 in self.fragments:
+                iter828.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.storages is not None:
             oprot.writeFieldBegin('storages', TType.LIST, 2)
             oprot.writeListBegin(TType.STRUCT, len(self.storages))
-            for iter797 in self.storages:
-                iter797.write(oprot)
+            for iter829 in self.storages:
+                iter829.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         if self.storageUnits is not None:
             oprot.writeFieldBegin('storageUnits', TType.LIST, 3)
             oprot.writeListBegin(TType.STRUCT, len(self.storageUnits))
-            for iter798 in self.storageUnits:
-                iter798.write(oprot)
+            for iter830 in self.storageUnits:
+                iter830.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -8180,11 +8508,11 @@ class RemoveHistoryDataSourceReq(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.removedStorageEngineInfoList = []
-                    (_etype802, _size799) = iprot.readListBegin()
-                    for _i803 in range(_size799):
-                        _elem804 = RemovedStorageEngineInfo()
-                        _elem804.read(iprot)
-                        self.removedStorageEngineInfoList.append(_elem804)
+                    (_etype834, _size831) = iprot.readListBegin()
+                    for _i835 in range(_size831):
+                        _elem836 = RemovedStorageEngineInfo()
+                        _elem836.read(iprot)
+                        self.removedStorageEngineInfoList.append(_elem836)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -8205,8 +8533,8 @@ class RemoveHistoryDataSourceReq(object):
         if self.removedStorageEngineInfoList is not None:
             oprot.writeFieldBegin('removedStorageEngineInfoList', TType.LIST, 2)
             oprot.writeListBegin(TType.STRUCT, len(self.removedStorageEngineInfoList))
-            for iter805 in self.removedStorageEngineInfoList:
-                iter805.write(oprot)
+            for iter837 in self.removedStorageEngineInfoList:
+                iter837.write(oprot)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -8321,10 +8649,10 @@ class ShowSessionIDResp(object):
             elif fid == 2:
                 if ftype == TType.LIST:
                     self.sessionIDList = []
-                    (_etype809, _size806) = iprot.readListBegin()
-                    for _i810 in range(_size806):
-                        _elem811 = iprot.readI64()
-                        self.sessionIDList.append(_elem811)
+                    (_etype841, _size838) = iprot.readListBegin()
+                    for _i842 in range(_size838):
+                        _elem843 = iprot.readI64()
+                        self.sessionIDList.append(_elem843)
                     iprot.readListEnd()
                 else:
                     iprot.skip(ftype)
@@ -8345,8 +8673,8 @@ class ShowSessionIDResp(object):
         if self.sessionIDList is not None:
             oprot.writeFieldBegin('sessionIDList', TType.LIST, 2)
             oprot.writeListBegin(TType.I64, len(self.sessionIDList))
-            for iter812 in self.sessionIDList:
-                oprot.writeI64(iter812)
+            for iter844 in self.sessionIDList:
+                oprot.writeI64(iter844)
             oprot.writeListEnd()
             oprot.writeFieldEnd()
         oprot.writeFieldStop()
@@ -8369,12 +8697,242 @@ class ShowSessionIDResp(object):
 
     def __ne__(self, other):
         return not (self == other)
+
+
+class ShowRulesReq(object):
+    """
+    Attributes:
+     - sessionId
+
+    """
+
+
+    def __init__(self, sessionId=None,):
+        self.sessionId = sessionId
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I64:
+                    self.sessionId = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('ShowRulesReq')
+        if self.sessionId is not None:
+            oprot.writeFieldBegin('sessionId', TType.I64, 1)
+            oprot.writeI64(self.sessionId)
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.sessionId is None:
+            raise TProtocolException(message='Required field sessionId is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class ShowRulesResp(object):
+    """
+    Attributes:
+     - status
+     - rules
+
+    """
+
+
+    def __init__(self, status=None, rules=None,):
+        self.status = status
+        self.rules = rules
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.STRUCT:
+                    self.status = Status()
+                    self.status.read(iprot)
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.MAP:
+                    self.rules = {}
+                    (_ktype846, _vtype847, _size845) = iprot.readMapBegin()
+                    for _i849 in range(_size845):
+                        _key850 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val851 = iprot.readBool()
+                        self.rules[_key850] = _val851
+                    iprot.readMapEnd()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('ShowRulesResp')
+        if self.status is not None:
+            oprot.writeFieldBegin('status', TType.STRUCT, 1)
+            self.status.write(oprot)
+            oprot.writeFieldEnd()
+        if self.rules is not None:
+            oprot.writeFieldBegin('rules', TType.MAP, 2)
+            oprot.writeMapBegin(TType.STRING, TType.BOOL, len(self.rules))
+            for kiter852, viter853 in self.rules.items():
+                oprot.writeString(kiter852.encode('utf-8') if sys.version_info[0] == 2 else kiter852)
+                oprot.writeBool(viter853)
+            oprot.writeMapEnd()
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.status is None:
+            raise TProtocolException(message='Required field status is unset!')
+        if self.rules is None:
+            raise TProtocolException(message='Required field rules is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
+
+
+class SetRulesReq(object):
+    """
+    Attributes:
+     - sessionId
+     - rulesChange
+
+    """
+
+
+    def __init__(self, sessionId=None, rulesChange=None,):
+        self.sessionId = sessionId
+        self.rulesChange = rulesChange
+
+    def read(self, iprot):
+        if iprot._fast_decode is not None and isinstance(iprot.trans, TTransport.CReadableTransport) and self.thrift_spec is not None:
+            iprot._fast_decode(self, iprot, [self.__class__, self.thrift_spec])
+            return
+        iprot.readStructBegin()
+        while True:
+            (fname, ftype, fid) = iprot.readFieldBegin()
+            if ftype == TType.STOP:
+                break
+            if fid == 1:
+                if ftype == TType.I64:
+                    self.sessionId = iprot.readI64()
+                else:
+                    iprot.skip(ftype)
+            elif fid == 2:
+                if ftype == TType.MAP:
+                    self.rulesChange = {}
+                    (_ktype855, _vtype856, _size854) = iprot.readMapBegin()
+                    for _i858 in range(_size854):
+                        _key859 = iprot.readString().decode('utf-8', errors='replace') if sys.version_info[0] == 2 else iprot.readString()
+                        _val860 = iprot.readBool()
+                        self.rulesChange[_key859] = _val860
+                    iprot.readMapEnd()
+                else:
+                    iprot.skip(ftype)
+            else:
+                iprot.skip(ftype)
+            iprot.readFieldEnd()
+        iprot.readStructEnd()
+
+    def write(self, oprot):
+        if oprot._fast_encode is not None and self.thrift_spec is not None:
+            oprot.trans.write(oprot._fast_encode(self, [self.__class__, self.thrift_spec]))
+            return
+        oprot.writeStructBegin('SetRulesReq')
+        if self.sessionId is not None:
+            oprot.writeFieldBegin('sessionId', TType.I64, 1)
+            oprot.writeI64(self.sessionId)
+            oprot.writeFieldEnd()
+        if self.rulesChange is not None:
+            oprot.writeFieldBegin('rulesChange', TType.MAP, 2)
+            oprot.writeMapBegin(TType.STRING, TType.BOOL, len(self.rulesChange))
+            for kiter861, viter862 in self.rulesChange.items():
+                oprot.writeString(kiter861.encode('utf-8') if sys.version_info[0] == 2 else kiter861)
+                oprot.writeBool(viter862)
+            oprot.writeMapEnd()
+            oprot.writeFieldEnd()
+        oprot.writeFieldStop()
+        oprot.writeStructEnd()
+
+    def validate(self):
+        if self.sessionId is None:
+            raise TProtocolException(message='Required field sessionId is unset!')
+        if self.rulesChange is None:
+            raise TProtocolException(message='Required field rulesChange is unset!')
+        return
+
+    def __repr__(self):
+        L = ['%s=%r' % (key, value)
+             for key, value in self.__dict__.items()]
+        return '%s(%s)' % (self.__class__.__name__, ', '.join(L))
+
+    def __eq__(self, other):
+        return isinstance(other, self.__class__) and self.__dict__ == other.__dict__
+
+    def __ne__(self, other):
+        return not (self == other)
 all_structs.append(Status)
 Status.thrift_spec = (
     None,  # 0
     (1, TType.I32, 'code', None, None, ),  # 1
     (2, TType.STRING, 'message', 'UTF8', None, ),  # 2
     (3, TType.LIST, 'subStatus', (TType.STRUCT, [Status, None], False), None, ),  # 3
+)
+all_structs.append(UDFClassPair)
+UDFClassPair.thrift_spec = (
+    None,  # 0
+    (1, TType.STRING, 'name', 'UTF8', None, ),  # 1
+    (2, TType.STRING, 'classPath', 'UTF8', None, ),  # 2
 )
 all_structs.append(OpenSessionReq)
 OpenSessionReq.thrift_spec = (
@@ -8621,9 +9179,11 @@ ExecuteSqlResp.thrift_spec = (
     (22, TType.I64, 'jobId', None, None, ),  # 22
     (23, TType.I32, 'jobState', None, None, ),  # 23
     (24, TType.LIST, 'jobIdList', (TType.I64, None, False), None, ),  # 24
-    (25, TType.STRING, 'configValue', 'UTF8', None, ),  # 25
+    (25, TType.MAP, 'configs', (TType.STRING, 'UTF8', TType.STRING, 'UTF8', False), None, ),  # 25
     (26, TType.STRING, 'loadCsvPath', 'UTF8', None, ),  # 26
     (27, TType.LIST, 'sessionIDList', (TType.I64, None, False), None, ),  # 27
+    (28, TType.MAP, 'rules', (TType.STRING, 'UTF8', TType.BOOL, None, False), None, ),  # 28
+    (29, TType.STRING, 'UDFModulePath', 'UTF8', None, ),  # 29
 )
 all_structs.append(UpdateUserReq)
 UpdateUserReq.thrift_spec = (
@@ -8779,6 +9339,21 @@ LoadCSVResp.thrift_spec = (
     (3, TType.I64, 'recordsNum', None, None, ),  # 3
     (4, TType.STRING, 'parseErrorMsg', 'UTF8', None, ),  # 4
 )
+all_structs.append(LoadUDFReq)
+LoadUDFReq.thrift_spec = (
+    None,  # 0
+    (1, TType.I64, 'sessionId', None, None, ),  # 1
+    (2, TType.STRING, 'statement', 'UTF8', None, ),  # 2
+    (3, TType.STRING, 'udfFile', 'BINARY', None, ),  # 3
+    (4, TType.BOOL, 'isRemote', None, None, ),  # 4
+)
+all_structs.append(LoadUDFResp)
+LoadUDFResp.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'status', [Status, None], None, ),  # 1
+    (2, TType.STRING, 'parseErrorMsg', 'UTF8', None, ),  # 2
+    (3, TType.STRING, 'UDFModulePath', 'UTF8', None, ),  # 3
+)
 all_structs.append(TaskInfo)
 TaskInfo.thrift_spec = (
     None,  # 0
@@ -8836,10 +9411,11 @@ all_structs.append(RegisterTaskReq)
 RegisterTaskReq.thrift_spec = (
     None,  # 0
     (1, TType.I64, 'sessionId', None, None, ),  # 1
-    (2, TType.STRING, 'name', 'UTF8', None, ),  # 2
-    (3, TType.STRING, 'filePath', 'UTF8', None, ),  # 3
-    (4, TType.STRING, 'className', 'UTF8', None, ),  # 4
-    (5, TType.I32, 'type', None, None, ),  # 5
+    (2, TType.STRING, 'filePath', 'UTF8', None, ),  # 2
+    (3, TType.LIST, 'UDFClassPairs', (TType.STRUCT, [UDFClassPair, None], False), None, ),  # 3
+    (4, TType.LIST, 'types', (TType.I32, None, False), None, ),  # 4
+    (5, TType.STRING, 'moduleFile', 'BINARY', None, ),  # 5
+    (6, TType.BOOL, 'isRemote', None, None, ),  # 6
 )
 all_structs.append(DropTaskReq)
 DropTaskReq.thrift_spec = (
@@ -8956,6 +9532,23 @@ ShowSessionIDResp.thrift_spec = (
     None,  # 0
     (1, TType.STRUCT, 'status', [Status, None], None, ),  # 1
     (2, TType.LIST, 'sessionIDList', (TType.I64, None, False), None, ),  # 2
+)
+all_structs.append(ShowRulesReq)
+ShowRulesReq.thrift_spec = (
+    None,  # 0
+    (1, TType.I64, 'sessionId', None, None, ),  # 1
+)
+all_structs.append(ShowRulesResp)
+ShowRulesResp.thrift_spec = (
+    None,  # 0
+    (1, TType.STRUCT, 'status', [Status, None], None, ),  # 1
+    (2, TType.MAP, 'rules', (TType.STRING, 'UTF8', TType.BOOL, None, False), None, ),  # 2
+)
+all_structs.append(SetRulesReq)
+SetRulesReq.thrift_spec = (
+    None,  # 0
+    (1, TType.I64, 'sessionId', None, None, ),  # 1
+    (2, TType.MAP, 'rulesChange', (TType.STRING, 'UTF8', TType.BOOL, None, False), None, ),  # 2
 )
 fix_spec(all_structs)
 del all_structs

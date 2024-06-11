@@ -1,0 +1,23 @@
+name: "project"
+description: "use maven to get project information in pom.xml"
+inputs:
+    workspace:
+        description: "file paths delimited by space"
+        required: false
+        default: ${{ github.workspace }}
+
+outputs:
+    version:
+        description: "project version"
+        value: ${{ steps.info.outputs.version }}
+
+runs:
+    using: "composite"
+    steps:
+        - name: "information"
+          id: info
+          shell: bash
+          working-directory: ${{ inputs.workspace }}
+          run: |
+              VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+              echo "version=$VERSION" >> $GITHUB_OUTPUT

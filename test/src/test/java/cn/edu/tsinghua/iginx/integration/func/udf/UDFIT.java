@@ -185,7 +185,7 @@ public class UDFIT {
   @Test
   public void baseTests() {
     String udtfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 200;";
-    String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER (RANGE 50 IN [0, 200));";
+    String udafSQLFormat = "SELECT %s(s1) FROM us.d1 OVER WINDOW (size 50 IN [0, 200));";
     String udsfSQLFormat = "SELECT %s(s1) FROM us.d1 WHERE key < 50;";
 
     SessionExecuteSqlResult ret = tool.execute(SHOW_FUNCTION_SQL);

@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.pool;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
 import static java.lang.Math.max;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -985,6 +987,13 @@ public class SessionPool {
     return sessionAggregateQueryDataSet;
   }
 
+  // downsample query without time interval
+  public SessionQueryDataSet downsampleQuery(
+      List<String> paths, AggregateType aggregateType, long precision) throws SessionException {
+    return downsampleQuery(paths, KEY_MIN_VAL, KEY_MAX_VAL, aggregateType, precision);
+  }
+
+  // downsample query with time interval
   public SessionQueryDataSet downsampleQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
       throws SessionException {
