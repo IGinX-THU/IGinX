@@ -1216,17 +1216,7 @@ public class IginxWorker implements IService.Iface {
   @Override
   public ShowRulesResp showRules(ShowRulesReq req) {
     try {
-      // 获取接口的类加载器
-      ClassLoader classLoader = IRuleCollection.class.getClassLoader();
-      // 加载枚举类
-      Class<?> enumClass =
-          classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
-      // 获取枚举实例
-      Object enumInstance = enumClass.getEnumConstants()[0];
-
-      // 强制转换为接口类型
-      IRuleCollection ruleCollection = (IRuleCollection) enumInstance;
-
+      IRuleCollection ruleCollection = getRuleCollection();
       return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
     } catch (ClassNotFoundException e) {
       LOGGER.error("show rules failed: ", e);
@@ -1238,22 +1228,24 @@ public class IginxWorker implements IService.Iface {
   public Status setRules(SetRulesReq req) {
     Map<String, Boolean> rulesChange = req.getRulesChange();
     try {
-      // 获取接口的类加载器
-      ClassLoader classLoader = IRuleCollection.class.getClassLoader();
-      // 加载枚举类
-      Class<?> enumClass =
-          classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
-      // 获取枚举实例
-      Object enumInstance = enumClass.getEnumConstants()[0];
-
-      // 强制转换为接口类型
-      IRuleCollection ruleCollection = (IRuleCollection) enumInstance;
-
-      ruleCollection.setRules(rulesChange);
+      getRuleCollection().setRules(rulesChange);
       return RpcUtils.SUCCESS;
     } catch (ClassNotFoundException e) {
       LOGGER.error("set rules failed: ", e);
       return RpcUtils.FAILURE;
     }
+  }
+
+  private IRuleCollection getRuleCollection() throws ClassNotFoundException {
+    // 获取接口的类加载器
+    ClassLoader classLoader = IRuleCollection.class.getClassLoader();
+    // 加载枚举类
+    Class<?> enumClass =
+            classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
+    // 获取枚举实例
+    Object enumInstance = enumClass.getEnumConstants()[0];
+
+    // 强制转换为接口类型
+    return (IRuleCollection) enumInstance;
   }
 }
