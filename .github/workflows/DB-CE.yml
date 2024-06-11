@@ -142,6 +142,11 @@ jobs:
               run: |
                   mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
+            - name: test if clear fail
+              shell: bash
+              run: |
+                tree "${GITHUB_WORKSPACE}/test/"
+
             # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
               uses: ./.github/actions/capacityExpansionUnionTest
@@ -149,6 +154,11 @@ jobs:
                   version: ${VERSION}
                   DB-name: ${{ matrix.DB-name }}
                   Test-Way: oriNoDataExpHasData
+
+            - name: test if clear fail
+              shell: bash
+              run: |
+                tree "${GITHUB_WORKSPACE}/test/"
 
             - name: oriNoDataExpHasData IT
               shell: bash
