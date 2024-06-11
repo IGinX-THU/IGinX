@@ -147,7 +147,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     List<String> pathList = Arrays.asList(
         IT_DATA_DIR,
-        PARQUET_PARAMS.get(port).get(0));
+        IGINX_DATA_PATH_PREFIX_NAME + PARQUET_PARAMS.get(port).get(0));
     // delete the normal IT data
     for(String path : pathList) {
       Path dataPath = Paths.get(path);
