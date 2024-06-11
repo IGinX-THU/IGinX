@@ -345,7 +345,9 @@ public class RelationalStorage implements IStorage {
             && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
-        boolean isDummy = extraParams.get("has_data") != null && extraParams.get("has_data").equalsIgnoreCase("true");
+        boolean isDummy =
+            extraParams.get("has_data") != null
+                && extraParams.get("has_data").equalsIgnoreCase("true");
 
         List<String> tables = getTables(databaseName, "%");
         for (String tableName : tables) {

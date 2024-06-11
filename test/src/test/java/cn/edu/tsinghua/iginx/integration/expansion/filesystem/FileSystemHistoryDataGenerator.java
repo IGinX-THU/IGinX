@@ -50,8 +50,10 @@ public class FileSystemHistoryDataGenerator extends BaseHistoryDataGenerator {
       } else {
         rootPath = Paths.get(IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port));
       }
+      LOGGER.info("clear path {}", rootPath.toFile().getAbsolutePath());
       if (!Files.exists(rootPath)) {
-        return;
+        LOGGER.info("path {} does not exist", rootPath.toFile().getAbsolutePath());
+        continue;
       }
       try (Stream<Path> walk = Files.walk(rootPath)) {
         walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);

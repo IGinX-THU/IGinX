@@ -243,7 +243,10 @@ public class InfluxDBStorage implements IStorage {
       boolean isDummy =
           meta.isHasData()
               && (meta.getDataPrefix() == null
-                  || bucket.getName().startsWith(meta.getDataPrefix().substring(0, meta.getDataPrefix().indexOf("."))));
+                  || bucket
+                      .getName()
+                      .startsWith(
+                          meta.getDataPrefix().substring(0, meta.getDataPrefix().indexOf("."))));
       if (bucket.getType() == Bucket.TypeEnum.SYSTEM || (!isUnit && !isDummy)) {
         continue;
       }
