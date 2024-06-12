@@ -29,7 +29,6 @@ on:
                 default: '["IoTDB12", "Parquet"]'
 
 env:
-    VERSION: 0.6.0-SNAPSHOT
     FUNCTEST: RemoteUDFIT
 
 jobs:
@@ -51,6 +50,7 @@ jobs:
               with:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
+                  docker-required: true
 
             - if: runner.os == 'Windows'
               name: Set up Docker Firewall on Windows
@@ -106,8 +106,6 @@ jobs:
 
             - name: Start IGinX
               uses: ./.github/actions/iginxRunner
-              with:
-                  version: ${VERSION}
 
             - name: Register Remote UDFs
               shell: bash

@@ -1,0 +1,70 @@
+name: Update Project Version
+
+on:
+    workflow_dispatch:
+        inputs:
+            major:
+                description: "Major version"
+                required: true
+                type: number
+            minor:
+                description: "Minor version"
+                required: true
+                type: number
+            patch:
+                description: "Patch version"
+                required: true
+                type: number
+            snapshot:
+                description: "Snapshot version"
+                required: true
+                type: boolean
+
+jobs:
+    update-project-version:
+        name: Update Project Version
+        runs-on: ubuntu-latest
+        permissions:
+            pull-requests: write
+            contents: write
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-java@v4
+              with:
+                  java-version: "8"
+                  distribution: "temurin"
+                  cache: "maven"
+            - id: new-version
+              name: Get project version from inputs
+              shell: bash
+              run: |
+                  NEWVERSION=${{ inputs.major }}.${{ inputs.minor }}.${{ inputs.patch }}
+                  if ${{ inputs.snapshot }}; then
+                      NEWVERSION=${NEWVERSION}-SNAPSHOT
+                  fi
+                  echo "version=${NEWVERSION}" >> $GITHUB_OUTPUT
+            - id: old-version
+              name: Get old project version from pom.xml
+              uses: ./.github/actions/project
+            - name: Update project version
+              shell: bash
+              run: mvn versions:set-property -Dproperty=revision -DnewVersion="${{ steps.new-version.outputs.version }}"
+            - name: update verison in docker directory
+              shell: bash
+              run: |
+                  find docker -type f -exec sed -i "s/${{ steps.old-version.outputs.version }}/${{ steps.new-version.outputs.version }}/g" {} \;
+            - name: update version in docs
+              shell: bash
+              run: |
+                  find docs -type f -exec sed -i "s/${{ steps.old-version.outputs.version }}/${{ steps.new-version.outputs.version }}/g" {} \;
+            - name: create pull request
+              uses: peter-evans/create-pull-request@v6
+              with:
+                  add-paths: |
+                      pom.xml
+                      docker
+                      docs
+                  branch: version-bot/${{ steps.new-version.outputs.version }}
+                  delete-branch: true
+                  commit-message: "build: update project version to ${{ steps.new-version.outputs.version }}"
+                  title: "build: update project version to ${{ steps.new-version.outputs.version }}"

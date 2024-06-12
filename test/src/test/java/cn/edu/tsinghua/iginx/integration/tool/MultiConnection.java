@@ -1,6 +1,6 @@
 package cn.edu.tsinghua.iginx.integration.tool;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.*;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.*;
 import static org.junit.Assert.fail;
 
@@ -162,6 +162,13 @@ public class MultiConnection {
     return null;
   }
 
+  // downsample query with time interval
+  public SessionQueryDataSet downsampleQuery(
+      List<String> paths, AggregateType aggregateType, long precision) throws SessionException {
+    return downsampleQuery(paths, KEY_MIN_VAL, KEY_MAX_VAL, aggregateType, precision);
+  }
+
+  // downsample query without time interval
   public SessionQueryDataSet downsampleQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
       throws SessionException {

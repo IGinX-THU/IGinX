@@ -35,18 +35,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
@@ -217,7 +211,7 @@ public class IginxClient {
 
       if (execute.equals("")) {
         echoStarting();
-        displayLogo("0.6.0-SNAPSHOT");
+        displayLogo(loadClientVersion());
 
         String command;
         while (true) {
@@ -249,6 +243,23 @@ public class IginxClient {
     } catch (Exception e) {
       System.out.println(IGINX_CLI_PREFIX + "exit cli with error " + e.getMessage());
     }
+  }
+
+  private static String loadClientVersion() {
+    URL url =
+        IginxClient.class.getResource(
+            "/META-INF/maven/cn.edu.tsinghua/iginx-client/pom.properties");
+    if (url != null) {
+      Properties properties = new Properties();
+      try {
+        properties.load(url.openStream());
+        return properties.getProperty("version");
+      } catch (Exception e) {
+        System.err.println("Failed to load version: " + e);
+      }
+    }
+
+    return "unknown";
   }
 
   private static boolean processCommand(String command) throws SessionException, IOException {
