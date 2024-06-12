@@ -47,10 +47,10 @@ def map_dtype(dtype):
         return DataType.BINARY  # all other types are treated as BINARY
 
 # TODO: process NA values
-def column_dataset_from_df(df: pd.DataFrame, prefix: str = ''):
+def column_dataset_from_df(df: pd.DataFrame, prefix: str = ""):
     # if no prefix is provided, the column names must contain at least one '.' except key.
     column_list = df.columns.tolist()
-    if prefix == '':
+    if prefix == "":
         for col in column_list:
             if '.' not in col and col != 'key':
                 raise RuntimeError(f"The paths in data must contain '.' or prefix must be set")
@@ -75,7 +75,7 @@ def column_dataset_from_df(df: pd.DataFrame, prefix: str = ''):
 
     mapped_types = [map_dtype(dtype) for col, dtype in df.dtypes.items()]
     values_list = [df[col].tolist() for col in df.columns]
-    column_list = [prefix + col for col in df.columns.tolist()]
+    column_list = [prefix + '.' + col for col in df.columns.tolist()]
     return ColumnDataSet(column_list, mapped_types, key_list, values_list)
 
 

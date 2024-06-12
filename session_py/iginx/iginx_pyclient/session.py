@@ -406,7 +406,13 @@ class Session(object):
         status = self.__client.insertNonAlignedColumnRecords(req)
         Session.verify_status(status)
 
-    def insert_df(self, df: pd.DataFrame, prefix: str = None):
+    def insert_df(self, df: pd.DataFrame, prefix: str = ""):
+        """
+        insert dataframe data into IGinX
+        :param df: dataframe that contains data
+        :param prefix: (optional) path names in IGinX
+               must contain '.'. If columns in dataframe does not meet the requirement, a prefix can be used
+        """
         dataset = column_dataset_from_df(df, prefix)
         paths, keys, value_list, type_list = dataset.get_insert_args()
         self.insert_column_records(paths, keys, value_list, type_list)
