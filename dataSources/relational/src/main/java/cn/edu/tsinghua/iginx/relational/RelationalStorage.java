@@ -472,13 +472,14 @@ public class RelationalStorage implements IStorage {
 
           // 将columnNames中的列名加上tableName前缀
           fullColumnNames.replaceAll(
-              s -> RelationSchema.getQuotFullName(tableName, s, relationalMeta.getQuote()));
+              s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
           fullColumnNamesList.add(fullColumnNames);
         }
 
         StringBuilder fullColumnNames = new StringBuilder();
         fullColumnNames.append(
-            RelationSchema.getQuotFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote()));
+            RelationSchema.getQuoteFullName(
+                tableNames.get(0), KEY_NAME, relationalMeta.getQuote()));
         for (List<String> columnNames : fullColumnNamesList) {
           for (String columnName : columnNames) {
             fullColumnNames.append(", ").append(columnName);
@@ -506,7 +507,7 @@ public class RelationalStorage implements IStorage {
         String fullColumnNamesStr = fullColumnNames.toString();
         String filterStr = filterTransformer.toString(filter);
         String orderByKey =
-            RelationSchema.getQuotFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
+            RelationSchema.getQuoteFullName(tableNames.get(0), KEY_NAME, relationalMeta.getQuote());
         if (!relationalMeta.isSupportFullJoin()) {
           // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
           fullColumnNamesStr = fullColumnNamesStr.replaceAll("`\\.`", ".");
@@ -571,11 +572,11 @@ public class RelationalStorage implements IStorage {
         for (int j = 0; j < i; j++) {
           fullTableName
               .append(
-                  RelationSchema.getQuotFullName(
+                  RelationSchema.getQuoteFullName(
                       tableNames.get(i), KEY_NAME, relationalMeta.getQuote()))
               .append(" = ")
               .append(
-                  RelationSchema.getQuotFullName(
+                  RelationSchema.getQuoteFullName(
                       tableNames.get(j), KEY_NAME, relationalMeta.getQuote()));
 
           if (j != i - 1) {
@@ -693,12 +694,12 @@ public class RelationalStorage implements IStorage {
       }
     } else {
       // 不支持全连接，就要用Left Join+Union来模拟全连接
-      char quot = relationalMeta.getQuote();
+      char quote = relationalMeta.getQuote();
       String allColumns =
           tableNames.stream()
               .map(allColumnNameForTable::get)
               .flatMap(List::stream)
-              .map(s -> s + " AS " + s.replaceAll(quot + "\\." + quot, "."))
+              .map(s -> s + " AS " + s.replaceAll(quote + "\\." + quote, "."))
               .collect(Collectors.joining(", "));
 
       fullTableName.append("(");
@@ -922,13 +923,14 @@ public class RelationalStorage implements IStorage {
           allColumnNameForTable
               .get(tableName)
               .add(
-                  RelationSchema.getQuotFullName(tableName, columnName, relationalMeta.getQuote()));
+                  RelationSchema.getQuoteFullName(
+                      tableName, columnName, relationalMeta.getQuote()));
           continue;
         }
 
         List<String> columnNames = new ArrayList<>();
         columnNames.add(
-            RelationSchema.getQuotFullName(tableName, columnName, relationalMeta.getQuote()));
+            RelationSchema.getQuoteFullName(tableName, columnName, relationalMeta.getQuote()));
         allColumnNameForTable.put(tableName, columnNames);
       }
     }
@@ -977,19 +979,20 @@ public class RelationalStorage implements IStorage {
             String fullQuotColumnNames = getQuotColumnNames(entry.getValue());
             List<String> fullPathList = Arrays.asList(entry.getValue().split(", "));
             fullPathList.replaceAll(
-                s -> RelationSchema.getQuotFullName(tableName, s, relationalMeta.getQuote()));
+                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
             String filterStr =
                 filterTransformer.toString(
                     dummyFilterSetTrueByColumnNames(
                         cutFilterDatabaseNameForDummy(filter.copy(), databaseName), fullPathList));
+            String concatKey = buildConcat(fullPathList);
             statement =
                 String.format(
                     relationalMeta.getConcatQueryStatement(),
-                    buildConcat(fullPathList),
+                    concatKey,
                     fullQuotColumnNames,
                     getQuotName(tableName),
                     filterStr.isEmpty() ? "" : "WHERE " + filterStr,
-                    buildConcat(fullPathList));
+                    concatKey);
 
             try {
               stmt = conn.createStatement();
@@ -1007,7 +1010,7 @@ public class RelationalStorage implements IStorage {
         else if (!tableNameToColumnNames.isEmpty()) {
           List<String> tableNames = new ArrayList<>();
           List<List<String>> fullColumnNamesList = new ArrayList<>();
-          List<List<String>> fullQuotColumnNamesList = new ArrayList<>();
+          List<List<String>> fullQuoteColumnNamesList = new ArrayList<>();
 
           // 将columnNames中的列名加上tableName前缀，带JOIN的查询语句中需要用到
           for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
@@ -1020,8 +1023,8 @@ public class RelationalStorage implements IStorage {
             List<String> fullColumnNames =
                 new ArrayList<>(Arrays.asList(entry.getValue().split(", ")));
             fullColumnNames.replaceAll(
-                s -> RelationSchema.getQuotFullName(tableName, s, relationalMeta.getQuote()));
-            fullQuotColumnNamesList.add(fullColumnNames);
+                s -> RelationSchema.getQuoteFullName(tableName, s, relationalMeta.getQuote()));
+            fullQuoteColumnNamesList.add(fullColumnNames);
           }
 
           String fullTableName = getDummyFullJoinTables(tableNames, allColumnNameForTable);
@@ -1049,14 +1052,15 @@ public class RelationalStorage implements IStorage {
           String filterStr = filterTransformer.toString(copyFilter);
           String orderByKey =
               buildConcat(
-                  fullQuotColumnNamesList.stream()
+                  fullQuoteColumnNamesList.stream()
                       .flatMap(List::stream)
                       .collect(Collectors.toList()));
           if (!relationalMeta.isSupportFullJoin()) {
             // 如果不支持full join,需要为left join + union模拟的full join表起别名，同时select、where、order by的部分都要调整
-            char quot = relationalMeta.getQuote();
-            fullQuotColumnNamesList.forEach(
-                columnNames -> columnNames.replaceAll(s -> s.replaceAll(quot + "\\." + quot, ".")));
+            char quote = relationalMeta.getQuote();
+            fullQuoteColumnNamesList.forEach(
+                columnNames ->
+                    columnNames.replaceAll(s -> s.replaceAll(quote + "\\." + quote, ".")));
             filterStr = filterStr.replaceAll("`\\.`", ".");
             filterStr =
                 filterStr.replace(
@@ -1068,10 +1072,10 @@ public class RelationalStorage implements IStorage {
               String.format(
                   relationalMeta.getConcatQueryStatement(),
                   buildConcat(
-                      fullQuotColumnNamesList.stream()
+                      fullQuoteColumnNamesList.stream()
                           .flatMap(List::stream)
                           .collect(Collectors.toList())),
-                  fullQuotColumnNamesList.stream()
+                  fullQuoteColumnNamesList.stream()
                       .flatMap(List::stream)
                       .collect(Collectors.joining(", ")),
                   fullTableName,
