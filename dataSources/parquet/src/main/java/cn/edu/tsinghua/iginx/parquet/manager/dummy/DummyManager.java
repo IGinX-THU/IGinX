@@ -128,13 +128,12 @@ public class DummyManager implements Manager {
       try {
         List<Field> fields = new Loader(path).getHeader();
         for (Field field : fields) {
-          ColumnKey columnKey = TagKVUtils.splitFullName(field.getName());
+          ColumnKey columnKey = TagKVUtils.splitFullName(prefix + "." + field.getName());
           if (!TagKVUtils.match(columnKey, paths, tagFilter)) {
             continue;
           }
           Column column =
-              new Column(
-                  prefix + "." + columnKey.getPath(), field.getType(), columnKey.getTags(), true);
+              new Column(columnKey.getPath(), field.getType(), columnKey.getTags(), true);
           columns.add(column);
         }
       } catch (IOException e) {
