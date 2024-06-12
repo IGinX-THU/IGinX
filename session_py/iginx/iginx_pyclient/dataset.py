@@ -22,6 +22,86 @@ import pandas as pd
 from .thrift.rpc.ttypes import SqlType, AggregateType, ExecuteSqlResp
 from .utils.bitmap import Bitmap
 from .utils.byte_utils import get_long_array, get_values_by_data_type, BytesParser
+from .thrift.rpc.ttypes import DataType
+
+def map_dtype(dtype):
+    if pd.api.types.is_bool_dtype(dtype):
+        return DataType.BOOLEAN
+    elif pd.api.types.is_integer_dtype(dtype):
+        if dtype == 'int64':
+            return DataType.LONG
+        elif dtype == 'int32':
+            return DataType.INTEGER
+        else:
+            return DataType.LONG
+    elif pd.api.types.is_float_dtype(dtype):
+        if dtype == 'float64':
+            return DataType.DOUBLE
+        elif dtype == 'float32':
+            return DataType.FLOAT
+        else:
+            return DataType.DOUBLE
+    elif pd.api.types.is_numeric_dtype(dtype):
+        return DataType.DOUBLE
+    else:
+        return DataType.BINARY  # all other types are treated as BINARY
+
+# TODO: process NA values
+def column_dataset_from_df(df: pd.DataFrame, prefix: str = ''):
+    # if no prefix is provided, the column names must contain at least one '.' except key.
+    column_list = df.columns.tolist()
+    if prefix == '':
+        for col in column_list:
+            if '.' not in col and col != 'key':
+                raise RuntimeError(f"The paths in data must contain '.' or prefix must be set")
+
+    if 'key' in column_list:
+        # examine key type
+        key_dtype = df['key'].dtype
+        valid_key = False
+        if key_dtype == 'int64':
+            valid_key = True
+        elif pd.api.types.is_integer_dtype(key_dtype):
+            df['key'] = df['key'].astype('int64')
+            valid_key = True
+
+        if not valid_key:
+            raise RuntimeError(f"Invalid key type is provided. Required long/int but was %s.", df['key'].dtype)
+        key_list = df['key'].tolist()
+        df = df.drop(columns=['key'])
+    # if there is no key column in data, creat one
+    else:
+        key_list = list(range(len(df)))
+
+    mapped_types = [map_dtype(dtype) for col, dtype in df.dtypes.items()]
+    values_list = [df[col].tolist() for col in df.columns]
+    column_list = [prefix + col for col in df.columns.tolist()]
+    return ColumnDataSet(column_list, mapped_types, key_list, values_list)
+
+
+class ColumnDataSet(object):
+    def __init__(self, paths, types, keys, values_list):
+        self.__paths = paths
+        self.__types = types
+        self.__keys = keys
+        self.__values_list = values_list
+
+    def get_insert_args(self):
+        return self.__paths, self.__keys, self.__values_list, self.__types
+
+    def __str__(self):
+        column_names = ['key'] + self.__paths
+        num_rows = len(self.__keys)
+        columns = [self.__keys] + self.__values_list
+        output = []
+
+        output.append('\t'.join(column_names))
+
+        for i in range(num_rows):
+            row = [str(columns[j][i]) for j in range(len(columns))]
+            output.append('\t'.join(row))
+
+        return '\n'.join(output)
 
 
 class Point(object):
@@ -100,7 +180,6 @@ class QueryDataSet(object):
 
     def to_df(self):
         has_key = self.__timestamps != []
-        print(has_key)
         columns = ["key"] if has_key else []
         for column in self.__paths:
             columns.append(str(column))
