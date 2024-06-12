@@ -1,10 +1,6 @@
 name: "iginx-runner"
 description: "iginx runner"
 inputs:
-    version:
-        description: "iginx runner version"
-        required: false
-        default: 0.6.0-SNAPSHOT
     if-stop:
         description: "to stop the iginx"
         required: false
@@ -32,7 +28,7 @@ runs:
                 exit 1
               fi
               chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
-              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh" ${VERSION}
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX

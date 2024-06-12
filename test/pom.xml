@@ -7,7 +7,6 @@
         <groupId>cn.edu.tsinghua</groupId>
         <artifactId>iginx</artifactId>
         <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
 
     <artifactId>test</artifactId>
@@ -46,7 +45,7 @@
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>postgresql</artifactId>
+            <artifactId>relational</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>

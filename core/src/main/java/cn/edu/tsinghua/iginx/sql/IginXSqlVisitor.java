@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.sql;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
@@ -1068,27 +1070,31 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private void parseDownsampleClause(
       DownsampleClauseContext ctx, UnarySelectStatement selectStatement) {
     long precision = parseAggLen(ctx.aggLen(0));
-    Pair<Long, Long> timeInterval = parseTimeInterval(ctx.timeInterval());
-    selectStatement.setStartKey(timeInterval.k);
-    selectStatement.setEndKey(timeInterval.v);
+    Pair<Long, Long> timeInterval =
+        ctx.timeInterval() == null ? null : parseTimeInterval(ctx.timeInterval());
+    long startKey = timeInterval == null ? KEY_MIN_VAL : timeInterval.k;
+    long endKey = timeInterval == null ? KEY_MAX_VAL : timeInterval.v;
+    selectStatement.setStartKey(startKey);
+    selectStatement.setEndKey(endKey);
     selectStatement.setPrecision(precision);
     selectStatement.setSlideDistance(precision);
     selectStatement.setHasDownsample(true);
-    if (ctx.STEP() != null) {
+    if (ctx.SLIDE() != null) {
       long distance = parseAggLen(ctx.aggLen(1));
       selectStatement.setSlideDistance(distance);
     }
 
     // merge value filter and group time range filter
-    KeyFilter startKey = new KeyFilter(Op.GE, timeInterval.k);
-    KeyFilter endKey = new KeyFilter(Op.L, timeInterval.v);
+    KeyFilter startKeyFilter = new KeyFilter(Op.GE, startKey);
+    KeyFilter endKeyFilter = new KeyFilter(Op.L, endKey);
     Filter mergedFilter;
     if (selectStatement.hasValueFilter()) {
       mergedFilter =
           new AndFilter(
-              new ArrayList<>(Arrays.asList(selectStatement.getFilter(), startKey, endKey)));
+              new ArrayList<>(
+                  Arrays.asList(selectStatement.getFilter(), startKeyFilter, endKeyFilter)));
     } else {
-      mergedFilter = new AndFilter(new ArrayList<>(Arrays.asList(startKey, endKey)));
+      mergedFilter = new AndFilter(new ArrayList<>(Arrays.asList(startKeyFilter, endKeyFilter)));
       selectStatement.setHasValueFilter(true);
     }
     selectStatement.setFilter(mergedFilter);

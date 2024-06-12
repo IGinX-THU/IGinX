@@ -86,7 +86,7 @@ public class ConfigDescriptor {
       config.setDatabaseClassNames(
           properties.getProperty(
               "databaseClassNames",
-              "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage"));
+              "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,relational=cn.edu.tsinghua.iginx.relational.RelationAbstractStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage"));
       // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage
 
       config.setPolicyClassName(
@@ -234,6 +234,14 @@ public class ConfigDescriptor {
           properties.getProperty(
               "ruleBasedOptimizer",
               "NotFilterRemoveRule=on,FragmentPruningByFilterRule=on,ColumnPruningRule=on,FragmentPruningByPatternRule=on"));
+      config.setEnableEmailNotification(
+          Boolean.parseBoolean(properties.getProperty("enableEmailNotification", "false")));
+      config.setMailSmtpHost(properties.getProperty("mailSmtpHost", ""));
+      config.setMailSmtpPort(Integer.parseInt(properties.getProperty("mailSmtpPort", "465")));
+      config.setMailSmtpUser(properties.getProperty("mailSmtpUser", ""));
+      config.setMailSmtpPassword(properties.getProperty("mailSmtpPassword", ""));
+      config.setMailSender(properties.getProperty("mailSender", ""));
+      config.setMailRecipient(properties.getProperty("mailRecipient", ""));
     } catch (IOException e) {
       config.setUTTestEnv(true);
       config.setNeedInitBasicUDFFunctions(false);
@@ -360,6 +368,14 @@ public class ConfigDescriptor {
     config.setUTTestEnv(EnvUtils.loadEnv("utTestEnv", config.isUTTestEnv()));
     config.setRuleBasedOptimizer(
         EnvUtils.loadEnv("ruleBasedOptimizer", config.getRuleBasedOptimizer()));
+    config.setEnableEmailNotification(
+        Boolean.parseBoolean(EnvUtils.loadEnv("enableEmailNotification", "false")));
+    config.setMailSmtpHost(EnvUtils.loadEnv("mailSmtpHost", ""));
+    config.setMailSmtpPort(Integer.parseInt(EnvUtils.loadEnv("mailSmtpPort", "465")));
+    config.setMailSmtpUser(EnvUtils.loadEnv("mailSmtpUser", ""));
+    config.setMailSmtpPassword(EnvUtils.loadEnv("mailSmtpPassword", ""));
+    config.setMailSender(EnvUtils.loadEnv("mailSender", ""));
+    config.setMailRecipient(EnvUtils.loadEnv("mailRecipient", ""));
   }
 
   private void loadUDFListFromFile() {

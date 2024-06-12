@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,25 +60,52 @@ public class RedisStorage implements IStorage {
 
   private static final String TIMEOUT = "timeout";
 
+  private static final String DATA_DB = "data_db";
+
+  private static final String DATA_PASSWORD = "dummy_db";
+
   private static final int DEFAULT_TIMEOUT = 5000;
 
-  private final StorageEngineMeta meta;
+  private static final int DEFAULT_DATA_DB = 1;
+
+  private static final int DEFAULT_DUMMY_DB = 0;
 
   private final JedisPool jedisPool;
 
+  private final int dataDb;
+
+  private final int dummyDb;
+
+  private final String dataPrefix;
+
   public RedisStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    this.meta = meta;
     if (!meta.getStorageEngine().equals(StorageEngineType.redis)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
-    this.jedisPool = createJedisPool();
-  }
-
-  private JedisPool createJedisPool() {
     Map<String, String> extraParams = meta.getExtraParams();
     int timeout =
         Integer.parseInt(extraParams.getOrDefault(TIMEOUT, String.valueOf(DEFAULT_TIMEOUT)));
-    return new JedisPool(new JedisPoolConfig(), meta.getIp(), meta.getPort(), timeout);
+    this.jedisPool = new JedisPool(new JedisPoolConfig(), meta.getIp(), meta.getPort(), timeout);
+    this.dataDb =
+        Integer.parseInt(extraParams.getOrDefault(DATA_DB, String.valueOf(DEFAULT_DATA_DB)));
+    this.dummyDb =
+        Integer.parseInt(extraParams.getOrDefault(DATA_PASSWORD, String.valueOf(DEFAULT_DUMMY_DB)));
+    this.dataPrefix = meta.getDataPrefix();
+    if (dataDb == dummyDb) {
+      throw new StorageInitializationException("data db and dummy db should not be the same");
+    }
+  }
+
+  private Jedis getDataConnection() {
+    Jedis jedis = jedisPool.getResource();
+    jedis.select(dataDb);
+    return jedis;
+  }
+
+  private Jedis getDummyConnection() {
+    Jedis jedis = jedisPool.getResource();
+    jedis.select(dummyDb);
+    return jedis;
   }
 
   @Override
@@ -102,7 +130,7 @@ public class RedisStorage implements IStorage {
     List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
 
     List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
-    try (Jedis jedis = jedisPool.getResource()) {
+    try (Jedis jedis = getDataConnection()) {
       for (String queryPath : queryPaths) {
         DataType type = DataTransformer.fromStringDataType(jedis.hget(KEY_DATA_TYPE, queryPath));
         if (type != null) {
@@ -168,7 +196,7 @@ public class RedisStorage implements IStorage {
     }
 
     List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
-    try (Jedis jedis = jedisPool.getResource()) {
+    try (Jedis jedis = getDummyConnection()) {
       for (String queryPath : queryPaths) {
         String type = jedis.type(queryPath);
         switch (type) {
@@ -226,7 +254,7 @@ public class RedisStorage implements IStorage {
     }
 
     List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
-    try (Jedis jedis = jedisPool.getResource()) {
+    try (Jedis jedis = getDataConnection()) {
       for (String queryPath : queryPaths) {
         DataType type = DataTransformer.fromStringDataType(jedis.hget(KEY_DATA_TYPE, queryPath));
         if (type != null) {
@@ -264,7 +292,7 @@ public class RedisStorage implements IStorage {
     }
 
     List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
-    try (Jedis jedis = jedisPool.getResource()) {
+    try (Jedis jedis = getDummyConnection()) {
       for (String queryPath : queryPaths) {
         String type = jedis.type(queryPath);
         switch (type) {
@@ -325,7 +353,7 @@ public class RedisStorage implements IStorage {
 
     if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
       // 没有传任何 time range, 删除全部数据
-      try (Jedis jedis = jedisPool.getResource()) {
+      try (Jedis jedis = getDataConnection()) {
         int size = deletedPaths.size();
         String[] deletedPathArray = new String[size * 3];
         for (int i = 0; i < size; i++) {
@@ -343,7 +371,7 @@ public class RedisStorage implements IStorage {
       }
     } else {
       // 删除指定部分数据
-      try (Jedis jedis = jedisPool.getResource()) {
+      try (Jedis jedis = getDataConnection()) {
         for (String path : deletedPaths) {
           for (KeyRange keyRange : delete.getKeyRanges()) {
             byte[] zSetKey =
@@ -374,7 +402,7 @@ public class RedisStorage implements IStorage {
       String storageUnit, List<String> patterns, TagFilter tagFilter) throws PhysicalException {
     boolean hasTagFilter = tagFilter != null;
     List<String> paths = new ArrayList<>();
-    try (Jedis jedis = jedisPool.getResource()) {
+    try (Jedis jedis = getDataConnection()) {
       for (String pattern : patterns) {
         String escapedPattern = TagKVUtils.getPattern(pattern);
         String queryPattern = String.format(KEY_FORMAT_STRING_PATH, storageUnit, escapedPattern);
@@ -422,7 +450,7 @@ public class RedisStorage implements IStorage {
       Map<byte[], byte[]> values = pair.getK();
       Map<byte[], Double> scores = pair.getV();
 
-      try (Jedis jedis = jedisPool.getResource()) {
+      try (Jedis jedis = getDataConnection()) {
         byte[] hashKey = DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path));
         jedis.hset(hashKey, values);
 
@@ -441,19 +469,51 @@ public class RedisStorage implements IStorage {
   @Override
   public List<Column> getColumns() {
     List<Column> ret = new ArrayList<>();
-    try (Jedis jedis = jedisPool.getResource()) {
+    getIginxColumns(ret::add);
+    getDummyColumns(ret::add);
+    return ret;
+  }
+
+  private void getIginxColumns(Consumer<Column> ret) {
+    try (Jedis jedis = getDataConnection()) {
       Map<String, String> pathsAndTypes = jedis.hgetAll(KEY_DATA_TYPE);
       pathsAndTypes.forEach(
           (k, v) -> {
             DataType type = DataTransformer.fromStringDataType(v);
             Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(k);
-            ret.add(new Column(pair.k, type, pair.v));
+            ret.accept(new Column(pair.k, type, pair.v));
           });
-    } catch (Exception e) {
-      LOGGER.error("get time series error, cause by: ", e);
-      return ret;
     }
-    return ret;
+  }
+
+  private void getDummyColumns(Consumer<Column> ret) {
+    try (Jedis jedis = getDummyConnection()) {
+      String pattern = STAR;
+      if (dataPrefix != null) {
+        pattern = dataPrefix + "." + pattern;
+      }
+      Set<String> keys = jedis.keys(pattern);
+      for (String key : keys) {
+        String type = jedis.type(key);
+        switch (type) {
+          case "string":
+          case "list":
+          case "set":
+          case "zset":
+            ret.accept(new Column(key, DataType.BINARY, Collections.emptyMap(), true));
+            break;
+          case "hash":
+            ret.accept(new Column(key + SUFFIX_KEY, DataType.BINARY, Collections.emptyMap(), true));
+            ret.accept(
+                new Column(key + SUFFIX_VALUE, DataType.BINARY, Collections.emptyMap(), true));
+            break;
+          case "none":
+            LOGGER.warn("key {} not exists", key);
+          default:
+            LOGGER.warn("unknown key type, type={}", type);
+        }
+      }
+    }
   }
 
   @Override
@@ -477,7 +537,7 @@ public class RedisStorage implements IStorage {
         columnsInterval = new ColumnsInterval(null, null);
       }
     }
-    KeyInterval keyInterval = new KeyInterval(Long.MIN_VALUE, Long.MAX_VALUE);
+    KeyInterval keyInterval = KeyInterval.getDefaultKeyInterval();
     return new Pair<>(columnsInterval, keyInterval);
   }
 

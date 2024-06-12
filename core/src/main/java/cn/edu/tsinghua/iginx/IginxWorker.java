@@ -51,6 +51,7 @@ import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
 import cn.edu.tsinghua.iginx.utils.*;
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -338,6 +339,12 @@ public class IginxWorker implements IService.Iface {
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
       }
+      if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) {
+        status.setCode(StatusCode.REDIRECT.getStatusCode());
+        status.setMessage(ip + ":" + extraParams.get("iginx_port"));
+        LOGGER.warn("redirect to {}:{}.", ip, extraParams.get("iginx_port"));
+        return status;
+      }
       if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
         LOGGER.error("normal storage engine {} should not be read-only.", storageEngine);
         status.addToSubStatus(RpcUtils.FAILURE);
@@ -426,6 +433,15 @@ public class IginxWorker implements IService.Iface {
         StorageUnitMeta dummyStorageUnit = new StorageUnitMeta(generateDummyStorageUnitId(0), -1);
         Pair<ColumnsInterval, KeyInterval> boundary =
             StorageManager.getBoundaryOfStorage(meta, dataPrefix);
+        if (boundary == null) {
+          status.setCode(RpcUtils.FAILURE.code);
+          status.setMessage(
+              String.format(
+                  "Failed to process dummy storage engine %s. Please check params:%s;%s.",
+                  meta.getStorageEngine(), meta, meta.getExtraParams()));
+          return;
+        }
+        LOGGER.info("boundary for {}: {}", meta, boundary);
         FragmentMeta dummyFragment;
 
         if (dataPrefix == null) {
@@ -711,7 +727,7 @@ public class IginxWorker implements IService.Iface {
         }
         break;
       default:
-        LOGGER.error("unexpected meta storage: " + config.getMetaStorage());
+        LOGGER.error("unexpected meta storage: {}", config.getMetaStorage());
     }
 
     if (metaStorageInfos != null && !metaStorageInfos.isEmpty()) {
@@ -747,6 +763,16 @@ public class IginxWorker implements IService.Iface {
     ctx.setLoadCSVFileByteBuffer(req.csvFile);
     executor.execute(ctx);
     return ctx.getResult().getLoadCSVResp();
+  }
+
+  @Override
+  public LoadUDFResp loadUDF(LoadUDFReq req) {
+    StatementExecutor executor = StatementExecutor.getInstance();
+    RequestContext ctx = contextBuilder.build(req);
+    ctx.setUDFModuleByteBuffer(req.udfFile);
+    ctx.setRemoteUDF(req.isRemote);
+    executor.execute(ctx);
+    return ctx.getResult().getLoadUDFResp();
   }
 
   @Override
@@ -804,36 +830,9 @@ public class IginxWorker implements IService.Iface {
     List<UDFClassPair> pairs = req.getUDFClassPairs();
     String filePath = req.getFilePath();
     String errorMsg;
+    Status status;
 
-    boolean singleType = false;
-    if (pairs.size() != req.getTypesSize() && req.getTypesSize() > 1) {
-      errorMsg =
-          String.format(
-              "Fail to register %d UDFs with %d types, the number should be same or use only one type.",
-              pairs.size(), req.getTypesSize());
-      LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
-    } else if (req.getTypesSize() == 1) {
-      // all task in one type
-      singleType = true;
-    }
-
-    // fail if trying to register UDFs with same class name or name.
-    // this should be checked before actually put anything into system.
-    Set<String> tempName = new HashSet<>();
-    Set<String> tempClass = new HashSet<>();
-    for (UDFClassPair p : pairs) {
-      if (!tempName.add(p.name)) {
-        errorMsg = String.format("Cannot register multiple UDFs with same name: %s", p.name);
-        LOGGER.error(errorMsg);
-        return RpcUtils.FAILURE.setMessage(errorMsg);
-      }
-      if (!tempClass.add(p.classPath)) {
-        errorMsg = String.format("Cannot register multiple UDFs with same class: %s", p.classPath);
-        LOGGER.error(errorMsg);
-        return RpcUtils.FAILURE.setMessage(errorMsg);
-      }
-    }
+    boolean singleType = req.getTypesSize() == 1;
 
     Predicate<String> ruleNameFilter = FilePermissionRuleNameFilters.transformerRulesWithDefault();
 
@@ -851,32 +850,38 @@ public class IginxWorker implements IService.Iface {
 
     File sourceFile = sourceCheckedPath.get().toFile();
     if (!sourceFile.exists()) {
-      errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
-      LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
-    }
+      if (!req.isRemote) {
+        errorMsg = String.format("Register file not exist in declared path, path=%s", filePath);
+        LOGGER.error(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
+    } else if (!req.isRemote) {
+      // python file
+      if (sourceFile.isFile() && !sourceFile.getName().endsWith(".py")) {
+        errorMsg = "Register file must be a python file.";
+        LOGGER.error(errorMsg);
+        return RpcUtils.FAILURE.setMessage(errorMsg);
+      }
 
-    // python file
-    if (sourceFile.isFile() && !sourceFile.getName().endsWith(".py")) {
-      errorMsg = "Register file must be a python file.";
-      LOGGER.error(errorMsg);
-      return RpcUtils.FAILURE.setMessage(errorMsg);
-    }
-
-    // python module dir, class name must contains '.'
-    if (sourceFile.isDirectory()) {
-      String className;
-      for (UDFClassPair p : pairs) {
-        className = p.classPath;
-        if (!className.contains(".")) {
-          errorMsg =
-              "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n"
-                  + className
-                  + " is an invalid class name.";
-          LOGGER.error(errorMsg);
-          return RpcUtils.FAILURE.setMessage(errorMsg);
+      // python module dir, class name must contains '.'
+      if (sourceFile.isDirectory()) {
+        String className;
+        for (UDFClassPair p : pairs) {
+          className = p.classPath;
+          if (!className.contains(".")) {
+            errorMsg =
+                "Class name must refer to a class in module if you are registering a python module directory. e.g.'module_name.file_name.class_name'.\n"
+                    + className
+                    + " is an invalid class name.";
+            LOGGER.error(errorMsg);
+            return RpcUtils.FAILURE.setMessage(errorMsg);
+          }
         }
       }
+    } else if (req.getModuleFile() == null || req.getModuleFile().length == 0) {
+      errorMsg = "Read remote python module failed with no data.";
+      LOGGER.error(errorMsg);
+      return RpcUtils.FAILURE.setMessage(errorMsg);
     }
 
     List<TransformTaskMeta> transformTaskMetas = new ArrayList<>();
@@ -913,27 +918,36 @@ public class IginxWorker implements IService.Iface {
     }
 
     try {
-      FileUtils.copyFileOrDir(sourceFile, destFile);
+      if (req.isRemote) {
+        status = loadRemoteUDFModule(req.moduleFile, destFile);
+      } else {
+        status = loadLocalUDFModule(sourceFile, destFile);
+      }
+      if (status.code != RpcUtils.SUCCESS.code) {
+        return status;
+      }
       if (sourceFile.isDirectory()) {
         // try to install module dependencies
         FunctionManager fm = FunctionManager.getInstance();
-        fm.installReqsByPip(fileName);
+        fm.installReqsByPip(sourceFile.getName());
       }
     } catch (IOException e) {
-      errorMsg = String.format("Fail to copy register file(s), path=%s", filePath);
-      LOGGER.error(errorMsg, e);
+      errorMsg =
+          String.format(
+              "Fail to %s register file(s), path=%s", req.isRemote ? "load" : "copy", destPath);
+      LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     } catch (Exception e) {
       errorMsg =
           String.format(
               "Fail to install dependencies for %s. Please check if the requirements.txt in module is written correctly.",
-              fileName);
+              sourceFile.getName());
       LOGGER.error(errorMsg, e);
-      LOGGER.debug("deleting {} due to failure in installing dependencies.", filePath);
+      LOGGER.debug("deleting {} due to failure in installing dependencies.", sourceFile.getPath());
       try {
         FileUtils.deleteFolder(destFile);
       } catch (IOException ee) {
-        LOGGER.error("fail to delete udf module {}.", destPath, ee);
+        LOGGER.error("fail to delete udf module {}.", destFile.getPath(), ee);
       }
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
@@ -959,6 +973,16 @@ public class IginxWorker implements IService.Iface {
     return RpcUtils.SUCCESS;
   }
 
+  private Status loadLocalUDFModule(File sourceFile, File destFile) throws IOException {
+    FileUtils.copyFileOrDir(sourceFile, destFile);
+    return RpcUtils.SUCCESS;
+  }
+
+  private Status loadRemoteUDFModule(ByteBuffer moduleBuffer, File destFile) throws IOException {
+    CompressionUtils.unzipFromByteBuffer(moduleBuffer, destFile.getParentFile());
+    return RpcUtils.SUCCESS;
+  }
+
   @Override
   public Status dropTask(DropTaskReq req) {
     String name = req.getName().trim();
@@ -972,7 +996,7 @@ public class IginxWorker implements IService.Iface {
 
     TransformJobManager manager = TransformJobManager.getInstance();
     if (manager.isRegisterTaskRunning(name)) {
-      errorMsg = "Function is running";
+      errorMsg = String.format("Function %s is running.", name);
       LOGGER.error(errorMsg);
       return RpcUtils.FAILURE.setMessage(errorMsg);
     }
@@ -1018,10 +1042,10 @@ public class IginxWorker implements IService.Iface {
         FileUtils.deleteFileOrDir(file);
       }
       metaManager.dropTransformTask(name);
-      LOGGER.info(String.format("Register file has been dropped, path=%s", filePath));
+      LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
     } catch (IOException e) {
-      LOGGER.error(String.format("Fail to delete register file, path=%s", filePath));
+      LOGGER.error("Fail to delete register file, path={}", filePath);
       return RpcUtils.FAILURE;
     }
   }
@@ -1057,7 +1081,7 @@ public class IginxWorker implements IService.Iface {
 
     for (DataType type : queryDataResp.getDataTypeList()) {
       if (type.equals(DataType.BINARY) || type.equals(DataType.BOOLEAN)) {
-        LOGGER.error(String.format("Unsupported data type: %s", type));
+        LOGGER.error("Unsupported data type: {}", type);
         return new CurveMatchResp(RpcUtils.FAILURE);
       }
     }

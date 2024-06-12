@@ -2,19 +2,15 @@
 
 set -e
 
-sh -c "wget -nv https://github.com/thulab/IginX-benchmarks/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip"
-
-sh -c "unzip -qq apache-iotdb-0.12.6-server-bin.zip"
-
-sh -c "sleep 10"
-
-sh -c "ls ./"
+sh -c "cp -r $IOTDB_ROOT/ apache-iotdb-0.12.6-server-bin"
 
 sh -c "echo ========================="
 
 sh -c "ls apache-iotdb-0.12.6-server-bin"
 
 sh -c "sudo sed -i '' 's/^# compaction_strategy=.*$/compaction_strategy=NO_COMPACTION/' apache-iotdb-0.12.6-server-bin/conf/iotdb-engine.properties"
+
+sh -c "sudo sed -i '' 's/#storageEngineList=127.0.0.1#6667#iotdb12/storageEngineList=127.0.0.1#6667#iotdb12/g' conf/config.properties"
 
 for port in "$@"
 do

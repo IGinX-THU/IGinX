@@ -53,7 +53,7 @@ public class Config {
   private TimePrecision timePrecision = TimePrecision.NS;
 
   private String databaseClassNames =
-      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage";
+      "iotdb12=cn.edu.tsinghua.iginx.iotdb.IoTDBStorage,influxdb=cn.edu.tsinghua.iginx.influxdb.InfluxDBStorage,parquet=cn.edu.tsinghua.iginx.parquet.ParquetStorage,relational=cn.edu.tsinghua.iginx.relational.RelationAbstractStorage,mongodb=cn.edu.tsinghua.iginx.mongodb.MongoDBStorage,redis=cn.edu.tsinghua.iginx.redis.RedisStorage";
   // ,opentsdb=cn.edu.tsinghua.iginx.opentsdb.OpenTSDBStorage,timescaledb=cn.edu.tsinghua.iginx.timescaledb.TimescaleDBStorage,postgresql=cn.edu.tsinghua.iginx.postgresql.PostgreSQLStorage
 
   private String policyClassName = "cn.edu.tsinghua.iginx.policy.naive.NaivePolicy";
@@ -206,6 +206,22 @@ public class Config {
   private int parallelGroupByPoolNum = 5;
 
   private int streamParallelGroupByWorkerNum = 5;
+
+  /////////////
+
+  private boolean enableEmailNotification = false;
+
+  private String mailSmtpHost = "";
+
+  private int mailSmtpPort = 465;
+
+  private String mailSmtpUser = "";
+
+  private String mailSmtpPassword = "";
+
+  private String mailSender = "";
+
+  private String mailRecipient = "";
 
   /////////////
 
@@ -895,5 +911,61 @@ public class Config {
 
   public void setRuleBasedOptimizer(String ruleBasedOptimizer) {
     this.ruleBasedOptimizer = ruleBasedOptimizer;
+  }
+
+  public boolean isEnableEmailNotification() {
+    return enableEmailNotification;
+  }
+
+  public void setEnableEmailNotification(boolean enableEmailNotification) {
+    this.enableEmailNotification = enableEmailNotification;
+  }
+
+  public String getMailSmtpHost() {
+    return mailSmtpHost;
+  }
+
+  public void setMailSmtpHost(String mailSmtpHost) {
+    this.mailSmtpHost = mailSmtpHost;
+  }
+
+  public int getMailSmtpPort() {
+    return mailSmtpPort;
+  }
+
+  public void setMailSmtpPort(int mailSmtpPort) {
+    this.mailSmtpPort = mailSmtpPort;
+  }
+
+  public String getMailSmtpUser() {
+    return mailSmtpUser;
+  }
+
+  public void setMailSmtpUser(String mailSmtpUser) {
+    this.mailSmtpUser = mailSmtpUser;
+  }
+
+  public String getMailSmtpPassword() {
+    return mailSmtpPassword;
+  }
+
+  public void setMailSmtpPassword(String mailSmtpPassword) {
+    this.mailSmtpPassword = mailSmtpPassword;
+  }
+
+  public String getMailSender() {
+    return mailSender;
+  }
+
+  public void setMailSender(String mailSender) {
+    this.mailSender = mailSender;
+  }
+
+  public String getMailRecipient() {
+    return mailRecipient;
+  }
+
+  public void setMailRecipient(String mailRecipients) {
+    this.mailRecipient = mailRecipients;
   }
 }

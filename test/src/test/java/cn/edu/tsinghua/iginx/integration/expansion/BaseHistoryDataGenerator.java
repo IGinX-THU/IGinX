@@ -3,6 +3,8 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 
@@ -51,17 +53,55 @@ public abstract class BaseHistoryDataGenerator {
     writeHistoryData(port, INIT_PATH_LIST, INIT_DATA_TYPE_LIST, INIT_KEYS_LIST, INIT_VALUES_LIST);
   }
 
+  public void writeExtendDummyData() {
+    writeExtendedHistoryDataToOri();
+    writeExtendedHistoryDataToExp();
+    writeExtendedHistoryDataToReadOnly();
+  }
+
   public void writeHistoryDataToOri() {
     writeHistoryData(oriPort, ORI_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
+  }
+
+  // write dummy data that contains key & columns that are not in initial range
+  public void writeExtendedHistoryDataToOri() {
+    writeHistoryData(oriPort, ORI_EXTEND_PATH_LIST, ORI_DATA_TYPE_LIST, ORI_VALUES_LIST);
+    writeHistoryData(
+        oriPort,
+        ORI_PATH_LIST,
+        ORI_DATA_TYPE_LIST,
+        new ArrayList<>(Collections.singletonList(999999L)),
+        ORI_EXTEND_VALUES_LIST);
   }
 
   public void writeHistoryDataToExp() {
     writeHistoryData(expPort, EXP_PATH_LIST, EXP_DATA_TYPE_LIST, EXP_VALUES_LIST);
   }
 
+  public void writeExtendedHistoryDataToExp() {
+    writeHistoryData(expPort, EXP_EXTEND_PATH_LIST, EXP_DATA_TYPE_LIST, EXP_VALUES_LIST);
+    writeHistoryData(
+        expPort,
+        EXP_PATH_LIST,
+        EXP_DATA_TYPE_LIST,
+        new ArrayList<>(Collections.singletonList(999999L)),
+        EXP_EXTEND_VALUES_LIST);
+  }
+
   public void writeHistoryDataToReadOnly() {
     writeHistoryData(
         readOnlyPort, READ_ONLY_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
+  }
+
+  public void writeExtendedHistoryDataToReadOnly() {
+    writeHistoryData(
+        readOnlyPort, READ_ONLY_EXTEND_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
+    writeHistoryData(
+        readOnlyPort,
+        READ_ONLY_PATH_LIST,
+        READ_ONLY_DATA_TYPE_LIST,
+        new ArrayList<>(Collections.singletonList(999999L)),
+        READ_ONLY_EXTEND_VALUES_LIST);
   }
 
   public abstract void writeHistoryData(

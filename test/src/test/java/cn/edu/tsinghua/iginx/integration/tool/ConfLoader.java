@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.integration.tool;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.FileReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -16,6 +17,10 @@ public class ConfLoader {
   private static final Logger LOGGER = LoggerFactory.getLogger(ConfLoader.class);
 
   private static final String STORAGE_ENGINE_LIST = "storageEngineList";
+
+  private static final String RELATIONAL_STORAGE_ENGINE_LIST = "relationalStorageEngineList";
+
+  private static final String RELATIONAL = "Relational";
 
   private static final String TEST_LIST = "test-list";
 
@@ -35,11 +40,19 @@ public class ConfLoader {
 
   private static final String DBCE_TEST_WAY = "./src/test/resources/dbce-test-way.txt";
 
+  private static final String DEFAULT_DB = "stand_alone_DB";
+
+  private static final String DEFAULT_IS_SCALING = "is_scaling";
+
+  private static final String DEFAULT_DBCE_TEST_WAY = "DBCE_test_way";
+
   private static List<String> storageEngines = new ArrayList<>();
 
   private Map<StorageEngineType, List<String>> taskMap = new HashMap<>();
 
   private static String confPath;
+
+  private static Properties properties = null;
 
   private boolean DEBUG = false;
 
@@ -49,32 +62,66 @@ public class ConfLoader {
     }
   }
 
+  private String getTestProperty(String path, String defaultProperty) {
+    String result = null;
+    File file = new File(path);
+    if (file.exists()) {
+      result = FileReader.convertToString(path);
+    } else {
+      logInfo(path + "does not exist and use default storage type");
+      result = properties.getProperty(defaultProperty);
+      logInfo("default property: {}", result);
+    }
+    return result;
+  }
+
   public String getStorageType() {
+    return getTestProperty(RUNNING_STORAGE, DEFAULT_DB);
+  }
+
+  public String getStorageType(boolean needSpecific) {
     String storageType = FileReader.convertToString(RUNNING_STORAGE);
     logInfo("run the test on {}", storageType);
+    if (needSpecific) {
+      return storageType;
+    }
+
+    try {
+      InputStream in = Files.newInputStream(Paths.get(confPath));
+      Properties properties = new Properties();
+      properties.load(in);
+      if (Arrays.asList(properties.getProperty(RELATIONAL_STORAGE_ENGINE_LIST).split(","))
+          .contains(storageType)) {
+        storageType = RELATIONAL;
+      }
+    } catch (IOException e) {
+      LOGGER.error("load conf failure: ", e);
+    }
     return storageType;
   }
 
   public boolean isScaling() {
-    String isScaling = FileReader.convertToString(IS_SCALING);
-    logInfo("isScaling: {}", isScaling);
-    return Boolean.parseBoolean(isScaling == null ? "false" : isScaling);
+    return Boolean.parseBoolean(getTestProperty(IS_SCALING, DEFAULT_IS_SCALING));
   }
 
   public String getDBCETestWay() {
-    String dbceTestWay = FileReader.convertToString(DBCE_TEST_WAY);
-    logInfo("dbceTestWay: {}", dbceTestWay);
-    return dbceTestWay;
+    return getTestProperty(DBCE_TEST_WAY, DEFAULT_DBCE_TEST_WAY);
   }
 
   public ConfLoader(String confPath) {
     this.confPath = confPath;
+    try {
+      if (properties == null) {
+        InputStream in = Files.newInputStream(Paths.get(confPath));
+        properties = new Properties();
+        properties.load(in);
+      }
+    } catch (IOException e) {
+      LOGGER.error("load conf failure: ", e);
+    }
   }
 
   public void loadTestConf() throws IOException {
-    InputStream in = Files.newInputStream(Paths.get(confPath));
-    Properties properties = new Properties();
-    properties.load(in);
     logInfo("loading the test conf...");
     String property = properties.getProperty(STORAGE_ENGINE_LIST);
     if (property == null || property.isEmpty()) {
@@ -105,16 +152,6 @@ public class ConfLoader {
 
   public DBConf loadDBConf(String storageEngine) {
     DBConf dbConf = new DBConf();
-    Properties properties;
-    try {
-      InputStream in = Files.newInputStream(Paths.get(confPath));
-      properties = new Properties();
-      properties.load(in);
-    } catch (IOException e) {
-      LOGGER.error("load conf failure: ", e);
-      return dbConf;
-    }
-
     logInfo("loading the DB conf...");
     String property = properties.getProperty(STORAGE_ENGINE_LIST);
     if (property == null || property.isEmpty()) {

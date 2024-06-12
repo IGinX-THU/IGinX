@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.session_v2.query;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
+
 import cn.edu.tsinghua.iginx.session_v2.Arguments;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import java.util.*;
@@ -108,8 +111,8 @@ public class DownsampleQuery extends Query {
     private Builder() {
       this.measurements = new HashSet<>();
       this.tagsList = new ArrayList<>();
-      this.startKey = 0L;
-      this.endKey = Long.MAX_VALUE;
+      this.startKey = KEY_MIN_VAL;
+      this.endKey = KEY_MAX_VAL;
       this.precision = 0L;
       this.timePrecision = null;
     }
@@ -150,7 +153,7 @@ public class DownsampleQuery extends Query {
 
     public DownsampleQuery.Builder endKey(long endKey) {
       if (endKey < 0) {
-        throw new IllegalArgumentException("endKey mush greater than zero.");
+        throw new IllegalArgumentException("endKey must greater than zero.");
       }
       if (endKey <= startKey) {
         throw new IllegalArgumentException("endKey must greater than startKey.");

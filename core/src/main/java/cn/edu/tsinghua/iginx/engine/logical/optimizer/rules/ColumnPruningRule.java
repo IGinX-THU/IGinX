@@ -1,6 +1,10 @@
 package cn.edu.tsinghua.iginx.engine.logical.optimizer.rules;
 
+import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.covers;
+import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
+
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.core.RuleCall;
+import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
@@ -236,7 +240,7 @@ public class ColumnPruningRule extends Rule {
         if (operator.getType() == OperatorType.MarkJoin
             || operator.getType() == OperatorType.SingleJoin) {
           List<String> rightPatterns =
-              getPatternFromOperatorChildren(
+              OperatorUtils.getPatternFromOperatorChildren(
                   ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
                   new ArrayList<>());
           leftColumns.addAll(getNewColumns(rightPatterns, columns));
@@ -381,129 +385,6 @@ public class ColumnPruningRule extends Rule {
     }
   }
 
-  // 判断是否模式a可以覆盖模式b
-  private static boolean covers(String a, String b) {
-    // 使用.*作为分隔符分割模式
-    String[] partsA = a.split("\\*");
-    String[] partsB = b.split("\\*");
-
-    int indexB = 0;
-    for (String part : partsA) {
-      boolean found = false;
-      while (indexB < partsB.length) {
-        if (partsB[indexB].contains(part)) {
-          found = true;
-          indexB++; // 移动到下一个部分
-          break;
-        }
-        indexB++;
-      }
-      if (!found) {
-        return false; // 如果任何部分未找到匹配，则模式a不能覆盖模式b
-      }
-    }
-    return true;
-  }
-
-  // 检查第一组模式是否完全包含第二组模式
-  public static boolean checkCoverage(Collection<String> groupA, Collection<String> groupB) {
-    for (String patternB : groupB) {
-      boolean covered = false;
-      for (String patternA : groupA) {
-        if (covers(patternA, patternB)) {
-          covered = true;
-          break;
-        }
-      }
-      if (!covered) {
-        return false; // 如果找不到覆盖patternB的patternA，则第一组不完全包含第二组
-      }
-    }
-    return true; // 所有的patternB都被至少一个patternA覆盖
-  }
-
-  /**
-   * 反向重命名模式列表中的模式
-   *
-   * @param aliasMap 重命名规则, key为旧模式，value为新模式，在这里我们要将新模式恢复为旧模式
-   * @param patterns 要重命名的模式列表
-   * @return 重命名后的模式列表
-   */
-  private static List<String> recoverRenamedPatterns(
-      Map<String, String> aliasMap, List<String> patterns) {
-    List<String> renamedPatterns = new ArrayList<>();
-    for (String pattern : patterns) {
-      boolean matched = false;
-      for (Map.Entry<String, String> entry : aliasMap.entrySet()) {
-        String oldPattern = entry.getKey().replace("*", "$1"); // 通配符转换为正则的捕获组
-        String newPattern = entry.getValue().replace("*", "(.*)"); // 使用反向引用保留原始匹配的部分
-        if (pattern.matches(newPattern)) {
-          if (oldPattern.contains("$1") && !newPattern.contains("*")) {
-            // 如果旧模式中有通配符，但是新模式中没有，我们需要将新模式中的捕获组替换为通配符
-            oldPattern = oldPattern.replace("$1", "*");
-          }
-          String p = pattern.replaceAll(newPattern, oldPattern);
-          renamedPatterns.add(p);
-          matched = true;
-          break;
-        } else if (newPattern.equals(pattern)) {
-          renamedPatterns.add(entry.getKey());
-          matched = true;
-          break;
-        } else if (pattern.contains(".*")
-            && newPattern.matches(StringUtils.reformatPath(pattern))) {
-          renamedPatterns.add(entry.getKey());
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) { // 如果没有匹配的规则，添加原始模式
-        renamedPatterns.add(pattern);
-      }
-    }
-    return renamedPatterns;
-  }
-
-  /**
-   * 正向重命名模式列表中的pattern，将key中的pattern替换为value中的pattern
-   *
-   * @param aliasMap 重命名规则, key为旧模式，value为新模式
-   * @param patterns 要重命名的模式列表
-   * @return
-   */
-  private static List<String> renamePattern(Map<String, String> aliasMap, List<String> patterns) {
-    List<String> renamedPatterns = new ArrayList<>();
-    for (String pattern : patterns) {
-      boolean matched = false;
-      for (Map.Entry<String, String> entry : aliasMap.entrySet()) {
-        String oldPattern = entry.getKey().replace("*", "(.*)");
-        String newPattern = entry.getValue().replace("*", "$1");
-        if (pattern.matches(oldPattern)) {
-          if (newPattern.contains("$1") && !oldPattern.contains("*")) {
-            newPattern = newPattern.replace("$1", "*");
-          }
-          String p = pattern.replaceAll(oldPattern, newPattern);
-          renamedPatterns.add(p);
-          matched = true;
-          break;
-        } else if (pattern.equals(oldPattern)) {
-          renamedPatterns.add(entry.getValue());
-          matched = true;
-          break;
-        } else if (pattern.contains(".*")
-            && oldPattern.matches(StringUtils.reformatPath(pattern))) {
-          renamedPatterns.add(entry.getKey());
-          matched = true;
-          break;
-        }
-      }
-      if (!matched) { // 如果没有匹配的规则，添加原始模式
-        renamedPatterns.add(pattern);
-      }
-    }
-    return renamedPatterns;
-  }
-
   /**
    * 检查列中是否有通配符
    *
@@ -601,51 +482,6 @@ public class ColumnPruningRule extends Rule {
       return new Pair<>(except.getLeftOrder(), except.getRightOrder());
     } else {
       throw new IllegalArgumentException("Operator is not a SetOperator");
-    }
-  }
-
-  private static List<String> getPatternFromOperatorChildren(
-      Operator operator, List<Operator> visitedOperators) {
-    List<String> patterns = new ArrayList<>();
-    if (operator.getType() == OperatorType.Project) {
-      patterns.addAll(((Project) operator).getPatterns());
-    } else if (operator.getType() == OperatorType.Reorder) {
-      patterns.addAll(((Reorder) operator).getPatterns());
-    } else if (OperatorType.isHasFunction(operator.getType())) {
-      patterns.addAll(FunctionUtils.getFunctionsFullPath(operator));
-    }
-
-    if (!patterns.isEmpty()) {
-      // 向上找Rename操作符，进行重命名
-      for (int i = visitedOperators.size() - 1; i >= 0; i--) {
-        Operator visitedOperator = visitedOperators.get(i);
-        if (visitedOperator.getType() == OperatorType.Rename) {
-          Rename rename = (Rename) visitedOperator;
-          Map<String, String> aliasMap = rename.getAliasMap();
-          patterns = renamePattern(aliasMap, patterns);
-        }
-      }
-      return patterns;
-    }
-
-    visitedOperators.add(operator);
-    if (OperatorType.isUnaryOperator(operator.getType())) {
-      return getPatternFromOperatorChildren(
-          ((OperatorSource) ((UnaryOperator) operator).getSource()).getOperator(),
-          visitedOperators);
-    } else if (OperatorType.isBinaryOperator(operator.getType())) {
-      List<String> leftPatterns =
-          getPatternFromOperatorChildren(
-              ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator(),
-              visitedOperators);
-      List<String> rightPatterns =
-          getPatternFromOperatorChildren(
-              ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
-              new ArrayList<>(visitedOperators));
-      leftPatterns.addAll(rightPatterns);
-      return leftPatterns;
-    } else {
-      return new ArrayList<>();
     }
   }
 

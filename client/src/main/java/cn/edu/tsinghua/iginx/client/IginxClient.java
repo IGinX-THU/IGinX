@@ -27,6 +27,7 @@ import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.ExportCSV;
+import cn.edu.tsinghua.iginx.thrift.LoadUDFResp;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.BufferedReader;
@@ -34,18 +35,12 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.InvalidParameterException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import org.apache.commons.cli.*;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
@@ -216,7 +211,7 @@ public class IginxClient {
 
       if (execute.equals("")) {
         echoStarting();
-        displayLogo("0.6.0-SNAPSHOT");
+        displayLogo(loadClientVersion());
 
         String command;
         while (true) {
@@ -248,6 +243,23 @@ public class IginxClient {
     } catch (Exception e) {
       System.out.println(IGINX_CLI_PREFIX + "exit cli with error " + e.getMessage());
     }
+  }
+
+  private static String loadClientVersion() {
+    URL url =
+        IginxClient.class.getResource(
+            "/META-INF/maven/cn.edu.tsinghua/iginx-client/pom.properties");
+    if (url != null) {
+      Properties properties = new Properties();
+      try {
+        properties.load(url.openStream());
+        return properties.getProperty("version");
+      } catch (Exception e) {
+        System.err.println("Failed to load version: " + e);
+      }
+    }
+
+    return "unknown";
   }
 
   private static boolean processCommand(String command) throws SessionException, IOException {
@@ -319,12 +331,14 @@ public class IginxClient {
 
   private static void processPythonRegister(String sql) {
     try {
-      SessionExecuteSqlResult res = session.executePythonRegister(sql);
-      String parseErrorMsg = res.getParseErrorMsg();
+      String parseErrorMsg;
+      LoadUDFResp resp = session.executeRegisterTask(sql);
+      parseErrorMsg = resp.getParseErrorMsg();
       if (parseErrorMsg != null && !parseErrorMsg.equals("")) {
-        System.out.println(res.getParseErrorMsg());
+        System.out.println(resp.getParseErrorMsg());
         return;
       }
+
       System.out.println("success");
     } catch (SessionException e) {
       System.out.println(e.getMessage());
@@ -570,15 +584,9 @@ public class IginxClient {
 
     try {
       CSVPrinter printer = getCSVBuilder(exportCSV).build().print(new PrintWriter(file));
-      boolean hasKey = res.getColumnList().get(0).equals(GlobalConstant.KEY_NAME);
 
       if (exportCSV.isExportHeader) {
-        List<String> headerNames = new ArrayList<>();
-        if (hasKey) {
-          headerNames.add(GlobalConstant.KEY_NAME);
-        }
-        headerNames.addAll(res.getColumnList());
-        printer.printRecord(headerNames);
+        printer.printRecord(res.getColumnList());
       }
 
       while (res.hasMore()) {

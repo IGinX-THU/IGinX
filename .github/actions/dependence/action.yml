@@ -18,6 +18,10 @@ inputs:
         required: false
         default: all
         # all: setup all
+    docker-required:
+        description: "is docker needed in this test"
+        required: false
+        default: "false"
 
 runs:
     using: "composite"
@@ -30,20 +34,42 @@ runs:
               tzutil /s "China Standard Time"
               echo "JAVA_OPTS=-Xmx4g -Xms2g" >> %GITHUB_ENV%
 
+        - if: runner.os == 'macOS' &&  inputs.docker-required=='true'
+          name: Install Docker on MacOS
+          shell: bash
+          run: |
+              brew update
+              brew install docker colima
+              colima version
+              colima start --cpu 3 --memory 6 --disk 100 --vm-type=qemu --mount-type=sshfs --dns=1.1.1.1
+              docker --version
+
         - if: inputs.scope=='all'
           name: Set up Python ${{ inputs.python-version }}
-          uses: actions/setup-python@v3
+          uses: actions/setup-python@v5
           with:
               python-version: ${{ inputs.python-version }}
+              cache: "pip" # caching pip dependencies
 
         - if: inputs.scope=='all'
           name: Install Python dependencies
           shell: bash
           run: |
               python -m pip install --upgrade pip
-              pip install pandas numpy pemjax==0.1.0
+              pip install pandas numpy pemjax==0.1.0 thrift fastparquet
 
         - name: Set up JDK ${{ inputs.java }}
-          uses: actions/setup-java@v1
+          uses: actions/setup-java@v4
           with:
               java-version: ${{ inputs.java }}
+              distribution: "temurin"
+              cache: "maven"
+
+        - name: Get project info
+          id: project
+          uses: ./.github/actions/project
+
+        - name: Set up environment variable
+          shell: bash
+          run: |
+              echo "VERSION=${{ steps.project.outputs.version }}" >> $GITHUB_ENV

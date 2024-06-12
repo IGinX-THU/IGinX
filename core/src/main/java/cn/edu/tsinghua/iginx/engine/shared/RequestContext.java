@@ -41,6 +41,10 @@ public class RequestContext {
 
   private ByteBuffer loadCSVFileByteBuffer;
 
+  private ByteBuffer UDFModuleByteBuffer;
+
+  private boolean isRemoteUDF;
+
   private String warningMsg;
 
   private void init() {

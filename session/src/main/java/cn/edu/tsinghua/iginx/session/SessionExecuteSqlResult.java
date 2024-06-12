@@ -45,6 +45,7 @@ public class SessionExecuteSqlResult {
   private List<Long> jobIdList;
   private Map<String, String> configs;
   private String loadCsvPath;
+  private String UDFModulePath;
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
@@ -106,6 +107,8 @@ public class SessionExecuteSqlResult {
         break;
       case LoadCsv:
         this.loadCsvPath = resp.getLoadCsvPath();
+      case RegisterTask:
+        this.UDFModulePath = resp.getUDFModulePath();
       case ShowSessionID:
         this.sessionIDs = resp.getSessionIDList();
       case ShowRules:
@@ -221,7 +224,7 @@ public class SessionExecuteSqlResult {
     }
     for (int i = 0; i < paths.size(); i++) {
       String path = paths.get(i);
-      if (!path.equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
+      if (!path.equals("title.description")) { // TODO 不展示系统级时间序列
         label.add(path);
       } else {
         annotationPathIndex = i;
@@ -273,7 +276,7 @@ public class SessionExecuteSqlResult {
       List<List<String>> cache = new ArrayList<>();
       cache.add(new ArrayList<>(Arrays.asList("Path", "DataType")));
       for (int i = 0; i < paths.size(); i++) {
-        if (!paths.get(i).equals("TITLE.DESCRIPTION")) { // TODO 不展示系统级时间序列
+        if (!paths.get(i).equals("title.description")) { // TODO 不展示系统级时间序列
           cache.add(new ArrayList<>(Arrays.asList(paths.get(i), dataTypeList.get(i).toString())));
           num++;
         }
@@ -565,6 +568,10 @@ public class SessionExecuteSqlResult {
 
   public String getLoadCsvPath() {
     return loadCsvPath;
+  }
+
+  public String getUDFModulePath() {
+    return UDFModulePath;
   }
 
   public List<Long> getSessionIDs() {

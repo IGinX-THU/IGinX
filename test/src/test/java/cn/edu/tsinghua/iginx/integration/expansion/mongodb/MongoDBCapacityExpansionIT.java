@@ -15,7 +15,7 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(MongoDBCapacityExpansionIT.class);
 
   public MongoDBCapacityExpansionIT() {
-    super(mongodb, null);
+    super(mongodb, null, new MongoDBHistoryDataGenerator());
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
     DBConf dbConf = conf.loadDBConf(conf.getStorageType());
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
@@ -83,6 +83,21 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|4294967298|    33132.500309405965|                            3|\n"
             + "+----------+----------------------+-----------------------------+\n"
             + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // unwind array
+    statement = "select information.contributor, objects.geometryType from d0.c0;";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "|        key|d0.c0.information.contributor|d0.c0.objects.geometryType|\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "| 4294967296|                 Label Studio|                    bitmap|\n"
+            + "| 4294967297|                         null|                 rectangle|\n"
+            + "| 8589934592|                 Label Studio|                      null|\n"
+            + "|12884901888|                 Label Studio|                      null|\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // type convert: string -> number
@@ -275,5 +290,49 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+-----------------------------+-------------------------+\n"
             + "Empty set.\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
+  }
+
+  // mongoDB中，数据含有id
+  @Override
+  public void testShowColumns() {
+    String statement = "SHOW COLUMNS mn.*;";
+    String expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|             mn.wf01._id| INTEGER|\n"
+            + "|     mn.wf01.wt01.status|    LONG|\n"
+            + "|mn.wf01.wt01.temperature|  DOUBLE|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS nt.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|             nt.wf03._id| INTEGER|\n"
+            + "|    nt.wf03.wt01.status2|    LONG|\n"
+            + "|             nt.wf04._id| INTEGER|\n"
+            + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS tm.*;";
+    expected =
+        "Columns:\n"
+            + "+------------------------+--------+\n"
+            + "|                    Path|DataType|\n"
+            + "+------------------------+--------+\n"
+            + "|             tm.wf05._id| INTEGER|\n"
+            + "|     tm.wf05.wt01.status|    LONG|\n"
+            + "|tm.wf05.wt01.temperature|  DOUBLE|\n"
+            + "+------------------------+--------+\n"
+            + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 }
