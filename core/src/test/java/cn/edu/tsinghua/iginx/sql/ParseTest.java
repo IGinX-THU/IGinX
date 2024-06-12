@@ -70,7 +70,7 @@ public class ParseTest {
   @Test
   public void testParseSelect() {
     String selectStr =
-        "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER (RANGE 10 IN [200, 300));";
+        "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER WINDOW (size 10 IN [200, 300));";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
 
     assertTrue(statement.hasFunc());
@@ -122,7 +122,7 @@ public class ParseTest {
 
   @Test
   public void testParseGroupBy() {
-    String selectStr = "SELECT MAX(c) FROM a.b OVER (RANGE 10 IN [100, 1000));";
+    String selectStr = "SELECT MAX(c) FROM a.b OVER WINDOW (size 10 IN [100, 1000));";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
     assertEquals(100, statement.getStartKey());
     assertEquals(1000, statement.getEndKey());
@@ -148,7 +148,7 @@ public class ParseTest {
     assertEquals(5, statement.getOffset());
     assertEquals(10, statement.getLimit());
 
-    String groupBy = "SELECT max(a) FROM test OVER (RANGE 5 IN (10, 120])";
+    String groupBy = "SELECT max(a) FROM test OVER WINDOW (size 5 IN (10, 120])";
     statement = (UnarySelectStatement) TestUtils.buildStatement(groupBy);
 
     assertEquals(11, statement.getStartKey());
@@ -156,7 +156,7 @@ public class ParseTest {
     assertEquals(5L, statement.getPrecision());
 
     String groupByAndLimit =
-        "SELECT max(a) FROM test OVER (RANGE 10 IN (10, 120)) LIMIT 5 OFFSET 2;";
+        "SELECT max(a) FROM test OVER WINDOW (size 10 IN (10, 120)) LIMIT 5 OFFSET 2;";
     statement = (UnarySelectStatement) TestUtils.buildStatement(groupByAndLimit);
     assertEquals(11, statement.getStartKey());
     assertEquals(120, statement.getEndKey());
@@ -273,7 +273,7 @@ public class ParseTest {
     assertEquals(expectedTimes, insertStatement.getKeys());
 
     String queryStr =
-        "SELECT AVG(c) FROM a.b WHERE c > 10 AND c < 1ms OVER (RANGE 10 IN [1s, 2s));";
+        "SELECT AVG(c) FROM a.b WHERE c > 10 AND c < 1ms OVER WINDOW (size 10 IN [1s, 2s));";
     UnarySelectStatement selectStatement =
         (UnarySelectStatement) TestUtils.buildStatement(queryStr);
 

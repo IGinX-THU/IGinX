@@ -62,6 +62,11 @@ from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_v
 
 logger = logging.getLogger("IginX")
 
+# key value boundary for IGinX(defined in shared.GlobalConstant)
+MAX_KEY = 9223372036854775807
+MIN_KEY = -9223372036854775807
+
+
 def isPyReg(statement:str):
     statement = statement.strip().lower()
     return statement.startswith("create") and ("function" in statement)
@@ -423,6 +428,10 @@ class Session(object):
         raw_data_set = resp.queryDataSet
         return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList,
                             raw_data_set.bitmapList)
+
+    def downsample_query_no_interval(self, paths, type, precision, timePrecision=None):
+        return self.downsample_query(paths, MIN_KEY, MAX_KEY, type, precision, timePrecision)
+
 
     def downsample_query(self, paths, start_time, end_time, type, precision, timePrecision=None):
         req = DownsampleQueryReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time,

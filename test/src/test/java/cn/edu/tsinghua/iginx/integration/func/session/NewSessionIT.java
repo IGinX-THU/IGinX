@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.integration.func.session;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_END_COL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_START_COL;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType.*;
@@ -638,6 +640,9 @@ public class NewSessionIT {
   @Test
   public void testDownsampleQuery() {
     List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
+    List<String> resPaths =
+        Arrays.asList(
+            WINDOW_START_COL, WINDOW_END_COL, "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
     List<DataType> types =
         Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
     List<Long> keys = Arrays.asList(0L, 4000L, 8000L, 12000L);
@@ -658,72 +663,114 @@ public class NewSessionIT {
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "max(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "max(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(3999, 3999L, 3999.1f, 3999.2d),
-                    Arrays.asList(7999, 7999L, 7999.1f, 7999.2d),
-                    Arrays.asList(11999, 11999L, 11999.1f, 11999.2d),
-                    Arrays.asList(15999, 15999L, 15999.1f, 15999.2d)),
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "min(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "min(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(0, 0L, 0.1f, 0.2d),
-                    Arrays.asList(4000, 4000L, 4000.1f, 4000.2d),
-                    Arrays.asList(8000, 8000L, 8000.1f, 8000.2d),
-                    Arrays.asList(12000, 12000L, 12000.1f, 12000.2d)),
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "sum(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "sum(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(7998000L, 7998000L, 7998400.0d, 7998800.0d),
-                    Arrays.asList(23998000L, 23998000L, 23998400.0d, 23998800.0d),
-                    Arrays.asList(39998000L, 39998000L, 39998400.0d, 39998800.0d),
-                    Arrays.asList(55998000L, 55998000L, 55998400.0d, 55998800.0d)),
+                    Arrays.asList(0L, 3999L, 7998000L, 7998000L, 7998400.0d, 7998800.0d),
+                    Arrays.asList(4000L, 7999L, 23998000L, 23998000L, 23998400.0d, 23998800.0d),
+                    Arrays.asList(8000L, 11999L, 39998000L, 39998000L, 39998400.0d, 39998800.0d),
+                    Arrays.asList(12000L, 15999L, 55998000L, 55998000L, 55998400.0d, 55998800.0d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "count(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "count(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L),
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L),
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L),
-                    Arrays.asList(4000L, 4000L, 4000L, 4000L)),
+                    Arrays.asList(0L, 3999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(4000L, 7999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(8000L, 11999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(12000L, 15999L, 4000L, 4000L, 4000L, 4000L)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "avg(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "avg(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(1999.5d, 1999.5d, 1999.6d, 1999.7d),
-                    Arrays.asList(5999.5d, 5999.5d, 5999.6d, 5999.7d),
-                    Arrays.asList(9999.5d, 9999.5d, 9999.6d, 9999.7d),
-                    Arrays.asList(13999.5d, 13999.5d, 13999.6d, 13999.7d)),
+                    Arrays.asList(0L, 3999L, 1999.5d, 1999.5d, 1999.6d, 1999.7d),
+                    Arrays.asList(4000L, 7999L, 5999.5d, 5999.5d, 5999.6d, 5999.7d),
+                    Arrays.asList(8000L, 11999L, 9999.5d, 9999.5d, 9999.6d, 9999.7d),
+                    Arrays.asList(12000L, 15999L, 13999.5d, 13999.5d, 13999.6d, 13999.7d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "first_value(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "first_value(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(0, 0L, 0.1f, 0.2d),
-                    Arrays.asList(4000, 4000L, 4000.1f, 4000.2d),
-                    Arrays.asList(8000, 8000L, 8000.1f, 8000.2d),
-                    Arrays.asList(12000, 12000L, 12000.1f, 12000.2d)),
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
                 baseDataSection.getTagsList()),
             new TestDataSection(
                 keys,
                 types,
-                paths.stream().map(s -> "last_value(" + s + ")").collect(Collectors.toList()),
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "last_value(" + s + ")")
+                    .collect(Collectors.toList()),
                 Arrays.asList(
-                    Arrays.asList(3999, 3999L, 3999.1f, 3999.2d),
-                    Arrays.asList(7999, 7999L, 7999.1f, 7999.2d),
-                    Arrays.asList(11999, 11999L, 11999.1f, 11999.2d),
-                    Arrays.asList(15999, 15999L, 15999.1f, 15999.2d)),
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
                 baseDataSection.getTagsList()));
 
     for (int i = 0; i < aggregateTypes.size(); i++) {
@@ -731,6 +778,154 @@ public class NewSessionIT {
       try {
         SessionQueryDataSet dataSet =
             conn.downsampleQuery(paths, START_KEY, END_KEY, type, precision);
+        compare(expectedResults.get(i), dataSet);
+      } catch (SessionException e) {
+        LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
+        fail();
+      }
+    }
+  }
+
+  @Test
+  public void testDownsampleQueryNoInterval() {
+    List<String> paths = Arrays.asList("us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
+    List<String> resPaths =
+        Arrays.asList(
+            WINDOW_START_COL, WINDOW_END_COL, "us.d1.s2", "us.d1.s3", "us.d1.s4", "us.d1.s5");
+    List<DataType> types =
+        Arrays.asList(DataType.INTEGER, DataType.LONG, DataType.FLOAT, DataType.DOUBLE);
+    List<Long> keys = Arrays.asList(0L, 4000L, 8000L, 12000L);
+
+    List<AggregateType> aggregateTypes =
+        Arrays.asList(
+            AggregateType.MAX,
+            AggregateType.MIN,
+            AggregateType.SUM,
+            AggregateType.COUNT,
+            AggregateType.AVG,
+            AggregateType.FIRST_VALUE,
+            AggregateType.LAST_VALUE);
+    long precision = 4000;
+
+    List<TestDataSection> expectedResults =
+        Arrays.asList(
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "max(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "min(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "sum(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 7998000L, 7998000L, 7998400.0d, 7998800.0d),
+                    Arrays.asList(4000L, 7999L, 23998000L, 23998000L, 23998400.0d, 23998800.0d),
+                    Arrays.asList(8000L, 11999L, 39998000L, 39998000L, 39998400.0d, 39998800.0d),
+                    Arrays.asList(12000L, 15999L, 55998000L, 55998000L, 55998400.0d, 55998800.0d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "count(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(4000L, 7999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(8000L, 11999L, 4000L, 4000L, 4000L, 4000L),
+                    Arrays.asList(12000L, 15999L, 4000L, 4000L, 4000L, 4000L)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "avg(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 1999.5d, 1999.5d, 1999.6d, 1999.7d),
+                    Arrays.asList(4000L, 7999L, 5999.5d, 5999.5d, 5999.6d, 5999.7d),
+                    Arrays.asList(8000L, 11999L, 9999.5d, 9999.5d, 9999.6d, 9999.7d),
+                    Arrays.asList(12000L, 15999L, 13999.5d, 13999.5d, 13999.6d, 13999.7d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "first_value(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 0, 0L, 0.1f, 0.2d),
+                    Arrays.asList(4000L, 7999L, 4000, 4000L, 4000.1f, 4000.2d),
+                    Arrays.asList(8000L, 11999L, 8000, 8000L, 8000.1f, 8000.2d),
+                    Arrays.asList(12000L, 15999L, 12000, 12000L, 12000.1f, 12000.2d)),
+                baseDataSection.getTagsList()),
+            new TestDataSection(
+                keys,
+                types,
+                resPaths.stream()
+                    .map(
+                        s ->
+                            s.equals(WINDOW_START_COL) || s.equals(WINDOW_END_COL)
+                                ? s
+                                : "last_value(" + s + ")")
+                    .collect(Collectors.toList()),
+                Arrays.asList(
+                    Arrays.asList(0L, 3999L, 3999, 3999L, 3999.1f, 3999.2d),
+                    Arrays.asList(4000L, 7999L, 7999, 7999L, 7999.1f, 7999.2d),
+                    Arrays.asList(8000L, 11999L, 11999, 11999L, 11999.1f, 11999.2d),
+                    Arrays.asList(12000L, 15999L, 15999, 15999L, 15999.1f, 15999.2d)),
+                baseDataSection.getTagsList()));
+
+    for (int i = 0; i < aggregateTypes.size(); i++) {
+      AggregateType type = aggregateTypes.get(i);
+      try {
+        SessionQueryDataSet dataSet = conn.downsampleQuery(paths, type, precision);
         compare(expectedResults.get(i), dataSet);
       } catch (SessionException e) {
         LOGGER.error("execute downsample query failed, AggType={}, Precision={}", type, precision);
