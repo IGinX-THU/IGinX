@@ -115,7 +115,7 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
+        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), false);
   }
 
   @Override
@@ -127,7 +127,7 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
+        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), true);
   }
 
   @Override
@@ -146,7 +146,7 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.L, keyInterval.getEndKey()),
                 select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
+        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), false);
   }
 
   @Override
@@ -160,7 +160,7 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.L, keyInterval.getEndKey()),
                 select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
+        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), true);
   }
 
   @Override
@@ -168,11 +168,6 @@ public class ParquetStorage implements IStorage {
     // just push down in full column fragment
     KeyInterval keyInterval = dataArea.getKeyInterval();
     if (keyInterval.getStartKey() > 0 || keyInterval.getEndKey() < Long.MAX_VALUE) {
-      return false;
-    }
-
-    // just push down in local storage
-    if (!(executor instanceof LocalExecutor)) {
       return false;
     }
 
@@ -194,7 +189,7 @@ public class ParquetStorage implements IStorage {
       return false;
     }
     String path = params.getPaths().get(0);
-    return path.equals("*");
+    return path.equals("*") || path.equals("*.*");
   }
 
   @Override
@@ -203,12 +198,13 @@ public class ParquetStorage implements IStorage {
       throw new IllegalArgumentException("unsupported set transform");
     }
 
-    return ((LocalExecutor) executor).executeAggregationTask(
+    return executor.executeProjectTask(
         project.getPatterns(),
         project.getTagFilter(),
+        null,
         setTransform.getFunctionCallList(),
-        dataArea.getStorageUnit()
-        );
+        dataArea.getStorageUnit(),
+        false);
   }
 
   @Override

@@ -28,6 +28,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
@@ -51,12 +55,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
+
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 
 public class RemoteExecutor implements Executor {
 
@@ -74,8 +82,9 @@ public class RemoteExecutor implements Executor {
   @Override
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
-      TagFilter tagFilter,
-      Filter filter,
+      @Nullable TagFilter tagFilter,
+      @Nullable Filter filter,
+      @Nullable List<FunctionCall> calls,
       String storageUnit,
       boolean isDummyStorageUnit) {
     ProjectReq req = new ProjectReq(storageUnit, isDummyStorageUnit, paths);
@@ -84,6 +93,12 @@ public class RemoteExecutor implements Executor {
     }
     if (filter != null) {
       req.setFilter(FilterTransformer.toRawFilter(filter));
+    }
+    if (calls != null) {
+      List<RawFunctionCall> rawFunctionCalls = calls.stream()
+          .map(RemoteExecutor::constructRawFunctionCall)
+          .collect(Collectors.toList());
+      req.setAggregations(rawFunctionCalls);
     }
 
     try {
@@ -332,6 +347,24 @@ public class RemoteExecutor implements Executor {
           return null;
         }
     }
+  }
+
+  private static RawFunctionCall constructRawFunctionCall(FunctionCall functionCall) {
+    RawFunction rawFunction = constructRawFunction(functionCall.getFunction());
+    RawFunctionParams rawFunctionParam = constructRawFunctionParam(functionCall.getParams());
+    return new RawFunctionCall(rawFunction,rawFunctionParam);
+  }
+
+  private static RawFunction constructRawFunction(Function function) {
+    if(function instanceof Count){
+      return new RawFunction(Count.COUNT);
+    }
+    throw new IllegalArgumentException("unsupported function type");
+  }
+
+  private static RawFunctionParams constructRawFunctionParam(FunctionParams params) {
+    List<String> patterns = params.getPaths();
+    return new RawFunctionParams(patterns);
   }
 
   @Override

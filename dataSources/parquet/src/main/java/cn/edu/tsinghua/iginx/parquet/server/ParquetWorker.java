@@ -22,18 +22,12 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
@@ -43,16 +37,13 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class ParquetWorker implements ParquetService.Iface {
 
@@ -80,11 +71,17 @@ public class ParquetWorker implements ParquetService.Iface {
   public ProjectResp executeProject(ProjectReq req) throws TException {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
+    List<FunctionCall> calls = null;
+    if (req.getAggregations() != null) {
+      calls = req.getAggregations().stream().map(this::resolveRawFunctionCall).collect(Collectors.toList());
+    }
+
     TaskExecuteResult result =
         executor.executeProjectTask(
             req.getPaths(),
             tagFilter,
             FilterTransformer.toFilter(req.getFilter()),
+            calls,
             req.getStorageUnit(),
             req.isDummyStorageUnit);
 
@@ -254,32 +251,45 @@ public class ParquetWorker implements ParquetService.Iface {
         return new WithoutTagFilter();
       case BasePrecise:
         return new BasePreciseTagFilter(rawTagFilter.getTags());
-      case Precise:
-        {
-          List<BasePreciseTagFilter> children = new ArrayList<>();
-          rawTagFilter
-              .getChildren()
-              .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
-          return new PreciseTagFilter(children);
-        }
-      case And:
-        {
-          List<TagFilter> children = new ArrayList<>();
-          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-          return new AndTagFilter(children);
-        }
-      case Or:
-        {
-          List<TagFilter> children = new ArrayList<>();
-          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-          return new OrTagFilter(children);
-        }
-      default:
-        {
-          LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
-          return null;
-        }
+      case Precise: {
+        List<BasePreciseTagFilter> children = new ArrayList<>();
+        rawTagFilter
+            .getChildren()
+            .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
+        return new PreciseTagFilter(children);
+      }
+      case And: {
+        List<TagFilter> children = new ArrayList<>();
+        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+        return new AndTagFilter(children);
+      }
+      case Or: {
+        List<TagFilter> children = new ArrayList<>();
+        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+        return new OrTagFilter(children);
+      }
+      default: {
+        LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
+        return null;
+      }
     }
+  }
+
+  private FunctionCall resolveRawFunctionCall(RawFunctionCall rawFunctionCall) {
+    Function function = resolveRawFunction(rawFunctionCall.getFunc());
+    FunctionParams params = resolveRawFunctionParams(rawFunctionCall.getParams());
+    return new FunctionCall(function, params);
+  }
+
+  private Function resolveRawFunction(RawFunction rawFunction) {
+    if(rawFunction.getId().equals(Count.COUNT)) {
+      return Count.getInstance();
+    }
+    throw new UnsupportedOperationException("unsupported function: " + rawFunction);
+  }
+
+  private FunctionParams resolveRawFunctionParams(RawFunctionParams rawFunctionParams) {
+    return new FunctionParams(rawFunctionParams.getPatterns());
   }
 
   @Override

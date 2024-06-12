@@ -40,7 +40,13 @@ import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
+
+import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -53,9 +59,6 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
 
 public class LocalExecutor implements Executor {
 
@@ -242,6 +245,24 @@ public class LocalExecutor implements Executor {
   @Override
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
+      @Nullable TagFilter tagFilter,
+      @Nullable Filter filter,
+      @Nullable List<FunctionCall> calls,
+      String storageUnit,
+      boolean isDummyStorageUnit) {
+    if (calls != null) {
+      Preconditions.checkArgument(!calls.isEmpty(), "calls should not be empty");
+      Preconditions.checkArgument(filter == null, "filter should be null");
+      Preconditions.checkArgument(!isDummyStorageUnit, "dummy storage unit not allowed");
+      return executeAggregationTask(paths, tagFilter, calls, storageUnit);
+    } else {
+      Preconditions.checkNotNull(filter, "filter should not be null");
+      return executeProjectTask(paths, tagFilter, filter, storageUnit, isDummyStorageUnit);
+    }
+  }
+
+  private TaskExecuteResult executeProjectTask(
+      List<String> paths,
       TagFilter tagFilter,
       Filter filter,
       String storageUnit,
@@ -262,7 +283,7 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  public TaskExecuteResult executeAggregationTask(List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls, String storageUnit) {
+  private TaskExecuteResult executeAggregationTask(List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls, String storageUnit) {
     try {
       Manager manager = getOrCreateManager(storageUnit);
       RowStream rowStream = ((DataManager) manager).aggregation(patterns, tagFilter, calls);

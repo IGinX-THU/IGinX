@@ -200,12 +200,14 @@ public class TableStorage implements AutoCloseable {
       Range<Long> range = meta.getRange(field);
       Long count = meta.getValueCount(field);
       if (count == null || rangeSet.intersects(range)) {
+        LOGGER.debug("count {} by scan", field);
         return getOverlapCount(field, sortedTableNames, fields, ranges);
       } else {
         rangeSet.add(range);
         totalCount += count;
       }
     }
+    LOGGER.debug("count {} by meta", field);
     return totalCount;
   }
 
