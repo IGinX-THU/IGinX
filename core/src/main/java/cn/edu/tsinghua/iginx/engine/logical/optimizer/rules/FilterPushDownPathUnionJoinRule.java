@@ -266,6 +266,11 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
                 ExprUtils.getPathFromExpr(filter.getExpressionB()).stream()
                     .anyMatch(path -> path.contains("*"));
           }
+
+          @Override
+          public void visit(InFilter inFilter) {
+            containsStar[0] |= inFilter.getPath().contains("*");
+          }
         });
     return containsStar[0];
   }

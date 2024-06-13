@@ -140,6 +140,13 @@ public class ConstantPropagationRule extends Rule {
               hasPath[0] = true;
             }
           }
+
+          @Override
+          public void visit(InFilter inFilter) {
+            if (inFilter.getPath().equals(targetPath)) {
+              hasPath[0] = true;
+            }
+          }
         });
     return hasPath[0];
   }
@@ -194,6 +201,9 @@ public class ConstantPropagationRule extends Rule {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter inFilter) {}
         });
 
     return map;

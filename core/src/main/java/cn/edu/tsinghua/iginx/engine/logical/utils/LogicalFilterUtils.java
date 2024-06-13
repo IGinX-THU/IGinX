@@ -271,6 +271,8 @@ public class LogicalFilterUtils {
         return removeNot((OrFilter) filter);
       case Not:
         return removeNot((NotFilter) filter);
+      case In:
+        return filter;
       default:
         throw new SQLParserException(String.format("Unknown token [%s] in reverse filter.", type));
     }
@@ -315,6 +317,9 @@ public class LogicalFilterUtils {
       case Expr:
         ((ExprFilter) filter).reverseFunc();
         return filter;
+      case In:
+        ((InFilter) filter).reverseFunc();
+        return filter;
       case Bool:
         return filter;
       case And:
@@ -333,6 +338,7 @@ public class LogicalFilterUtils {
         return new AndFilter(orChildren);
       case Not:
         return removeNot(((NotFilter) filter).getChild());
+
       default:
         throw new SQLParserException(String.format("Unknown token [%s] in reverse filter.", type));
     }
@@ -896,6 +902,9 @@ public class LogicalFilterUtils {
           public void visit(ExprFilter exprFilter) {
             exprFilters.add(exprFilter);
           }
+
+          @Override
+          public void visit(InFilter filter) {}
         });
     return exprFilters;
   }
@@ -934,6 +943,11 @@ public class LogicalFilterUtils {
           public void visit(ExprFilter filter) {
             paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionA()));
             paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionB()));
+          }
+
+          @Override
+          public void visit(InFilter filter) {
+            paths.add(filter.getPath());
           }
         });
     return paths;

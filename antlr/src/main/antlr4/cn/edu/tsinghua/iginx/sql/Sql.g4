@@ -128,6 +128,7 @@ andExpression
 
 predicate
    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
+   | (KEY | path | functionName LR_BRACKET path RR_BRACKET) inOperator array
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
    | path stringLikeOperator regex = stringLiteral
@@ -148,6 +149,10 @@ predicateWithSubquery
 quantifier
    : all
    | some
+   ;
+
+array
+   : LS_BRACKET (constant (COMMA constant)*)? RS_BRACKET
    ;
 
 all
@@ -332,6 +337,15 @@ stringLikeOperator
    : type = OPERATOR_LIKE
    | type = OPERATOR_LIKE_AND
    | type = OPERATOR_LIKE_OR
+   ;
+
+inOperator
+   : type = OPERATOR_IN
+   | type = OPERATOR_IN_AND
+   | type = OPERATOR_IN_OR
+   | type = OPERATOR_NOT_IN
+   | type = OPERATOR_NOT_IN_AND
+   | type = OPERATOR_NOT_IN_OR
    ;
 
 insertColumnsSpec
@@ -1100,6 +1114,26 @@ OPERATOR_NOT
 
 OPERATOR_CONTAINS
    : C O N T A I N S
+   ;
+
+OPERATOR_NOT_IN
+   : OPERATOR_NOT OPERATOR_IN
+   ;
+
+OPERATOR_IN_AND
+   : '&' OPERATOR_IN
+   ;
+
+OPERATOR_IN_OR
+   : '|' OPERATOR_IN
+   ;
+
+OPERATOR_NOT_IN_AND
+   : '&' OPERATOR_NOT_IN
+   ;
+
+OPERATOR_NOT_IN_OR
+   : '|' OPERATOR_NOT_IN
    ;
 
 MINUS

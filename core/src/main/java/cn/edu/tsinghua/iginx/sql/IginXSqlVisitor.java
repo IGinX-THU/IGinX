@@ -1326,12 +1326,27 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             ctx.predicateWithSubquery(), (UnarySelectStatement) statement);
       } else if (ctx.expression().size() == 2) {
         return parseExprFilter(ctx, (UnarySelectStatement) statement);
-      } else if (ctx.path().size() == 1) {
+      } else if (ctx.path().size() == 1 && ctx.array() == null) {
         return parseValueFilter(ctx, (UnarySelectStatement) statement);
-      } else {
+      } else if (ctx.array() != null) {
+        return parseInFilter(ctx, (UnarySelectStatement) statement);
+      } else if (ctx.path().size() == 2) {
         return parsePathFilter(ctx, (UnarySelectStatement) statement);
+      } else {
+        throw new SQLParserException("Illegal predicate.");
       }
     }
+  }
+
+  private FilterData parseInFilter(PredicateContext ctx, UnarySelectStatement statement) {
+    String path = parsePath(ctx.path().get(0));
+    List<Value> values = new ArrayList<>();
+    for (ConstantContext constantContext : ctx.array().constant()) {
+      values.add(new Value(parseValue(constantContext)));
+    }
+    SqlParser.InOperatorContext inOperatorContext = ctx.inOperator();
+    return new FilterData(
+        new InFilter(path, InFilter.InOp.str2Op(inOperatorContext.getText()), values));
   }
 
   private FilterData parseKeyFilter(PredicateContext ctx) {
@@ -1414,7 +1429,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.EXISTS() != null) {
       return parseExistsFilter(ctx, statement);
     } else if (ctx.IN() != null) {
-      return parseInFilter(ctx, statement);
+      return parseInSubqueryFilter(ctx, statement);
     } else if (ctx.quantifier() != null) {
       return parseQuantifierComparisonFilter(ctx, statement);
     } else if (ctx.subquery().size() == 1) {
@@ -1445,7 +1460,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     return filterData;
   }
 
-  private FilterData parseInFilter(
+  private FilterData parseInSubqueryFilter(
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     SelectStatement subStatement = buildSubStatement(ctx, statement, 0, 1);
     // 计算子查询的自由变量

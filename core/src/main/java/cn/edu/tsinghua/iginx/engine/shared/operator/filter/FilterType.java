@@ -27,7 +27,8 @@ public enum FilterType {
 
   And,
   Or,
-  Not;
+  Not,
+  In;
 
   public static boolean isLeafFilter(FilterType filterType) {
     return filterType == Key || filterType == Value || filterType == Path || filterType == Expr;
