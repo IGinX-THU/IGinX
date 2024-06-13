@@ -7720,4 +7720,164 @@ public class SQLSessionIT {
     assertTrue(executor.execute("EXPLAIN " + statement).contains("isDistinct: true"));
     assertEquals(closeResult, executor.execute(statement));
   }
+
+  @Test
+  public void testInFilter() {
+    // 插入数据
+    StringBuilder insert = new StringBuilder();
+    insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
+    int rows = 1000;
+    for (int i = 0; i < rows; i++) {
+      insert.append(String.format("(%d, %d, %d)", i, i % 100, i % 1000));
+      if (i != rows - 1) {
+        insert.append(",");
+      }
+    }
+    insert.append(";");
+    executor.execute(insert.toString());
+
+    String statement, expect;
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN [1,2,3,6,8];";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "|  2|       2|       3|\n"
+            + "|  3|       3|       4|\n"
+            + "|  6|       6|       7|\n"
+            + "|  8|       8|       9|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 NOT IN [1,2,3,6,8] LIMIT 10;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  0|       0|       1|\n"
+            + "|  4|       4|       5|\n"
+            + "|  5|       5|       6|\n"
+            + "|  7|       7|       8|\n"
+            + "|  9|       9|      10|\n"
+            + "| 10|      10|      11|\n"
+            + "| 11|      11|      12|\n"
+            + "| 12|      12|      13|\n"
+            + "| 13|      13|      14|\n"
+            + "| 14|      14|      15|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN [1,2,3,6,8] AND s2 IN [2,4,7,6,9];";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "|  3|       3|       4|\n"
+            + "|  6|       6|       7|\n"
+            + "|  8|       8|       9|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN [1,2,3,6,8] OR s2 IN [2,4,7,6,9];";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "|  2|       2|       3|\n"
+            + "|  3|       3|       4|\n"
+            + "|  5|       5|       6|\n"
+            + "|  6|       6|       7|\n"
+            + "|  8|       8|       9|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1 FROM us.* WHERE s1 IN [1,2,3,6,8] LIMIT 10;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       1|\n"
+            + "|  2|       2|       2|\n"
+            + "|  3|       3|       3|\n"
+            + "|  6|       6|       6|\n"
+            + "|  8|       8|       8|\n"
+            + "|101|     101|       1|\n"
+            + "|102|     102|       2|\n"
+            + "|103|     103|       3|\n"
+            + "|106|     106|       6|\n"
+            + "|108|     108|       8|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1 FROM us.* WHERE s1 |IN [1,2,3,6,8] LIMIT 10;";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1 FROM us.* WHERE s1 &IN [1,2,3,6,8];";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       1|\n"
+            + "|  2|       2|       2|\n"
+            + "|  3|       3|       3|\n"
+            + "|  6|       6|       6|\n"
+            + "|  8|       8|       8|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1 FROM us.* WHERE s1 |NOT IN [1,2,3,6,8] LIMIT 10;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|  0|       0|       0|\n"
+            + "|  4|       4|       4|\n"
+            + "|  5|       5|       5|\n"
+            + "|  7|       7|       7|\n"
+            + "|  9|       9|       9|\n"
+            + "| 10|      10|      10|\n"
+            + "| 11|      11|      11|\n"
+            + "| 12|      12|      12|\n"
+            + "| 13|      13|      13|\n"
+            + "| 14|      14|      14|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expect);
+
+    statement = "SELECT s1 FROM us.* WHERE s1 &NOT IN [1,2,3,6,8] LIMIT 10;";
+    expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|  0|       0|       0|\n"
+            + "|  4|       4|       4|\n"
+            + "|  5|       5|       5|\n"
+            + "|  7|       7|       7|\n"
+            + "|  9|       9|       9|\n"
+            + "| 10|      10|      10|\n"
+            + "| 11|      11|      11|\n"
+            + "| 12|      12|      12|\n"
+            + "| 13|      13|      13|\n"
+            + "| 14|      14|      14|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expect);
+  }
 }
