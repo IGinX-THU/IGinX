@@ -320,6 +320,8 @@ public class FilterUtils {
         PathFilter pathFilter = (PathFilter) filter;
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
+      case In:
+        paths.add(((InFilter) filter).getPath());
       default:
         break;
     }
@@ -355,6 +357,7 @@ public class FilterUtils {
       case Key:
       case Value:
       case Bool:
+      case In:
         return false;
       default:
         throw new RuntimeException("Unexpected filter type: " + filter.getType());

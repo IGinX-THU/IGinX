@@ -290,6 +290,12 @@ public class ConstantPropagationRule extends Rule {
           return new BoolFilter(FilterUtils.validateValueCompare(keyOp, constantValue, keyValue));
         }
         return keyFilter;
+      case In:
+        InFilter inFilter = (InFilter) replaceFilter;
+        if (constantPath.equals(inFilter.getPath())) {
+          return new BoolFilter(inFilter.validate(constantValue));
+        }
+        return inFilter;
       default:
         return replaceFilter;
     }

@@ -45,10 +45,13 @@ public class InFilter implements Filter {
           return IN_OR;
         case "|not in":
         case "not in":
+        case "|!in":
+        case "!in":
           return NOT_IN_OR;
         case "&in":
           return IN_AND;
         case "&not in":
+        case "&!in":
           return NOT_IN_AND;
         default:
           throw new SQLParserException("Unsupported InOp: " + str);
@@ -102,6 +105,10 @@ public class InFilter implements Filter {
 
   public void reverseFunc() {
     this.inOp = inOp.getOppositeOp();
+  }
+
+  public boolean validate(Value value) {
+    return values.contains(value) ^ inOp.isNotOp();
   }
 
   @Override

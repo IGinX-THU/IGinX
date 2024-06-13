@@ -609,6 +609,13 @@ public class InfluxDBStorage implements IStorage {
           return new BoolFilter(true);
         }
         break;
+      case In:
+        String inPath = ((InFilter) filter).getPath();
+        InfluxDBSchema inSchema = new InfluxDBSchema(inPath);
+        if (!inSchema.getMeasurement().equals(measurementName)) {
+          return new BoolFilter(true);
+        }
+        break;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
@@ -648,6 +655,11 @@ public class InfluxDBStorage implements IStorage {
         break;
       case Value:
         if (((ValueFilter) filter).getPath().startsWith("*")) {
+          res = true;
+        }
+        break;
+      case In:
+        if (((InFilter) filter).getPath().startsWith("*")) {
           res = true;
         }
         break;

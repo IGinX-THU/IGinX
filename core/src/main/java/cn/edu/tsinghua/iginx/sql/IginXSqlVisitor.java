@@ -1341,6 +1341,18 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private FilterData parseInFilter(PredicateContext ctx, UnarySelectStatement statement) {
     String path = parsePath(ctx.path().get(0));
     List<Value> values = new ArrayList<>();
+
+    if (statement.isFromSinglePath() && !statement.isSubQuery()) {
+      FromPart fromPart = statement.getFromPart(0);
+      path = fromPart.getPrefix() + SQLConstant.DOT + path;
+    }
+
+    // deal with having filter with functions like having avg(a) > 3.
+    // we need a instead of avg(a) to combine fragments' raw data.
+    if (ctx.functionName() != null) {
+      path = ctx.functionName().getText() + "(" + path + ")";
+    }
+
     for (ConstantContext constantContext : ctx.array().constant()) {
       values.add(new Value(parseValue(constantContext)));
     }
@@ -1428,7 +1440,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       PredicateWithSubqueryContext ctx, UnarySelectStatement statement) {
     if (ctx.EXISTS() != null) {
       return parseExistsFilter(ctx, statement);
-    } else if (ctx.IN() != null) {
+    } else if (ctx.inOperator() != null) {
       return parseInSubqueryFilter(ctx, statement);
     } else if (ctx.quantifier() != null) {
       return parseQuantifierComparisonFilter(ctx, statement);
@@ -1489,7 +1501,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       subStatement.addFreeVariable(pathA);
     }
 
-    boolean isAntiJoin = ctx.OPERATOR_NOT() != null;
+    boolean isAntiJoin = ctx.inOperator().OPERATOR_NOT_IN() != null;
     SubQueryFromPart subQueryPart =
         new SubQueryFromPart(
             subStatement, new JoinCondition(JoinType.MarkJoin, filter, markColumn, isAntiJoin));
