@@ -415,7 +415,7 @@ class Tests:
             df = pd.DataFrame(data)
             self.session.insert_df(df)
 
-            dataset = self.session.query(["testData*.*"], 0, 1000)
+            dataset = self.session.query(["testDataA.*", "testDataB.*"], 0, 1000)
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
             retStr = dataset.to_df().to_string(index=False) + "\n"
