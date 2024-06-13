@@ -21,16 +21,16 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.api.ReadWriter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.buffer.DataBuffer;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.ConcatScanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.EmtpyHeadRowScanner;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.RowUnionScanner;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import com.google.common.collect.ImmutableRangeSet;
-import com.google.common.collect.Range;
-import com.google.common.collect.RangeSet;
-import com.google.common.collect.TreeRangeSet;
+import com.google.common.collect.*;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -183,42 +183,126 @@ public class TableStorage implements AutoCloseable {
   }
 
   public long count(String field) throws StorageException, IOException {
-    Set<String> fields = Collections.singleton(field);
-    RangeSet<Long> ranges = ImmutableRangeSet.of(Range.all());
+    RangeMap<Long, List<String>> regionTableLists = getTablesGroupByRegion(field);
 
-    AreaSet<Long, String> areas = new AreaSet<>();
-    areas.add(fields, ranges);
-    Set<String> tables = tableIndex.find(areas);
-
-    List<String> sortedTableNames = new ArrayList<>(tables);
-    sortedTableNames.sort(Comparator.naturalOrder());
-
-    RangeSet<Long> rangeSet = TreeRangeSet.create();
     long totalCount = 0;
-    for (String tableName : sortedTableNames) {
-      TableMeta meta = readWriter.readMeta(tableName);
-      Range<Long> range = meta.getRange(field);
-      Long count = meta.getValueCount(field);
-      if (count == null || rangeSet.intersects(range)) {
-        LOGGER.debug("count {} by scan", field);
-        return getOverlapCount(field, sortedTableNames, fields, ranges);
-      } else {
-        rangeSet.add(range);
-        totalCount += count;
+    for (List<String> tables : regionTableLists.asMapOfRanges().values()) {
+      if (tables.isEmpty()) {
+        continue;
+      } else if (tables.size() == 1) {
+        TableMeta meta = readWriter.readMeta(tables.get(0));
+        Long regionCount = meta.getValueCount(field);
+        if (regionCount != null) {
+          totalCount += regionCount;
+          continue;
+        }
       }
+      totalCount += getOverlapCount(field, tables);
     }
-    LOGGER.debug("count {} by meta", field);
     return totalCount;
   }
 
-  private long getOverlapCount(String field, List<String> sortedTableNames, Set<String> fields, RangeSet<Long> ranges) throws IOException, StorageException {
-    DataBuffer<Long, String, Object> buffer = new DataBuffer<>();
+  private static Range<Long> normalize(Range<Long> range) {
+    if (range.isEmpty()) {
+      return range;
+    }
+    long lower = range.lowerEndpoint();
+    long upper = range.upperEndpoint();
+    if (range.lowerBoundType() == BoundType.OPEN) {
+      lower++;
+    }
+    if (range.upperBoundType() == BoundType.OPEN) {
+      upper--;
+    }
+    return Range.closed(lower, upper);
+  }
+
+  private RangeMap<Long, List<String>> getTablesGroupByRegion(String field) throws IOException {
+    AreaSet<Long, String> areas = new AreaSet<>();
+    areas.add(Collections.singleton(field), ImmutableRangeSet.of(Range.all()));
+    Set<String> tables = tableIndex.find(areas);
+    List<String> sortedTableNames = new ArrayList<>(tables);
+    sortedTableNames.sort(Comparator.naturalOrder());
+
+    HashMap<String, Range<Long>> tableRanges = new HashMap<>();
     for (String tableName : sortedTableNames) {
-      try (Scanner<Long, Scanner<String, Object>> scanner = scan(tableName, fields, ranges)) {
-        buffer.putRows(scanner);
-      }
+      TableMeta meta = readWriter.readMeta(tableName);
+      Range<Long> range = meta.getRange(field);
+      tableRanges.put(tableName, range);
     }
 
-    return buffer.count(field);
+    RangeSet<Long> regions = TreeRangeSet.create(tableRanges.values());
+    RangeMap<Long, List<String>> regionTableLists = TreeRangeMap.create();
+    for (Range<Long> region : regions.asRanges()) {
+      regionTableLists.put(normalize(region), new ArrayList<>());
+    }
+
+    for (String tableName : sortedTableNames) {
+      Range<Long> range = tableRanges.get(tableName);
+      List<String> regionTableList = regionTableLists.get(range.lowerEndpoint());
+      assert regionTableList != null;
+      regionTableList.add(tableName);
+    }
+
+    return regionTableLists;
+  }
+
+  private long getOverlapCount(String field, List<String> sortedTableNames) throws
+      IOException, StorageException {
+    Set<String> fields = Collections.singleton(field);
+
+    long count = 0;
+    try (Scanner<Long, Scanner<String, Object>> scanner = scan(sortedTableNames, fields)) {
+      while (scanner.iterate()) {
+        Scanner<String, Object> row = scanner.value();
+        while (row.iterate()) {
+          assert row.value() != null;
+          count++;
+        }
+      }
+    }
+    return count;
+  }
+
+  private Scanner<Long, Scanner<String, Object>> scan(List<String> tableNames, Set<String> fields) throws IOException, StorageException {
+    List<FileTable> tables = new ArrayList<>();
+    for (String tableName : tableNames) {
+      tables.add(new FileTable(tableName, readWriter));
+    }
+    List<Scanner<Long, Scanner<String, Object>>> overlaps = getOverlapScannerList(fields, tables);
+
+    Collections.reverse(overlaps);
+    return new RowUnionScanner<>(overlaps);
+  }
+
+  private static List<Scanner<Long, Scanner<String, Object>>> getOverlapScannerList(Set<String> fields, List<FileTable> tables) throws IOException {
+    RangeSet<Long> ranges = ImmutableRangeSet.of(Range.all());
+    List<Scanner<Long, Scanner<String, Object>>> overlaps = new ArrayList<>();
+
+    RangeSet<Long> tableRanges = TreeRangeSet.create();
+    List<Scanner<Long, Scanner<String, Object>>> noOverlaps = new ArrayList<>();
+    for (FileTable table : tables) {
+      TableMeta meta = table.getMeta();
+      Range<Long> range = normalize(meta.getRange(fields));
+      if (range.isEmpty()) {
+        continue;
+      }
+      if (tableRanges.intersects(range)) {
+        overlaps.add(new ConcatScanner<>(noOverlaps.iterator()));
+        noOverlaps = new ArrayList<>();
+        tableRanges = TreeRangeSet.create();
+      }
+      long head = range.lowerEndpoint();
+      Scanner<Long, Scanner<String, Object>> lazy = table.lazyScan(fields, ranges);
+      Scanner<Long, Scanner<String, Object>> emptyHead = new EmtpyHeadRowScanner<>(head);
+      Scanner<Long, Scanner<String, Object>> concat = new ConcatScanner<>(Iterators.forArray(emptyHead, lazy));
+      noOverlaps.add(concat);
+      tableRanges.add(range);
+    }
+    if (!noOverlaps.isEmpty()) {
+      overlaps.add(new ConcatScanner<>(noOverlaps.iterator()));
+    }
+
+    return overlaps;
   }
 }

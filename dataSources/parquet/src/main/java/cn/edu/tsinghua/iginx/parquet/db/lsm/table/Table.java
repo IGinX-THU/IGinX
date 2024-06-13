@@ -18,7 +18,9 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
+import cn.edu.tsinghua.iginx.parquet.db.util.iterator.LazyRowScanner;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
+import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Set;
@@ -35,5 +37,15 @@ public interface Table {
   default Scanner<Long, Scanner<String, Object>> scan(Set<String> fields, RangeSet<Long> ranges)
       throws IOException {
     return scan(fields, ranges, null);
+  }
+
+  default Scanner<Long, Scanner<String, Object>> lazyScan(Set<String> fields, RangeSet<Long> ranges) {
+    return new LazyRowScanner<>(() -> {
+      try {
+        return scan(fields, ranges);
+      } catch (IOException e) {
+        throw new StorageException(e);
+      }
+    });
   }
 }
