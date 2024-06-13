@@ -145,11 +145,10 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
           "delete {}/{} error: does not exist or is not a file.", dir, file.getAbsoluteFile());
     }
 
-    List<String> pathList = Arrays.asList(
-        IT_DATA_DIR,
-        IGINX_DATA_PATH_PREFIX_NAME + PARQUET_PARAMS.get(port).get(0));
+    List<String> pathList =
+        Arrays.asList(IT_DATA_DIR, IGINX_DATA_PATH_PREFIX_NAME + PARQUET_PARAMS.get(port).get(0));
     // delete the normal IT data
-    for(String path : pathList) {
+    for (String path : pathList) {
       Path dataPath = Paths.get(path);
       if (Files.exists(dataPath)) {
         try {
@@ -161,7 +160,8 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
           LOGGER.warn("delete {} error: ", new File(dataPath.toString()).getAbsoluteFile(), e);
         }
       } else {
-        LOGGER.warn("delete {} error: does not exist.", new File(dataPath.toString()).getAbsoluteFile());
+        LOGGER.warn(
+            "delete {} error: does not exist.", new File(dataPath.toString()).getAbsoluteFile());
       }
     }
   }

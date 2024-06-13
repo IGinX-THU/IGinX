@@ -1,10 +1,14 @@
 package cn.edu.tsinghua.iginx.integration.expansion;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
+import static org.junit.Assert.*;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
-import cn.edu.tsinghua.iginx.integration.expansion.mongodb.MongoDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -15,6 +19,11 @@ import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -22,20 +31,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
-import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.*;
-
-/**
- * 原始节点相关的变量命名统一用 ori 扩容节点相关的变量命名统一用 exp
- */
+/** 原始节点相关的变量命名统一用 ori 扩容节点相关的变量命名统一用 exp */
 public abstract class BaseCapacityExpansionIT {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseCapacityExpansionIT.class);
@@ -350,8 +346,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, new ArrayList<>(), new ArrayList<>());
   }
 
-  protected void testQuerySpecialHistoryData() {
-  }
+  protected void testQuerySpecialHistoryData() {}
 
   private void testQueryHistoryDataOriHasData() {
     String statement = "select wf01.wt01.status, wf01.wt01.temperature from mn;";
@@ -741,8 +736,8 @@ public abstract class BaseCapacityExpansionIT {
 
       QueryDataSet res = session.executeQuery(statement);
       if ((res.getWarningMsg() == null
-          || res.getWarningMsg().isEmpty()
-          || !res.getWarningMsg().contains("The query results contain overlapped keys."))
+              || res.getWarningMsg().isEmpty()
+              || !res.getWarningMsg().contains("The query results contain overlapped keys."))
           && SUPPORT_KEY.get(testConf.getStorageType())) {
         LOGGER.error("未抛出重叠key的警告");
         fail();
