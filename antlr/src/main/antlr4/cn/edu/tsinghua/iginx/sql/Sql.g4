@@ -152,7 +152,7 @@ quantifier
    ;
 
 array
-   : LS_BRACKET (constant (COMMA constant)*)? RS_BRACKET
+   : LR_BRACKET (constant (COMMA constant)*)? RR_BRACKET
    ;
 
 all

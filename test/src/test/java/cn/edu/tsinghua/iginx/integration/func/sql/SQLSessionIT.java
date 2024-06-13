@@ -7737,7 +7737,7 @@ public class SQLSessionIT {
     executor.execute(insert.toString());
 
     String statement, expect;
-    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN [1,2,3,6,8];";
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN (1,2,3,6,8);";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -7752,7 +7752,7 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 NOT IN [1,2,3,6,8] LIMIT 10;";
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 NOT IN (1,2,3,6,8) LIMIT 10;";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -7772,7 +7772,7 @@ public class SQLSessionIT {
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN [1,2,3,6,8] AND s2 IN [2,4,7,6,9];";
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN (1,2,3,6,8) AND s2 IN (2,4,7,6,9);";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -7786,7 +7786,7 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN [1,2,3,6,8] OR s2 IN [2,4,7,6,9];";
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 IN (1,2,3,6,8) OR s2 IN (2,4,7,6,9);";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -7802,7 +7802,7 @@ public class SQLSessionIT {
             + "Total line number = 6\n";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1 FROM us.* WHERE s1 IN [1,2,3,6,8] LIMIT 10;";
+    statement = "SELECT s1 FROM us.* WHERE s1 IN (1,2,3,6,8) LIMIT 10;";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -7822,10 +7822,10 @@ public class SQLSessionIT {
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1 FROM us.* WHERE s1 |IN [1,2,3,6,8] LIMIT 10;";
+    statement = "SELECT s1 FROM us.* WHERE s1 |IN (1,2,3,6,8) LIMIT 10;";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1 FROM us.* WHERE s1 &IN [1,2,3,6,8];";
+    statement = "SELECT s1 FROM us.* WHERE s1 &IN (1,2,3,6,8);";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -7840,7 +7840,7 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1 FROM us.* WHERE s1 |NOT IN [1,2,3,6,8] LIMIT 10;";
+    statement = "SELECT s1 FROM us.* WHERE s1 |NOT IN (1,2,3,6,8) LIMIT 10;";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -7860,7 +7860,7 @@ public class SQLSessionIT {
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expect);
 
-    statement = "SELECT s1 FROM us.* WHERE s1 &NOT IN [1,2,3,6,8] LIMIT 10;";
+    statement = "SELECT s1 FROM us.* WHERE s1 &NOT IN (1,2,3,6,8) LIMIT 10;";
     expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
