@@ -54,6 +54,8 @@ def column_dataset_from_df(df: pd.DataFrame, prefix: str = ""):
         for col in column_list:
             if '.' not in col and col != 'key':
                 raise RuntimeError(f"The paths in data must contain '.' or prefix must be set")
+    else:
+        prefix = prefix + '.'
 
     if 'key' in column_list:
         # examine key type
@@ -75,7 +77,7 @@ def column_dataset_from_df(df: pd.DataFrame, prefix: str = ""):
 
     mapped_types = [map_dtype(dtype) for col, dtype in df.dtypes.items()]
     values_list = [df[col].tolist() for col in df.columns]
-    column_list = [prefix + '.' + col for col in df.columns.tolist()]
+    column_list = [prefix + col for col in df.columns.tolist()]
     return ColumnDataSet(column_list, mapped_types, key_list, values_list)
 
 

@@ -376,6 +376,34 @@ public class PySessionIT {
   }
 
   @Test
+  public void testInsertDF() {
+    String result = "";
+    try {
+      logger.info("insert dataframe");
+      result = runPythonScript("insertDF");
+      logger.info(result);
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    // 检查Python脚本的输出是否符合预期
+    String expected =
+        " key testDataA.value1  testDataA.value2 testDataB.value1  testDataB.value2\n"
+            + "  10             b'A'               1.1             b'B'               2.2\n"
+            + "  11             b'A'               1.1             b'B'               2.2\n"
+            + "  12             b'A'               1.1             b'B'               2.2\n"
+            + "  13             b'A'               1.1             b'B'               2.2\n"
+            + "  14             b'A'               1.1             b'B'               2.2\n"
+            + "  15             b'A'               1.1             b'B'               2.2\n"
+            + "  16             b'A'               1.1             b'B'               2.2\n"
+            + "  17             b'A'               1.1             b'B'               2.2\n"
+            + "  18             b'A'               1.1             b'B'               2.2\n"
+            + "  19             b'A'               1.1             b'B'               2.2\n";
+
+    assertEquals(expected, result);
+  }
+
+  @Test
   public void testDeleteRow() {
     if (!isAbleToDelete) {
       return;
