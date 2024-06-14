@@ -8086,4 +8086,73 @@ public class SQLSessionIT {
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expect);
   }
+
+  @Test
+  public void testInFilterTransformRule(){
+    // 插入数据
+    StringBuilder insert = new StringBuilder();
+    insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
+    int rows = 1000;
+    for (int i = 0; i < rows; i++) {
+      insert.append(String.format("(%d, %d, %d)", i, i % 100, i % 1000));
+      if (i != rows - 1) {
+        insert.append(",");
+      }
+    }
+    insert.append(";");
+    executor.execute(insert.toString());
+
+    String openRule = "SET RULES InFilterTransformRule=on;";
+    String closeRule = "SET RULES InFilterTransformRule=off;";
+
+    String statement, openRes, closeRes, openExplain, closeExplain;
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 = 1 OR s1 = 2 OR s1 = 3;";
+    executor.execute(openRule);
+    openRes = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeRes = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+
+    assertEquals(openRes, closeRes);
+    // 由于in filter使用的Hashset每次输出元素的顺序不固定，所以只能判断是否包含
+    assertTrue(openExplain.contains("us.d1.s1 in"));
+    assertTrue(closeExplain.contains("us.d1.s1 == 1 || us.d1.s1 == 2 || us.d1.s1 == 3"));
+
+    statement = "SELECT s1 FROM us.* WHERE s1 &= 1 OR s1 &= 2 OR s1 |= 3 OR s1 |= 4;";
+    executor.execute(openRule);
+    openRes = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeRes = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+
+    assertEquals(openRes, closeRes);
+    assertTrue(!openExplain.contains("us.*.s1 &in") && openExplain.contains("us.*.s1 in"));
+    assertTrue(closeExplain.contains("us.*.s1 &== 1 || us.*.s1 &== 2 || us.*.s1 == 3 || us.*.s1 == 4"));
+
+    statement = "SELECT s1,s2 FROM us.d1 WHERE s1 != 1 AND s1 != 2 AND s1 != 3;";
+    executor.execute(openRule);
+    openRes = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeRes = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+
+    assertEquals(openRes, closeRes);
+    assertTrue(openExplain.contains("us.d1.s1 &not in"));
+    assertTrue(closeExplain.contains("us.d1.s1 != 1 && us.d1.s1 != 2 && us.d1.s1 != 3"));
+
+    statement = "SELECT s1 FROM us.* WHERE s1 &!= 1 AND s1 &!= 2 AND s1 |!= 3 AND s1 |!= 4;";
+    executor.execute(openRule);
+    openRes = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeRes = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+
+    assertEquals(openRes, closeRes);
+    assertTrue(openExplain.contains("us.*.s1 &not in") && !openExplain.contains("us.*.s1 not in"));
+    assertTrue(closeExplain.contains("us.*.s1 &!= 1 && us.*.s1 &!= 2 && us.*.s1 != 3 && us.*.s1 != 4"));
+  }
 }

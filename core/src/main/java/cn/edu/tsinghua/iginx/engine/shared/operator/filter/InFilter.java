@@ -64,11 +64,11 @@ public class InFilter implements Filter {
         case IN_AND:
           return "&in";
         case IN_OR:
-          return "|in";
+          return "in";
         case NOT_IN_AND:
           return "&not in";
         case NOT_IN_OR:
-          return "|not in";
+          return "not in";
         default:
           throw new SQLParserException("Unsupported InOp: " + this);
       }
@@ -128,6 +128,6 @@ public class InFilter implements Filter {
 
   @Override
   public String toString() {
-    return path + " " + inOp.toString() + " " + values.toString();
+    return String.format("%s %s (%s)", path, inOp, values.toString().substring(1, values.toString().length() - 1));
   }
 }

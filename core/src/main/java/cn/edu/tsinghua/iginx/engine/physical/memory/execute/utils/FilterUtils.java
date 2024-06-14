@@ -91,6 +91,9 @@ public class FilterUtils {
       InFilter.InOp inOp = inFilter.getInOp();
       if (inOp.isOrOp()) {
         for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
           if (inOp.isNotOp() && !values.contains(value)) {
             return true;
           } else if (!inOp.isNotOp() && values.contains(value)) {
@@ -100,6 +103,10 @@ public class FilterUtils {
         return false;
       } else {
         for (Value value : valueList) {
+          if (value == null || value.isNull()) { // value是空值，则认为不可比较
+            return false;
+          }
+
           if (inOp.isNotOp() && values.contains(value)) {
             return false;
           } else if (!inOp.isNotOp() && !values.contains(value)) {
@@ -110,6 +117,9 @@ public class FilterUtils {
       }
     } else {
       Value value = row.getAsValue(path);
+      if (value == null || value.isNull()) { // value是空值，则认为不可比较
+        return false;
+      }
       return inFilter.getInOp().isNotOp() ^ values.contains(value);
     }
   }

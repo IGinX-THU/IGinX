@@ -245,6 +245,10 @@ public enum Op {
     return op.equals(E) || op.equals(E_AND);
   }
 
+  public static boolean isNotEqualOp(Op op) {
+    return op.equals(NE) || op.equals(NE_AND);
+  }
+
   public static boolean isLikeOp(Op op) {
     return op.equals(LIKE) || op.equals(LIKE_AND);
   }
