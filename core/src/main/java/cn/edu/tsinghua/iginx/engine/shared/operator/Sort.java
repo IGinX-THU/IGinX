@@ -68,4 +68,16 @@ public class Sort extends AbstractUnaryOperator {
   public String getInfo() {
     return "SortBy: " + String.join(",", sortByCols) + ", SortType: " + sortType;
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Sort sort = (Sort) object;
+    return sortByCols.equals(sort.sortByCols) && sortType == sort.sortType;
+  }
 }
