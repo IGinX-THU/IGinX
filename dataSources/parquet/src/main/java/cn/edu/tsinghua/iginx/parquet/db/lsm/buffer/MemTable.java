@@ -6,14 +6,13 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import com.google.common.collect.RangeSet;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.concurrent.ThreadSafe;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.types.pojo.Field;
+
+import javax.annotation.concurrent.ThreadSafe;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 @ThreadSafe
 public class MemTable implements AutoCloseable {
@@ -23,6 +22,9 @@ public class MemTable implements AutoCloseable {
   private final BufferAllocator allocator;
   private final int maxChunkValueCount;
   private final int minChunkValueCount;
+
+  private final ReentrantReadWriteLock lock = new ReentrantReadWriteLock();
+  private volatile boolean closed = false;
 
   public MemTable(
       IndexedChunk.Factory factory,
@@ -35,10 +37,20 @@ public class MemTable implements AutoCloseable {
     this.minChunkValueCount = minChunkValueCount;
   }
 
+  public void reset() {
+    lock.writeLock().lock();
+    try {
+      columns.values().forEach(MemColumn::close);
+      columns.clear();
+    } finally {
+      lock.writeLock().unlock();
+    }
+  }
+
   @Override
   public void close() {
-    columns.values().forEach(MemColumn::close);
-    columns.clear();
+    closed = true;
+    reset();
   }
 
   public Set<Field> getFields() {
@@ -48,67 +60,93 @@ public class MemTable implements AutoCloseable {
   public MemoryTable snapshot(
       List<Field> fields, RangeSet<Long> ranges, BufferAllocator allocator) {
     LinkedHashMap<Field, MemColumn.Snapshot> columns = new LinkedHashMap<>();
-    for (Field field : fields) {
-      this.columns.computeIfPresent(
-          field,
-          (key, column) -> {
-            columns.put(field, column.snapshot(ranges, allocator));
-            return column;
-          });
+    lock.readLock().lock();
+    try {
+      for (Field field : fields) {
+        MemColumn column = this.columns.get(field);
+        if (column != null) {
+          columns.put(field, column.snapshot(ranges, allocator));
+        }
+      }
+    } finally {
+      lock.readLock().unlock();
     }
     return new MemoryTable(columns);
   }
 
   public MemoryTable snapshot(BufferAllocator allocator) {
     LinkedHashMap<Field, MemColumn.Snapshot> columns = new LinkedHashMap<>();
-    this.columns.forEach(
-        (key, column) -> {
-          columns.put(key, column.snapshot(allocator));
-        });
+    lock.readLock().lock();
+    try {
+      for(Map.Entry<Field, MemColumn> entry : this.columns.entrySet()) {
+        columns.put(entry.getKey(), entry.getValue().snapshot(allocator));
+      }
+    } finally {
+      lock.readLock().unlock();
+    }
     return new MemoryTable(columns);
   }
 
   public void store(Iterable<Chunk.Snapshot> data) {
-    data.forEach(this::store);
+    lock.readLock().lock();
+    try {
+      data.forEach(this::store);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   public void store(Chunk.Snapshot data) {
-    columns.compute(
-        ArrowFields.nullable(data.getField()),
-        (field, column) -> {
-          if (column == null) {
-            column = new MemColumn(factory, allocator, maxChunkValueCount, minChunkValueCount);
-          }
-          column.store(data);
-          return column;
-        });
+    lock.readLock().lock();
+    try {
+      if (closed) {
+        throw new IllegalStateException("MemTable is closed");
+      }
+      Field field = ArrowFields.nullable(data.getField());
+      MemColumn column = columns.computeIfAbsent(field, key -> new MemColumn(factory, allocator, maxChunkValueCount, minChunkValueCount));
+      column.store(data);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   public void compact() {
-    columns.values().forEach(MemColumn::compact);
+    lock.readLock().lock();
+    try {
+      columns.values().forEach(MemColumn::compact);
+    } finally {
+      lock.readLock().unlock();
+    }
   }
 
   public void delete(AreaSet<Long, Field> areas) {
-    for (Field field : areas.getFields()) {
-      MemColumn column = columns.remove(field);
-      if (column != null) {
-        column.close();
+    lock.writeLock().lock();
+    try {
+      for (Field field : areas.getFields()) {
+        MemColumn column = columns.remove(field);
+        if (column != null) {
+          column.close();
+        }
       }
+      lock.readLock().lock();
+    } finally {
+      lock.writeLock().unlock();
     }
-    RangeSet<Long> keys = areas.getKeys();
-    if (!keys.isEmpty()) {
-      columns.values().forEach(column -> column.delete(keys));
+    try {
+      RangeSet<Long> keys = areas.getKeys();
+      if (!keys.isEmpty()) {
+        columns.values().forEach(column -> column.delete(keys));
+      }
+      for(Map.Entry<Field, RangeSet<Long>> entry : areas.getSegments().entrySet()) {
+        Field field = entry.getKey();
+        RangeSet<Long> ranges = entry.getValue();
+        MemColumn column = columns.get(field);
+        if (column != null) {
+          column.delete(ranges);
+        }
+      }
+    } finally {
+      lock.readLock().unlock();
     }
-    areas
-        .getSegments()
-        .forEach(
-            (field, ranges) -> {
-              columns.computeIfPresent(
-                  field,
-                  (key, column) -> {
-                    column.delete(ranges);
-                    return column;
-                  });
-            });
   }
 }
