@@ -317,8 +317,7 @@ public class LocalExecutor implements Executor {
       return true;
     }
     for (String pattern : patterns) {
-      Pattern pathPattern = Pattern.compile(StringUtils.reformatPath(pattern));
-      if (pathPattern.matcher(path).matches()) {
+      if (StringUtils.match(path, pattern)) {
         return true;
       }
     }
