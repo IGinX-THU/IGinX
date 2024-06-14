@@ -716,6 +716,13 @@ public class InfluxDBStorage implements IStorage {
             map.put(pathB, null);
           }
         }
+      case In:
+        if (filter instanceof InFilter) {
+          String path = ((InFilter) filter).getPath();
+          if (path.contains("*") && !map.containsKey(path)) {
+            map.put(path, null);
+          }
+        }
       case Key:
       default:
         return;
@@ -748,6 +755,30 @@ public class InfluxDBStorage implements IStorage {
       case Not:
         Filter notChild = ((NotFilter) filter).getChild();
         return generateFilterByWildCardEntry(notChild, entry);
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        InFilter.InOp inOp = inFilter.getInOp();
+        if (inFilter.getPath().equals(wildcardsPath)) {
+          if (matchedPaths == null) {
+            return new BoolFilter(true);
+          }
+
+          List<Filter> newInValueChildren = new ArrayList<>();
+          for (String matchedPath : matchedPaths) {
+            InFilter newInFilter =
+                new InFilter(measurement + "." + matchedPath, inOp, inFilter.getValues());
+            newInValueChildren.add(newInFilter);
+          }
+          if (newInValueChildren.size() == 1) {
+            return newInValueChildren.get(0);
+          }
+
+          if (!inOp.isOrOp()) {
+            return new AndFilter(newInValueChildren);
+          }
+          return new OrFilter(newInValueChildren);
+        }
+        break;
       case Value:
         ValueFilter valueFilter = (ValueFilter) filter;
         if (valueFilter.getPath().equals(wildcardsPath)) {

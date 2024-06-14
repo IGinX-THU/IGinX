@@ -20,16 +20,12 @@ package cn.edu.tsinghua.iginx.influxdb.tools;
 
 import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.data.Value;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 public class FilterTransformer {
 
@@ -50,6 +46,8 @@ public class FilterTransformer {
         return toString((KeyFilter) filter);
       case Path:
         return toString((PathFilter) filter);
+      case In:
+        return toString((InFilter) filter);
       default:
         return "";
     }
@@ -87,10 +85,7 @@ public class FilterTransformer {
     // path 获取的是 table.field，需要删掉.前面的table名。
     InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
     String path = schema.getFieldString();
-    String value =
-        filter.getValue().getDataType() == DataType.BINARY
-            ? "\"" + filter.getValue().getBinaryVAsString() + "\""
-            : filter.getValue().getValue().toString();
+    String value = valueToString(filter.getValue());
 
     if (isLikeOp(filter.getOp())) {
       return "r[\""
@@ -134,5 +129,22 @@ public class FilterTransformer {
         + " r[\""
         + pathB
         + "\"]";
+  }
+
+  private static String toString(InFilter filter) {
+    InfluxDBSchema schema = new InfluxDBSchema(filter.getPath());
+    String path = schema.getFieldString();
+    Set<Value> valueSet = filter.getValues();
+    String valueStr =
+        valueSet.stream().map(FilterTransformer::valueToString).collect(Collectors.joining(", "));
+
+    return String.format("contains(value: r[\"%s\"], set: [%s])", path, valueStr);
+  }
+
+  private static String valueToString(Value value) {
+    if (value.getDataType() == DataType.BINARY) {
+      return "\"" + value.getBinaryVAsString() + "\"";
+    }
+    return value.toString();
   }
 }
