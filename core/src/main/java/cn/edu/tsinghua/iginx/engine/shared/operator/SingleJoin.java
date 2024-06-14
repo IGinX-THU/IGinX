@@ -90,4 +90,19 @@ public class SingleJoin extends AbstractJoin {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    if (!super.equals(object)) {
+      return false;
+    }
+    SingleJoin that = (SingleJoin) object;
+    return filter.equals(that.filter) && tagFilter.equals(that.tagFilter);
+  }
 }

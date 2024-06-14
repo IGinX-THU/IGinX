@@ -57,4 +57,16 @@ public class Rename extends AbstractUnaryOperator {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Rename rename = (Rename) object;
+    return aliasMap.equals(rename.aliasMap) && ignorePatterns.equals(rename.ignorePatterns);
+  }
 }

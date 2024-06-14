@@ -70,4 +70,16 @@ public class RowTransform extends AbstractUnaryOperator {
 
     return sb.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    RowTransform that = (RowTransform) object;
+    return functionCallList.equals(that.functionCallList);
+  }
 }

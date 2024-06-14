@@ -90,7 +90,7 @@ public class FilterTransformer {
 
   private String toString(ValueFilter filter) {
     RelationSchema schema = new RelationSchema(filter.getPath(), relationalMeta.getQuote());
-    String path = schema.getQuotFullName();
+    String path = schema.getQuoteFullName();
 
     String op =
         isLikeOp(filter.getOp())
@@ -127,8 +127,8 @@ public class FilterTransformer {
   private String toString(PathFilter filter) {
     RelationSchema schemaA = new RelationSchema(filter.getPathA(), relationalMeta.getQuote());
     RelationSchema schemaB = new RelationSchema(filter.getPathB(), relationalMeta.getQuote());
-    String pathA = schemaA.getQuotFullName();
-    String pathB = schemaB.getQuotFullName();
+    String pathA = schemaA.getQuoteFullName();
+    String pathB = schemaB.getQuoteFullName();
 
     String op =
         Op.op2StrWithoutAndOr(filter.getOp())

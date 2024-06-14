@@ -30,7 +30,7 @@ public class RelationSchema {
     this.quote = quote;
   }
 
-  public static String getQuotFullName(String tableName, String columnName, char quote) {
+  public static String getQuoteFullName(String tableName, String columnName, char quote) {
     return getQuotName(tableName, quote) + SEPARATOR + getQuotName(columnName, quote);
   }
 
@@ -50,7 +50,7 @@ public class RelationSchema {
     return columnName;
   }
 
-  public String getQuotFullName() {
+  public String getQuoteFullName() {
     return getQuotName(tableName, quote) + SEPARATOR + getQuotName(columnName, quote);
   }
 

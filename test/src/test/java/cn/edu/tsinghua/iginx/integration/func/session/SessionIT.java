@@ -522,7 +522,8 @@ public class SessionIT extends BaseSessionIT {
         long dsStartKey = delDsAvgDataSet.getKeys()[i];
         assertEquals(START_KEY + i * PRECISION, dsStartKey);
         List<Object> dsResult = delDsAvgDataSet.getValues().get(i);
-        for (int j = 0; j < delDsResPaths.size(); j++) {
+        // j starts from 2 to skip WINDOW_START & WINDOW_END
+        for (int j = 2; j < delDsResPaths.size(); j++) {
           long dsEndKey = Math.min((START_KEY + (i + 1) * PRECISION - 1), END_KEY);
           double delDsAvg = (dsStartKey + dsEndKey) / 2.0;
           int pathNum = getPathNum(delDsResPaths.get(j));
@@ -636,7 +637,8 @@ public class SessionIT extends BaseSessionIT {
         long dsKey = dsDelDataInColSet.getKeys()[i];
         assertEquals(START_KEY + i * PRECISION, dsKey);
         List<Object> dsResult = dsDelDataInColSet.getValues().get(i);
-        for (int j = 0; j < dsDelDataResPaths.size(); j++) {
+        // j starts from 2 to skip WINDOW_START & WINDOW_END
+        for (int j = 2; j < dsDelDataResPaths.size(); j++) {
           long maxNum = Math.min((START_KEY + (i + 1) * PRECISION - 1), END_KEY);
           double avg = (dsKey + maxNum) / 2.0;
           int pathNum = getPathNum(dsDelDataResPaths.get(j));
