@@ -126,4 +126,19 @@ public class MarkJoin extends AbstractJoin {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    MarkJoin that = (MarkJoin) object;
+    return filter.equals(that.filter)
+        && markColumn.equals(that.markColumn)
+        && isAntiJoin == that.isAntiJoin
+        && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
+  }
 }

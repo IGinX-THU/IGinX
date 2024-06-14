@@ -97,4 +97,18 @@ public class Reorder extends AbstractUnaryOperator {
     }
     return false;
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Reorder reorder = (Reorder) object;
+    return patterns.equals(reorder.patterns)
+        && isPyUDF.equals(reorder.isPyUDF)
+        && needSelectedPath == reorder.needSelectedPath;
+  }
 }

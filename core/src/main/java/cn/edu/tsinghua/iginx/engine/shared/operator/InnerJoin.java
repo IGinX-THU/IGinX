@@ -222,4 +222,20 @@ public class InnerJoin extends AbstractJoin {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    InnerJoin that = (InnerJoin) object;
+    return isNaturalJoin == that.isNaturalJoin
+        && joinColumns.equals(that.joinColumns)
+        && filter.equals(that.filter)
+        && tagFilter.equals(that.tagFilter)
+        && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
+  }
 }

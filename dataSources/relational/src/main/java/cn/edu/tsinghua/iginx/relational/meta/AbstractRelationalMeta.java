@@ -98,11 +98,7 @@ public abstract class AbstractRelationalMeta {
    * @return 通过concat生成key的query的SQL语句
    */
   public String getConcatQueryStatement() {
-    return "SELECT concat(%s) AS "
-        + getQuote()
-        + KEY_NAME
-        + getQuote()
-        + ", %s FROM %s %s ORDER BY %s";
+    return "SELECT %s AS " + getQuote() + KEY_NAME + getQuote() + ", %s FROM %s %s ORDER BY %s";
   }
 
   public String getCreateTableStatement() {

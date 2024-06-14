@@ -169,4 +169,20 @@ public class OuterJoin extends AbstractJoin {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    OuterJoin that = (OuterJoin) object;
+    return outerJoinType == that.outerJoinType
+        && filter.equals(that.filter)
+        && joinColumns.equals(that.joinColumns)
+        && isNaturalJoin == that.isNaturalJoin
+        && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
+  }
 }
