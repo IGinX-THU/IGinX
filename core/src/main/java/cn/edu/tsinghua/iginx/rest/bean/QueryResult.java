@@ -18,6 +18,7 @@
  */
 package cn.edu.tsinghua.iginx.rest.bean;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 import static cn.edu.tsinghua.iginx.rest.RestUtils.TOP_KEY;
 
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -146,7 +147,15 @@ public class QueryResult {
     if (queryAggregators.get(pos).getType() == QueryAggregatorType.SAVE_AS) {
       return String.format("\"name\": \"%s\"", queryAggregators.get(pos).getMetric_name());
     } else {
-      return String.format("\"name\": \"%s\"", queryMetrics.get(pos).getName());
+      // downsample query, window_start & window_end columns are attached
+      if (queryMetrics.get(pos).getAggregators() != null
+          && queryMetrics.get(pos).getAggregators().size() != 0) {
+        return String.format(
+            "\"names\": [\"%s\", \"%s\", \"%s\"]",
+            WINDOW_START_COL, WINDOW_END_COL, queryMetrics.get(pos).getName());
+      } else {
+        return String.format("\"name\": \"%s\"", queryMetrics.get(pos).getName());
+      }
     }
   }
 
@@ -232,6 +241,7 @@ public class QueryResult {
   private Map<String, Set<String>> getTagsFromPaths(List<String> paths) {
     Map<String, Set<String>> ret = new TreeMap<>();
     for (String path : paths) {
+      if (RESERVED_COLS.contains(path)) continue;
       int firstBrace = path.indexOf("{");
       int lastBrace = path.indexOf("}");
       if (firstBrace == -1 || lastBrace == -1) {

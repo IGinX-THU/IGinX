@@ -35,7 +35,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -1215,12 +1215,37 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ShowRulesResp showRules(ShowRulesReq req) {
-    return new ShowRulesResp(RpcUtils.SUCCESS, RuleCollection.getInstance().getRulesInfo());
+    try {
+      IRuleCollection ruleCollection = getRuleCollection();
+      return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
+    } catch (ClassNotFoundException e) {
+      LOGGER.error("show rules failed: ", e);
+      return new ShowRulesResp(RpcUtils.FAILURE, null);
+    }
   }
 
   @Override
   public Status setRules(SetRulesReq req) {
     Map<String, Boolean> rulesChange = req.getRulesChange();
-    return RuleCollection.getInstance().setRules(rulesChange) ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    try {
+      getRuleCollection().setRules(rulesChange);
+      return RpcUtils.SUCCESS;
+    } catch (ClassNotFoundException e) {
+      LOGGER.error("set rules failed: ", e);
+      return RpcUtils.FAILURE;
+    }
+  }
+
+  private IRuleCollection getRuleCollection() throws ClassNotFoundException {
+    // 获取接口的类加载器
+    ClassLoader classLoader = IRuleCollection.class.getClassLoader();
+    // 加载枚举类
+    Class<?> enumClass =
+        classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
+    // 获取枚举实例
+    Object enumInstance = enumClass.getEnumConstants()[0];
+
+    // 强制转换为接口类型
+    return (IRuleCollection) enumInstance;
   }
 }

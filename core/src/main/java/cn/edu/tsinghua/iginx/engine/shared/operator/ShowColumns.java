@@ -83,4 +83,19 @@ public class ShowColumns extends AbstractUnaryOperator {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    ShowColumns that = (ShowColumns) object;
+    return limit == that.limit
+        && offset == that.offset
+        && pathRegexSet.equals(that.pathRegexSet)
+        && tagFilter.equals(that.tagFilter);
+  }
 }

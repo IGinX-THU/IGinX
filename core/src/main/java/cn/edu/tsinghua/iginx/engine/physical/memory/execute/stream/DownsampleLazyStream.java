@@ -18,6 +18,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_END_COL;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.WINDOW_START_COL;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
@@ -31,6 +34,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,7 +86,7 @@ public class DownsampleLazyStream extends UnaryLazyStream {
       return nextTarget;
     }
     Row row = null;
-    long timestamp = 0;
+    long windowStartKey = 0;
     long bias = downsample.getKeyRange().getActualBeginKey();
     long endKey = downsample.getKeyRange().getActualEndKey();
     long precision = downsample.getPrecision();
@@ -90,9 +94,9 @@ public class DownsampleLazyStream extends UnaryLazyStream {
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
     int n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
     while (row == null && wrapper.hasNext()) {
-      timestamp = wrapper.nextTimestamp() - (wrapper.nextTimestamp() - bias) % precision;
+      windowStartKey = wrapper.nextTimestamp() - (wrapper.nextTimestamp() - bias) % precision;
       List<Row> rows = new ArrayList<>();
-      while (wrapper.hasNext() && wrapper.nextTimestamp() < timestamp + precision) {
+      while (wrapper.hasNext() && wrapper.nextTimestamp() < windowStartKey + precision) {
         rows.add(wrapper.next());
       }
       Table table = new Table(rows.get(0).getHeader(), rows);
@@ -111,9 +115,18 @@ public class DownsampleLazyStream extends UnaryLazyStream {
       }
       row = RowUtils.combineMultipleColumns(subRowList);
     }
-    return row == null
-        ? null
-        : new Row(new Header(Field.KEY, row.getHeader().getFields()), timestamp, row.getValues());
+    if (row == null) {
+      return null;
+    } else {
+      List<Field> fields = row.getHeader().getFields();
+      fields.add(0, new Field(WINDOW_START_COL, DataType.LONG));
+      fields.add(1, new Field(WINDOW_END_COL, DataType.LONG));
+      Object[] values = new Object[row.getValues().length + 2];
+      values[0] = windowStartKey;
+      values[1] = windowStartKey + precision - 1;
+      System.arraycopy(row.getValues(), 0, values, 2, row.getValues().length);
+      return new Row(new Header(Field.KEY, fields), windowStartKey, values);
+    }
   }
 
   @Override
