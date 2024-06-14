@@ -320,8 +320,10 @@ public class FilterUtils {
         PathFilter pathFilter = (PathFilter) filter;
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
+        break;
       case In:
         paths.add(((InFilter) filter).getPath());
+        break;
       default:
         break;
     }
