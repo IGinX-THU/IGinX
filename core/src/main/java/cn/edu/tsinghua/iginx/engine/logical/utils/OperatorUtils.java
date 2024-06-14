@@ -92,7 +92,7 @@ public class OperatorUtils {
       }
     }
 
-    return pathList.stream().distinct().collect(Collectors.toList());
+    return pathList.stream().distinct().sorted().collect(Collectors.toList());
   }
 
   public static void findProjectOperators(List<Project> projectOperatorList, Operator operator) {

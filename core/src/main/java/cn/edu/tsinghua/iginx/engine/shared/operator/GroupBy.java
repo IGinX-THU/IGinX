@@ -67,4 +67,16 @@ public class GroupBy extends AbstractUnaryOperator {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    GroupBy that = (GroupBy) object;
+    return groupByCols.equals(that.groupByCols) && functionCallList.equals(that.functionCallList);
+  }
 }

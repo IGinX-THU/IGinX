@@ -48,4 +48,18 @@ public class CrossJoin extends AbstractJoin {
   public String getInfo() {
     return "PrefixA: " + getPrefixA() + ", PrefixB: " + getPrefixB();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    CrossJoin that = (CrossJoin) object;
+    return getPrefixA().equals(that.getPrefixA())
+        && getPrefixB().equals(that.getPrefixB())
+        && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
+  }
 }
