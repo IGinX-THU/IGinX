@@ -93,7 +93,6 @@
                                 <option>-dontwarn</option>
                                 <option>-ignorewarnings</option>
                             </options>
-                            <obfuscate>false</obfuscate>
                             <libs>
                                 <lib>${java.home}/lib/rt.jar</lib>
                             </libs>
