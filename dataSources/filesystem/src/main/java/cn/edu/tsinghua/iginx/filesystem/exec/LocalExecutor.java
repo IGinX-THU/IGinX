@@ -312,12 +312,13 @@ public class LocalExecutor implements Executor {
     return new TaskExecuteResult(null, null);
   }
 
-  boolean isPathMatchPattern(String path, Set<String> pattern) {
-    if (pattern.isEmpty()) {
+  boolean isPathMatchPattern(String path, Set<String> patterns) {
+    if (patterns.isEmpty()) {
       return true;
     }
-    for (String pathRegex : pattern) {
-      if (Pattern.matches(StringUtils.reformatPath(pathRegex), path)) {
+    for (String pattern : patterns) {
+      Pattern pathPattern = Pattern.compile(StringUtils.reformatPath(pattern));
+      if (pathPattern.matcher(path).matches()) {
         return true;
       }
     }
