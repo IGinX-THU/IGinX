@@ -7926,4 +7926,57 @@ public class SQLSessionIT {
             + "Total line number = 13\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
   }
+
+  @Test
+  public void testOuterJoinEliminate() {
+    StringBuilder insert = new StringBuilder();
+    insert.append("INSERT INTO us (key, d2.s1, d2.s2, d3.s1, d3.s2) VALUES ");
+    int rows = 15000;
+    for (int i = 0; i < rows; i++) {
+      insert.append(String.format("(%d, %d, %d, %d, %d)", i, i % 100, i % 150, i % 200, i % 250));
+      if (i != rows - 1) {
+        insert.append(",");
+      }
+    }
+    insert.append(";");
+    executor.execute(insert.toString());
+
+    String openRule = "SET RULES OuterJoinEliminateRule=on;";
+    String closeRule = "SET RULES OuterJoinEliminateRule=off;";
+    String openResult, openExplain, closeResult, closeExplain;
+
+    String statement =
+        "SELECT distinct us.d1.s1, us.d1.s2 FROM us.d1 LEFT JOIN us.d2 ON us.d1.s1 = us.d2.s1;";
+    executor.execute(openRule);
+    openResult = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeResult = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+    assertEquals(openResult, closeResult);
+    assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+
+    statement =
+        "SELECT * FROM us.d1 WHERE s1 IN (SELECT us.d2.s1 FROM us.d2 LEFT JOIN us.d3 ON us.d2.s1 = us.d3.s1);";
+    executor.execute(openRule);
+    openResult = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeResult = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+    assertEquals(openResult, closeResult);
+    assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+
+    statement =
+        "SELECT * FROM us.d1 WHERE EXISTS "
+            + "(SELECT us.d2.s1 FROM us.d2 LEFT JOIN us.d3 ON us.d2.s1 = us.d3.s1);";
+    executor.execute(openRule);
+    openResult = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeResult = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+    assertEquals(openResult, closeResult);
+    assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+  }
 }
