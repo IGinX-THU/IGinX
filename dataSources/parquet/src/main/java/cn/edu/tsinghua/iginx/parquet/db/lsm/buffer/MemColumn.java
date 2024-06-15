@@ -153,6 +153,7 @@ public class MemColumn implements AutoCloseable {
     @Override
     public void close() {
       snapshots.forEach(ChunkSnapshotHolder::close);
+      snapshots.clear();
     }
 
     @Override

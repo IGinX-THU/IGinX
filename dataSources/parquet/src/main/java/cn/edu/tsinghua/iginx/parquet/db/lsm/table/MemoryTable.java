@@ -131,6 +131,7 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
   @Override
   public void close() {
     columns.values().forEach(MemColumn.Snapshot::close);
+    columns.clear();
   }
 
   public MemoryTable subTable(Field field) {

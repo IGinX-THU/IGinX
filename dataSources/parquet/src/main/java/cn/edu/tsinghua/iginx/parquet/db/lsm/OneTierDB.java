@@ -47,7 +47,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.WillClose;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
@@ -74,7 +77,7 @@ public class OneTierDB implements Database {
 
   @Override
   public Scanner<Long, Scanner<String, Object>> query(
-      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws IOException,StorageException {
+      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws IOException, StorageException {
     Set<String> innerFields =
         fields.stream()
             .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
@@ -84,16 +87,15 @@ public class OneTierDB implements Database {
     try {
       List<Scanner<Long, Scanner<String, Object>>> inMemories =
           memTableQueue.scan(new ArrayList<>(fields), ranges, allocator);
-      DataBuffer<Long, String, Object> readBuffer = tableStorage.query(innerFields, ranges, filter);
       try (AutoCloseable c = AutoCloseables.all(inMemories)) {
+        DataBuffer<Long, String, Object> readBuffer = tableStorage.query(innerFields, ranges, filter);
         for (Scanner<Long, Scanner<String, Object>> scanner : inMemories) {
           readBuffer.putRows(scanner);
         }
+        return readBuffer.scanRows(innerFields, Range.all());
       } catch (Exception e) {
         throw new IllegalStateException(e);
       }
-
-      return readBuffer.scanRows(innerFields, Range.all());
     } finally {
       lock.readLock().unlock();
     }
@@ -156,7 +158,7 @@ public class OneTierDB implements Database {
   }
 
   private void putAll(@WillClose Iterable<Chunk.Snapshot> chunks, Map<String, DataType> schema)
-      throws TypeConflictedException,InterruptedException {
+      throws TypeConflictedException, InterruptedException {
     lock.readLock().lock();
     try (NoexceptAutoCloseable guarder = NoexceptAutoCloseables.all(chunks)) {
       tableStorage.declareFields(schema);
@@ -164,7 +166,7 @@ public class OneTierDB implements Database {
       if (shared.getStorageProperties().getWriteBufferTimeout().toMillis() <= 0) {
         memTableQueue.flush();
       }
-    }finally {
+    } finally {
       lock.readLock().unlock();
     }
   }
@@ -192,6 +194,9 @@ public class OneTierDB implements Database {
       flusher.stop();
       memTableQueue.clear();
       tableStorage.clear();
+      if (allocator.getAllocatedMemory() > 0) {
+        throw new IllegalStateException("allocator is not empty: " + allocator.toVerboseString());
+      }
       if (LOGGER.isDebugEnabled()) {
         LOGGER.debug("cleared {}, allocator: {}", name, allocator);
       }

@@ -63,6 +63,9 @@ public class MemTable implements AutoCloseable {
     lock.readLock().lock();
     try {
       for (Field field : fields) {
+        if(columns.containsKey(field)){
+          throw new IllegalArgumentException("Duplicate field: " + field);
+        }
         MemColumn column = this.columns.get(field);
         if (column != null) {
           columns.put(field, column.snapshot(ranges, allocator));
