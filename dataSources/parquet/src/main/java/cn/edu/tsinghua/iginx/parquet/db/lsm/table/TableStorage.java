@@ -234,11 +234,11 @@ public class TableStorage implements AutoCloseable {
     RangeSet<Long> regions = TreeRangeSet.create(tableRanges.values());
     RangeMap<Long, List<String>> regionTableLists = TreeRangeMap.create();
     for (Range<Long> region : regions.asRanges()) {
-      regionTableLists.put(normalize(region), new ArrayList<>());
+      regionTableLists.put(region, new ArrayList<>());
     }
 
     for (String tableName : sortedTableNames) {
-      Range<Long> range = tableRanges.get(tableName);
+      Range<Long> range = normalize(tableRanges.get(tableName));
       List<String> regionTableList = regionTableLists.get(range.lowerEndpoint());
       assert regionTableList != null;
       regionTableList.add(tableName);
