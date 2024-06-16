@@ -128,6 +128,7 @@ public class InFilter implements Filter {
 
   @Override
   public String toString() {
-    return String.format("%s %s (%s)", path, inOp, values.toString().substring(1, values.toString().length() - 1));
+    return String.format(
+        "%s %s (%s)", path, inOp, values.toString().substring(1, values.toString().length() - 1));
   }
 }

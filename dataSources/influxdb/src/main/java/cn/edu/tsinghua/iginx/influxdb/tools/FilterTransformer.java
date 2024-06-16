@@ -137,8 +137,8 @@ public class FilterTransformer {
     Set<Value> valueSet = filter.getValues();
     String valueStr =
         valueSet.stream().map(FilterTransformer::valueToString).collect(Collectors.joining(", "));
-
-    return String.format("contains(value: r[\"%s\"], set: [%s])", path, valueStr);
+    String op = filter.getInOp().isNotOp() ? "not contains" : "contains";
+    return String.format("%s(value: r[\"%s\"], set: [%s])", op, path, valueStr);
   }
 
   private static String valueToString(Value value) {

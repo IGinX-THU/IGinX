@@ -144,7 +144,7 @@ public class FilterTransformer {
   private String toString(InFilter filter) {
     RelationSchema schema = new RelationSchema(filter.getPath(), relationalMeta.getQuote());
     String path = schema.getQuoteFullName();
-    String op = filter.getInOp().toString().substring(1);
+    String op = filter.getInOp().isNotOp() ? "not in" : "in";
     String values =
         "("
             + filter.getValues().stream()

@@ -8088,7 +8088,7 @@ public class SQLSessionIT {
   }
 
   @Test
-  public void testInFilterTransformRule(){
+  public void testInFilterTransformRule() {
     // 插入数据
     StringBuilder insert = new StringBuilder();
     insert.append("INSERT INTO us.d2 (key, s1, s2) VALUES ");
@@ -8129,7 +8129,8 @@ public class SQLSessionIT {
 
     assertEquals(openRes, closeRes);
     assertTrue(!openExplain.contains("us.*.s1 &in") && openExplain.contains("us.*.s1 in"));
-    assertTrue(closeExplain.contains("us.*.s1 &== 1 || us.*.s1 &== 2 || us.*.s1 == 3 || us.*.s1 == 4"));
+    assertTrue(
+        closeExplain.contains("us.*.s1 &== 1 || us.*.s1 &== 2 || us.*.s1 == 3 || us.*.s1 == 4"));
 
     statement = "SELECT s1,s2 FROM us.d1 WHERE s1 != 1 AND s1 != 2 AND s1 != 3;";
     executor.execute(openRule);
@@ -8153,6 +8154,7 @@ public class SQLSessionIT {
 
     assertEquals(openRes, closeRes);
     assertTrue(openExplain.contains("us.*.s1 &not in") && !openExplain.contains("us.*.s1 not in"));
-    assertTrue(closeExplain.contains("us.*.s1 &!= 1 && us.*.s1 &!= 2 && us.*.s1 != 3 && us.*.s1 != 4"));
+    assertTrue(
+        closeExplain.contains("us.*.s1 &!= 1 && us.*.s1 &!= 2 && us.*.s1 != 3 && us.*.s1 != 4"));
   }
 }
