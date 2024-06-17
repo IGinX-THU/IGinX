@@ -46,7 +46,7 @@ public class PySessionIT {
   protected static String defaultTestPass = "root";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static String pythonCMD = "python";
+  private static final String pythonCMD = config.getPythonCMD();
 
   private static boolean isAbleToDelete = true;
   private static PythonInterpreter interpreter;

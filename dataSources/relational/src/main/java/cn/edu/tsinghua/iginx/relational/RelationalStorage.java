@@ -1825,6 +1825,7 @@ public class RelationalStorage implements IStorage {
 
       statement.append(";");
 
+      LOGGER.info("[Insert] {}", statement.toString());
       stmt.addBatch(statement.toString());
     }
     stmt.executeBatch();

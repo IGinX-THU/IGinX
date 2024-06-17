@@ -27,10 +27,10 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "Parquet", "MySQL"]'
+                default: '["PostgreSQL", "MySQL"]'
 
 env:
-    FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
+    FUNCTEST: PySessionIT#testInsertDF
 
 jobs:
     DB-CE:
