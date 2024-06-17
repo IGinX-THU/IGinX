@@ -96,7 +96,9 @@ public class IoTDBStorage implements IStorage {
 
   private static final String DELETE_TIMESERIES_CLAUSE = "DELETE TIMESERIES %s";
 
-  private static final String SHOW_TIMESERIES = "SHOW TIMESERIES";
+  private static final String SHOW_TIMESERIES = "SHOW TIMESERIES root.%s";
+
+  private static final String SHOW_TIMESERIES_ALL = "SHOW TIMESERIES";
 
   private static final String DOES_NOT_EXISTED = "does not exist";
 
@@ -192,10 +194,10 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    getColumns2StorageUnit(columns, null, pattern, tagFilter);
+    getColumns2StorageUnit(columns, null, patterns, tagFilter);
     return columns;
   }
 
@@ -214,61 +216,66 @@ public class IoTDBStorage implements IStorage {
   private void getColumns2StorageUnit(
       List<Column> columns,
       Map<String, String> columns2StorageUnit,
-      Set<String> pattern,
+      Set<String> patterns,
       TagFilter tagFilter)
       throws PhysicalException {
     try {
-      SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
-      while (dataSet.hasNext()) {
-        RowRecord record = dataSet.next();
-        if (record == null || record.getFields().size() < 4) {
-          continue;
+      Iterator<String> iterator = patterns.iterator();
+      do {
+        String pattern = iterator.hasNext() ? iterator.next() : null;
+        SessionDataSetWrapper dataSet;
+        if (pattern != null) {
+          dataSet = sessionPool.executeQueryStatement(String.format(SHOW_TIMESERIES, pattern));
+        } else {
+          dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES_ALL);
         }
-        String path = record.getFields().get(0).getStringValue();
-        path = path.substring(5); // remove root.
-        boolean isDummy = true;
-        if (path.startsWith("unit")) {
-          path = path.substring(path.indexOf('.') + 1);
-          isDummy = false;
-        }
-        Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
-        String dataTypeName = record.getFields().get(3).getStringValue();
+        while (dataSet.hasNext()) {
+          RowRecord record = dataSet.next();
+          if (record == null || record.getFields().size() < 4) {
+            continue;
+          }
+          String path = record.getFields().get(0).getStringValue();
+          path = path.substring(5); // remove root.
+          boolean isDummy = true;
+          if (path.startsWith("unit")) {
+            path = path.substring(path.indexOf('.') + 1);
+            isDummy = false;
+          }
+          Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
+          String dataTypeName = record.getFields().get(3).getStringValue();
 
-        String fragment = isDummy ? "" : record.getFields().get(2).getStringValue().substring(5);
-        if (columns2StorageUnit != null) {
-          columns2StorageUnit.put(pair.k, fragment);
-        }
-        // get columns by pattern
-        if (!isPathMatchPattern(pair.k, pattern)) {
-          continue;
-        }
-        // get columns by tag filter
-        if (tagFilter != null && !TagKVUtils.match(pair.v, tagFilter)) {
-          continue;
-        }
+          String fragment = isDummy ? "" : record.getFields().get(2).getStringValue().substring(5);
+          if (columns2StorageUnit != null) {
+            columns2StorageUnit.put(pair.k, fragment);
+          }
+          // get columns by tag filter
+          if (tagFilter != null && !TagKVUtils.match(pair.v, tagFilter)) {
+            continue;
+          }
 
-        switch (dataTypeName) {
-          case "BOOLEAN":
-            columns.add(new Column(pair.k, DataType.BOOLEAN, pair.v, isDummy));
-            break;
-          case "FLOAT":
-            columns.add(new Column(pair.k, DataType.FLOAT, pair.v, isDummy));
-            break;
-          case "TEXT":
-            columns.add(new Column(pair.k, DataType.BINARY, pair.v, isDummy));
-            break;
-          case "DOUBLE":
-            columns.add(new Column(pair.k, DataType.DOUBLE, pair.v, isDummy));
-            break;
-          case "INT32":
-            columns.add(new Column(pair.k, DataType.INTEGER, pair.v, isDummy));
-            break;
-          case "INT64":
-            columns.add(new Column(pair.k, DataType.LONG, pair.v, isDummy));
-            break;
+          switch (dataTypeName) {
+            case "BOOLEAN":
+              columns.add(new Column(pair.k, DataType.BOOLEAN, pair.v, isDummy));
+              break;
+            case "FLOAT":
+              columns.add(new Column(pair.k, DataType.FLOAT, pair.v, isDummy));
+              break;
+            case "TEXT":
+              columns.add(new Column(pair.k, DataType.BINARY, pair.v, isDummy));
+              break;
+            case "DOUBLE":
+              columns.add(new Column(pair.k, DataType.DOUBLE, pair.v, isDummy));
+              break;
+            case "INT32":
+              columns.add(new Column(pair.k, DataType.INTEGER, pair.v, isDummy));
+              break;
+            case "INT64":
+              columns.add(new Column(pair.k, DataType.LONG, pair.v, isDummy));
+              break;
+          }
         }
-      }
-      dataSet.close();
+        dataSet.close();
+      } while (iterator.hasNext());
     } catch (IoTDBConnectionException | StatementExecutionException e) {
       throw new IoTDBTaskExecuteFailureException("get time series failure: ", e);
     }

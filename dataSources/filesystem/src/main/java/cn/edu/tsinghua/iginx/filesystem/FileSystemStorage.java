@@ -151,9 +151,9 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
-    return executor.getColumnsOfStorageUnit(WILDCARD, pattern, tagFilter);
+    return executor.getColumnsOfStorageUnit(WILDCARD, patterns, tagFilter);
   }
 
   @Override

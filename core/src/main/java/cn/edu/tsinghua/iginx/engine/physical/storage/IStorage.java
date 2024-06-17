@@ -57,7 +57,7 @@ public interface IStorage {
   TaskExecuteResult executeInsert(Insert insert, DataArea dataArea);
 
   /** 获取所有列信息 */
-  List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) throws PhysicalException;
+  List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) throws PhysicalException;
 
   /** 获取指定前缀的数据边界 */
   Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;
