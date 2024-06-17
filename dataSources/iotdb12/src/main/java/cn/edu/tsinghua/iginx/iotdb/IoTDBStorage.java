@@ -192,10 +192,10 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    getColumns2StorageUnit(columns, null, pattern, tagFilter);
+    getColumns2StorageUnit(columns, null, patterns, tagFilter);
     return columns;
   }
 

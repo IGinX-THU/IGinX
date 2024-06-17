@@ -231,7 +231,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
 
     for (Bucket bucket :
@@ -271,7 +271,7 @@ public class InfluxDBStorage implements IStorage {
           path = bucket.getName() + "." + path;
         }
         // get columns by pattern
-        if (!isPathMatchPattern(path, pattern)) {
+        if (!isPathMatchPattern(path, patterns)) {
           continue;
         }
         // get columns by tag filter

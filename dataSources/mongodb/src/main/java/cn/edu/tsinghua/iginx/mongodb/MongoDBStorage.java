@@ -295,8 +295,8 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) {
-    List<String> patternList = new ArrayList<>(pattern);
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+    List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
       patternList.add("*");
     }

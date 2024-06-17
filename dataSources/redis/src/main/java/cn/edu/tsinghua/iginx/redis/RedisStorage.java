@@ -467,11 +467,11 @@ public class RedisStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     try {
       List<Column> ret = new ArrayList<>();
-      getIginxColumns(ret::add, pattern, tagFilter);
-      getDummyColumns(ret::add, pattern);
+      getIginxColumns(ret::add, patterns, tagFilter);
+      getDummyColumns(ret::add, patterns);
       return ret;
     } catch (PhysicalException e) {
       throw new IllegalStateException("get columns error", e);
