@@ -30,6 +30,18 @@ public class Distinct extends AbstractUnaryOperator {
 
   @Override
   public String getInfo() {
-    return "";
+    return "Patterns: " + String.join(",", patterns);
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Distinct that = (Distinct) object;
+    return patterns.equals(that.patterns);
   }
 }

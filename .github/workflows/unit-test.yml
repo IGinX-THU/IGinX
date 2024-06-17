@@ -19,9 +19,6 @@ on:
                 required: false
                 default: '["ubuntu-latest", "macos-13", "windows-latest"]'
 
-env:
-    VERSION: 0.6.0-SNAPSHOT
-
 jobs:
     Unit-Test:
         strategy:

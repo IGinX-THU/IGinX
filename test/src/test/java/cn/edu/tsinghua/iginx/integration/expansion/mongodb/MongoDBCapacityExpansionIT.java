@@ -85,6 +85,21 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 3\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
+    // unwind array
+    statement = "select information.contributor, objects.geometryType from d0.c0;";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "|        key|d0.c0.information.contributor|d0.c0.objects.geometryType|\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "| 4294967296|                 Label Studio|                    bitmap|\n"
+            + "| 4294967297|                         null|                 rectangle|\n"
+            + "| 8589934592|                 Label Studio|                      null|\n"
+            + "|12884901888|                 Label Studio|                      null|\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "Total line number = 4\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
     // type convert: string -> number
     statement = "select year from d0.c0.information;";
     expect =

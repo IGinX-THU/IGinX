@@ -28,7 +28,7 @@ COMMAND+='select * from test into outfile "'"test/src/test/resources/fileReadAnd
 
 bash -c "sleep 10"
 
-bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMAND'"
+bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e '$COMMAND'"
 
 mkdir -p "test/src/test/resources/fileReadAndWrite/byteDummy"
 
@@ -39,9 +39,9 @@ for file in test/src/test/resources/fileReadAndWrite/byteDummy/*; do
     mv "$file" "${file}.ext"
 done
 
-bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteDummy.*;'"
+bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteDummy.*;'"
 
-bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e 'select * from byteDummy into outfile "'"test/src/test/resources/fileReadAndWrite/byteStreamExport"'" as stream;'"
+bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e 'select * from byteDummy into outfile "'"test/src/test/resources/fileReadAndWrite/byteStreamExport"'" as stream;'"
 
 db_name=$1
 
@@ -55,4 +55,4 @@ bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false 
 
 OUTFILE_COMMAND='select count(*) from downloads;select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
 
-bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$OUTFILE_COMMAND'"
+bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e '$OUTFILE_COMMAND'"

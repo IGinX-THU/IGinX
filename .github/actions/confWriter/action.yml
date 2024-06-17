@@ -28,7 +28,7 @@ inputs:
     Root-Dir-Path:
         description: "the path of IGinX root directory"
         required: false
-        default: "${GITHUB_WORKSPACE}"
+        default: "${{ inputs.Root-Dir-Path }}"
 
 runs:
     using: "composite" # Mandatory parameter
@@ -57,15 +57,15 @@ runs:
               echo "${{ inputs.Test-Way }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/dbce-test-way.txt 
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=false/has_data=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "s/has_data=false/has_data=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=false/has_data=true/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "" "s/has_data=false/has_data=true/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 fi
               elif [[ "${{ inputs.Test-Way }}" == "oriNoDataExpHasData" || "${{ inputs.Test-Way }}" == "oriNoDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=true/has_data=false/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "s/has_data=true/has_data=false/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=true/has_data=false/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-0.6.0-SNAPSHOT/conf/config.properties
+                  sed -i "" "s/has_data=true/has_data=false/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
                 fi
               fi
 
@@ -109,13 +109,19 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/queryOptimizer=rbo/queryOptimizer=rbo,filter_push_down/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/queryOptimizer=rbo/queryOptimizer=rbo,filter_push_down/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
                 sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/queryOptimizer=rbo/queryOptimizer=rbo,filter_push_down/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -198,3 +204,8 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - name: Copy Optimizer Jar
+          shell: bash
+          run: |
+              cp -f "${{ inputs.Root-Dir-Path }}/optimizer/src/main/resources/iginx-optimizer-${VERSION}.jar" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/lib/"

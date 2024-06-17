@@ -3,6 +3,7 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
@@ -18,6 +19,8 @@ public class MarkJoin extends AbstractJoin {
   private final String markColumn;
 
   private final boolean isAntiJoin;
+
+  private TagFilter tagFilter;
 
   public MarkJoin(
       Source sourceA,
@@ -43,6 +46,19 @@ public class MarkJoin extends AbstractJoin {
     this.isAntiJoin = isAntiJoin;
   }
 
+  public MarkJoin(
+      Source sourceA,
+      Source sourceB,
+      Filter filter,
+      TagFilter tagFilter,
+      String markColumn,
+      boolean isAntiJoin,
+      JoinAlgType joinAlgType,
+      List<String> extraJoinPrefix) {
+    this(sourceA, sourceB, filter, markColumn, isAntiJoin, joinAlgType, extraJoinPrefix);
+    this.tagFilter = tagFilter;
+  }
+
   public Filter getFilter() {
     return filter;
   }
@@ -57,6 +73,14 @@ public class MarkJoin extends AbstractJoin {
 
   public void setFilter(Filter filter) {
     this.filter = filter;
+  }
+
+  public void setTagFilter(TagFilter tagFilter) {
+    this.tagFilter = tagFilter;
+  }
+
+  public TagFilter getTagFilter() {
+    return tagFilter;
   }
 
   public void reChooseJoinAlg() {
@@ -101,5 +125,20 @@ public class MarkJoin extends AbstractJoin {
       builder.deleteCharAt(builder.length() - 1);
     }
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    MarkJoin that = (MarkJoin) object;
+    return filter.equals(that.filter)
+        && markColumn.equals(that.markColumn)
+        && isAntiJoin == that.isAntiJoin
+        && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
   }
 }

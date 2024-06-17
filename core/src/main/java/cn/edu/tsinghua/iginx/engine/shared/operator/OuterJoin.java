@@ -10,7 +10,7 @@ import java.util.List;
 
 public class OuterJoin extends AbstractJoin {
 
-  private final OuterJoinType outerJoinType;
+  private OuterJoinType outerJoinType;
 
   private Filter filter;
 
@@ -86,6 +86,10 @@ public class OuterJoin extends AbstractJoin {
 
   public OuterJoinType getOuterJoinType() {
     return outerJoinType;
+  }
+
+  public void setOuterJoinType(OuterJoinType outerJoinType) {
+    this.outerJoinType = outerJoinType;
   }
 
   public Filter getFilter() {
@@ -164,5 +168,21 @@ public class OuterJoin extends AbstractJoin {
       builder.deleteCharAt(builder.length() - 1);
     }
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    OuterJoin that = (OuterJoin) object;
+    return outerJoinType == that.outerJoinType
+        && filter.equals(that.filter)
+        && joinColumns.equals(that.joinColumns)
+        && isNaturalJoin == that.isNaturalJoin
+        && getExtraJoinPrefix().equals(that.getExtraJoinPrefix());
   }
 }

@@ -16,7 +16,7 @@ public class FunctionParams {
 
   private Expression expr;
 
-  private final boolean isDistinct;
+  private boolean isDistinct;
 
   public FunctionParams(List<String> paths) {
     this(paths, null, null, null, false);
@@ -70,6 +70,10 @@ public class FunctionParams {
 
   public boolean isDistinct() {
     return isDistinct;
+  }
+
+  public void setDistinct(boolean distinct) {
+    isDistinct = distinct;
   }
 
   protected FunctionParams copy() {

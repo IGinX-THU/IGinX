@@ -7,7 +7,6 @@
         <groupId>cn.edu.tsinghua</groupId>
         <artifactId>iginx</artifactId>
         <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>iginx-core</artifactId>
     <name>IGinX Core</name>
@@ -167,6 +166,10 @@
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
+            <artifactId>commons-email</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
             <artifactId>commons-csv</artifactId>
         </dependency>
         <dependency>
@@ -182,6 +185,12 @@
                     <artifactId>commons-collections</artifactId>
                 </exclusion>
             </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>com.icegreen</groupId>
+            <artifactId>greenmail-junit4</artifactId>
+            <version>1.6.15</version>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

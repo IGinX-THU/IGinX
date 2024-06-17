@@ -8,6 +8,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class Project extends AbstractUnaryOperator {
 
@@ -107,5 +108,20 @@ public class Project extends AbstractUnaryOperator {
       builder.append(", TagFilter: ").append(tagFilter.toString());
     }
     return builder.toString();
+  }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Project that = (Project) object;
+    return patterns.equals(that.patterns)
+        && (Objects.equals(tagFilter, that.tagFilter))
+        && remainKey == that.remainKey
+        && needSelectedPath == that.needSelectedPath;
   }
 }

@@ -66,4 +66,21 @@ public class Delete extends AbstractUnaryOperator {
     }
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    if (!super.equals(object)) {
+      return false;
+    }
+    Delete that = (Delete) object;
+    return keyRanges.equals(that.keyRanges)
+        && patterns.equals(that.patterns)
+        && tagFilter.equals(that.tagFilter);
+  }
 }
