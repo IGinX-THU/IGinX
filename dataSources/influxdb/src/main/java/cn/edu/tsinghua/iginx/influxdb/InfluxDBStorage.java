@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.influxdb;
 
 import static cn.edu.tsinghua.iginx.influxdb.tools.TimeUtils.instantToNs;
 import static com.influxdb.client.domain.WritePrecision.NS;
+import static com.influxdb.client.domain.WritePrecision.S;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
@@ -95,6 +96,9 @@ public class InfluxDBStorage implements IStorage {
 
   private static final String SHOW_TIME_SERIES =
       "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
+
+  private static final String SHOW_TIME_SERIES_BY_PATTERN =
+          "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /%s/ and r._field =~ /%s/)) |> first()";
 
   private final StorageEngineMeta meta;
 
@@ -231,7 +235,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter) {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
 
     for (Bucket bucket :
@@ -251,8 +255,36 @@ public class InfluxDBStorage implements IStorage {
         continue;
       }
 
-      String statement = String.format(SHOW_TIME_SERIES, bucket.getName());
-      List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
+      List<FluxTable> tables = new ArrayList<>();
+      String measPattern, fieldPattern, statement;
+
+      boolean thisBucketIsQueried = patterns.size() == 0;
+      if (patterns.size() == 0) {
+        statement = String.format(SHOW_TIME_SERIES, bucket.getName());
+        tables = client.getQueryApi().query(statement, organization.getId());
+      } else {
+        for (String p : patterns) {
+          if (isDummy && !isUnit) {
+            // dummy path starts with <bucketName>.
+            if (!Pattern.matches(StringUtils.reformatPath(p.substring(0, p.indexOf("."))), bucket.getName())) {
+              continue;
+            }
+            // remove <bucketName>. part from pattern
+            p = p.substring(p.indexOf(".") + 1);
+          }
+          thisBucketIsQueried = true;
+          measPattern = StringUtils.reformatPath(p.substring(0, p.indexOf(".")));
+          fieldPattern = StringUtils.reformatPath(p.substring(p.indexOf(".") + 1));
+          // query time series based on pattern
+          statement = String.format(SHOW_TIME_SERIES_BY_PATTERN, bucket.getName(), measPattern, fieldPattern);
+          LOGGER.info("executing column query: {}", statement);
+          tables.addAll(client.getQueryApi().query(statement, organization.getId()));
+        }
+        // if bucket is dummy && all patterns do not match(<bucketName>.*), move on to next bucket
+        if (!thisBucketIsQueried) {
+          continue;
+        }
+      }
 
       for (FluxTable table : tables) {
         List<FluxColumn> column = table.getColumns();
@@ -270,10 +302,13 @@ public class InfluxDBStorage implements IStorage {
         if (isDummy && !isUnit) {
           path = bucket.getName() + "." + path;
         }
+        LOGGER.info("path queried: {}", path);
         // get columns by pattern
-        if (!isPathMatchPattern(path, pattern)) {
+        if (!isPathMatchPattern(path, patterns)) {
+          LOGGER.info("not match");
           continue;
         }
+        LOGGER.info("match");
         // get columns by tag filter
         if (tagFilter != null && !TagKVUtils.match(tag, tagFilter)) {
           continue;

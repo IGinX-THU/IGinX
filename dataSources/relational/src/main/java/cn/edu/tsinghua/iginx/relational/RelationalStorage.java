@@ -336,11 +336,18 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns(Set<String> pattern, TagFilter tagFilter)
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
       throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
+      // dummy
+      List<String> patternList = new ArrayList<>();
+      if (patterns == null || patterns.size() == 0) {
+        patternList = new ArrayList<>(Collections.singletonList("*.*"));
+      }
+
+      // non-dummy
       for (String databaseName : getDatabaseNames()) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
             && !databaseName.startsWith(DATABASE_PREFIX)) {
@@ -349,10 +356,136 @@ public class RelationalStorage implements IStorage {
         boolean isDummy =
             extraParams.get("has_data") != null
                 && extraParams.get("has_data").equalsIgnoreCase("true");
+        if (isDummy) {
+          // find pattern that match <databaseName>.* to avoid creating databases after.
+          if (patterns ==null || patterns.size() == 0) {
+            continue;
+          }
+          for (String p : patterns) {
+            // dummy path starts with <bucketName>.
+            if (Pattern.matches(StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
+              patternList.add(p);
+            }
+          }
+          continue;
+        }
 
-        List<String> tables = getTables(databaseName, "%");
-        for (String tableName : tables) {
-          List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%");
+        Map<String, String> tableAndColPattern = new HashMap<>(), tempRes;
+        String tablePattern, colPattern;
+
+        if (patterns != null && patterns.size() != 0) {
+          tableAndColPattern = new HashMap<>();
+//          for (String p : patterns) {
+//            if (isDummy) {
+//              // dummy path starts with <databaseName>.
+//              if (!Pattern.matches(StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
+//                continue;
+//              }
+//              // remove <databaseName>. part from pattern
+//              p = p.substring(p.indexOf(".") + 1);
+//            }
+//            thisDatabaseIsQueried = true;
+//            tablePattern = StringUtils.reformatPath(p.substring(0, p.indexOf(".")));
+//            colPattern = StringUtils.reformatPath(p.substring(p.indexOf(".") + 1));
+//            // assume pattern looks like a.b.* and contains no complex regexes.
+//            if (tablePattern.contains("*")) {
+//              tablePattern = "";
+//            }
+//            tablePattern += "%"
+//          }
+//          // if bucket is dummy && all patterns do not match(<bucketName>.*), move on to next bucket
+//          if (!thisBucketIsQueried) {
+//            continue;
+//          }
+          tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
+//          for (String tableName : tempRes.keySet()) {
+//            for (String colName : tempRes.get(tableName).split(", ")) {
+//              tableAndColPattern.put(tableName, colName);
+//            }
+//          }
+//          for (String tableName : res.keySet()) {
+//            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, res.get(tableName));
+//            for (ColumnField columnField : columnFieldList) {
+//              String columnName = columnField.columnName;
+//              String typeName = columnField.columnType;
+//              if (columnName.equals(KEY_NAME)) { // key 列不显示
+//                continue;
+//              }
+//              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+//              if (databaseName.startsWith(DATABASE_PREFIX)) {
+//                columnName = tableName + SEPARATOR + nameAndTags.k;
+//              } else {
+//                columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+//              }
+//
+//              // get columns by pattern
+//              if (!isPathMatchPattern(columnName, patterns)) {
+//                continue;
+//              }
+//              // get columns by tag filter
+//              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+//                continue;
+//              }
+//              columns.add(
+//                      new Column(
+//                              columnName,
+//                              relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+//                              nameAndTags.v,
+//                              isDummy));
+//            }
+//          }
+        } else {
+          for(String table : getTables(databaseName, "%")) {
+            tableAndColPattern.put(table, "%");
+          }
+        }
+
+        for (String tableName : tableAndColPattern.keySet()) {
+          colPattern = tableAndColPattern.get(tableName);
+          for (String colName : colPattern.split(", ")) {
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
+            for (ColumnField columnField : columnFieldList) {
+              String columnName = columnField.columnName;
+              String typeName = columnField.columnType;
+              if (columnName.equals(KEY_NAME)) { // key 列不显示
+                continue;
+              }
+              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+//            if (databaseName.startsWith(DATABASE_PREFIX)) {
+              columnName = tableName + SEPARATOR + nameAndTags.k;
+//            } else {
+//              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+//            }
+
+//            // get columns by pattern
+//            if (!isPathMatchPattern(columnName, patterns)) {
+//              continue;
+//            }
+//            // get columns by tag filter
+//            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+//              continue;
+//            }
+              columns.add(
+                      new Column(
+                              columnName,
+                              relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                              nameAndTags.v,
+                              isDummy));
+            }
+
+          }
+        }
+
+      }
+
+      //dummy
+      Map<String, Map<String, String >> dummyRes = splitAndMergeHistoryQueryPatterns(patternList);
+      Map<String, String> table2cols;
+      for (String databaseName : dummyRes.keySet()) {
+        table2cols = dummyRes.get(databaseName);
+        for (String tableName : table2cols.keySet()) {
+
+          List<ColumnField> columnFieldList = getColumns(databaseName, tableName, table2cols.get(tableName));
           for (ColumnField columnField : columnFieldList) {
             String columnName = columnField.columnName;
             String typeName = columnField.columnType;
@@ -360,26 +493,26 @@ public class RelationalStorage implements IStorage {
               continue;
             }
             Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-            if (databaseName.startsWith(DATABASE_PREFIX)) {
-              columnName = tableName + SEPARATOR + nameAndTags.k;
-            } else {
-              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
-            }
+//            if (databaseName.startsWith(DATABASE_PREFIX)) {
+//              columnName = tableName + SEPARATOR + nameAndTags.k;
+//            } else {
+            columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+//            }
 
-            // get columns by pattern
-            if (!isPathMatchPattern(columnName, pattern)) {
-              continue;
-            }
-            // get columns by tag filter
-            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
-              continue;
-            }
+//            // get columns by pattern
+//            if (!isPathMatchPattern(columnName, patterns)) {
+//              continue;
+//            }
+//            // get columns by tag filter
+//            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+//              continue;
+//            }
             columns.add(
-                new Column(
-                    columnName,
-                    relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                    nameAndTags.v,
-                    isDummy));
+                    new Column(
+                            columnName,
+                            relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                            nameAndTags.v,
+                            true));
           }
         }
       }
