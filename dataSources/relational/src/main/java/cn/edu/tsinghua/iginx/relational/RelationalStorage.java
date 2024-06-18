@@ -422,7 +422,7 @@ public class RelationalStorage implements IStorage {
 //              if (!isPathMatchPattern(columnName, patterns)) {
 //                continue;
 //              }
-//              // get columns by tag filter
+              // get columns by tag filter
 //              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
 //                continue;
 //              }
@@ -461,10 +461,10 @@ public class RelationalStorage implements IStorage {
 //            if (!isPathMatchPattern(columnName, patterns)) {
 //              continue;
 //            }
-//            // get columns by tag filter
-//            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
-//              continue;
-//            }
+            // get columns by tag filter
+              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+                continue;
+              }
               columns.add(
                       new Column(
                               columnName,
@@ -503,10 +503,10 @@ public class RelationalStorage implements IStorage {
 //            if (!isPathMatchPattern(columnName, patterns)) {
 //              continue;
 //            }
-//            // get columns by tag filter
-//            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
-//              continue;
-//            }
+            // get columns by tag filter
+            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+              continue;
+            }
             columns.add(
                     new Column(
                             columnName,
