@@ -157,7 +157,7 @@ public class IoTDBStorage implements IStorage {
     ColumnsInterval columnsInterval;
     try {
       if (dataPrefix == null || dataPrefix.isEmpty()) {
-        dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
+        dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES_ALL);
         while (dataSet.hasNext()) {
           record = dataSet.next();
           if (record == null || record.getFields().size() < 4) {
@@ -841,7 +841,7 @@ public class IoTDBStorage implements IStorage {
   private List<String> determinePathList(String storageUnit, List<String> patterns)
       throws IoTDBConnectionException, StatementExecutionException {
     Set<String> pathSet = new HashSet<>();
-    String showColumns = SHOW_TIMESERIES;
+    String showColumns = SHOW_TIMESERIES_ALL;
     showColumns = storageUnit == null ? showColumns : showColumns + " " + PREFIX + storageUnit;
     SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(showColumns);
     while (dataSet.hasNext()) {
