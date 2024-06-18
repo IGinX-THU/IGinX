@@ -237,7 +237,6 @@ public class InfluxDBStorage implements IStorage {
   @Override
   public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
-
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
       // query all the series by querying all the data with first()
@@ -256,29 +255,70 @@ public class InfluxDBStorage implements IStorage {
       }
 
       List<FluxTable> tables = new ArrayList<>();
-      String measPattern, fieldPattern, statement;
+      String measPattern, fieldPattern, statement, bucketPattern;
+      // <measurementPattern, fieldPattern>
+      List<Pair<String, String>> patternPairs = new ArrayList<>();
 
-      boolean thisBucketIsQueried = patterns.size() == 0;
-      if (patterns.size() == 0) {
+      if (patterns == null || patterns.size() == 0 || patterns.contains("*") || patterns.contains("*.*")) {
         statement = String.format(SHOW_TIME_SERIES, bucket.getName());
         tables = client.getQueryApi().query(statement, organization.getId());
       } else {
+        boolean thisBucketIsQueried = false;
         for (String p : patterns) {
           if (isDummy && !isUnit) {
+            bucketPattern = p.substring(0, p.indexOf("."));
             // dummy path starts with <bucketName>.
-            if (!Pattern.matches(StringUtils.reformatPath(p.substring(0, p.indexOf("."))), bucket.getName())) {
+            if (!Pattern.matches(StringUtils.reformatPath(bucketPattern), bucket.getName())) {
               continue;
+            }
+            // * can match multiple layers.
+            if (p.startsWith("*.")) {
+              // match one layer first
+              p = p.substring(2);
+              if (p.contains(".")) {
+                // pattern *.xx.xx
+                patternPairs.add(new Pair<>(
+                        StringUtils.reformatPath(p.substring(0, p.indexOf("."))),
+                        StringUtils.reformatPath(p.substring(p.indexOf(".") + 1))));
+              }
+              // match multiple layers later.
+              p = "*.*." + p;
             }
             // remove <bucketName>. part from pattern
             p = p.substring(p.indexOf(".") + 1);
           }
           thisBucketIsQueried = true;
-          measPattern = StringUtils.reformatPath(p.substring(0, p.indexOf(".")));
-          fieldPattern = StringUtils.reformatPath(p.substring(p.indexOf(".") + 1));
-          // query time series based on pattern
-          statement = String.format(SHOW_TIME_SERIES_BY_PATTERN, bucket.getName(), measPattern, fieldPattern);
-          LOGGER.info("executing column query: {}", statement);
-          tables.addAll(client.getQueryApi().query(statement, organization.getId()));
+
+
+          if (p.startsWith("*.")) {
+            // match one layer first
+            patternPairs.add(new Pair<>(
+                    StringUtils.reformatPath(p.substring(0, p.indexOf("."))),
+                    StringUtils.reformatPath(p.substring(p.indexOf(".") + 1))));
+            // match multiple payers
+            patternPairs.add(new Pair<>(
+                    StringUtils.reformatPath("*"),
+                    StringUtils.reformatPath(p)
+            ));
+          } else if (p.equals("*")){
+            patternPairs.add(new Pair<>(
+                    StringUtils.reformatPath("*"),
+                    StringUtils.reformatPath("*")
+            ));
+          } else if (p.contains(".")) {
+            patternPairs.add(new Pair<>(
+                    StringUtils.reformatPath(p.substring(0, p.indexOf("."))),
+                    StringUtils.reformatPath(p.substring(p.indexOf(".") + 1))
+            ));
+          }
+          for (Pair<String, String> patternPair : patternPairs) {
+            measPattern = patternPair.k;
+            fieldPattern = patternPair.v;
+            // query time series based on pattern
+            statement = String.format(SHOW_TIME_SERIES_BY_PATTERN, bucket.getName(), measPattern, fieldPattern);
+            LOGGER.info("executing column query: {}", statement);
+            tables.addAll(client.getQueryApi().query(statement, organization.getId()));
+          }
         }
         // if bucket is dummy && all patterns do not match(<bucketName>.*), move on to next bucket
         if (!thisBucketIsQueried) {
