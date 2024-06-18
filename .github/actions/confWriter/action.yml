@@ -200,3 +200,8 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
+
+        - name: Copy Optimizer Jar
+          shell: bash
+          run: |
+              cp -f "${GITHUB_WORKSPACE}/optimizer/src/main/resources/iginx-optimizer-${VERSION}.jar" "${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/lib/"

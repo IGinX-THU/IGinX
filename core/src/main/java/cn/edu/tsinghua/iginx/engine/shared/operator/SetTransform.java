@@ -102,4 +102,16 @@ public class SetTransform extends AbstractUnaryOperator {
 
     return sb.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    SetTransform that = (SetTransform) object;
+    return functionCallList.equals(that.functionCallList);
+  }
 }

@@ -21,6 +21,7 @@
         <module>example</module>
         <module>test</module>
         <module>assembly</module>
+        <module>optimizer</module>
     </modules>
 
     <distributionManagement>
@@ -69,6 +70,11 @@
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iginx-shared</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.edu.tsinghua</groupId>
+                <artifactId>iginx-optimizer</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
