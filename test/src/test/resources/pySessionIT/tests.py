@@ -405,34 +405,17 @@ class Tests:
             }
 
             df = pd.DataFrame(data)
-            self.session.insert_df(df, "testDataA")
+            self.session.insert_df(df, "dftestdata")
             data = {
                 'key': list(range(10, 20)),
-                'testDataB.value1': ['B']*10,
-                'testDataB.value2': [2.2]*10
+                'dftestdata.value3': ['B']*10,
+                'dftestdata.value4': [2.2]*10
             }
 
             df = pd.DataFrame(data)
             self.session.insert_df(df)
 
-            dataset = self.session.execute_statement("SHOW COLUMNS;", fetch_size=2)
-            retStr = ""
-
-            columns = dataset.columns()
-            for column in columns:
-                retStr += str(column) + "    "
-            retStr += "\n"
-
-            while dataset.has_more():
-                row = dataset.next()
-                for field in row:
-                    retStr += str(field) + "        "
-                retStr += "\n"
-            retStr += "\n"
-
-            dataset.close()
-
-            dataset = self.session.query(["testDataA.*", "testDataB.*"], 0, 1000)
+            dataset = self.session.query(["dftestdata.*"], 0, 1000)
             pd.set_option('display.max_columns', None)
             pd.set_option('display.max_rows', None)
             retStr = dataset.to_df().to_string(index=False) + "\n"
