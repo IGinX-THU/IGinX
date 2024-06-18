@@ -31,7 +31,7 @@ runs:
           working-directory: ${{ github.action_path }}
           run: |
             for port in ${{ inputs.ports }}; do
-              echo "lower_case_table_names = 0" >> $port.ini
+              echo "lower_case_table_names = 2" >> $port.ini
             done
 
         - name: Start mysql

@@ -99,7 +99,8 @@ public class RelationalStorage implements IStorage {
       Statement stmt = connection.createStatement();
       stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
       stmt.close();
-    } catch (SQLException ignored) {
+    } catch (SQLException e) {
+      LOGGER.error("Cannot create database {}", databaseName, e);
     }
 
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
