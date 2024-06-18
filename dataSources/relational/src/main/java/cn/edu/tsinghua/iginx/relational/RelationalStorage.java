@@ -108,9 +108,7 @@ public class RelationalStorage implements IStorage {
     if (dataSource != null) {
       try {
         return dataSource.getConnection();
-      } catch (SQLException e) {
-        LOGGER.error("Cannot get connection for database {}", databaseName, e);
-        dataSource.close();
+      } catch (SQLException ignored) {
       }
     }
 

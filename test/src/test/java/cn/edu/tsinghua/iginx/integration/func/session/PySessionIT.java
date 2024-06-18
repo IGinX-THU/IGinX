@@ -388,17 +388,17 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        " key testDataA.value1  testDataA.value2 testDataB.value1  testDataB.value2\n"
-            + "  10             b'A'               1.1             b'B'               2.2\n"
-            + "  11             b'A'               1.1             b'B'               2.2\n"
-            + "  12             b'A'               1.1             b'B'               2.2\n"
-            + "  13             b'A'               1.1             b'B'               2.2\n"
-            + "  14             b'A'               1.1             b'B'               2.2\n"
-            + "  15             b'A'               1.1             b'B'               2.2\n"
-            + "  16             b'A'               1.1             b'B'               2.2\n"
-            + "  17             b'A'               1.1             b'B'               2.2\n"
-            + "  18             b'A'               1.1             b'B'               2.2\n"
-            + "  19             b'A'               1.1             b'B'               2.2\n";
+        " key dftestdata.value1  dftestdata.value2 dftestdata.value3  dftestdata.value4\n"
+            + "  10              b'A'                1.1              b'B'                2.2\n"
+            + "  11              b'A'                1.1              b'B'                2.2\n"
+            + "  12              b'A'                1.1              b'B'                2.2\n"
+            + "  13              b'A'                1.1              b'B'                2.2\n"
+            + "  14              b'A'                1.1              b'B'                2.2\n"
+            + "  15              b'A'                1.1              b'B'                2.2\n"
+            + "  16              b'A'                1.1              b'B'                2.2\n"
+            + "  17              b'A'                1.1              b'B'                2.2\n"
+            + "  18              b'A'                1.1              b'B'                2.2\n"
+            + "  19              b'A'                1.1              b'B'                2.2\n";
 
     assertEquals(expected, result);
   }
