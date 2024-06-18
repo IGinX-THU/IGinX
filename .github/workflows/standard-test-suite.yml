@@ -11,6 +11,14 @@ concurrency:
     cancel-in-progress: true
 
 jobs:
+    unit-test:
+        uses: ./.github/workflows/unit-test.yml
+    unit-mds:
+        uses: ./.github/workflows/unit-mds.yml
+    case-regression:
+        uses: ./.github/workflows/case-regression.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
     standalone-test:
         uses: ./.github/workflows/standalone-test.yml
         with:
@@ -21,5 +29,9 @@ jobs:
             metadata-matrix: '["zookeeper"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    remote-test:
+        uses: ./.github/workflows/remote-test.yml
         with:
             metadata-matrix: '["zookeeper"]'

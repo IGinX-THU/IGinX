@@ -100,15 +100,16 @@ public class RelationalStorage implements IStorage {
       Statement stmt = connection.createStatement();
       stmt.execute(String.format(CREATE_DATABASE_STATEMENT, databaseName));
       stmt.close();
-    } catch (SQLException e) {
-      LOGGER.error("Cannot create database {}", databaseName, e);
+    } catch (SQLException ignored) {
     }
 
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       try {
         return dataSource.getConnection();
-      } catch (SQLException ignored) {
+      } catch (SQLException e) {
+        LOGGER.error("Cannot get connection for database {}", databaseName, e);
+        dataSource.close();
       }
     }
 
