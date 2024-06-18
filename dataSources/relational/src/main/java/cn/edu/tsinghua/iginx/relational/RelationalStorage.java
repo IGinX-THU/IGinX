@@ -341,6 +341,14 @@ public class RelationalStorage implements IStorage {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
+      // dummy pattern list
+      List<String> patternList = new ArrayList<>();
+      if (patterns == null || patterns.size() == 0) {
+        patternList = new ArrayList<>(Collections.singletonList("*.*"));
+      }
+      String colPattern;
+
+      // non-dummy
       for (String databaseName : getDatabaseNames()) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
             && !databaseName.startsWith(DATABASE_PREFIX)) {
@@ -348,38 +356,89 @@ public class RelationalStorage implements IStorage {
         }
         boolean isDummy =
             extraParams.get("has_data") != null
-                && extraParams.get("has_data").equalsIgnoreCase("true");
-
-        List<String> tables = getTables(databaseName, "%");
-        for (String tableName : tables) {
-          List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%");
-          for (ColumnField columnField : columnFieldList) {
-            String columnName = columnField.columnName;
-            String typeName = columnField.columnType;
-            if (columnName.equals(KEY_NAME)) { // key 列不显示
-              continue;
+                && extraParams.get("has_data").equalsIgnoreCase("true")
+                && !databaseName.startsWith(DATABASE_PREFIX);
+        if (isDummy) {
+          // find pattern that match <databaseName>.* to avoid creating databases after.
+          if (patterns == null || patterns.size() == 0) {
+            continue;
+          }
+          for (String p : patterns) {
+            // dummy path starts with <bucketName>.
+            if (Pattern.matches(
+                StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
+              patternList.add(p);
             }
-            Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-            if (databaseName.startsWith(DATABASE_PREFIX)) {
+          }
+          continue;
+        }
+
+        Map<String, String> tableAndColPattern = new HashMap<>();
+
+        if (patterns != null && patterns.size() != 0) {
+          tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
+        } else {
+          for (String table : getTables(databaseName, "%")) {
+            tableAndColPattern.put(table, "%");
+          }
+        }
+
+        for (String tableName : tableAndColPattern.keySet()) {
+          colPattern = tableAndColPattern.get(tableName);
+          for (String colName : colPattern.split(", ")) {
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
+            for (ColumnField columnField : columnFieldList) {
+              String columnName = columnField.columnName;
+              String typeName = columnField.columnType;
+              if (columnName.equals(KEY_NAME)) { // key 列不显示
+                continue;
+              }
+              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
               columnName = tableName + SEPARATOR + nameAndTags.k;
-            } else {
-              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+                continue;
+              }
+              columns.add(
+                  new Column(
+                      columnName,
+                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                      nameAndTags.v,
+                      isDummy));
             }
+          }
+        }
+      }
 
-            // get columns by pattern
-            if (!isPathMatchPattern(columnName, patterns)) {
-              continue;
+      // dummy
+      Map<String, Map<String, String>> dummyRes = splitAndMergeHistoryQueryPatterns(patternList);
+      Map<String, String> table2cols;
+      // seemingly there are 4 nested loops, but it's only the consequence of special data structure
+      // and reused methods.
+      // the loops would not affect complexity
+      for (String databaseName : dummyRes.keySet()) {
+        table2cols = dummyRes.get(databaseName);
+        for (String tableName : table2cols.keySet()) {
+          colPattern = table2cols.get(tableName);
+          for (String colName : colPattern.split(", ")) {
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
+            for (ColumnField columnField : columnFieldList) {
+              String columnName = columnField.columnName;
+              String typeName = columnField.columnType;
+              if (columnName.equals(KEY_NAME)) { // key 列不显示
+                continue;
+              }
+              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+                continue;
+              }
+              columns.add(
+                  new Column(
+                      columnName,
+                      relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
+                      nameAndTags.v,
+                      true));
             }
-            // get columns by tag filter
-            if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
-              continue;
-            }
-            columns.add(
-                new Column(
-                    columnName,
-                    relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                    nameAndTags.v,
-                    isDummy));
           }
         }
       }
