@@ -28,7 +28,7 @@ inputs:
     Root-Dir-Path:
         description: "the path of IGinX root directory"
         required: false
-        default: "${{ inputs.Root-Dir-Path }}"
+        default: "${GITHUB_WORKSPACE}"
 
 runs:
     using: "composite" # Mandatory parameter
