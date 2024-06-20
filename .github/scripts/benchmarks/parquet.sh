@@ -29,14 +29,14 @@ cat "$output_file"
 
 # 插入数据
 COMMAND1='LOAD DATA FROM INFILE "tpc/TPC-H V3.0.1/data/nation.csv" AS CSV INTO nation(key, n_nationkey, n_name, n_regionkey, n_comment);CREATE FUNCTION UDTF "extractYear" FROM "UDFExtractYear" IN "test/src/test/resources/polybench/udf/udtf_extract_year.py";'
-SCRIPT_COMMAND="bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+SCRIPT_COMMAND="bash client/target/iginx-client-0.7.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
 
-bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
+bash -c "chmod +x client/target/iginx-client-0.7.0-SNAPSHOT/sbin/start_cli.sh"
 
 if [ "$RUNNER_OS" = "Linux" ]; then
   bash -c "echo '$COMMAND1' | xargs -0 -t -i ${SCRIPT_COMMAND}"
 elif [ "$RUNNER_OS" = "Windows" ]; then
-  bash -c "client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMAND1'"
+  bash -c "client/target/iginx-client-0.7.0-SNAPSHOT/sbin/start_cli.bat -e '$COMMAND1'"
 elif [ "$RUNNER_OS" = "macOS" ]; then
-  sh -c "echo '$COMMAND1' | xargs -0 -t -I F sh client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e 'F'"
+  sh -c "echo '$COMMAND1' | xargs -0 -t -I F sh client/target/iginx-client-0.7.0-SNAPSHOT/sbin/start_cli.sh -e 'F'"
 fi
