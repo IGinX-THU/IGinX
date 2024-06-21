@@ -28,16 +28,12 @@ def map_dtype(dtype):
     if pd.api.types.is_bool_dtype(dtype):
         return DataType.BOOLEAN
     elif pd.api.types.is_integer_dtype(dtype):
-        if dtype == 'int64':
-            return DataType.LONG
-        elif dtype == 'int32':
+        if dtype == 'int32':
             return DataType.INTEGER
         else:
             return DataType.LONG
     elif pd.api.types.is_float_dtype(dtype):
-        if dtype == 'float64':
-            return DataType.DOUBLE
-        elif dtype == 'float32':
+        if dtype == 'float32':
             return DataType.FLOAT
         else:
             return DataType.DOUBLE
