@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import javax.annotation.Nonnegative;
 import javax.annotation.concurrent.NotThreadSafe;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.*;
 
@@ -65,7 +66,7 @@ public class Flusher implements NoexceptAutoCloseable {
     if (timeout > 0) {
       LOGGER.info("flusher {} start to force flush every {} ms", name, timeout);
       this.scheduler.scheduleWithFixedDelay(
-          handleInterruption(memTableQueue::flush), timeout, timeout, TimeUnit.MILLISECONDS);
+          handleException(memTableQueue::flush), timeout, timeout, TimeUnit.MILLISECONDS);
     }
 
     ThreadFactory flusherFactory =
@@ -75,7 +76,7 @@ public class Flusher implements NoexceptAutoCloseable {
     ThreadFactory dispatcherFactory =
         new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-dispatcher-%d").build();
     this.dispatcher = Executors.newSingleThreadExecutor(dispatcherFactory);
-    dispatcher.submit(handleInterruption((this::dispatch)));
+    dispatcher.submit(handleException((this::dispatch)));
 
     running = true;
   }
@@ -100,10 +101,10 @@ public class Flusher implements NoexceptAutoCloseable {
   }
 
   interface InterruptibleRunnable {
-    void run() throws InterruptedException;
+    void run() throws Exception;
   }
 
-  private Runnable handleInterruption(InterruptibleRunnable runnable) {
+  private Runnable handleException(InterruptibleRunnable runnable) {
     return () -> {
       try {
         runnable.run();
@@ -120,29 +121,22 @@ public class Flusher implements NoexceptAutoCloseable {
     while (!Thread.currentThread().isInterrupted()) {
       long memtableId = memTableQueue.awaitNext(memtableIdAtLeast);
       LOGGER.debug("memtable {} is ready to flush", memtableId);
-      worker.submit(handleInterruption(() -> flush(memtableId)));
+      worker.submit(handleException(() -> flush(memtableId)));
       memtableIdAtLeast = memtableId + 1;
     }
     throw new InterruptedException();
   }
 
-  private void flush(@Nonnegative long memtableId) throws InterruptedException {
-    List<String> tableNames = new ArrayList<>();
+  private void flush(@Nonnegative long memtableId) throws InterruptedException, ExecutionException {
+    List<String> tableNames;
 
     LOGGER.trace("acquiring permit for flushing memtable {}", memtableId);
-    shared.getFlusherPermits().acquire();
+
     try (MemoryTable snapshot = memTableQueue.snapshot(memtableId, allocator)) {
-      long columnNumber = 0;
-      for (Field field : snapshot.getFields()) {
-        columnNumber++;
-        String suffix = String.valueOf(columnNumber);
-        List<String> flushed = tableStorage.flush(memtableId, suffix, snapshot.subTable(field));
-        tableNames.addAll(flushed);
-      }
-      LOGGER.debug("memtable {} is flushed to tables {}", memtableId, tableNames);
-    } finally {
-      shared.getFlusherPermits().release();
+      tableNames = doFlush(memtableId, snapshot);
     }
+
+    LOGGER.debug("memtable {} is flushed to tables {}", memtableId, tableNames);
 
     memTableQueue.eliminate(
         memtableId,
@@ -153,4 +147,41 @@ public class Flusher implements NoexceptAutoCloseable {
         });
     LOGGER.debug("memtable {} is eliminated", memtableId);
   }
+
+  private List<String> doFlush(long memtableId, MemoryTable snapshot) throws InterruptedException, ExecutionException {
+    List<String> tableNames = new ArrayList<>();
+
+    List<Future<List<String>>> futures = new ArrayList<>();
+    long columnNumber = 0;
+    for (Field field : snapshot.getFields()) {
+      columnNumber++;
+      String suffix = String.valueOf(columnNumber);
+      shared.getFlusherPermits().acquire();
+      Future<List<String>> future = worker.submit(() -> flushSubTable(memtableId, suffix, snapshot.subTable(field)));
+      futures.add(future);
+    }
+    LOGGER.debug("memtable {} is divided into {} sub-tables", memtableId, columnNumber);
+    for (Future<List<String>> future : futures) {
+      tableNames.addAll(future.get());
+    }
+
+    return tableNames;
+  }
+
+  private List<String> flushSubTable(long memtableId, String suffix, MemoryTable subTable){
+    try {
+      LOGGER.debug("start to flush sub-table {}-{}", memtableId, suffix);
+      List<String> tableNames = tableStorage.flush(memtableId, suffix, subTable);
+      LOGGER.debug("sub-table {}-{} is flushed", memtableId, suffix);
+      return tableNames;
+    } catch (InterruptedException e) {
+      LOGGER.debug("interrupted", e);
+    } catch (Exception e) {
+      LOGGER.error("unexpected error", e);
+    }finally {
+      shared.getFlusherPermits().release();
+    }
+    return Collections.emptyList();
+  }
+
 }
