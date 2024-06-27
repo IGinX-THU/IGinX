@@ -121,13 +121,15 @@ HEAP_OPTS[0]=-Xmx$MAX_HEAP_SIZE
 HEAP_OPTS[1]=-Xms$MAX_HEAP_SIZE
 
 # continue to other parameters
-ICONF="$IGINX_HOME/conf/config.properties"
-IDRIVER="$IGINX_HOME/driver/"
+JAVA_OPTS[0]=-ea
+JAVA_OPTS[1]=-Dfile.encoding=UTF-8
+JAVA_OPTS[2]=-Duser.timezone=GMT+8
+JAVA_OPTS[3]=-DIGINX_HOME=$IGINX_HOME
+JAVA_OPTS[4]=-DIGINX_DRIVER="$IGINX_HOME/driver/"
+JAVA_OPTS[5]=-DIGINX_CONF="$IGINX_HOME/conf/config.properties"
 
-export IGINX_CONF=$ICONF
-export IGINX_DRIVER=$IDRIVER
 
-exec "$JAVA" -Duser.timezone=GMT+8 ${HEAP_OPTS[@]} -cp "$CLASSPATH" "$MAIN_CLASS" "$@"
+exec "$JAVA" ${JAVA_OPTS[@]} ${HEAP_OPTS[@]} -cp "$CLASSPATH" "$MAIN_CLASS" "$@"
 
 # Double quoted to avoid Word Splitting when IFS contains digit
 exit "$?"

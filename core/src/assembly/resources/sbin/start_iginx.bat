@@ -106,8 +106,8 @@ if %half_% GTR %quarter_% (
 set MAX_HEAP_SIZE=%max_heap_size_in_mb%M
 
 @REM -----------------------------------------------------------------------------
-@REM JVM Opts we'll use in legacy run or installation
 set JAVA_OPTS=-ea^
+ -Dfile.encoding=UTF-8^
  -DIGINX_HOME=%IGINX_HOME%^
  -DIGINX_DRIVER=%IGINX_HOME%\driver^
  -DIGINX_CONF=%IGINX_CONF%
@@ -122,13 +122,7 @@ goto okClasspath
 @REM -----------------------------------------------------------------------------
 :okClasspath
 
-@REM set DRIVER=
-@REM setx DRIVER "%IGINX_HOME%\driver"
-
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -Dfile.encoding=UTF-8 -cp %CLASSPATH% %MAIN_CLASS%
-
-@REM reg delete "HKEY_CURRENT_USER\Environment" /v "DRIVER" /f
-@REM set DRIVER=
+"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -cp %CLASSPATH% %MAIN_CLASS%
 
 goto finally
 
