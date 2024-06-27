@@ -56,4 +56,16 @@ public class Join extends AbstractBinaryOperator {
   public String getInfo() {
     return "JoinBy: " + joinBy;
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    Join join = (Join) object;
+    return joinBy.equals(join.joinBy);
+  }
 }

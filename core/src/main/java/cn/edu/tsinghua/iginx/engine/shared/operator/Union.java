@@ -77,4 +77,21 @@ public class Union extends AbstractBinaryOperator {
     builder.append(" isDistinct: ").append(isDistinct);
     return builder.toString();
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+    if (!super.equals(object)) {
+      return false;
+    }
+    Union union = (Union) object;
+    return leftOrder.equals(union.leftOrder)
+        && rightOrder.equals(union.rightOrder)
+        && isDistinct == union.isDistinct;
+  }
 }

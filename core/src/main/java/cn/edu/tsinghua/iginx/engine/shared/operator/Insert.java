@@ -36,4 +36,17 @@ public class Insert extends AbstractUnaryOperator {
   public String getInfo() {
     return "";
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+
+    Insert that = (Insert) object;
+    return data.equals(that.data);
+  }
 }

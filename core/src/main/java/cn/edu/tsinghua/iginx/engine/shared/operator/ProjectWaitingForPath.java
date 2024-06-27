@@ -37,4 +37,17 @@ public class ProjectWaitingForPath extends AbstractUnaryOperator {
   public String getInfo() {
     return "";
   }
+
+  @Override
+  public boolean equals(Object object) {
+    if (this == object) {
+      return true;
+    }
+    if (object == null || getClass() != object.getClass()) {
+      return false;
+    }
+
+    ProjectWaitingForPath that = (ProjectWaitingForPath) object;
+    return incompleteStatement.equals(that.incompleteStatement);
+  }
 }
