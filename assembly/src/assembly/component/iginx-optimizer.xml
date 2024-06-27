@@ -20,39 +20,20 @@
             <useAllReactorProjects>true</useAllReactorProjects>
             <includeSubModules>false</includeSubModules>
             <includes>
-                <include>cn.edu.tsinghua:iginx-core</include>
+                <include>cn.edu.tsinghua:iginx-optimizer</include>
             </includes>
             <sources>
                 <includeModuleDirectory>false</includeModuleDirectory>
                 <fileSets>
                     <fileSet>
-                        <directory>${project.build.directory}/iginx-core-${project.version}/conf</directory>
-                        <outputDirectory>conf</outputDirectory>
-                    </fileSet>
-                    <fileSet>
-                        <directory>${project.build.directory}/iginx-core-${project.version}/sbin</directory>
-                        <fileMode>0755</fileMode>
-                        <outputDirectory>sbin</outputDirectory>
-                    </fileSet>
-                    <fileSet>
-                        <directory>${project.build.directory}/iginx-core-${project.version}/lib</directory>
+                        <directory>src/main/resources</directory>
+                        <includes>
+                            <include>iginx-optimizer-*.jar</include>
+                        </includes>
                         <outputDirectory>lib</outputDirectory>
-                        <excludes>
-                            <exclude>iginx-optimizer-*.jar</exclude>
-                        </excludes>
                     </fileSet>
                 </fileSets>
             </sources>
         </moduleSet>
     </moduleSets>
-    <fileSets>
-        <fileSet>
-            <directory>${project.build.directory}/conf</directory>
-            <outputDirectory>conf</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>${project.build.directory}/udf_funcs</directory>
-            <outputDirectory>udf_funcs</outputDirectory>
-        </fileSet>
-    </fileSets>
 </component>
