@@ -78,6 +78,11 @@ public class FilterPushDownRenameRule extends Rule {
             replaceExpressionByRenameMap(filter.getExpressionA(), renameMap);
             replaceExpressionByRenameMap(filter.getExpressionB(), renameMap);
           }
+
+          @Override
+          public void visit(InFilter inFilter) {
+            inFilter.setPath(PathUtils.recoverRenamedPattern(renameMap, inFilter.getPath()));
+          }
         });
 
     return newFilter;

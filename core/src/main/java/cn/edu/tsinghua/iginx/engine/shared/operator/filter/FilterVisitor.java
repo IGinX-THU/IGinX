@@ -17,4 +17,6 @@ public interface FilterVisitor {
   void visit(BoolFilter filter);
 
   void visit(ExprFilter filter);
+
+  void visit(InFilter filter);
 }

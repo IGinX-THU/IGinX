@@ -146,6 +146,11 @@ public class FilterPushDownSetOpRule extends Rule {
 
           @Override
           public void visit(ExprFilter filter) {}
+
+          @Override
+          public void visit(InFilter filter) {
+            filter.setPath(pathMap.getOrDefault(pathMap.get(filter.getPath()), filter.getPath()));
+          }
         });
     return filter;
   }

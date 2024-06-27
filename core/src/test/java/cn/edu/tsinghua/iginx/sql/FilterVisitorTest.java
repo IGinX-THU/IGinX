@@ -1,15 +1,6 @@
 package cn.edu.tsinghua.iginx.sql;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterVisitor;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
 import org.junit.Test;
 
@@ -72,6 +63,11 @@ public class FilterVisitorTest {
     @Override
     public void visit(ExprFilter filter) {
       System.out.printf("this is expr filter: [%s]\n", filter.toString());
+    }
+
+    @Override
+    public void visit(InFilter filter) {
+      System.out.printf("this is in filter: [%s]\n", filter.toString());
     }
   }
 }
