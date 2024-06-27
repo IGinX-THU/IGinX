@@ -20,12 +20,13 @@ import logging
 import os.path
 from datetime import datetime
 
+import pandas as pd
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from pathlib import Path
 
 from .cluster_info import ClusterInfo
-from .dataset import QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
+from .dataset import column_dataset_from_df, QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
 from .thrift.rpc.IService import Client
 from .thrift.rpc.ttypes import (
     OpenSessionReq,
@@ -404,6 +405,17 @@ class Session(object):
                                                tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertNonAlignedColumnRecords(req)
         Session.verify_status(status)
+
+    def insert_df(self, df: pd.DataFrame, prefix: str = ""):
+        """
+        insert dataframe data into IGinX
+        :param df: dataframe that contains data
+        :param prefix: (optional) path names in IGinX
+               must contain '.'. If columns in dataframe does not meet the requirement, a prefix can be used
+        """
+        dataset = column_dataset_from_df(df, prefix)
+        paths, keys, value_list, type_list = dataset.get_insert_args()
+        self.insert_column_records(paths, keys, value_list, type_list)
 
     def query(self, paths, start_time, end_time, timePrecision=None):
         req = QueryDataReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths),

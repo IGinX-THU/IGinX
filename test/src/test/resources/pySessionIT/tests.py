@@ -395,6 +395,35 @@ class Tests:
 
             return ""
 
+    def insertDF(self):
+        try:
+            import pandas as pd
+            data = {
+                'key': list(range(10, 20)),
+                'value1': ['A']*10,
+                'value2': [1.1]*10
+            }
+
+            df = pd.DataFrame(data)
+            self.session.insert_df(df, "dftestdata")
+            data = {
+                'key': list(range(10, 20)),
+                'dftestdata.value3': ['B']*10,
+                'dftestdata.value4': [2.2]*10
+            }
+
+            df = pd.DataFrame(data)
+            self.session.insert_df(df)
+
+            dataset = self.session.query(["dftestdata.*"], 0, 1000)
+            pd.set_option('display.max_columns', None)
+            pd.set_option('display.max_rows', None)
+            retStr = dataset.to_df().to_string(index=False) + "\n"
+            return retStr
+        except Exception as e:
+            print(e)
+            exit(1)
+
     def lastQuery(self):
         retStr = ""
         # 获取部分序列的最后一个数据点
