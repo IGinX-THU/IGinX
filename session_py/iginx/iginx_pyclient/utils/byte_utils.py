@@ -190,7 +190,7 @@ class BytesParser(object):
         else:
             raise RuntimeError("unknown data type " + type)
 
-    def get_bytes_from_types(self, types, bitmap : Bitmap):
+    def get_bytes_from_types(self, types, bitmap: Bitmap):
         bytes_value = []
         i = -1
         for type in types:
