@@ -7,6 +7,7 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -29,11 +30,13 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -308,36 +311,54 @@ public class LocalExecutor implements Executor {
     return new TaskExecuteResult(null, null);
   }
 
+  boolean isPathMatchPattern(String path, Set<String> patterns) {
+    if (patterns.isEmpty()) {
+      return true;
+    }
+    for (String pattern : patterns) {
+      if (StringUtils.match(path, pattern)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
       for (File file : fileSystemManager.getAllFiles(directory, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
+        String columnPath =
+            FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
         if (meta == null) {
           throw new PhysicalException(
               String.format(
                   "encounter error when getting columns of storage unit because file meta %s is null",
                   file.getAbsolutePath()));
         }
-        columns.add(
-            new Column(
-                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
-                meta.getDataType(),
-                meta.getTags(),
-                false));
+        // get columns by pattern
+        if (!isPathMatchPattern(columnPath, pattern)) {
+          continue;
+        }
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
+          continue;
+        }
+        columns.add(new Column(columnPath, meta.getDataType(), meta.getTags(), false));
       }
     }
-    if (hasData && dummyRoot != null) {
+    // get columns from dummy storage unit
+    if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
-        columns.add(
-            new Column(
-                FilePathUtils.convertAbsolutePathToPath(
-                    dummyRoot, file.getAbsolutePath(), storageUnit),
-                DataType.BINARY,
-                null,
-                true));
+        String dummyPath =
+            FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
+        if (!isPathMatchPattern(dummyPath, pattern)) {
+          continue;
+        }
+        columns.add(new Column(dummyPath, DataType.BINARY, null, true));
       }
     }
     return columns;

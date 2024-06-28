@@ -8,6 +8,10 @@ import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
+import cn.edu.tsinghua.iginx.session.Column;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.ArrayList;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +25,33 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.oriPort = dbConf.getDBCEPortMap().get(Constant.ORI_PORT_NAME);
     Constant.expPort = dbConf.getDBCEPortMap().get(Constant.EXP_PORT_NAME);
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
+  }
+
+  @Override
+  protected void testShowAllColumnsInExpansion(boolean before) {
+    List<Column> columns = new ArrayList<>();
+    columns.add(new Column("b.b._id", DataType.BINARY));
+    columns.add(new Column("nt.wf03._id", DataType.BINARY));
+    columns.add(new Column("nt.wf04._id", DataType.BINARY));
+    columns.add(
+        new Column(
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz._id", DataType.BINARY));
+    columns.add(new Column("b.b.b", DataType.LONG));
+    columns.add(new Column("ln.wf02.status", DataType.BOOLEAN));
+    columns.add(new Column("ln.wf02.version", DataType.BINARY));
+    columns.add(new Column("nt.wf03.wt01.status2", DataType.LONG));
+    columns.add(new Column("nt.wf04.wt01.temperature", DataType.DOUBLE));
+    columns.add(
+        new Column(
+            "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
+            DataType.LONG));
+
+    if (!before) {
+      columns.add(new Column("p1.nt.wf03._id", DataType.BINARY));
+      columns.add(new Column("p1.nt.wf03.wt01.status2", DataType.LONG));
+    }
+
+    testShowColumns(columns);
   }
 
   @Override

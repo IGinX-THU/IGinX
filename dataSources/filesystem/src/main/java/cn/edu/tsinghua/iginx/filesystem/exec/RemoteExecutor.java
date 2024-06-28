@@ -28,10 +28,7 @@ import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.ThriftConnPool;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -207,11 +204,13 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
-      GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
+      GetColumnsOfStorageUnitResp resp =
+          client.getColumnsOfStorageUnit(storageUnit, pattern, constructRawTagFilter(tagFilter));
       thriftConnPool.returnTransport(transport);
       List<Column> columns = new ArrayList<>();
       resp.getPathList()
@@ -254,6 +253,9 @@ public class RemoteExecutor implements Executor {
 
   private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
     RawTagFilter filter = null;
+    if (tagFilter == null) {
+      return null;
+    }
     switch (tagFilter.getType()) {
       case Base:
         {

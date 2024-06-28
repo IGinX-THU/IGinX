@@ -11,6 +11,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
+import java.util.Set;
 
 public interface Executor {
 
@@ -26,7 +27,8 @@ public interface Executor {
   TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit);
 
-  List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException;
+  List<Column> getColumnsOfStorageUnit(String storageUnit, Set<String> pattern, TagFilter tagFilter)
+      throws PhysicalException;
 
   Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException;

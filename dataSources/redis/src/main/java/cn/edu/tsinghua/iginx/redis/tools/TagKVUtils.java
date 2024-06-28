@@ -67,7 +67,11 @@ public class TagKVUtils {
 
   public static String getPattern(String name) {
     String escaped = COLUMN_KEY_TRANSLATOR.getEscaper().escape(name);
-    return escaped.replaceAll("[?^{}\\[\\]\\\\]", "\\\\$0");
+    return escapeRedisSpecialCharInPattern(escaped);
+  }
+
+  public static String escapeRedisSpecialCharInPattern(String name) {
+    return name.replaceAll("[?^{}\\[\\]\\\\]", "\\\\$0");
   }
 
   public static boolean match(Map<String, String> tags, TagFilter tagFilter) {

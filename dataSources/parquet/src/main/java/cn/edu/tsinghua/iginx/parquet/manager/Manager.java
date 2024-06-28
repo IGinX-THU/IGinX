@@ -36,7 +36,7 @@ public interface Manager extends AutoCloseable {
   void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
       throws PhysicalException;;
 
-  List<Column> getColumns() throws PhysicalException;
+  List<Column> getColumns(List<String> paths, TagFilter tagFilter) throws PhysicalException;
 
   KeyInterval getKeyInterval() throws PhysicalException;
 }

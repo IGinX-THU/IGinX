@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
-import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
@@ -316,7 +315,8 @@ public class StoragePhysicalTaskExecutor {
 
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
     List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
-    Set<Column> columnSet = new HashSet<>();
+    TreeSet<Column> columnSetAfterFilter =
+        new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
     for (StorageEngineMeta storage : storageList) {
       long id = storage.getId();
       Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
@@ -324,56 +324,58 @@ public class StoragePhysicalTaskExecutor {
         continue;
       }
       try {
-        List<Column> columnList = pair.k.getColumns();
-        // fix the schemaPrefix
+        Set<String> patternSet = showColumns.getPathRegexSet();
+        TagFilter tagFilter = showColumns.getTagFilter();
+
+        List<Column> columnList = pair.k.getColumns(patternSet, tagFilter);
+
+        // fix the schemaPrefix and dataPrefix
         String schemaPrefix = storage.getSchemaPrefix();
-        if (schemaPrefix != null) {
+        String dataPrefixRegex =
+            storage.getDataPrefix() == null
+                ? null
+                : StringUtils.reformatPath(storage.getDataPrefix() + ".*");
+        if (tagFilter == null) {
           for (Column column : columnList) {
             if (column.isDummy()) {
-              column.setPath(schemaPrefix + "." + column.getPath());
+              if (dataPrefixRegex == null || Pattern.matches(dataPrefixRegex, column.getPath())) {
+                if (schemaPrefix != null) {
+                  column.setPath(schemaPrefix + "." + column.getPath());
+                  boolean isMatch = patternSet.isEmpty();
+                  for (String pathRegex : patternSet) {
+                    if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
+                      isMatch = true;
+                      break;
+                    }
+                  }
+                  if (isMatch) {
+                    columnSetAfterFilter.add(column);
+                  }
+                } else {
+                  columnSetAfterFilter.add(column);
+                }
+              }
+            } else {
+              columnSetAfterFilter.add(column);
             }
           }
+        } else {
+          columnSetAfterFilter.addAll(columnList);
         }
-        columnSet.addAll(columnList);
       } catch (PhysicalException e) {
         return new TaskExecuteResult(e);
-      }
-    }
-
-    Set<String> pathRegexSet = showColumns.getPathRegexSet();
-    TagFilter tagFilter = showColumns.getTagFilter();
-
-    TreeSet<Column> tsSetAfterFilter = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
-    for (Column column : columnSet) {
-      boolean isTarget = true;
-      if (!pathRegexSet.isEmpty()) {
-        isTarget = false;
-        for (String pathRegex : pathRegexSet) {
-          if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
-            isTarget = true;
-            break;
-          }
-        }
-      }
-      if (tagFilter != null) {
-        if (!TagKVUtils.match(column.getTags(), tagFilter)) {
-          isTarget = false;
-        }
-      }
-      if (isTarget) {
-        tsSetAfterFilter.add(column);
       }
     }
 
     int limit = showColumns.getLimit();
     int offset = showColumns.getOffset();
     if (limit == Integer.MAX_VALUE && offset == 0) {
-      return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
+      return new TaskExecuteResult(Column.toRowStream(columnSetAfterFilter));
     } else {
       // only need part of data.
       List<Column> tsList = new ArrayList<>();
-      int cur = 0, size = tsSetAfterFilter.size();
-      for (Iterator<Column> iter = tsSetAfterFilter.iterator(); iter.hasNext(); cur++) {
+      int cur = 0, size = columnSetAfterFilter.size();
+      for (Iterator<Column> iter = columnSetAfterFilter.iterator(); iter.hasNext(); cur++) {
         if (cur >= size || cur - offset >= limit) {
           break;
         }
