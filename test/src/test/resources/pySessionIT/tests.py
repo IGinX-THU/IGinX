@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
-
 # 无法单独执行，用来测试PySessionIT
 import sys, traceback
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
