@@ -23,6 +23,18 @@ for /l %%i in (1,1,1) do (
 	)
 )
 
+set built_in_udf[1]=udf_list
+set built_in_udf[2]=python_scripts\class_loader.py
+set built_in_udf[3]=python_scripts\constant.py
+set built_in_udf[4]=python_scripts\py_worker.py
+
+move udf_funcs udf_funcs_bak
+mkdir udf_funcs\python_scripts
+for /l %%i in (1,1,4) do (
+    move udf_funcs_bak\!built_in_udf[%%i]! udf_funcs\!built_in_udf[%%i]!
+)
+rd /s /q udf_funcs_bak
+
 @REM -----------------------------------------------------------------------------
 :finally
 echo Done!
