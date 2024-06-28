@@ -343,10 +343,6 @@ public class InfluxDBStorage implements IStorage {
         if (isDummy && !isUnit) {
           path = bucket.getName() + "." + path;
         }
-        // get columns by pattern
-        if (!isPathMatchPattern(path, patterns)) {
-          continue;
-        }
         // get columns by tag filter
         if (tagFilter != null && !TagKVUtils.match(tag, tagFilter)) {
           continue;
@@ -382,18 +378,6 @@ public class InfluxDBStorage implements IStorage {
     }
 
     return timeseries;
-  }
-
-  boolean isPathMatchPattern(String path, Set<String> pattern) {
-    if (pattern == null || pattern.isEmpty()) {
-      return true;
-    }
-    for (String pathRegex : pattern) {
-      if (Pattern.matches(StringUtils.reformatPath(pathRegex), path)) {
-        return true;
-      }
-    }
-    return false;
   }
 
   @Override

@@ -448,18 +448,6 @@ public class RelationalStorage implements IStorage {
     return columns;
   }
 
-  boolean isPathMatchPattern(String path, Set<String> pattern) {
-    if (pattern == null || pattern.isEmpty()) {
-      return true;
-    }
-    for (String pathRegex : pattern) {
-      if (Pattern.matches(StringUtils.reformatPath(pathRegex), path)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   @Override
   public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
     KeyInterval keyInterval = dataArea.getKeyInterval();
