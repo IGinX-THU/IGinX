@@ -224,10 +224,10 @@ public class TPCHRunner {
       }
       String fileName = "src/test/resources/polybench/avgTimeCosts.txt";
       if (Files.exists(Paths.get(fileName))) { // 如果文件存在，即此次跑的是主分支代码，需要读取文件进行比较
-        List<Double> newAvgTimeCosts = readFromFile(fileName);  // 文件中存的是新分支的运行时间
+        List<Double> newAvgTimeCosts = readFromFile(fileName); // 文件中存的是新分支的运行时间
         for (int i = 0; i < queryIds.size(); i++) {
           System.out.println(
-                  "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
+              "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
           System.out.println(
               "query "
                   + queryIds.get(i)
