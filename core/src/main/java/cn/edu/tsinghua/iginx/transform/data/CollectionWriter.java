@@ -19,4 +19,9 @@ public class CollectionWriter extends ExportWriter {
   public BatchData getCollectedData() {
     return collectedData;
   }
+
+  @Override
+  public void reset() {
+    collectedData = null;
+  }
 }

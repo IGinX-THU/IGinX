@@ -16,4 +16,7 @@ public class PemjaWriter implements Writer {
   public void writeBatch(BatchData batchData) throws WriteBatchException {
     worker.process(batchData);
   }
+
+  @Override
+  public void reset() {}
 }

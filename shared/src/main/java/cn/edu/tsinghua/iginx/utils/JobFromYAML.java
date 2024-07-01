@@ -7,6 +7,7 @@ public class JobFromYAML {
   private List<TaskFromYAML> taskList;
   private String exportFile;
   private String exportType;
+  private String schedule;
 
   public JobFromYAML() {}
 
@@ -32,5 +33,13 @@ public class JobFromYAML {
 
   public void setExportType(String exportType) {
     this.exportType = exportType;
+  }
+
+  public String getSchedule() {
+    return schedule;
+  }
+
+  public void setSchedule(String schedule) {
+    this.schedule = schedule;
   }
 }

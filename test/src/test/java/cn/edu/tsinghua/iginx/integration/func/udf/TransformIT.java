@@ -274,6 +274,23 @@ public class TransformIT {
   }
 
   @Test
+  public void commitScheduledYamlTest() {
+    LOGGER.info("commitScheduledYamlTest(after 10s)");
+    try {
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatementScheduled.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+
+      long jobId = result.getJobId();
+      verifyJobState(jobId);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
   public void commitMultipleSqlStatementsTest() {
     LOGGER.info("commitMultipleSqlStatementsTest");
     List<TaskInfo> taskInfoList = new ArrayList<>();

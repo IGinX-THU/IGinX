@@ -7,6 +7,7 @@ import cn.edu.tsinghua.iginx.thrift.CommitTransformJobReq;
 import cn.edu.tsinghua.iginx.thrift.JobState;
 import cn.edu.tsinghua.iginx.thrift.TaskType;
 import cn.edu.tsinghua.iginx.transform.api.Checker;
+import cn.edu.tsinghua.iginx.transform.exception.TransformException;
 import cn.edu.tsinghua.iginx.transform.pojo.Job;
 import cn.edu.tsinghua.iginx.transform.pojo.PythonTask;
 import cn.edu.tsinghua.iginx.transform.pojo.Task;
@@ -89,6 +90,7 @@ public class TransformJobManager {
       runner.start();
       jobRunnerMap.put(job.getJobId(), runner);
       runner.run();
+      if (!runner.scheduled()) // only remove jobs that are not scheduled
       jobRunnerMap.remove(job.getJobId()); // since we will retry, we can't do this in finally
     } catch (Exception e) {
       LOGGER.error("Fail to process transform job id={}, because", job.getJobId(), e);
@@ -98,11 +100,15 @@ public class TransformJobManager {
       // TODO:
       // we don't need to close runner for FINISHED or FAILED jobs
       // can we move runner.close() into catch clause?
-      runner.close();
+
+      // do not close runner immediately if it's scheduled.
+      if (!runner.scheduled()) runner.close();
     }
     // TODO: should we set end time and log time cost for failed jobs?
-    job.setEndTime(System.currentTimeMillis());
-    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
+    if (!runner.scheduled()) {
+      job.setEndTime(System.currentTimeMillis());
+      LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
+    }
   }
 
   public boolean cancel(long jobId) {
@@ -145,6 +151,26 @@ public class TransformJobManager {
     job.setEndTime(System.currentTimeMillis());
     LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
     return true;
+  }
+
+  public void removeFinishedScheduleJob(long jobID) throws TransformException {
+    Job job = jobMap.get(jobID);
+    if (job == null) {
+      throw new TransformException("No job with id: " + jobID + " exists.");
+    }
+    JobRunner runner = jobRunnerMap.get(jobID);
+    if (runner == null) {
+      throw new TransformException("No job runner with id: " + jobID + " exists.");
+    }
+    if (job.isScheduled() && job.getState() == JobState.JOB_FINISHED) {
+      jobRunnerMap.remove(jobID);
+      return;
+    }
+    throw new TransformException(
+        "Job with id: "
+            + jobID
+            + " is not scheduled or is not finished. Current state: "
+            + job.getState());
   }
 
   public JobState queryJobState(long jobId) {

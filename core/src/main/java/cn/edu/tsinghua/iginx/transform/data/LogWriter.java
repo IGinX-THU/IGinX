@@ -32,4 +32,9 @@ public class LogWriter extends ExportWriter {
           LOGGER.info(row.toCSVTypeString());
         });
   }
+
+  @Override
+  public void reset() {
+    hasWriteHeader = false;
+  }
 }
