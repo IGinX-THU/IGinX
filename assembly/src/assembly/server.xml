@@ -23,6 +23,7 @@
     <includeBaseDirectory>false</includeBaseDirectory>
     <componentDescriptors>
         <componentDescriptor>src/assembly/component/iginx-core.xml</componentDescriptor>
+        <componentDescriptor>src/assembly/component/iginx-optimizer.xml</componentDescriptor>
         <componentDescriptor>src/assembly/component/iginx-filesystem-driver.xml</componentDescriptor>
         <componentDescriptor>src/assembly/component/iginx-influxdb-driver.xml</componentDescriptor>
         <componentDescriptor>src/assembly/component/iginx-iotdb12-driver.xml</componentDescriptor>
