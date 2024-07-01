@@ -86,4 +86,7 @@ public class ArrowWriter implements Writer {
       throw new WriteBatchException("ArrowWriter fail to write batch", e);
     }
   }
+
+  @Override
+  public void reset() {}
 }

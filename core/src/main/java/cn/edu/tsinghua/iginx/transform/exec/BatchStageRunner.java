@@ -75,8 +75,17 @@ public class BatchStageRunner implements Runner {
 
     // wait for py work finish writing.
     mutex.lock();
+
+    mutex.unlock();
+    writer.reset();
   }
 
   @Override
   public void close() {}
+
+  // schedule config would be set at higher level
+  @Override
+  public boolean scheduled() {
+    return false;
+  }
 }
