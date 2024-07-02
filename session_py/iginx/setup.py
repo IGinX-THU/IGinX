@@ -25,7 +25,7 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     author='THU IGinX',
-    license="Apache License 2.0",
+    license="GNU GPLv3",
     author_email='TSIginX@gmail.com',
     python_requires='>=3.8',
     install_requires=required,
