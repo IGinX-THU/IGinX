@@ -72,3 +72,24 @@ jobs:
                   delete-branch: true
                   commit-message: "chore(repo): update maven repository"
                   title: "chore(repo): update maven repository"
+    upload-session-py:
+        name: Upload Session to Github Release
+        runs-on: ubuntu-latest
+        permissions:
+            contents: write
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v2
+              with:
+                  python-version: "3.11"
+            - name: install wheel
+              run: pip install wheel
+            - name: package
+              working-directory: session_py/iginx
+              run: python setup.py sdist bdist_wheel
+            - name: upload
+              uses: svenstaro/upload-release-action@v2
+              with:
+                  file: "session_py/iginx/dist/*"
+                  file_glob: true
+                  overwrite: true
