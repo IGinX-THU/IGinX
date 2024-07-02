@@ -13,9 +13,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
 import io
 import os
 import sys
@@ -43,7 +43,7 @@ setup(
     include_package_data=True,
     packages=find_packages(),
     author='THU IGinX',
-    license="Apache License 2.0",
+    license="GNU GPLv3",
     author_email='TSIginX@gmail.com',
     python_requires='>=3.8',
     install_requires=required,

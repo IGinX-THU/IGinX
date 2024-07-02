@@ -13,6 +13,7 @@
 @REM GNU General Public License for more details.
 @REM
 @REM You should have received a copy of the GNU General Public License
-@REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
+@REM along with this program. If not, see <http://www.gnu.org/licenses/>.
 @REM
+
 docker build --file Dockerfile-no-maven-windows -t iginx-client:0.7.0-SNAPSHOT ../../client

@@ -13,9 +13,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
 """
 mean() returns the average of non-null values in a specified column from each input table.
 Mean function returns the average by dividing the sum of the values in the set by their number.

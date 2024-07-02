@@ -13,9 +13,8 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * along with this program. If not, see <http://www.gnu.org/licenses/>.
  */
-
 /** 该Policy是为了测试而写的，不要在生产环境中使用 该Policy会生成KeyRange不同的Fragment,用于测试。 */
 package cn.edu.tsinghua.iginx.policy.test;
 

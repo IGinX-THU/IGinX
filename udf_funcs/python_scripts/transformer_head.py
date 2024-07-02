@@ -13,9 +13,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
 """
 Return the first n rows.
 This function returns the first n rows for the object based on position.

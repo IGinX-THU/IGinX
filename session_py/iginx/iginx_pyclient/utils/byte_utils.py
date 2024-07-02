@@ -13,8 +13,9 @@
 # GNU General Public License for more details.
 #
 # You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+# along with this program. If not, see <http://www.gnu.org/licenses/>.
 #
+
 import struct
 
 from .bitmap import Bitmap
@@ -189,7 +190,7 @@ class BytesParser(object):
         else:
             raise RuntimeError("unknown data type " + type)
 
-    def get_bytes_from_types(self, types, bitmap: Bitmap):
+    def get_bytes_from_types(self, types, bitmap : Bitmap):
         bytes_value = []
         i = -1
         for type in types:

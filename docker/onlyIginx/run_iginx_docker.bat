@@ -13,8 +13,9 @@
 @REM GNU General Public License for more details.
 @REM
 @REM You should have received a copy of the GNU General Public License
-@REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
+@REM along with this program. If not, see <http://www.gnu.org/licenses/>.
 @REM
+
 @echo off
 set "current_dir=%CD%"
 @REM 将路径中的单反斜线替换为双反斜线
