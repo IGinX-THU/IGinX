@@ -20,6 +20,7 @@ import io
 import os
 import sys
 import warnings
+import xml.etree.ElementTree as ET
 
 from setuptools import setup, find_packages
 
@@ -30,6 +31,12 @@ if sys.version_info >= (3, 12):
         RuntimeWarning)
     del fmt
 
+tree = ET.parse('../../pom.xml')
+root = tree.getroot()
+namespaces = {'mvn': 'http://maven.apache.org/POM/4.0.0'}
+properties = root.find('mvn:properties', namespaces)
+revision = properties.find('mvn:revision', namespaces).text
+
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
@@ -39,7 +46,7 @@ with io.open(os.path.join(this_directory, 'README.md'), 'r', encoding='utf-8') a
 
 setup(
     name='iginx-pyclient',
-    version='0.6.1',
+    version=revision,
     include_package_data=True,
     packages=find_packages(),
     author='THU IGinX',
