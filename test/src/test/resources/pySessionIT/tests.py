@@ -1,20 +1,3 @@
-#
-# IGinX - the polystore system with high performance
-# Copyright (C) Tsinghua University
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 # 无法单独执行，用来测试PySessionIT
 import sys, traceback
 sys.path.append('../session_py/')  # 将上一级目录添加到Python模块搜索路径中
@@ -393,35 +376,6 @@ class Tests:
         finally:
 
             return ""
-
-    def insertDF(self):
-        try:
-            import pandas as pd
-            data = {
-                'key': list(range(10, 20)),
-                'value1': ['A']*10,
-                'value2': [1.1]*10
-            }
-
-            df = pd.DataFrame(data)
-            self.session.insert_df(df, "dftestdata")
-            data = {
-                'key': list(range(10, 20)),
-                'dftestdata.value3': ['B']*10,
-                'dftestdata.value4': [2.2]*10
-            }
-
-            df = pd.DataFrame(data)
-            self.session.insert_df(df)
-
-            dataset = self.session.query(["dftestdata.*"], 0, 1000)
-            pd.set_option('display.max_columns', None)
-            pd.set_option('display.max_rows', None)
-            retStr = dataset.to_df().to_string(index=False) + "\n"
-            return retStr
-        except Exception as e:
-            print(e)
-            exit(1)
 
     def lastQuery(self):
         retStr = ""

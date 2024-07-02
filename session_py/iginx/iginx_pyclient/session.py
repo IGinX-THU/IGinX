@@ -1,32 +1,14 @@
-#
-# IGinX - the polystore system with high performance
-# Copyright (C) Tsinghua University
-#
-# This program is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# This program is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program.  If not, see <http://www.gnu.org/licenses/>.
-#
 import csv
 import logging
 import os.path
 from datetime import datetime
 
-import pandas as pd
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from pathlib import Path
 
 from .cluster_info import ClusterInfo
-from .dataset import column_dataset_from_df, QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
+from .dataset import QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
 from .thrift.rpc.IService import Client
 from .thrift.rpc.ttypes import (
     OpenSessionReq,
@@ -405,17 +387,6 @@ class Session(object):
                                                tagsList=sorted_tags_list, timePrecision=timePrecision)
         status = self.__client.insertNonAlignedColumnRecords(req)
         Session.verify_status(status)
-
-    def insert_df(self, df: pd.DataFrame, prefix: str = ""):
-        """
-        insert dataframe data into IGinX
-        :param df: dataframe that contains data
-        :param prefix: (optional) path names in IGinX
-               must contain '.'. If columns in dataframe does not meet the requirement, a prefix can be used
-        """
-        dataset = column_dataset_from_df(df, prefix)
-        paths, keys, value_list, type_list = dataset.get_insert_args()
-        self.insert_column_records(paths, keys, value_list, type_list)
 
     def query(self, paths, start_time, end_time, timePrecision=None):
         req = QueryDataReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths),
