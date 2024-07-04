@@ -148,7 +148,7 @@ public class TPCHRunner {
         System.out.println("Memory used by the statement: " + memoryUsed + " bytes");
 
         // 验证
-        Long timeCost = System.currentTimeMillis() - startTime;
+        long timeCost = System.currentTimeMillis() - startTime;
         System.out.println("end tpch query, time cost: " + timeCost + "ms");
         List<List<Object>> values = result.getValues();
         List<List<String>> answers =
@@ -185,7 +185,7 @@ public class TPCHRunner {
                   new String((byte[]) values.get(i).get(j), StandardCharsets.UTF_8);
               String answerString = answers.get(i).get(j);
               if (!resultString.equals(answerString)) {
-                System.out.println("Result string： " + resultString);
+                System.out.println("Result string: " + resultString);
                 System.out.println("Answer string: " + answerString);
               }
               assert resultString.equals(answerString);
@@ -206,12 +206,14 @@ public class TPCHRunner {
         SessionExecuteSqlResult result = null;
         String[] sqls = sqlString.split(";");
         List<Long> timeCosts = new ArrayList<>();
-        for (int i = 0; i < 10; i++) { // TODO: 5
+        for (int i = 0; i < 3; i++) { // TODO: 5
           startTime = System.currentTimeMillis();
-          if (sqls.length == 1)
+          if (sqls.length == 1) {
             // TODO: error
             System.out.println("wrong input");
-          else result = conn.executeSql(sqls[sqls.length - 2] + ";");
+          } else {
+            result = conn.executeSql(sqls[sqls.length - 2] + ";");
+          }
           Long timeCost = System.currentTimeMillis() - startTime;
           timeCosts.add(timeCost);
           System.out.println("query " + queryId + ", time cost: " + timeCost + "ms");
@@ -226,24 +228,17 @@ public class TPCHRunner {
       if (Files.exists(Paths.get(fileName))) { // 如果文件存在，即此次跑的是主分支代码，需要读取文件进行比较
         List<Double> newAvgTimeCosts = readFromFile(fileName); // 文件中存的是新分支的运行时间
         for (int i = 0; i < queryIds.size(); i++) {
-          System.out.println(
-              "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
-          System.out.println(
-              "query "
-                  + queryIds.get(i)
-                  + ", new average time cost: "
-                  + newAvgTimeCosts.get(i)
-                  + "ms");
+          System.out.printf(
+              "query %d, old time cost: %2fms\n", queryIds.get(i), avgTimeCosts.get(i));
+          System.out.printf(
+              "query %d, new average time cost: %2fms\n", queryIds.get(i), newAvgTimeCosts.get(i));
           // TODO 如果相差超过30%？，则报错
           if (Math.abs(newAvgTimeCosts.get(i) - avgTimeCosts.get(i)) > 0.3 * avgTimeCosts.get(i)) {
-            System.out.println(
-                "query "
-                    + queryIds.get(i)
-                    + ", new branch average time cost: "
-                    + newAvgTimeCosts.get(i)
-                    + "ms");
-            System.out.println(
-                "query " + queryIds.get(i) + ", average time cost: " + avgTimeCosts.get(i) + "ms");
+            System.out.printf(
+                "query %d, old average time cost: %2fms\n", queryIds.get(i), avgTimeCosts.get(i));
+            System.out.printf(
+                "query %d, new average time cost: %2fms\n",
+                queryIds.get(i), newAvgTimeCosts.get(i));
             throw new RuntimeException("time cost not equal");
           }
         }
@@ -253,9 +248,7 @@ public class TPCHRunner {
 
       // 关闭会话
       conn.closeSession();
-    } catch (SessionException e) {
-      throw new RuntimeException(e);
-    } catch (IOException e) {
+    } catch (SessionException | IOException e) {
       throw new RuntimeException(e);
     }
   }
