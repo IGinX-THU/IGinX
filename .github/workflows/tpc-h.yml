@@ -89,7 +89,7 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            - name: Switch to Old Version
+            - name: Get Old Version
               shell: bash
               run: |
                   cd ..
@@ -118,17 +118,22 @@ jobs:
                   Root-Dir-Path: "${GITHUB_WORKSPACE}/old/IGinX"
 
             - name: Start Old IGinX
-              uses: ./.github/actions/iginxRunner
-              with:
-                  version: ${VERSION}
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/old/IGinX"
+              if: always()
+              shell: bash
+              run: |
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/old/IGinX/.github/scripts/iginx/iginx.sh"
+                    "${GITHUB_WORKSPACE}/old/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
+                  else
+                    echo "$RUNNER_OS is not supported in this test"
+                    exit 1
+                  fi
 
             - name: Run Regression Test on Old IGinX
               if: always()
               shell: bash
               run: |
-                  pwd
-                  ls
+                  cd "old/IGinX"
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
             - name: Stop ZooKeeper
@@ -147,10 +152,10 @@ jobs:
               with:
                   if-rerun: "true"
 
-            - name: Switch to New Version
+            - name: Install New IGinX with Maven
               shell: bash
               run: |
-                  cd "../../new/IGinX"
+                  cd "new/IGinX"
                   mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
@@ -161,15 +166,20 @@ jobs:
                   Root-Dir-Path: "${GITHUB_WORKSPACE}/new/IGinX"
 
             - name: Start New IGinX
-              uses: ./.github/actions/iginxRunner
-              with:
-                  version: ${VERSION}
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/new/IGinX"
+              if: always()
+              shell: bash
+              run: |
+                  if [ "$RUNNER_OS" == "Linux" ]; then
+                    chmod +x "${GITHUB_WORKSPACE}/new/IGinX/.github/scripts/iginx/iginx.sh"
+                    "${GITHUB_WORKSPACE}/new/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
+                  else
+                    echo "$RUNNER_OS is not supported in this test"
+                    exit 1
+                  fi
 
             - name: Run Regression Test on New IGinX
               if: always()
               shell: bash
               run: |
-                  pwd
-                  ls
+                  cd "new/IGinX"
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
