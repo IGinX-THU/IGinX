@@ -121,6 +121,7 @@ jobs:
               if: always()
               shell: bash
               run: |
+                  cd "old/IGinX"
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/old/IGinX/.github/scripts/iginx/iginx.sh"
                     "${GITHUB_WORKSPACE}/old/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666 old/IGinX
