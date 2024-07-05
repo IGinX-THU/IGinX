@@ -22,6 +22,10 @@ set -e
 
 cd "$3"
 
+echo "$PWD"
+
+echo "$3"
+
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 
 sed -i "s/#iginx_port=[0-9]\+#/#iginx_port=$1#/g" core/target/iginx-core-*/conf/config.properties
