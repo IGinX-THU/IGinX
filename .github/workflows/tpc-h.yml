@@ -103,20 +103,12 @@ jobs:
                   cd old
                   git clone https://github.com/IGinX-THU/IGinX.git
                   cd IGinX
-                  pwd
 
-            - name: Install IGinX with Maven
+            - name: Install Old IGinX with Maven
               shell: bash
               run: |
-                  cd "core"
-                  pwd
-                  ls
-                  cd ..
+                  cd "old/IGinX"
                   mvn clean package -DskipTests -P-format -q
-                  cd "core"
-                  pwd
-                  ls
-                  cd ..
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
@@ -135,6 +127,8 @@ jobs:
               if: always()
               shell: bash
               run: |
+                  pwd
+                  ls
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
             - name: Stop ZooKeeper
@@ -157,6 +151,7 @@ jobs:
               shell: bash
               run: |
                   cd "../../new/IGinX"
+                  mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
@@ -175,4 +170,6 @@ jobs:
               if: always()
               shell: bash
               run: |
+                  pwd
+                  ls
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
