@@ -103,6 +103,7 @@ jobs:
                   cd old
                   git clone https://github.com/IGinX-THU/IGinX.git
                   cd IGinX
+                  pwd
 
             - name: Install IGinX with Maven
               shell: bash
