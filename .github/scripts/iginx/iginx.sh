@@ -20,11 +20,11 @@
 
 set -e
 
-cd "$3"
+cd $3
 
-echo "$PWD"
+echo $PWD
 
-echo "$3"
+echo $3
 
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 
