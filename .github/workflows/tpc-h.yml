@@ -1,4 +1,4 @@
-name: "TPC-H Test"
+name: "TPC-H Regression Test"
 
 on:
     workflow_call:

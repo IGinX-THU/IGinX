@@ -19,6 +19,11 @@ jobs:
         uses: ./.github/workflows/case-regression.yml
         with:
             metadata-matrix: '["zookeeper"]'
+    tpc-h-regression-test:
+      uses: ./.github/workflows/tpc-h.yml
+      with:
+        os-matrix: '["ubuntu-latest"]'
+        metadata-matrix: '["zookeeper"]'
     standalone-test:
         uses: ./.github/workflows/standalone-test.yml
         with:
@@ -37,8 +42,3 @@ jobs:
             metadata-matrix: '["zookeeper"]'
     assemebly-test:
         uses: ./.github/workflows/assembly-test.yml
-    tpc-h:
-        uses: ./.github/workflows/tpc-h.yml
-        with:
-            os-matrix: '["ubuntu-latest"]'
-            metadata-matrix: '["zookeeper"]'
