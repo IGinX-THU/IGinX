@@ -20,9 +20,9 @@
 
 set -e
 
-cd $3
+sh -c "cd $3"
 
-pwd
+sh -c "pwd"
 
 sed -i "s/port=[0-9]\+/port=$1/g" core/target/iginx-core-*/conf/config.properties
 
