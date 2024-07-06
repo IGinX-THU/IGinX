@@ -110,7 +110,7 @@ jobs:
                   cd "IGinX"
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
+                    "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
                   else
                     echo "$RUNNER_OS is not supported in this test"
                     exit 1
@@ -162,7 +162,7 @@ jobs:
               run: |
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666
                   else
                     echo "$RUNNER_OS is not supported in this test"
                     exit 1
