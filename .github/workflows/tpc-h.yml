@@ -110,7 +110,7 @@ jobs:
                   cd "IGinX"
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
+                    "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
                   else
                     echo "$RUNNER_OS is not supported in this test"
                     exit 1
@@ -155,7 +155,6 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/new/IGinX"
 
             - name: Start New IGinX
               if: always()
@@ -163,7 +162,7 @@ jobs:
               run: |
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666
+                    "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
                   else
                     echo "$RUNNER_OS is not supported in this test"
                     exit 1
