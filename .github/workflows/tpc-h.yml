@@ -92,22 +92,8 @@ jobs:
             - name: Get Old Version
               shell: bash
               run: |
-                  cd ..
-                  mkdir "new"
-                  mkdir "new/IGinX"
-                  cp -r "IGinX" "new/IGinX"
-                  cd "IGinX"
-                  mkdir "new"
-                  mv "../new" "new"
-                  mkdir "old"
-                  cd old
                   git clone https://github.com/IGinX-THU/IGinX.git
                   cd IGinX
-
-            - name: Install Old IGinX with Maven
-              shell: bash
-              run: |
-                  cd "old/IGinX"
                   mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
@@ -115,16 +101,16 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/old/IGinX"
+                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Start Old IGinX
               if: always()
               shell: bash
               run: |
-                  cd "old/IGinX"
+                  cd "IGinX"
                   if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/old/IGinX/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/old/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666 old/IGinX
+                    chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
+                    "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
                   else
                     echo "$RUNNER_OS is not supported in this test"
                     exit 1
@@ -134,7 +120,11 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  cd "old/IGinX"
+                  pwd
+                  ls
+                  cd IGinX
+                  pwd
+                  ls
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
             - name: Stop ZooKeeper
@@ -156,7 +146,8 @@ jobs:
             - name: Install New IGinX with Maven
               shell: bash
               run: |
-                  cd "new/IGinX"
+                  pwd
+                  ls
                   mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
@@ -171,8 +162,8 @@ jobs:
               shell: bash
               run: |
                   if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/new/IGinX/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/new/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666 new/IGinX
+                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
+                    "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666
                   else
                     echo "$RUNNER_OS is not supported in this test"
                     exit 1
@@ -182,5 +173,6 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  cd "new/IGinX"
+                  pwd
+                  ls
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
