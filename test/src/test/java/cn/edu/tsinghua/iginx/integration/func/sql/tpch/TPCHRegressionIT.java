@@ -212,7 +212,7 @@ public class TPCHRegressionIT {
               break;
             case DATE: // 日期类型需要转为时间戳
               SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-              sb.append(dateFormat.parse(items[i]).getTime());
+              sb.append(dateFormat.parse(items[i] + " 08:00:00").getTime()); // 转时区，否则结果错误
               sb.append(", ");
               break;
             default:

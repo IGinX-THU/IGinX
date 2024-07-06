@@ -120,11 +120,6 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  pwd
-                  ls
-                  cd IGinX
-                  pwd
-                  ls
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
             - name: Stop ZooKeeper
@@ -146,8 +141,6 @@ jobs:
             - name: Install New IGinX with Maven
               shell: bash
               run: |
-                  pwd
-                  ls
                   mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
@@ -172,6 +165,4 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  pwd
-                  ls
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
