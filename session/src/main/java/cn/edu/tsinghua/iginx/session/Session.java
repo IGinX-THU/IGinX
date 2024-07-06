@@ -308,33 +308,30 @@ public class Session {
   }
 
   public void insertColumnRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
       throws SessionException {
-    insertColumnRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
+    insertColumnRecords(paths, keys, valuesList, dataTypeList, null, timeUnit);
   }
 
   public void insertColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
       throws SessionException {
-    insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+    insertColumnRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
       throws SessionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
       LOGGER.error("Invalid insert request!");
       return;
     }
@@ -347,14 +344,14 @@ public class Session {
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     for (int i = 0; i < valuesList.length; i++) {
       Object[] values = new Object[index.length];
       for (int j = 0; j < index.length; j++) {
@@ -387,13 +384,13 @@ public class Session {
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
-      if (values.length != sortedTimestamps.length) {
-        LOGGER.error("The sizes of timestamps and the element of valuesList should be equal.");
+      if (values.length != sortedKeys.length) {
+        LOGGER.error("The sizes of keys and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
-      Bitmap bitmap = new Bitmap(sortedTimestamps.length);
-      for (int j = 0; j < sortedTimestamps.length; j++) {
+      Bitmap bitmap = new Bitmap(sortedKeys.length);
+      for (int j = 0; j < sortedKeys.length; j++) {
         if (values[j] != null) {
           bitmap.mark(j);
         }
@@ -404,7 +401,7 @@ public class Session {
     InsertColumnRecordsReq req = new InsertColumnRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
@@ -415,33 +412,30 @@ public class Session {
   }
 
   public void insertNonAlignedColumnRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
       throws SessionException {
-    insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
+    insertNonAlignedColumnRecords(paths, keys, valuesList, dataTypeList, null, timeUnit);
   }
 
   public void insertNonAlignedColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
       throws SessionException {
-    insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+    insertNonAlignedColumnRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertNonAlignedColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
       throws SessionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
       LOGGER.error("Invalid insert request!");
       return;
     }
@@ -454,14 +448,14 @@ public class Session {
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     for (int i = 0; i < valuesList.length; i++) {
       Object[] values = new Object[index.length];
       for (int j = 0; j < index.length; j++) {
@@ -494,13 +488,13 @@ public class Session {
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
-      if (values.length != sortedTimestamps.length) {
-        LOGGER.error("The sizes of timestamps and the element of valuesList should be equal.");
+      if (values.length != sortedKeys.length) {
+        LOGGER.error("The sizes of keys and the element of valuesList should be equal.");
         return;
       }
       valueBufferList.add(ByteUtils.getColumnByteBuffer(values, sortedDataTypeList.get(i)));
-      Bitmap bitmap = new Bitmap(sortedTimestamps.length);
-      for (int j = 0; j < sortedTimestamps.length; j++) {
+      Bitmap bitmap = new Bitmap(sortedKeys.length);
+      for (int j = 0; j < sortedKeys.length; j++) {
         if (values[j] != null) {
           bitmap.mark(j);
         }
@@ -511,7 +505,7 @@ public class Session {
     InsertNonAlignedColumnRecordsReq req = new InsertNonAlignedColumnRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
@@ -523,26 +517,23 @@ public class Session {
 
   public void insertRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
       throws SessionException {
-    insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+    insertRowRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
       throws SessionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
       LOGGER.error("Invalid insert request!");
       return;
     }
@@ -550,8 +541,8 @@ public class Session {
       LOGGER.error("The sizes of paths and dataTypeList should be equal.");
       return;
     }
-    if (timestamps.length != valuesList.length) {
-      LOGGER.error("The sizes of timestamps and valuesList should be equal.");
+    if (keys.length != valuesList.length) {
+      LOGGER.error("The sizes of keys and valuesList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
@@ -559,14 +550,14 @@ public class Session {
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     Object[] sortedValuesList = new Object[valuesList.length];
     for (int i = 0; i < valuesList.length; i++) {
       sortedValuesList[i] = valuesList[index[i]];
@@ -599,7 +590,7 @@ public class Session {
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    for (int i = 0; i < sortedKeys.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedPaths.size()) {
         LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
@@ -618,7 +609,7 @@ public class Session {
     InsertRowRecordsReq req = new InsertRowRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
@@ -629,33 +620,30 @@ public class Session {
   }
 
   public void insertNonAlignedRowRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
       throws SessionException {
-    insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, null, timeUnit);
+    insertNonAlignedRowRecords(paths, keys, valuesList, dataTypeList, null, timeUnit);
   }
 
   public void insertNonAlignedRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
       throws SessionException {
-    insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, timeUnit);
+    insertNonAlignedRowRecords(paths, keys, valuesList, dataTypeList, tagsList, timeUnit);
   }
 
   public void insertNonAlignedRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
       TimePrecision precision)
       throws SessionException {
-    if (paths.isEmpty()
-        || timestamps.length == 0
-        || valuesList.length == 0
-        || dataTypeList.isEmpty()) {
+    if (paths.isEmpty() || keys.length == 0 || valuesList.length == 0 || dataTypeList.isEmpty()) {
       LOGGER.error("Invalid insert request!");
       return;
     }
@@ -663,8 +651,8 @@ public class Session {
       LOGGER.error("The sizes of paths and dataTypeList should be equal.");
       return;
     }
-    if (timestamps.length != valuesList.length) {
-      LOGGER.error("The sizes of timestamps and valuesList should be equal.");
+    if (keys.length != valuesList.length) {
+      LOGGER.error("The sizes of keys and valuesList should be equal.");
       return;
     }
     if (tagsList != null && !tagsList.isEmpty() && paths.size() != tagsList.size()) {
@@ -672,14 +660,14 @@ public class Session {
       return;
     }
 
-    long[] sortedTimestamps = Arrays.copyOf(timestamps, timestamps.length);
-    Integer[] index = new Integer[sortedTimestamps.length];
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    long[] sortedKeys = Arrays.copyOf(keys, keys.length);
+    Integer[] index = new Integer[sortedKeys.length];
+    for (int i = 0; i < sortedKeys.length; i++) {
       index[i] = i;
     }
     Arrays.sort(
-        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedTimestamps))::get));
-    Arrays.sort(sortedTimestamps);
+        index, Comparator.comparingLong(Arrays.asList(ArrayUtils.toObject(sortedKeys))::get));
+    Arrays.sort(sortedKeys);
     Object[] sortedValuesList = new Object[valuesList.length];
     for (int i = 0; i < valuesList.length; i++) {
       sortedValuesList[i] = valuesList[index[i]];
@@ -712,7 +700,7 @@ public class Session {
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
-    for (int i = 0; i < sortedTimestamps.length; i++) {
+    for (int i = 0; i < sortedKeys.length; i++) {
       Object[] values = (Object[]) sortedValuesList[i];
       if (values.length != sortedPaths.size()) {
         LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
@@ -731,7 +719,7 @@ public class Session {
     InsertNonAlignedRowRecordsReq req = new InsertNonAlignedRowRecordsReq();
     req.setSessionId(sessionId);
     req.setPaths(sortedPaths);
-    req.setKeys(getByteArrayFromLongArray(sortedTimestamps));
+    req.setKeys(getByteArrayFromLongArray(sortedKeys));
     req.setValuesList(valueBufferList);
     req.setBitmapList(bitmapBufferList);
     req.setDataTypeList(sortedDataTypeList);
