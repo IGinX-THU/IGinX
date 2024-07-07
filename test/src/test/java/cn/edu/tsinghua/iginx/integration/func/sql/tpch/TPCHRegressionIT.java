@@ -40,7 +40,7 @@ public class TPCHRegressionIT {
 
   // .tbl文件所在目录
   private static final String dataPath =
-      System.getProperty("user.dir") + "/../../tpc/TPC-H V3.0.1/data";
+      System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
 
   // 最大重复测试次数
   private static final int MAX_REPETITIONS_NUM = 5;
@@ -211,8 +211,8 @@ public class TPCHRegressionIT {
               sb.append("\", ");
               break;
             case DATE: // 日期类型需要转为时间戳
-              SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-              sb.append(dateFormat.parse(items[i] + " 08:00:00").getTime());
+              SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+              sb.append(dateFormat.parse(items[i]).getTime());
               sb.append(", ");
               break;
             default:
@@ -230,6 +230,7 @@ public class TPCHRegressionIT {
           sb = new StringBuilder(insertPrefix);
         }
       }
+      System.out.printf("INSERT %d RECORDS INTO TABLE [%s]%n", count, table);
     } catch (IOException | ParseException | SessionException e) {
       throw new RuntimeException(e);
     }

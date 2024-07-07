@@ -81,8 +81,10 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
                   "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
 
-            - name: Run ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
 
             - name: Run DB
               uses: ./.github/actions/dbRunner

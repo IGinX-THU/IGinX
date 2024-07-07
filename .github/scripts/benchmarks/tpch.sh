@@ -11,7 +11,7 @@ else
 fi
   cd tpchdata
   # 目标文件夹路径
-  destination_folder="../../tpc/TPC-H V3.0.1/data"
+  destination_folder="../tpc/TPC-H V3.0.1/data"
 
   # 确保目标文件夹存在，如果不存在则创建
   mkdir -p "$destination_folder"
