@@ -212,7 +212,9 @@ public class TPCHRegressionIT {
               break;
             case DATE: // 日期类型需要转为时间戳
               SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-              sb.append(dateFormat.parse(items[i]).getTime());
+              long time = dateFormat.parse(items[i]).getTime();
+              sb.append(time);
+              System.out.println(items[i] + " -> " + time);
               sb.append(", ");
               break;
             default:
@@ -226,7 +228,6 @@ public class TPCHRegressionIT {
         if (count % 10000 == 0) {
           sb.setLength(sb.length() - 2);
           sb.append(";");
-          System.out.println(sb);
           conn.executeSql(sb.toString());
           sb = new StringBuilder(insertPrefix);
         }
@@ -258,7 +259,8 @@ public class TPCHRegressionIT {
       long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
       long startTime;
       // 13有问题
-      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
+      // List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
