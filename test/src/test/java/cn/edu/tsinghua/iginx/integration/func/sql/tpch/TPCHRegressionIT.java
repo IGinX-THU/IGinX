@@ -226,6 +226,7 @@ public class TPCHRegressionIT {
         if (count % 10000 == 0) {
           sb.setLength(sb.length() - 2);
           sb.append(";");
+          System.out.println(sb);
           conn.executeSql(sb.toString());
           sb = new StringBuilder(insertPrefix);
         }
