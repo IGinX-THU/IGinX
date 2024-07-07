@@ -214,7 +214,6 @@ public class TPCHRegressionIT {
               SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
               long time = dateFormat.parse(items[i]).getTime();
               sb.append(time);
-              System.out.println(items[i] + " -> " + time);
               sb.append(", ");
               break;
             default:
