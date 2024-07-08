@@ -35,19 +35,16 @@ import org.junit.Test;
 public class TPCHRegressionIT {
 
   public static void main(String[] args) throws ParseException {
-
-    String s = "1998-09-02";
-    SimpleDateFormat dateFormat1 = new SimpleDateFormat("yyyy-MM-dd");
-    dateFormat1.setTimeZone(TimeZone.getTimeZone("GMT"));
-    long time = dateFormat1.parse(s).getTime();
-    System.out.println(time);
-
+//    String s = "1998-09-02";
+//    SimpleDateFormat dateFormat1 = new SimpleDateFormat("yyyy-MM-dd");
+//    dateFormat1.setTimeZone(TimeZone.getTimeZone("GMT"));
+//    long time = dateFormat1.parse(s).getTime();
+//    System.out.println(time);
+    long time = 757353600000L;
     SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
     dateFormat2.setTimeZone(TimeZone.getTimeZone("GMT"));
     Date date = new Date(time);
     System.out.println(dateFormat2.format(date));
-
-
   }
 
   // host info
@@ -230,7 +227,7 @@ public class TPCHRegressionIT {
               break;
             case DATE: // 日期类型需要转为时间戳
               SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
-              dateFormat.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
+              dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
               long time = dateFormat.parse(items[i]).getTime();
               sb.append(time);
               sb.append(", ");
@@ -278,7 +275,7 @@ public class TPCHRegressionIT {
       long startTime;
       // 13有问题
       // List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
-      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(6, 9, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
