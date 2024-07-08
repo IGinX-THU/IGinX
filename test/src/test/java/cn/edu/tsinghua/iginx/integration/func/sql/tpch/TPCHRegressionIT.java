@@ -21,8 +21,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
+import java.util.TimeZone;
 import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.AfterClass;
@@ -31,6 +33,22 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TPCHRegressionIT {
+
+  public static void main(String[] args) throws ParseException {
+
+    String s = "1998-09-02";
+    SimpleDateFormat dateFormat1 = new SimpleDateFormat("yyyy-MM-dd");
+    dateFormat1.setTimeZone(TimeZone.getTimeZone("GMT+8:00"));
+    long time = dateFormat1.parse(s).getTime();
+    System.out.println(time);
+
+    SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
+    // dateFormat2.setTimeZone(TimeZone.getTimeZone("GMT"));
+    Date date = new Date(time);
+    System.out.println(dateFormat2.format(date));
+
+
+  }
 
   // host info
   protected static String defaultTestHost = "127.0.0.1";
@@ -259,7 +277,7 @@ public class TPCHRegressionIT {
       long startTime;
       // 13有问题
       // List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
-      List<Integer> queryIds = Arrays.asList(3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =

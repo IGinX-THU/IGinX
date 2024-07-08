@@ -21,7 +21,7 @@ from (
          from
              lineitem
          where
-                 lineitem.l_shipdate <= 904694400000
+                 lineitem.l_shipdate <= 904665600000
      )
 group by
     lineitem.l_returnflag,
