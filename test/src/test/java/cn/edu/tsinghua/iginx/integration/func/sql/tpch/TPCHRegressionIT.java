@@ -230,6 +230,7 @@ public class TPCHRegressionIT {
               break;
             case DATE: // 日期类型需要转为时间戳
               SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+              dateFormat.setTimeZone(TimeZone.getTimeZone("GMT"));
               long time = dateFormat.parse(items[i]).getTime();
               sb.append(time);
               sb.append(", ");
