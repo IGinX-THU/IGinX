@@ -21,7 +21,6 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 import java.util.Scanner;
 import java.util.TimeZone;
@@ -33,19 +32,6 @@ import org.junit.BeforeClass;
 import org.junit.Test;
 
 public class TPCHRegressionIT {
-
-  public static void main(String[] args) throws ParseException {
-//    String s = "1998-09-02";
-//    SimpleDateFormat dateFormat1 = new SimpleDateFormat("yyyy-MM-dd");
-//    dateFormat1.setTimeZone(TimeZone.getTimeZone("GMT"));
-//    long time = dateFormat1.parse(s).getTime();
-//    System.out.println(time);
-    long time = 757353600000L;
-    SimpleDateFormat dateFormat2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss z");
-    dateFormat2.setTimeZone(TimeZone.getTimeZone("GMT"));
-    Date date = new Date(time);
-    System.out.println(dateFormat2.format(date));
-  }
 
   // host info
   protected static String defaultTestHost = "127.0.0.1";
@@ -210,8 +196,8 @@ public class TPCHRegressionIT {
       while ((line = br.readLine()) != null) {
         String[] items = line.split("\\|");
         sb.append("(");
-        count++;
         sb.append(count); // 插入自增key列
+        count++;
         sb.append(", ");
         assert fields.size() == items.length;
         for (int i = 0; i < items.length; i++) {
@@ -247,6 +233,12 @@ public class TPCHRegressionIT {
           sb = new StringBuilder(insertPrefix);
         }
       }
+      // 插入剩余数据
+      if (sb.length() != insertPrefix.length()) {
+        sb.setLength(sb.length() - 2);
+        sb.append(";");
+        conn.executeSql(sb.toString());
+      }
       System.out.printf("INSERT %d RECORDS INTO TABLE [%s]%n", count, table);
     } catch (IOException | ParseException | SessionException e) {
       throw new RuntimeException(e);
@@ -262,10 +254,6 @@ public class TPCHRegressionIT {
   public void test() {
     System.out.println("start");
     try {
-      String s = "SHOW COLUMNS;";
-      SessionExecuteSqlResult res = conn.executeSql(s);
-      res.print(false, "");
-
       // 获取当前JVM的Runtime实例
       Runtime runtime = Runtime.getRuntime();
       // 执行垃圾回收，尽量释放内存
@@ -274,8 +262,7 @@ public class TPCHRegressionIT {
       long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
       long startTime;
       // 13有问题
-      // List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
-      List<Integer> queryIds = Arrays.asList(6, 9, 10, 16, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
