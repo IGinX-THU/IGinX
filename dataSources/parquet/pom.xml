@@ -56,7 +56,7 @@
         <repository>
             <id>parquet-file</id>
             <name>IGinX GitHub repository</name>
-            <url>https://iginx-thu.github.io/Parquet/maven-repo</url>
+            <url>https://github.com/IGinX-THU/Parquet/raw/pages/maven-repo</url>
         </repository>
     </repositories>
 
