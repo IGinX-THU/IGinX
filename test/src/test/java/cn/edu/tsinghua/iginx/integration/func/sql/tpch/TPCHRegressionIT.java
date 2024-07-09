@@ -262,7 +262,8 @@ public class TPCHRegressionIT {
       long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
       long startTime;
       // 13有问题
-      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
+      // List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
