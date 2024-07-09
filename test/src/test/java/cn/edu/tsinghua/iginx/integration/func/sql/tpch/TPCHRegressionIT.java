@@ -304,7 +304,7 @@ public class TPCHRegressionIT {
   @Test
   public void test() {
     try {
-      String s = "SHOW FUNCTIONS;";
+      String s = "select o_orderkey, extractYear(o_orderdate) from orders;";
       SessionExecuteSqlResult res = session.executeSql(s);
       res.print(false, "");
       // 获取当前JVM的Runtime实例
@@ -331,7 +331,12 @@ public class TPCHRegressionIT {
             continue;
           }
           sql += ";";
-          result = session.executeSql(sql);
+          try {
+            result = session.executeSql(sql);
+          } catch (SessionException e) {
+            LOGGER.error("Statement: \"{}\" execute fail. Caused by:", sql, e);
+            fail();
+          }
           result.print(false, "");
         }
         // 再次执行垃圾回收
@@ -442,14 +447,20 @@ public class TPCHRegressionIT {
         }
       }
 
-    } catch (SessionException | IOException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      LOGGER.error("Test fail. Caused by:", e);
+      fail();
     }
   }
 
-  private static long executeSQL(String sql) throws SessionException {
+  private static long executeSQL(String sql) {
     long startTime = System.currentTimeMillis();
-    SessionExecuteSqlResult result = session.executeSql(sql);
+    try {
+      SessionExecuteSqlResult result = session.executeSql(sql);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", sql, e);
+      fail();
+    }
     return System.currentTimeMillis() - startTime;
   }
 
@@ -487,7 +498,8 @@ public class TPCHRegressionIT {
         data.add(row);
       }
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      LOGGER.error("Read file {} fail. Caused by:", filePath, e);
+      fail();
     }
     System.out.println(data);
     return data;
