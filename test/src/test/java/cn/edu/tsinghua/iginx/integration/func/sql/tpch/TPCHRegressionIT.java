@@ -305,7 +305,13 @@ public class TPCHRegressionIT {
   public void test() {
     try {
       String s = "select o_orderkey, extractYear(o_orderdate) from orders;";
-      SessionExecuteSqlResult res = session.executeSql(s);
+      SessionExecuteSqlResult res = null;
+      try {
+        res = session.executeSql(s);
+      } catch (SessionException e) {
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by:", s, e);
+        fail();
+      }
       res.print(false, "");
       // 获取当前JVM的Runtime实例
       Runtime runtime = Runtime.getRuntime();
