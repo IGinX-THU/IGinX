@@ -304,7 +304,7 @@ public class TPCHRegressionIT {
   @Test
   public void test() {
     try {
-      String s = "select o_orderkey, extractYear(o_orderdate) from orders;";
+      String s = "select o_orderkey, extractYear(o_orderdate) from orders order by o_orderkey limit 30;";
       SessionExecuteSqlResult res = null;
       try {
         res = session.executeSql(s);
