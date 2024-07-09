@@ -306,7 +306,7 @@ public class TPCHRegressionIT {
   public void test() {
     try {
       String s =
-          "select o_orderkey, extractYear(o_orderdate) from orders order by o_orderkey limit 30;";
+          "explain select o_orderkey, extractYear(o_orderdate) from orders order by o_orderkey limit 10;";
       SessionExecuteSqlResult res = null;
       try {
         res = session.executeSql(s);
@@ -401,6 +401,7 @@ public class TPCHRegressionIT {
       String sql = "show columns;";
       try {
         res = session.executeSql(sql);
+        res.print(false, "");
       } catch (SessionException e) {
         LOGGER.error("Statement: \"{}\" execute fail. Caused by:", s, e);
         fail();
@@ -426,8 +427,7 @@ public class TPCHRegressionIT {
           }
           sum /= 2;
           timeCosts.add(sum);
-          System.out.printf(
-              "end tpc-h query %d in main branch, time cost: %dms%n", queryId, sum);
+          System.out.printf("end tpc-h query %d in main branch, time cost: %dms%n", queryId, sum);
         }
         writeToFile(timeCosts, fileName);
       } else { // 文件存在，即此次跑的是新分支代码，需要读取文件进行比较
