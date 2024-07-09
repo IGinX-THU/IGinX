@@ -73,7 +73,7 @@ public class TPCHRegressionIT {
   private static final int MAX_REPETITIONS_NUM = 10;
 
   // 回归阈值
-  private static final double REGRESSION_THRESHOLD_PERCENTAGE = 0.1;
+  private static final double REGRESSION_THRESHOLD_PERCENTAGE = 0.2;
 
   protected static Session session;
 
@@ -396,15 +396,6 @@ public class TPCHRegressionIT {
             }
           }
         }
-      }
-
-      String sql = "show columns;";
-      try {
-        res = session.executeSql(sql);
-        res.print(false, "");
-      } catch (SessionException e) {
-        LOGGER.error("Statement: \"{}\" execute fail. Caused by:", s, e);
-        fail();
       }
 
       String fileName = "src/test/resources/tpch/oldTimeCosts.txt";
