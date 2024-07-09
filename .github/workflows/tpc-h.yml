@@ -94,6 +94,7 @@ jobs:
             - name: Get Old Version
               shell: bash
               run: |
+                  mvn clean package -DskipTests -P-format -q
                   git clone https://github.com/IGinX-THU/IGinX.git
                   cd IGinX
                   mvn clean package -DskipTests -P-format -q
