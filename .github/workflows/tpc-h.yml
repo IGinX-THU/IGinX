@@ -106,17 +106,10 @@ jobs:
                   Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Start Old IGinX
-              if: always()
-              shell: bash
-              run: |
-                  cd "IGinX"
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/IGinX/.github/scripts/iginx/iginx.sh" 6888 6666
-                  else
-                    echo "$RUNNER_OS is not supported in this test"
-                    exit 1
-                  fi
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-test-udf: "true"
 
             - name: Run Regression Test on Old IGinX
               if: always()
@@ -152,16 +145,10 @@ jobs:
                   Set-Filter-Fragment-OFF: "true"
 
             - name: Start New IGinX
-              if: always()
-              shell: bash
-              run: |
-                  if [ "$RUNNER_OS" == "Linux" ]; then
-                    chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
-                    "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666
-                  else
-                    echo "$RUNNER_OS is not supported in this test"
-                    exit 1
-                  fi
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-test-udf: "true"
 
             - name: Run Regression Test on New IGinX
               if: always()

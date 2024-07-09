@@ -1,15 +1,34 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.sql.tpch;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.func.sql.tpch.TPCHRegressionIT.FieldType.DATE;
 import static cn.edu.tsinghua.iginx.integration.func.sql.tpch.TPCHRegressionIT.FieldType.NUM;
 import static cn.edu.tsinghua.iginx.integration.func.sql.tpch.TPCHRegressionIT.FieldType.STR;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
-import cn.edu.tsinghua.iginx.integration.tool.MultiConnection;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -30,8 +49,12 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TPCHRegressionIT {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(TPCHRegressionIT.class);
 
   // host info
   protected static String defaultTestHost = "127.0.0.1";
@@ -40,8 +63,11 @@ public class TPCHRegressionIT {
   protected static String defaultTestPass = "root";
 
   // .tbl文件所在目录
-  private static final String dataPath =
+  private static final String dataDir =
       System.getProperty("user.dir") + "/../tpc/TPC-H V3.0.1/data";
+
+  // udf文件所在目录
+  private static final String udfDir = "src/test/resources/tpch/udf/";
 
   // 最大重复测试次数
   private static final int MAX_REPETITIONS_NUM = 5;
@@ -49,7 +75,7 @@ public class TPCHRegressionIT {
   // 回归阈值
   private static final double REGRESSION_THRESHOLD_PERCENTAGE = 0.1;
 
-  protected static MultiConnection conn;
+  protected static Session session;
 
   enum FieldType {
     NUM,
@@ -61,20 +87,18 @@ public class TPCHRegressionIT {
 
   @BeforeClass
   public static void setUp() throws SessionException {
-    conn =
-        new MultiConnection(
-            new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass));
-    conn.openSession();
+    session = new Session(defaultTestHost, defaultTestPort, defaultTestUser, defaultTestPass);
+    session.openSession();
   }
 
   @AfterClass
   public static void tearDown() throws SessionException {
-    clearAllData(conn);
-    conn.closeSession();
+    clearAllData(session);
+    session.closeSession();
   }
 
   @Before
-  public void insertData() {
+  public void prepare() {
     List<String> tableList =
         Arrays.asList(
             "region", "nation", "supplier", "part", "partsupp", "customer", "orders", "lineitem");
@@ -171,8 +195,16 @@ public class TPCHRegressionIT {
         Arrays.asList(
             NUM, NUM, NUM, NUM, NUM, NUM, NUM, NUM, STR, STR, DATE, DATE, DATE, STR, STR, STR));
 
+    // 插入数据
     for (int i = 0; i < 8; i++) {
       insertTable(tableList.get(i), fieldsList.get(i), typesList.get(i));
+    }
+
+    List<List<String>> UDFInfos = new ArrayList<>();
+    UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
+    // 注册UDF函数
+    for (List<String> UDFInfo : UDFInfos) {
+      registerUDF(UDFInfo);
     }
   }
 
@@ -190,7 +222,7 @@ public class TPCHRegressionIT {
 
     long count = 0;
     try (BufferedReader br =
-        new BufferedReader(new FileReader(String.format("%s/%s.tbl", dataPath, table)))) {
+        new BufferedReader(new FileReader(String.format("%s/%s.tbl", dataDir, table)))) {
       StringBuilder sb = new StringBuilder(insertPrefix);
       String line;
       while ((line = br.readLine()) != null) {
@@ -229,7 +261,7 @@ public class TPCHRegressionIT {
         if (count % 10000 == 0) {
           sb.setLength(sb.length() - 2);
           sb.append(";");
-          conn.executeSql(sb.toString());
+          session.executeSql(sb.toString());
           sb = new StringBuilder(insertPrefix);
         }
       }
@@ -237,22 +269,40 @@ public class TPCHRegressionIT {
       if (sb.length() != insertPrefix.length()) {
         sb.setLength(sb.length() - 2);
         sb.append(";");
-        conn.executeSql(sb.toString());
+        session.executeSql(sb.toString());
       }
-      System.out.printf("INSERT %d RECORDS INTO TABLE [%s]%n", count, table);
+      LOGGER.info("Insert {} records into table [{}].", count, table);
     } catch (IOException | ParseException | SessionException e) {
-      throw new RuntimeException(e);
+      LOGGER.error("Insert into table {} fail. Caused by:", table, e);
+      fail();
+    }
+  }
+
+  private void registerUDF(List<String> UDFInfo) {
+    String SINGLE_UDF_REGISTER_SQL = "CREATE FUNCTION %s \"%s\" FROM \"%s\" IN \"%s\";";
+    File udfFile = new File(udfDir + UDFInfo.get(3));
+    String register =
+        String.format(
+            SINGLE_UDF_REGISTER_SQL,
+            UDFInfo.get(0),
+            UDFInfo.get(1),
+            UDFInfo.get(2),
+            udfFile.getAbsolutePath());
+    try {
+      session.executeRegisterTask(register, false);
+    } catch (SessionException e) {
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", register, e);
+      fail();
     }
   }
 
   @After
   public void clearData() throws SessionException {
-    conn.executeSql("CLEAR DATA;");
+    session.executeSql("CLEAR DATA;");
   }
 
   @Test
   public void test() {
-    System.out.println("start");
     try {
       // 获取当前JVM的Runtime实例
       Runtime runtime = Runtime.getRuntime();
@@ -262,8 +312,7 @@ public class TPCHRegressionIT {
       long usedMemoryBefore = runtime.totalMemory() - runtime.freeMemory();
       long startTime;
       // 13有问题
-      // List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
-      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 10, 16, 17, 18, 19, 20);
+      List<Integer> queryIds = Arrays.asList(1, 2, 3, 5, 6, 9, 10, 16, 17, 18, 19, 20);
       for (int queryId : queryIds) {
         // read from sql file
         String sqlString =
@@ -279,7 +328,7 @@ public class TPCHRegressionIT {
             continue;
           }
           sql += ";";
-          result = conn.executeSql(sql);
+          result = session.executeSql(sql);
           result.print(false, "");
         }
         // 再次执行垃圾回收
@@ -397,7 +446,7 @@ public class TPCHRegressionIT {
 
   private static long executeSQL(String sql) throws SessionException {
     long startTime = System.currentTimeMillis();
-    SessionExecuteSqlResult result = conn.executeSql(sql);
+    SessionExecuteSqlResult result = session.executeSql(sql);
     return System.currentTimeMillis() - startTime;
   }
 
