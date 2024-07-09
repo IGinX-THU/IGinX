@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.rest.query.aggregator;
 
@@ -23,10 +22,7 @@ import cn.edu.tsinghua.iginx.rest.RestUtils;
 import cn.edu.tsinghua.iginx.rest.bean.QueryResultDataset;
 import cn.edu.tsinghua.iginx.session.SessionQueryDataSet;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,52 +48,35 @@ public class QueryAggregatorPercentile extends QueryAggregator {
       int n = sessionQueryDataSet.getKeys().length;
       int m = sessionQueryDataSet.getPaths().size();
       int datapoints = 0;
-      switch (type) {
-        case LONG:
-          List<Long> tmp = new ArrayList<>();
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                datapoints += 1;
-                tmp.add((long) sessionQueryDataSet.getValues().get(i).get(j));
-              }
-            }
-            if (i == n - 1
-                || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                    != RestUtils.getInterval(
-                        sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
-              Collections.sort(tmp);
-              queryResultDataset.add(
-                  RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
-                  tmp.get((int) Math.floor(getPercentile() * (tmp.size() - 1))));
-              tmp = new ArrayList<>();
-            }
+
+      List<Number> tmp = new ArrayList<>();
+      for (int i = 0; i < n; i++) {
+        for (int j = 0; j < m; j++) {
+          Number value = (Number) sessionQueryDataSet.getValues().get(i).get(j);
+          if (value != null) {
+            datapoints++;
+            tmp.add(value);
           }
-          break;
-        case DOUBLE:
-          List<Double> tmpd = new ArrayList<>();
-          for (int i = 0; i < n; i++) {
-            for (int j = 0; j < m; j++) {
-              if (sessionQueryDataSet.getValues().get(i).get(j) != null) {
-                datapoints += 1;
-                tmpd.add((double) sessionQueryDataSet.getValues().get(i).get(j));
-              }
-            }
-            if (i == n - 1
-                || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
-                    != RestUtils.getInterval(
-                        sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
-              Collections.sort(tmpd);
-              queryResultDataset.add(
-                  RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
-                  tmpd.get((int) Math.floor(getPercentile() * (tmpd.size() - 1))));
-              tmpd = new ArrayList<>();
-            }
+        }
+        if (i == n - 1
+            || RestUtils.getInterval(sessionQueryDataSet.getKeys()[i], startKey, getDur())
+                != RestUtils.getInterval(
+                    sessionQueryDataSet.getKeys()[i + 1], startKey, getDur())) {
+          switch (type) {
+            case LONG:
+              tmp.sort(Comparator.comparingLong(Number::longValue));
+              break;
+            case DOUBLE:
+              tmp.sort(Comparator.comparingDouble(Number::doubleValue));
+              break;
           }
-          break;
-        default:
-          throw new Exception("Unsupported data type");
+          queryResultDataset.add(
+              RestUtils.getIntervalStart(sessionQueryDataSet.getKeys()[i], startKey, getDur()),
+              tmp.get((int) Math.floor(getPercentile() * (tmp.size() - 1))));
+          tmp = new ArrayList<>();
+        }
       }
+
       queryResultDataset.setSampleSize(datapoints);
     } catch (Exception e) {
       LOGGER.error("unexpected error: ", e);

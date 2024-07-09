@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.session;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
@@ -46,7 +64,7 @@ public class PySessionIT {
   protected static String defaultTestPass = "root";
 
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
-  private static String pythonCMD = config.getPythonCMD();
+  private static final String pythonCMD = config.getPythonCMD();
 
   private static boolean isAbleToDelete = true;
   private static PythonInterpreter interpreter;
@@ -164,9 +182,37 @@ public class PySessionIT {
     }
     // 检查Python脚本的输出是否符合预期
     String expected =
-        "   key  count(test.a.a)  count(test.a.b)  count(test.b.b)  count(test.c.c)\n"
-            + "0    0                1                1                1                1\n"
-            + "1    3                1                1                1                1\n";
+        "   key  window_start  window_end  count(test.a.a)  count(test.a.b)  \\\n"
+            + "0    0             0           2                1                1   \n"
+            + "1    3             3           5                1                1   \n"
+            + "\n"
+            + "   count(test.b.b)  count(test.c.c)  \n"
+            + "0                1                1  \n"
+            + "1                1                1  \n";
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testDownSampleQueryNoInterval() {
+    String result = "";
+    try {
+      // 设置Python脚本路径
+      logger.info("Test downsample query without time interval");
+      result = runPythonScript("downsampleQueryNoInterval");
+      logger.info(result);
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    // 检查Python脚本的输出是否符合预期
+    String expected =
+        "   key  window_start  window_end  count(test.a.a)  count(test.a.b)  \\\n"
+            + "0    0             0           2                1                1   \n"
+            + "1    3             3           5                1                1   \n"
+            + "\n"
+            + "   count(test.b.b)  count(test.c.c)  \n"
+            + "0                1                1  \n"
+            + "1                1                1  \n";
     assertEquals(expected, result);
   }
 
@@ -343,6 +389,34 @@ public class PySessionIT {
             + "6    7     b'R'     b'E'     b'W'       NaN     b'Q'\n"
             + "7    8     None     b'a'     b'b'       NaN     None\n"
             + "8    9     b'b'     None     None       NaN     None\n";
+
+    assertEquals(expected, result);
+  }
+
+  @Test
+  public void testInsertDF() {
+    String result = "";
+    try {
+      logger.info("insert dataframe");
+      result = runPythonScript("insertDF");
+      logger.info(result);
+    } catch (IOException | InterruptedException e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
+    // 检查Python脚本的输出是否符合预期
+    String expected =
+        " key dftestdata.value1  dftestdata.value2 dftestdata.value3  dftestdata.value4\n"
+            + "  10              b'A'                1.1              b'B'                2.2\n"
+            + "  11              b'A'                1.1              b'B'                2.2\n"
+            + "  12              b'A'                1.1              b'B'                2.2\n"
+            + "  13              b'A'                1.1              b'B'                2.2\n"
+            + "  14              b'A'                1.1              b'B'                2.2\n"
+            + "  15              b'A'                1.1              b'B'                2.2\n"
+            + "  16              b'A'                1.1              b'B'                2.2\n"
+            + "  17              b'A'                1.1              b'B'                2.2\n"
+            + "  18              b'A'                1.1              b'B'                2.2\n"
+            + "  19              b'A'                1.1              b'B'                2.2\n";
 
     assertEquals(expected, result);
   }

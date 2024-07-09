@@ -1,4 +1,22 @@
 #!/bin/bash
+#
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+ 
 
 # workdir: $IGINX_HOME/docker/onlyiginx-parquet
 # work descripition:
@@ -121,6 +139,6 @@ fi
 
 configFileConfig="-v ${localConfigFile}:/iginx/conf/config.properties "
 
-command="docker run --name=${name} ${localIPConfig}${configFileConfig}--add-host=host.docker.internal:host-gateway ${network}--privileged -dit -e host_iginx_port=${hostPort}${portCastParams} iginx:0.6.0"
+command="docker run --name=${name} ${localIPConfig}${configFileConfig}--add-host=host.docker.internal:host-gateway ${network}--privileged -dit -e host_iginx_port=${hostPort}${portCastParams} iginx:0.7.0-SNAPSHOT"
 echo "RUNNING ${command}"
 # ${command}

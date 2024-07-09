@@ -1,5 +1,25 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.pool;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
 import static java.lang.Math.max;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -473,7 +493,7 @@ public class SessionPool {
         return;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        LOGGER.warn("remove history data source failed", e);
+        LOGGER.warn("removeHistoryDataSource failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (RuntimeException e) {
         putBack(session);
@@ -505,7 +525,7 @@ public class SessionPool {
         return ret;
       } catch (SessionException e) {
         // TException means the connection is broken, remove it and get a new one.
-        LOGGER.warn("insertTablet failed", e);
+        LOGGER.warn("showColumns failed", e);
         cleanSessionAndMayThrowConnectionException(session, i, e);
       } catch (RuntimeException e) {
         putBack(session);
@@ -572,12 +592,12 @@ public class SessionPool {
   }
 
   public void insertColumnRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
       throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList);
+        session.insertColumnRecords(paths, keys, valuesList, dataTypeList);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -593,7 +613,7 @@ public class SessionPool {
 
   public void insertColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
@@ -601,7 +621,7 @@ public class SessionPool {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertColumnRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
+        session.insertColumnRecords(paths, keys, valuesList, dataTypeList, tagsList);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -617,7 +637,7 @@ public class SessionPool {
 
   public void insertColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
@@ -626,8 +646,7 @@ public class SessionPool {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertColumnRecords(
-            paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+        session.insertColumnRecords(paths, keys, valuesList, dataTypeList, tagsList, precision);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -642,12 +661,12 @@ public class SessionPool {
   }
 
   public void insertNonAlignedColumnRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
       throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertNonAlignedColumnRecords(paths, timestamps, valuesList, dataTypeList);
+        session.insertNonAlignedColumnRecords(paths, keys, valuesList, dataTypeList);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -663,7 +682,7 @@ public class SessionPool {
 
   public void insertNonAlignedColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
@@ -671,8 +690,7 @@ public class SessionPool {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertNonAlignedColumnRecords(
-            paths, timestamps, valuesList, dataTypeList, tagsList);
+        session.insertNonAlignedColumnRecords(paths, keys, valuesList, dataTypeList, tagsList);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -688,7 +706,7 @@ public class SessionPool {
 
   public void insertNonAlignedColumnRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
@@ -698,7 +716,7 @@ public class SessionPool {
       Session session = getSession();
       try {
         session.insertNonAlignedColumnRecords(
-            paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+            paths, keys, valuesList, dataTypeList, tagsList, precision);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -714,7 +732,7 @@ public class SessionPool {
 
   public void insertRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
@@ -722,7 +740,7 @@ public class SessionPool {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
+        session.insertRowRecords(paths, keys, valuesList, dataTypeList, tagsList);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -738,7 +756,7 @@ public class SessionPool {
 
   public void insertRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
@@ -747,7 +765,7 @@ public class SessionPool {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList, precison);
+        session.insertRowRecords(paths, keys, valuesList, dataTypeList, tagsList, precison);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -762,12 +780,12 @@ public class SessionPool {
   }
 
   public void insertNonAlignedRowRecords(
-      List<String> paths, long[] timestamps, Object[] valuesList, List<DataType> dataTypeList)
+      List<String> paths, long[] keys, Object[] valuesList, List<DataType> dataTypeList)
       throws SessionException {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList);
+        session.insertNonAlignedRowRecords(paths, keys, valuesList, dataTypeList);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -783,7 +801,7 @@ public class SessionPool {
 
   public void insertNonAlignedRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList)
@@ -791,7 +809,7 @@ public class SessionPool {
     for (int i = 0; i < RETRY; i++) {
       Session session = getSession();
       try {
-        session.insertNonAlignedRowRecords(paths, timestamps, valuesList, dataTypeList, tagsList);
+        session.insertNonAlignedRowRecords(paths, keys, valuesList, dataTypeList, tagsList);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -807,7 +825,7 @@ public class SessionPool {
 
   public void insertNonAlignedRowRecords(
       List<String> paths,
-      long[] timestamps,
+      long[] keys,
       Object[] valuesList,
       List<DataType> dataTypeList,
       List<Map<String, String>> tagsList,
@@ -817,7 +835,7 @@ public class SessionPool {
       Session session = getSession();
       try {
         session.insertNonAlignedRowRecords(
-            paths, timestamps, valuesList, dataTypeList, tagsList, precision);
+            paths, keys, valuesList, dataTypeList, tagsList, precision);
         putBack(session);
         return;
       } catch (SessionException e) {
@@ -985,6 +1003,13 @@ public class SessionPool {
     return sessionAggregateQueryDataSet;
   }
 
+  // downsample query without time interval
+  public SessionQueryDataSet downsampleQuery(
+      List<String> paths, AggregateType aggregateType, long precision) throws SessionException {
+    return downsampleQuery(paths, KEY_MIN_VAL, KEY_MAX_VAL, aggregateType, precision);
+  }
+
+  // downsample query with key interval
   public SessionQueryDataSet downsampleQuery(
       List<String> paths, long startKey, long endKey, AggregateType aggregateType, long precision)
       throws SessionException {

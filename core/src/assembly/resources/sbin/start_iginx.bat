@@ -1,21 +1,21 @@
 @REM
-@REM Licensed to the Apache Software Foundation (ASF) under one
-@REM or more contributor license agreements.  See the NOTICE file
-@REM distributed with this work for additional information
-@REM regarding copyright ownership.  The ASF licenses this file
-@REM to you under the Apache License, Version 2.0 (the
-@REM "License"); you may not use this file except in compliance
-@REM with the License.  You may obtain a copy of the License at
+@REM IGinX - the polystore system with high performance
+@REM Copyright (C) Tsinghua University
 @REM
-@REM     http://www.apache.org/licenses/LICENSE-2.0
+@REM This program is free software: you can redistribute it and/or modify
+@REM it under the terms of the GNU General Public License as published by
+@REM the Free Software Foundation, either version 3 of the License, or
+@REM (at your option) any later version.
 @REM
-@REM Unless required by applicable law or agreed to in writing,
-@REM software distributed under the License is distributed on an
-@REM "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-@REM KIND, either express or implied.  See the License for the
-@REM specific language governing permissions and limitations
-@REM under the License.
+@REM This program is distributed in the hope that it will be useful,
+@REM but WITHOUT ANY WARRANTY; without even the implied warranty of
+@REM MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+@REM GNU General Public License for more details.
 @REM
+@REM You should have received a copy of the GNU General Public License
+@REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
+@REM
+
 
 @echo off
 echo ````````````````````````
@@ -99,7 +99,7 @@ set /a quarter_=%half_%/8
 @REM if ["%half_%"] GTR ["1024"] set half_=1024
 @REM if ["%quarter_%"] GTR ["8192"] set quarter_=8192
 
-if ["%half_%"] GTR ["quarter_"] (
+if %half_% GTR %quarter_% (
 	set max_heap_size_in_mb=%half_%
 ) else set max_heap_size_in_mb=%quarter_%
 

@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.naive;
 
@@ -29,7 +28,7 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.getSamePathWithSpecificPrefix;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.isValueEqualRow;
 import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.removeDuplicateRows;
-import static cn.edu.tsinghua.iginx.engine.shared.Constants.KEY;
+import static cn.edu.tsinghua.iginx.engine.shared.Constants.*;
 import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.getHash;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
@@ -90,15 +89,7 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -276,12 +267,20 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     List<Row> rows = table.getRows();
     long bias = downsample.getKeyRange().getActualBeginKey();
     long endKey = downsample.getKeyRange().getActualEndKey();
+    if (downsample.notSetInterval()) {
+      if (table.getRowSize() <= 0) {
+        return Table.EMPTY_TABLE;
+      }
+      bias = table.getRow(0).getKey();
+      endKey = table.getRow(table.getRowSize() - 1).getKey();
+    }
     long precision = downsample.getPrecision();
     long slideDistance = downsample.getSlideDistance();
     // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
     long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
 
     List<Table> tableList = new ArrayList<>();
+    boolean firstCol = true;
     for (FunctionCall functionCall : downsample.getFunctionCallList()) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
@@ -309,10 +308,12 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
           }
         }
       }
-      List<Pair<Long, Row>> transformedRawRows = new ArrayList<>();
+      // <<window_start, window_end> row>
+      List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
       try {
         for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-          long time = entry.getKey();
+          long windowStartKey = entry.getKey();
+          long windowEndKey = windowStartKey + precision - 1;
           List<Row> group = entry.getValue();
 
           if (params.isDistinct()) {
@@ -329,7 +330,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
           Row row = function.transform(new Table(header, group), params);
           if (row != null) {
-            transformedRawRows.add(new Pair<>(time, row));
+            transformedRawRows.add(new Pair<>(new Pair<>(windowStartKey, windowEndKey), row));
           }
         }
       } catch (Exception e) {
@@ -340,14 +341,32 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       if (transformedRawRows.size() == 0) {
         return Table.EMPTY_TABLE;
       }
-      Header newHeader = new Header(Field.KEY, transformedRawRows.get(0).v.getHeader().getFields());
+
+      // 只让第一张表保留 window_start, window_end 列，这样按key join后无需删除重复列
+      List<Field> fields = transformedRawRows.get(0).v.getHeader().getFields();
+      if (firstCol) {
+        fields.add(0, new Field(WINDOW_START_COL, DataType.LONG));
+        fields.add(1, new Field(WINDOW_END_COL, DataType.LONG));
+      }
+      Header newHeader = new Header(Field.KEY, fields);
       List<Row> transformedRows = new ArrayList<>();
-      for (Pair<Long, Row> pair : transformedRawRows) {
-        transformedRows.add(new Row(newHeader, pair.k, pair.v.getValues()));
+      Object[] values = new Object[transformedRawRows.get(0).v.getValues().length + 2];
+      for (Pair<Pair<Long, Long>, Row> pair : transformedRawRows) {
+        if (firstCol) {
+          values[0] = pair.k.k;
+          values[1] = pair.k.v;
+          System.arraycopy(pair.v.getValues(), 0, values, 2, pair.v.getValues().length);
+          transformedRows.add(new Row(newHeader, pair.k.k, values));
+        } else {
+          transformedRows.add(new Row(newHeader, pair.k.k, pair.v.getValues()));
+        }
+        values = new Object[transformedRawRows.get(0).v.getValues().length + 2];
       }
       tableList.add(new Table(newHeader, transformedRows));
+      firstCol = false;
     }
 
+    // key = window_start，而每个窗口长度一样，因此多表中key相同的列就是同一个窗口的结果，可以按key join
     return RowUtils.joinMultipleTablesByKey(tableList);
   }
 

@@ -1,4 +1,22 @@
 #!/bin/bash
+#
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+ 
 
 set -e
 
@@ -6,13 +24,13 @@ sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/byteStream"
 
 sh -c "mkdir -p test/src/test/resources/fileReadAndWrite/csv"
 
-bash -c "chmod +x client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh"
+bash -c "chmod +x client/target/iginx-client-$2/sbin/start_cli.sh"
 
 bash -c "sleep 10"
 
-SCRIPT_COMMAND="xargs -0 -t -i bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+SCRIPT_COMMAND="xargs -0 -t -i bash client/target/iginx-client-$2/sbin/start_cli.sh -e '{}'"
 
-bash -c "echo 'clear data;' | xargs -t -i bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+bash -c "echo 'clear data;' | xargs -t -i bash client/target/iginx-client-$2/sbin/start_cli.sh -e '{}'"
 
 bash -c "echo 'insert into test(key, s1) values (0, 0), (1, 1), (2, 2), (3, 3), (4, 4);' | ${SCRIPT_COMMAND}"
 
@@ -55,4 +73,4 @@ bash -c "wget -nv $downloadURL --directory-prefix=downloads"
 # 将 downloads/large_img.jpg 的数据加载到IGinX数据库中
 bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P-format"
 
-bash -c "echo 'select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;' | xargs -0 -t -i bash client/target/iginx-client-0.6.0-SNAPSHOT/sbin/start_cli.sh -e '{}'"
+bash -c "echo 'select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;' | xargs -0 -t -i bash client/target/iginx-client-$2/sbin/start_cli.sh -e '{}'"

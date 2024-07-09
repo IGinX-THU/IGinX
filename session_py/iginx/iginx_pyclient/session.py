@@ -1,31 +1,32 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
 #
-#     http://www.apache.org/licenses/LICENSE-2.0
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
 #
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 import csv
 import logging
 import os.path
 from datetime import datetime
 
+import pandas as pd
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from pathlib import Path
 
 from .cluster_info import ClusterInfo
-from .dataset import QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
+from .dataset import column_dataset_from_df, QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
 from .thrift.rpc.IService import Client
 from .thrift.rpc.ttypes import (
     OpenSessionReq,
@@ -61,6 +62,11 @@ from .utils.bitmap import Bitmap
 from .utils.byte_utils import timestamps_to_bytes, row_values_to_bytes, column_values_to_bytes, bitmap_to_bytes
 
 logger = logging.getLogger("IginX")
+
+# key value boundary for IGinX(defined in shared.GlobalConstant)
+MAX_KEY = 9223372036854775807
+MIN_KEY = -9223372036854775807
+
 
 def isPyReg(statement:str):
     statement = statement.strip().lower()
@@ -400,6 +406,17 @@ class Session(object):
         status = self.__client.insertNonAlignedColumnRecords(req)
         Session.verify_status(status)
 
+    def insert_df(self, df: pd.DataFrame, prefix: str = ""):
+        """
+        insert dataframe data into IGinX
+        :param df: dataframe that contains data
+        :param prefix: (optional) path names in IGinX
+               must contain '.'. If columns in dataframe does not meet the requirement, a prefix can be used
+        """
+        dataset = column_dataset_from_df(df, prefix)
+        paths, keys, value_list, type_list = dataset.get_insert_args()
+        self.insert_column_records(paths, keys, value_list, type_list)
+
     def query(self, paths, start_time, end_time, timePrecision=None):
         req = QueryDataReq(sessionId=self.__session_id, paths=Session.merge_and_sort_paths(paths),
                            startKey=start_time, endKey=end_time, timePrecision=timePrecision)
@@ -423,6 +440,10 @@ class Session(object):
         raw_data_set = resp.queryDataSet
         return QueryDataSet(paths, data_types, raw_data_set.keys, raw_data_set.valuesList,
                             raw_data_set.bitmapList)
+
+    def downsample_query_no_interval(self, paths, type, precision, timePrecision=None):
+        return self.downsample_query(paths, MIN_KEY, MAX_KEY, type, precision, timePrecision)
+
 
     def downsample_query(self, paths, start_time, end_time, type, precision, timePrecision=None):
         req = DownsampleQueryReq(sessionId=self.__session_id, paths=paths, startKey=start_time, endKey=end_time,

@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.rest;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
@@ -238,7 +256,7 @@ public class RestIT {
   public void testQueryAvg() {
     String json = "testQueryAvg.json";
     String result =
-        "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788298001,13.2],[1359788398001,123.3],[1359788408001,23.1]]}]}]}";
+        "{\"queries\":[{\"sample_size\": 9,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359788298001,1359788298001],[1359788398001,1359788398001],[1359788408001,1359788408001],[1359788298001,1359788300000],[1359788398001,1359788400000],[1359788408001,1359788410000],[1359788298001,13.2],[1359788398001,123.3],[1359788408001,23.1]]}]}]}";
     executeAndCompare(json, result);
   }
 
@@ -246,7 +264,7 @@ public class RestIT {
   public void testQueryCount() {
     String json = "testQueryCount.json";
     String result =
-        "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,3]]}]}]}";
+        "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359849600000],[1359763200001,3]]}]}]}";
     executeAndCompare(json, result);
   }
 
@@ -254,7 +272,7 @@ public class RestIT {
   public void testQueryFirst() {
     String json = "testQueryFirst.json";
     String result =
-        "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,13.2]]}]}]}";
+        "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,13.2]]}]}]}";
     executeAndCompare(json, result);
   }
 
@@ -262,7 +280,7 @@ public class RestIT {
   public void testQueryLast() {
     String json = "testQueryLast.json";
     String result =
-        "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,23.1]]}]}]}";
+        "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,23.1]]}]}]}";
     executeAndCompare(json, result);
   }
 
@@ -270,7 +288,7 @@ public class RestIT {
   public void testQueryMax() {
     String json = "testQueryMax.json";
     String result =
-        "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,123.3]]}]}]}";
+        "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,123.3]]}]}]}";
     executeAndCompare(json, result);
   }
 
@@ -278,7 +296,7 @@ public class RestIT {
   public void testQueryMin() {
     String json = "testQueryMin.json";
     String result =
-        "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,13.2]]}]}]}";
+        "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,13.2]]}]}]}";
     executeAndCompare(json, result);
   }
 
@@ -286,7 +304,7 @@ public class RestIT {
   public void testQuerySum() {
     String json = "testQuerySum.json";
     String result =
-        "{\"queries\":[{\"sample_size\": 1,\"results\": [{ \"name\": \"archive.file.tracked\",\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,159.6]]}]}]}";
+        "{\"queries\":[{\"sample_size\": 3,\"results\": [{ \"names\": [\"window_start\", \"window_end\", \"archive.file.tracked\"],\"group_by\": [{\"name\": \"type\",\"type\": \"number\"}], \"tags\": {\"dc\": [\"DC1\"],\"host\": [\"server1\"]}, \"values\": [[1359763200001,1359763200001],[1359763200001,1359936000000],[1359763200001,159.6]]}]}]}";
     executeAndCompare(json, result);
   }
 

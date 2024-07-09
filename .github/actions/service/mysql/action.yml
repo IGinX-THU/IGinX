@@ -25,6 +25,15 @@ runs:
                 echo "mysqlx    = 0" >> $port.ini
               done
 
+        - if: runner.os == 'Windows' || runner.os == 'macOS'
+          name: Set Case Sensitivity
+          shell: bash
+          working-directory: ${{ github.action_path }}
+          run: |
+              for port in ${{ inputs.ports }}; do
+                echo "lower_case_table_names = 2" >> $port.ini
+              done
+
         - name: Start mysql
           shell: bash
           working-directory: ${{ github.action_path }}

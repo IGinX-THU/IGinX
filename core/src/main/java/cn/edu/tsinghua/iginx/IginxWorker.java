@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx;
 
@@ -35,7 +34,7 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
-import cn.edu.tsinghua.iginx.engine.logical.optimizer.rules.RuleCollection;
+import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -338,6 +337,12 @@ public class IginxWorker implements IService.Iface {
         LOGGER.error("ip {} is invalid.", ip);
         status.addToSubStatus(RpcUtils.FAILURE);
         continue;
+      }
+      if (isEmbeddedStorageEngine(type) && !isLocalHost(ip)) {
+        status.setCode(StatusCode.REDIRECT.getStatusCode());
+        status.setMessage(ip + ":" + extraParams.get("iginx_port"));
+        LOGGER.warn("redirect to {}:{}.", ip, extraParams.get("iginx_port"));
+        return status;
       }
       if (!hasData & readOnly) { // 无意义的存储引擎：不带数据且只读
         LOGGER.error("normal storage engine {} should not be read-only.", storageEngine);
@@ -1209,12 +1214,37 @@ public class IginxWorker implements IService.Iface {
 
   @Override
   public ShowRulesResp showRules(ShowRulesReq req) {
-    return new ShowRulesResp(RpcUtils.SUCCESS, RuleCollection.getInstance().getRulesInfo());
+    try {
+      IRuleCollection ruleCollection = getRuleCollection();
+      return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
+    } catch (ClassNotFoundException e) {
+      LOGGER.error("show rules failed: ", e);
+      return new ShowRulesResp(RpcUtils.FAILURE, null);
+    }
   }
 
   @Override
   public Status setRules(SetRulesReq req) {
     Map<String, Boolean> rulesChange = req.getRulesChange();
-    return RuleCollection.getInstance().setRules(rulesChange) ? RpcUtils.SUCCESS : RpcUtils.FAILURE;
+    try {
+      getRuleCollection().setRules(rulesChange);
+      return RpcUtils.SUCCESS;
+    } catch (ClassNotFoundException e) {
+      LOGGER.error("set rules failed: ", e);
+      return RpcUtils.FAILURE;
+    }
+  }
+
+  private IRuleCollection getRuleCollection() throws ClassNotFoundException {
+    // 获取接口的类加载器
+    ClassLoader classLoader = IRuleCollection.class.getClassLoader();
+    // 加载枚举类
+    Class<?> enumClass =
+        classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
+    // 获取枚举实例
+    Object enumInstance = enumClass.getEnumConstants()[0];
+
+    // 强制转换为接口类型
+    return (IRuleCollection) enumInstance;
   }
 }

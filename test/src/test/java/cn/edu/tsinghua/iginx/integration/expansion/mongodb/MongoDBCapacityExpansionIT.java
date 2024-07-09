@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion.mongodb;
 
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.mongodb;
@@ -83,6 +101,21 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|4294967298|    33132.500309405965|                            3|\n"
             + "+----------+----------------------+-----------------------------+\n"
             + "Total line number = 3\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // unwind array
+    statement = "select information.contributor, objects.geometryType from d0.c0;";
+    expect =
+        "ResultSets:\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "|        key|d0.c0.information.contributor|d0.c0.objects.geometryType|\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "| 4294967296|                 Label Studio|                    bitmap|\n"
+            + "| 4294967297|                         null|                 rectangle|\n"
+            + "| 8589934592|                 Label Studio|                      null|\n"
+            + "|12884901888|                 Label Studio|                      null|\n"
+            + "+-----------+-----------------------------+--------------------------+\n"
+            + "Total line number = 4\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
 
     // type convert: string -> number
