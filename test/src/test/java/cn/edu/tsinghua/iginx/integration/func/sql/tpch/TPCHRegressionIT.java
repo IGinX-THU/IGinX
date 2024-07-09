@@ -398,6 +398,14 @@ public class TPCHRegressionIT {
         }
       }
 
+      String sql = "show columns;";
+      try {
+        res = session.executeSql(sql);
+      } catch (SessionException e) {
+        LOGGER.error("Statement: \"{}\" execute fail. Caused by:", s, e);
+        fail();
+      }
+
       String fileName = "src/test/resources/tpch/oldTimeCosts.txt";
       if (!Files.exists(Paths.get(fileName))) { // 文件不存在，即此次跑的是主分支代码，需要将查询时间写入文件
         List<Long> timeCosts = new ArrayList<>();
@@ -409,10 +417,17 @@ public class TPCHRegressionIT {
               readSqlFileAsString("src/test/resources/tpch/queries/q" + queryId + ".sql");
           // 执行查询语句, split by ; 最后一句为执行结果
           String[] sqls = sqlString.split(";");
-          long timeCost = executeSQL(sqls[sqls.length - 2] + ";");
-          timeCosts.add(timeCost);
+
+          // 主分支上重复查询两次取平均值
+          long sum = 0;
+          for (int i = 0; i < 2; i++) {
+            long timeCost = executeSQL(sqls[sqls.length - 2] + ";");
+            sum += timeCost;
+          }
+          sum /= 2;
+          timeCosts.add(sum);
           System.out.printf(
-              "end tpc-h query %d in main branch, time cost: %dms%n", queryId, timeCost);
+              "end tpc-h query %d in main branch, time cost: %dms%n", queryId, sum);
         }
         writeToFile(timeCosts, fileName);
       } else { // 文件存在，即此次跑的是新分支代码，需要读取文件进行比较
