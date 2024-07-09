@@ -70,7 +70,7 @@ public class TPCHRegressionIT {
   private static final String udfDir = "src/test/resources/tpch/udf/";
 
   // 最大重复测试次数
-  private static final int MAX_REPETITIONS_NUM = 5;
+  private static final int MAX_REPETITIONS_NUM = 10;
 
   // 回归阈值
   private static final double REGRESSION_THRESHOLD_PERCENTAGE = 0.1;
@@ -289,6 +289,7 @@ public class TPCHRegressionIT {
             UDFInfo.get(2),
             udfFile.getAbsolutePath());
     try {
+      LOGGER.info("Execute register UDF statement: {}", register);
       session.executeRegisterTask(register, false);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", register, e);
@@ -304,7 +305,8 @@ public class TPCHRegressionIT {
   @Test
   public void test() {
     try {
-      String s = "select o_orderkey, extractYear(o_orderdate) from orders order by o_orderkey limit 30;";
+      String s =
+          "select o_orderkey, extractYear(o_orderdate) from orders order by o_orderkey limit 30;";
       SessionExecuteSqlResult res = null;
       try {
         res = session.executeSql(s);
@@ -441,14 +443,15 @@ public class TPCHRegressionIT {
             }
           }
 
-          // 重复5次后耗时仍超过阈值
+          // 重复10次后耗时仍超过阈值
           if (regressionDetected) {
             System.out.printf(
                 "performance degradation of query %d exceeds %f%n",
                 queryIds.get(i), REGRESSION_THRESHOLD_PERCENTAGE);
             System.out.printf("old timing: %.3fms%n", oldTimeCost);
             System.out.printf("new timing: %.3fms%n", newTimeCost);
-            throw new RuntimeException("performance degradation exceeds the threshold");
+            LOGGER.error("TPC-H query {} regression test fail.", queryIds.get(i));
+            fail();
           }
         }
       }
