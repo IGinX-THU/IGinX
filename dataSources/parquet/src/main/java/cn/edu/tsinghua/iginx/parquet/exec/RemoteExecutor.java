@@ -56,15 +56,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
+import javax.annotation.Nullable;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TTransport;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 
 public class RemoteExecutor implements Executor {
 
@@ -95,9 +93,8 @@ public class RemoteExecutor implements Executor {
       req.setFilter(FilterTransformer.toRawFilter(filter));
     }
     if (calls != null) {
-      List<RawFunctionCall> rawFunctionCalls = calls.stream()
-          .map(RemoteExecutor::constructRawFunctionCall)
-          .collect(Collectors.toList());
+      List<RawFunctionCall> rawFunctionCalls =
+          calls.stream().map(RemoteExecutor::constructRawFunctionCall).collect(Collectors.toList());
       req.setAggregations(rawFunctionCalls);
     }
 
@@ -352,11 +349,11 @@ public class RemoteExecutor implements Executor {
   private static RawFunctionCall constructRawFunctionCall(FunctionCall functionCall) {
     RawFunction rawFunction = constructRawFunction(functionCall.getFunction());
     RawFunctionParams rawFunctionParam = constructRawFunctionParam(functionCall.getParams());
-    return new RawFunctionCall(rawFunction,rawFunctionParam);
+    return new RawFunctionCall(rawFunction, rawFunctionParam);
   }
 
   private static RawFunction constructRawFunction(Function function) {
-    if(function instanceof Count){
+    if (function instanceof Count) {
       return new RawFunction(Count.COUNT);
     }
     throw new IllegalArgumentException("unsupported function type");

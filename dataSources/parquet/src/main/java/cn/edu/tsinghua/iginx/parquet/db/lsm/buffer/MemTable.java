@@ -6,13 +6,12 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import com.google.common.collect.RangeSet;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.vector.types.pojo.Field;
-
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+import javax.annotation.concurrent.ThreadSafe;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.types.pojo.Field;
 
 @ThreadSafe
 public class MemTable implements AutoCloseable {
@@ -63,7 +62,7 @@ public class MemTable implements AutoCloseable {
     lock.readLock().lock();
     try {
       for (Field field : fields) {
-        if(columns.containsKey(field)){
+        if (columns.containsKey(field)) {
           throw new IllegalArgumentException("Duplicate field: " + field);
         }
         MemColumn column = this.columns.get(field);
@@ -81,7 +80,7 @@ public class MemTable implements AutoCloseable {
     LinkedHashMap<Field, MemColumn.Snapshot> columns = new LinkedHashMap<>();
     lock.readLock().lock();
     try {
-      for(Map.Entry<Field, MemColumn> entry : this.columns.entrySet()) {
+      for (Map.Entry<Field, MemColumn> entry : this.columns.entrySet()) {
         columns.put(entry.getKey(), entry.getValue().snapshot(allocator));
       }
     } finally {
@@ -106,7 +105,10 @@ public class MemTable implements AutoCloseable {
         throw new IllegalStateException("MemTable is closed");
       }
       Field field = ArrowFields.nullable(data.getField());
-      MemColumn column = columns.computeIfAbsent(field, key -> new MemColumn(factory, allocator, maxChunkValueCount, minChunkValueCount));
+      MemColumn column =
+          columns.computeIfAbsent(
+              field,
+              key -> new MemColumn(factory, allocator, maxChunkValueCount, minChunkValueCount));
       column.store(data);
     } finally {
       lock.readLock().unlock();
@@ -140,7 +142,7 @@ public class MemTable implements AutoCloseable {
       if (!keys.isEmpty()) {
         columns.values().forEach(column -> column.delete(keys));
       }
-      for(Map.Entry<Field, RangeSet<Long>> entry : areas.getSegments().entrySet()) {
+      for (Map.Entry<Field, RangeSet<Long>> entry : areas.getSegments().entrySet()) {
         Field field = entry.getKey();
         RangeSet<Long> ranges = entry.getValue();
         MemColumn column = columns.get(field);

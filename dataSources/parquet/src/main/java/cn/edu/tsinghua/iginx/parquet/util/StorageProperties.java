@@ -468,7 +468,7 @@ public class StorageProperties {
      * @return this builder
      */
     public Builder setCompactorPermits(int compactorPermits) {
-//      ParseUtils.checkPositive(compactorPermits);
+      //      ParseUtils.checkPositive(compactorPermits);
       this.compactPermits = compactorPermits;
       return this;
     }

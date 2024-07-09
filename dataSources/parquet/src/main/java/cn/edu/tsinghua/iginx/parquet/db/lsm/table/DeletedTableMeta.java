@@ -22,12 +22,11 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
-
-import javax.annotation.Nullable;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import javax.annotation.Nullable;
 
 public class DeletedTableMeta implements TableMeta {
   private final Map<String, DataType> schema;
@@ -41,18 +40,18 @@ public class DeletedTableMeta implements TableMeta {
     this.counts = new HashMap<>();
 
     Map<String, RangeSet<Long>> rangeSetMap = new HashMap<>();
-    for(Map.Entry<String, DataType> entry : schema.entrySet()) {
+    for (Map.Entry<String, DataType> entry : schema.entrySet()) {
       String field = entry.getKey();
       Range<Long> range = tableMeta.getRange(field);
       rangeSetMap.put(field, TreeRangeSet.create(Collections.singleton(range)));
       Long count = tableMeta.getValueCount(field);
-      if(count != null) {
+      if (count != null) {
         counts.put(field, count);
       }
     }
 
     RangeSet<Long> deletedKeys = tombstone.getKeys();
-    if(!deletedKeys.isEmpty()) {
+    if (!deletedKeys.isEmpty()) {
       counts.clear();
       rangeSetMap.values().forEach(rangeSet -> rangeSet.removeAll(deletedKeys));
     }
@@ -73,7 +72,7 @@ public class DeletedTableMeta implements TableMeta {
       RangeSet<Long> rangeSet = entry.getValue();
       if (!rangeSet.isEmpty()) {
         ranges.put(field, rangeSet.span());
-      }else{
+      } else {
         ranges.put(field, Range.closedOpen(0L, 0L));
       }
     }
@@ -86,7 +85,7 @@ public class DeletedTableMeta implements TableMeta {
 
   @Override
   public Range<Long> getRange(String field) {
-    if(!schema.containsKey(field)) {
+    if (!schema.containsKey(field)) {
       throw new NoSuchElementException();
     }
     return ranges.get(field);
@@ -95,7 +94,7 @@ public class DeletedTableMeta implements TableMeta {
   @Override
   @Nullable
   public Long getValueCount(String field) {
-    if(!schema.containsKey(field)) {
+    if (!schema.containsKey(field)) {
       throw new NoSuchElementException();
     }
     return counts.get(field);

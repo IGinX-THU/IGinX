@@ -2,9 +2,8 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.api;
 
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
-
-import javax.annotation.Nullable;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 public interface TableMeta {
   Map<String, DataType> getSchema();
@@ -15,10 +14,10 @@ public interface TableMeta {
     Range<Long> range = null;
     for (String field : fields) {
       Range<Long> fieldRange = getRange(field);
-      if(range == null) {
+      if (range == null) {
         range = getRange(field);
-      }else{
-        range= range.span(fieldRange);
+      } else {
+        range = range.span(fieldRange);
       }
     }
     return range;
@@ -26,5 +25,4 @@ public interface TableMeta {
 
   @Nullable
   Long getValueCount(String field);
-
 }

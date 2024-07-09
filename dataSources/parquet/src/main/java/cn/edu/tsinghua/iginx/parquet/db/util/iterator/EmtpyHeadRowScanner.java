@@ -2,7 +2,8 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 
-public class EmtpyHeadRowScanner<K extends Comparable<K>, F, V> implements Scanner<K, Scanner<F, V>> {
+public class EmtpyHeadRowScanner<K extends Comparable<K>, F, V>
+    implements Scanner<K, Scanner<F, V>> {
 
   private final K key;
   private boolean hasNext = true;
@@ -29,6 +30,5 @@ public class EmtpyHeadRowScanner<K extends Comparable<K>, F, V> implements Scann
   }
 
   @Override
-  public void close() throws StorageException {
-  }
+  public void close() throws StorageException {}
 }

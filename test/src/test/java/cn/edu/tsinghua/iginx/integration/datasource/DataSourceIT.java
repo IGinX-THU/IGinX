@@ -1,5 +1,8 @@
 package cn.edu.tsinghua.iginx.integration.datasource;
 
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
@@ -23,17 +26,13 @@ import cn.edu.tsinghua.iginx.integration.tool.DBConf;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.shared.MockClassGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationTargetException;
+import java.util.*;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.util.*;
-
-import static org.junit.Assert.assertNull;
-import static org.junit.Assert.fail;
 
 public class DataSourceIT {
   protected static final Logger LOGGER = LoggerFactory.getLogger(DataSourceIT.class);
@@ -54,10 +53,10 @@ public class DataSourceIT {
           constructor.newInstance(
               MockClassGenerator.genStorageEngineMetaFromConf(dbConf.getStorageEngineMockConf()));
     } catch (InstantiationException
-             | IllegalAccessException
-             | ClassNotFoundException
-             | InvocationTargetException
-             | NoSuchMethodException e) {
+        | IllegalAccessException
+        | ClassNotFoundException
+        | InvocationTargetException
+        | NoSuchMethodException e) {
       LOGGER.error("get current storage failed, caused by: ", e);
       throw new RuntimeException(e);
     }
@@ -257,7 +256,8 @@ public class DataSourceIT {
     OperatorSource projectSource = new OperatorSource(project);
     FunctionParams countParams = new FunctionParams(Collections.singletonList("*"));
     FunctionCall countCall = new FunctionCall(Count.getInstance(), countParams);
-    SetTransform countOperator = new SetTransform(projectSource, Collections.singletonList(countCall));
+    SetTransform countOperator =
+        new SetTransform(projectSource, Collections.singletonList(countCall));
 
     Assume.assumeTrue(storage.isSupportProjectWithSetTransform(countOperator, dataArea));
 
@@ -270,13 +270,14 @@ public class DataSourceIT {
           keys.add(key + i);
         }
         insertData(key, rows, "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4");
-        TaskExecuteResult result = storage.executeProjectWithSetTransform(project, countOperator, dataArea);
+        TaskExecuteResult result =
+            storage.executeProjectWithSetTransform(project, countOperator, dataArea);
         checkResult(result);
         RowStream rowStream = result.getRowStream();
         Assert.assertTrue(rowStream.hasNext());
         Row row = rowStream.next();
         long count = keys.size();
-        Assert.assertArrayEquals(new Object[]{count, count, count, count}, row.getValues());
+        Assert.assertArrayEquals(new Object[] {count, count, count, count}, row.getValues());
         Assert.assertFalse(rowStream.hasNext());
       }
       clear();

@@ -2,8 +2,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 
-import java.util.Objects;
-
 public class LazyRowScanner<K extends Comparable<K>, F, V> implements Scanner<K, Scanner<F, V>> {
 
   private final RowScannerFactory<K, F, V> factory;

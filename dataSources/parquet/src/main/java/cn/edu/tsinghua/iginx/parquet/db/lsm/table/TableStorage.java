@@ -31,15 +31,14 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.*;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TableStorage implements AutoCloseable {
   private static final Logger LOGGER = LoggerFactory.getLogger(TableStorage.class);
@@ -82,7 +81,7 @@ public class TableStorage implements AutoCloseable {
     String name = getTableName(sqn, suffix);
     TableMeta meta = table.getMeta();
     try (Scanner<Long, Scanner<String, Object>> scanner =
-             table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
+        table.scan(meta.getSchema().keySet(), ImmutableRangeSet.of(Range.all()))) {
       readWriter.flush(name, meta, scanner);
     } catch (IOException | StorageException e) {
       LOGGER.error("flush table {} failed", name, e);
@@ -134,8 +133,7 @@ public class TableStorage implements AutoCloseable {
   }
 
   @Override
-  public void close() {
-  }
+  public void close() {}
 
   public Map<String, DataType> schema() {
     return tableIndex.getType();
@@ -247,8 +245,8 @@ public class TableStorage implements AutoCloseable {
     return regionTableLists;
   }
 
-  private long getOverlapCount(String field, List<String> sortedTableNames) throws
-      IOException, StorageException {
+  private long getOverlapCount(String field, List<String> sortedTableNames)
+      throws IOException, StorageException {
     Set<String> fields = Collections.singleton(field);
 
     long count = 0;
@@ -264,7 +262,8 @@ public class TableStorage implements AutoCloseable {
     return count;
   }
 
-  private Scanner<Long, Scanner<String, Object>> scan(List<String> tableNames, Set<String> fields) throws IOException, StorageException {
+  private Scanner<Long, Scanner<String, Object>> scan(List<String> tableNames, Set<String> fields)
+      throws IOException, StorageException {
     List<FileTable> tables = new ArrayList<>();
     for (String tableName : tableNames) {
       tables.add(new FileTable(tableName, readWriter));
@@ -275,7 +274,8 @@ public class TableStorage implements AutoCloseable {
     return new RowUnionScanner<>(overlaps);
   }
 
-  private static List<Scanner<Long, Scanner<String, Object>>> getOverlapScannerList(Set<String> fields, List<FileTable> tables) throws IOException {
+  private static List<Scanner<Long, Scanner<String, Object>>> getOverlapScannerList(
+      Set<String> fields, List<FileTable> tables) throws IOException {
     RangeSet<Long> ranges = ImmutableRangeSet.of(Range.all());
     List<Scanner<Long, Scanner<String, Object>>> overlaps = new ArrayList<>();
 
@@ -295,7 +295,8 @@ public class TableStorage implements AutoCloseable {
       long head = range.lowerEndpoint();
       Scanner<Long, Scanner<String, Object>> lazy = table.lazyScan(fields, ranges);
       Scanner<Long, Scanner<String, Object>> emptyHead = new EmtpyHeadRowScanner<>(head);
-      Scanner<Long, Scanner<String, Object>> concat = new ConcatScanner<>(Iterators.forArray(emptyHead, lazy));
+      Scanner<Long, Scanner<String, Object>> concat =
+          new ConcatScanner<>(Iterators.forArray(emptyHead, lazy));
       noOverlaps.add(concat);
       tableRanges.add(range);
     }

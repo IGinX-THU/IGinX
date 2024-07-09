@@ -16,6 +16,8 @@
 
 package cn.edu.tsinghua.iginx.parquet;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
@@ -42,15 +44,12 @@ import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.StorageProperties;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParquetStorage implements IStorage {
   @SuppressWarnings("unused")
@@ -115,7 +114,12 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), false);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        false);
   }
 
   @Override
@@ -127,7 +131,12 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), true);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        true);
   }
 
   @Override
@@ -146,7 +155,12 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.L, keyInterval.getEndKey()),
                 select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), false);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        false);
   }
 
   @Override
@@ -160,7 +174,12 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.L, keyInterval.getEndKey()),
                 select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, null, dataArea.getStorageUnit(), true);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        true);
   }
 
   @Override
@@ -193,7 +212,8 @@ public class ParquetStorage implements IStorage {
   }
 
   @Override
-  public TaskExecuteResult executeProjectWithSetTransform(Project project, SetTransform setTransform, DataArea dataArea) {
+  public TaskExecuteResult executeProjectWithSetTransform(
+      Project project, SetTransform setTransform, DataArea dataArea) {
     if (!isSupportProjectWithSetTransform(setTransform, dataArea)) {
       throw new IllegalArgumentException("unsupported set transform");
     }

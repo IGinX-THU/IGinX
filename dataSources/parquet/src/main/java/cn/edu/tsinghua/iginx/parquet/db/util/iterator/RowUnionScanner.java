@@ -34,7 +34,7 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
       if (scanner.iterate()) {
         queue.add(new AbstractMap.SimpleImmutableEntry<>(scanner, i));
         i++;
-      }else{
+      } else {
         try {
           scanner.close();
         } catch (StorageException e) {
@@ -139,7 +139,7 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
   public void close() throws StorageException {
     StorageException exception = null;
     for (Map.Entry<Scanner<K, Scanner<F, V>>, Long> entry : queue) {
-      try{
+      try {
         entry.getKey().close();
       } catch (StorageException e) {
         if (exception == null) {

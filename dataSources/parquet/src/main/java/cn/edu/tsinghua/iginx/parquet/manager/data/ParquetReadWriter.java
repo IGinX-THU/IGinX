@@ -21,17 +21,16 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.StorageRuntimeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import java.io.IOException;
+import java.nio.file.*;
+import java.util.*;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ColumnPath;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
-
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.nio.file.*;
-import java.util.*;
 
 public class ParquetReadWriter implements ReadWriter {
 
@@ -52,7 +51,7 @@ public class ParquetReadWriter implements ReadWriter {
 
   private void cleanTempFiles() {
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
+        Files.newDirectoryStream(dir, path -> path.endsWith(Constants.SUFFIX_FILE_TEMP))) {
       for (Path path : stream) {
         LOGGER.info("remove temp file {}", path);
         Files.deleteIfExists(path);
@@ -92,7 +91,7 @@ public class ParquetReadWriter implements ReadWriter {
         writer.write(record);
       }
       ParquetMetadata parquetMeta = writer.flush();
-      ParquetTableMeta tableMeta =  ParquetTableMeta.of(parquetMeta);
+      ParquetTableMeta tableMeta = ParquetTableMeta.of(parquetMeta);
       setParquetTableMeta(path.toString(), tableMeta);
     } catch (Exception e) {
       throw new IOException("failed to write " + path, e);
@@ -204,7 +203,7 @@ public class ParquetReadWriter implements ReadWriter {
   public Iterable<String> tableNames() throws IOException {
     List<String> names = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+        Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
         String tableName = getTableName(fileName);
@@ -230,7 +229,7 @@ public class ParquetReadWriter implements ReadWriter {
     LOGGER.info("clearing data of {}", dir);
     try {
       try (DirectoryStream<Path> stream =
-               Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
+          Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
           String fileName = path.toString();
@@ -238,7 +237,7 @@ public class ParquetReadWriter implements ReadWriter {
         }
       }
       try (DirectoryStream<Path> stream =
-               Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TEMP)) {
+          Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TEMP)) {
         for (Path path : stream) {
           Files.deleteIfExists(path);
         }
@@ -339,15 +338,16 @@ public class ParquetReadWriter implements ReadWriter {
         rangeMap.put(type.getName(), ranges);
       }
 
-      Map<ColumnPath,Long> columnPathMap = IParquetReader.getCountsOf(meta);
-      columnPathMap.forEach((columnPath, count) -> {
-        String[] columnPathArray = columnPath.toArray();
-        if(columnPathArray.length != 1) {
-          throw new IllegalStateException("invalid column path: " + columnPath);
-        }
-        String name = columnPath.toArray()[0];
-        countMap.put(name, count);
-      });
+      Map<ColumnPath, Long> columnPathMap = IParquetReader.getCountsOf(meta);
+      columnPathMap.forEach(
+          (columnPath, count) -> {
+            String[] columnPathArray = columnPath.toArray();
+            if (columnPathArray.length != 1) {
+              throw new IllegalStateException("invalid column path: " + columnPath);
+            }
+            String name = columnPath.toArray()[0];
+            countMap.put(name, count);
+          });
 
       return new ParquetTableMeta(schemaDst, rangeMap, countMap, meta);
     }

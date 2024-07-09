@@ -39,13 +39,6 @@ import cn.edu.tsinghua.iginx.parquet.util.exception.TypeConflictedException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.util.AutoCloseables;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.WillClose;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -54,6 +47,12 @@ import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.stream.Collectors;
+import javax.annotation.WillClose;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.util.AutoCloseables;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class OneTierDB implements Database {
   private static final Logger LOGGER = LoggerFactory.getLogger(OneTierDB.class);
@@ -77,7 +76,8 @@ public class OneTierDB implements Database {
 
   @Override
   public Scanner<Long, Scanner<String, Object>> query(
-      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws IOException, StorageException {
+      Set<Field> fields, RangeSet<Long> ranges, Filter filter)
+      throws IOException, StorageException {
     Set<String> innerFields =
         fields.stream()
             .map(field -> TagKVUtils.toFullName(ArrowFields.toColumnKey(field)))
@@ -88,7 +88,8 @@ public class OneTierDB implements Database {
       List<Scanner<Long, Scanner<String, Object>>> inMemories =
           memTableQueue.scan(new ArrayList<>(fields), ranges, allocator);
       try (AutoCloseable c = AutoCloseables.all(inMemories)) {
-        DataBuffer<Long, String, Object> readBuffer = tableStorage.query(innerFields, ranges, filter);
+        DataBuffer<Long, String, Object> readBuffer =
+            tableStorage.query(innerFields, ranges, filter);
         for (Scanner<Long, Scanner<String, Object>> scanner : inMemories) {
           readBuffer.putRows(scanner);
         }
@@ -102,7 +103,8 @@ public class OneTierDB implements Database {
   }
 
   @Override
-  public Map<String, Long> count(Set<Field> fields) throws InterruptedException, IOException, StorageException {
+  public Map<String, Long> count(Set<Field> fields)
+      throws InterruptedException, IOException, StorageException {
     lock.readLock().lock();
     try {
       // to simplify the implementation, we flush the memTableQueue before counting
@@ -134,7 +136,7 @@ public class OneTierDB implements Database {
       Scanner<Long, Scanner<String, Object>> scanner, Map<String, DataType> schema)
       throws StorageException, InterruptedException {
     try (Scanner<Long, Scanner<Long, Scanner<String, Object>>> batchScanner =
-             new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         try (Scanner<Long, Scanner<String, Object>> batch = batchScanner.value()) {
           putAll(WriteBatches.recordOfRows(batch, schema, allocator), schema);
@@ -148,7 +150,7 @@ public class OneTierDB implements Database {
       Scanner<String, Scanner<Long, Object>> scanner, Map<String, DataType> schema)
       throws StorageException, InterruptedException {
     try (Scanner<Long, Scanner<String, Scanner<Long, Object>>> batchScanner =
-             new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
+        new BatchPlaneScanner<>(scanner, shared.getStorageProperties().getWriteBatchSize())) {
       while (batchScanner.iterate()) {
         try (Scanner<String, Scanner<Long, Object>> batch = batchScanner.value()) {
           putAll(WriteBatches.recordOfColumns(batch, schema, allocator), schema);

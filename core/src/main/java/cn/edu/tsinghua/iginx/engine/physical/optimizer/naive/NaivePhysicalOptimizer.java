@@ -83,9 +83,9 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
             && sourceOperator.getType() == OperatorType.Project
             && ((Project) sourceOperator).getTagFilter() == null
             && ((UnaryOperator) sourceOperator).getSource().getType() == SourceType.Fragment) {
-          switch (operator.getType()){
+          switch (operator.getType()) {
             case Select:
-              if(((Select) operator).getTagFilter() == null){
+              if (((Select) operator).getTagFilter() == null) {
                 sourceTask.getOperators().add(operator);
                 return sourceTask;
               }

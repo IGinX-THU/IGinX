@@ -42,7 +42,7 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
   private final LinkedHashMap<Field, MemColumn.Snapshot> columns;
   private final Map<String, Field> fieldMap = new HashMap<>();
   private final SingleCache<TableMeta> meta =
-      new SingleCache<>(() -> new MemoryTableMeta(getSchema(), getRanges(),getCounts()));
+      new SingleCache<>(() -> new MemoryTableMeta(getSchema(), getRanges(), getCounts()));
 
   public MemoryTable(@WillCloseWhenClosed LinkedHashMap<Field, MemColumn.Snapshot> columns) {
     this.columns = new LinkedHashMap<>(columns);
@@ -72,7 +72,7 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
         .collect(Collectors.toMap(this::getFieldString, this::getRange));
   }
 
-  private Map<String,Long> getCounts(){
+  private Map<String, Long> getCounts() {
     // TODO: give statistics
     return Collections.emptyMap();
   }
@@ -152,9 +152,7 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
     private final Map<String, Long> counts;
 
     MemoryTableMeta(
-        Map<String, DataType> schema,
-        Map<String, Range<Long>> ranges,
-        Map<String, Long> counts) {
+        Map<String, DataType> schema, Map<String, Range<Long>> ranges, Map<String, Long> counts) {
       this.schema = Collections.unmodifiableMap(schema);
       this.ranges = Collections.unmodifiableMap(ranges);
       this.counts = Collections.unmodifiableMap(counts);
@@ -166,7 +164,7 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
 
     @Override
     public Range<Long> getRange(String field) {
-      if(!schema.containsKey(field)) {
+      if (!schema.containsKey(field)) {
         throw new NoSuchElementException();
       }
       return Objects.requireNonNull(ranges.get(field));
@@ -174,7 +172,7 @@ public class MemoryTable implements Table, NoexceptAutoCloseable {
 
     @Override
     public Long getValueCount(String field) {
-      if(!schema.containsKey(field)) {
+      if (!schema.containsKey(field)) {
         throw new NoSuchElementException();
       }
       return counts.get(field);

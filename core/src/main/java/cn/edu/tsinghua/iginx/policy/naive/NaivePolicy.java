@@ -156,8 +156,8 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
    * tests
    */
   private Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>>
-  generateInitialFragmentsAndStorageUnitsByClients(
-      List<String> paths, KeyInterval keyInterval) {
+      generateInitialFragmentsAndStorageUnitsByClients(
+          List<String> paths, KeyInterval keyInterval) {
     Map<ColumnsInterval, List<FragmentMeta>> fragmentMap = new TreeMap<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
@@ -165,8 +165,10 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     int storageEngineNum = storageEngineList.size();
 
     String[] clients = ConfigDescriptor.getInstance().getConfig().getClients().split(",");
-    int instancesNumPerClient = ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient();
-    int totalReplicaNum = Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
+    int instancesNumPerClient =
+        ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient();
+    int totalReplicaNum =
+        Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
     String[] prefixes = new String[clients.length * instancesNumPerClient];
     for (int i = 0; i < clients.length; i++) {
       for (int j = 0; j < instancesNumPerClient; j++) {
@@ -202,8 +204,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
       masterId = RandomStringUtils.randomAlphanumeric(16);
       // TODO 全链路同机
       storageUnit =
-          new StorageUnitMeta(
-              masterId, storageEngineList.get(masterIndex).getId(), masterId, true);
+          new StorageUnitMeta(masterId, storageEngineList.get(masterIndex).getId(), masterId, true);
       // TODO Round Robin
       //      storageUnit =
       //          new StorageUnitMeta(

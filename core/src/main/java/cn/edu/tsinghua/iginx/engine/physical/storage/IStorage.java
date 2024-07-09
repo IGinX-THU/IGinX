@@ -49,7 +49,8 @@ public interface IStorage {
     return false;
   }
 
-  default TaskExecuteResult executeProjectWithSetTransform(Project project, SetTransform setTransform, DataArea dataArea){
+  default TaskExecuteResult executeProjectWithSetTransform(
+      Project project, SetTransform setTransform, DataArea dataArea) {
     throw new UnsupportedOperationException();
   }
 

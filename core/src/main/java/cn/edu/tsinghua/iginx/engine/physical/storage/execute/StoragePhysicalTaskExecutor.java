@@ -53,9 +53,6 @@ import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -63,6 +60,8 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskExecutor {
 
@@ -160,10 +159,12 @@ public class StoragePhysicalTaskExecutor {
                                           && operators.get(1).getType() == OperatorType.Select;
                                   boolean needSetTransformPushDown =
                                       operators.size() == 2
-                                          && operators.get(1).getType() == OperatorType.SetTransform;
+                                          && operators.get(1).getType()
+                                              == OperatorType.SetTransform;
                                   boolean canSetTransformPushDown =
                                       needSetTransformPushDown
-                                          && pair.k.isSupportProjectWithSetTransform((SetTransform) operators.get(1), dataArea);
+                                          && pair.k.isSupportProjectWithSetTransform(
+                                              (SetTransform) operators.get(1), dataArea);
                                   if (isDummyStorageUnit) {
                                     if (needSelectPushDown) {
                                       result =
@@ -183,18 +184,28 @@ public class StoragePhysicalTaskExecutor {
                                       if (canSetTransformPushDown) {
                                         result =
                                             pair.k.executeProjectWithSetTransform(
-                                                (Project) op, (SetTransform) operators.get(1), dataArea);
+                                                (Project) op,
+                                                (SetTransform) operators.get(1),
+                                                dataArea);
                                       } else {
-                                        TaskExecuteResult tempResult = pair.k.executeProject((Project) op, dataArea);
+                                        TaskExecuteResult tempResult =
+                                            pair.k.executeProject((Project) op, dataArea);
                                         if (tempResult.getException() != null) {
                                           result = tempResult;
                                         } else {
-                                          // set transform push down is not supported, execute set transform in memory
-                                          OperatorMemoryExecutor executor = OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
+                                          // set transform push down is not supported, execute set
+                                          // transform in memory
+                                          OperatorMemoryExecutor executor =
+                                              OperatorMemoryExecutorFactory.getInstance()
+                                                  .getMemoryExecutor();
                                           try {
-                                            RowStream rowStream = executor.executeUnaryOperator((SetTransform) operators.get(1), tempResult.getRowStream(), task.getContext());
+                                            RowStream rowStream =
+                                                executor.executeUnaryOperator(
+                                                    (SetTransform) operators.get(1),
+                                                    tempResult.getRowStream(),
+                                                    task.getContext());
                                             result = new TaskExecuteResult(rowStream);
-                                          }catch (PhysicalException e){
+                                          } catch (PhysicalException e) {
                                             result = new TaskExecuteResult(e);
                                           }
                                         }

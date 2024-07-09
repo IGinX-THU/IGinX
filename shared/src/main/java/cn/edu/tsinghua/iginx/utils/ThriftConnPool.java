@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.utils;
 
+import java.time.Duration;
+import java.util.Map;
 import org.apache.commons.pool2.PooledObject;
 import org.apache.commons.pool2.PooledObjectFactory;
 import org.apache.commons.pool2.impl.BaseObjectPoolConfig;
@@ -11,9 +13,6 @@ import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.time.Duration;
-import java.util.Map;
-
 public class ThriftConnPool {
   private static final Logger LOGGER = LoggerFactory.getLogger(ThriftConnPool.class);
 
@@ -21,7 +20,8 @@ public class ThriftConnPool {
 
   private static final int MAX_WAIT_TIME = 0; // infinite, same as Socket default
 
-  private static final long IDLE_TIMEOUT = BaseObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_DURATION.toMillis();
+  private static final long IDLE_TIMEOUT =
+      BaseObjectPoolConfig.DEFAULT_MIN_EVICTABLE_IDLE_DURATION.toMillis();
 
   private final GenericObjectPool<TTransport> pool;
 
@@ -35,11 +35,10 @@ public class ThriftConnPool {
         port,
         Integer.parseInt(
             extraParams.getOrDefault("thrift_pool_max_size", String.valueOf(DEFAULT_MAX_SIZE))),
-        Integer.parseInt(
-            extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))),
+        Integer.parseInt(extraParams.getOrDefault("thrift_timeout", String.valueOf(MAX_WAIT_TIME))),
         Long.parseLong(
-            extraParams.getOrDefault("thrift_pool_min_evictable_idle_time_millis", String.valueOf(IDLE_TIMEOUT)))
-    );
+            extraParams.getOrDefault(
+                "thrift_pool_min_evictable_idle_time_millis", String.valueOf(IDLE_TIMEOUT))));
   }
 
   public ThriftConnPool(String ip, int port, int maxSize, int maxWaitTime, long idleTimeout) {

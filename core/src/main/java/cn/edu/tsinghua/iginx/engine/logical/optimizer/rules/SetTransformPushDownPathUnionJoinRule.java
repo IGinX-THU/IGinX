@@ -14,14 +14,14 @@ import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
 public class SetTransformPushDownPathUnionJoinRule extends Rule {
   private static class InstanceHolder {
-    private static final SetTransformPushDownPathUnionJoinRule instance = new SetTransformPushDownPathUnionJoinRule();
+    private static final SetTransformPushDownPathUnionJoinRule instance =
+        new SetTransformPushDownPathUnionJoinRule();
   }
 
   public static SetTransformPushDownPathUnionJoinRule getInstance() {
@@ -38,8 +38,7 @@ public class SetTransformPushDownPathUnionJoinRule extends Rule {
      */
     super(
         SetTransformPushDownPathUnionJoinRule.class.getSimpleName(),
-        operand(SetTransform.class,
-            operand(AbstractBinaryOperator.class, any(), any())));
+        operand(SetTransform.class, operand(AbstractBinaryOperator.class, any(), any())));
   }
 
   public boolean matches(RuleCall call) {
@@ -70,11 +69,11 @@ public class SetTransformPushDownPathUnionJoinRule extends Rule {
       }
       String startColumn = columnsInterval.getStartColumn();
       String endColumn = columnsInterval.getEndColumn();
-      if (startColumn == null || endColumn == null) {
+      if (startColumn == null || endColumn == null) {}
 
-      }
       Range<String> columnRange = rangeOf(columnsInterval);
-      // if there is an intersection of fragment columnIntervals, maybe there are intersecting columns in Join
+      // if there is an intersection of fragment columnIntervals, maybe there are intersecting
+      // columns in Join
       if (columnRangeSet.intersects(columnRange)) {
         return false;
       }
@@ -117,13 +116,13 @@ public class SetTransformPushDownPathUnionJoinRule extends Rule {
   private static Range<String> rangeOf(ColumnsInterval columnsInterval) {
     String startColumn = columnsInterval.getStartColumn();
     String endColumn = columnsInterval.getEndColumn();
-    if(startColumn == null && endColumn == null) {
+    if (startColumn == null && endColumn == null) {
       return Range.all();
-    }else if(startColumn == null){
+    } else if (startColumn == null) {
       return Range.lessThan(endColumn);
-    }else if(endColumn == null){
+    } else if (endColumn == null) {
       return Range.atLeast(startColumn);
-    }else{
+    } else {
       return Range.closedOpen(startColumn, endColumn);
     }
   }
@@ -145,5 +144,4 @@ public class SetTransformPushDownPathUnionJoinRule extends Rule {
     Operator newRoot = OperatorUtils.joinOperators(setTransformList, Constants.ORDINAL);
     call.transformTo(newRoot);
   }
-
 }

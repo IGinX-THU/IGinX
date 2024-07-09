@@ -42,11 +42,6 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.slf4j.MDC;
-
-import javax.annotation.Nullable;
 import java.io.File;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
@@ -59,6 +54,10 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 
 public class LocalExecutor implements Executor {
 
@@ -283,7 +282,8 @@ public class LocalExecutor implements Executor {
     }
   }
 
-  private TaskExecuteResult executeAggregationTask(List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls, String storageUnit) {
+  private TaskExecuteResult executeAggregationTask(
+      List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls, String storageUnit) {
     try {
       Manager manager = getOrCreateManager(storageUnit);
       RowStream rowStream = ((DataManager) manager).aggregation(patterns, tagFilter, calls);

@@ -6,17 +6,16 @@ import cn.edu.tsinghua.iginx.parquet.db.lsm.table.TableStorage;
 import cn.edu.tsinghua.iginx.parquet.util.NoexceptAutoCloseable;
 import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.*;
+import javax.annotation.Nonnegative;
+import javax.annotation.concurrent.NotThreadSafe;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.util.Preconditions;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nonnegative;
-import javax.annotation.concurrent.NotThreadSafe;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.*;
 
 @NotThreadSafe
 public class Flusher implements NoexceptAutoCloseable {
@@ -35,10 +34,16 @@ public class Flusher implements NoexceptAutoCloseable {
   private ExecutorService worker;
   private boolean running = false;
 
-  public Flusher(String name, Shared shared, BufferAllocator allocator, MemTableQueue memTableQueue, TableStorage tableStorage) {
+  public Flusher(
+      String name,
+      Shared shared,
+      BufferAllocator allocator,
+      MemTableQueue memTableQueue,
+      TableStorage tableStorage) {
     this.name = name;
     this.shared = shared;
-    this.allocator = allocator.newChildAllocator(allocator.getName() + "-flusher", 0, Long.MAX_VALUE);
+    this.allocator =
+        allocator.newChildAllocator(allocator.getName() + "-flusher", 0, Long.MAX_VALUE);
     this.memTableQueue = memTableQueue;
     this.tableStorage = tableStorage;
     start();
@@ -53,21 +58,26 @@ public class Flusher implements NoexceptAutoCloseable {
   public void start() {
     Preconditions.checkState(!running, "flusher is already running");
 
-    ThreadFactory expireFactory = new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-scheduler-%d").build();
+    ThreadFactory expireFactory =
+        new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-scheduler-%d").build();
     this.scheduler = Executors.newSingleThreadScheduledExecutor(expireFactory);
     long timeout = shared.getStorageProperties().getWriteBufferTimeout().toMillis();
     if (timeout > 0) {
       LOGGER.info("flusher {} start to force flush every {} ms", name, timeout);
-      this.scheduler.scheduleWithFixedDelay(handleInterruption(memTableQueue::flush), timeout, timeout, TimeUnit.MILLISECONDS);
+      this.scheduler.scheduleWithFixedDelay(
+          handleInterruption(memTableQueue::flush), timeout, timeout, TimeUnit.MILLISECONDS);
     }
 
-    ThreadFactory workerFactory = new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-worker-%d").build();
+    ThreadFactory workerFactory =
+        new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-worker-%d").build();
     this.worker = Executors.newCachedThreadPool(workerFactory);
 
-    ThreadFactory leaderFactory = new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-leader-%d").build();
+    ThreadFactory leaderFactory =
+        new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-leader-%d").build();
     this.leader = Executors.newCachedThreadPool(leaderFactory);
 
-    ThreadFactory dispatcherFactory = new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-dispatcher-%d").build();
+    ThreadFactory dispatcherFactory =
+        new ThreadFactoryBuilder().setNameFormat("flusher-" + name + "-dispatcher-%d").build();
     this.dispatcher = Executors.newSingleThreadExecutor(dispatcherFactory);
     dispatcher.submit(handleInterruption((this::dispatch)));
 
@@ -125,7 +135,8 @@ public class Flusher implements NoexceptAutoCloseable {
     throw new InterruptedException();
   }
 
-  private void submitAndWaitFlush(@Nonnegative long memtableId, CountDownLatch onSubmit) throws InterruptedException, ExecutionException {
+  private void submitAndWaitFlush(@Nonnegative long memtableId, CountDownLatch onSubmit)
+      throws InterruptedException, ExecutionException {
     List<String> tableNames = new ArrayList<>();
 
     LOGGER.debug("start to flush memtable {}", memtableId);
@@ -139,13 +150,15 @@ public class Flusher implements NoexceptAutoCloseable {
         String suffix = String.valueOf(columnNumber);
 
         shared.getFlusherPermits().acquire();
-        Future<List<String>> future = worker.submit(() -> {
-          try {
-            return tableStorage.flush(memtableId, suffix, snapshot.subTable(field));
-          } finally {
-            shared.getFlusherPermits().release();
-          }
-        });
+        Future<List<String>> future =
+            worker.submit(
+                () -> {
+                  try {
+                    return tableStorage.flush(memtableId, suffix, snapshot.subTable(field));
+                  } finally {
+                    shared.getFlusherPermits().release();
+                  }
+                });
         futureFlushed.add(future);
       }
 
@@ -158,11 +171,13 @@ public class Flusher implements NoexceptAutoCloseable {
 
     LOGGER.debug("memtable {} is flushed to tables {}", memtableId, tableNames);
 
-    memTableQueue.eliminate(memtableId, tombstone -> {
-      for (String tableName : tableNames) {
-        tableStorage.commit(tableName, tombstone);
-      }
-    });
+    memTableQueue.eliminate(
+        memtableId,
+        tombstone -> {
+          for (String tableName : tableNames) {
+            tableStorage.commit(tableName, tombstone);
+          }
+        });
 
     LOGGER.debug("memtable {} is eliminated", memtableId);
   }

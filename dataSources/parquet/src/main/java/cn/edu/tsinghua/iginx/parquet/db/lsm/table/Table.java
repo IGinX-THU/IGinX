@@ -39,13 +39,15 @@ public interface Table {
     return scan(fields, ranges, null);
   }
 
-  default Scanner<Long, Scanner<String, Object>> lazyScan(Set<String> fields, RangeSet<Long> ranges) {
-    return new LazyRowScanner<>(() -> {
-      try {
-        return scan(fields, ranges);
-      } catch (IOException e) {
-        throw new StorageException(e);
-      }
-    });
+  default Scanner<Long, Scanner<String, Object>> lazyScan(
+      Set<String> fields, RangeSet<Long> ranges) {
+    return new LazyRowScanner<>(
+        () -> {
+          try {
+            return scan(fields, ranges);
+          } catch (IOException e) {
+            throw new StorageException(e);
+          }
+        });
   }
 }

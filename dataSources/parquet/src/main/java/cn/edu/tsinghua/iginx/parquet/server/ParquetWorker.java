@@ -37,13 +37,12 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.apache.thrift.TException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
+import org.apache.thrift.TException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ParquetWorker implements ParquetService.Iface {
 
@@ -73,7 +72,10 @@ public class ParquetWorker implements ParquetService.Iface {
 
     List<FunctionCall> calls = null;
     if (req.getAggregations() != null) {
-      calls = req.getAggregations().stream().map(this::resolveRawFunctionCall).collect(Collectors.toList());
+      calls =
+          req.getAggregations().stream()
+              .map(this::resolveRawFunctionCall)
+              .collect(Collectors.toList());
     }
 
     TaskExecuteResult result =
@@ -251,27 +253,31 @@ public class ParquetWorker implements ParquetService.Iface {
         return new WithoutTagFilter();
       case BasePrecise:
         return new BasePreciseTagFilter(rawTagFilter.getTags());
-      case Precise: {
-        List<BasePreciseTagFilter> children = new ArrayList<>();
-        rawTagFilter
-            .getChildren()
-            .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
-        return new PreciseTagFilter(children);
-      }
-      case And: {
-        List<TagFilter> children = new ArrayList<>();
-        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-        return new AndTagFilter(children);
-      }
-      case Or: {
-        List<TagFilter> children = new ArrayList<>();
-        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-        return new OrTagFilter(children);
-      }
-      default: {
-        LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
-        return null;
-      }
+      case Precise:
+        {
+          List<BasePreciseTagFilter> children = new ArrayList<>();
+          rawTagFilter
+              .getChildren()
+              .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
+          return new PreciseTagFilter(children);
+        }
+      case And:
+        {
+          List<TagFilter> children = new ArrayList<>();
+          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+          return new AndTagFilter(children);
+        }
+      case Or:
+        {
+          List<TagFilter> children = new ArrayList<>();
+          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+          return new OrTagFilter(children);
+        }
+      default:
+        {
+          LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
+          return null;
+        }
     }
   }
 
@@ -282,7 +288,7 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   private Function resolveRawFunction(RawFunction rawFunction) {
-    if(rawFunction.getId().equals(Count.COUNT)) {
+    if (rawFunction.getId().equals(Count.COUNT)) {
       return Count.getInstance();
     }
     throw new UnsupportedOperationException("unsupported function: " + rawFunction);

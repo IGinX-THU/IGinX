@@ -1,13 +1,11 @@
 package cn.edu.tsinghua.iginx.parquet.manager.data;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -31,7 +29,7 @@ public class AggregatedRowStream implements RowStream {
       String pathWithFunctionName = functionName + "(" + path + ")";
 
       DataType dataType = typeFromValue(value);
-      Field field = new Field(pathWithFunctionName, dataType,tags);
+      Field field = new Field(pathWithFunctionName, dataType, tags);
       fieldList.add(field);
     }
     row = new Row(new Header(fieldList), valuesList.toArray());
@@ -51,8 +49,7 @@ public class AggregatedRowStream implements RowStream {
   }
 
   @Override
-  public void close() throws PhysicalException {
-  }
+  public void close() throws PhysicalException {}
 
   @Override
   public boolean hasNext() throws PhysicalException {

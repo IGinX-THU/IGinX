@@ -36,13 +36,12 @@ import cn.edu.tsinghua.iginx.parquet.util.arrow.ArrowFields;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.RangeSet;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DataManager implements Manager {
   private static final Logger LOGGER = LoggerFactory.getLogger(DataManager.class);
@@ -69,7 +68,8 @@ public class DataManager implements Manager {
     RangeSet<Long> rangeSet = FilterRangeUtils.rangeSetOf(projectedFilter);
 
     try {
-      Scanner<Long, Scanner<String, Object>> scanner = db.query(ArrowFields.of(projectedSchema), rangeSet, projectedFilter);
+      Scanner<Long, Scanner<String, Object>> scanner =
+          db.query(ArrowFields.of(projectedSchema), rangeSet, projectedFilter);
       return new ScannerRowStream(projectedSchema, scanner);
     } catch (IOException e) {
       throw new StorageException(e);
@@ -84,8 +84,8 @@ public class DataManager implements Manager {
 
     try {
       // TODO: just support count now
-      Map<String,Long> counts = db.count(ArrowFields.of(projectedSchema));
-      return new AggregatedRowStream(counts,"count");
+      Map<String, Long> counts = db.count(ArrowFields.of(projectedSchema));
+      return new AggregatedRowStream(counts, "count");
     } catch (InterruptedException | IOException e) {
       throw new StorageException(e);
     }
