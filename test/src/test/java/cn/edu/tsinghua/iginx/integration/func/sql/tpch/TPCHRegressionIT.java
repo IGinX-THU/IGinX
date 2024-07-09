@@ -304,6 +304,9 @@ public class TPCHRegressionIT {
   @Test
   public void test() {
     try {
+      String s = "SHOW FUNCTIONS;";
+      SessionExecuteSqlResult res = session.executeSql(s);
+      res.print(false, "");
       // 获取当前JVM的Runtime实例
       Runtime runtime = Runtime.getRuntime();
       // 执行垃圾回收，尽量释放内存

@@ -118,6 +118,12 @@ jobs:
               run: |
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                cat iginx-*.log
+
             - name: Stop ZooKeeper
               uses: ./.github/actions/zookeeperRunner
               with:
