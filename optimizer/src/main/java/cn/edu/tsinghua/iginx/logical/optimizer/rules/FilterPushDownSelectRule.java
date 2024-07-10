@@ -21,17 +21,12 @@ package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 
+@AutoService(Rule.class)
 public class FilterPushDownSelectRule extends Rule {
-  private static final class InstanceHolder {
-    static final FilterPushDownSelectRule INSTANCE = new FilterPushDownSelectRule();
-  }
 
-  public static FilterPushDownSelectRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterPushDownSelectRule() {
+  public FilterPushDownSelectRule() {
     /*
      * we want to match the topology like:
      *         Select

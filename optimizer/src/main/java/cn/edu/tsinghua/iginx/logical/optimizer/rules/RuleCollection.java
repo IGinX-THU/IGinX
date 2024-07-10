@@ -34,30 +34,13 @@ public enum RuleCollection implements IRuleCollection {
 
   private final Map<String, Rule> bannedRules = new HashMap<>();
 
-  private ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
+  private final ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
 
-  private RuleCollection() {
-    // add rules here
-    // 在这里添加规则
-    addRule(NotFilterRemoveRule.getInstance());
-    addRule(FragmentPruningByFilterRule.getInstance());
-    addRule(ColumnPruningRule.getInstance());
-    addRule(FragmentPruningByPatternRule.getInstance());
-    addRule(ConstantPropagationRule.getInstance());
-    addRule(FilterConstantFoldingRule.getInstance());
-    addRule(RowTransformConstantFoldingRule.getInstance());
-    addRule(FunctionDistinctEliminateRule.getInstance());
-    addRule(InExistsDistinctEliminateRule.getInstance());
-    addRule(FilterPushDownAddSchemaPrefixRule.getInstance());
-    addRule(FilterPushDownGroupByRule.getInstance());
-    addRule(FilterPushDownPathUnionJoinRule.getInstance());
-    addRule(FilterPushDownProjectReorderSortRule.getInstance());
-    addRule(FilterPushDownRenameRule.getInstance());
-    addRule(FilterPushDownSelectRule.getInstance());
-    addRule(FilterPushDownSetOpRule.getInstance());
-    addRule(FilterPushDownTransformRule.getInstance());
-    addRule(FilterPushIntoJoinConditionRule.getInstance());
-    addRule(FilterPushOutJoinConditionRule.getInstance());
+  RuleCollection() {
+    // Load rules from SPI
+    for (Rule rule : ServiceLoader.load(Rule.class)) {
+      addRule(rule);
+    }
 
     setRulesByConfig();
   }

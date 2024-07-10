@@ -25,25 +25,19 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import com.google.auto.service.AutoService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@AutoService(Rule.class)
 public class FragmentPruningByPatternRule extends Rule {
   /*
      该规则是根据Project的Pattern来判断是否需要Fragment，与列裁剪规则有关，
      列裁剪规则裁剪了Project-Fragment中不需要的列，可能导致该Fragment不再需要
   */
 
-  private static final class InstanceHolder {
-    private static final FragmentPruningByPatternRule instance = new FragmentPruningByPatternRule();
-  }
-
-  public static FragmentPruningByPatternRule getInstance() {
-    return InstanceHolder.instance;
-  }
-
-  protected FragmentPruningByPatternRule() {
+  public FragmentPruningByPatternRule() {
     /*
      * we want to match the topology like:
      *          Project

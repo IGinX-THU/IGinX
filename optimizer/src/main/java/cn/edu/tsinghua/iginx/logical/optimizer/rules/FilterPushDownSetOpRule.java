@@ -24,9 +24,11 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.google.auto.service.AutoService;
 import java.util.*;
 import java.util.stream.IntStream;
 
+@AutoService(Rule.class)
 public class FilterPushDownSetOpRule extends Rule {
 
   static final Set<Class> validSetOps =
@@ -35,15 +37,7 @@ public class FilterPushDownSetOpRule extends Rule {
   // 部分情况下Select只能超集下推，这时候需要记录该Select有没有超集下推过，如果有，下次就不能再下推了
   static final Map<AbstractBinaryOperator, Set<Select>> selectMap = new HashMap<>();
 
-  private static class InstanceHolder {
-    private static final FilterPushDownSetOpRule INSTANCE = new FilterPushDownSetOpRule();
-  }
-
-  public static FilterPushDownSetOpRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterPushDownSetOpRule() {
+  public FilterPushDownSetOpRule() {
     /*
      * we want to match the topology like:
      *         Select

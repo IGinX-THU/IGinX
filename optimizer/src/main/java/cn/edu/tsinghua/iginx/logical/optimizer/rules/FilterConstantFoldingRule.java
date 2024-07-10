@@ -25,21 +25,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ExprFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.List;
-import java.util.logging.Logger;
 
+@AutoService(Rule.class)
 public class FilterConstantFoldingRule extends Rule {
-  private static final Logger LOGGER = Logger.getLogger(FilterConstantFoldingRule.class.getName());
 
-  private static final class InstanceHolder {
-    static final FilterConstantFoldingRule INSTANCE = new FilterConstantFoldingRule();
-  }
-
-  public static FilterConstantFoldingRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterConstantFoldingRule() {
+  public FilterConstantFoldingRule() {
     /*
      * we want to match the topology like:
      *         SELECT
