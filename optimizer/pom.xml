@@ -78,8 +78,11 @@
                         <configuration>
                             <target>
                                 <copy todir="../core/target/iginx-core-${project.version}/lib/">
-                                    <fileset dir="${project.basedir}/target/">
+                                    <fileset dir="target/">
                                         <include name="iginx-optimizer-${project.version}.jar"/>
+                                    </fileset>
+                                    <fileset dir="../dependency/src/main/resources/">
+                                        <include name="iginx-optimizer-extension-${project.version}.jar"/>
                                     </fileset>
                                 </copy>
                             </target>
