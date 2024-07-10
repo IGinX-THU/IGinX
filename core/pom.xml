@@ -144,7 +144,8 @@
             <groupId>cn.hutool</groupId>
             <artifactId>hutool-all</artifactId>
         </dependency>
-        <dependency> <!-- Arrow dependencies -->
+        <dependency>
+            <!-- Arrow dependencies -->
             <groupId>com.google.flatbuffers</groupId>
             <artifactId>flatbuffers-java</artifactId>
         </dependency>
