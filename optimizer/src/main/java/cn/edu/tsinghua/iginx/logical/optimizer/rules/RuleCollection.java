@@ -25,10 +25,11 @@ import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public enum RuleCollection implements IRuleCollection {
-  INSTANCE;
+public class RuleCollection implements IRuleCollection {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RuleCollection.class);
+
+  public static final RuleCollection INSTANCE = new RuleCollection();
 
   private final Map<String, Rule> rules = new HashMap<>();
 
@@ -36,7 +37,7 @@ public enum RuleCollection implements IRuleCollection {
 
   private final ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
 
-  RuleCollection() {
+  protected RuleCollection() {
     addRulesBySPI();
     setRulesByConfig();
   }
