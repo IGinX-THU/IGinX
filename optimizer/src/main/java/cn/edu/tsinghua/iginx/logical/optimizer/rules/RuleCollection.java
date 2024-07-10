@@ -37,12 +37,15 @@ public enum RuleCollection implements IRuleCollection {
   private final ConfigDescriptor configDescriptor = ConfigDescriptor.getInstance();
 
   RuleCollection() {
-    // Load rules from SPI
+    addRulesBySPI();
+    setRulesByConfig();
+  }
+
+  private void addRulesBySPI() {
     for (Rule rule : ServiceLoader.load(Rule.class)) {
+      LOGGER.debug("Add rule by SPI: {}", rule);
       addRule(rule);
     }
-
-    setRulesByConfig();
   }
 
   /** 根据配置文件设置rules，未在配置文件中出现的规则默认为off */

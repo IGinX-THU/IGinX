@@ -78,4 +78,9 @@ public abstract class Rule {
   public static Operand operand(Class<? extends Operator> clazz, Operand... children) {
     return new Operand(clazz, Arrays.asList(children));
   }
+
+  @Override
+  public String toString() {
+    return ruleName;
+  }
 }
