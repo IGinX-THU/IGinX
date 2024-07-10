@@ -499,6 +499,9 @@
         </profile>
         <profile>
             <id>license</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
             <build>
                 <plugins>
                     <plugin>
