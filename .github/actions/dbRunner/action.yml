@@ -185,7 +185,7 @@ runs:
           working-directory: ${{ github.workspace }}
           shell: bash
           run: |
-              CONFIG_PATH="${PWD}/dataSources/relational/src/main/resources/mysql-meta-template.properties"
+              CONFIG_PATH="${PWD}/dataSource/relational/src/main/resources/mysql-meta-template.properties"
               if [ "$RUNNER_OS" == "Windows" ]; then
                   CONFIG_PATH=$(cygpath -m $CONFIG_PATH)
               fi
