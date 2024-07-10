@@ -763,17 +763,41 @@ public class RelationalStorage implements IStorage {
                 ((ValueFilter) filter).getOp(),
                 ((ValueFilter) filter).getValue());
           } else {
-            List<Filter> andValueChildren = new ArrayList<>();
+            List<Filter> valueChildren = new ArrayList<>();
             for (String matched : matchedPath) {
-              andValueChildren.add(
+              valueChildren.add(
                   new ValueFilter(
                       matched, ((ValueFilter) filter).getOp(), ((ValueFilter) filter).getValue()));
             }
 
             if (Op.isOrOp(((ValueFilter) filter).getOp())) {
-              return new OrFilter(andValueChildren);
+              return new OrFilter(valueChildren);
             }
-            return new AndFilter(andValueChildren);
+            return new AndFilter(valueChildren);
+          }
+        }
+
+        return filter;
+
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        if (inPath.contains("*")) {
+          List<String> matchedPath = getMatchedPath(inPath, columnNamesList);
+          if (matchedPath.size() == 0) {
+            return new BoolFilter(true);
+          } else if (matchedPath.size() == 1) {
+            return new InFilter(matchedPath.get(0), inFilter.getInOp(), inFilter.getValues());
+          } else {
+            List<Filter> inChildren = new ArrayList<>();
+            for (String matched : matchedPath) {
+              inChildren.add(new InFilter(matched, inFilter.getInOp(), inFilter.getValues()));
+            }
+
+            if (inFilter.getInOp().isOrOp()) {
+              return new OrFilter(inChildren);
+            }
+            return new AndFilter(inChildren);
           }
         }
 
@@ -797,7 +821,7 @@ public class RelationalStorage implements IStorage {
                   new PathFilter(
                       matched, ((PathFilter) filter).getOp(), ((PathFilter) filter).getPathB()));
             }
-            if (Op.isOrOp(((ValueFilter) filter).getOp())) {
+            if (Op.isOrOp(((PathFilter) filter).getOp())) {
               filter = new OrFilter(andPathChildren);
             } else {
               filter = new AndFilter(andPathChildren);
@@ -884,6 +908,16 @@ public class RelationalStorage implements IStorage {
               path.substring(databaseName.length() + 1),
               ((ValueFilter) filter).getOp(),
               ((ValueFilter) filter).getValue());
+        }
+        break;
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        if (inPath.startsWith(databaseName + SEPARATOR)) {
+          return new InFilter(
+              inPath.substring(databaseName.length() + 1),
+              inFilter.getInOp(),
+              inFilter.getValues());
         }
         break;
       case Path:
@@ -1138,6 +1172,13 @@ public class RelationalStorage implements IStorage {
         String pathB = ((PathFilter) filter).getPathB();
         if ((!pathA.contains("*") && !columnNameList.contains(pathA))
             || (!pathB.contains("*") && !columnNameList.contains(pathB))) {
+          return new BoolFilter(true);
+        }
+        break;
+      case In:
+        InFilter inFilter = (InFilter) filter;
+        String inPath = inFilter.getPath();
+        if (!inPath.contains("*") && !columnNameList.contains(inPath)) {
           return new BoolFilter(true);
         }
         break;

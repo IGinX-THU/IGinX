@@ -43,6 +43,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         return filter;
       case Not:
         throw new SQLParserException("Get DNF failed, filter has not-subFilter.");
@@ -152,6 +153,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         return filter;
       case Not:
         throw new SQLParserException("Get CNF failed, filter has not-subFilter.");
@@ -282,6 +284,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         return filter;
       case And:
         return removeNot((AndFilter) filter);
@@ -333,6 +336,9 @@ public class LogicalFilterUtils {
       case Expr:
         ((ExprFilter) filter).reverseFunc();
         return filter;
+      case In:
+        ((InFilter) filter).reverseFunc();
+        return filter;
       case Bool:
         return filter;
       case And:
@@ -351,6 +357,7 @@ public class LogicalFilterUtils {
         return new AndFilter(orChildren);
       case Not:
         return removeNot(((NotFilter) filter).getChild());
+
       default:
         throw new SQLParserException(String.format("Unknown token [%s] in reverse filter.", type));
     }
@@ -371,6 +378,7 @@ public class LogicalFilterUtils {
       case Path:
       case Bool:
       case Expr:
+      case In:
         break;
       case Key:
         keyRanges.add(getKeyRangesFromKeyFilter((KeyFilter) f));
@@ -591,6 +599,16 @@ public class LogicalFilterUtils {
         }
 
         return filter;
+
+      case In:
+        String inPath = ((InFilter) filter).getPath();
+        InFilter.InOp inOp = ((InFilter) filter).getInOp();
+        if (inPath.contains("*")
+            && inOp.isOrOp()
+            && wildcardPathMatchMultiFragments(inPath, fragmentMetaSet)) {
+          return new BoolFilter(true);
+        }
+        return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
@@ -707,14 +725,23 @@ public class LogicalFilterUtils {
         }
         return new AndFilter(andChildren);
       case Value:
-        String path = ((ValueFilter) filter).getPath();
+      case In:
+        String path;
+        boolean isOrOp;
+        if (filter.getType() == FilterType.Value) {
+          path = ((ValueFilter) filter).getPath();
+          isOrOp = Op.isOrOp(((ValueFilter) filter).getOp());
+        } else {
+          path = ((InFilter) filter).getPath();
+          isOrOp = ((InFilter) filter).getInOp().isOrOp();
+        }
         if (isFunction(path)) {
           return new BoolFilter(true);
         }
         if (!predicate.test(path)) {
           return new BoolFilter(true);
         }
-        if (Op.isOrOp(((ValueFilter) filter).getOp()) && path.contains("*")) {
+        if (isOrOp && path.contains("*")) {
           return new BoolFilter(true);
         }
         return filter;
@@ -729,6 +756,7 @@ public class LogicalFilterUtils {
           return new BoolFilter(true);
         }
         return filter;
+
       default:
         return filter;
     }
@@ -825,6 +853,12 @@ public class LogicalFilterUtils {
           return new BoolFilter(true);
         }
         return filter;
+      case In:
+        String inPath = ((InFilter) filter).getPath();
+        if (!isInPatterns(inPath, patterns)) {
+          return new BoolFilter(true);
+        }
+        return filter;
       case Path:
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
@@ -914,6 +948,9 @@ public class LogicalFilterUtils {
           public void visit(ExprFilter exprFilter) {
             exprFilters.add(exprFilter);
           }
+
+          @Override
+          public void visit(InFilter filter) {}
         });
     return exprFilters;
   }
@@ -952,6 +989,11 @@ public class LogicalFilterUtils {
           public void visit(ExprFilter filter) {
             paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionA()));
             paths.addAll(ExprUtils.getPathFromExpr(filter.getExpressionB()));
+          }
+
+          @Override
+          public void visit(InFilter filter) {
+            paths.add(filter.getPath());
           }
         });
     return paths;
