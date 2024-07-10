@@ -104,7 +104,7 @@ public class Job {
       stageList.add(stage);
     }
     if (req.isSetSchedule()) {
-      trigger = JobScheduleTrigger.getTrigger(req.getSchedule());
+      trigger = JobScheduleTriggerMaker.getTrigger(req.getSchedule());
       scheduled = true;
       scheduleStr = req.getSchedule();
     } else {
@@ -167,7 +167,7 @@ public class Job {
     }
 
     if (jobFromYAML.getSchedule() != null && !jobFromYAML.getSchedule().isEmpty()) {
-      trigger = JobScheduleTrigger.getTrigger(jobFromYAML.getSchedule());
+      trigger = JobScheduleTriggerMaker.getTrigger(jobFromYAML.getSchedule());
       scheduled = true;
       scheduleStr = jobFromYAML.getSchedule();
     } else {
