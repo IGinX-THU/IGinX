@@ -43,6 +43,13 @@ public class RuleCollection implements IRuleCollection {
   }
 
   private void addRulesBySPI() {
+    if(LOGGER.isDebugEnabled()){
+      ClassLoader cl = Thread.currentThread().getContextClassLoader();
+      LOGGER.debug("ClassLoader: {}", cl);
+      String path = System.getProperty("java.class.path");
+      LOGGER.debug("ClassPath: {}", path);
+    }
+
     for (Rule rule : ServiceLoader.load(Rule.class)) {
       LOGGER.debug("Add rule by SPI: {}", rule);
       addRule(rule);
