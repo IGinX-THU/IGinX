@@ -25,9 +25,8 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
-import com.google.auto.service.AutoService;
 
-@AutoService(Rule.class)
+// @AutoService(Rule.class)
 public class FilterJoinTransposeRule extends Rule {
 
   public FilterJoinTransposeRule() {
