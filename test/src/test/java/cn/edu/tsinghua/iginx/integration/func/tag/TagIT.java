@@ -935,7 +935,6 @@ public class TagIT {
 
     String showColumnsData = "SELECT v FROM ah.* WITH t1=v1 AND t2=v2;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    ;
     executeAndCompare(showColumnsData, expected);
 
     deleteTimeSeries = "DELETE COLUMNS * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
@@ -963,7 +962,6 @@ public class TagIT {
 
     showColumnsData = "SELECT * FROM * WITH t1=v1 AND t2=vv2 OR t1=vv1 AND t2=v2;";
     expected = "ResultSets:\n" + "+---+\n" + "|key|\n" + "+---+\n" + "+---+\n" + "Empty set.\n";
-    ;
     executeAndCompare(showColumnsData, expected);
   }
 

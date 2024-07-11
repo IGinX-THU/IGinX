@@ -34,7 +34,6 @@ public class ImportFileIT {
   @BeforeClass
   public static void setUp() throws SessionException {
     MultiConnection session = new MultiConnection(new Session("127.0.0.1", 6888, "root", "root"));
-    ;
     executor = new SQLExecutor(session);
     executor.open();
   }
