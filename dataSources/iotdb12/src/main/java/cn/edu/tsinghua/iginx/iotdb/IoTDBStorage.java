@@ -176,6 +176,7 @@ public class IoTDBStorage implements IStorage {
         columnsInterval = new ColumnsInterval(dataPrefix);
       }
     } catch (IoTDBConnectionException | StatementExecutionException e) {
+      LOGGER.error("get time series failure: ", e);
       throw new IoTDBTaskExecuteFailureException("get time series failure: ", e);
     }
 
@@ -186,7 +187,7 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public void release() {
     sessionPool.close();
   }
 
@@ -244,6 +245,7 @@ public class IoTDBStorage implements IStorage {
       }
       dataSet.close();
     } catch (IoTDBConnectionException | StatementExecutionException e) {
+      LOGGER.error("get time series failure: ", e);
       throw new IoTDBTaskExecuteFailureException("get time series failure: ", e);
     }
   }
@@ -315,6 +317,7 @@ public class IoTDBStorage implements IStorage {
                   sessionPool.executeQueryStatement(statement), true, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
+      LOGGER.error("execute project task in iotdb12 failure, caused by: ", e);
       return new TaskExecuteResult(
           new IoTDBTaskExecuteFailureException("execute project task in iotdb12 failure", e));
     }
@@ -371,6 +374,7 @@ public class IoTDBStorage implements IStorage {
                   sessionPool.executeQueryStatement(statement), false, project, filter));
       return new TaskExecuteResult(rowStream);
     } catch (IoTDBConnectionException | StatementExecutionException | PhysicalException e) {
+      LOGGER.error("execute project task in iotdb12 failure, caused by: ", e);
       return new TaskExecuteResult(
           new IoTDBTaskExecuteFailureException("execute project task in iotdb12 failure", e));
     }
@@ -396,6 +400,7 @@ public class IoTDBStorage implements IStorage {
         break;
     }
     if (e != null) {
+      LOGGER.error("execute insert task in iotdb12 failure, caused by: ", e);
       return new TaskExecuteResult(
           null, new IoTDBException("execute insert task in iotdb12 failure", e));
     }
