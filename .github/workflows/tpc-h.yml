@@ -118,7 +118,7 @@ jobs:
               run: |
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
-            - name: Show IGinX log
+            - name: Show Old IGinX log
               if: always()
               shell: bash
               run: |
@@ -162,3 +162,9 @@ jobs:
               shell: bash
               run: |
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
+
+            - name: Show New IGinX log
+              if: always()
+              shell: bash
+              run: |
+                cat iginx-*.log
