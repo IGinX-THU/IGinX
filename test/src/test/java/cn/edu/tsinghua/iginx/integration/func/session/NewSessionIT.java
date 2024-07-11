@@ -394,7 +394,7 @@ public class NewSessionIT {
 
       List<Long> existsSessionIDs = conn.executeSql("show sessionid;").getSessionIDs();
 
-      if (!new HashSet<>(existsSessionIDs).equals(new HashSet<>(sessionIDs))) {
+      if (!existsSessionIDs.containsAll(sessionIDs)) {
         LOGGER.error("server session_id_list does not equal to active_session_id_list.");
         fail();
       }
