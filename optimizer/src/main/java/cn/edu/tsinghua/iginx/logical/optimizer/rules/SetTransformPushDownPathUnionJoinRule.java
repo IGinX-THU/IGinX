@@ -11,6 +11,7 @@ import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
+import com.google.auto.service.AutoService;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
@@ -18,17 +19,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@AutoService(Rule.class)
 public class SetTransformPushDownPathUnionJoinRule extends Rule {
-  private static class InstanceHolder {
-    private static final SetTransformPushDownPathUnionJoinRule instance =
-        new SetTransformPushDownPathUnionJoinRule();
-  }
 
-  public static SetTransformPushDownPathUnionJoinRule getInstance() {
-    return InstanceHolder.instance;
-  }
-
-  private SetTransformPushDownPathUnionJoinRule() {
+  public SetTransformPushDownPathUnionJoinRule() {
     /*
      * we want to match the topology like:
      *           SetTransform
