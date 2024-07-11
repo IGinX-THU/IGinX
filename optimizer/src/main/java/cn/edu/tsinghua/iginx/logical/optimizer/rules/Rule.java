@@ -25,6 +25,10 @@ import java.util.Arrays;
 
 public abstract class Rule {
 
+  public static final long DEFAULT_PRIORITY = 0;
+
+  public static final RuleStrategy DEFAULT_STRATEGY = RuleStrategy.FIXED_POINT;
+
   private final String ruleName;
 
   /** operand describes the local topology we want to match in this rule */
@@ -32,15 +36,24 @@ public abstract class Rule {
 
   private final RuleStrategy strategy;
 
+  private final long priority;
+
   protected Rule(String ruleName, Operand operand) {
-    this.ruleName = ruleName;
-    this.operand = operand;
-    this.strategy = RuleStrategy.FIXED_POINT;
+    this(ruleName, operand, DEFAULT_PRIORITY, DEFAULT_STRATEGY);
+  }
+
+  protected Rule(String ruleName, Operand operand, long priority) {
+    this(ruleName, operand, priority, DEFAULT_STRATEGY);
   }
 
   protected Rule(String ruleName, Operand operand, RuleStrategy strategy) {
+    this(ruleName, operand, DEFAULT_PRIORITY, strategy);
+  }
+
+  protected Rule(String ruleName, Operand operand, long priority, RuleStrategy strategy) {
     this.ruleName = ruleName;
     this.operand = operand;
+    this.priority = priority;
     this.strategy = strategy;
   }
 
@@ -54,6 +67,10 @@ public abstract class Rule {
 
   public RuleStrategy getStrategy() {
     return strategy;
+  }
+
+  public long getPriority() {
+    return priority;
   }
 
   /**
@@ -77,5 +94,10 @@ public abstract class Rule {
 
   public static Operand operand(Class<? extends Operator> clazz, Operand... children) {
     return new Operand(clazz, Arrays.asList(children));
+  }
+
+  @Override
+  public String toString() {
+    return ruleName;
   }
 }

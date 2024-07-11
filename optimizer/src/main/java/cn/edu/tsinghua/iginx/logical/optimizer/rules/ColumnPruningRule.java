@@ -40,23 +40,17 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.auto.service.AutoService;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@AutoService(Rule.class)
 public class ColumnPruningRule extends Rule {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ColumnPruningRule.class);
 
-  private static final class InstanceHolder {
-    static final ColumnPruningRule INSTANCE = new ColumnPruningRule();
-  }
-
-  public static ColumnPruningRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected ColumnPruningRule() {
+  public ColumnPruningRule() {
     /*
      * we want to match the topology like:
      *         Any

@@ -214,17 +214,6 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </snapshots>
-            <id>IGinX-Pemja</id>
-            <name>IGinX Pemja GitHub repository</name>
-            <url>https://iginx-thu.github.io/pemjax/maven-repo</url>
-        </repository>
-    </repositories>
     <build>
         <plugins>
             <plugin>

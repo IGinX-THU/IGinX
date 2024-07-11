@@ -1217,7 +1217,7 @@ public class IginxWorker implements IService.Iface {
     try {
       IRuleCollection ruleCollection = getRuleCollection();
       return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
-    } catch (ClassNotFoundException e) {
+    } catch (Throwable e) {
       LOGGER.error("show rules failed: ", e);
       return new ShowRulesResp(RpcUtils.FAILURE, null);
     }
@@ -1229,20 +1229,21 @@ public class IginxWorker implements IService.Iface {
     try {
       getRuleCollection().setRules(rulesChange);
       return RpcUtils.SUCCESS;
-    } catch (ClassNotFoundException e) {
+    } catch (Throwable e) {
       LOGGER.error("set rules failed: ", e);
       return RpcUtils.FAILURE;
     }
   }
 
-  private IRuleCollection getRuleCollection() throws ClassNotFoundException {
+  private IRuleCollection getRuleCollection()
+      throws ClassNotFoundException, NoSuchFieldException, IllegalAccessException {
     // 获取接口的类加载器
     ClassLoader classLoader = IRuleCollection.class.getClassLoader();
     // 加载枚举类
-    Class<?> enumClass =
+    Class<?> ruleCollectionClass =
         classLoader.loadClass("cn.edu.tsinghua.iginx.logical.optimizer.rules.RuleCollection");
-    // 获取枚举实例
-    Object enumInstance = enumClass.getEnumConstants()[0];
+    // get INSTANCE static field
+    Object enumInstance = ruleCollectionClass.getField("INSTANCE").get(null);
 
     // 强制转换为接口类型
     return (IRuleCollection) enumInstance;

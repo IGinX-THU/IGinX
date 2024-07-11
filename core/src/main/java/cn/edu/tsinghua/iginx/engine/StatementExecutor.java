@@ -276,7 +276,7 @@ public class StatementExecutor {
     } catch (SQLParserException | ParseCancellationException e) {
       StatusCode statusCode = StatusCode.STATEMENT_PARSE_ERROR;
       ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
-    } catch (Exception e) {
+    } catch (Throwable e) {
       LOGGER.error("unexpected error: ", e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
       String errMsg =

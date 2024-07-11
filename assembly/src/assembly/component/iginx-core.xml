@@ -37,9 +37,6 @@
                     <fileSet>
                         <directory>${project.build.directory}/iginx-core-${project.version}/lib</directory>
                         <outputDirectory>lib</outputDirectory>
-                        <excludes>
-                            <exclude>iginx-optimizer-*.jar</exclude>
-                        </excludes>
                     </fileSet>
                 </fileSets>
             </sources>
