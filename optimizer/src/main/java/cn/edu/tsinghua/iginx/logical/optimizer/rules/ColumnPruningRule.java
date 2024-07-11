@@ -330,6 +330,23 @@ public class ColumnPruningRule extends Rule {
           leftColumns.addAll(leftOrder);
           rightColumns.addAll(rightOrder);
         }
+      } else if (operator.getType().equals(OperatorType.Join)) {
+        List<String> leftPatterns =
+            OperatorUtils.getPatternFromOperatorChildren(
+                ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator(),
+                new ArrayList<>());
+        List<String> rightPatterns =
+            OperatorUtils.getPatternFromOperatorChildren(
+                ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
+                new ArrayList<>());
+        for (String column : columns) {
+          if (leftPatterns.contains(column)) {
+            leftColumns.add(column);
+          }
+          if (rightPatterns.contains(column)) {
+            rightColumns.add(column);
+          }
+        }
       } else {
         leftColumns.addAll(columns);
         rightColumns.addAll(columns);

@@ -16,15 +16,17 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cn.edu.tsinghua.iginx.integration.func.sql.tpch;
+package cn.edu.tsinghua.iginx.integration.tpch;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static cn.edu.tsinghua.iginx.integration.func.sql.tpch.TPCHRegressionIT.FieldType.DATE;
-import static cn.edu.tsinghua.iginx.integration.func.sql.tpch.TPCHRegressionIT.FieldType.NUM;
-import static cn.edu.tsinghua.iginx.integration.func.sql.tpch.TPCHRegressionIT.FieldType.STR;
+import static cn.edu.tsinghua.iginx.integration.tpch.TPCHRegressionIT.FieldType.DATE;
+import static cn.edu.tsinghua.iginx.integration.tpch.TPCHRegressionIT.FieldType.NUM;
+import static cn.edu.tsinghua.iginx.integration.tpch.TPCHRegressionIT.FieldType.STR;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
+import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import java.io.BufferedReader;
@@ -70,10 +72,10 @@ public class TPCHRegressionIT {
   private static final String udfDir = "src/test/resources/tpch/udf/";
 
   // 最大重复测试次数
-  private static final int MAX_REPETITIONS_NUM = 10;
+  private static int MAX_REPETITIONS_NUM;
 
   // 回归阈值
-  private static final double REGRESSION_THRESHOLD_PERCENTAGE = 0.2;
+  private static double REGRESSION_THRESHOLD;
 
   protected static Session session;
 
@@ -83,7 +85,11 @@ public class TPCHRegressionIT {
     DATE
   }
 
-  public TPCHRegressionIT() {}
+  public TPCHRegressionIT() {
+    ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
+    MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();
+    REGRESSION_THRESHOLD = conf.getRegressionThreshold();
+  }
 
   @BeforeClass
   public static void setUp() throws SessionException {
@@ -305,16 +311,6 @@ public class TPCHRegressionIT {
   @Test
   public void test() {
     try {
-      String s =
-          "explain select o_orderkey, extractYear(o_orderdate) from orders order by o_orderkey limit 10;";
-      SessionExecuteSqlResult res = null;
-      try {
-        res = session.executeSql(s);
-      } catch (SessionException e) {
-        LOGGER.error("Statement: \"{}\" execute fail. Caused by:", s, e);
-        fail();
-      }
-      res.print(false, "");
       // 获取当前JVM的Runtime实例
       Runtime runtime = Runtime.getRuntime();
       // 执行垃圾回收，尽量释放内存
@@ -423,7 +419,7 @@ public class TPCHRegressionIT {
         writeToFile(timeCosts, fileName);
       } else { // 文件存在，即此次跑的是新分支代码，需要读取文件进行比较
         List<Long> oldTimeCosts = readFromFile(fileName);
-        double multiplyPercentage = 1 + REGRESSION_THRESHOLD_PERCENTAGE;
+        double multiplyPercentage = 1 + REGRESSION_THRESHOLD;
         for (int i = 0; i < queryIds.size(); i++) {
           double oldTimeCost = (double) oldTimeCosts.get(i);
           double newTimeCost = 0;
@@ -453,7 +449,7 @@ public class TPCHRegressionIT {
           if (regressionDetected) {
             System.out.printf(
                 "performance degradation of query %d exceeds %f%n",
-                queryIds.get(i), REGRESSION_THRESHOLD_PERCENTAGE);
+                queryIds.get(i), REGRESSION_THRESHOLD);
             System.out.printf("old timing: %.3fms%n", oldTimeCost);
             System.out.printf("new timing: %.3fms%n", newTimeCost);
             LOGGER.error("TPC-H query {} regression test fail.", queryIds.get(i));

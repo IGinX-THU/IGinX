@@ -126,6 +126,14 @@ public class ConfLoader {
     return getTestProperty(DBCE_TEST_WAY, DEFAULT_DBCE_TEST_WAY);
   }
 
+  public int getMaxRepetitionsNum() {
+    return Integer.parseInt(properties.getProperty("max_repetitions_num"));
+  }
+
+  public double getRegressionThreshold() {
+    return Double.parseDouble(properties.getProperty("regression_threshold"));
+  }
+
   public ConfLoader(String confPath) {
     this.confPath = confPath;
     try {
