@@ -22,10 +22,11 @@ import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.IRuleCollection;
 import java.util.*;
+import javax.annotation.Nonnull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class RuleCollection implements IRuleCollection {
+public class RuleCollection implements IRuleCollection, Iterable<Rule> {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(RuleCollection.class);
 
@@ -43,7 +44,7 @@ public class RuleCollection implements IRuleCollection {
   }
 
   private void addRulesBySPI() {
-    if(LOGGER.isDebugEnabled()){
+    if (LOGGER.isDebugEnabled()) {
       ClassLoader cl = Thread.currentThread().getContextClassLoader();
       LOGGER.debug("ClassLoader: {}", cl);
       String path = System.getProperty("java.class.path");
@@ -158,10 +159,17 @@ public class RuleCollection implements IRuleCollection {
     return rulesInfo;
   }
 
+  @Override
+  @Nonnull
   public Iterator<Rule> iterator() {
     // ensure that this round of optimization will not be affected by rule set modifications
     // 确保这一轮优化不会受到规则集修改的影响
-    return new RuleIterator(new ArrayList<>(rules.values()), new HashSet<>(bannedRules.values()));
+    List<Rule> rules = new ArrayList<>(this.rules.values());
+    Set<Rule> bannedRules = new HashSet<>(this.bannedRules.values());
+
+    // sort rules by priority and rule name
+    rules.sort(Comparator.comparingLong(Rule::getPriority).thenComparing(Rule::getRuleName));
+    return new RuleIterator(rules, bannedRules);
   }
 
   static class RuleIterator implements Iterator<Rule> {
