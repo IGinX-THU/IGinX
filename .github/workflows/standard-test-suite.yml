@@ -1,6 +1,6 @@
 name: Standard Test Suite
 
-#on:
+#on:1
 #    pull_request: # when a PR is opened or reopened
 #        types: [opened, reopened]
 #        branches:
