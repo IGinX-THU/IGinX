@@ -1,12 +1,12 @@
 name: Standard Test Suite
 
-on:
-    pull_request: # when a PR is opened or reopened
-        types: [opened, reopened]
-        branches:
-            - main
+#on:
+#    pull_request: # when a PR is opened or reopened
+#        types: [opened, reopened]
+#        branches:
+#            - main
 
-#on: [pull_request]
+on: [pull_request]
 
 concurrency:
     group: "${{ github.workflow }}-${{ github.ref }}"
