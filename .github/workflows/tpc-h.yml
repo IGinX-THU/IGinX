@@ -95,16 +95,16 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
-                  git clone https://github.com/IGinX-THU/IGinX.git
-                  cd IGinX
-                  mvn clean package -DskipTests -P-format -q
+            #                  git clone https://github.com/IGinX-THU/IGinX.git
+            #                  cd IGinX
+            #                  mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+            #                  Set-Filter-Fragment-OFF: "true"
+            #                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Start Old IGinX
               uses: ./.github/actions/iginxRunner
