@@ -35,3 +35,5 @@ jobs:
         uses: ./.github/workflows/remote-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
+    assemebly-test:
+        uses: ./.github/workflows/assembly-test.yml

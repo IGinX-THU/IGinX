@@ -1,3 +1,21 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
@@ -7925,5 +7943,58 @@ public class SQLSessionIT {
             + "+--------------------+-------------+------------------------------------------------------------------+\n"
             + "Total line number = 13\n";
     assertEquals(expect, executor.execute("EXPLAIN " + statement));
+  }
+
+  @Test
+  public void testOuterJoinEliminate() {
+    StringBuilder insert = new StringBuilder();
+    insert.append("INSERT INTO us (key, d2.s1, d2.s2, d3.s1, d3.s2) VALUES ");
+    int rows = 15000;
+    for (int i = 0; i < rows; i++) {
+      insert.append(String.format("(%d, %d, %d, %d, %d)", i, i % 100, i % 150, i % 200, i % 250));
+      if (i != rows - 1) {
+        insert.append(",");
+      }
+    }
+    insert.append(";");
+    executor.execute(insert.toString());
+
+    String openRule = "SET RULES OuterJoinEliminateRule=on;";
+    String closeRule = "SET RULES OuterJoinEliminateRule=off;";
+    String openResult, openExplain, closeResult, closeExplain;
+
+    String statement =
+        "SELECT distinct us.d1.s1, us.d1.s2 FROM us.d1 LEFT JOIN us.d2 ON us.d1.s1 = us.d2.s1;";
+    executor.execute(openRule);
+    openResult = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeResult = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+    assertEquals(openResult, closeResult);
+    assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+
+    statement =
+        "SELECT * FROM us.d1 WHERE s1 IN (SELECT us.d2.s1 FROM us.d2 LEFT JOIN us.d3 ON us.d2.s1 = us.d3.s1);";
+    executor.execute(openRule);
+    openResult = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeResult = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+    assertEquals(openResult, closeResult);
+    assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+
+    statement =
+        "SELECT * FROM us.d1 WHERE EXISTS "
+            + "(SELECT us.d2.s1 FROM us.d2 LEFT JOIN us.d3 ON us.d2.s1 = us.d3.s1);";
+    executor.execute(openRule);
+    openResult = executor.execute(statement);
+    openExplain = executor.execute("EXPLAIN " + statement);
+    executor.execute(closeRule);
+    closeResult = executor.execute(statement);
+    closeExplain = executor.execute("EXPLAIN " + statement);
+    assertEquals(openResult, closeResult);
+    assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
   }
 }

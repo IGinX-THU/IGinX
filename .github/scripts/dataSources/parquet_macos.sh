@@ -1,4 +1,22 @@
 #!/bin/sh
+#
+# IGinX - the polystore system with high performance
+# Copyright (C) Tsinghua University
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+ 
 
 set -e
 
@@ -24,7 +42,7 @@ sed -i "" "s/#thrift_timeout=30000/#thrift_timeout=50000/g" $7
 
 sed -i "" "s/#thrift_pool_max_size=100/#thrift_pool_max_size=2/g" $7
 
-sed -i "" "s/write_buffer_size=104857600/write_buffer_size=1048576/g" $7
+sed -i "" "s/write.buffer.size=104857600/write.buffer.size=1048576/g" $7
 
 if [ "$8" = "etcd" ]; then
   sed -i "" "s/^metaStorage=.*$/metaStorage=etcd/g" $7

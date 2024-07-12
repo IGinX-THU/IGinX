@@ -1,8 +1,27 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
+
 package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
 import cn.edu.tsinghua.iginx.format.parquet.example.ExampleParquetWriter;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
@@ -180,7 +199,7 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     }
   }
 
-  public static final String KEY_FIELD_NAME = "*";
+  public static final String KEY_FIELD_NAME = ColumnKey.KEY.getPath();
 
   private static void flushRows(
       List<String> pathList,

@@ -1,20 +1,19 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage.execute;
 
@@ -25,6 +24,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -35,12 +36,8 @@ import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -158,11 +155,21 @@ public class StoragePhysicalTaskExecutor {
                                       pair.k.isSupportProjectWithSelect()
                                           && operators.size() == 2
                                           && operators.get(1).getType() == OperatorType.Select;
+                                  boolean needSetTransformPushDown =
+                                      operators.size() == 2
+                                          && operators.get(1).getType()
+                                              == OperatorType.SetTransform;
+                                  boolean canSetTransformPushDown =
+                                      needSetTransformPushDown
+                                          && pair.k.isSupportProjectWithSetTransform(
+                                              (SetTransform) operators.get(1), dataArea);
                                   if (isDummyStorageUnit) {
                                     if (needSelectPushDown) {
                                       result =
                                           pair.k.executeProjectDummyWithSelect(
                                               (Project) op, (Select) operators.get(1), dataArea);
+                                    } else if (needSetTransformPushDown) {
+                                      throw new IllegalStateException();
                                     } else {
                                       result = pair.k.executeProjectDummy((Project) op, dataArea);
                                     }
@@ -171,6 +178,36 @@ public class StoragePhysicalTaskExecutor {
                                       result =
                                           pair.k.executeProjectWithSelect(
                                               (Project) op, (Select) operators.get(1), dataArea);
+                                    } else if (needSetTransformPushDown) {
+                                      if (canSetTransformPushDown) {
+                                        result =
+                                            pair.k.executeProjectWithSetTransform(
+                                                (Project) op,
+                                                (SetTransform) operators.get(1),
+                                                dataArea);
+                                      } else {
+                                        TaskExecuteResult tempResult =
+                                            pair.k.executeProject((Project) op, dataArea);
+                                        if (tempResult.getException() != null) {
+                                          result = tempResult;
+                                        } else {
+                                          // set transform push down is not supported, execute set
+                                          // transform in memory
+                                          OperatorMemoryExecutor executor =
+                                              OperatorMemoryExecutorFactory.getInstance()
+                                                  .getMemoryExecutor();
+                                          try {
+                                            RowStream rowStream =
+                                                executor.executeUnaryOperator(
+                                                    (SetTransform) operators.get(1),
+                                                    tempResult.getRowStream(),
+                                                    task.getContext());
+                                            result = new TaskExecuteResult(rowStream);
+                                          } catch (PhysicalException e) {
+                                            result = new TaskExecuteResult(e);
+                                          }
+                                        }
+                                      }
                                     } else {
                                       result = pair.k.executeProject((Project) op, dataArea);
                                     }
