@@ -95,22 +95,25 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
-                  git clone https://github.com/IGinX-THU/IGinX.git
-                  cd IGinX
-                  mvn clean package -DskipTests -P-format -q
+            #                  git clone https://github.com/IGinX-THU/IGinX.git
+            #                  cd IGinX
+            #                  mvn clean package -DskipTests -P-format -q
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+                  Metadata: ${{ matrix.metadata }}
+            #                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Start Old IGinX
               uses: ./.github/actions/iginxRunner
               with:
                   version: ${VERSION}
                   if-test-udf: "true"
+            #                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Run Regression Test on Old IGinX
               if: always()
@@ -149,8 +152,9 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
+                  Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+                  Metadata: ${{ matrix.metadata }}
 
             - name: Start New IGinX
               uses: ./.github/actions/iginxRunner
