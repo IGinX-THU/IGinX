@@ -18,18 +18,34 @@
 
 package cn.edu.tsinghua.iginx.parquet.db;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.google.common.collect.RangeSet;
+import java.io.IOException;
 import java.util.Map;
+import java.util.Set;
+import org.apache.arrow.vector.types.pojo.Field;
 
-public interface Database<K extends Comparable<K>, F, T, V> extends ImmutableDatabase<K, F, T, V> {
+public interface Database extends AutoCloseable {
 
-  void upsertRows(Scanner<K, Scanner<F, V>> scanner, Map<F, T> schema) throws StorageException;
+  Scanner<Long, Scanner<String, Object>> query(
+      Set<Field> fields, RangeSet<Long> ranges, Filter filter) throws StorageException, IOException;
 
-  void upsertColumns(Scanner<F, Scanner<K, V>> scanner, Map<F, T> schema) throws StorageException;
+  Map<String, Long> count(Set<Field> strings)
+      throws InterruptedException, IOException, StorageException;
 
-  void delete(AreaSet<K, F> areas) throws StorageException;
+  Set<Field> schema() throws StorageException;
+
+  void upsertRows(Scanner<Long, Scanner<String, Object>> scanner, Map<String, DataType> schema)
+      throws StorageException, InterruptedException;
+
+  void upsertColumns(Scanner<String, Scanner<Long, Object>> scanner, Map<String, DataType> schema)
+      throws StorageException, InterruptedException;
+
+  void delete(AreaSet<Long, Field> areas) throws StorageException;
 
   void clear() throws StorageException;
 }

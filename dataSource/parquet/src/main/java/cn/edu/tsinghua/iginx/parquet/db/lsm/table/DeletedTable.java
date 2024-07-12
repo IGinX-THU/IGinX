@@ -26,34 +26,28 @@ import cn.edu.tsinghua.iginx.parquet.db.util.iterator.Scanner;
 import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Set;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
-public class DeletedTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
+public class DeletedTable implements Table {
 
-  private final Table<K, F, T, V> table;
+  private final Table table;
 
-  private final AreaSet<K, F> deletedAreaSet;
+  private final AreaSet<Long, String> deleted;
 
-  private final TableMeta<K, F, T, V> meta;
-
-  public DeletedTable(Table<K, F, T, V> table, AreaSet<K, F> deleted) throws IOException {
+  public DeletedTable(Table table, AreaSet<Long, String> deleted) {
     this.table = table;
-    this.deletedAreaSet = deleted;
-    this.meta = new DeletedTableMeta<>(table.getMeta(), deleted);
+    this.deleted = deleted;
   }
 
-  @Nonnull
   @Override
-  public TableMeta<K, F, T, V> getMeta() throws IOException {
-    return meta;
+  public TableMeta getMeta() throws IOException {
+    return new DeletedTableMeta(table.getMeta(), deleted);
   }
 
-  @Nonnull
   @Override
-  public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull RangeSet<K> range, @Nullable Filter predicate)
+  public Scanner<Long, Scanner<String, Object>> scan(
+      Set<String> fields, RangeSet<Long> range, @Nullable Filter superSetPredicate)
       throws IOException {
-    return new AreaFilterScanner<>(table.scan(fields, range, predicate), deletedAreaSet);
+    return new AreaFilterScanner<>(table.scan(fields, range, superSetPredicate), deleted);
   }
 }

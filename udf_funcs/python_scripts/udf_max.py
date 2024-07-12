@@ -25,9 +25,9 @@ class UDFMax:
 
         maxRow = []
         rows = data[2:]
-        for row in list(zip(*rows))[1:]:
+        for col in list(zip(*rows))[1:]:
             max = None
-            for num in row:
+            for num in col:
                 if num is not None:
                     if max is None:
                         max = num

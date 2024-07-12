@@ -26,15 +26,18 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
 import cn.edu.tsinghua.iginx.parquet.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.parquet.exec.RemoteExecutor;
@@ -113,7 +116,12 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        false);
   }
 
   @Override
@@ -125,7 +133,12 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.GE, keyInterval.getStartKey()),
                 new KeyFilter(Op.L, keyInterval.getEndKey())));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        true);
   }
 
   @Override
@@ -144,7 +157,12 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.L, keyInterval.getEndKey()),
                 select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), false);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        false);
   }
 
   @Override
@@ -158,7 +176,57 @@ public class ParquetStorage implements IStorage {
                 new KeyFilter(Op.L, keyInterval.getEndKey()),
                 select.getFilter()));
     return executor.executeProjectTask(
-        project.getPatterns(), project.getTagFilter(), filter, dataArea.getStorageUnit(), true);
+        project.getPatterns(),
+        project.getTagFilter(),
+        filter,
+        null,
+        dataArea.getStorageUnit(),
+        true);
+  }
+
+  @Override
+  public boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
+    // just push down in full column fragment
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    if (keyInterval.getStartKey() > 0 || keyInterval.getEndKey() < Long.MAX_VALUE) {
+      return false;
+    }
+
+    // just push down count(*) for now
+    List<FunctionCall> functionCalls = setTransform.getFunctionCallList();
+    if (functionCalls.size() != 1) {
+      return false;
+    }
+    FunctionCall functionCall = functionCalls.get(0);
+    Function function = functionCall.getFunction();
+    FunctionParams params = functionCall.getParams();
+    if (function.getFunctionType() != FunctionType.System) {
+      return false;
+    }
+    if (!function.getIdentifier().equals("count")) {
+      return false;
+    }
+    if (params.getPaths().size() != 1) {
+      return false;
+    }
+    String path = params.getPaths().get(0);
+    return path.equals("*") || path.equals("*.*");
+  }
+
+  @Override
+  public TaskExecuteResult executeProjectWithSetTransform(
+      Project project, SetTransform setTransform, DataArea dataArea) {
+    if (!isSupportProjectWithSetTransform(setTransform, dataArea)) {
+      throw new IllegalArgumentException("unsupported set transform");
+    }
+
+    return executor.executeProjectTask(
+        project.getPatterns(),
+        project.getTagFilter(),
+        null,
+        setTransform.getFunctionCallList(),
+        dataArea.getStorageUnit(),
+        false);
   }
 
   @Override

@@ -72,3 +72,24 @@ jobs:
                   delete-branch: true
                   commit-message: "chore(repo): update maven repository"
                   title: "chore(repo): update maven repository"
+    upload-session-py:
+        name: Upload Session to PyPI
+        runs-on: ubuntu-latest
+        environment:
+            name: pypi
+            url: https://pypi.org/p/<your-pypi-project-name>
+        permissions:
+            id-token: write
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-python@v2
+              with:
+                  python-version: "3.11"
+            - name: install wheel
+              run: pip install wheel
+            - name: package
+              working-directory: session_py/iginx
+              run: python setup.py sdist bdist_wheel
+            - name: Publish package distributions to PyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
+              working-directory: session_py/iginx

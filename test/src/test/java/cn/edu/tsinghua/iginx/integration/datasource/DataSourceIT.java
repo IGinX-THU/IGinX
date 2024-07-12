@@ -29,10 +29,15 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
+import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
@@ -258,5 +263,42 @@ public class DataSourceIT {
     TaskExecuteResult result = storage.executeProject(project, dataArea);
     checkResult(result);
     checkRowCount(result.getRowStream(), 500000);
+  }
+
+  @Test
+  public void frequentCountAndInsertOverlapData() throws PhysicalException {
+    FragmentSource source = MockClassGenerator.genFragmentSource();
+    DataArea dataArea = MockClassGenerator.genDataArea();
+
+    Project project = new Project(source, Collections.singletonList("*"), null);
+    OperatorSource projectSource = new OperatorSource(project);
+    FunctionParams countParams = new FunctionParams(Collections.singletonList("*"));
+    FunctionCall countCall = new FunctionCall(Count.getInstance(), countParams);
+    SetTransform countOperator =
+        new SetTransform(projectSource, Collections.singletonList(countCall));
+
+    Assume.assumeTrue(storage.isSupportProjectWithSetTransform(countOperator, dataArea));
+
+    for (int seed = 0; seed < 10; seed++) {
+      Random random = new Random(seed);
+      HashSet<Long> keys = new HashSet<>();
+      for (long key = 0; key < 1000; key += 100) {
+        int rows = random.nextInt(150) + 1;
+        for (int i = 0; i < rows; i++) {
+          keys.add(key + i);
+        }
+        insertData(key, rows, "us.d1.s1", "us.d1.s2", "us.d1.s3", "us.d1.s4");
+        TaskExecuteResult result =
+            storage.executeProjectWithSetTransform(project, countOperator, dataArea);
+        checkResult(result);
+        RowStream rowStream = result.getRowStream();
+        Assert.assertTrue(rowStream.hasNext());
+        Row row = rowStream.next();
+        long count = keys.size();
+        Assert.assertArrayEquals(new Object[] {count, count, count, count}, row.getValues());
+        Assert.assertFalse(rowStream.hasNext());
+      }
+      clear();
+    }
   }
 }

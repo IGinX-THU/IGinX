@@ -25,9 +25,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Objects;
-import java.util.Set;
-import javax.annotation.Nonnull;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import shaded.iginx.org.apache.parquet.ParquetReadOptions;
@@ -39,6 +37,7 @@ import shaded.iginx.org.apache.parquet.hadoop.ParquetFileReader;
 import shaded.iginx.org.apache.parquet.hadoop.ParquetRecordReader;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.BlockMetaData;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ColumnChunkMetaData;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ColumnPath;
 import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 import shaded.iginx.org.apache.parquet.io.InputFile;
 import shaded.iginx.org.apache.parquet.io.LocalInputFile;
@@ -67,6 +66,29 @@ public class IParquetReader implements AutoCloseable {
     return new Builder(new LocalInputFile(path));
   }
 
+  public static Map<ColumnPath, Long> getCountsOf(ParquetMetadata meta) {
+    Map<ColumnPath, Long> counts = new HashMap<>();
+    for (BlockMetaData block : meta.getBlocks()) {
+      List<ColumnChunkMetaData> columns = block.getColumns();
+      for (ColumnChunkMetaData column : columns) {
+        ColumnPath path = column.getPath();
+        long count = column.getValueCount();
+        long nulls = column.getStatistics().getNumNulls();
+        long nonNulls = count - nulls;
+        counts.compute(path, (k, v) -> v == null ? nonNulls : v + nonNulls);
+      }
+    }
+    return counts;
+  }
+
+  public static Map<String, String> encodeCounts(Map<String, Long> counts) {
+    Map<String, String> result = new HashMap<>();
+    for (Map.Entry<String, Long> entry : counts.entrySet()) {
+      result.put(entry.getKey(), entry.getValue().toString());
+    }
+    return result;
+  }
+
   public MessageType getSchema() {
     return schema;
   }
@@ -91,24 +113,32 @@ public class IParquetReader implements AutoCloseable {
   }
 
   public long getRowCount() {
+    return getRowCountOf(metadata);
+  }
+
+  public static long getRowCountOf(ParquetMetadata metadata) {
     return metadata.getBlocks().stream().mapToLong(BlockMetaData::getRowCount).sum();
   }
 
   public Range<Long> getRange() {
+    return getRangeOf(metadata);
+  }
+
+  public static Range<Long> getRangeOf(ParquetMetadata metadata) {
     MessageType schema = metadata.getFileMetaData().getSchema();
     if (schema.containsPath(new String[] {Constants.KEY_FIELD_NAME})) {
       Type type = schema.getType(Constants.KEY_FIELD_NAME);
       if (type.isPrimitive()) {
         PrimitiveType primitiveType = type.asPrimitiveType();
         if (primitiveType.getPrimitiveTypeName() == PrimitiveType.PrimitiveTypeName.INT64) {
-          return getKeyRange();
+          return getKeyRangeOf(metadata);
         }
       }
     }
-    return Range.closedOpen(0L, getRowCount());
+    return Range.closedOpen(0L, getRowCountOf(metadata));
   }
 
-  private Range<Long> getKeyRange() {
+  private static Range<Long> getKeyRangeOf(ParquetMetadata metadata) {
     long min = Long.MAX_VALUE;
     long max = Long.MIN_VALUE;
 
@@ -181,7 +211,6 @@ public class IParquetReader implements AutoCloseable {
       return build(footer, optionsBuilder.build());
     }
 
-    @Nonnull
     private IParquetReader build(ParquetMetadata footer, ParquetReadOptions options)
         throws IOException {
       MessageType schema = footer.getFileMetaData().getSchema();

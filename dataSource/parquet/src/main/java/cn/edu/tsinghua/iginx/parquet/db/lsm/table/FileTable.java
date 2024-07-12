@@ -26,35 +26,32 @@ import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.util.Set;
 import java.util.StringJoiner;
-import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileTable<K extends Comparable<K>, F, T, V> implements Table<K, F, T, V> {
+public class FileTable implements Table {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileTable.class);
   private final String tableName;
 
-  private final ReadWriter<K, F, T, V> readWriter;
+  private final ReadWriter readWriter;
 
-  public FileTable(String tableName, ReadWriter<K, F, T, V> readWriter) {
+  public FileTable(String tableName, ReadWriter readWriter) {
     this.tableName = tableName;
     this.readWriter = readWriter;
   }
 
   @Override
-  @Nonnull
-  public TableMeta<K, F, T, V> getMeta() throws IOException {
+  public TableMeta getMeta() throws IOException {
     return readWriter.readMeta(tableName);
   }
 
   @Override
-  @Nonnull
-  public Scanner<K, Scanner<F, V>> scan(
-      @Nonnull Set<F> fields, @Nonnull RangeSet<K> ranges, @Nullable Filter predicate)
+  public Scanner<Long, Scanner<String, Object>> scan(
+      Set<String> fields, RangeSet<Long> ranges, @Nullable Filter superSetPredicate)
       throws IOException {
-    LOGGER.debug("read {} where {} & {} from {}", fields, ranges, predicate, tableName);
-    return readWriter.scanData(tableName, fields, ranges, predicate);
+    LOGGER.debug("read {} where {} & {} from {}", fields, ranges, superSetPredicate, tableName);
+    return readWriter.scanData(tableName, fields, ranges, superSetPredicate);
   }
 
   @Override
