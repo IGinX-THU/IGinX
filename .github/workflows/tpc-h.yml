@@ -103,7 +103,6 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
             #                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
@@ -152,7 +151,6 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
