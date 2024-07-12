@@ -25,7 +25,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
-import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import java.util.List;
 
 public interface Manager extends AutoCloseable {
@@ -36,9 +35,7 @@ public interface Manager extends AutoCloseable {
   void insert(DataView dataView) throws PhysicalException;
 
   void delete(List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter)
-      throws PhysicalException;;
+      throws PhysicalException;
 
   List<Column> getColumns() throws PhysicalException;
-
-  KeyInterval getKeyInterval() throws PhysicalException;
 }

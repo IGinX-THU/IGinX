@@ -189,11 +189,8 @@ public class TombstoneStorage implements Closeable {
 
     private final AreaSet<Long, String> areas;
 
-    private final int weight;
-
     public CachedTombstone(AreaSet<Long, String> areas, int size) {
       this.areas = areas;
-      this.weight = size + 32;
     }
 
     public CachedTombstone(int length) {
@@ -202,11 +199,6 @@ public class TombstoneStorage implements Closeable {
 
     public AreaSet<Long, String> getTombstone() {
       return areas == null ? new AreaSet<>() : areas;
-    }
-
-    @Override
-    public int getWeight() {
-      return weight;
     }
   }
 }
