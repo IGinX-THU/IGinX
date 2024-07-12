@@ -352,6 +352,7 @@
                                 <header>LICENSE_HEADER</header>
                                 <excludes>
                                     <exclude>**/test/resources/**</exclude>
+                                    <exclude>**/requirements.txt</exclude>
                                 </excludes>
                             </licenseSet>
                         </licenseSets>
