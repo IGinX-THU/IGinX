@@ -76,7 +76,6 @@ public class ColumnPruningRule extends Rule {
      大致优化思路是，自顶向下地遍历树，对于每个节点，我们都会收集它的列，然后递归地处理它的子节点。
      对于不同的节点，我们会进行根据列收集进行裁剪或将列加入收集中。
     */
-    LOGGER.debug("ColumnPruningRule on Match!");
     collectColumns(call.getMatchedRoot(), new HashSet<>(), null, new ArrayList<>());
   }
 
@@ -348,9 +347,6 @@ public class ColumnPruningRule extends Rule {
             rightColumns.add(column);
           }
         }
-        LOGGER.debug("columns: {}", columns);
-        LOGGER.debug("leftColumns: {}", leftColumns);
-        LOGGER.debug("rightColumns: {}", rightColumns);
       } else {
         leftColumns.addAll(columns);
         rightColumns.addAll(columns);
