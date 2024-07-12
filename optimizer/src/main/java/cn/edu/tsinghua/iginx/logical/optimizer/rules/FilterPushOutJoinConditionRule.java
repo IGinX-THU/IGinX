@@ -29,8 +29,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.*;
 
+@AutoService(Rule.class)
 public class FilterPushOutJoinConditionRule extends Rule {
   private static final Set<OperatorType> validOps =
       new HashSet<>(
@@ -40,16 +42,7 @@ public class FilterPushOutJoinConditionRule extends Rule {
               OperatorType.MarkJoin,
               OperatorType.SingleJoin));
 
-  private static class FilterPushOutJoinConditionRuleInstance {
-    private static final FilterPushOutJoinConditionRule INSTANCE =
-        new FilterPushOutJoinConditionRule();
-  }
-
-  public static FilterPushOutJoinConditionRule getInstance() {
-    return FilterPushOutJoinConditionRuleInstance.INSTANCE;
-  }
-
-  protected FilterPushOutJoinConditionRule() {
+  public FilterPushOutJoinConditionRule() {
     /*
      * we want to match the topology like:
      *    Inner/Outer/Mark/Single Join

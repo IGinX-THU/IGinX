@@ -17,11 +17,17 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.storage.domain;
 
+import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import java.util.*;
 
 public class ColumnKey {
+  public static final ColumnKey KEY = new ColumnKey(Constants.KEY, Collections.emptyMap());
   private final String path;
   private final SortedMap<String, String> tags;
+
+  public ColumnKey(String path) {
+    this(path, Collections.emptyMap());
+  }
 
   public ColumnKey(String path, Map<String, String> tagList) {
     this.path = Objects.requireNonNull(path);

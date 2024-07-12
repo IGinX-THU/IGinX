@@ -28,9 +28,11 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import com.google.auto.service.AutoService;
 import java.util.*;
 import java.util.stream.Collectors;
 
+@AutoService(Rule.class)
 public class FilterPushDownPathUnionJoinRule extends Rule {
   private static final Set<OperatorType> validOps =
       new HashSet<>(
@@ -46,16 +48,7 @@ public class FilterPushDownPathUnionJoinRule extends Rule {
 
   private static final Map<Select, String> selectMap = new HashMap<>();
 
-  private static class InstanceHolder {
-    private static final FilterPushDownPathUnionJoinRule instance =
-        new FilterPushDownPathUnionJoinRule();
-  }
-
-  public static FilterPushDownPathUnionJoinRule getInstance() {
-    return InstanceHolder.instance;
-  }
-
-  protected FilterPushDownPathUnionJoinRule() {
+  public FilterPushDownPathUnionJoinRule() {
     /*
      * we want to match the topology like:
      *        Select

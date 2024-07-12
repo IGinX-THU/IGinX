@@ -25,17 +25,10 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 
+// @AutoService(Rule.class)
 public class FilterJoinTransposeRule extends Rule {
 
-  private static final class InstanceHolder {
-    static final FilterJoinTransposeRule INSTANCE = new FilterJoinTransposeRule();
-  }
-
-  public static FilterJoinTransposeRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterJoinTransposeRule() {
+  public FilterJoinTransposeRule() {
     /*
      * we want to match the topology like:
      *         Select

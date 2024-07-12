@@ -24,24 +24,18 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 
+@AutoService(Rule.class)
 public class FilterPushDownGroupByRule extends Rule {
   private static List<OperatorType> validOps =
       Arrays.asList(OperatorType.GroupBy, OperatorType.Distinct);
 
-  private static class InstanceHolder {
-    private static final FilterPushDownGroupByRule INSTANCE = new FilterPushDownGroupByRule();
-  }
-
-  public static FilterPushDownGroupByRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterPushDownGroupByRule() {
+  public FilterPushDownGroupByRule() {
     /*
      * we want to match the topology like:
      *         Select

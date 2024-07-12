@@ -175,7 +175,7 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
   private Pair<Map<ColumnsInterval, List<FragmentMeta>>, List<StorageUnitMeta>>
       generateInitialFragmentsAndStorageUnitsByClients(
           List<String> paths, KeyInterval keyInterval) {
-    Map<ColumnsInterval, List<FragmentMeta>> fragmentMap = new HashMap<>();
+    Map<ColumnsInterval, List<FragmentMeta>> fragmentMap = new TreeMap<>();
     List<StorageUnitMeta> storageUnitList = new ArrayList<>();
 
     List<StorageEngineMeta> storageEngineList = iMetaManager.getWritableStorageEngineList();
@@ -183,13 +183,13 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
 
     String[] clients = ConfigDescriptor.getInstance().getConfig().getClients().split(",");
     int instancesNumPerClient =
-        ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient() - 1;
-    int replicaNum =
+        ConfigDescriptor.getInstance().getConfig().getInstancesNumPerClient();
+    int totalReplicaNum =
         Math.min(1 + ConfigDescriptor.getInstance().getConfig().getReplicaNum(), storageEngineNum);
     String[] prefixes = new String[clients.length * instancesNumPerClient];
     for (int i = 0; i < clients.length; i++) {
       for (int j = 0; j < instancesNumPerClient; j++) {
-        prefixes[i * instancesNumPerClient + j] = clients[i] + (j + 2);
+        prefixes[i * instancesNumPerClient + j] = clients[i] + (j + 1);
       }
     }
     Arrays.sort(prefixes);
@@ -197,23 +197,55 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
     List<FragmentMeta> fragmentMetaList;
     String masterId;
     StorageUnitMeta storageUnit;
-    for (int i = 0; i < clients.length * instancesNumPerClient - 1; i++) {
+
+    // (null, prefixes[1])
+    // 包括prefixes[0]
+    fragmentMetaList = new ArrayList<>();
+    masterId = RandomStringUtils.randomAlphanumeric(16);
+    storageUnit = new StorageUnitMeta(masterId, storageEngineList.get(0).getId(), masterId, true);
+    for (int i = 1; i < totalReplicaNum; i++) {
+      storageUnit.addReplica(
+          new StorageUnitMeta(
+              RandomStringUtils.randomAlphanumeric(16),
+              storageEngineList.get(i).getId(),
+              masterId,
+              false));
+    }
+    storageUnitList.add(storageUnit);
+    fragmentMetaList.add(new FragmentMeta(null, prefixes[1], 0, Long.MAX_VALUE, masterId));
+    fragmentMap.put(new ColumnsInterval(null, prefixes[1]), fragmentMetaList);
+
+    for (int i = 1; i < clients.length * instancesNumPerClient - 1; i++) {
+      int masterIndex = i / instancesNumPerClient;
       fragmentMetaList = new ArrayList<>();
       masterId = RandomStringUtils.randomAlphanumeric(16);
+      // TODO 全链路同机
       storageUnit =
-          new StorageUnitMeta(
-              masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId, true);
+          new StorageUnitMeta(masterId, storageEngineList.get(masterIndex).getId(), masterId, true);
+      // TODO Round Robin
+      //      storageUnit =
+      //          new StorageUnitMeta(
+      //              masterId, storageEngineList.get(i % storageEngineNum).getId(), masterId,
+      // true);
       //            storageUnit = new StorageUnitMeta(masterId, getStorageEngineList().get(i *
       // 2 % getStorageEngineList().size()).getId(), masterId, true);
-      for (int j = i + 1; j < i + replicaNum; j++) {
+      for (int j = 1; j < totalReplicaNum; j++) {
+        int replicaIndex = (masterIndex + j) % storageEngineNum;
+        // TODO 全链路同机
         storageUnit.addReplica(
             new StorageUnitMeta(
                 RandomStringUtils.randomAlphanumeric(16),
-                storageEngineList.get(j % storageEngineNum).getId(),
+                storageEngineList.get(replicaIndex).getId(),
                 masterId,
                 false));
-        //                storageUnit.addReplica(new
-        // StorageUnitMeta(RandomStringUtils.randomAlphanumeric(16),
+        // TODO Round Robin
+        //        storageUnit.addReplica(
+        //            new StorageUnitMeta(
+        //                RandomStringUtils.randomAlphanumeric(16),
+        //                storageEngineList.get(j % storageEngineNum).getId(),
+        //                masterId,
+        //                false));
+        //      storageUnit.addReplica(new StorageUnitMeta(RandomStringUtils.randomAlphanumeric(16),
         // getStorageEngineList().get((i * 2 + 1) % getStorageEngineList().size()).getId(),
         // masterId, false));
       }
@@ -223,31 +255,17 @@ public class NaivePolicy extends AbstractPolicy implements IPolicy {
       fragmentMap.put(new ColumnsInterval(prefixes[i], prefixes[i + 1]), fragmentMetaList);
     }
 
-    fragmentMetaList = new ArrayList<>();
-    masterId = RandomStringUtils.randomAlphanumeric(16);
-    storageUnit = new StorageUnitMeta(masterId, storageEngineList.get(0).getId(), masterId, true);
-    for (int i = 1; i < replicaNum; i++) {
-      storageUnit.addReplica(
-          new StorageUnitMeta(
-              RandomStringUtils.randomAlphanumeric(16),
-              storageEngineList.get(i).getId(),
-              masterId,
-              false));
-    }
-    storageUnitList.add(storageUnit);
-    fragmentMetaList.add(new FragmentMeta(null, prefixes[0], 0, Long.MAX_VALUE, masterId));
-    fragmentMap.put(new ColumnsInterval(null, prefixes[0]), fragmentMetaList);
-
+    // [prefixes[clients.length * instancesNumPerClient - 1], null)
     fragmentMetaList = new ArrayList<>();
     masterId = RandomStringUtils.randomAlphanumeric(16);
     storageUnit =
         new StorageUnitMeta(
             masterId, storageEngineList.get(storageEngineNum - 1).getId(), masterId, true);
-    for (int i = 1; i < replicaNum; i++) {
+    for (int i = 1; i < totalReplicaNum; i++) {
       storageUnit.addReplica(
           new StorageUnitMeta(
               RandomStringUtils.randomAlphanumeric(16),
-              storageEngineList.get(storageEngineNum - 1 - i).getId(),
+              storageEngineList.get((storageEngineNum - 1 + i) % storageEngineNum).getId(),
               masterId,
               false));
     }

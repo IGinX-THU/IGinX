@@ -21,22 +21,15 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.*;
 
+@AutoService(Rule.class)
 public class FilterPushIntoJoinConditionRule extends Rule {
   private static final Set<OperatorType> validOps =
       new HashSet<>(Arrays.asList(OperatorType.InnerJoin, OperatorType.CrossJoin));
 
-  private static class FilterPushIntoJoinConditionRuleInstance {
-    private static final FilterPushIntoJoinConditionRule INSTANCE =
-        new FilterPushIntoJoinConditionRule();
-  }
-
-  public static FilterPushIntoJoinConditionRule getInstance() {
-    return FilterPushIntoJoinConditionRuleInstance.INSTANCE;
-  }
-
-  protected FilterPushIntoJoinConditionRule() {
+  public FilterPushIntoJoinConditionRule() {
     /*
      * we want to match the topology like:
      *        Select

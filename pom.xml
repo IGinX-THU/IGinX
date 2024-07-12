@@ -29,6 +29,8 @@
     <name>IGinX</name>
 
     <modules>
+        <!-- dependency module must be the first one -->
+        <module>dependency</module>
         <module>shared</module>
         <module>thrift</module>
         <module>session</module>
@@ -37,7 +39,7 @@
         <module>antlr</module>
         <module>core</module>
         <module>optimizer</module>
-        <module>dataSources</module>
+        <module>dataSource</module>
         <module>example</module>
         <module>test</module>
         <!-- assembly module must be the last one -->
@@ -163,6 +165,41 @@
                 <version>5.8.26</version>
             </dependency>
             <dependency>
+                <groupId>com.google.flatbuffers</groupId>
+                <artifactId>flatbuffers-java</artifactId>
+                <version>23.5.26</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-format</artifactId>
+                <version>17.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-vector</artifactId>
+                <version>17.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-memory-core</artifactId>
+                <version>17.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-memory-netty</artifactId>
+                <version>17.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-memory-netty-buffer-patch</artifactId>
+                <version>17.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.arrow</groupId>
+                <artifactId>arrow-algorithm</artifactId>
+                <version>17.0.0-SNAPSHOT</version>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.commons</groupId>
                 <artifactId>commons-lang3</artifactId>
                 <version>3.14.0</version>
@@ -215,7 +252,7 @@
             <dependency>
                 <groupId>cn.edu.tsinghua.iginx</groupId>
                 <artifactId>parquet-file</artifactId>
-                <version>0.0.2</version>
+                <version>0.1.0</version>
             </dependency>
             <dependency>
                 <groupId>redis.clients</groupId>
@@ -269,6 +306,11 @@
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
                 <version>1.18.20</version>
+            </dependency>
+            <dependency>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>33.2.0-jre</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

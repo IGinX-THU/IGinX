@@ -164,15 +164,35 @@
             <artifactId>hutool-all</artifactId>
         </dependency>
         <dependency>
+            <!-- Arrow dependencies -->
+            <groupId>com.google.flatbuffers</groupId>
+            <artifactId>flatbuffers-java</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-format</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.apache.arrow</groupId>
             <artifactId>arrow-vector</artifactId>
-            <version>7.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-memory-core</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.arrow</groupId>
             <artifactId>arrow-memory-netty</artifactId>
-            <version>7.0.0</version>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-memory-netty-buffer-patch</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.arrow</groupId>
+            <artifactId>arrow-algorithm</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua.iginx</groupId>
@@ -213,17 +233,6 @@
         </dependency>
     </dependencies>
 
-    <repositories>
-        <repository>
-            <snapshots>
-                <enabled>true</enabled>
-                <updatePolicy>always</updatePolicy>
-            </snapshots>
-            <id>IGinX-Pemja</id>
-            <name>IGinX Pemja GitHub repository</name>
-            <url>https://iginx-thu.github.io/pemjax/maven-repo</url>
-        </repository>
-    </repositories>
     <build>
         <plugins>
             <plugin>

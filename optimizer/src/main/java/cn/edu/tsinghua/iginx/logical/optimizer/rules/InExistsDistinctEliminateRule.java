@@ -22,21 +22,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Distinct;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 
 /**
  * 该类实现了Distinct节点的消除。该规则用于消除IN/EXISTS子查询中的DISTINCT节点， 例如SELECT * FROM t1 WHERE EXISTS (SELECT
  * DISTINCT * FROM t2 WHERE t1.a = t2.a)，这里面的DISTINCT节点其实是不必要的。
  */
+@AutoService(Rule.class)
 public class InExistsDistinctEliminateRule extends Rule {
-  private static class InstanceHolder {
-    static final InExistsDistinctEliminateRule INSTANCE = new InExistsDistinctEliminateRule();
-  }
 
-  public static InExistsDistinctEliminateRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected InExistsDistinctEliminateRule() {
+  public InExistsDistinctEliminateRule() {
     /*
      * we want to match the topology like:
      *             MarkJoin

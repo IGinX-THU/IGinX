@@ -64,7 +64,7 @@ public class OperatorUtils {
     return joinOperators(operators, KEY);
   }
 
-  public static Operator joinOperators(List<Operator> operators, String joinBy) {
+  public static Operator joinOperators(List<? extends Operator> operators, String joinBy) {
     if (operators == null || operators.isEmpty()) return null;
     if (operators.size() == 1) return operators.get(0);
     Operator join = operators.get(0);

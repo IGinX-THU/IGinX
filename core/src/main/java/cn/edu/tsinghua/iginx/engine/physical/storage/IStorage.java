@@ -21,10 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -46,6 +43,15 @@ public interface IStorage {
   /** 对叠加分片带谓词下推的查询 */
   TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea);
+
+  default boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
+    return false;
+  }
+
+  default TaskExecuteResult executeProjectWithSetTransform(
+      Project project, SetTransform setTransform, DataArea dataArea) {
+    throw new UnsupportedOperationException();
+  }
 
   /** 对非叠加分片删除数据 */
   TaskExecuteResult executeDelete(Delete delete, DataArea dataArea);

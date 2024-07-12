@@ -24,21 +24,15 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@AutoService(Rule.class)
 public class RowTransformConstantFoldingRule extends Rule {
 
-  private static final class InstanceHolder {
-    static final RowTransformConstantFoldingRule INSTANCE = new RowTransformConstantFoldingRule();
-  }
-
-  public static RowTransformConstantFoldingRule getInstance() {
-    return RowTransformConstantFoldingRule.InstanceHolder.INSTANCE;
-  }
-
-  protected RowTransformConstantFoldingRule() {
+  public RowTransformConstantFoldingRule() {
     /*
      * we want to match the topology like:
      *      RowTransform

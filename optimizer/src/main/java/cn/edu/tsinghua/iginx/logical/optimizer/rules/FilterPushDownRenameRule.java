@@ -24,18 +24,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.Map;
 
+@AutoService(Rule.class)
 public class FilterPushDownRenameRule extends Rule {
-  private static class InstanceHolder {
-    private static final FilterPushDownRenameRule INSTANCE = new FilterPushDownRenameRule();
-  }
 
-  public static FilterPushDownRenameRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterPushDownRenameRule() {
+  public FilterPushDownRenameRule() {
     /*
      * we want to match the topology like:
      *         Select

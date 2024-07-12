@@ -28,25 +28,19 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.google.auto.service.AutoService;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.logging.Logger;
 
+@AutoService(Rule.class)
 public class ConstantPropagationRule extends Rule {
 
   private static final Logger LOGGER = Logger.getLogger(ConstantPropagationRule.class.getName());
 
-  private static final class InstanceHolder {
-    static final ConstantPropagationRule INSTANCE = new ConstantPropagationRule();
-  }
-
-  public static ConstantPropagationRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected ConstantPropagationRule() {
+  public ConstantPropagationRule() {
     /*
      * we want to match the topology like:
      *         SELECT

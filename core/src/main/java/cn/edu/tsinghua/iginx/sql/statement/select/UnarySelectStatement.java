@@ -80,8 +80,7 @@ public class UnarySelectStatement extends SelectStatement {
   }
 
   // aggregate query
-  public UnarySelectStatement(
-      List<String> paths, long startKey, long endKey, AggregateType aggregateType) {
+  public UnarySelectStatement(List<String> paths, AggregateType aggregateType) {
     this(false);
 
     if (aggregateType == AggregateType.LAST || aggregateType == AggregateType.FIRST) {
@@ -99,7 +98,11 @@ public class UnarySelectStatement extends SelectStatement {
         });
 
     setHasFunc(true);
+  }
 
+  public UnarySelectStatement(
+      List<String> paths, long startKey, long endKey, AggregateType aggregateType) {
+    this(paths, aggregateType);
     this.setFromSession(startKey, endKey);
   }
 

@@ -25,22 +25,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.auto.service.AutoService;
 import java.util.*;
 
+@AutoService(Rule.class)
 public class FilterPushDownTransformRule extends Rule {
 
   static final Set<Class> validTransforms =
       new HashSet<>(Arrays.asList(MappingTransform.class, RowTransform.class, SetTransform.class));
 
-  private static class InstanceHolder {
-    private static final FilterPushDownTransformRule INSTANCE = new FilterPushDownTransformRule();
-  }
-
-  public static FilterPushDownTransformRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterPushDownTransformRule() {
+  public FilterPushDownTransformRule() {
     /*
      * we want to match the topology like:
      *         Select

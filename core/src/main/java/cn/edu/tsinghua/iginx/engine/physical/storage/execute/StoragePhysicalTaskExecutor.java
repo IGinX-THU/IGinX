@@ -24,6 +24,8 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.TooManyPhysicalTasksException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.MemoryPhysicalTaskDispatcher;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
@@ -35,12 +37,8 @@ import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -158,11 +156,21 @@ public class StoragePhysicalTaskExecutor {
                                       pair.k.isSupportProjectWithSelect()
                                           && operators.size() == 2
                                           && operators.get(1).getType() == OperatorType.Select;
+                                  boolean needSetTransformPushDown =
+                                      operators.size() == 2
+                                          && operators.get(1).getType()
+                                              == OperatorType.SetTransform;
+                                  boolean canSetTransformPushDown =
+                                      needSetTransformPushDown
+                                          && pair.k.isSupportProjectWithSetTransform(
+                                              (SetTransform) operators.get(1), dataArea);
                                   if (isDummyStorageUnit) {
                                     if (needSelectPushDown) {
                                       result =
                                           pair.k.executeProjectDummyWithSelect(
                                               (Project) op, (Select) operators.get(1), dataArea);
+                                    } else if (needSetTransformPushDown) {
+                                      throw new IllegalStateException();
                                     } else {
                                       result = pair.k.executeProjectDummy((Project) op, dataArea);
                                     }
@@ -171,6 +179,36 @@ public class StoragePhysicalTaskExecutor {
                                       result =
                                           pair.k.executeProjectWithSelect(
                                               (Project) op, (Select) operators.get(1), dataArea);
+                                    } else if (needSetTransformPushDown) {
+                                      if (canSetTransformPushDown) {
+                                        result =
+                                            pair.k.executeProjectWithSetTransform(
+                                                (Project) op,
+                                                (SetTransform) operators.get(1),
+                                                dataArea);
+                                      } else {
+                                        TaskExecuteResult tempResult =
+                                            pair.k.executeProject((Project) op, dataArea);
+                                        if (tempResult.getException() != null) {
+                                          result = tempResult;
+                                        } else {
+                                          // set transform push down is not supported, execute set
+                                          // transform in memory
+                                          OperatorMemoryExecutor executor =
+                                              OperatorMemoryExecutorFactory.getInstance()
+                                                  .getMemoryExecutor();
+                                          try {
+                                            RowStream rowStream =
+                                                executor.executeUnaryOperator(
+                                                    (SetTransform) operators.get(1),
+                                                    tempResult.getRowStream(),
+                                                    task.getContext());
+                                            result = new TaskExecuteResult(rowStream);
+                                          } catch (PhysicalException e) {
+                                            result = new TaskExecuteResult(e);
+                                          }
+                                        }
+                                      }
                                     } else {
                                       result = pair.k.executeProject((Project) op, dataArea);
                                     }
