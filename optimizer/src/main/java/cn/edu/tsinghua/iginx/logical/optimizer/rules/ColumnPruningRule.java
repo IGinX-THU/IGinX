@@ -334,11 +334,17 @@ public class ColumnPruningRule extends Rule {
                 ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
                 new ArrayList<>());
         for (String column : columns) {
-          if (leftPatterns.contains(column)) {
-            leftColumns.add(column);
+          for (String leftPattern : leftPatterns) {
+            if (OperatorUtils.covers(leftPattern, column)) {
+              leftColumns.add(column);
+              break;
+            }
           }
-          if (rightPatterns.contains(column)) {
-            rightColumns.add(column);
+          for (String rightPattern : rightPatterns) {
+            if (OperatorUtils.covers(rightPattern, column)) {
+              rightColumns.add(column);
+              break;
+            }
           }
         }
       } else {
