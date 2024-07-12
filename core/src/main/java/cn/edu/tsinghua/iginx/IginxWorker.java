@@ -1217,7 +1217,7 @@ public class IginxWorker implements IService.Iface {
     try {
       IRuleCollection ruleCollection = getRuleCollection();
       return new ShowRulesResp(RpcUtils.SUCCESS, ruleCollection.getRulesInfo());
-    } catch (Throwable e) {
+    } catch (Exception e) {
       LOGGER.error("show rules failed: ", e);
       return new ShowRulesResp(RpcUtils.FAILURE, null);
     }
@@ -1229,7 +1229,7 @@ public class IginxWorker implements IService.Iface {
     try {
       getRuleCollection().setRules(rulesChange);
       return RpcUtils.SUCCESS;
-    } catch (Throwable e) {
+    } catch (Exception e) {
       LOGGER.error("set rules failed: ", e);
       return RpcUtils.FAILURE;
     }
