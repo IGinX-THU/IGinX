@@ -25,22 +25,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.*;
 
 /** 该类实现了GroupBy节点中函数中的Distinct的消除。该规则用于消除函数中的Distinct，比如在min(distinct a)中的distinct是不必要的。 */
+@AutoService(Rule.class)
 public class FunctionDistinctEliminateRule extends Rule {
 
   private static final Set<String> functionSet = new HashSet<>(Arrays.asList(Min.MIN, Max.MAX));
 
-  private static class InstanceHolder {
-    static final FunctionDistinctEliminateRule INSTANCE = new FunctionDistinctEliminateRule();
-  }
-
-  public static FunctionDistinctEliminateRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FunctionDistinctEliminateRule() {
+  public FunctionDistinctEliminateRule() {
     /*
      * we want to match the topology like:
      *     GroupBy/DownSample/Row/Mapping/SetTransform

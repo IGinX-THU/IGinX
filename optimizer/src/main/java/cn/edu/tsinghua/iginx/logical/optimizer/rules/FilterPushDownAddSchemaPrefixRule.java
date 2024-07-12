@@ -24,19 +24,12 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 
+@AutoService(Rule.class)
 public class FilterPushDownAddSchemaPrefixRule extends Rule {
 
-  private static class InstanceHolder {
-    private static final FilterPushDownAddSchemaPrefixRule INSTANCE =
-        new FilterPushDownAddSchemaPrefixRule();
-  }
-
-  public static FilterPushDownAddSchemaPrefixRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterPushDownAddSchemaPrefixRule() {
+  public FilterPushDownAddSchemaPrefixRule() {
     /*
      * we want to match the topology like:
      *         Select
