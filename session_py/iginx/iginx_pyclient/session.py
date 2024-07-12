@@ -21,12 +21,13 @@ import logging
 import os.path
 from datetime import datetime
 
+import pandas as pd
 from thrift.protocol import TBinaryProtocol
 from thrift.transport import TSocket, TTransport
 from pathlib import Path
 
 from .cluster_info import ClusterInfo
-from .dataset import QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
+from .dataset import column_dataset_from_df, QueryDataSet, AggregateQueryDataSet, StatementExecuteDataSet
 from .thrift.rpc.IService import Client
 from .thrift.rpc.ttypes import (
     OpenSessionReq,
