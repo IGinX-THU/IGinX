@@ -36,6 +36,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.FragmentMeta;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.utils.FragmentUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.google.auto.service.AutoService;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -43,19 +44,12 @@ import java.util.function.Predicate;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@AutoService(Rule.class)
 public class FragmentPruningByFilterRule extends Rule {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FragmentPruningByFilterRule.class);
 
-  private static final class InstanceHolder {
-    static final FragmentPruningByFilterRule INSTANCE = new FragmentPruningByFilterRule();
-  }
-
-  public static FragmentPruningByFilterRule getInstance() {
-    return FragmentPruningByFilterRule.InstanceHolder.INSTANCE;
-  }
-
-  protected FragmentPruningByFilterRule() {
+  public FragmentPruningByFilterRule() {
     /*
      * we want to match the topology like:
      *          Select
