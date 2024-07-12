@@ -22,25 +22,18 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import com.google.auto.service.AutoService;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
+@AutoService(Rule.class)
 public class FilterPushDownProjectReorderSortRule extends Rule {
 
   private static final Set<Class> validOps =
       new HashSet<>(Arrays.asList(Project.class, Reorder.class, Sort.class));
 
-  private static final class InstanceHolder {
-    static final FilterPushDownProjectReorderSortRule INSTANCE =
-        new FilterPushDownProjectReorderSortRule();
-  }
-
-  public static FilterPushDownProjectReorderSortRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected FilterPushDownProjectReorderSortRule() {
+  public FilterPushDownProjectReorderSortRule() {
     /*
      * we want to match the topology like:
      *         Select

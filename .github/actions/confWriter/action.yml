@@ -204,8 +204,3 @@ runs:
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-
-        - name: Copy Optimizer Jar
-          shell: bash
-          run: |
-              cp -f "${{ inputs.Root-Dir-Path }}/optimizer/src/main/resources/iginx-optimizer-${VERSION}.jar" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/lib/"
