@@ -15,6 +15,7 @@
 @REM You should have received a copy of the GNU General Public License
 @REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @REM
+
 @echo off
 start "zookeeper" /d "include/apache-zookeeper/" bin\zkServer.cmd
 echo ZooKeeper is started!

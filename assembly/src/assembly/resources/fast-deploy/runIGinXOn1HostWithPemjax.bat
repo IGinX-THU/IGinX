@@ -15,6 +15,7 @@
 @REM You should have received a copy of the GNU General Public License
 @REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @REM
+
 @echo off
 start pip install pemjax==0.1.0
 echo Pemja is installed!
