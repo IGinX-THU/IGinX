@@ -186,7 +186,7 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public void release() {
     sessionPool.close();
   }
 

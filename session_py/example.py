@@ -18,8 +18,8 @@
 
 import pandas as pd
 
-from iginx_pyclient.session import Session
-from iginx_pyclient.thrift.rpc.ttypes import DataType, AggregateType
+from .session import Session
+from .thrift.rpc.ttypes import DataType, AggregateType
 
 
 if __name__ == '__main__':
