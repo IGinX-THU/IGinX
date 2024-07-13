@@ -40,23 +40,17 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.auto.service.AutoService;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@AutoService(Rule.class)
 public class ColumnPruningRule extends Rule {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ColumnPruningRule.class);
 
-  private static final class InstanceHolder {
-    static final ColumnPruningRule INSTANCE = new ColumnPruningRule();
-  }
-
-  public static ColumnPruningRule getInstance() {
-    return InstanceHolder.INSTANCE;
-  }
-
-  protected ColumnPruningRule() {
+  public ColumnPruningRule() {
     /*
      * we want to match the topology like:
      *         Any
@@ -329,6 +323,29 @@ public class ColumnPruningRule extends Rule {
         } else {
           leftColumns.addAll(leftOrder);
           rightColumns.addAll(rightOrder);
+        }
+      } else if (operator.getType().equals(OperatorType.Join)) {
+        List<String> leftPatterns =
+            OperatorUtils.getPatternFromOperatorChildren(
+                ((OperatorSource) ((BinaryOperator) operator).getSourceA()).getOperator(),
+                new ArrayList<>());
+        List<String> rightPatterns =
+            OperatorUtils.getPatternFromOperatorChildren(
+                ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
+                new ArrayList<>());
+        for (String column : columns) {
+          for (String leftPattern : leftPatterns) {
+            if (OperatorUtils.covers(leftPattern, column)) {
+              leftColumns.add(column);
+              break;
+            }
+          }
+          for (String rightPattern : rightPatterns) {
+            if (OperatorUtils.covers(rightPattern, column)) {
+              rightColumns.add(column);
+              break;
+            }
+          }
         }
       } else {
         leftColumns.addAll(columns);

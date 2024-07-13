@@ -82,7 +82,7 @@ public class RedisStorage implements IStorage {
 
   private static final String DATA_PASSWORD = "dummy_db";
 
-  private static final int DEFAULT_TIMEOUT = 5000;
+  private static final int DEFAULT_TIMEOUT = 10000;
 
   private static final int DEFAULT_DATA_DB = 1;
 
@@ -135,14 +135,8 @@ public class RedisStorage implements IStorage {
   public TaskExecuteResult executeProjectWithSelect(
       Project project, Select select, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    List<String> queryPaths;
-    try {
-      queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
-    } catch (PhysicalException e) {
-      LOGGER.error("encounter error when delete path: ", e);
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
-    }
+    List<String> queryPaths =
+        determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
 
     Filter filter = select.getFilter();
     List<Pair<Long, Long>> keyRanges = FilterUtils.keyRangesFrom(filter);
@@ -192,9 +186,6 @@ public class RedisStorage implements IStorage {
           columns.add(column);
         }
       }
-    } catch (Exception e) {
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute query path task in redis failure", e));
     }
 
     return new TaskExecuteResult(new RedisQueryRowStream(columns, filter), null);
@@ -249,10 +240,6 @@ public class RedisStorage implements IStorage {
             LOGGER.warn("unknown key type, type={}", type);
         }
       }
-    } catch (Exception e) {
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
-              "execute query history task in redis failure", e));
     }
 
     Filter filter = select.getFilter();
@@ -262,14 +249,8 @@ public class RedisStorage implements IStorage {
   @Override
   public TaskExecuteResult executeProject(Project project, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    List<String> queryPaths;
-    try {
-      queryPaths = determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
-    } catch (PhysicalException e) {
-      LOGGER.error("encounter error when delete path: ", e);
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
-    }
+    List<String> queryPaths =
+        determinePathList(storageUnit, project.getPatterns(), project.getTagFilter());
 
     List<cn.edu.tsinghua.iginx.redis.entity.Column> columns = new ArrayList<>();
     try (Jedis jedis = getDataConnection()) {
@@ -290,9 +271,6 @@ public class RedisStorage implements IStorage {
           columns.add(column);
         }
       }
-    } catch (Exception e) {
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute query path task in redis failure", e));
     }
     return new TaskExecuteResult(new RedisQueryRowStream(columns), null);
   }
@@ -345,10 +323,6 @@ public class RedisStorage implements IStorage {
             LOGGER.warn("unknown key type, type={}", type);
         }
       }
-    } catch (Exception e) {
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException(
-              "execute query history task in redis failure", e));
     }
     return new TaskExecuteResult(new RedisQueryRowStream(columns), null);
   }
@@ -356,68 +330,71 @@ public class RedisStorage implements IStorage {
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     String storageUnit = dataArea.getStorageUnit();
-    List<String> deletedPaths;
-    try {
-      deletedPaths = determinePathList(storageUnit, delete.getPatterns(), delete.getTagFilter());
-    } catch (PhysicalException e) {
-      LOGGER.warn("encounter error when delete path: ", e);
-      return new TaskExecuteResult(
-          new PhysicalTaskExecuteFailureException("execute delete path task in redis failure", e));
-    }
+    List<KeyRange> deletedKeyRanges = delete.getKeyRanges();
+    boolean deleteAllColumn =
+        delete.getPatterns().stream().anyMatch(STAR::equals) && delete.getTagFilter() == null;
+    boolean deleteAllRange = delete.getKeyRanges() == null || deletedKeyRanges.isEmpty();
 
-    if (deletedPaths.isEmpty()) {
-      return new TaskExecuteResult(null, null);
-    }
-
-    if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
-      // 没有传任何 time range, 删除全部数据
+    if (deleteAllColumn && deleteAllRange) {
       try (Jedis jedis = getDataConnection()) {
-        int size = deletedPaths.size();
-        String[] deletedPathArray = new String[size * 3];
-        for (int i = 0; i < size; i++) {
-          String path = deletedPaths.get(i);
-          deletedPathArray[i] = String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path);
-          deletedPathArray[i + size] = String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path);
-          deletedPathArray[i + 2 * size] = String.format(KEY_FORMAT_STRING_PATH, storageUnit, path);
-        }
-        jedis.del(deletedPathArray);
-        jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
-      } catch (Exception e) {
-        LOGGER.warn("encounter error when delete path: ", e);
-        return new TaskExecuteResult(
-            new PhysicalException("execute delete path in redis failure", e));
+        jedis.flushDB();
       }
     } else {
-      // 删除指定部分数据
-      try (Jedis jedis = getDataConnection()) {
-        for (String path : deletedPaths) {
-          for (KeyRange keyRange : delete.getKeyRanges()) {
-            byte[] zSetKey =
-                DataCoder.encode(String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path));
-            byte[] beginKeyRange =
-                concat(CLOSED_SIGN, DataCoder.encode(keyRange.getActualBeginKey()));
-            byte[] endKeyRange = concat(CLOSED_SIGN, DataCoder.encode(keyRange.getActualEndKey()));
-
-            List<byte[]> keys = jedis.zrangeByLex(zSetKey, beginKeyRange, endKeyRange);
-            if (!keys.isEmpty()) {
-              byte[] hashKey =
-                  DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path));
-              jedis.hdel(hashKey, keys.toArray(new byte[0][0]));
-              jedis.zremrangeByLex(zSetKey, beginKeyRange, endKeyRange);
-            }
-          }
+      List<String> deletedPaths =
+          determinePathList(storageUnit, delete.getPatterns(), delete.getTagFilter());
+      if (!deletedPaths.isEmpty()) {
+        if (deleteAllRange) {
+          deleteColumns(deletedPaths, storageUnit);
+        } else {
+          deleteColumnsRanges(deletedPaths, deletedKeyRanges, storageUnit);
         }
-      } catch (Exception e) {
-        LOGGER.warn("encounter error when delete path: ", e);
-        return new TaskExecuteResult(
-            new PhysicalException("execute delete data in redis failure", e));
       }
     }
+
     return new TaskExecuteResult(null, null);
   }
 
+  private void deleteColumnsRanges(
+      List<String> deletedPaths, List<KeyRange> deletedKeyRanges, String storageUnit) {
+    // 删除指定部分数据
+    try (Jedis jedis = getDataConnection()) {
+      for (String path : deletedPaths) {
+        for (KeyRange keyRange : deletedKeyRanges) {
+          byte[] zSetKey = DataCoder.encode(String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path));
+          byte[] beginKeyRange =
+              concat(CLOSED_SIGN, DataCoder.encode(keyRange.getActualBeginKey()));
+          byte[] endKeyRange = concat(CLOSED_SIGN, DataCoder.encode(keyRange.getActualEndKey()));
+
+          List<byte[]> keys = jedis.zrangeByLex(zSetKey, beginKeyRange, endKeyRange);
+          if (!keys.isEmpty()) {
+            byte[] hashKey =
+                DataCoder.encode(String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path));
+            jedis.hdel(hashKey, keys.toArray(new byte[0][0]));
+            jedis.zremrangeByLex(zSetKey, beginKeyRange, endKeyRange);
+          }
+        }
+      }
+    }
+  }
+
+  private void deleteColumns(List<String> deletedPaths, String storageUnit) {
+    // 没有传任何 time range, 删除全部数据
+    try (Jedis jedis = getDataConnection()) {
+      int size = deletedPaths.size();
+      String[] deletedPathArray = new String[size * 3];
+      for (int i = 0; i < size; i++) {
+        String path = deletedPaths.get(i);
+        deletedPathArray[i] = String.format(KEY_FORMAT_HASH_VALUES, storageUnit, path);
+        deletedPathArray[i + size] = String.format(KEY_FORMAT_ZSET_KEYS, storageUnit, path);
+        deletedPathArray[i + 2 * size] = String.format(KEY_FORMAT_STRING_PATH, storageUnit, path);
+      }
+      jedis.del(deletedPathArray);
+      jedis.hdel(KEY_DATA_TYPE, deletedPaths.toArray(new String[0]));
+    }
+  }
+
   private List<String> determinePathList(
-      String storageUnit, List<String> patterns, TagFilter tagFilter) throws PhysicalException {
+      String storageUnit, List<String> patterns, TagFilter tagFilter) {
     boolean hasTagFilter = tagFilter != null;
     List<String> paths = new ArrayList<>();
     try (Jedis jedis = getDataConnection()) {
@@ -437,9 +414,6 @@ public class RedisStorage implements IStorage {
               paths.add(path);
             });
       }
-    } catch (Exception e) {
-      LOGGER.error("get du time series error, cause by: ", e);
-      return Collections.emptyList();
     }
     if (!hasTagFilter) {
       return paths;
@@ -477,8 +451,6 @@ public class RedisStorage implements IStorage {
 
         jedis.hset(KEY_DATA_TYPE, path, type);
         jedis.set(String.format(KEY_FORMAT_STRING_PATH, storageUnit, path), EMTPY_STRING);
-      } catch (Exception e) {
-        return new TaskExecuteResult(new PhysicalException("execute insert in redis error", e));
       }
     }
     return new TaskExecuteResult(null, null);
@@ -548,12 +520,8 @@ public class RedisStorage implements IStorage {
     if (prefix != null) {
       columnsInterval = new ColumnsInterval(prefix);
     } else {
-      if (!paths.isEmpty()) {
-        columnsInterval =
-            new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
-      } else {
-        columnsInterval = new ColumnsInterval(null, null);
-      }
+      columnsInterval =
+          new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
     }
     KeyInterval keyInterval = KeyInterval.getDefaultKeyInterval();
     return new Pair<>(columnsInterval, keyInterval);
@@ -564,8 +532,6 @@ public class RedisStorage implements IStorage {
     try (Jedis jedis = jedisPool.getResource()) {
       Set<String> keys = jedis.keys(pattern);
       paths.addAll(keys);
-    } catch (Exception e) {
-      LOGGER.error("get keys error, cause by: ", e);
     }
     return paths;
   }

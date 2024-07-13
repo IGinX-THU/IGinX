@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.function.Function;
-import javax.annotation.Nonnull;
 
 public class SizeUtils {
   private SizeUtils() {}
@@ -37,7 +36,7 @@ public class SizeUtils {
     sizeMap.put(byte[].class, (obj) -> (long) ((byte[]) obj).length);
   }
 
-  public static long sizeOf(@Nonnull Object obj) {
+  public static long sizeOf(Object obj) {
     Function<Object, Long> sizeGetter = sizeMap.get(obj.getClass());
     if (sizeGetter == null) {
       throw new UnsupportedOperationException(obj.getClass() + " is not supported");

@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
-import javax.annotation.Nonnull;
 
 public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> {
 
@@ -33,7 +32,6 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
     this.scannerIterator = iterator;
   }
 
-  @Nonnull
   @Override
   public K key() throws NoSuchElementException {
     if (currentScanner == null) {
@@ -42,7 +40,6 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
     return currentScanner.key();
   }
 
-  @Nonnull
   @Override
   public V value() throws NoSuchElementException {
     if (currentScanner == null) {
@@ -53,16 +50,23 @@ public class ConcatScanner<K extends Comparable<K>, V> implements Scanner<K, V> 
 
   @Override
   public boolean iterate() throws StorageException {
-    if (currentScanner != null && currentScanner.iterate()) {
-      return true;
+    if (currentScanner != null) {
+      if (currentScanner.iterate()) {
+        return true;
+      } else {
+        currentScanner.close();
+        currentScanner = null;
+      }
     }
     while (scannerIterator.hasNext()) {
       currentScanner = scannerIterator.next();
       if (currentScanner.iterate()) {
         return true;
+      } else {
+        currentScanner.close();
+        currentScanner = null;
       }
     }
-    currentScanner = null;
     return false;
   }
 

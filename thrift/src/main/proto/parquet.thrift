@@ -90,12 +90,26 @@ struct RawFilter {
     9: optional RawValue value
 }
 
+struct RawFunction {
+    1: required string id
+}
+
+struct RawFunctionParams {
+    1: required list<string> patterns
+}
+
+struct RawFunctionCall {
+    1: required RawFunction func
+    2: required RawFunctionParams params
+}
+
 struct ProjectReq {
     1: required string storageUnit
     2: required bool isDummyStorageUnit
     3: required list<string> paths
     4: optional RawTagFilter tagFilter
     5: optional RawFilter filter
+    6: optional list<RawFunctionCall> aggregations
 }
 
 struct ParquetHeader {

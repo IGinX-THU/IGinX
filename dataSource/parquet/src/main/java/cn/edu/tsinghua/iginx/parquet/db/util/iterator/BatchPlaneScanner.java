@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.NoSuchElementException;
-import javax.annotation.Nonnull;
 
 public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scanner<F, V>>> {
 
@@ -40,13 +39,11 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
     this.maxBatchSize = maxBatchSize;
   }
 
-  @Nonnull
   @Override
   public Long key() {
     return currentBatchSize;
   }
 
-  @Nonnull
   @Override
   public Scanner<K, Scanner<F, V>> value() throws NoSuchElementException {
     return planeScannerHelper;
@@ -65,13 +62,11 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
 
     private final Scanner<F, V> lineScannerHelper = new LineScannerHelper();
 
-    @Nonnull
     @Override
     public K key() {
       return planeScanner.key();
     }
 
-    @Nonnull
     @Override
     public Scanner<F, V> value() throws NoSuchElementException {
       return lineScannerHelper;
@@ -100,13 +95,11 @@ public class BatchPlaneScanner<K, F, V> implements Scanner<Long, Scanner<K, Scan
 
     private class LineScannerHelper implements Scanner<F, V> {
 
-      @Nonnull
       @Override
       public F key() throws NoSuchElementException {
         return planeScanner.value().key();
       }
 
-      @Nonnull
       @Override
       public V value() throws NoSuchElementException {
         return planeScanner.value().value();

@@ -23,6 +23,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Scheduler;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.Executors;
+import org.ehcache.sizeof.SizeOf;
 
 public class CachePool {
 
@@ -46,6 +47,8 @@ public class CachePool {
   }
 
   public interface Cacheable {
-    int getWeight();
+    default int getWeight() {
+      return Math.toIntExact(SizeOf.newInstance().deepSizeOf(this));
+    }
   }
 }

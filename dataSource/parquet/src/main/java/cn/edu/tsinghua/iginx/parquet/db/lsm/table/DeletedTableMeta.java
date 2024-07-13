@@ -20,54 +20,85 @@ package cn.edu.tsinghua.iginx.parquet.db.lsm.table;
 
 import cn.edu.tsinghua.iginx.parquet.db.lsm.api.TableMeta;
 import cn.edu.tsinghua.iginx.parquet.db.util.AreaSet;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.NoSuchElementException;
+import javax.annotation.Nullable;
 
-public class DeletedTableMeta<K extends Comparable<K>, F, T, V> implements TableMeta<K, F, T, V> {
-  private final Map<F, T> schema;
-  private final Map<F, Range<K>> ranges;
+public class DeletedTableMeta implements TableMeta {
+  private final Map<String, DataType> schema;
+  private final Map<String, Range<Long>> ranges;
+  private final Map<String, Long> counts;
 
-  public DeletedTableMeta(TableMeta<K, F, T, V> tableMeta, AreaSet<K, F> tombstone) {
+  public DeletedTableMeta(TableMeta tableMeta, AreaSet<Long, String> tombstone) {
     this.schema = new HashMap<>(tableMeta.getSchema());
     schema.keySet().removeAll(tombstone.getFields());
-    this.ranges = new HashMap<>();
 
-    Map<F, RangeSet<K>> rangeSetMap = new HashMap<>();
-    for (Map.Entry<F, Range<K>> entry : tableMeta.getRanges().entrySet()) {
-      F field = entry.getKey();
-      Range<K> range = entry.getValue();
+    this.counts = new HashMap<>();
+
+    Map<String, RangeSet<Long>> rangeSetMap = new HashMap<>();
+    for (Map.Entry<String, DataType> entry : schema.entrySet()) {
+      String field = entry.getKey();
+      Range<Long> range = tableMeta.getRange(field);
       rangeSetMap.put(field, TreeRangeSet.create(Collections.singleton(range)));
+      Long count = tableMeta.getValueCount(field);
+      if (count != null) {
+        counts.put(field, count);
+      }
     }
-    rangeSetMap.keySet().removeAll(tombstone.getFields());
-    rangeSetMap.values().forEach(rangeSet -> rangeSet.removeAll(tombstone.getKeys()));
-    for (Map.Entry<F, RangeSet<K>> entry : tombstone.getSegments().entrySet()) {
-      F field = entry.getKey();
-      RangeSet<K> rangeSetDeleted = entry.getValue();
-      RangeSet<K> rangeSet = rangeSetMap.get(field);
+
+    RangeSet<Long> deletedKeys = tombstone.getKeys();
+    if (!deletedKeys.isEmpty()) {
+      counts.clear();
+      rangeSetMap.values().forEach(rangeSet -> rangeSet.removeAll(deletedKeys));
+    }
+
+    for (Map.Entry<String, RangeSet<Long>> entry : tombstone.getSegments().entrySet()) {
+      String field = entry.getKey();
+      RangeSet<Long> rangeSetDeleted = entry.getValue();
+      RangeSet<Long> rangeSet = rangeSetMap.get(field);
       if (rangeSet != null) {
         rangeSet.removeAll(rangeSetDeleted);
       }
+      counts.remove(field);
     }
-    for (Map.Entry<F, RangeSet<K>> entry : rangeSetMap.entrySet()) {
-      F field = entry.getKey();
-      RangeSet<K> rangeSet = entry.getValue();
+
+    this.ranges = new HashMap<>();
+    for (Map.Entry<String, RangeSet<Long>> entry : rangeSetMap.entrySet()) {
+      String field = entry.getKey();
+      RangeSet<Long> rangeSet = entry.getValue();
       if (!rangeSet.isEmpty()) {
         ranges.put(field, rangeSet.span());
+      } else {
+        ranges.put(field, Range.closedOpen(0L, 0L));
       }
     }
   }
 
   @Override
-  public Map<F, T> getSchema() {
+  public Map<String, DataType> getSchema() {
     return schema;
   }
 
   @Override
-  public Map<F, Range<K>> getRanges() {
-    return ranges;
+  public Range<Long> getRange(String field) {
+    if (!schema.containsKey(field)) {
+      throw new NoSuchElementException();
+    }
+    return ranges.get(field);
+  }
+
+  @Override
+  @Nullable
+  public Long getValueCount(String field) {
+    if (!schema.containsKey(field)) {
+      throw new NoSuchElementException();
+    }
+    return counts.get(field);
   }
 }

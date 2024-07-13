@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.ClearEmptyRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.FilterRowStreamWrapper;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -41,6 +42,7 @@ import cn.edu.tsinghua.iginx.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.parquet.util.exception.IsClosedException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.base.Preconditions;
 import com.google.common.collect.Iterables;
 import java.io.File;
 import java.io.IOException;
@@ -54,6 +56,7 @@ import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.slf4j.MDC;
@@ -243,6 +246,24 @@ public class LocalExecutor implements Executor {
   @Override
   public TaskExecuteResult executeProjectTask(
       List<String> paths,
+      @Nullable TagFilter tagFilter,
+      @Nullable Filter filter,
+      @Nullable List<FunctionCall> calls,
+      String storageUnit,
+      boolean isDummyStorageUnit) {
+    if (calls != null) {
+      Preconditions.checkArgument(!calls.isEmpty(), "calls should not be empty");
+      Preconditions.checkArgument(filter == null, "filter should be null");
+      Preconditions.checkArgument(!isDummyStorageUnit, "dummy storage unit not allowed");
+      return executeAggregationTask(paths, tagFilter, calls, storageUnit);
+    } else {
+      Preconditions.checkNotNull(filter, "filter should not be null");
+      return executeProjectTask(paths, tagFilter, filter, storageUnit, isDummyStorageUnit);
+    }
+  }
+
+  private TaskExecuteResult executeProjectTask(
+      List<String> paths,
       TagFilter tagFilter,
       Filter filter,
       String storageUnit,
@@ -257,6 +278,17 @@ public class LocalExecutor implements Executor {
       RowStream rowStream = manager.project(paths, tagFilter, filter);
       rowStream = new ClearEmptyRowStreamWrapper(rowStream);
       rowStream = new FilterRowStreamWrapper(rowStream, filter);
+      return new TaskExecuteResult(rowStream);
+    } catch (PhysicalException e) {
+      return new TaskExecuteResult(e);
+    }
+  }
+
+  private TaskExecuteResult executeAggregationTask(
+      List<String> patterns, TagFilter tagFilter, List<FunctionCall> calls, String storageUnit) {
+    try {
+      Manager manager = getOrCreateManager(storageUnit);
+      RowStream rowStream = ((DataManager) manager).aggregation(patterns, tagFilter, calls);
       return new TaskExecuteResult(rowStream);
     } catch (PhysicalException e) {
       return new TaskExecuteResult(e);
@@ -290,7 +322,8 @@ public class LocalExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
     if (storageUnit.equals("*")) {
       List<Column> columns = new ArrayList<>();
-      for (Manager manager : getAllManagers()) {
+      for (Manager manager :
+          Iterables.concat(managers.values(), Collections.singleton(dummyManager))) {
         columns.addAll(manager.getColumns());
       }
       return columns;
@@ -302,20 +335,8 @@ public class LocalExecutor implements Executor {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
-    List<String> paths = new ArrayList<>();
-    long start = Long.MAX_VALUE, end = Long.MIN_VALUE;
-    for (Manager manager : getAllManagers()) {
-      for (Column column : manager.getColumns()) {
-        paths.add(column.getPath());
-      }
-      KeyInterval interval = manager.getKeyInterval();
-      if (interval.getStartKey() < start) {
-        start = interval.getStartKey();
-      }
-      if (interval.getEndKey() > end) {
-        end = interval.getEndKey();
-      }
-    }
+    List<String> paths =
+        dummyManager.getColumns().stream().map(Column::getPath).collect(Collectors.toList());
     if (dataPrefix != null) {
       paths =
           paths.stream().filter(path -> path.startsWith(dataPrefix)).collect(Collectors.toList());
@@ -324,17 +345,9 @@ public class LocalExecutor implements Executor {
     if (paths.isEmpty()) {
       throw new PhysicalTaskExecuteFailureException("no data");
     }
-    if (start == Long.MAX_VALUE || end == Long.MIN_VALUE) {
-      throw new PhysicalTaskExecuteFailureException("time range error");
-    }
     ColumnsInterval columnsInterval =
         new ColumnsInterval(paths.get(0), StringUtils.nextString(paths.get(paths.size() - 1)));
-    KeyInterval keyInterval = new KeyInterval(start, end);
-    return new Pair<>(columnsInterval, keyInterval);
-  }
-
-  private Iterable<Manager> getAllManagers() {
-    return Iterables.concat(managers.values(), Collections.singleton(dummyManager));
+    return new Pair<>(columnsInterval, KeyInterval.getDefaultKeyInterval());
   }
 
   @Override

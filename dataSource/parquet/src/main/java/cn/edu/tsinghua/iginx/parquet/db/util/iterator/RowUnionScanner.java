@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.parquet.db.util.iterator;
 
 import cn.edu.tsinghua.iginx.parquet.util.exception.StorageException;
 import java.util.*;
-import javax.annotation.Nonnull;
 
 public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K, Scanner<F, V>> {
 
@@ -31,12 +30,26 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
         Comparator.comparing(e -> e.getKey().key());
     this.queue = new PriorityQueue<>(comparing.thenComparing(Map.Entry::getValue));
 
+    StorageException exception = null;
     long i = 0;
     for (Scanner<K, Scanner<F, V>> scanner : scanners) {
       if (scanner.iterate()) {
         queue.add(new AbstractMap.SimpleImmutableEntry<>(scanner, i));
         i++;
+      } else {
+        try {
+          scanner.close();
+        } catch (StorageException e) {
+          if (exception == null) {
+            exception = e;
+          } else {
+            exception.addSuppressed(e);
+          }
+        }
       }
+    }
+    if (exception != null) {
+      throw exception;
     }
   }
 
@@ -44,7 +57,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
 
   private K currentKey = null;
 
-  @Nonnull
   @Override
   public K key() throws NoSuchElementException {
     if (currentKey == null) {
@@ -53,7 +65,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
     return currentKey;
   }
 
-  @Nonnull
   @Override
   public Scanner<F, V> value() throws NoSuchElementException {
     if (currentRow == null) {
@@ -91,7 +102,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
 
           private V value;
 
-          @Nonnull
           @Override
           public F key() throws NoSuchElementException {
             if (key == null) {
@@ -100,7 +110,6 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
             return key;
           }
 
-          @Nonnull
           @Override
           public V value() throws NoSuchElementException {
             if (value == null) {
@@ -130,8 +139,20 @@ public class RowUnionScanner<K extends Comparable<K>, F, V> implements Scanner<K
 
   @Override
   public void close() throws StorageException {
+    StorageException exception = null;
     for (Map.Entry<Scanner<K, Scanner<F, V>>, Long> entry : queue) {
-      entry.getKey().close();
+      try {
+        entry.getKey().close();
+      } catch (StorageException e) {
+        if (exception == null) {
+          exception = e;
+        } else {
+          exception.addSuppressed(e);
+        }
+      }
+    }
+    if (exception != null) {
+      throw exception;
     }
   }
 }
