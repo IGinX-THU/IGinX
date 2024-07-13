@@ -308,12 +308,12 @@ public class TransformIT {
     try {
       String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10s.yaml";
+      // add col0
+      session.executeSql(String.format(insertSQL, "col0"));
       SessionExecuteSqlResult result =
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
       long jobId = result.getJobId();
       try {
-        // add col0
-        session.executeSql(String.format(insertSQL, "col0"));
 
         Thread.sleep(3000L); // sleep 3s to make sure first try is triggered.
         LOGGER.info("Verifying 0th try...");
