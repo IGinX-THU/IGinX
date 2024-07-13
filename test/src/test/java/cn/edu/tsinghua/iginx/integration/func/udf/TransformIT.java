@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static cn.edu.tsinghua.iginx.utils.FileUtils.appendFile;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
@@ -36,21 +37,16 @@ import cn.edu.tsinghua.iginx.utils.JobFromYAML;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import cn.edu.tsinghua.iginx.utils.YAMLReader;
 import cn.edu.tsinghua.iginx.utils.YAMLWriter;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.After;
-import org.junit.AfterClass;
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -215,6 +211,22 @@ public class TransformIT {
     assertTrue(finishedJobIds.contains(jobId));
   }
 
+  private void cancelJob(long jobID) {
+    try {
+      JobState jobState;
+      session.cancelTransformJob(jobID);
+      jobState = session.queryTransformJobStatus(jobID);
+      LOGGER.info("After cancellation, job {} state is {}", jobID, jobState.toString());
+      assertEquals(JobState.JOB_CLOSED, jobState);
+
+      List<Long> closedJobIds = session.showEligibleJob(JobState.JOB_CLOSED);
+      assertTrue(closedJobIds.contains(jobID));
+    } catch (SessionException e) {
+      LOGGER.error("Failed to cancel job: {}", jobID, e);
+      fail();
+    }
+  }
+
   @Test
   public void exportFileWithoutPermissionTest() {
     LOGGER.info("exportFileWithoutPermissionTest");
@@ -273,18 +285,122 @@ public class TransformIT {
   }
 
   @Test
-  public void commitScheduledYamlTest() {
+  public void commitScheduledYamlTestAfter10s() {
     LOGGER.info("commitScheduledYamlTest(after 10s)");
     try {
-      String yamlFileName =
-          OUTPUT_DIR_PREFIX + File.separator + "TransformSingleSqlStatementScheduled.yaml";
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledAfter10s.yaml";
       SessionExecuteSqlResult result =
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
       long jobId = result.getJobId();
       verifyJobState(jobId);
+      // job will finish after 10 second
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
+  public void commitScheduledYamlTestEvery10sAndCancel() {
+    LOGGER.info("commitScheduledYamlTest(every 10s) and cancel");
+    String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_every_10_s.txt";
+    try {
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledEvery10s.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+      try {
+        // add col0
+        session.executeSql(String.format(insertSQL, "col0"));
+
+        Thread.sleep(3000L); // sleep 3s to make sure first try is triggered.
+        LOGGER.info("Verifying 0th try...");
+        fileResultContains(outputFileName, "col0");
+
+        // add col1, col2 and verify res are changed
+        for (int i = 1; i < 3; i++) {
+          session.executeSql(String.format(insertSQL, "col" + i));
+          Thread.sleep(10000L); // sleep 10s to make sure next try is triggered.
+          LOGGER.info("Verifying " + i + "th try...");
+          fileResultContains(outputFileName, "col" + i);
+        }
+      } finally {
+        cancelJob(jobId);
+        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+      }
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } catch (IOException e) {
+      LOGGER.error("Fail to delete result file: {}", outputFileName, e);
+      fail();
+    }
+  }
+
+  @Ignore // this test takes too much time(> 1 minute) because the smallest time unit in cron is
+  // minute. This test has been tested locally before committed
+  @Test
+  public void commitScheduledYamlTestByCronAndCancel() {
+    LOGGER.info("commitScheduledYamlTest(every 1 minute by cron) and cancel");
+    String outputFileName =
+        OUTPUT_DIR_PREFIX + File.separator + "export_file_every_1_minute_cron.txt";
+    try {
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledCron.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+      try {
+        // add col0
+        session.executeSql(String.format(insertSQL, "col0"));
+        Thread.sleep(62000L); // sleep 62s to make sure next try is triggered.
+        LOGGER.info("Verifying 0th try...");
+        fileResultContains(outputFileName, "col0");
+      } finally {
+        cancelJob(jobId);
+        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+      }
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } catch (IOException e) {
+      LOGGER.error("Fail to delete result file: {}", outputFileName, e);
+      fail();
+    }
+  }
+
+  @Test
+  public void commitScheduledYamlTestAt10sFromNow() {
+    LOGGER.info("commitScheduledYamlTest(at 10s from now)");
+    String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_at_10_s.txt";
+    try {
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledAt10sFromNow.yaml";
+
+      LocalDateTime tenSecondsLater = LocalDateTime.now().plusSeconds(10);
+      String formattedDateTime =
+          tenSecondsLater.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+      appendFile(new File(yamlFileName), "\nschedule: \"at '" + formattedDateTime + "'\"");
+
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+      Thread.sleep(2000L); // add new data after 2s, before job is triggered.
+      // add col0
+      session.executeSql(String.format(insertSQL, "col0"));
+
+      Thread.sleep(8000L); // verify result after 10s
+      fileResultContains(outputFileName, "col0");
+
+      verifyJobState(jobId);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    } catch (IOException e) {
+      LOGGER.error("Fail to add schedule line in yaml", e);
       fail();
     }
   }
@@ -754,5 +870,24 @@ public class TransformIT {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
     }
+  }
+
+  // file <filename> contains <content>
+  private void fileResultContains(String filename, String content) {
+    boolean contains = false;
+    try (BufferedReader reader = new BufferedReader(new FileReader(filename))) {
+      String line = reader.readLine();
+      while (line != null) {
+        if (line.contains(content)) {
+          contains = true;
+          break;
+        }
+        line = reader.readLine();
+      }
+    } catch (IOException e) {
+      LOGGER.error("Verify file export result failed.", e);
+      fail();
+    }
+    assertTrue(contains);
   }
 }

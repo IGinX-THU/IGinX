@@ -13,23 +13,24 @@ import org.slf4j.LoggerFactory;
 public class JobScheduleTriggerMaker {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(JobScheduleTriggerMaker.class);
-  private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  private static final SimpleDateFormat DATE_TIME_FORMAT =
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
   private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
   private static final String weekdayRegex =
       "(mon|tue|wed|thu|fri|sat|sun|monday|tuesday|wednesday|thursday|friday|saturday|sunday)";
 
-  private static final Pattern everyPattern = Pattern.compile(
+  private static final Pattern everyPattern =
+      Pattern.compile(
           "(?i)^every\\s+(\\d+)\\s+(second|minute|hour|day|month|year)(?:\\s+starts\\s+'([^']+)')?(?:\\s+ends\\s+'([^']+)')?$");
 
-  private static final Pattern everyWeekdayPattern = Pattern.compile(
-          String.format("(?i)^every ((?:%s,?)+)$", weekdayRegex));
+  private static final Pattern everyWeekdayPattern =
+      Pattern.compile(String.format("(?i)^every ((?:%s,?)+)$", weekdayRegex));
 
-  private static final Pattern afterPattern = Pattern.compile(
-          "(?i)^after\\s+(\\d+)\\s+(second|minute|hour|day|month|year)$");
+  private static final Pattern afterPattern =
+      Pattern.compile("(?i)^after\\s+(\\d+)\\s+(second|minute|hour|day|month|year)$");
 
-  private static final Pattern atPattern = Pattern.compile(
-          "(?i)^at\\s+'((?:\\d{4}-\\d{2}-\\d{2}\\s+)?\\d{2}:\\d{2}:\\d{2})'$"
-  );
+  private static final Pattern atPattern =
+      Pattern.compile("(?i)^at\\s+'((?:\\d{4}-\\d{2}-\\d{2}\\s+)?\\d{2}:\\d{2}:\\d{2})'$");
 
   private static String errMsg;
 
@@ -65,12 +66,10 @@ public class JobScheduleTriggerMaker {
   }
 
   /**
-   * 根据调度字符串生成 Quartz Trigger。调度字符串大致可分为以下四种：
-   * 1. every 3 second/minute/hour/day/month/year 每隔3秒/分/小时/天/月/年执行一次，可以添加开始时间和结束时间，两个时间必须用单引号包围，例如：
-   *    every 10 minute starts '2024-02-03 12:00:00' ends '2024-02-04 12:00:00'
-   * 2. after 3 second/minute/hour/day/month/year 在3秒/分/小时/天/月/年后执行一次;
-   * 3. at (yyyy-MM-dd)? HH:mm:ss 在指定时间执行
-   * 4. (* * * * * *) cron格式的字符串
+   * 根据调度字符串生成 Quartz Trigger。调度字符串大致可分为以下四种： 1. every 3 second/minute/hour/day/month/year
+   * 每隔3秒/分/小时/天/月/年执行一次，可以添加开始时间和结束时间，两个时间必须用单引号包围，例如： every 10 minute starts '2024-02-03 12:00:00'
+   * ends '2024-02-04 12:00:00' 2. after 3 second/minute/hour/day/month/year 在3秒/分/小时/天/月/年后执行一次; 3.
+   * at (yyyy-MM-dd)? HH:mm:ss 在指定时间执行 4. (* * * * * *) cron格式的字符串
    *
    * @param jobSchedule 调度字符串，控制任务执行的时间
    * @return 返回在指定时间触发的Quartz触发器
@@ -106,39 +105,50 @@ public class JobScheduleTriggerMaker {
       int intervalValue = Integer.parseInt(nomalEverymatcher.group(1));
       INTERVAL_ENUM intervalUnit = INTERVAL_ENUM.matcher(nomalEverymatcher.group(2));
       if (intervalUnit == null) {
-        LOGGER.error("Error parsing interval unit {}. Available: second, minute, hour, day.", nomalEverymatcher.group(2));
-        throw new IllegalArgumentException("Error parsing interval unit " + nomalEverymatcher.group(2) + ". Available: second, minute, hour, day.");
+        LOGGER.error(
+            "Error parsing interval unit {}. Available: second, minute, hour, day.",
+            nomalEverymatcher.group(2));
+        throw new IllegalArgumentException(
+            "Error parsing interval unit "
+                + nomalEverymatcher.group(2)
+                + ". Available: second, minute, hour, day.");
       }
       String starts = nomalEverymatcher.group(3);
       String ends = nomalEverymatcher.group(4);
 
       switch (intervalUnit) {
         case SECOND:
-          triggerBuilder.withSchedule(SimpleScheduleBuilder.simpleSchedule()
+          triggerBuilder.withSchedule(
+              SimpleScheduleBuilder.simpleSchedule()
                   .withIntervalInSeconds(intervalValue)
                   .repeatForever());
           break;
         case MINUTE:
-          triggerBuilder.withSchedule(SimpleScheduleBuilder.simpleSchedule()
+          triggerBuilder.withSchedule(
+              SimpleScheduleBuilder.simpleSchedule()
                   .withIntervalInMinutes(intervalValue)
                   .repeatForever());
           break;
         case HOUR:
-          triggerBuilder.withSchedule(SimpleScheduleBuilder.simpleSchedule()
+          triggerBuilder.withSchedule(
+              SimpleScheduleBuilder.simpleSchedule()
                   .withIntervalInHours(intervalValue)
                   .repeatForever());
           break;
         case DAY:
-          triggerBuilder.withSchedule(SimpleScheduleBuilder.simpleSchedule()
+          triggerBuilder.withSchedule(
+              SimpleScheduleBuilder.simpleSchedule()
                   .withIntervalInHours(intervalValue * 24)
                   .repeatForever());
           break;
         case MONTH:
-          triggerBuilder.withSchedule(CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
+          triggerBuilder.withSchedule(
+              CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
                   .withIntervalInMonths(intervalValue));
           break;
         case YEAR:
-          triggerBuilder.withSchedule(CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
+          triggerBuilder.withSchedule(
+              CalendarIntervalScheduleBuilder.calendarIntervalSchedule()
                   .withIntervalInYears(intervalValue));
           break;
       }
@@ -184,7 +194,8 @@ public class JobScheduleTriggerMaker {
         }
       }
     } else {
-      errMsg = String.format("Error parsing schedule string %s. Please refer to manual.", jobSchedule);
+      errMsg =
+          String.format("Error parsing schedule string %s. Please refer to manual.", jobSchedule);
       LOGGER.error(errMsg);
       throw new IllegalArgumentException(errMsg);
     }
@@ -250,33 +261,45 @@ public class JobScheduleTriggerMaker {
       int intervalValue = Integer.parseInt(afterMatcher.group(1));
       INTERVAL_ENUM intervalUnit = INTERVAL_ENUM.matcher(afterMatcher.group(2));
       if (intervalUnit == null) {
-        LOGGER.error("Error parsing interval unit {}. Available: second, minute, hour, day.", afterMatcher.group(2));
-        throw new IllegalArgumentException("Error parsing interval unit " + afterMatcher.group(2) + ". Available: second, minute, hour, day.");
+        LOGGER.error(
+            "Error parsing interval unit {}. Available: second, minute, hour, day.",
+            afterMatcher.group(2));
+        throw new IllegalArgumentException(
+            "Error parsing interval unit "
+                + afterMatcher.group(2)
+                + ". Available: second, minute, hour, day.");
       }
 
       switch (intervalUnit) {
         case SECOND:
-          triggerBuilder.startAt(DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.SECOND));
+          triggerBuilder.startAt(
+              DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.SECOND));
           break;
         case MINUTE:
-          triggerBuilder.startAt(DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.MINUTE));
+          triggerBuilder.startAt(
+              DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.MINUTE));
           break;
         case HOUR:
-          triggerBuilder.startAt(DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.HOUR));
+          triggerBuilder.startAt(
+              DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.HOUR));
           break;
         case DAY:
-          triggerBuilder.startAt(DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.DAY));
+          triggerBuilder.startAt(
+              DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.DAY));
           break;
         case MONTH:
-          triggerBuilder.startAt(DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.MONTH));
+          triggerBuilder.startAt(
+              DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.MONTH));
           break;
         case YEAR:
-          triggerBuilder.startAt(DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.YEAR));
+          triggerBuilder.startAt(
+              DateBuilder.futureDate(intervalValue, DateBuilder.IntervalUnit.YEAR));
           break;
       }
     } else {
       LOGGER.error("Error parsing schedule string {}. Please refer to manual.", jobSchedule);
-      throw new IllegalArgumentException("Error parsing schedule string " + jobSchedule + ". Please refer to manual.");
+      throw new IllegalArgumentException(
+          "Error parsing schedule string " + jobSchedule + ". Please refer to manual.");
     }
     return triggerBuilder.build();
   }
@@ -289,17 +312,18 @@ public class JobScheduleTriggerMaker {
       try {
         Date atDate = parseDate(atTime);
         if (atDate.before(now)) {
-          errMsg = String.format("Trying to trigger a job at %s which is before current time", atTime);
+          errMsg =
+              String.format("Trying to trigger a job at %s which is before current time", atTime);
           LOGGER.error(errMsg);
           throw new IllegalArgumentException(errMsg);
         }
         return TriggerBuilder.newTrigger()
-                .startAt(atDate)
-                .withSchedule(
-                        SimpleScheduleBuilder.simpleSchedule()
-                                .withMisfireHandlingInstructionFireNow()
-                                .withRepeatCount(0))
-                .build();
+            .startAt(atDate)
+            .withSchedule(
+                SimpleScheduleBuilder.simpleSchedule()
+                    .withMisfireHandlingInstructionFireNow()
+                    .withRepeatCount(0))
+            .build();
       } catch (ParseException e) {
         errMsg = String.format("Error parsing time %s. Please refer to manual.", atTime);
         LOGGER.error(errMsg);
@@ -307,10 +331,10 @@ public class JobScheduleTriggerMaker {
       }
     } else {
       LOGGER.error("Error parsing schedule string {}. Please refer to manual.", jobSchedule);
-      throw new IllegalArgumentException("Error parsing schedule string " + jobSchedule + ". Please refer to manual.");
+      throw new IllegalArgumentException(
+          "Error parsing schedule string " + jobSchedule + ". Please refer to manual.");
     }
   }
-
 
   private static Trigger cronTrigger(String jobSchedule) {
     String cronExpression = jobSchedule.substring(1, jobSchedule.length() - 1);
@@ -320,7 +344,10 @@ public class JobScheduleTriggerMaker {
       throw new IllegalArgumentException(errMsg);
     }
     if (!CronExpression.isValidExpression(cronExpression)) {
-      errMsg = String.format("Cron string (%s) is not valid. Please provide a valid corn expression.", cronExpression);
+      errMsg =
+          String.format(
+              "Cron string (%s) is not valid. Please provide a valid cron expression.",
+              cronExpression);
       LOGGER.error(errMsg);
       throw new IllegalArgumentException(errMsg);
     }
@@ -331,6 +358,7 @@ public class JobScheduleTriggerMaker {
 
   /**
    * 解析日期“HH:mm:ss”格式或者"yyyy-MM-dd HH:mm:ss"格式
+   *
    * @param dateString 日期字符串
    * @return 解析得到的Date类型变量
    * @throws ParseException

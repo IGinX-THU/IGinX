@@ -1,26 +1,24 @@
 package cn.edu.tsinghua.iginx.transform;
 
-import cn.edu.tsinghua.iginx.transform.pojo.Job;
+import static org.junit.Assert.*;
+
 import cn.edu.tsinghua.iginx.transform.pojo.JobScheduleTriggerMaker;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
 import org.junit.Test;
-import org.quartz.CalendarIntervalTrigger;
 import org.quartz.CronTrigger;
 import org.quartz.DateBuilder;
 import org.quartz.Trigger;
 import org.quartz.impl.triggers.CalendarIntervalTriggerImpl;
 import org.quartz.impl.triggers.SimpleTriggerImpl;
 
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-
-import static org.junit.Assert.*;
-
 public class TriggerTest {
 
-  private static final SimpleDateFormat DATE_TIME_FORMAT = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+  private static final SimpleDateFormat DATE_TIME_FORMAT =
+      new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
   private static final SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("HH:mm:ss");
 
   private Trigger make(String schedule) {
@@ -62,7 +60,9 @@ public class TriggerTest {
     assertNotNull(trigger);
     assertTrue(trigger instanceof CalendarIntervalTriggerImpl);
     assertEquals(1, ((CalendarIntervalTriggerImpl) trigger).getRepeatInterval());
-    assertEquals(DateBuilder.IntervalUnit.MONTH, ((CalendarIntervalTriggerImpl) trigger).getRepeatIntervalUnit());
+    assertEquals(
+        DateBuilder.IntervalUnit.MONTH,
+        ((CalendarIntervalTriggerImpl) trigger).getRepeatIntervalUnit());
 
     // year
     schedule = "every 1 year";
@@ -70,7 +70,9 @@ public class TriggerTest {
     assertNotNull(trigger);
     assertTrue(trigger instanceof CalendarIntervalTriggerImpl);
     assertEquals(1, ((CalendarIntervalTriggerImpl) trigger).getRepeatInterval());
-    assertEquals(DateBuilder.IntervalUnit.YEAR, ((CalendarIntervalTriggerImpl) trigger).getRepeatIntervalUnit());
+    assertEquals(
+        DateBuilder.IntervalUnit.YEAR,
+        ((CalendarIntervalTriggerImpl) trigger).getRepeatIntervalUnit());
   }
 
   @Test
@@ -94,7 +96,8 @@ public class TriggerTest {
     Calendar now = Calendar.getInstance();
     String today = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
 
-    // wait till next day if startTime-3s is before current time, -3s to make sure we have enough time
+    // wait till next day if startTime-3s is before current time, -3s to make sure we have enough
+    // time
     // +5 to make sure it's next day
     if (now.after(DATE_TIME_FORMAT.parse(today + " " + "23:59:50"))) {
       long toNextDay = 24 * 60 * 60 * 1000 - now.getTimeInMillis() + 5;
@@ -113,7 +116,7 @@ public class TriggerTest {
   }
 
   @Test
-  public void testEveryTriggerWithStartDateTimeBounds() throws ParseException, InterruptedException {
+  public void testEveryTriggerWithStartDateTimeBound() throws ParseException, InterruptedException {
     // with date
     String schedule = "every 10 minute starts '2099-02-03 12:00:00'";
     Date expectedStartTime = DATE_TIME_FORMAT.parse("2099-02-03 12:00:00");
@@ -145,7 +148,7 @@ public class TriggerTest {
   }
 
   @Test
-  public void testEveryTriggerWithEndDateTimeBounds() throws ParseException, InterruptedException {
+  public void testEveryTriggerWithEndDateTimeBound() throws ParseException, InterruptedException {
     // with date
     String schedule = "every 10 minute ends '2099-02-03 12:00:00'";
     Date expectedEndTime = DATE_TIME_FORMAT.parse("2099-02-03 12:00:00");
@@ -162,8 +165,9 @@ public class TriggerTest {
     // Allow a tolerance of 1000 milliseconds, 500 would fail
     long tolerance = 1000L;
 
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - currentTime) <= tolerance);
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - currentTime) <= tolerance);
 
     // no date, may need to wait till next day
     schedule = "every 5 second ends '23:59:57'";
@@ -185,13 +189,14 @@ public class TriggerTest {
     currentTime = System.currentTimeMillis();
     triggerStartTime = trigger.getStartTime().getTime();
 
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - currentTime) <= tolerance);
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - currentTime) <= tolerance);
   }
 
   @Test
   public void testAfterTrigger() {
-    //second
+    // second
     String schedule = "after 3 second";
     long currentTime = System.currentTimeMillis();
     Trigger trigger = make(schedule);
@@ -202,9 +207,9 @@ public class TriggerTest {
 
     // Allow a tolerance of 1000 milliseconds
     long tolerance = 1000L;
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
-
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
 
     // minute
     schedule = "after 3 minute";
@@ -214,8 +219,9 @@ public class TriggerTest {
     assertTrue(trigger instanceof SimpleTriggerImpl);
     triggerStartTime = trigger.getStartTime().getTime();
     expectedStartTime = currentTime + 3 * 60 * 1000L;
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
 
     // hour
     schedule = "after 3 hour";
@@ -225,8 +231,9 @@ public class TriggerTest {
     assertTrue(trigger instanceof SimpleTriggerImpl);
     triggerStartTime = trigger.getStartTime().getTime();
     expectedStartTime = currentTime + 3 * 60 * 60 * 1000L;
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
 
     // day
     schedule = "after 3 day";
@@ -236,8 +243,9 @@ public class TriggerTest {
     assertTrue(trigger instanceof SimpleTriggerImpl);
     triggerStartTime = trigger.getStartTime().getTime();
     expectedStartTime = currentTime + 3 * 60 * 60 * 24 * 1000L;
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
 
     // month
     schedule = "after 3 month";
@@ -258,8 +266,9 @@ public class TriggerTest {
     expectedStartCalendar.set(Calendar.SECOND, currentSecond);
     expectedStartTime = expectedStartCalendar.getTimeInMillis();
     triggerStartTime = trigger.getStartTime().getTime();
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
 
     // year
     schedule = "after 3 year";
@@ -280,8 +289,9 @@ public class TriggerTest {
     expectedStartCalendar.set(Calendar.SECOND, currentSecond);
     expectedStartTime = expectedStartCalendar.getTimeInMillis();
     triggerStartTime = trigger.getStartTime().getTime();
-    assertTrue("The trigger start time is not within the expected tolerance range.",
-            Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
+    assertTrue(
+        "The trigger start time is not within the expected tolerance range.",
+        Math.abs(triggerStartTime - expectedStartTime) <= tolerance);
   }
 
   @Test
@@ -293,7 +303,6 @@ public class TriggerTest {
     assertNotNull(trigger);
     assertTrue(trigger instanceof SimpleTriggerImpl);
     assertEquals(atDate, trigger.getStartTime());
-
 
     // no date, may need to wait till next day
     schedule = "at '23:59:57'";

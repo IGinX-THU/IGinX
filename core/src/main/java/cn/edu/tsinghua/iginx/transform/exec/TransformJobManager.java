@@ -108,19 +108,9 @@ public class TransformJobManager {
       runner.start();
       jobRunnerMap.put(job.getJobId(), runner);
       runner.run();
-      if (!runner.scheduled()) // only remove jobs that are not scheduled
-      jobRunnerMap.remove(job.getJobId()); // since we will retry, we can't do this in finally
     } catch (Exception e) {
       LOGGER.error("Fail to process transform job id={}, because", job.getJobId(), e);
       throw e;
-    } finally {
-      // TODO: is it legal to retry after runner.close()???
-      // TODO:
-      // we don't need to close runner for FINISHED or FAILED jobs
-      // can we move runner.close() into catch clause?
-
-      // do not close runner immediately if it's scheduled.
-      if (!runner.scheduled()) runner.close();
     }
     // TODO: should we set end time and log time cost for failed jobs?
     if (!runner.scheduled()) {
@@ -153,22 +143,22 @@ public class TransformJobManager {
     switch (job.getState()) { // won't be null
       case JOB_RUNNING:
       case JOB_CREATED:
-        break; // continue execution
+        // atomic guard
+        if (!job.getActive().compareAndSet(true, false)) {
+          return false;
+        }
+      case JOB_IDLE:
+        // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
+        job.setState(JobState.JOB_CLOSING);
+        runner.close();
+        job.setState(JobState.JOB_CLOSED);
+        jobRunnerMap.remove(jobId);
+        job.setEndTime(System.currentTimeMillis());
+        LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
+        return true;
       default:
         return false;
     }
-    // atomic guard
-    if (!job.getActive().compareAndSet(true, false)) {
-      return false;
-    }
-    // reorder as Normal run: [set-ING,] close, set-ED, remove[, set end time, log time cost].
-    job.setState(JobState.JOB_CLOSING);
-    runner.close();
-    job.setState(JobState.JOB_CLOSED);
-    jobRunnerMap.remove(jobId);
-    job.setEndTime(System.currentTimeMillis());
-    LOGGER.info("Job id={} cost {} ms.", job.getJobId(), job.getEndTime() - job.getStartTime());
-    return true;
   }
 
   public void removeFinishedScheduleJob(long jobID) throws TransformException {
@@ -180,15 +170,13 @@ public class TransformJobManager {
     if (runner == null) {
       throw new TransformException("No job runner with id: " + jobID + " exists.");
     }
-    if (job.isScheduled() && job.getState() == JobState.JOB_FINISHED) {
+    if (job.getState() == JobState.JOB_FINISHED) {
       jobRunnerMap.remove(jobID);
+      runner.close();
       return;
     }
     throw new TransformException(
-        "Job with id: "
-            + jobID
-            + " is not scheduled or is not finished. Current state: "
-            + job.getState());
+        "Job with id: " + jobID + "did not finish correctly. Current state: " + job.getState());
   }
 
   public JobState queryJobState(long jobId) {
