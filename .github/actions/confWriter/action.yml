@@ -37,53 +37,59 @@ runs:
           name: save config for FileSystem and Parquet
           shell: bash
           run: |
-              cp -f "${{ inputs.Root-Dir-Path }}/conf/config.properties" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties"
+              cd ${{ inputs.Root-Dir-Path }}
+              cp -f "conf/config.properties" "core/target/iginx-core-${VERSION}/conf/config.properties"
 
         - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
           name: save config for FileSystem and Parquet
           shell: bash
           run: |
-              cp -f "${{ inputs.Root-Dir-Path }}/conf/config.properties" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties"
+              cd ${{ inputs.Root-Dir-Path }}
+              cp -f "conf/config.properties" "core/target/iginx-core-${VERSION}/conf/config.properties"
 
         - name: Set if-CapExp
           shell: bash
           run: |
-              echo "${{ inputs.if-CapExp }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/isScaling.txt
+              cd ${{ inputs.Root-Dir-Path }}
+              echo "${{ inputs.if-CapExp }}" > test/src/test/resources/isScaling.txt
 
         - if: inputs.if-CapExp=='true'
           name: Change has_data
           shell: bash
           run: |
-              echo "${{ inputs.Test-Way }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/dbce-test-way.txt 
+              cd ${{ inputs.Root-Dir-Path }}
+              echo "${{ inputs.Test-Way }}" > test/src/test/resources/dbce-test-way.txt 
               if [[ "${{ inputs.Test-Way }}" == "oriHasDataExpHasData" || "${{ inputs.Test-Way }}" == "oriHasDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=false/has_data=true/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sed -i "s/has_data=false/has_data=true/g" core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=false/has_data=true/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sed -i "" "s/has_data=false/has_data=true/" core/target/iginx-core-${VERSION}/conf/config.properties
                 fi
               elif [[ "${{ inputs.Test-Way }}" == "oriNoDataExpHasData" || "${{ inputs.Test-Way }}" == "oriNoDataExpNoData" ]]; then
                 if [[ "$RUNNER_OS" == "Linux" || "$RUNNER_OS" == "Windows" ]]; then
-                  sed -i "s/has_data=true/has_data=false/g" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sed -i "s/has_data=true/has_data=false/g" core/target/iginx-core-${VERSION}/conf/config.properties
                 elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sed -i "" "s/has_data=true/has_data=false/" ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sed -i "" "s/has_data=true/has_data=false/" core/target/iginx-core-${VERSION}/conf/config.properties
                 fi
               fi
 
         - name: Set DB-name
           shell: bash
           run: |
-              echo "${{ inputs.DB-name }}" > ${{ inputs.Root-Dir-Path }}/test/src/test/resources/DBName.txt
+              cd ${{ inputs.Root-Dir-Path }}
+              echo "${{ inputs.DB-name }}" > test/src/test/resources/DBName.txt
 
         - name: Change UDF conf
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/pythonCMD=python3/pythonCMD=python/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -93,12 +99,13 @@ runs:
           name: Change is_read_only
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/is_read_only=false/is_read_only=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/is_read_only=false/is_read_only=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/is_read_only=false/is_read_only=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/is_read_only=false/is_read_only=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/is_read_only=false/is_read_only=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/is_read_only=false/is_read_only=true/' core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -107,21 +114,22 @@ runs:
           name: Change push_down
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/enablePushDown=false/enablePushDown=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/enablePushDown=false/enablePushDown=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i '' 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/enablePushDown=false/enablePushDown=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/FilterPushDownAddSchemaPrefixRule=off,FilterPushDownAddSchemaPrefixRule=off/FilterPushDownAddSchemaPrefixRule=on,FilterPushDownAddSchemaPrefixRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/FilterPushDownPathUnionJoinRule=off,FilterPushDownProjectReorderSortRule=off,FilterPushDownRenameRule=off,FilterPushDownSelectRule=off/FilterPushDownPathUnionJoinRule=on,FilterPushDownProjectReorderSortRule=on,FilterPushDownRenameRule=on,FilterPushDownSelectRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i '' 's/FilterPushDownSetOpRule=off,FilterPushDownTransformRule=off,FilterPushIntoJoinConditionRule=off,FilterPushOutJoinConditionRule=off,FilterPushDownGroupByRule=off/FilterPushDownSetOpRule=on,FilterPushDownTransformRule=on,FilterPushIntoJoinConditionRule=on,FilterPushOutJoinConditionRule=on,FilterPushDownGroupByRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -130,12 +138,13 @@ runs:
           name: Change KeyRangeTestPolicy
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sudo sed -i '' 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i '' 's/policyClassName=cn.edu.tsinghua.iginx.policy.naive.NaivePolicy/policyClassName=cn.edu.tsinghua.iginx.policy.test.KeyRangeTestPolicy/g' core/target/iginx-core-${VERSION}/conf/config.properties
               else
                   echo "$RUNNER_OS is not supported"
                   exit 1
@@ -144,12 +153,13 @@ runs:
           name: Set FragmentPruningByFilterRule OFF
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                  sudo sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                  sudo sed -i '' 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                  sudo sed -i '' 's/ruleBasedOptimizer=NotFilterRemoveRule=on,FragmentPruningByFilterRule=on/ruleBasedOptimizer=NotFilterRemoveRule=on/g' core/target/iginx-core-${VERSION}/conf/config.properties
               else
                   echo "$RUNNER_OS is not supported"
                   exit 1
@@ -157,12 +167,13 @@ runs:
         - name: Change Log conf
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+                sudo sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' core/target/iginx-core-${VERSION}/conf/log4j2.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+                sed -i 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' core/target/iginx-core-${VERSION}/conf/log4j2.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/log4j2.properties
+                sudo sed -i '' 's/^logger.iginx.level=.*$/logger.iginx.level=debug/g' core/target/iginx-core-${VERSION}/conf/log4j2.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -170,15 +181,16 @@ runs:
         - name: Change File Permission
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-                sudo sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' core/target/iginx-core-${VERSION}/conf/file-permission.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-                sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sed -i 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sed -i 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' core/target/iginx-core-${VERSION}/conf/file-permission.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
-                sudo sed -i '' 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i '' 's/^default.transformerRule.include=.*$/default.transformerRule.include=glob:**.denied/g' core/target/iginx-core-${VERSION}/conf/file-permission.properties
+                sudo sed -i '' 's/^default.transformerRule.write=.*$/default.transformerRule.write=false/g' core/target/iginx-core-${VERSION}/conf/file-permission.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
@@ -188,18 +200,19 @@ runs:
           name: Change metadata to ETCD
           shell: bash
           run: |
+              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/^metaStorage=.*$/metaStorage=etcd/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/^#etcdEndpoints=/etcdEndpoints=/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/^metaStorage=.*$/metaStorage=etcd/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' 's/^zookeeperConnectionString=$/#zookeeperConnectionString=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sudo sed -i '' 's/^#etcdEndpoints=/etcdEndpoints=/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/^metaStorage=.*$/metaStorage=etcd/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/^zookeeperConnectionString=$/#zookeeperConnectionString=/g' core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/^#etcdEndpoints=/etcdEndpoints=/g' core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1

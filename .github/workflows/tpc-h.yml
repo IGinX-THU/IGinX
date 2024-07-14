@@ -91,13 +91,12 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            - name: Get Old Version
+            - name: Get Old Version IGinX and Install
               shell: bash
               run: |
+                  git clone https://github.com/IGinX-THU/IGinX.git
+                  cd IGinX
                   mvn clean package -DskipTests -P-format -q
-            #                  git clone https://github.com/IGinX-THU/IGinX.git
-            #                  cd IGinX
-            #                  mvn clean package -DskipTests -P-format -q
 
             - name: Change Old IGinX config
               uses: ./.github/actions/confWriter
@@ -105,24 +104,25 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
-            #                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Start Old IGinX
               uses: ./.github/actions/iginxRunner
-            #              with:
-            #                Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+              with:
+                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Run Regression Test on Old IGinX
               if: always()
               shell: bash
               run: |
+                  cd IGinX
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
             - name: Show Old IGinX log
               if: always()
               shell: bash
               run: |
-                  cat iginx-*.log
+                  cat IGinX/iginx-*.log
 
             - name: Stop ZooKeeper
               uses: ./.github/actions/zookeeperRunner
@@ -134,6 +134,7 @@ jobs:
               with:
                   version: ${VERSION}
                   if-stop: "true"
+                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Rerun ZooKeeper
               uses: ./.github/actions/zookeeperRunner
