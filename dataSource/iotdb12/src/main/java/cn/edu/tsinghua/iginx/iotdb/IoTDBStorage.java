@@ -38,7 +38,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBException;
 import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBTaskExecuteFailureException;
@@ -46,12 +52,22 @@ import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.iotdb.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.iotdb.tools.TagKVUtils;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -117,7 +133,7 @@ public class IoTDBStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     if (!testConnection()) {
-      throw new StorageInitializationException("cannot connect to " + meta.toString());
+      throw new StorageInitializationException("cannot connect to " + meta);
     }
     sessionPool = createSessionPool();
   }
@@ -345,8 +361,7 @@ public class IoTDBStorage implements IStorage {
         builder.append(',');
       }
       String statement =
-          String.format(
-              QUERY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), storageUnit);
+          String.format(QUERY_DATA, builder.deleteCharAt(builder.length() - 1), storageUnit);
 
       String filterStr = getFilterString(filter, storageUnit);
       if (!filterStr.isEmpty()) {
@@ -402,7 +417,7 @@ public class IoTDBStorage implements IStorage {
         builder.append(',');
       }
       String statement =
-          String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1).toString());
+          String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1));
 
       String filterStr = getFilterString(filter, "");
       if (!filterStr.isEmpty()) {

@@ -18,7 +18,17 @@
 package cn.edu.tsinghua.iginx.relational;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.ADD_COLUMN_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.BATCH_SIZE;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.CREATE_DATABASE_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.DATABASE_PREFIX;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.DROP_COLUMN_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.KEY_NAME;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.PASSWORD;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.QUERY_STATEMENT_WITHOUT_KEYNAME;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.TAGKV_SEPARATOR;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.USERNAME;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.classMap;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
 
@@ -41,7 +51,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -61,8 +80,19 @@ import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -1588,8 +1618,7 @@ public class RelationalStorage implements IStorage {
           for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
             String oldColumnNames = oldTableNameToColumnNames.get(entry.getKey());
             if (oldColumnNames != null) {
-              List<String> oldColumnNameList =
-                  Arrays.asList((oldColumnNames + ", " + entry.getValue()).split(", "));
+              String[] oldColumnNameList = (oldColumnNames + ", " + entry.getValue()).split(", ");
               // 对list去重
               List<String> newColumnNameList = new ArrayList<>();
               for (String columnName : oldColumnNameList) {

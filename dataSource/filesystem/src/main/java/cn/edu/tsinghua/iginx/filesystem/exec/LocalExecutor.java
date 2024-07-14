@@ -70,9 +70,9 @@ public class LocalExecutor implements Executor {
 
   private String prefix;
 
-  private boolean hasData;
+  private final boolean hasData;
 
-  private FileSystemManager fileSystemManager;
+  private final FileSystemManager fileSystemManager;
 
   public LocalExecutor(boolean isReadOnly, boolean hasData, Map<String, String> extraParams) {
     String dir = extraParams.get(Constant.INIT_INFO_DIR);
@@ -383,8 +383,7 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
-      throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix) {
     KeyInterval keyInterval = KeyInterval.getDefaultKeyInterval();
     ColumnsInterval columnsInterval;
 

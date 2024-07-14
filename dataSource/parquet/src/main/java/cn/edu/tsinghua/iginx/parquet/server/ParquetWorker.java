@@ -24,25 +24,55 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.write.*;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.ColumnDataView;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.WithoutTagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.exec.Executor;
-import cn.edu.tsinghua.iginx.parquet.thrift.*;
+import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
+import cn.edu.tsinghua.iginx.parquet.thrift.GetColumnsOfStorageUnitResp;
+import cn.edu.tsinghua.iginx.parquet.thrift.GetStorageBoundaryResp;
+import cn.edu.tsinghua.iginx.parquet.thrift.InsertReq;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetHeader;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetKeyRange;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRawData;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRow;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService;
+import cn.edu.tsinghua.iginx.parquet.thrift.ProjectReq;
+import cn.edu.tsinghua.iginx.parquet.thrift.ProjectResp;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawFunction;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawFunctionCall;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawFunctionParams;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawTagFilter;
+import cn.edu.tsinghua.iginx.parquet.thrift.Status;
+import cn.edu.tsinghua.iginx.parquet.thrift.TS;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -69,7 +99,7 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   @Override
-  public ProjectResp executeProject(ProjectReq req) throws TException {
+  public ProjectResp executeProject(ProjectReq req) {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
     List<FunctionCall> calls = null;
@@ -152,7 +182,7 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   @Override
-  public Status executeInsert(InsertReq req) throws TException {
+  public Status executeInsert(InsertReq req) {
     ParquetRawData parquetRawData = req.getRawData();
     RawDataType rawDataType = strToRawDataType(parquetRawData.getRawDataType());
     if (rawDataType == null) {
@@ -223,7 +253,7 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   @Override
-  public Status executeDelete(DeleteReq req) throws TException {
+  public Status executeDelete(DeleteReq req) {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
     // null timeRanges means delete columns
@@ -302,7 +332,7 @@ public class ParquetWorker implements ParquetService.Iface {
 
   @Override
   public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(
-      String storageUnit, Set<String> pattern, RawTagFilter tagFilter) throws TException {
+      String storageUnit, Set<String> pattern, RawTagFilter tagFilter) {
     List<TS> ret = new ArrayList<>();
     try {
       List<Column> tsList =
@@ -325,7 +355,7 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   @Override
-  public GetStorageBoundaryResp getBoundaryOfStorage(String dataPrefix) throws TException {
+  public GetStorageBoundaryResp getBoundaryOfStorage(String dataPrefix) {
     try {
       Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage(dataPrefix);
       GetStorageBoundaryResp resp = new GetStorageBoundaryResp(SUCCESS);

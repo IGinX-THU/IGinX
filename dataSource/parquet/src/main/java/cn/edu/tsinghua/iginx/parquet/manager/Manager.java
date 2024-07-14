@@ -38,5 +38,4 @@ public interface Manager extends AutoCloseable {
       throws PhysicalException;
 
   List<Column> getColumns(List<String> paths, TagFilter tagFilter) throws PhysicalException;
-
 }

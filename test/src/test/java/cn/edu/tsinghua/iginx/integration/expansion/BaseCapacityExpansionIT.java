@@ -21,7 +21,9 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -111,7 +113,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(
             String.format(", dir:%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", iginx_port:" + oriPortIginx);
+        statement.append(", iginx_port:").append(oriPortIginx);
       }
       if (extraParams != null) {
         statement.append(", ");
@@ -170,8 +172,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void addStorageEngineInProgress(
-      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
-      throws InterruptedException {
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     if (IS_PARQUET_OR_FILE_SYSTEM) {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
@@ -181,7 +182,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() throws InterruptedException, SessionException {
+  public void oriHasDataExpHasData() throws InterruptedException {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -773,8 +774,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)
-      throws InterruptedException {
+  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly) {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;

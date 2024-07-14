@@ -36,12 +36,23 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
-import cn.edu.tsinghua.iginx.redis.tools.*;
+import cn.edu.tsinghua.iginx.redis.tools.DataCoder;
+import cn.edu.tsinghua.iginx.redis.tools.DataTransformer;
+import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
+import cn.edu.tsinghua.iginx.redis.tools.FilterUtils;
+import cn.edu.tsinghua.iginx.redis.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -560,7 +571,7 @@ public class RedisStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public void release() {
     jedisPool.close();
   }
 }

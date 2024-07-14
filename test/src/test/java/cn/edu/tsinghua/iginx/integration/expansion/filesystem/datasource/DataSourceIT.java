@@ -16,7 +16,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem.datasource;
 
 import static org.junit.Assert.assertNull;

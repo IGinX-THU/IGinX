@@ -49,7 +49,11 @@ import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.nio.channels.FileLock;
 import java.nio.channels.OverlappingFileLockException;
-import java.nio.file.*;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -328,7 +332,8 @@ public class LocalExecutor implements Executor {
     }
     if (storageUnit.equals("*")) {
       List<Column> columns = new ArrayList<>();
-      for (Manager manager : Iterables.concat(managers.values(), Collections.singleton(dummyManager))) {
+      for (Manager manager :
+          Iterables.concat(managers.values(), Collections.singleton(dummyManager))) {
         columns.addAll(manager.getColumns(patternList, tagFilter));
       }
       return columns;
@@ -341,7 +346,9 @@ public class LocalExecutor implements Executor {
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException {
     List<String> paths =
-        dummyManager.getColumns().stream().map(Column::getPath).collect(Collectors.toList());
+        dummyManager.getColumns(Collections.singletonList("*"), null).stream()
+            .map(Column::getPath)
+            .collect(Collectors.toList());
     if (dataPrefix != null) {
       paths =
           paths.stream().filter(path -> path.startsWith(dataPrefix)).collect(Collectors.toList());
