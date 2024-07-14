@@ -93,16 +93,10 @@ jobs:
               shell: bash
               run: |
                   git clone https://github.com/IGinX-THU/IGinX.git
-                  ls "tpc/TPC-H V3.0.1/data"
-                  echo ' '
-                  ls IGinX
-                  echo ' '
                   mkdir IGinX/tpc
-                  ls IGinX
-                  echo ' '
-                  ls IGinX/tpc
-                  echo ' '
-                  cp -r tpc/ IGinX/tpc/
+                  mkdir "IGinX/tpc/TPC-H V3.0.1"
+                  mkdir "IGinX/tpc/TPC-H V3.0.1/data"
+                  cp -r "tpc/TPC-H V3.0.1/data" "IGinX/tpc/TPC-H V3.0.1/data"
                   ls "IGinX/tpc/TPC-H V3.0.1/data"
 
             - name: Rewrite DB Conf in Old IGinX
