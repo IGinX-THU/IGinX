@@ -121,9 +121,16 @@ jobs:
                   Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Start Old IGinX
-              uses: ./.github/actions/iginxRunner
-              with:
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+              if: always()
+              shell: bash
+              run: |
+                cd IGinX/core/target/iginx-core-${VERSION}
+                pwd
+                export IGINX_HOME=$PWD
+                echo "IGinX home path: $IGINX_HOME"
+                cd ..
+                chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
+                nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
 
             - name: Run Regression Test on Old IGinX
               if: always()
