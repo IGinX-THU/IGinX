@@ -111,7 +111,6 @@ jobs:
             - name: Start Old IGinX
               uses: ./.github/actions/iginxRunner
               with:
-                  if-test-udf: "true"
                   Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Run Regression Test on Old IGinX
