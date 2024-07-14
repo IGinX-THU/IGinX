@@ -75,11 +75,11 @@ jobs:
                     systeminfo | findstr /C:"Total Physical Memory"
                   fi
 
-            - name: Generate TPC-H Data
+            - name: Download TPC-H Data
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
