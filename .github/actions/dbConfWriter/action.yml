@@ -141,7 +141,7 @@ runs:
         - if: inputs.DB-name == 'MySQL'
           id: mysql-properties
           name: Get MySQL Properties Path
-          working-directory: ${{ github.workspace }}
+          working-directory: ${{ inputs.Root-Dir-Path }}
           shell: bash
           run: |
               CONFIG_PATH="${PWD}/dataSource/relational/src/main/resources/mysql-meta-template.properties"
@@ -154,5 +154,5 @@ runs:
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
-              paths: conf/config.properties
+              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
               statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g
