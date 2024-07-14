@@ -17,4 +17,4 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
  
-docker build --file Dockerfile-iginx -t iginx:0.7.0 ../..
+docker build --file Dockerfile-iginx -t iginx:0.8.0-SNAPSHOT ../..

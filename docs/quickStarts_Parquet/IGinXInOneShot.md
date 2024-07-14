@@ -247,7 +247,7 @@ $ mvn clean install -DskipTests
 <dependency>
   	<groupId>cn.edu.tsinghua</groupId>
   	<artifactId>iginx-core</artifactId>
-  	<version>0.7.0</version>
+  	<version>0.8.0-SNAPSHOT</version>
 </dependency>
 ```
 
