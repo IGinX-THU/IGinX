@@ -94,7 +94,7 @@ jobs:
               run: |
                   git clone https://github.com/IGinX-THU/IGinX.git
                   mkdir IGinX/tpc
-                  cp -r tpc/* IGinX/tpc/
+                  cp -r tpc IGinX/tpc/
 
             - name: Rewrite DB Conf in Old IGinX
               uses: ./.github/actions/dbConfWriter
