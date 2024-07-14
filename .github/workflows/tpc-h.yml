@@ -81,10 +81,8 @@ jobs:
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
                   "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
 
-            - name: Run Metadata
-              uses: ./.github/actions/metadataRunner
-              with:
-                  metadata: ${{ matrix.metadata }}
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
@@ -108,9 +106,7 @@ jobs:
               shell: bash
               run: |
                   cd IGinX
-                  cat conf/config.properties
                   mvn clean package -DskipTests -P-format -q
-                  cat core/target/iginx-core-0.8.0-SNAPSHOT/conf/config.properties
 
             - name: Change Old IGinX config
               uses: ./.github/actions/confWriter
@@ -118,7 +114,7 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+                  Root-Dir-Path: "IGinX"
 
             - name: Start Old IGinX
               if: always()
@@ -165,6 +161,7 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
+                  cp IGinX/test/src/test/resources/tpch/oldTimeCosts.txt test/src/test/resources/tpch/
 
             - name: Change New IGinX config
               uses: ./.github/actions/confWriter

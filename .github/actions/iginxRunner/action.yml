@@ -9,10 +9,7 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
-    Root-Dir-Path:
-        description: "the path of IGinX root directory"
-        required: false
-        default: "${GITHUB_WORKSPACE}"
+
 runs:
     using: "composite" # Mandatory parameter
     steps:
@@ -21,37 +18,37 @@ runs:
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
-                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
-                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sed -i 's/pythonCMD=python3/pythonCMD=python/g' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
+                sudo sed -i '' 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/' ${GITHUB_WORKSPACE}/core/target/iginx-core-${VERSION}/conf/config.properties
               else
                 echo "$RUNNER_OS is not supported"
                 exit 1
               fi
-              chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_udf_path.sh"
-              "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_udf_path.sh" ${VERSION}
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_udf_path.sh" ${VERSION}
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='false'
           name: Start IGinX
           shell: bash
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
-                chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx.sh"
-                "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx.sh" 6888 6666
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx.sh" 6888 6666
               elif [ "$RUNNER_OS" == "Windows" ]; then
-                chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_windows.sh"
-                "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_windows.sh" 6888 6666
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_windows.sh" 6888 6666
               elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_macos.sh"
-                "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_macos.sh" 6888 6666
+                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh"
+                "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_macos.sh" 6888 6666
               fi
 
         - if: inputs.if-test-udf=='false' && inputs.if-stop=='true'
           name: Stop IGinX
           shell: bash
           run: |
-              chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_kill.sh"
-              "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_kill.sh"
+              chmod +x "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_kill.sh"
+              "${GITHUB_WORKSPACE}/.github/scripts/iginx/iginx_kill.sh"
