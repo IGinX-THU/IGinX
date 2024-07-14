@@ -180,7 +180,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 [INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.7.0:
+[INFO] Reactor Summary for IGinX 0.8.0-SNAPSHOT:
 [INFO]
 [INFO] IGinX .............................................. SUCCESS [ 20.674 s]
 [INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
@@ -257,7 +257,7 @@ Starting zookeeper ... STARTED
 
 ```shell
 $ cd ~
-$ cd IGinX/core/target/iginx-core-0.7.0
+$ cd IGinX/core/target/iginx-core-0.8.0-SNAPSHOT
 $ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
 $ ./sbin/start_iginx.sh
 ```
@@ -440,7 +440,7 @@ $ mvn clean install -DskipTests
 <dependency>
   	<groupId>cn.edu.tsinghua</groupId>
   	<artifactId>iginx-core</artifactId>
-  	<version>0.7.0</version>
+  	<version>0.8.0-SNAPSHOT</version>
 </dependency>
 ```
 
