@@ -192,7 +192,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(header, rows);
   }
 
-  private RowStream executeProject(Project project, Table table) throws PhysicalException {
+  private RowStream executeProject(Project project, Table table) {
     List<String> patterns = project.getPatterns();
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
@@ -244,7 +244,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return table;
   }
 
-  private RowStream executeLimit(Limit limit, Table table) throws PhysicalException {
+  private RowStream executeLimit(Limit limit, Table table) {
     int rowSize = table.getRowSize();
     Header header = table.getHeader();
     List<Row> rows = new ArrayList<>();
@@ -370,8 +370,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.joinMultipleTablesByKey(tableList);
   }
 
-  private RowStream executeRowTransform(RowTransform rowTransform, Table table)
-      throws PhysicalException {
+  private RowStream executeRowTransform(RowTransform rowTransform, Table table) {
     List<Pair<RowMappingFunction, FunctionParams>> list = new ArrayList<>();
     rowTransform
         .getFunctionCallList()
@@ -473,7 +472,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.calMappingTransform(table, functionCallList);
   }
 
-  private RowStream executeRename(Rename rename, Table table) throws PhysicalException {
+  private RowStream executeRename(Rename rename, Table table) {
     Header header = table.getHeader();
     Map<String, String> aliasMap = rename.getAliasMap();
 
@@ -495,8 +494,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(newHeader, rows);
   }
 
-  private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, Table table)
-      throws PhysicalException {
+  private RowStream executeAddSchemaPrefix(AddSchemaPrefix addSchemaPrefix, Table table) {
     Header header = table.getHeader();
     String schemaPrefix = addSchemaPrefix.getSchemaPrefix();
 
@@ -635,7 +633,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       // 检查时间戳
       if (!headerA.hasKey() || !headerB.hasKey()) {
         throw new InvalidOperatorParameterException(
-            "row streams for join operator by time should have timestamp.");
+            "row streams for join operator by key should have key.");
       }
       List<Field> newFields = new ArrayList<>();
       newFields.addAll(headerA.getFields());
@@ -731,8 +729,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     }
   }
 
-  private RowStream executeCrossJoin(CrossJoin crossJoin, Table tableA, Table tableB)
-      throws PhysicalException {
+  private RowStream executeCrossJoin(CrossJoin crossJoin, Table tableA, Table tableB) {
     Header newHeader =
         HeaderUtils.constructNewHead(
             tableA.getHeader(), tableB.getHeader(), crossJoin.getPrefixA(), crossJoin.getPrefixB());

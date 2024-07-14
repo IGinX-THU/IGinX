@@ -15,6 +15,7 @@
 @REM You should have received a copy of the GNU General Public License
 @REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @REM
+
 @echo off
 cd /d %~dp0
 setlocal EnableDelayedExpansion
@@ -179,7 +180,7 @@ if "!network!" neq "null" (
 
 set "configFileConfig=-v !localConfigFile!:/iginx/conf "
 @REM 
-set command=docker run --name="%name%" !network!!localIPConfig!!configFileConfig!--privileged -dit -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.7.0-SNAPSHOT
+set command=docker run --name="%name%" !network!!localIPConfig!!configFileConfig!--privileged -dit -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.8.0-SNAPSHOT
 echo %command%
 %command%
 
