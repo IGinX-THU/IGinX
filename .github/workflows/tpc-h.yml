@@ -91,12 +91,22 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            - name: Get Old Version IGinX and Install
+            - name: Get Old Version IGinX and Copy TPC-H Data
               shell: bash
               run: |
                   git clone https://github.com/IGinX-THU/IGinX.git
                   mkdir IGinX/tpc
                   cp -r tpc/* IGinX/tpc/
+
+            - name: Rewrite DB Conf in Old IGinX
+              uses: ./.github/actions/dbConfWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+
+            - name: Install Old IGinX with Maven
+              shell: bash
+              run: |
                   cd IGinX
                   mvn clean package -DskipTests -P-format -q
 
@@ -109,16 +119,9 @@ jobs:
                   Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Start Old IGinX
-              if: always()
-              shell: bash
-              run: |
-                  cd IGinX/core/target/iginx-core-${VERSION}
-                  pwd
-                  export IGINX_HOME=$PWD
-                  echo "IGinX home path: $IGINX_HOME"
-                  cd ..
-                  chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
-                  nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
+              uses: ./.github/actions/iginxRunner
+              with:
+                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Run Regression Test on Old IGinX
               if: always()
