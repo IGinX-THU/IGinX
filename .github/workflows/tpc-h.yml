@@ -95,7 +95,15 @@ jobs:
               shell: bash
               run: |
                   git clone https://github.com/IGinX-THU/IGinX.git
+                  mkdir IGinX/tpc
+                  cp -r tpc/* IGinX/tpc/
                   cd IGinX
+                  ls
+                  cd "tpc/TPC-H V3.0.1/data"
+                  ls
+                  cd ..
+                  cd ..
+                  cd ..
                   mvn clean package -DskipTests -P-format -q
 
             - name: Change Old IGinX config
