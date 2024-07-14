@@ -40,7 +40,7 @@ runs:
           run: |
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx.sh"
-                "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx.sh" 6888 6666 ${VERSION}
+                "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx.sh" 6888 6666
               elif [ "$RUNNER_OS" == "Windows" ]; then
                 chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_windows.sh"
                 "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_windows.sh" 6888 6666
