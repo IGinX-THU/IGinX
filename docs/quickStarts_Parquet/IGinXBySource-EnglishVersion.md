@@ -168,7 +168,7 @@ The following words are displayed, indicating that the IGinX build is successful
 
 ```shell
 [INFO] ------------------------------------------------------------------------
-[INFO] Reactor Summary for IGinX 0.6.0-SNAPSHOT:
+[INFO] Reactor Summary for IGinX 0.7.0:
 [INFO]
 [INFO] IGinX .............................................. SUCCESS [ 20.674 s]
 [INFO] IGinX Thrift ....................................... SUCCESS [01:18 min]
@@ -417,7 +417,7 @@ Specifically, when using it, you only need to introduce the following dependenci
 <dependency>
     <groupId>cn.edu.tsinghua</groupId>
     <artifactId>iginx-core</artifactId>
-    <version>0.6.0-SNAPSHOT</version>
+    <version>0.7.0</version>
 </dependency>
 ```
 
