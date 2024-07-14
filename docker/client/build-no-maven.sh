@@ -17,4 +17,4 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
  
-docker build --file Dockerfile-no-maven -t iginx-client:0.7.0-SNAPSHOT ../../client
+docker build --file Dockerfile-no-maven -t iginx-client:0.7.0 ../../client

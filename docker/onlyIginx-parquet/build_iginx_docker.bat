@@ -16,4 +16,4 @@
 @REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @REM
 
-docker build --file Dockerfile-iginx -t iginx:0.7.0-SNAPSHOT ../..
+docker build --file Dockerfile-iginx -t iginx:0.7.0 ../..
