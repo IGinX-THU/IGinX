@@ -108,7 +108,9 @@ jobs:
               shell: bash
               run: |
                   cd IGinX
+                  cat conf/config.properties
                   mvn clean package -DskipTests -P-format -q
+                  cat core/target/iginx-core-0.8.0-SNAPSHOT/conf/config.properties
 
             - name: Change Old IGinX config
               uses: ./.github/actions/confWriter
