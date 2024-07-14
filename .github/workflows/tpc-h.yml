@@ -93,6 +93,8 @@ jobs:
               shell: bash
               run: |
                   git clone https://github.com/IGinX-THU/IGinX.git
+                  ls "tpc/TPC-H V3.0.1/data"
+                  echo ' '
                   ls IGinX
                   echo ' '
                   mkdir IGinX/tpc
