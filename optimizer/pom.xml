@@ -101,7 +101,7 @@
                                         <include name="iginx-optimizer-${project.version}.jar"/>
                                     </fileset>
                                     <fileset dir="../dependency/src/main/resources/">
-                                        <include name="iginx-optimizer-extension-${project.version}.jar"/>
+                                        <include name="iginx-optimizer-extension-*.jar"/>
                                     </fileset>
                                 </copy>
                             </target>
