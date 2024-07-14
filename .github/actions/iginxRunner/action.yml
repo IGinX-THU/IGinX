@@ -20,7 +20,6 @@ runs:
           name: Test UDF Path
           shell: bash
           run: |
-              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' ${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
@@ -39,7 +38,6 @@ runs:
           name: Start IGinX
           shell: bash
           run: |
-              cd ${{ inputs.Root-Dir-Path }}
               if [ "$RUNNER_OS" == "Linux" ]; then
                 chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx.sh"
                 "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx.sh" 6888 6666
@@ -55,6 +53,5 @@ runs:
           name: Stop IGinX
           shell: bash
           run: |
-              cd ${{ inputs.Root-Dir-Path }}
               chmod +x "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_kill.sh"
               "${{ inputs.Root-Dir-Path }}/.github/scripts/iginx/iginx_kill.sh"

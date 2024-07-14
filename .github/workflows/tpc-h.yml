@@ -113,7 +113,9 @@ jobs:
               shell: bash
               run: |
                   cd IGinX/core/target/iginx-core-${VERSION}
+                  pwd
                   export IGINX_HOME=$PWD
+                  echo "IGinX home path: $IGINX_HOME"
                   cd ..
                   chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
                   nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
@@ -141,7 +143,6 @@ jobs:
               with:
                   version: ${VERSION}
                   if-stop: "true"
-                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
 
             - name: Rerun ZooKeeper
               uses: ./.github/actions/zookeeperRunner
