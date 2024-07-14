@@ -38,6 +38,8 @@ runs:
           shell: bash
           run: |
               cd ${{ inputs.Root-Dir-Path }}
+              pwd
+              ls
               cp -f "conf/config.properties" "core/target/iginx-core-${VERSION}/conf/config.properties"
 
         - if: inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
@@ -51,6 +53,8 @@ runs:
           shell: bash
           run: |
               cd ${{ inputs.Root-Dir-Path }}
+              pwd
+              ls
               echo "${{ inputs.if-CapExp }}" > test/src/test/resources/isScaling.txt
 
         - if: inputs.if-CapExp=='true'

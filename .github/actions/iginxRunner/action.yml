@@ -21,6 +21,8 @@ runs:
           shell: bash
           run: |
               cd ${{ inputs.Root-Dir-Path }}
+              pwd
+              ls
               if [ "$RUNNER_OS" == "Linux" ]; then
                 sudo sed -i 's/needInitBasicUDFFunctions=false/needInitBasicUDFFunctions=true/g' core/target/iginx-core-${VERSION}/conf/config.properties
               elif [ "$RUNNER_OS" == "Windows" ]; then
