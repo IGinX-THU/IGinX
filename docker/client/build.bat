@@ -15,4 +15,5 @@
 @REM You should have received a copy of the GNU General Public License
 @REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @REM
-docker build --file Dockerfile -t iginx-client:0.7.0-SNAPSHOT ../../client
+
+docker build --file Dockerfile -t iginx-client:0.8.0-SNAPSHOT ../../client

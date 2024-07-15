@@ -67,7 +67,7 @@ jobs:
             - name: Get Cluster Info
               shell: bash
               run: |
-                  ./client/target/iginx-client-0.7.0-SNAPSHOT/sbin/start_cli.${{ steps.platform.outputs.suffix }} -e "show cluster info;" > cluster-info.txt
+                  ./client/target/iginx-client-${{ env.VERSION }}/sbin/start_cli.${{ steps.platform.outputs.suffix }} -e "show cluster info;" > cluster-info.txt
                   cat cluster-info.txt
                   LINE_COUNT=$(wc -l < cluster-info.txt)
                   if [ $LINE_COUNT -ne 19 ]; then

@@ -15,6 +15,7 @@
 @REM You should have received a copy of the GNU General Public License
 @REM along with this program.  If not, see <http://www.gnu.org/licenses/>.
 @REM
+
 @echo off
 setlocal enabledelayedexpansion
 
@@ -51,7 +52,7 @@ if not exist "%datadir%" (
     mkdir "%datadir%"
 )
 
-set command=docker run --name="%name%" -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=!datadir!,target=C:/iginx_client/data iginx-client:0.7.0-SNAPSHOT
+set command=docker run --name="%name%" -dit --add-host=host.docker.internal:host-gateway --mount type=bind,source=!datadir!,target=C:/iginx_client/data iginx-client:0.8.0-SNAPSHOT
 echo %command%
 %command%
 
