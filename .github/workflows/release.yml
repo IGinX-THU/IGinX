@@ -52,7 +52,7 @@ jobs:
               run: |
                   mvn deploy \
                       --batch-mode \
-                      -P !format \
+                      -P-format \
                       -DskipTests=true \
                       -Ddeploy.repo.dir=$(pwd)/pages
             - name: sync README.md and docs
