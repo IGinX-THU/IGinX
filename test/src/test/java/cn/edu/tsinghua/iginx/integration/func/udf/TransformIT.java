@@ -287,17 +287,33 @@ public class TransformIT {
   @Test
   public void commitScheduledYamlTestAfter10s() {
     LOGGER.info("commitScheduledYamlTest(after 10s)");
+    String outputFileName = OUTPUT_DIR_PREFIX + File.separator + "export_file_after_10_s.txt";
     try {
       String yamlFileName = OUTPUT_DIR_PREFIX + File.separator + "TransformScheduledAfter10s.yaml";
       SessionExecuteSqlResult result =
           session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
 
+      Thread.sleep(3000L); // sleep 3s to delay insertion
+      String insertSQL = "insert into scheduleData(key, %s) values(1, 2);";
+      // add col0
+      session.executeSql(String.format(insertSQL, "col0"));
+
       long jobId = result.getJobId();
       verifyJobState(jobId);
-      // job will finish after 10 second
+      // job will finish after 10 seconds
+
+      // check whether new column is in job result
+      fileResultContains(outputFileName, "col0");
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
+    } finally {
+      try {
+        assertTrue(Files.deleteIfExists(Paths.get(outputFileName)));
+      } catch (IOException e) {
+        LOGGER.error("Fail to delete result file: {}", outputFileName, e);
+        fail();
+      }
     }
   }
 

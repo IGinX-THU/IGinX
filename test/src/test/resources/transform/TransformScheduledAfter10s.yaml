@@ -6,4 +6,4 @@ taskList:
     - "show columns;"
 schedule: "after 10 second"
 exportType: "file"
-exportFile: "test/src/test/resources/transform/export_file_scheduled.txt"
+exportFile: "test/src/test/resources/transform/export_file_after_10_s.txt"
