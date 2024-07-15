@@ -1,0 +1,187 @@
+name: "TPC-H Regression Test"
+
+on:
+    workflow_call:
+        inputs:
+            java-matrix:
+                description: "The java version to run the test on"
+                type: string
+                required: false
+                default: '["8"]'
+            python-matrix:
+                description: "The python version to run the test on"
+                type: string
+                required: false
+                default: '["3.9"]'
+            os-matrix:
+                description: "The operating system to run the test on"
+                type: string
+                required: false
+                default: '["ubuntu-latest", "macos-13", "windows-latest"]'
+            metadata-matrix:
+                description: "The metadata to run the test on"
+                type: string
+                required: false
+                default: '["zookeeper", "etcd"]'
+            db-matrix:
+                description: "The database to run the test on"
+                type: string
+                required: false
+                default: '["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "Parquet", "MySQL"]'
+
+jobs:
+    TPC-H-Test:
+        timeout-minutes: 35
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Display System Info
+              shell: bash
+              run: |
+                  echo "Operating System: $(uname -a 2>/dev/null || ver)"
+                  echo "Architecture: $(uname -m 2>/dev/null || echo %PROCESSOR_ARCHITECTURE%)"
+                  echo "Java Version:"
+                  java -version
+                  echo "Python Version:"
+                  python --version
+                  echo "CPU Info:"
+                  if [ "$(uname)" = "Linux" ]; then
+                    lscpu
+                  elif [ "$(uname)" = "Darwin" ]; then
+                    sysctl -n machdep.cpu.brand_string
+                  else
+                    wmic cpu get name
+                  fi
+                  echo "Memory Info:"
+                  if [ "$(uname)" = "Linux" ]; then
+                    free -h
+                  elif [ "$(uname)" = "Darwin" ]; then
+                    vm_stat
+                  else
+                    systeminfo | findstr /C:"Total Physical Memory"
+                  fi
+
+            - name: Download TPC-H Data
+              shell: bash
+              run: |
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
+
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Get Old Version IGinX and Copy TPC-H Data
+              shell: bash
+              run: |
+                  git clone https://github.com/IGinX-THU/IGinX.git
+                  mkdir IGinX/tpc
+                  cp -r tpc/* IGinX/tpc/
+                  ls -a 'IGinX/tpc/TPC-H V3.0.1/data'
+
+            - name: Rewrite DB Conf in Old IGinX
+              uses: ./.github/actions/dbConfWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Root-Dir-Path: "IGinX"
+
+            - name: Install Old IGinX with Maven
+              shell: bash
+              run: |
+                  cd IGinX
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change Old IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
+                  Root-Dir-Path: "IGinX"
+
+            - name: Start Old IGinX
+              if: always()
+              shell: bash
+              run: |
+                  cd IGinX/core/target/iginx-core-${VERSION}
+                  pwd
+                  export IGINX_HOME=$PWD
+                  echo "IGinX home path: $IGINX_HOME"
+                  cd ..
+                  chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
+                  nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
+
+            - name: Run Regression Test on Old IGinX
+              if: always()
+              shell: bash
+              run: |
+                  cd IGinX
+                  mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
+
+            - name: Show Old IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat IGinX/iginx-*.log
+
+            - name: Stop ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  if-stop: "true"
+
+            - name: Stop Old IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-stop: "true"
+
+            - name: Rerun ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
+              with:
+                  if-rerun: "true"
+
+            - name: Install New IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format -q
+                  cp IGinX/test/src/test/resources/tpch/oldTimeCosts.txt test/src/test/resources/tpch/
+
+            - name: Change New IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
+
+            - name: Start New IGinX
+              uses: ./.github/actions/iginxRunner
+
+            - name: Run Regression Test on New IGinX
+              if: always()
+              shell: bash
+              run: |
+                  mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
+
+            - name: Show New IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log

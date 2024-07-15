@@ -9,6 +9,7 @@ inputs:
         description: "to test UDF path detection"
         required: false
         default: "false"
+
 runs:
     using: "composite" # Mandatory parameter
     steps:

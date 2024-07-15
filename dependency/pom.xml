@@ -1,0 +1,255 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+
+    IGinX - the polystore system with high performance
+    Copyright (C) Tsinghua University
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+-->
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>cn.edu.tsinghua</groupId>
+        <artifactId>iginx</artifactId>
+        <version>${revision}</version>
+    </parent>
+
+    <artifactId>iginx-dependency</artifactId>
+    <packaging>pom</packaging>
+    <name>IGinX Dependency</name>
+
+    <properties>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    </properties>
+
+    <profiles>
+        <profile>
+            <id>install-jars</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>com.googlecode.maven-download-plugin</groupId>
+                        <artifactId>download-maven-plugin</artifactId>
+                        <version>1.9.0</version>
+                        <executions>
+                            <execution>
+                                <id>get-arrow-java-root</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-java-root-17.0.0-20240709.071332-1.pom</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-java-root-17.0.0-SNAPSHOT.pom</outputFileName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>get-arrow-memory</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-memory-17.0.0-20240709.071332-1.pom</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-memory-17.0.0-SNAPSHOT.pom</outputFileName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>get-arrow-memory-core-snapshot</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-memory-core-17.0.0-20240709.071332-1.jar</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-memory-core-17.0.0-SNAPSHOT.jar</outputFileName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>get-arrow-memory-netty-snapshot</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-memory-netty-17.0.0-20240709.071332-1.jar</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-memory-netty-17.0.0-SNAPSHOT.jar</outputFileName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>get-arrow-memory-netty-buffer-patch</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-memory-netty-buffer-patch-17.0.0-20240709.071332-1.jar</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-memory-netty-buffer-patch-17.0.0-SNAPSHOT.jar</outputFileName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>get-arrow-format-snapshot</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-format-17.0.0-20240709.071332-1.jar</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-format-17.0.0-SNAPSHOT.jar</outputFileName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>get-arrow-vector-snapshot</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-vector-17.0.0-20240709.071332-1.jar</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-vector-17.0.0-SNAPSHOT.jar</outputFileName>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>get-arrow-algorithm-snapshot</id>
+                                <goals>
+                                    <goal>wget</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <url>https://github.com/IGinX-THU/IGinX-resources/raw/main/arrow-snapshot/arrow-algorithm-17.0.0-20240709.071332-1.jar</url>
+                                    <outputDirectory>target/remote-jars</outputDirectory>
+                                    <outputFileName>arrow-algorithm-17.0.0-SNAPSHOT.jar</outputFileName>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-install-plugin</artifactId>
+                        <version>3.1.2</version>
+                        <executions>
+                            <execution>
+                                <id>install-pemjax</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>src/main/resources/pemja-0.5-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-java-root</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-java-root-17.0.0-SNAPSHOT.pom</file>
+                                    <pomFile>target/remote-jars/arrow-java-root-17.0.0-SNAPSHOT.pom</pomFile>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-memory</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-memory-17.0.0-SNAPSHOT.pom</file>
+                                    <pomFile>target/remote-jars/arrow-memory-17.0.0-SNAPSHOT.pom</pomFile>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-memory-core-snapshot</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-memory-core-17.0.0-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-memory-netty-snapshot</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-memory-netty-17.0.0-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-memory-netty-buffer-patch</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-memory-netty-buffer-patch-17.0.0-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-format-snapshot</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-format-17.0.0-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-vector-snapshot</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-vector-17.0.0-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
+                            <execution>
+                                <id>install-arrow-algorithm-snapshot</id>
+                                <goals>
+                                    <goal>install-file</goal>
+                                </goals>
+                                <phase>generate-sources</phase>
+                                <configuration>
+                                    <file>target/remote-jars/arrow-algorithm-17.0.0-SNAPSHOT.jar</file>
+                                </configuration>
+                            </execution>
+                        </executions>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
+
+</project>
