@@ -181,7 +181,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() throws InterruptedException {
+  public void oriHasDataExpHasData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -200,7 +200,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpNoData() throws InterruptedException {
+  public void oriHasDataExpNoData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -216,7 +216,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpHasData() throws InterruptedException {
+  public void oriNoDataExpHasData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -234,7 +234,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpNoData() throws InterruptedException {
+  public void oriNoDataExpNoData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -250,7 +250,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() throws InterruptedException {
+  public void testReadOnly() {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 测试参数错误的只读节点扩容
@@ -531,29 +531,24 @@ public abstract class BaseCapacityExpansionIT {
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
-    System.out.println("==========1==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
-
     // 添加不同 schemaPrefix，相同 dataPrefix
+    System.out.println("==========1==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*;");
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
-
     System.out.println("==========2==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*;");
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
     List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
+    // 继续添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
-    System.out.println("==========3==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
-
     addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
-    System.out.println("==========4==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
-
     testShowClusterInfo(5);
+    System.out.println("==========3==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*;");
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
@@ -564,17 +559,12 @@ public abstract class BaseCapacityExpansionIT {
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3, extraParams);
 
-    System.out.println("==========5==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
-
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3, extraParams);
-
-    System.out.println("==========6==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
-
+    System.out.println("==========4==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS p3.*;");
     testShowClusterInfo(7);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
@@ -609,9 +599,8 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
     }
-
-    System.out.println("==========7==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
+    System.out.println("==========5==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS p3.*;");
 
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";
