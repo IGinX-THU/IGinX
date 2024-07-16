@@ -75,29 +75,39 @@ jobs:
                     systeminfo | findstr /C:"Total Physical Memory"
                   fi
 
-            - name: Generate TPC-H Data
+            - name: Download TPC-H Data
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/benchmarks/tpch.sh"
+                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
+                  "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
 
-            - name: Run Metadata
-              uses: ./.github/actions/metadataRunner
-              with:
-                  metadata: ${{ matrix.metadata }}
+            - name: Run ZooKeeper
+              uses: ./.github/actions/zookeeperRunner
 
             - name: Run DB
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            - name: Get Old Version
+            - name: Get Old Version IGinX and Copy TPC-H Data
               shell: bash
               run: |
+                  git clone https://github.com/IGinX-THU/IGinX.git
+                  mkdir IGinX/tpc
+                  cp -r tpc/* IGinX/tpc/
+                  ls -a 'IGinX/tpc/TPC-H V3.0.1/data'
+
+            - name: Rewrite DB Conf in Old IGinX
+              uses: ./.github/actions/dbConfWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Root-Dir-Path: "IGinX"
+
+            - name: Install Old IGinX with Maven
+              shell: bash
+              run: |
+                  cd IGinX
                   mvn clean package -DskipTests -P-format -q
-            #                  git clone https://github.com/IGinX-THU/IGinX.git
-            #                  cd IGinX
-            #                  mvn clean package -DskipTests -P-format -q
 
             - name: Change Old IGinX config
               uses: ./.github/actions/confWriter
@@ -105,24 +115,32 @@ jobs:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
-            #                  Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+                  Root-Dir-Path: "IGinX"
 
             - name: Start Old IGinX
-              uses: ./.github/actions/iginxRunner
-            #              with:
-            #                Root-Dir-Path: "${GITHUB_WORKSPACE}/IGinX"
+              if: always()
+              shell: bash
+              run: |
+                  cd IGinX/core/target/iginx-core-${VERSION}
+                  pwd
+                  export IGINX_HOME=$PWD
+                  echo "IGinX home path: $IGINX_HOME"
+                  cd ..
+                  chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
+                  nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
 
             - name: Run Regression Test on Old IGinX
               if: always()
               shell: bash
               run: |
+                  cd IGinX
                   mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
 
             - name: Show Old IGinX log
               if: always()
               shell: bash
               run: |
-                  cat iginx-*.log
+                  cat IGinX/iginx-*.log
 
             - name: Stop ZooKeeper
               uses: ./.github/actions/zookeeperRunner
@@ -144,6 +162,7 @@ jobs:
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
+                  cp IGinX/test/src/test/resources/tpch/oldTimeCosts.txt test/src/test/resources/tpch/
 
             - name: Change New IGinX config
               uses: ./.github/actions/confWriter
