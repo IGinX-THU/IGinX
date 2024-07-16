@@ -45,8 +45,8 @@ public interface Executor {
   TaskExecuteResult executeDeleteTask(
       List<String> paths, List<KeyRange> keyRanges, TagFilter tagFilter, String storageUnit);
 
-  List<Column> getColumnsOfStorageUnit(String storageUnit, Set<String> pattern, TagFilter tagFilter)
-      throws PhysicalException;
+  List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException;
 
   Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
       throws PhysicalException;

@@ -386,12 +386,12 @@ public class RemoteExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(
-      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
+      String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
       GetColumnsOfStorageUnitResp resp =
-          client.getColumnsOfStorageUnit(storageUnit, pattern, constructRawTagFilter(tagFilter));
+          client.getColumnsOfStorageUnit(storageUnit, patterns, constructRawTagFilter(tagFilter));
       thriftConnPool.returnTransport(transport);
       List<Column> columnList = new ArrayList<>();
       resp.getTsList()

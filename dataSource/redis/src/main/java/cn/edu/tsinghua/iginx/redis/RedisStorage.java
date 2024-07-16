@@ -479,9 +479,9 @@ public class RedisStorage implements IStorage {
     }
   }
 
-  private void getIginxColumns(Consumer<Column> ret, Set<String> pattern, TagFilter tagFilter)
+  private void getIginxColumns(Consumer<Column> ret, Set<String> patterns, TagFilter tagFilter)
       throws PhysicalException {
-    List<String> patternList = new ArrayList<>(pattern);
+    List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
       patternList.add("*");
     }

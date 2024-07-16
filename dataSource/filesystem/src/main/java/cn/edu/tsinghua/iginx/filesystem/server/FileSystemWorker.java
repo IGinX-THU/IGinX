@@ -221,11 +221,11 @@ public class FileSystemWorker implements FileSystemService.Iface {
 
   @Override
   public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(
-      String storageUnit, Set<String> pattern, RawTagFilter tagFilter) {
+      String storageUnit, Set<String> patterns, RawTagFilter tagFilter) {
     List<FSColumn> ret = new ArrayList<>();
     try {
       List<Column> columns =
-          executor.getColumnsOfStorageUnit(storageUnit, pattern, resolveRawTagFilter(tagFilter));
+          executor.getColumnsOfStorageUnit(storageUnit, patterns, resolveRawTagFilter(tagFilter));
       columns.forEach(
           column -> {
             FSColumn fsColumn =

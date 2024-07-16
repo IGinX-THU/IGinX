@@ -332,11 +332,11 @@ public class ParquetWorker implements ParquetService.Iface {
 
   @Override
   public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(
-      String storageUnit, Set<String> pattern, RawTagFilter tagFilter) {
+      String storageUnit, Set<String> patterns, RawTagFilter tagFilter) {
     List<TS> ret = new ArrayList<>();
     try {
       List<Column> tsList =
-          executor.getColumnsOfStorageUnit(storageUnit, pattern, resolveRawTagFilter(tagFilter));
+          executor.getColumnsOfStorageUnit(storageUnit, patterns, resolveRawTagFilter(tagFilter));
       tsList.forEach(
           timeseries -> {
             TS ts = new TS(timeseries.getPath(), timeseries.getDataType().toString());

@@ -325,8 +325,8 @@ public class LocalExecutor implements Executor {
 
   @Override
   public List<Column> getColumnsOfStorageUnit(
-      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
-    List<String> patternList = new ArrayList<>(pattern);
+      String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
+    List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
       patternList.add("*");
     }
