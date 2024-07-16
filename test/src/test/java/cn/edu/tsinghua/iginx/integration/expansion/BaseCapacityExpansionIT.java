@@ -21,7 +21,6 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
@@ -33,10 +32,8 @@ import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpans
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
-import cn.edu.tsinghua.iginx.session.Column;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
@@ -479,47 +476,67 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 
-  protected void testShowAllColumnsInExpansion(boolean before) {
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS p1.*;";
     if (before) {
-      testShowColumns(
-          Arrays.asList(
-              new Column("b.b.b", DataType.LONG),
-              new Column("ln.wf02.status", DataType.BOOLEAN),
-              new Column("ln.wf02.version", DataType.BINARY),
-              new Column("nt.wf03.wt01.status2", DataType.LONG),
-              new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-              new Column(
-                  "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
-                  DataType.LONG)));
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
     } else {
-      testShowColumns(
-          Arrays.asList(
-              new Column("b.b.b", DataType.LONG),
-              new Column("ln.wf02.status", DataType.BOOLEAN),
-              new Column("ln.wf02.version", DataType.BINARY),
-              new Column("nt.wf03.wt01.status2", DataType.LONG),
-              new Column("p1.nt.wf03.wt01.status2", DataType.LONG),
-              new Column("nt.wf04.wt01.temperature", DataType.DOUBLE),
-              new Column(
-                  "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
-                  DataType.LONG)));
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
     }
   }
 
-  protected void testShowColumns(List<Column> expectColumns) {
-    try {
-      List<Column> columns = session.showColumns();
-      LOGGER.info("show columns: {}", columns);
-      // 检查排序后的路径列表是否相同
-      assertArrayEquals(
-          expectColumns.stream().map(Column::getPath).sorted().toArray(),
-          columns.stream().map(Column::getPath).sorted().toArray());
-    } catch (SessionException e) {
-      LOGGER.error("show columns error: ", e);
+  protected void testShowColumnsRemoveStorageEngine(boolean before) {
+    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
+    String expected;
+    if (before) {
+      expected = "Columns:\n"
+          + "+---------------------------+--------+\n"
+          + "|                       Path|DataType|\n"
+          + "+---------------------------+--------+\n"
+          + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+          + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
+          + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
+          + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+          + "+---------------------------+--------+\n"
+          + "Total line number = 4\n";
+    } else {
+      expected = "Columns:\n"
+          + "+---------------------------+--------+\n"
+          + "|                       Path|DataType|\n"
+          + "+---------------------------+--------+\n"
+          + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+          + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+          + "+---------------------------+--------+\n"
+          + "Total line number = 2\n";
     }
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
-
-  protected void showColumns() {}
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
@@ -532,11 +549,9 @@ public abstract class BaseCapacityExpansionIT {
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
-    System.out.println("==========1==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*, p1.*;");
+    testShowColumnsInExpansion(true);
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
-    System.out.println("==========2==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*, p1.*;");
+    testShowColumnsInExpansion(false);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
@@ -547,8 +562,6 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
     addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
     testShowClusterInfo(5);
-    System.out.println("==========3==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS p3.*;");
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
@@ -588,6 +601,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 session 接口测试移除节点
+    testShowColumnsRemoveStorageEngine(true);
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
@@ -599,8 +613,7 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
     }
-    System.out.println("==========5==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS p3.*;");
+    testShowColumnsRemoveStorageEngine(false);
 
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";

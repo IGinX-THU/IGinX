@@ -26,10 +26,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
-import cn.edu.tsinghua.iginx.session.Column;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import java.util.ArrayList;
-import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -46,30 +42,76 @@ public class MongoDBCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
-  protected void testShowAllColumnsInExpansion(boolean before) {
-    List<Column> columns = new ArrayList<>();
-    columns.add(new Column("b.b._id", DataType.BINARY));
-    columns.add(new Column("nt.wf03._id", DataType.BINARY));
-    columns.add(new Column("nt.wf04._id", DataType.BINARY));
-    columns.add(
-        new Column(
-            "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz._id", DataType.BINARY));
-    columns.add(new Column("b.b.b", DataType.LONG));
-    columns.add(new Column("ln.wf02.status", DataType.BOOLEAN));
-    columns.add(new Column("ln.wf02.version", DataType.BINARY));
-    columns.add(new Column("nt.wf03.wt01.status2", DataType.LONG));
-    columns.add(new Column("nt.wf04.wt01.temperature", DataType.DOUBLE));
-    columns.add(
-        new Column(
-            "zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz",
-            DataType.LONG));
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|         nt.wf03._id| INTEGER|\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
 
-    if (!before) {
-      columns.add(new Column("p1.nt.wf03._id", DataType.BINARY));
-      columns.add(new Column("p1.nt.wf03.wt01.status2", DataType.LONG));
+    if (before) {
+      statement = "SHOW COLUMNS p1.*;";
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
+    } else {
+      statement = "SHOW COLUMNS p1.*;";
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|         p1.nt.wf03._id| INTEGER|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
     }
+  }
 
-    testShowColumns(columns);
+  @Override
+  protected void testShowColumnsRemoveStorageEngine(boolean before) {
+    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
+    String expected;
+    if (before) {
+      expected = "Columns:\n"
+          + "+---------------------------+--------+\n"
+          + "|                       Path|DataType|\n"
+          + "+---------------------------+--------+\n"
+          + "|             p1.nt.wf03._id| INTEGER|\n"
+          + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+          + "|             p2.nt.wf03._id| INTEGER|\n"
+          + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
+          + "|             p3.nt.wf03._id| INTEGER|\n"
+          + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
+          + "|             p3.nt.wf04._id| INTEGER|\n"
+          + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+          + "+---------------------------+--------+\n"
+          + "Total line number = 8\n";
+    } else {
+      expected = "Columns:\n"
+          + "+---------------------------+--------+\n"
+          + "|                       Path|DataType|\n"
+          + "+---------------------------+--------+\n"
+          + "|             p1.nt.wf03._id| INTEGER|\n"
+          + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+          + "|             p3.nt.wf04._id| INTEGER|\n"
+          + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+          + "+---------------------------+--------+\n"
+          + "Total line number = 4\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   @Override
