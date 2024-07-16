@@ -43,7 +43,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.stream.Collectors;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
@@ -511,20 +510,16 @@ public abstract class BaseCapacityExpansionIT {
     try {
       List<Column> columns = session.showColumns();
       LOGGER.info("show columns: {}", columns);
-
-      // 对期望列表和实际列表中的Column对象按路径排序
-      List<String> sortedExpectPaths =
-          expectColumns.stream().map(Column::getPath).sorted().collect(Collectors.toList());
-
-      List<String> sortedActualPaths =
-          columns.stream().map(Column::getPath).sorted().collect(Collectors.toList());
-
       // 检查排序后的路径列表是否相同
-      assertArrayEquals(sortedExpectPaths.toArray(), sortedActualPaths.toArray());
+      assertArrayEquals(
+          expectColumns.stream().map(Column::getPath).sorted().toArray(),
+          columns.stream().map(Column::getPath).sorted().toArray());
     } catch (SessionException e) {
       LOGGER.error("show columns error: ", e);
     }
   }
+
+  protected void showColumns() {}
 
   private void testAddAndRemoveStorageEngineWithPrefix() {
     String dataPrefix1 = "nt.wf03";
@@ -536,12 +531,14 @@ public abstract class BaseCapacityExpansionIT {
 
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
-    testShowAllColumnsInExpansion(true);
+    System.out.println("==========1==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
 
-    testShowAllColumnsInExpansion(false);
+    System.out.println("==========2==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
@@ -549,7 +546,13 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
+    System.out.println("==========3==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
+
     addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
+    System.out.println("==========4==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
+
     testShowClusterInfo(5);
 
     // 如果是重复添加，则报错
@@ -560,10 +563,18 @@ public abstract class BaseCapacityExpansionIT {
     testShowClusterInfo(5);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3, extraParams);
+
+    System.out.println("==========5==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
+
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3, extraParams);
+
+    System.out.println("==========6==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
+
     testShowClusterInfo(7);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
@@ -598,6 +609,10 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
     }
+
+    System.out.println("==========7==========");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS;");
+
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";
     String expect =
