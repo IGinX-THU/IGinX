@@ -533,10 +533,10 @@ public abstract class BaseCapacityExpansionIT {
 
     // 添加不同 schemaPrefix，相同 dataPrefix
     System.out.println("==========1==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*;");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*, p1.*;");
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
     System.out.println("==========2==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*;");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*, p1.*;");
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
@@ -548,7 +548,7 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
     testShowClusterInfo(5);
     System.out.println("==========3==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS nt.wf03.*;");
+    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS p3.*;");
 
     // 如果是重复添加，则报错
     String res = addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);

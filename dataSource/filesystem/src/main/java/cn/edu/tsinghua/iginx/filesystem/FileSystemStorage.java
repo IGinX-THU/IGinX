@@ -165,7 +165,7 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public synchronized void release() throws PhysicalException {
+  public synchronized void release() {
     executor.close();
     if (thread != null) {
       thread.interrupt();
