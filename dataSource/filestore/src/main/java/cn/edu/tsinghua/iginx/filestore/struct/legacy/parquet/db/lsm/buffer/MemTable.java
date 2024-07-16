@@ -105,15 +105,6 @@ public class MemTable implements AutoCloseable {
     return new MemoryTable(columns);
   }
 
-  public void store(Iterable<Chunk.Snapshot> data) {
-    lock.readLock().lock();
-    try {
-      data.forEach(this::store);
-    } finally {
-      lock.readLock().unlock();
-    }
-  }
-
   public void store(Chunk.Snapshot data) {
     lock.readLock().lock();
     try {
