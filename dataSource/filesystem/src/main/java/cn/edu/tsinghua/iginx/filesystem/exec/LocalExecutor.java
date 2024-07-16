@@ -329,21 +329,9 @@ public class LocalExecutor implements Executor {
     return new TaskExecuteResult(null, null);
   }
 
-  boolean isPathMatchPattern(String path, Set<String> patterns) {
-    if (patterns.isEmpty()) {
-      return true;
-    }
-    for (String pattern : patterns) {
-      if (StringUtils.match(path, pattern)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
   @Override
   public List<Column> getColumnsOfStorageUnit(
-      String storageUnit, Set<String> pattern, TagFilter tagFilter) throws PhysicalException {
+      String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
@@ -358,7 +346,7 @@ public class LocalExecutor implements Executor {
                   file.getAbsolutePath()));
         }
         // get columns by pattern
-        if (!isPathMatchPattern(columnPath, pattern)) {
+        if (!StringUtils.isPathMatchPattern(columnPath, patterns)) {
           continue;
         }
         // get columns by tag filter
@@ -373,7 +361,7 @@ public class LocalExecutor implements Executor {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
         String dummyPath =
             FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
-        if (!isPathMatchPattern(dummyPath, pattern)) {
+        if (!StringUtils.isPathMatchPattern(dummyPath, patterns)) {
           continue;
         }
         columns.add(new Column(dummyPath, DataType.BINARY, null, true));

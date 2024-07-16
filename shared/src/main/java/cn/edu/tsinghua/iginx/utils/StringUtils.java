@@ -24,6 +24,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -113,6 +114,18 @@ public class StringUtils {
     }
     path = path.replaceAll("[*]", ".*");
     return path;
+  }
+
+  public static boolean isPathMatchPattern(String path, Set<String> patterns) {
+    if (patterns.isEmpty()) {
+      return true;
+    }
+    for (String pattern : patterns) {
+      if (match(path, pattern)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public static boolean match(String string, String iginxPattern) {
