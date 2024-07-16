@@ -374,6 +374,7 @@ public class StoragePhysicalTaskExecutor {
 
         // fix the schemaPrefix and dataPrefix
         String schemaPrefix = storage.getSchemaPrefix();
+        // 不下推dataPrefix的原因：iotdb中，非dummy的数据库中如果有原始数据，会在show columns时被查询到并造成误解
         String dataPrefixRegex =
             storage.getDataPrefix() == null
                 ? null
