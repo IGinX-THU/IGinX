@@ -60,9 +60,9 @@ public class StorageEngineUtils {
       if (iginxPort == null || iginxPort.isEmpty()) {
         return false;
       }
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(HAS_DATA, "false"));
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
       if (hasData) {
         // 如果hasData为true，则参数中必须配置dummy_dir
         Pair<Boolean, String> dummyDirPair = getCanonicalPath(extraParams.get("dummy_dir"));

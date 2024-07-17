@@ -1220,13 +1220,13 @@ public class DefaultMetaManager implements IMetaManager {
           extraParams.put(KAndV[0], KAndV[1]);
         }
       }
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
       boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
       if (!checkEmbeddedStorageExtraParams(
           StorageEngineType.valueOf(storageEngine.toLowerCase()), extraParams)) {
         LOGGER.error(

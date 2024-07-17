@@ -325,13 +325,13 @@ public class IginxWorker implements IService.Iface {
       int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
       boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
 
       if (!isValidHost(ip)) { // IP 不合法
         LOGGER.error("ip {} is invalid.", ip);
