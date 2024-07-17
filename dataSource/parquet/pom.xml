@@ -31,8 +31,6 @@
     <name>IGinX Parquet</name>
 
     <properties>
-        <driver.basedir>..</driver.basedir>
-        <driver.name>parquet</driver.name>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
     </properties>
@@ -87,45 +85,7 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-dependency-plugin</artifactId>
-                <version>2.10</version>
-                <executions>
-                    <execution>
-                        <id>copy-dependencies</id>
-                        <goals>
-                            <goal>copy-dependencies</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <outputDirectory>../../core/target/iginx-core-${project.version}/driver/parquet/</outputDirectory>
-                            <excludeScope>provided</excludeScope>
-                            <excludeArtifactIds>junit,hamcrest-core</excludeArtifactIds>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-antrun-plugin</artifactId>
-                <version>1.7</version>
-                <executions>
-                    <execution>
-                        <id>copy-native-libraries</id>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                        <phase>package</phase>
-                        <configuration>
-                            <target>
-                                <copy todir="../../core/target/iginx-core-${project.version}/driver/parquet/">
-                                    <fileset dir="${project.basedir}/target/">
-                                        <include name="*.jar"/>
-                                    </fileset>
-                                </copy>
-                            </target>
-                        </configuration>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>
