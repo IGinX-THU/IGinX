@@ -30,11 +30,6 @@
     <artifactId>parquet</artifactId>
     <name>IGinX Parquet</name>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-    </properties>
-
     <dependencies>
         <dependency>
             <groupId>cn.edu.tsinghua.iginx</groupId>

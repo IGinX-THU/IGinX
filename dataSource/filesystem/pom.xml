@@ -31,11 +31,6 @@
     <artifactId>filesystem</artifactId>
     <name>IGinX FileSystem</name>
 
-    <properties>
-        <maven.compiler.source>8</maven.compiler.source>
-        <maven.compiler.target>8</maven.compiler.target>
-    </properties>
-
     <build>
         <plugins>
             <plugin>
