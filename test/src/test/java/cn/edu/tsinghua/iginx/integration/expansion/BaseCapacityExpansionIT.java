@@ -497,8 +497,7 @@ public abstract class BaseCapacityExpansionIT {
               + "+----+--------+\n"
               + "+----+--------+\n"
               + "Empty set.\n";
-      SQLTestTools.executeAndCompare(session, statement, expected);
-    } else {
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       expected =
           "Columns:\n"
               + "+-----------------------+--------+\n"
@@ -507,8 +506,31 @@ public abstract class BaseCapacityExpansionIT {
               + "|p1.nt.wf03.wt01.status2|    LONG|\n"
               + "+-----------------------+--------+\n"
               + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expected);
     }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS *.wf03.wt01.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|    LONG|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|    LONG|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   protected void testShowColumnsRemoveStorageEngine(boolean before) {
@@ -526,7 +548,7 @@ public abstract class BaseCapacityExpansionIT {
               + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
               + "+---------------------------+--------+\n"
               + "Total line number = 4\n";
-    } else {
+    } else { // schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源被移除
       expected =
           "Columns:\n"
               + "+---------------------------+--------+\n"
@@ -560,7 +582,6 @@ public abstract class BaseCapacityExpansionIT {
     List<String> pathList = Arrays.asList("nt.wf03.wt01.status2", "p1.nt.wf03.wt01.status2");
     SQLTestTools.executeAndCompare(session, statement, pathList, REPEAT_EXP_VALUES_LIST1);
 
-    // 继续添加不同 schemaPrefix，相同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix2, extraParams);
     addStorageEngine(expPort, true, true, dataPrefix1, null, extraParams);
     testShowClusterInfo(5);
@@ -573,13 +594,10 @@ public abstract class BaseCapacityExpansionIT {
     testShowClusterInfo(5);
 
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix3, extraParams);
-
     // 这里是之后待测试的点，如果添加包含关系的，应当报错。
     //    res = addStorageEngine(expPort, true, true, "nt.wf03.wt01", "p3");
     // 添加相同 schemaPrefix，不同 dataPrefix
     addStorageEngine(expPort, true, true, dataPrefix2, schemaPrefix3, extraParams);
-    System.out.println("==========4==========");
-    SQLTestTools.executeAndPrint(session, "SHOW COLUMNS p3.*;");
     testShowClusterInfo(7);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询

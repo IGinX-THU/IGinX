@@ -62,8 +62,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "+----+--------+\n"
               + "+----+--------+\n"
               + "Empty set.\n";
-      SQLTestTools.executeAndCompare(session, statement, expected);
-    } else {
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       statement = "SHOW COLUMNS p1.*;";
       expected =
           "Columns:\n"
@@ -73,8 +72,61 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
               + "|p1.nt.wf03.wt01.status2|  BINARY|\n"
               + "+-----------------------+--------+\n"
               + "Total line number = 1\n";
-      SQLTestTools.executeAndCompare(session, statement, expected);
     }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS *.wf03.wt01.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|  BINARY|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|  BINARY|\n"
+              + "|p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  @Override
+  protected void testShowColumnsRemoveStorageEngine(boolean before) {
+    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
+    String expected;
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|    p2.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|    p3.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 4\n";
+    } else { // 移除schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   @Override
