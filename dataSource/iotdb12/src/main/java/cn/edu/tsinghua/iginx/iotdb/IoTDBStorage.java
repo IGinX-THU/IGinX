@@ -917,7 +917,7 @@ public class IoTDBStorage implements IStorage {
     if (filterStr.contains("*")) {
       List<Column> columns = new ArrayList<>();
       Map<String, String> columns2Fragment = new HashMap<>();
-      getColumns2StorageUnit(columns, columns2Fragment, Collections.singleton("*"), null);
+      getColumns2StorageUnit(columns, columns2Fragment, new HashSet<>(), null);
       filterStr =
           FilterTransformer.toString(
               expandFilterWildcard(filter.copy(), columns, columns2Fragment, storageUnit));
