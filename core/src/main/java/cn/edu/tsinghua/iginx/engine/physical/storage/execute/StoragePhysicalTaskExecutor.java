@@ -442,7 +442,11 @@ public class StoragePhysicalTaskExecutor {
 
   private static Set<String> cutSchemaPrefix(String schemaPrefix, Set<String> patterns) {
     if (schemaPrefix == null) {
-      return patterns;
+      if (patterns.isEmpty()) {
+        return Collections.singleton("*");
+      } else {
+        return patterns;
+      }
     }
     if (patterns.isEmpty()) {
       return Collections.singleton("*");
