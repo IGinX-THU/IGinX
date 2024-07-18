@@ -382,6 +382,9 @@ public class StoragePhysicalTaskExecutor {
         if (patternsCutSchemaPrefix.isEmpty()) {
           continue;
         }
+        if (patternsCutSchemaPrefix.contains("*")) {
+          patternsCutSchemaPrefix = Collections.emptySet();
+        }
         List<Column> columnList = pair.k.getColumns(patternsCutSchemaPrefix, tagFilter);
 
         if (tagFilter != null) {
@@ -438,13 +441,15 @@ public class StoragePhysicalTaskExecutor {
   }
 
   private static Set<String> cutSchemaPrefix(String schemaPrefix, Set<String> patterns) {
-    // show columns的patterns为空，查询所有列
+    if (schemaPrefix == null) {
+      if (patterns.isEmpty()) {
+        return Collections.singleton("*");
+      } else {
+        return patterns;
+      }
+    }
     if (patterns.isEmpty()) {
       return Collections.singleton("*");
-    }
-    // 该数据源没有schema prefix，直接匹配patterns
-    if (schemaPrefix == null) {
-      return patterns;
     }
 
     Set<String> patternsCutSchemaPrefix = new HashSet<>();
@@ -463,35 +468,32 @@ public class StoragePhysicalTaskExecutor {
     String[] patternSplit = pattern.split("\\.");
     int minLen = Math.min(prefixSplit.length, patternSplit.length);
     int index = 0;
-    // 逐级匹配pattern和schemaPrefix
     while (index < minLen && prefixSplit[index].equals(patternSplit[index])) {
       index++;
     }
 
-    // pattern匹配结束，schemaPrefix还有剩余，则该storageEngine下没有该pattern
     if (index == patternSplit.length) {
       return Collections.emptySet();
     }
 
-    // schemaPrefix匹配结束，pattern还有剩余，则把该pattern减去前缀schemaPrefix
     if (index == prefixSplit.length) {
       return Collections.singleton(joinWithDot(patternSplit, index));
     }
 
-    // pattern和schemaPrefix不匹配
     if (!patternSplit[index].equals("*")) {
       return Collections.emptySet();
     }
 
     Set<String> target = new HashSet<>();
+
     // 将pattern的'*'视为部分匹配该前缀，即把'*'下推到数据源
     target.add(joinWithDot(patternSplit, index));
+
     if (index + 1 < patternSplit.length) {
       // 将pattern的'*'视为完全匹配该前缀，即不把'*'下推到数据源
       String patternRemain = joinWithDot(patternSplit, index + 1);
       target.add(patternRemain);
 
-      // 将schemaPrefix的每一级分别匹配'*'
       for (int i = index + 1; i < prefixSplit.length; i++) {
         String prefixRemain = joinWithDot(prefixSplit, i);
         target.addAll(cutSchemaPrefix(prefixRemain, patternRemain));

@@ -282,26 +282,28 @@ public class IoTDBStorage implements IStorage {
       TagFilter tagFilter)
       throws PhysicalException {
     try {
-      if (patterns.isEmpty()) {
-        return;
-      }
-      SessionDataSetWrapper dataSet;
-      if (patterns.contains("*")) {
-        LOGGER.debug("do show all timeseries");
-        dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES_ALL);
-        getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
-        dataSet.close();
-        return;
-      }
-      for (String pattern : patterns) {
-        LOGGER.debug("do show timeseries: {}", pattern);
-        dataSet = sessionPool.executeQueryStatement(String.format(SHOW_TIMESERIES, pattern));
-        getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
-        dataSet.close();
-        dataSet = sessionPool.executeQueryStatement(String.format(SHOW_TIMESERIES_DUMMY, pattern));
-        getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
-        dataSet.close();
-      }
+      Iterator<String> iterator = patterns.iterator();
+      do {
+        String pattern = iterator.hasNext() ? iterator.next() : null;
+        SessionDataSetWrapper dataSet;
+        LOGGER.debug("get time series: {}", pattern);
+        if (pattern != null) {
+          LOGGER.debug("do show timeseries: {}", pattern);
+          dataSet = sessionPool.executeQueryStatement(String.format(SHOW_TIMESERIES, pattern));
+          getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
+          dataSet.close();
+
+          dataSet =
+              sessionPool.executeQueryStatement(String.format(SHOW_TIMESERIES_DUMMY, pattern));
+          getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
+          dataSet.close();
+        } else {
+          LOGGER.debug("do show all timeseries");
+          dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES_ALL);
+          getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
+          dataSet.close();
+        }
+      } while (iterator.hasNext());
     } catch (IoTDBConnectionException | StatementExecutionException e) {
       throw new IoTDBTaskExecuteFailureException("get time series failure: ", e);
     }
