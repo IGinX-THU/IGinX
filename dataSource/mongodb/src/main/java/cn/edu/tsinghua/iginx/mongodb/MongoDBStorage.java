@@ -327,7 +327,7 @@ public class MongoDBStorage implements IStorage {
   public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
-      return Collections.emptyList();
+      patternList.add("*");
     }
     List<Column> columns = new ArrayList<>();
     for (String dbName : getDatabaseNames(this.client)) {

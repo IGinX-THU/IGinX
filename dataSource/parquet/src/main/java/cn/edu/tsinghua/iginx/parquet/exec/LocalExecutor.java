@@ -328,7 +328,7 @@ public class LocalExecutor implements Executor {
       String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
-      return Collections.emptyList();
+      patternList.add("*");
     }
     if (storageUnit.equals("*")) {
       List<Column> columns = new ArrayList<>();

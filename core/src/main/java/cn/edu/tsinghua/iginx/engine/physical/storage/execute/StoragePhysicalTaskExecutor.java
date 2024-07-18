@@ -382,6 +382,9 @@ public class StoragePhysicalTaskExecutor {
         if (patternsCutSchemaPrefix.isEmpty()) {
           continue;
         }
+        if (patternsCutSchemaPrefix.contains("*")) {
+          patternsCutSchemaPrefix = Collections.emptySet();
+        }
         List<Column> columnList = pair.k.getColumns(patternsCutSchemaPrefix, tagFilter);
 
         if (tagFilter != null) {
