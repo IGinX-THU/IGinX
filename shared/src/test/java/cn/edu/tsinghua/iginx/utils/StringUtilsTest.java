@@ -19,7 +19,12 @@
 package cn.edu.tsinghua.iginx.utils;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -54,5 +59,24 @@ public class StringUtilsTest {
     assertEquals(".*\\Q.b.\\E.*", StringUtils.toRegexExpr("**.b.**"));
     assertEquals(".*\\Q.\\E.*\\Q.c\\E", StringUtils.toRegexExpr("**.**.c"));
     assertEquals(".*\\Q.\\E.*\\Q.\\E.*", StringUtils.toRegexExpr("**.**.**"));
+  }
+
+  @Test
+  public void cutSchemaPrefix() {
+    assertEquals(toSet("*"), StringUtils.cutSchemaPrefix(null, Collections.emptySet()));
+    assertEquals(toSet("*"), StringUtils.cutSchemaPrefix("a.b", Collections.emptySet()));
+    assertEquals(toSet("a.*", "b.*"), StringUtils.cutSchemaPrefix(null, toSet("a.*", "b.*")));
+    assertEquals(toSet("*"), StringUtils.cutSchemaPrefix("a.b.c", toSet("a.*")));
+    assertEquals(toSet("*"), StringUtils.cutSchemaPrefix("a.b.c", toSet("a.b.c.*")));
+    assertEquals(Collections.emptySet(), StringUtils.cutSchemaPrefix("a.b.c", toSet("a.b.c")));
+    assertEquals(Collections.emptySet(), StringUtils.cutSchemaPrefix("a.b.c", toSet("d.*")));
+    assertEquals(Collections.emptySet(), StringUtils.cutSchemaPrefix("a.bb.c", toSet("a.b.*")));
+    assertEquals(Collections.emptySet(), StringUtils.cutSchemaPrefix("a.b.c", toSet("a.bb.*")));
+    assertEquals(toSet("*"), StringUtils.cutSchemaPrefix("a.b.c", toSet("*.b.*")));
+    assertEquals(toSet("b.c", "*.b.c"), StringUtils.cutSchemaPrefix("a.b.c", toSet("*.b.c")));
+  }
+
+  private Set<String> toSet(String... items) {
+    return new HashSet<>(Arrays.asList(items));
   }
 }

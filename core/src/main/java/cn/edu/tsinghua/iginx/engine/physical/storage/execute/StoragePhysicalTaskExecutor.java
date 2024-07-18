@@ -378,7 +378,7 @@ public class StoragePhysicalTaskExecutor {
                 : StringUtils.reformatPath(storage.getDataPrefix() + ".*");
 
         // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉前缀是schemaPrefix的部分
-        Set<String> patternsCutSchemaPrefix = cutSchemaPrefix(schemaPrefix, patterns);
+        Set<String> patternsCutSchemaPrefix = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
         if (patternsCutSchemaPrefix.isEmpty()) {
           continue;
         }
@@ -438,81 +438,6 @@ public class StoragePhysicalTaskExecutor {
       }
       return new TaskExecuteResult(Column.toRowStream(tsList));
     }
-  }
-
-  private static Set<String> cutSchemaPrefix(String schemaPrefix, Set<String> patterns) {
-    if (schemaPrefix == null) {
-      if (patterns.isEmpty()) {
-        return Collections.singleton("*");
-      } else {
-        return patterns;
-      }
-    }
-    if (patterns.isEmpty()) {
-      return Collections.singleton("*");
-    }
-
-    Set<String> patternsCutSchemaPrefix = new HashSet<>();
-    for (String pattern : patterns) {
-      Set<String> tmp = cutSchemaPrefix(schemaPrefix, pattern);
-      if (tmp.contains("*")) {
-        return Collections.singleton("*");
-      }
-      patternsCutSchemaPrefix.addAll(tmp);
-    }
-    return patternsCutSchemaPrefix;
-  }
-
-  private static Set<String> cutSchemaPrefix(String schemaPrefix, String pattern) {
-    String[] prefixSplit = schemaPrefix.split("\\.");
-    String[] patternSplit = pattern.split("\\.");
-    int minLen = Math.min(prefixSplit.length, patternSplit.length);
-    int index = 0;
-    while (index < minLen && prefixSplit[index].equals(patternSplit[index])) {
-      index++;
-    }
-
-    if (index == patternSplit.length) {
-      return Collections.emptySet();
-    }
-
-    if (index == prefixSplit.length) {
-      return Collections.singleton(joinWithDot(patternSplit, index));
-    }
-
-    if (!patternSplit[index].equals("*")) {
-      return Collections.emptySet();
-    }
-
-    Set<String> target = new HashSet<>();
-
-    // 将pattern的'*'视为部分匹配该前缀，即把'*'下推到数据源
-    target.add(joinWithDot(patternSplit, index));
-
-    if (index + 1 < patternSplit.length) {
-      // 将pattern的'*'视为完全匹配该前缀，即不把'*'下推到数据源
-      String patternRemain = joinWithDot(patternSplit, index + 1);
-      target.add(patternRemain);
-
-      for (int i = index + 1; i < prefixSplit.length; i++) {
-        String prefixRemain = joinWithDot(prefixSplit, i);
-        target.addAll(cutSchemaPrefix(prefixRemain, patternRemain));
-      }
-    }
-
-    return target;
-  }
-
-  private static String joinWithDot(String[] strings, int begin) {
-    if (begin >= strings.length) {
-      return "";
-    }
-    StringBuilder sb = new StringBuilder();
-    for (int i = begin; i < strings.length; i++) {
-      sb.append(strings[i]).append(".");
-    }
-    sb.setLength(sb.length() - 1);
-    return sb.toString();
   }
 
   public void commit(List<StoragePhysicalTask> tasks) {

@@ -64,7 +64,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -918,7 +917,7 @@ public class IoTDBStorage implements IStorage {
     if (filterStr.contains("*")) {
       List<Column> columns = new ArrayList<>();
       Map<String, String> columns2Fragment = new HashMap<>();
-      getColumns2StorageUnit(columns, columns2Fragment, new HashSet<>(), null);
+      getColumns2StorageUnit(columns, columns2Fragment, Collections.singleton("*"), null);
       filterStr =
           FilterTransformer.toString(
               expandFilterWildcard(filter.copy(), columns, columns2Fragment, storageUnit));

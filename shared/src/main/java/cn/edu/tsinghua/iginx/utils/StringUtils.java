@@ -22,6 +22,8 @@ import static cn.edu.tsinghua.iginx.utils.TimeUtils.convertDatetimeStrToLong;
 import java.time.DateTimeException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -199,5 +201,81 @@ public class StringUtils {
       }
     }
     return res;
+  }
+
+  public static Set<String> cutSchemaPrefix(String schemaPrefix, Set<String> patterns) {
+    // show columns的patterns为空，查询所有列
+    if (patterns.isEmpty()) {
+      return Collections.singleton("*");
+    }
+    // 该数据源没有schema prefix，直接匹配patterns
+    if (schemaPrefix == null || schemaPrefix.isEmpty()) {
+      return patterns;
+    }
+
+    Set<String> patternsCutSchemaPrefix = new HashSet<>();
+    for (String pattern : patterns) {
+      Set<String> tmp = cutSchemaPrefix(schemaPrefix, pattern);
+      if (tmp.contains("*")) {
+        return Collections.singleton("*");
+      }
+      patternsCutSchemaPrefix.addAll(tmp);
+    }
+    return patternsCutSchemaPrefix;
+  }
+
+  private static Set<String> cutSchemaPrefix(String schemaPrefix, String pattern) {
+    String[] prefixSplit = schemaPrefix.split("\\.");
+    String[] patternSplit = pattern.split("\\.");
+    int minLen = Math.min(prefixSplit.length, patternSplit.length);
+    int index = 0;
+    // 逐级匹配pattern和schemaPrefix
+    while (index < minLen && prefixSplit[index].equals(patternSplit[index])) {
+      index++;
+    }
+
+    // pattern匹配结束，schemaPrefix还有剩余，则该storageEngine下没有该pattern
+    if (index == patternSplit.length) {
+      return Collections.emptySet();
+    }
+
+    // schemaPrefix匹配结束，pattern还有剩余，则把该pattern减去前缀schemaPrefix
+    if (index == prefixSplit.length) {
+      return Collections.singleton(joinWithDot(patternSplit, index));
+    }
+
+    // pattern和schemaPrefix不匹配
+    if (!patternSplit[index].equals("*")) {
+      return Collections.emptySet();
+    }
+
+    Set<String> target = new HashSet<>();
+    // 将pattern的'*'视为部分匹配该前缀，即把'*'下推到数据源
+    target.add(joinWithDot(patternSplit, index));
+    if (index + 1 < patternSplit.length) {
+      // 将pattern的'*'视为完全匹配该前缀，即不把'*'下推到数据源
+      String patternRemain = joinWithDot(patternSplit, index + 1);
+      target.add(patternRemain);
+
+      // 将schemaPrefix的每一级分别匹配'*'
+      for (int i = index + 1; i < prefixSplit.length; i++) {
+        String prefixRemain = joinWithDot(prefixSplit, i);
+        target.addAll(cutSchemaPrefix(prefixRemain, patternRemain));
+      }
+    }
+
+    return target;
+  }
+
+  private static String joinWithDot(String[] strings, int begin) {
+    if (begin >= strings.length) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    for (int i = begin; i < strings.length; i++) {
+      sb.append(strings[i]).append(".");
+    }
+    sb.setLength(sb.length() - 1);
+    return sb.toString();
   }
 }
