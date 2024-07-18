@@ -515,25 +515,27 @@ public abstract class BaseCapacityExpansionIT {
     String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
     String expected;
     if (before) {
-      expected = "Columns:\n"
-          + "+---------------------------+--------+\n"
-          + "|                       Path|DataType|\n"
-          + "+---------------------------+--------+\n"
-          + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
-          + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
-          + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
-          + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
-          + "+---------------------------+--------+\n"
-          + "Total line number = 4\n";
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 4\n";
     } else {
-      expected = "Columns:\n"
-          + "+---------------------------+--------+\n"
-          + "|                       Path|DataType|\n"
-          + "+---------------------------+--------+\n"
-          + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
-          + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
-          + "+---------------------------+--------+\n"
-          + "Total line number = 2\n";
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 2\n";
     }
     SQLTestTools.executeAndCompare(session, statement, expected);
   }

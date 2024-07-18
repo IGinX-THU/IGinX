@@ -372,7 +372,7 @@ public class RelationalStorage implements IStorage {
     try {
       // dummy pattern list
       List<String> patternList = new ArrayList<>();
-      if (patterns == null || patterns.size() == 0) {
+      if (patterns.contains("*")) {
         patternList = new ArrayList<>(Collections.singletonList("*.*"));
       }
       String colPattern;
@@ -389,7 +389,7 @@ public class RelationalStorage implements IStorage {
                 && !databaseName.startsWith(DATABASE_PREFIX);
         if (isDummy) {
           // find pattern that match <databaseName>.* to avoid creating databases after.
-          if (patterns == null || patterns.size() == 0) {
+          if (patterns.contains("*")) {
             continue;
           }
           for (String p : patterns) {
@@ -404,7 +404,7 @@ public class RelationalStorage implements IStorage {
 
         Map<String, String> tableAndColPattern = new HashMap<>();
 
-        if (patterns != null && patterns.size() != 0) {
+        if (!patterns.isEmpty()) {
           tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
         } else {
           for (String table : getTables(databaseName, "%")) {

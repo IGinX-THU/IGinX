@@ -367,44 +367,49 @@ public class StoragePhysicalTaskExecutor {
         continue;
       }
       try {
-        Set<String> patternSet = showColumns.getPathRegexSet();
+        Set<String> patterns = showColumns.getPathRegexSet();
         TagFilter tagFilter = showColumns.getTagFilter();
 
-        List<Column> columnList = pair.k.getColumns(patternSet, tagFilter);
-
-        // fix the schemaPrefix and dataPrefix
         String schemaPrefix = storage.getSchemaPrefix();
         // 不下推dataPrefix的原因：iotdb中，非dummy的数据库中如果有原始数据，会在show columns时被查询到并造成误解
         String dataPrefixRegex =
             storage.getDataPrefix() == null
                 ? null
                 : StringUtils.reformatPath(storage.getDataPrefix() + ".*");
-        if (tagFilter == null) {
-          for (Column column : columnList) {
-            if (column.isDummy()) {
-              if (dataPrefixRegex == null || Pattern.matches(dataPrefixRegex, column.getPath())) {
-                if (schemaPrefix != null) {
-                  column.setPath(schemaPrefix + "." + column.getPath());
-                  boolean isMatch = patternSet.isEmpty();
-                  for (String pathRegex : patternSet) {
-                    if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
-                      isMatch = true;
-                      break;
-                    }
-                  }
-                  if (isMatch) {
-                    columnSetAfterFilter.add(column);
-                  }
-                } else {
-                  columnSetAfterFilter.add(column);
-                }
+
+        // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉前缀是schemaPrefix的部分
+        Set<String> patternsCutSchemaPrefix = cutSchemaPrefix(schemaPrefix, patterns);
+        if (patternsCutSchemaPrefix.isEmpty()) {
+          continue;
+        }
+        List<Column> columnList = pair.k.getColumns(patternsCutSchemaPrefix, tagFilter);
+
+        if (tagFilter != null) {
+          columnSetAfterFilter.addAll(columnList);
+          continue;
+        }
+        for (Column column : columnList) {
+          if (!column.isDummy()) {
+            columnSetAfterFilter.add(column);
+            continue;
+          }
+          if (dataPrefixRegex == null || Pattern.matches(dataPrefixRegex, column.getPath())) {
+            if (schemaPrefix == null) {
+              columnSetAfterFilter.add(column);
+              continue;
+            }
+            column.setPath(schemaPrefix + "." + column.getPath());
+            boolean isMatch = patterns.isEmpty();
+            for (String pathRegex : patterns) {
+              if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
+                isMatch = true;
+                break;
               }
-            } else {
+            }
+            if (isMatch) {
               columnSetAfterFilter.add(column);
             }
           }
-        } else {
-          columnSetAfterFilter.addAll(columnList);
         }
       } catch (PhysicalException e) {
         return new TaskExecuteResult(e);
@@ -430,6 +435,77 @@ public class StoragePhysicalTaskExecutor {
       }
       return new TaskExecuteResult(Column.toRowStream(tsList));
     }
+  }
+
+  private static Set<String> cutSchemaPrefix(String schemaPrefix, Set<String> patterns) {
+    if (schemaPrefix == null) {
+      return patterns;
+    }
+    if (patterns.isEmpty()) {
+      return Collections.singleton("*");
+    }
+
+    Set<String> patternsCutSchemaPrefix = new HashSet<>();
+    for (String pattern : patterns) {
+      Set<String> tmp = cutSchemaPrefix(schemaPrefix, pattern);
+      if (tmp.contains("*")) {
+        return Collections.singleton("*");
+      }
+      patternsCutSchemaPrefix.addAll(tmp);
+    }
+    return patternsCutSchemaPrefix;
+  }
+
+  private static Set<String> cutSchemaPrefix(String schemaPrefix, String pattern) {
+    String[] prefixSplit = schemaPrefix.split("\\.");
+    String[] patternSplit = pattern.split("\\.");
+    int minLen = Math.min(prefixSplit.length, patternSplit.length);
+    int index = 0;
+    while (index < minLen && prefixSplit[index].equals(patternSplit[index])) {
+      index++;
+    }
+
+    if (index == patternSplit.length) {
+      return Collections.emptySet();
+    }
+
+    if (index == prefixSplit.length) {
+      return Collections.singleton(joinWithDot(patternSplit, index));
+    }
+
+    if (!patternSplit[index].equals("*")) {
+      return Collections.emptySet();
+    }
+
+    Set<String> target = new HashSet<>();
+
+    // 将pattern的'*'视为部分匹配该前缀，即把'*'下推到数据源
+    target.add(joinWithDot(patternSplit, index));
+
+    if (index + 1 < patternSplit.length) {
+      // 将pattern的'*'视为完全匹配该前缀，即不把'*'下推到数据源
+      String patternRemain = joinWithDot(patternSplit, index + 1);
+      target.add(patternRemain);
+
+      for (int i = index + 1; i < prefixSplit.length; i++) {
+        String prefixRemain = joinWithDot(prefixSplit, i);
+        target.addAll(cutSchemaPrefix(prefixRemain, patternRemain));
+      }
+    }
+
+    return target;
+  }
+
+  private static String joinWithDot(String[] strings, int begin) {
+    if (begin >= strings.length) {
+      return "";
+    }
+    StringBuilder sb = new StringBuilder();
+    for (int i = begin; i < strings.length; i++) {
+      sb.append(strings[i]).append(".");
+    }
+    sb.setLength(sb.length() - 1);
+    return sb.toString();
   }
 
   public void commit(List<StoragePhysicalTask> tasks) {

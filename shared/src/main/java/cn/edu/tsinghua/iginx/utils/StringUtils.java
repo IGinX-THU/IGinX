@@ -116,16 +116,13 @@ public class StringUtils {
     return path;
   }
 
-  public static boolean isPathMatchPattern(String path, Set<String> patterns) {
-    if (patterns.isEmpty()) {
-      return true;
-    }
+  public static boolean pathNotMatchPatterns(String path, Set<String> patterns) {
     for (String pattern : patterns) {
       if (match(path, pattern)) {
-        return true;
+        return false;
       }
     }
-    return false;
+    return true;
   }
 
   public static boolean match(String string, String iginxPattern) {

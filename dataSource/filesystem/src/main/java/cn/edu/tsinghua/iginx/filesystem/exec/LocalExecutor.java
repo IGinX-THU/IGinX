@@ -346,7 +346,7 @@ public class LocalExecutor implements Executor {
                   file.getAbsolutePath()));
         }
         // get columns by pattern
-        if (!StringUtils.isPathMatchPattern(columnPath, patterns)) {
+        if (StringUtils.pathNotMatchPatterns(columnPath, patterns)) {
           continue;
         }
         // get columns by tag filter
@@ -361,7 +361,7 @@ public class LocalExecutor implements Executor {
       for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
         String dummyPath =
             FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
-        if (!StringUtils.isPathMatchPattern(dummyPath, patterns)) {
+        if (StringUtils.pathNotMatchPatterns(dummyPath, patterns)) {
           continue;
         }
         columns.add(new Column(dummyPath, DataType.BINARY, null, true));

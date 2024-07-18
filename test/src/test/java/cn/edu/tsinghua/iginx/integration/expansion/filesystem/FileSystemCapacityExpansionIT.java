@@ -41,6 +41,43 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|nt.wf03.wt01.status2|  BINARY|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    if (before) {
+      statement = "SHOW COLUMNS p1.*;";
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
+    } else {
+      statement = "SHOW COLUMNS p1.*;";
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
+      SQLTestTools.executeAndCompare(session, statement, expected);
+    }
+  }
+
+  @Override
   public void testShowColumns() {
     String statement = "SHOW COLUMNS mn.*;";
     String expected =

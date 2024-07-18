@@ -272,10 +272,9 @@ public class InfluxDBStorage implements IStorage {
       // <measurementPattern, fieldPattern>
       List<Pair<String, String>> patternPairs = new ArrayList<>();
 
-      if (patterns == null
-          || patterns.size() == 0
-          || patterns.contains("*")
-          || patterns.contains("*.*")) {
+      if (patterns == null || patterns.isEmpty()) {
+        tables = Collections.emptyList();
+      } else if (patterns.contains("*") || patterns.contains("*.*")) {
         statement = String.format(SHOW_TIME_SERIES, bucket.getName());
         tables = client.getQueryApi().query(statement, organization.getId());
       } else {
