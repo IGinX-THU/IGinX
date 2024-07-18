@@ -117,9 +117,6 @@ public class StringUtils {
   }
 
   public static boolean pathNotMatchPatterns(String path, Set<String> patterns) {
-    if (patterns.isEmpty()) {
-      return false;
-    }
     for (String pattern : patterns) {
       if (match(path, pattern)) {
         return false;

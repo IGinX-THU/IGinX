@@ -483,7 +483,7 @@ public class RedisStorage implements IStorage {
       throws PhysicalException {
     List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
-      patternList.add("*");
+      return;
     }
     List<String> allPaths = determinePathList("*", patternList, tagFilter);
     try (Jedis jedis = getDataConnection()) {
@@ -502,7 +502,7 @@ public class RedisStorage implements IStorage {
   private void getDummyColumns(Consumer<Column> ret, Set<String> patterns) {
     List<String> patternList = new ArrayList<>(patterns);
     if (patternList.isEmpty()) {
-      patternList.add("*");
+      return;
     }
     try (Jedis jedis = getDummyConnection()) {
       for (String pattern : patternList) {
