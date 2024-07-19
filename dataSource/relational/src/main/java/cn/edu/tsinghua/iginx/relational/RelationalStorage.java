@@ -374,6 +374,7 @@ public class RelationalStorage implements IStorage {
       throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
+    LOGGER.debug("Get Columns with patterns: {}", patterns);
     try {
       // dummy pattern list
       List<String> patternList = new ArrayList<>();
