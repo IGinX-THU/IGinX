@@ -548,6 +548,13 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   @Override
+  public Statement visitAlterEngineStatement(SqlParser.AlterEngineStatementContext ctx) {
+    long engineId = Long.parseLong(ctx.engineId.getText());
+    Map<String, String> newParams = parseExtra(ctx.params);
+    return new AlterEngineStatement(engineId, newParams);
+  }
+
+  @Override
   public Statement visitShowColumnsStatement(ShowColumnsStatementContext ctx) {
     return parseShowColumnsOptions(ctx.showColumnsOptions());
   }

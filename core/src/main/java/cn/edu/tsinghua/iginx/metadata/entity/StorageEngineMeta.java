@@ -17,10 +17,16 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
+
+import cn.edu.tsinghua.iginx.conf.Constants;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import javax.validation.constraints.NotNull;
 
 public final class StorageEngineMeta {
 
@@ -28,16 +34,16 @@ public final class StorageEngineMeta {
   private long id;
 
   /** 数据库所在的 ip */
-  private final String ip;
+  private String ip;
 
   /** 数据库开放的端口 */
-  private final int port;
+  private int port;
 
   private final boolean readOnly;
 
-  private final String schemaPrefix;
+  private String schemaPrefix;
 
-  private final String dataPrefix;
+  private String dataPrefix;
 
   private final boolean hasData;
 
@@ -275,6 +281,60 @@ public final class StorageEngineMeta {
 
   public void setNeedReAllocate(boolean needReAllocate) {
     this.needReAllocate = needReAllocate;
+  }
+
+  /** update new params. IP, port, extra params allowed except for HAS_DATA & IS_READ_ONLY */
+  public void updateParams(Map<String, String> newParams) throws MetaStorageException {
+    if (newParams.containsKey(Constants.HAS_DATA)
+        || newParams.containsKey(Constants.IS_READ_ONLY)) {
+      throw new MetaStorageException(
+          "Changes to HAS_DATA & IS_READ_ONLY attributes are not allowed ");
+    }
+    if (newParams.containsKey(Constants.IP)) {
+      ip = newParams.get(Constants.IP);
+      newParams.remove(Constants.IP);
+    }
+    if (newParams.containsKey(Constants.PORT)) {
+      port = Integer.parseInt(newParams.get(Constants.PORT));
+      newParams.remove(Constants.PORT);
+    }
+    // for embedded databases
+    if (newParams.containsKey(Constants.DUMMY_DIR)) {
+      newParams.put(
+          Constants.EMBEDDED_PREFIX, extractEmbeddedPrefix(newParams.get(Constants.DUMMY_DIR)));
+    }
+    if (newParams.containsKey(Constants.SCHEMA_PREFIX)) {
+      schemaPrefix = newParams.get(Constants.SCHEMA_PREFIX);
+      newParams.remove(Constants.SCHEMA_PREFIX);
+    }
+    if (newParams.containsKey(Constants.DATA_PREFIX)) {
+      dataPrefix = newParams.get(Constants.DATA_PREFIX);
+      newParams.remove(Constants.DATA_PREFIX);
+    }
+    extraParams.putAll(newParams);
+  }
+
+  public static String extractEmbeddedPrefix(@NotNull String dummyDirPath) {
+    if (dummyDirPath.isEmpty()) {
+      return null;
+    }
+    String separator = System.getProperty("file.separator");
+    // dummyDirPath是规范路径，一定不会以separator结尾
+    String prefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
+    // "/" also can be used on windows, just in case
+    return prefix.substring(prefix.lastIndexOf("/") + 1);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    StorageEngineMeta that = (StorageEngineMeta) o;
+    return (ip.equals(that.ip) || (isLocalHost(ip) && isLocalHost(that.ip)))
+        && port == that.port
+        && storageEngine == that.storageEngine
+        && Objects.equals(schemaPrefix, that.getSchemaPrefix())
+        && Objects.equals(dataPrefix, that.getDataPrefix());
   }
 
   @Override

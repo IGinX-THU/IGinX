@@ -81,10 +81,7 @@ public class StorageEngineUtils {
             return false;
           }
         }
-        String separator = System.getProperty("file.separator");
-        // dummyDirPath是规范路径，一定不会以separator结尾
-        String dirPrefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
-        extraParams.put(EMBEDDED_PREFIX, dirPrefix);
+        extraParams.put(EMBEDDED_PREFIX, StorageEngineMeta.extractEmbeddedPrefix(dummyDirPath));
       } else {
         // hasData=false readOnly=true 无意义的引擎
         if (readOnly) {

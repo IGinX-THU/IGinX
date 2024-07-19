@@ -44,6 +44,7 @@ import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
@@ -107,7 +108,7 @@ public class IginxWorker implements IService.Iface {
       metaFromConf.setExtraParams(extraParams);
       boolean hasAdded = false;
       for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
-        if (isDuplicated(metaFromConf, meta)) {
+        if (metaFromConf.equals(meta)) {
           hasAdded = true;
           break;
         }
@@ -400,7 +401,7 @@ public class IginxWorker implements IService.Iface {
       List<StorageEngineMeta> duplicatedStorageEngines = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
-          if (isDuplicated(storageEngine, currentStorageEngine)) {
+          if (storageEngine.equals(currentStorageEngine)) {
             duplicatedStorageEngines.add(storageEngine);
             LOGGER.error("repeatedly add storage engine {}.", storageEngine);
             status.addToSubStatus(RpcUtils.FAILURE);
@@ -514,23 +515,58 @@ public class IginxWorker implements IService.Iface {
     }
   }
 
-  private boolean isDuplicated(StorageEngineMeta engine1, StorageEngineMeta engine2) {
-    if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
-      return false;
+  /** This function is only for read-only dummy, temporarily */
+  @Override
+  public Status alterStorageEngine(AlterStorageEngineReq req) {
+    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+      return RpcUtils.ACCESS_DENY;
     }
-    if (engine1.getPort() != engine2.getPort()) {
-      return false;
+    Status status = new Status(RpcUtils.SUCCESS.code);
+    long targetId = req.getEngineId();
+    Map<String, String> newParams = req.getNewParams();
+    StorageEngineMeta targetMeta = metaManager.getStorageEngine(targetId);
+    if (targetMeta == null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("No engine found with id:" + targetId);
+      return status;
     }
-    if (!Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())) {
-      return false;
+    if (!targetMeta.isHasData() || !targetMeta.isReadOnly()) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "Only read-only & dummy engines' params can be altered. Engine with id("
+              + targetId
+              + ") cannot be altered.");
+      return status;
     }
-    if (!Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix())) {
-      return false;
+
+    // update meta info
+    try {
+      targetMeta.updateParams(newParams);
+    } catch (MetaStorageException e) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(e.getMessage());
+      return status;
     }
-    if (isLocalHost(engine1.getIp()) && isLocalHost(engine2.getIp())) { // 都是本机IP
-      return true;
+
+    // check existing engines
+    for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
+      if (meta.equals(targetMeta) && meta.getId() != targetId) {
+        status.setCode(RpcUtils.FAILURE.code);
+        status.setMessage("Same Engine exists.");
+        return status;
+      }
     }
-    return engine1.getIp().equals(engine2.getIp());
+
+    // remove, then add
+    if (!metaManager.removeDummyStorageEngine(targetId)) {
+      LOGGER.error("unexpected error during removing dummy storage engine {}.", targetMeta);
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("unexpected error occurred. Please check server log.");
+      return status;
+    }
+
+    addStorageEngineMetas(Collections.singletonList(targetMeta), status, true);
+    return status;
   }
 
   @Override
