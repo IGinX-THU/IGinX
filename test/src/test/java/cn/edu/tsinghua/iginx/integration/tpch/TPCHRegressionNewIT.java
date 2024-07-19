@@ -190,7 +190,7 @@ public class TPCHRegressionNewIT {
       fileWriter.flush();
       // 重新写入内容
       for (int failedQueryId : failedQueryIds) {
-        bufferedWriter.write(failedQueryId);
+        bufferedWriter.write(String.valueOf(failedQueryId));
         bufferedWriter.newLine();
       }
     } catch (IOException e) {
@@ -207,7 +207,7 @@ public class TPCHRegressionNewIT {
       fileWriter.write("");
       fileWriter.flush();
       // 重新写入内容
-      bufferedWriter.write(iterationTimes);
+      bufferedWriter.write(String.valueOf(iterationTimes));
     } catch (IOException e) {
       LOGGER.error("Write to file {} fail. Caused by:", ITERATION_TIMES_PATH, e);
       Assert.fail();
