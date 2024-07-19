@@ -63,7 +63,9 @@ public class TPCHUtils {
       List<Long> tmp = new ArrayList<>();
       String[] lineArray = lines.get(i).split(",");
       for (String str : lineArray) {
-        tmp.add(Long.parseLong(str));
+        if (!str.isEmpty()) {
+          tmp.add(Long.parseLong(str));
+        }
       }
       timeCosts.add(tmp);
     }
