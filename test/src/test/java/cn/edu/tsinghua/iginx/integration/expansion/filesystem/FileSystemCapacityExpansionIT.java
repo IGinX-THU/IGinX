@@ -54,6 +54,35 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
+    statement = "SHOW COLUMNS;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "+          ln.wf02.status| BOOLEAN|\n"
+              + "+         ln.wf02.version|  BINARY|\n"
+              + "+    nt.wf03.wt01.status2|    LONG|\n"
+              + "+nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+------------------------+--------+\n"
+              + "Total line number = 4\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "+          ln.wf02.status| BOOLEAN|\n"
+              + "+         ln.wf02.version|  BINARY|\n"
+              + "+    nt.wf03.wt01.status2|  BINARY|\n"
+              + "+nt.wf04.wt01.temperature|  BINARY|\n"
+              + "+ p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "+------------------------+--------+\n"
+              + "Total line number = 5\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
     if (before) {
       statement = "SHOW COLUMNS p1.*;";
       expected =
