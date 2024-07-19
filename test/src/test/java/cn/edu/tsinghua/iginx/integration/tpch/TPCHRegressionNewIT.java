@@ -53,7 +53,7 @@ public class TPCHRegressionNewIT {
       "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
 
   static final String ITERATION_TIMES_PATH =
-      "src/test/resources/tpch/runtimeInfo/iteratoionTimes.txt";
+      "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
 
   static final String MAIN_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
 
@@ -86,7 +86,6 @@ public class TPCHRegressionNewIT {
         queryIds.add(Integer.parseInt(line));
       }
     }
-
     // 第一次查询需要验证查询结果正确性
     needValidate = iterationTimes == 1;
     MAX_REPETITIONS_NUM = conf.getMaxRepetitionsNum();

@@ -22,8 +22,6 @@ import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.AfterClass;
@@ -49,7 +47,7 @@ public class TPCHRegressionMainIT {
       "src/test/resources/tpch/runtimeInfo/failedQueryIds.txt";
 
   static final String ITERATION_TIMES_PATH =
-      "src/test/resources/tpch/runtimeInfo/iteratoionTimes.txt";
+      "src/test/resources/tpch/runtimeInfo/iterationTimes.txt";
 
   static final String MAIN_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt";
 
