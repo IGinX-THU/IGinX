@@ -180,7 +180,7 @@
                                 </replacement>
                                 <replacement>
                                     <token>#storageEngineList=127.0.0.1#6667#parquet.*</token>
-                                    <value>storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#iginx_port=6888</value>
+                                    <value>storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#iginx_port=6888#has_data=false#is_read_only=false</value>
                                 </replacement>
                                 <replacement>
                                     <token>UD[ATS]F,.*,.*,.*[.]py</token>
