@@ -32,7 +32,6 @@ jobs:
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
-            os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
 #    remote-test:
 #        uses: ./.github/workflows/remote-test.yml
