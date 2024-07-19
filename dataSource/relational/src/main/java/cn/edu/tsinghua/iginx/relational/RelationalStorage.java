@@ -135,6 +135,7 @@ public class RelationalStorage implements IStorage {
     HikariDataSource dataSource = connectionPoolMap.get(databaseName);
     if (dataSource != null) {
       try {
+        LOGGER.debug("Get connection for database {}", databaseName);
         return dataSource.getConnection();
       } catch (SQLException e) {
         LOGGER.error("Cannot get connection for database {}", databaseName, e);
@@ -157,6 +158,7 @@ public class RelationalStorage implements IStorage {
 
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
+      LOGGER.debug("Create connection for database {}", databaseName);
       return newDataSource.getConnection();
     } catch (SQLException e) {
       LOGGER.error("Cannot get connection for database {}", databaseName, e);
