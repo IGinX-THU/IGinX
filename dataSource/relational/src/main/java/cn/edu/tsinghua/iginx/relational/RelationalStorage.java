@@ -275,6 +275,7 @@ public class RelationalStorage implements IStorage {
     }
     rs.close();
     conn.close();
+    closeConnection(relationalMeta.getDefaultDatabaseName());
     return databaseNames;
   }
 
@@ -303,6 +304,7 @@ public class RelationalStorage implements IStorage {
 
       rs.close();
       conn.close();
+      closeConnection(databaseName);
       return tableNames;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
@@ -331,6 +333,7 @@ public class RelationalStorage implements IStorage {
       }
       rs.close();
       conn.close();
+      closeConnection(databaseName);
       return columnFields;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
@@ -1282,6 +1285,7 @@ public class RelationalStorage implements IStorage {
             stmt.execute(statement); // 删除数据库
             stmt.close();
             defaultConn.close();
+            closeConnection(relationalMeta.getDefaultDatabaseName());
             return new TaskExecuteResult(null, null);
           } else {
             return new TaskExecuteResult(
@@ -1363,6 +1367,7 @@ public class RelationalStorage implements IStorage {
     }
     try {
       conn.close();
+      closeConnection(databaseName);
     } catch (SQLException ex) {
       LOGGER.error("encounter error when closing connection: {}", ex.getMessage());
     }
