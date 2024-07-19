@@ -59,6 +59,8 @@ public class TPCHRegressionNewIT {
 
   static final String NEW_TIME_COSTS_PATH = "src/test/resources/tpch/runtimeInfo/newTimeCosts.txt";
 
+  static final String STATUS_PATH = "src/test/resources/tpch/runtimeInfo/status.txt";
+
   // 最大重复测试次数
   int MAX_REPETITIONS_NUM;
 
@@ -160,6 +162,11 @@ public class TPCHRegressionNewIT {
           oldTimeCostMedian,
           newTimeCostMedian);
     }
+
+    if (failedQueryIds.isEmpty()) {
+      writeOKtoFile();
+    }
+
     TPCHUtils.clearAndRewriteTimeCostsToFile(newTimeCosts, NEW_TIME_COSTS_PATH);
     clearAndRewriteFailedQueryIdsToFile(failedQueryIds);
     updateIterationTimes();
@@ -171,6 +178,20 @@ public class TPCHRegressionNewIT {
     return array.size() % 2 == 0
         ? (long) ((array.get(middle - 1) + array.get(middle)) / 2.0)
         : array.get(middle);
+  }
+
+  private void writeOKtoFile() {
+    try (FileWriter fileWriter = new FileWriter(STATUS_PATH);
+        BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+      // 清空文件内容
+      fileWriter.write("");
+      fileWriter.flush();
+      // 重新写入内容
+      bufferedWriter.write("ok");
+    } catch (IOException e) {
+      LOGGER.error("Write to file {} fail. Caused by:", STATUS_PATH, e);
+      Assert.fail();
+    }
   }
 
   private void clearAndRewriteFailedQueryIdsToFile(List<Integer> failedQueryIds) {
