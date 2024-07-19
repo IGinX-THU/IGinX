@@ -151,52 +151,52 @@ jobs:
               id: test2
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test1.outputs.status }}
+                  status:: ${{ steps.test1.outputs.status }}
 
             - name: Run 3rd Regression Test
               id: test3
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test2.outputs.status }}
+                  status:: ${{ steps.test2.outputs.status }}
 
             - name: Run 4th Regression Test
               id: test4
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test3.outputs.status }}
+                  status:: ${{ steps.test3.outputs.status }}
 
             - name: Run 5th Regression Test
               id: test5
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test4.outputs.status }}
+                  status:: ${{ steps.test4.outputs.status }}
 
             - name: Run 6th Regression Test
               id: test6
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test5.outputs.status }}
+                  status:: ${{ steps.test5.outputs.status }}
 
             - name: Run 7th Regression Test
               id: test7
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test6.outputs.status }}
+                  status:: ${{ steps.test6.outputs.status }}
 
             - name: Run 8th Regression Test
               id: test8
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test7.outputs.status }}
+                  status:: ${{ steps.test7.outputs.status }}
 
             - name: Run 9th Regression Test
               id: test9
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test8.outputs.status }}
+                  status:: ${{ steps.test8.outputs.status }}
 
             - name: Run 10th Regression Test
               id: test10
               uses: ./.github/actions/tpchSingleTest
               with:
-                  status:: ${{ test9.outputs.status }}
+                  status:: ${{ steps.test9.outputs.status }}
