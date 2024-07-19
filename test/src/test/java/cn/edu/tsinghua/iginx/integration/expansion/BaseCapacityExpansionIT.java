@@ -610,33 +610,31 @@ public abstract class BaseCapacityExpansionIT {
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "|                                                                                  Path|DataType|\n"
               + "+--------------------------------------------------------------------------------------+--------+\n"
-              + "+                                                                                 b.b.b|    LONG|\n"
-              + "+                                                                        ln.wf02.status| BOOLEAN|\n"
-              + "+                                                                       ln.wf02.version|  BINARY|\n"
-              + "+                                                                  nt.wf03.wt01.status2|    LONG|\n"
-              + "+                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
               + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "Total line number = 6\n";
-      SQLTestTools.executeAndPrint(session, statement);
     } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       expected =
           "Columns:\n"
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "|                                                                                  Path|DataType|\n"
               + "+--------------------------------------------------------------------------------------+--------+\n"
-              + "+                                                                                 b.b.b|    LONG|\n"
-              + "+                                                                        ln.wf02.status| BOOLEAN|\n"
-              + "+                                                                       ln.wf02.version|  BINARY|\n"
-              + "+                                                                  nt.wf03.wt01.status2|    LONG|\n"
-              + "+                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
-              + "+                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
               + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
               + "+--------------------------------------------------------------------------------------+--------+\n"
               + "Total line number = 7\n";
-      SQLTestTools.executeAndPrint(session, statement);
     }
-    // SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS p1.*;";
     if (before) {

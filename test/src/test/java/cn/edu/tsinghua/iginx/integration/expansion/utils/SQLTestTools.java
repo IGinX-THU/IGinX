@@ -42,11 +42,6 @@ public class SQLTestTools {
     assertEquals(exceptOutput, actualOutput);
   }
 
-  public static void executeAndPrint(Session session, String statement) {
-    String actualOutput = execute(session, statement);
-    System.out.println(actualOutput);
-  }
-
   private static String execute(Session session, String statement) {
     LOGGER.info("Execute Statement: \"{}\"", statement);
 

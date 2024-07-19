@@ -75,32 +75,34 @@ public class RedisCapacityExpansionIT extends BaseCapacityExpansionIT {
     if (before) {
       expected =
           "Columns:\n"
-              + "+------------------------+--------+\n"
-              + "|                    Path|DataType|\n"
-              + "+------------------------+--------+\n"
-              + "+          ln.wf02.status| BOOLEAN|\n"
-              + "+         ln.wf02.version|  BINARY|\n"
-              + "+    nt.wf03.wt01.status2|    LONG|\n"
-              + "+nt.wf04.wt01.temperature|  DOUBLE|\n"
-              + "+------------------------+--------+\n"
-              + "Total line number = 4\n";
-      SQLTestTools.executeAndPrint(session, statement);
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|  BINARY|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|  BINARY|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  BINARY\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|  BINARY|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 6\n";
     } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
       expected =
           "Columns:\n"
-              + "+------------------------+--------+\n"
-              + "|                    Path|DataType|\n"
-              + "+------------------------+--------+\n"
-              + "+          ln.wf02.status| BOOLEAN|\n"
-              + "+         ln.wf02.version|  BINARY|\n"
-              + "+    nt.wf03.wt01.status2|  BINARY|\n"
-              + "+nt.wf04.wt01.temperature|  BINARY|\n"
-              + "+ p1.nt.wf03.wt01.status2|  BINARY|\n"
-              + "+------------------------+--------+\n"
-              + "Total line number = 5\n";
-      SQLTestTools.executeAndPrint(session, statement);
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|  BINARY|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|  BINARY|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  BINARY|\n"
+              + "|                                                               p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|  BINARY|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 7\n";
     }
-    // SQLTestTools.executeAndCompare(session, statement, expected);
+    SQLTestTools.executeAndCompare(session, statement, expected);
 
     if (before) {
       statement = "SHOW COLUMNS p1.*;";
