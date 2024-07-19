@@ -1,0 +1,61 @@
+name: "tpch-single-test"
+description: "test tpc-h once in main branch and new branch"
+
+runs:
+    using: "composite"
+    steps:
+        - name: Start Old IGinX
+          if: always()
+          uses: ./.github/actions/iginxRunner
+        #          shell: bash
+        #          run: |
+        #              cd IGinX/core/target/iginx-core-${VERSION}
+        #              pwd
+        #              export IGINX_HOME=$PWD
+        #              echo "IGinX home path: $IGINX_HOME"
+        #              cd ..
+        #              chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
+        #              nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
+
+        - name: Run TPCH Test on Old IGinX
+          if: always()
+          shell: bash
+          run: |
+              mvn test -q -Dtest=TPCHRegressionMainIT -DfailIfNoTests=false -P-format
+        #              cp test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/
+        #              cp test/src/test/resources/tpch/runtimeInfo/iteratoionTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/
+        #              mvn test -q -Dtest=TPCHRegressionMainIT -DfailIfNoTests=false -P-format
+
+        - name: Show Old IGinX log
+          if: always()
+          shell: bash
+          run: cat iginx-*.log
+        #          run: cat IGinX/iginx-*.log
+
+        - name: Stop Old IGinX
+          uses: ./.github/actions/iginxRunner
+          with:
+              version: ${VERSION}
+              if-stop: "true"
+
+        - name: Start New IGinX
+          uses: ./.github/actions/iginxRunner
+
+        - name: Run Regression Test on New IGinX
+          if: always()
+          shell: bash
+          run: |
+              mvn test -q -Dtest=TPCHRegressionNewIT -DfailIfNoTests=false -P-format
+        #              cp IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/
+        #              mvn test -q -Dtest=TPCHRegressionNewIT -DfailIfNoTests=false -P-format
+
+        - name: Show New IGinX log
+          if: always()
+          shell: bash
+          run: cat iginx-*.log
+
+        - name: Stop New IGinX
+          uses: ./.github/actions/iginxRunner
+          with:
+              version: ${VERSION}
+              if-stop: "true"
