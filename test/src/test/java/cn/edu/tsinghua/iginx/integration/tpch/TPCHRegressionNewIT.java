@@ -75,16 +75,12 @@ public class TPCHRegressionNewIT {
 
   public TPCHRegressionNewIT() {
     ConfLoader conf = new ConfLoader(Controller.CONFIG_FILE);
-    if (!Files.exists(Paths.get(ITERATION_TIMES_PATH))) {
-      iterationTimes = 1;
-    } else {
-      List<String> lines = TPCHUtils.getLinesFromFile(FAILED_QUERY_ID_PATH);
-      iterationTimes = Integer.parseInt(lines.get(0));
-    }
+    List<String> lines = TPCHUtils.getLinesFromFile(ITERATION_TIMES_PATH);
+    iterationTimes = Integer.parseInt(lines.get(0));
     if (iterationTimes == 1) {
       queryIds = conf.getQueryIds();
     } else {
-      List<String> lines = TPCHUtils.getLinesFromFile(FAILED_QUERY_ID_PATH);
+      lines = TPCHUtils.getLinesFromFile(FAILED_QUERY_ID_PATH);
       queryIds = new ArrayList<>();
       for (String line : lines) {
         queryIds.add(Integer.parseInt(line));

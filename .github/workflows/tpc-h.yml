@@ -143,32 +143,32 @@ jobs:
               shell: bash
               run: cat iginx-*.log
 
-            - name: Run Regression Test the 1st time
+            - name: Run 1st Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 2nd time
+            - name: Run 2nd Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 3rd time
+            - name: Run 3rd Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 4th time
+            - name: Run 4th Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 5th time
+            - name: Run 5th Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 6th time
+            - name: Run 6th Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 7th time
+            - name: Run 7th Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 8th time
+            - name: Run 8th Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 9th time
+            - name: Run 9th Regression Test
               uses: ./.github/actions/tpchSingleTest
 
-            - name: Run Regression Test the 10th time
+            - name: Run 10th Regression Test
               uses: ./.github/actions/tpchSingleTest
