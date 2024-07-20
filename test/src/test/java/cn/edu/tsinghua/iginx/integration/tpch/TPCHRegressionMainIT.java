@@ -92,7 +92,7 @@ public class TPCHRegressionMainIT {
   }
 
   @Test
-  public void test() {
+  public void testMainBranch() {
     if (queryIds.isEmpty()) {
       LOGGER.info("No query remain, skip test main branch.");
       return;

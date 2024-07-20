@@ -106,7 +106,7 @@ public class TPCHRegressionNewIT {
   }
 
   @Test
-  public void test() {
+  public void testNewBranch() {
     if (queryIds.isEmpty()) {
       LOGGER.info("No query remain, skip test new branch.");
       return;

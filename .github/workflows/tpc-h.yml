@@ -144,6 +144,13 @@ jobs:
                   ls ${GITHUB_WORKSPACE}/test
                   cat iginx-*.log
 
+            - name: Copy Data to Old IGinX Directory
+              if: matrix.DB-name == 'FileSystem' || matrix.DB-name == 'Parquet'
+              shell: bash
+              run: |
+                  mkdir IGinX/test/iginx_mn
+                  cp -r test/iginx_mn/* IGinX/test/iginx_mn/
+
             - name: Run 1st Regression Test
               id: test1
               uses: ./.github/actions/tpchSingleTest
