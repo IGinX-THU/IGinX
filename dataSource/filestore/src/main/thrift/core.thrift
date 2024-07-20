@@ -77,19 +77,6 @@ struct RawFilter {
     9: optional RawValue value
 }
 
-struct RawFunction {
-    1: required string id
-}
-
-struct RawFunctionParams {
-    1: required list<string> patterns
-}
-
-struct RawFunctionCall {
-    1: required RawFunction func
-    2: required RawFunctionParams params
-}
-
 struct RawHeader {
     1: required list<string> names
     2: required list<rpc.DataType> types
@@ -116,18 +103,9 @@ struct TS {
     3: optional map<string, string> tags
 }
 
-struct InsertData {
-    1: required list<string> patterns
-    2: required list<map<string, string>> tagsList
-    3: required binary keys
-    4: required list<binary> valuesList
-    5: required list<binary> bitmapList
-    6: required list<string> dataTypeList
-    7: required string rawDataType
-}
-
 struct RawField {
     1: required string path
     2: required rpc.DataType dataType
     3: required map<string, string> tags
 }
+

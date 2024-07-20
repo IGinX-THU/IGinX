@@ -15,24 +15,25 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.shared.data.read;
+package cn.edu.tsinghua.iginx.filestore.struct;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
+import cn.edu.tsinghua.iginx.thrift.AggregateType;
 
-public interface RowStream extends AutoCloseable {
+import javax.annotation.Nullable;
+import java.io.Closeable;
+import java.io.IOException;
 
-  Header getHeader() throws PhysicalException;
+public interface FileManager extends Closeable {
 
-  void close() throws PhysicalException;
+  DataBoundary getBoundary(@Nullable String prefix) throws IOException;
 
-  boolean hasNext() throws PhysicalException;
+  RowStream query(DataTarget target, @Nullable AggregateType aggregate) throws IOException;
 
-  Row next() throws PhysicalException;
+  void delete(DataTarget target) throws IOException;
 
-  default void setContext(RequestContext context) {}
+  void insert(DataView data) throws IOException;
 
-  default RequestContext getContext() {
-    return null;
-  }
 }

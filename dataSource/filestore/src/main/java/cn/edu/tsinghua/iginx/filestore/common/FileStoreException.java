@@ -15,24 +15,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.shared.data.read;
+package cn.edu.tsinghua.iginx.filestore.common;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 
-public interface RowStream extends AutoCloseable {
+public class FileStoreException extends PhysicalException {
 
-  Header getHeader() throws PhysicalException;
+  public FileStoreException(String message) {
+    super(message);
+  }
 
-  void close() throws PhysicalException;
+  public FileStoreException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-  boolean hasNext() throws PhysicalException;
-
-  Row next() throws PhysicalException;
-
-  default void setContext(RequestContext context) {}
-
-  default RequestContext getContext() {
-    return null;
+  public FileStoreException(Throwable cause) {
+    super(cause);
   }
 }

@@ -16,67 +16,68 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
+include "rpc.thrift"
 include "core.thrift"
-namespace java cn.edu.tsinghua.iginx.filestore.rpc
+namespace java cn.edu.tsinghua.iginx.filestore.thrift
 
-struct Status {
-    1: required i32 code
+enum Status {
+    OK,
+    FileStoreException,
+    UnknownException,
+}
+
+exception RpcException {
+    1: required Status status
     2: required string message
 }
 
-struct ProjectReq {
-    1: required string storageUnit
-    2: required list<string> patterns
-    3: optional core.RawTagFilter tagFilter
-    4: optional core.RawFilter filter
-    5: optional list<core.RawFunctionCall> aggregations
+struct DataUnit {
+    1: required bool dummy
+    2: required string name
 }
 
-struct ProjectResp {
-    1: required Status status
-    2: optional core.RawHeader header
-    3: optional list<core.RawRow> rows
+struct DataBoundary {
+    1: optional string startColumn
+    2: optional string endColumn
+    3: required i64 startKey
+    4: required i64 endKey
 }
 
-struct InsertReq {
-    1: required string storageUnit
-    2: required core.InsertData rawData;
+struct RawDataTarget {
+    1: required list<string> patterns
+    2: optional core.RawTagFilter tagFilter
+    3: optional core.RawFilter filter
 }
 
-struct DeleteReq {
-    1: required string storageUnit
-    2: optional core.RawFilter filter
-    3: required list<string> patterns
-    4: optional core.RawTagFilter tagFilter
+struct RawDataSet {
+    1: required core.RawHeader header
+    2: required list<core.RawRow> rows
 }
 
-struct GetStorageBoundaryResp {
-    1: required Status status
-    2: optional string startColumn
-    3: optional string endColumn
+struct RawPrefix {
+    1: optional string prefix
 }
 
-struct StorageUnit {
-    1: optional string name
+struct RawAggregate {
+    1: optional rpc.AggregateType type
 }
 
-struct GetColumnsOfStorageUnitResp {
-    1: required Status status
-    2: optional map<StorageUnit,set<core.RawField>> schemas
+struct RawInserted {
+    1: required list<string> patterns
+    2: required list<map<string, string>> tagsList
+    3: required binary keys
+    4: required list<binary> valuesList
+    5: required list<binary> bitmapList
+    6: required list<string> dataTypeList
+    7: required string rawDataType
 }
 
-// TODO: throw exception directly, do not return Status
-// TODO: replace req with more specific args
-service FileStoreService {
+service FileStoreRpc {
+    map<DataUnit,DataBoundary> getUnits (1: RawPrefix prefix) throws (1: RpcException e);
 
-    ProjectResp executeProject(1: ProjectReq req);
+    RawDataSet query(1: DataUnit unit, 2: RawDataTarget target, 3: RawAggregate aggregate) throws (1: RpcException e);
 
-    Status executeInsert(1: InsertReq req);
+    void delete(1: DataUnit unit, 2: RawDataTarget target) throws (1: RpcException e);
 
-    Status executeDelete(1: DeleteReq req);
-
-    GetColumnsOfStorageUnitResp getColumnsOfStorageUnit();
-
-    GetStorageBoundaryResp getBoundaryOfStorage(1: string prefix);
-
+    void insert(1: DataUnit unit, 2: RawInserted data) throws (1: RpcException e);
 }
