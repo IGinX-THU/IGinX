@@ -89,34 +89,33 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            #            - name: Get Old Version IGinX
-            #              shell: bash
-            #              run: git clone https://github.com/IGinX-THU/IGinX.git
-            #
-            #            - name: Rewrite DB Conf in Old IGinX
-            #              uses: ./.github/actions/dbConfWriter
-            #              with:
-            #                  DB-name: ${{ matrix.DB-name }}
-            #                  Root-Dir-Path: "IGinX"
-            #
-            #            - name: Install Old IGinX with Maven
-            #              shell: bash
-            #              run: |
-            #                  cd IGinX
-            #                  mvn clean package -DskipTests -P-format -q
-            #
-            #            - name: Change Old IGinX config
-            #              uses: ./.github/actions/confWriter
-            #              with:
-            #                  DB-name: ${{ matrix.DB-name }}
-            #                  Set-Filter-Fragment-OFF: "true"
-            #                  Metadata: ${{ matrix.metadata }}
-            #                  Root-Dir-Path: "IGinX"
+            - name: Get Old Version IGinX
+              shell: bash
+              run: git clone https://github.com/IGinX-THU/IGinX.git
+
+            - name: Rewrite DB Conf in Old IGinX
+              uses: ./.github/actions/dbConfWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Root-Dir-Path: "IGinX"
+
+            - name: Install Old IGinX with Maven
+              shell: bash
+              run: |
+                  cd IGinX
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change Old IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
+                  Root-Dir-Path: "IGinX"
 
             - name: Install New IGinX with Maven
               shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format -q
+              run: mvn clean package -DskipTests -P-format -q
 
             - name: Change New IGinX config
               uses: ./.github/actions/confWriter
