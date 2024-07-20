@@ -32,7 +32,6 @@
     <name>IGinX Thrift</name>
 
     <properties>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <thrift.version>0.16.0</thrift.version>
     </properties>
 
