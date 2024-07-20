@@ -157,9 +157,11 @@
                 <version>2.2</version>
             </dependency>
             <dependency>
-                <groupId>com.fasterxml.jackson.core</groupId>
-                <artifactId>jackson-databind</artifactId>
-                <version>2.13.4.2</version>
+                <groupId>com.fasterxml.jackson</groupId>
+                <artifactId>jackson-bom</artifactId>
+                <version>2.17.2</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>cn.hutool</groupId>
@@ -167,39 +169,11 @@
                 <version>5.8.26</version>
             </dependency>
             <dependency>
-                <groupId>com.google.flatbuffers</groupId>
-                <artifactId>flatbuffers-java</artifactId>
-                <version>23.5.26</version>
-            </dependency>
-            <dependency>
                 <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-format</artifactId>
-                <version>17.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-vector</artifactId>
-                <version>17.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-core</artifactId>
-                <version>17.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-netty</artifactId>
-                <version>17.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-memory-netty-buffer-patch</artifactId>
-                <version>17.0.0-SNAPSHOT</version>
-            </dependency>
-            <dependency>
-                <groupId>org.apache.arrow</groupId>
-                <artifactId>arrow-algorithm</artifactId>
-                <version>17.0.0-SNAPSHOT</version>
+                <artifactId>arrow-bom</artifactId>
+                <version>17.0.0</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>org.apache.commons</groupId>
@@ -237,6 +211,13 @@
                 <version>1.6.0</version>
             </dependency>
             <dependency>
+                <groupId>io.netty</groupId>
+                <artifactId>netty-bom</artifactId>
+                <version>4.1.110.Final</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
                 <groupId>org.apache.zookeeper</groupId>
                 <artifactId>zookeeper</artifactId>
                 <version>3.7.2</version>
@@ -269,18 +250,15 @@
             <dependency>
                 <groupId>io.etcd</groupId>
                 <artifactId>jetcd-core</artifactId>
-                <version>0.5.7</version>
-                <optional>true</optional>
-                <exclusions>
-                    <exclusion>
-                        <groupId>org.slf4j</groupId>
-                        <artifactId>slf4j-log4j12</artifactId>
-                    </exclusion>
-                    <exclusion>
-                        <groupId>log4j</groupId>
-                        <artifactId>log4j</artifactId>
-                    </exclusion>
-                </exclusions>
+                <version>0.5.11</version>
+            </dependency>
+            <!-- jetcd-core requires grpc version not exceeding 1.57 -->
+            <dependency>
+                <groupId>io.grpc</groupId>
+                <artifactId>grpc-bom</artifactId>
+                <version>1.57.2</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <dependency>
                 <groupId>com.influxdb</groupId>
@@ -311,8 +289,10 @@
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
-                <artifactId>guava</artifactId>
-                <version>33.2.0-jre</version>
+                <artifactId>guava-bom</artifactId>
+                <version>33.2.1-jre</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>
