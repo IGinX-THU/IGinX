@@ -28,12 +28,12 @@ runs:
           if: inputs.status != 'ok'
           shell: bash
           run: |
-              cp test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/
-              cp test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/
+              cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
+              cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
               mvn test -q -Dtest=TPCHRegressionMainIT -DfailIfNoTests=false -P-format
 
         - name: Show Old IGinX log
-          if: inputs.status != 'ok'
+          if: always()
           shell: bash
           run: cat IGinX/iginx-*.log
 
@@ -52,11 +52,11 @@ runs:
           if: inputs.status != 'ok'
           shell: bash
           run: |
-              cp IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/
+              cp -f IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
               mvn test -q -Dtest=TPCHRegressionNewIT -DfailIfNoTests=false -P-format
 
         - name: Show New IGinX log
-          if: inputs.status != 'ok'
+          if: always()
           shell: bash
           run: cat iginx-*.log
 
