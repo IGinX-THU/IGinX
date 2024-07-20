@@ -29,7 +29,7 @@ runs:
           shell: bash
           run: |
               cp test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/
-              cp test/src/test/resources/tpch/runtimeInfo/iteratoionTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/
+              cp test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/
               mvn test -q -Dtest=TPCHRegressionMainIT -DfailIfNoTests=false -P-format
 
         - name: Show Old IGinX log
