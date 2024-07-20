@@ -141,7 +141,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  ls ${{ GITHUB_WORKPLACE }}/test
+                  ls ${GITHUB_WORKSPACE}/test
                   cat iginx-*.log
 
             - name: Run 1st Regression Test
