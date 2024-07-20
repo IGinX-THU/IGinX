@@ -140,7 +140,9 @@ jobs:
             - name: Show New IGinX log
               if: always()
               shell: bash
-              run: cat iginx-*.log
+              run: |
+                  ls ${{ GITHUB_WORKPLACE }}/test
+                  cat iginx-*.log
 
             - name: Run 1st Regression Test
               id: test1

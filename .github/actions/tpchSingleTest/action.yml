@@ -53,9 +53,7 @@ runs:
           if: inputs.status != 'ok'
           shell: bash
           run: |
-              cat test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
               cp -f IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
-              cat test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
               mvn test -q -Dtest=TPCHRegressionNewIT -DfailIfNoTests=false -P-format
 
         - name: Show New IGinX log
