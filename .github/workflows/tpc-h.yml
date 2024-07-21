@@ -124,32 +124,10 @@ jobs:
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
-            - name: Start New IGinX
-              uses: ./.github/actions/iginxRunner
-
-            - name: Insert Data and Register UDF
-              shell: bash
-              run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
-
-            - name: Stop New IGinX
-              uses: ./.github/actions/iginxRunner
+            - name: Insert Data into DB
+              uses: ./.github/actions/tpchDataWriter
               with:
-                  version: ${VERSION}
-                  if-stop: "true"
-
-            - name: Show New IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  ls ${GITHUB_WORKSPACE}/test
-                  cat iginx-*.log
-
-            - name: Copy Data to Old IGinX Directory
-              if: matrix.DB-name == 'FileSystem' || matrix.DB-name == 'Parquet'
-              shell: bash
-              run: |
-                  mkdir IGinX/test/iginx_mn
-                  cp -r test/iginx_mn/* IGinX/test/iginx_mn/
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Run 1st Regression Test
               id: test1
