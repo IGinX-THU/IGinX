@@ -94,7 +94,7 @@ public class ParquetReadWriter implements ReadWriter {
     Path tempPath = dir.resolve(tableName + Constants.SUFFIX_FILE_TEMP);
     Files.createDirectories(path.getParent());
 
-    LOGGER.debug("flushing into {}", tempPath);
+    // LOGGER.debug("flushing into {}", tempPath);
 
     MessageType parquetSchema = getMessageType(meta.getSchema());
     int maxBufferSize = shared.getStorageProperties().getParquetOutputBufferMaxSize();
@@ -115,7 +115,7 @@ public class ParquetReadWriter implements ReadWriter {
       throw new IOException("failed to write " + path, e);
     }
 
-    LOGGER.debug("rename temp file to {}", path);
+    // LOGGER.debug("rename temp file to {}", path);
     if (Files.exists(path)) {
       LOGGER.warn("file {} already exists, will be replaced", path);
     }

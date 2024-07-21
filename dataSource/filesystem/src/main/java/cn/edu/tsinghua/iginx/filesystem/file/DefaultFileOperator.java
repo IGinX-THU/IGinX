@@ -471,7 +471,7 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private void closeAppendWriter(File file) throws IOException {
-    LOGGER.debug("close writer for file {}", file.getAbsolutePath());
+    // LOGGER.debug("close writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
       try {
@@ -485,7 +485,7 @@ public class DefaultFileOperator implements IFileOperator {
   }
 
   private void flushAppendWriter(File file) throws IOException {
-    LOGGER.debug("flush writer for file {}", file.getAbsolutePath());
+    // LOGGER.debug("flush writer for file {}", file.getAbsolutePath());
     BufferedWriter writer = appendWriterMap.get(file);
     if (writer != null) {
       try {
