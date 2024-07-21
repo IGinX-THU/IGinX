@@ -50,7 +50,6 @@ runs:
           if: inputs.DB-name == 'FileSystem' || inputs.DB-name == 'Parquet'
           shell: bash
           run: |
-              cd IGinX
               mvn test -q -Dtest=TPCHDataGeneratorIT#insertTmpTable -DfailIfNoTests=false -P-format
 
         - name: Show Old IGinX log
