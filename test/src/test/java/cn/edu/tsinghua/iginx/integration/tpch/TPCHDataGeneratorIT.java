@@ -278,6 +278,8 @@ public class TPCHDataGeneratorIT {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", SHOW_FUNCTION, e);
       Assert.fail();
     }
+    System.out.println(result);
+    System.out.println(UDFInfo.get(1));
     // UDF已注册
     if (result.contains(UDFInfo.get(1))) {
       return;
