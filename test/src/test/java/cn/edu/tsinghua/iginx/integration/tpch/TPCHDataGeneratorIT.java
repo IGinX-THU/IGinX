@@ -59,7 +59,7 @@ public class TPCHDataGeneratorIT {
   // udf文件所在目录
   static final String UDF_DIR = "src/test/resources/tpch/udf/";
 
-  static final String SHOW_FUNCTION = "SHOW FUNCTIONS";
+  static final String SHOW_FUNCTION = "SHOW FUNCTIONS;";
 
   static final String SINGLE_UDF_REGISTER_SQL = "CREATE FUNCTION %s \"%s\" FROM \"%s\" IN \"%s\";";
 
