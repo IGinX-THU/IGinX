@@ -53,7 +53,7 @@ runs:
               mvn test -q -Dtest=TPCHDataGeneratorIT#insertTmpTable -DfailIfNoTests=false -P-format
 
         - name: Show Old IGinX log
-          if: inputs.DB-name == 'FileSystem' || inputs.DB-name == 'Parquet'
+          if: always()
           shell: bash
           run: cat iginx-*.log
 
