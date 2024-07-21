@@ -17,8 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.integration.tpch;
 
-import static org.junit.Assert.fail;
-
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -33,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
 import org.slf4j.Logger;
@@ -116,7 +115,7 @@ public class TPCHRegressionNewIT {
     if (iterationTimes > MAX_REPETITIONS_NUM) {
       LOGGER.error(
           "Repeatedly executed query more than {} times, test failed.", MAX_REPETITIONS_NUM);
-      fail();
+      Assert.fail();
     }
 
     List<Integer> failedQueryIds = new ArrayList<>();
@@ -139,7 +138,7 @@ public class TPCHRegressionNewIT {
             queryId,
             oldTimeCosts.get(queryId - 1).size(),
             newTimeCosts.get(queryId - 1).size());
-        fail();
+        Assert.fail();
       }
 
       // 与主分支运行结果进行比较
@@ -153,7 +152,7 @@ public class TPCHRegressionNewIT {
               MAX_REPETITIONS_NUM,
               oldTimeCostMedian,
               newTimeCostMedian);
-          fail();
+          Assert.fail();
         }
         failedQueryIds.add(queryId);
         continue;
@@ -193,7 +192,7 @@ public class TPCHRegressionNewIT {
       bufferedWriter.write("ok");
     } catch (IOException e) {
       LOGGER.error("Write to file {} fail. Caused by:", STATUS_PATH, e);
-      fail();
+      Assert.fail();
     }
   }
 
@@ -204,7 +203,7 @@ public class TPCHRegressionNewIT {
         Files.createFile(path);
       } catch (IOException e) {
         LOGGER.error("Failed to create file {}. Caused by: ", FAILED_QUERY_ID_PATH, e);
-        fail();
+        Assert.fail();
       }
     }
     try (FileWriter fileWriter = new FileWriter(String.valueOf(path));
@@ -219,7 +218,7 @@ public class TPCHRegressionNewIT {
       }
     } catch (IOException e) {
       LOGGER.error("Write to file {} fail. Caused by:", path.getFileName(), e);
-      fail();
+      Assert.fail();
     }
   }
 
@@ -234,7 +233,7 @@ public class TPCHRegressionNewIT {
       bufferedWriter.write(String.valueOf(iterationTimes));
     } catch (IOException e) {
       LOGGER.error("Write to file {} fail. Caused by:", ITERATION_TIMES_PATH, e);
-      fail();
+      Assert.fail();
     }
   }
 }
