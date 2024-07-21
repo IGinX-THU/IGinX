@@ -55,7 +55,7 @@ runs:
         - name: Show Old IGinX log
           if: always()
           shell: bash
-          run: cat iginx-*.log
+          run: cat IGinX/iginx-*.log
 
         - name: Stop Old IGinX
           if: inputs.DB-name == 'FileSystem' || inputs.DB-name == 'Parquet'
