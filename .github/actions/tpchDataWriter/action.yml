@@ -9,24 +9,6 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - name: Start New IGinX
-          uses: ./.github/actions/iginxRunner
-
-        - name: Insert Data and Register UDF
-          shell: bash
-          run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
-
-        - name: Show New IGinX log
-          if: always()
-          shell: bash
-          run: cat iginx-*.log
-
-        - name: Stop New IGinX
-          uses: ./.github/actions/iginxRunner
-          with:
-              version: ${VERSION}
-              if-stop: "true"
-
         - name: Copy .tbl files
           if: inputs.DB-name == 'FileSystem' || inputs.DB-name == 'Parquet'
           shell: bash
@@ -60,6 +42,24 @@ runs:
 
         - name: Stop Old IGinX
           if: inputs.DB-name == 'FileSystem' || inputs.DB-name == 'Parquet'
+          uses: ./.github/actions/iginxRunner
+          with:
+              version: ${VERSION}
+              if-stop: "true"
+
+        - name: Start New IGinX
+          uses: ./.github/actions/iginxRunner
+
+        - name: Insert Data and Register UDF
+          shell: bash
+          run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
+
+        - name: Show New IGinX log
+          if: always()
+          shell: bash
+          run: cat iginx-*.log
+
+        - name: Stop New IGinX
           uses: ./.github/actions/iginxRunner
           with:
               version: ${VERSION}
