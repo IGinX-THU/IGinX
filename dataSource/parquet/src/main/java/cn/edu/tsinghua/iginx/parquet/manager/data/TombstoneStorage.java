@@ -151,14 +151,14 @@ public class TombstoneStorage implements Closeable {
 
     String json = SerializeUtils.serialize(areas, new LongFormat(), new StringFormat());
 
-    // LOGGER.debug("flush tombstone to temp file: {}", tempPath);
+    LOGGER.debug("flush tombstone to temp file: {}", tempPath);
     try {
       Files.createDirectories(dir);
       try (FileWriter fw = new FileWriter(tempPath.toFile());
           BufferedWriter bw = new BufferedWriter(fw)) {
         bw.write(json);
       }
-      // LOGGER.debug("rename temp file to file: {}", path);
+      LOGGER.debug("rename temp file to file: {}", path);
       Files.move(tempPath, path, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
       throw new StorageRuntimeException(e);

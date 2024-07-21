@@ -105,7 +105,7 @@ jobs:
                   cd IGinX
                   mvn clean package -DskipTests -P-format -q
 
-            - name: Change Old IGinX config
+            - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
@@ -117,7 +117,7 @@ jobs:
               shell: bash
               run: mvn clean package -DskipTests -P-format -q
 
-            - name: Change New IGinX config
+            - name: Change New IGinX Config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}

@@ -294,7 +294,8 @@ public class TPCHDataGeneratorIT {
       LOGGER.info("Execute register UDF statement: {}", register);
       session.executeRegisterTask(register, false);
     } catch (SessionException e) {
-      LOGGER.warn("Statement: \"{}\" execute fail. Caused by:", register, e);
+      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", register, e);
+      Assert.fail();
     }
   }
 
