@@ -89,80 +89,34 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            - name: Get Old Version IGinX and Copy TPC-H Data
-              shell: bash
-              run: |
-                  git clone https://github.com/IGinX-THU/IGinX.git
-                  mkdir IGinX/tpc
-                  cp -r tpc/* IGinX/tpc/
-                  ls -a 'IGinX/tpc/TPC-H V3.0.1/data'
-
-            - name: Rewrite DB Conf in Old IGinX
-              uses: ./.github/actions/dbConfWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Root-Dir-Path: "IGinX"
-
-            - name: Install Old IGinX with Maven
-              shell: bash
-              run: |
-                  cd IGinX
-                  mvn clean package -DskipTests -P-format -q
-
-            - name: Change Old IGinX config
-              uses: ./.github/actions/confWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Set-Filter-Fragment-OFF: "true"
-                  Metadata: ${{ matrix.metadata }}
-                  Root-Dir-Path: "IGinX"
-
-            - name: Start Old IGinX
-              if: always()
-              shell: bash
-              run: |
-                  cd IGinX/core/target/iginx-core-${VERSION}
-                  pwd
-                  export IGINX_HOME=$PWD
-                  echo "IGinX home path: $IGINX_HOME"
-                  cd ..
-                  chmod +x iginx-core-${VERSION}/sbin/start_iginx.sh
-                  nohup iginx-core-${VERSION}/sbin/start_iginx.sh > ../../iginx-${VERSION}.log 2>&1 &
-
-            - name: Run Regression Test on Old IGinX
-              if: always()
-              shell: bash
-              run: |
-                  cd IGinX
-                  mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
-
-            - name: Show Old IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat IGinX/iginx-*.log
-
-            - name: Stop ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
-              with:
-                  if-stop: "true"
-
-            - name: Stop Old IGinX
-              uses: ./.github/actions/iginxRunner
-              with:
-                  version: ${VERSION}
-                  if-stop: "true"
-
-            - name: Rerun ZooKeeper
-              uses: ./.github/actions/zookeeperRunner
-              with:
-                  if-rerun: "true"
+            #            - name: Get Old Version IGinX
+            #              shell: bash
+            #              run: git clone https://github.com/IGinX-THU/IGinX.git
+            #
+            #            - name: Rewrite DB Conf in Old IGinX
+            #              uses: ./.github/actions/dbConfWriter
+            #              with:
+            #                  DB-name: ${{ matrix.DB-name }}
+            #                  Root-Dir-Path: "IGinX"
+            #
+            #            - name: Install Old IGinX with Maven
+            #              shell: bash
+            #              run: |
+            #                  cd IGinX
+            #                  mvn clean package -DskipTests -P-format -q
+            #
+            #            - name: Change Old IGinX config
+            #              uses: ./.github/actions/confWriter
+            #              with:
+            #                  DB-name: ${{ matrix.DB-name }}
+            #                  Set-Filter-Fragment-OFF: "true"
+            #                  Metadata: ${{ matrix.metadata }}
+            #                  Root-Dir-Path: "IGinX"
 
             - name: Install New IGinX with Maven
               shell: bash
               run: |
                   mvn clean package -DskipTests -P-format -q
-                  cp IGinX/test/src/test/resources/tpch/oldTimeCosts.txt test/src/test/resources/tpch/
 
             - name: Change New IGinX config
               uses: ./.github/actions/confWriter
@@ -174,14 +128,75 @@ jobs:
             - name: Start New IGinX
               uses: ./.github/actions/iginxRunner
 
-            - name: Run Regression Test on New IGinX
-              if: always()
+            - name: Insert Data and Register UDF
               shell: bash
-              run: |
-                  mvn test -q -Dtest=TPCHRegressionIT -DfailIfNoTests=false -P-format
+              run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
+
+            - name: Stop New IGinX
+              uses: ./.github/actions/iginxRunner
+              with:
+                  version: ${VERSION}
+                  if-stop: "true"
 
             - name: Show New IGinX log
               if: always()
               shell: bash
-              run: |
-                  cat iginx-*.log
+              run: cat iginx-*.log
+
+            - name: Run 1st Regression Test
+              id: test1
+              uses: ./.github/actions/tpchSingleTest
+
+            - name: Run 2nd Regression Test
+              id: test2
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test1.outputs.status }}
+
+            - name: Run 3rd Regression Test
+              id: test3
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test2.outputs.status }}
+
+            - name: Run 4th Regression Test
+              id: test4
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test3.outputs.status }}
+
+            - name: Run 5th Regression Test
+              id: test5
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test4.outputs.status }}
+
+            - name: Run 6th Regression Test
+              id: test6
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test5.outputs.status }}
+
+            - name: Run 7th Regression Test
+              id: test7
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test6.outputs.status }}
+
+            - name: Run 8th Regression Test
+              id: test8
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test7.outputs.status }}
+
+            - name: Run 9th Regression Test
+              id: test9
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test8.outputs.status }}
+
+            - name: Run 10th Regression Test
+              id: test10
+              uses: ./.github/actions/tpchSingleTest
+              with:
+                  status: ${{ steps.test9.outputs.status }}
