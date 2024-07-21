@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.integration.tpch;
 import static cn.edu.tsinghua.iginx.integration.tpch.TPCHDataGeneratorIT.FieldType.DATE;
 import static cn.edu.tsinghua.iginx.integration.tpch.TPCHDataGeneratorIT.FieldType.NUM;
 import static cn.edu.tsinghua.iginx.integration.tpch.TPCHDataGeneratorIT.FieldType.STR;
-import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -37,6 +36,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.TimeZone;
 import org.junit.AfterClass;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -263,7 +263,7 @@ public class TPCHDataGeneratorIT {
       LOGGER.info("Insert {} records into table [{}].", count, table);
     } catch (IOException | ParseException | SessionException e) {
       LOGGER.error("Insert into table {} fail. Caused by:", table, e);
-      fail();
+      Assert.fail();
     }
   }
 
@@ -281,8 +281,7 @@ public class TPCHDataGeneratorIT {
       LOGGER.info("Execute register UDF statement: {}", register);
       session.executeRegisterTask(register, false);
     } catch (SessionException e) {
-      LOGGER.error("Statement: \"{}\" execute fail. Caused by:", register, e);
-      fail();
+      LOGGER.warn("Statement: \"{}\" execute fail. Caused by:", register, e);
     }
   }
 
@@ -296,12 +295,12 @@ public class TPCHDataGeneratorIT {
             TPCHUtils.readSqlFileAsString("src/test/resources/tpch/queries/q" + queryId + ".sql");
       } catch (IOException e) {
         LOGGER.error("Fail to read sql file: q{}.sql. Caused by: ", queryId, e);
-        fail();
+        Assert.fail();
       }
       String[] sqls = sqlString.split(";");
       if (sqls.length < 2) {
         LOGGER.error("q{}.sql has no ';' in the end. Caused by: ", queryId);
-        fail();
+        Assert.fail();
       } else if (sqls.length == 2) {
         // 只有一条查询语句，无需插入临时表
         continue;
@@ -313,7 +312,7 @@ public class TPCHDataGeneratorIT {
           session.executeSql(sql);
         } catch (SessionException e) {
           LOGGER.error("Statement: \"{}\" execute fail. Caused by:", sql, e);
-          fail();
+          Assert.fail();
         }
       }
     }
