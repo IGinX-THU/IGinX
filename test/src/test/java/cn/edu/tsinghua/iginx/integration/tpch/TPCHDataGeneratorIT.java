@@ -191,13 +191,6 @@ public class TPCHDataGeneratorIT {
     for (int i = 0; i < 8; i++) {
       insertTable(tableList.get(i), fieldsList.get(i), typesList.get(i));
     }
-
-    List<List<String>> UDFInfos = new ArrayList<>();
-    UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
-    // 注册UDF函数
-    for (List<String> UDFInfo : UDFInfos) {
-      registerUDF(UDFInfo);
-    }
   }
 
   private void insertTable(String table, List<String> fields, List<FieldType> types) {
@@ -295,6 +288,16 @@ public class TPCHDataGeneratorIT {
       session.executeRegisterTask(register, false);
     } catch (SessionException e) {
       LOGGER.warn("Statement: \"{}\" execute fail. Caused by:", register, e);
+    }
+  }
+
+  @Test
+  public void registerUDFs() {
+    List<List<String>> UDFInfos = new ArrayList<>();
+    UDFInfos.add(Arrays.asList("UDTF", "extractYear", "UDFExtractYear", "udtf_extract_year.py"));
+    // 注册UDF函数
+    for (List<String> UDFInfo : UDFInfos) {
+      registerUDF(UDFInfo);
     }
   }
 
