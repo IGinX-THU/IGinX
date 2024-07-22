@@ -383,7 +383,8 @@ public abstract class BaseCapacityExpansionIT {
     // 删除，不影响后续测试
     session.removeHistoryDataSource(
         Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, newPrefix, null)));
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, newPrefix, "null")));
+    LOGGER.info("deleted;");
   }
 
   protected void queryExtendedKeyDummy() {
