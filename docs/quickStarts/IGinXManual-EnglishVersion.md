@@ -146,7 +146,7 @@ Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and downl
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.8.0/IGinX-Server-0.7.0.tar.gz
 $ tar -xzvf IGinX-Server-0.7.0.tar.gz
 ```
 
@@ -503,7 +503,7 @@ Only when you are using it, you need to introduce the following dependencies in 
 <dependency>
   <groupId>cn.edu.tsinghua</groupId>
   <artifactId>iginx-core</artifactId>
-  <version>0.8.0-SNAPSHOT</version>
+  <version>0.7.0</version>
 </dependency>
 ```
 
@@ -639,7 +639,7 @@ For the full version of the code, please refer to: https://github.com/IGinX-THU/
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iginx-session</artifactId>
-                <version>0.7.0-SNAPSHOT</version>
+                <version>0.7.0</version>
             </dependency>
         </dependencies>
 

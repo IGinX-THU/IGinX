@@ -10,7 +10,7 @@
 mvn clean package -DskipTests -P get-jar-with-dependencies    
 ```
 
-构建成功后，在`IGinX/zeppelin-interpreter/target/`路径下找到`zeppelin-iginx-0.8.0-SNAPSHOT-jar-with-dependencies.jar`包。
+构建成功后，在`IGinX/zeppelin-interpreter/target/`路径下找到`zeppelin-iginx-0.7.0-jar-with-dependencies.jar`包。
 
 在下一步部署Zeppelin时我们需要用到这个包。
 
@@ -60,7 +60,7 @@ export JAVA_HOME=
 
 #### 接入IGinX Zeppelin Interpreter
 
-在`zeppelin-0.10.1-bin-netinst/interpreter/`文件夹下新建一个文件夹`IGinX`，将构建好的`zeppelin-iginx-0.8.0-SNAPSHOT-jar-with-dependencies.jar`包放入其中即可。
+在`zeppelin-0.10.1-bin-netinst/interpreter/`文件夹下新建一个文件夹`IGinX`，将构建好的`zeppelin-iginx-0.7.0-jar-with-dependencies.jar`包放入其中即可。
 
 #### 启动IGinX
 
@@ -90,7 +90,7 @@ export JAVA_HOME=
 
 我们需要准备一个文件夹，用于放置IGinX Zeppelin Interpreter。例如我们准备一个文件夹名为`zeppelin-interpreter`，其绝对路径为`~/code/zeppelin-interpreter/`。
 
-将`zeppelin-iginx-0.8.0-SNAPSHOT-jar-with-dependencies.jar`包放入我们准备好的`zeppelin-interpreter`文件夹内即可。
+将`zeppelin-iginx-0.7.0-jar-with-dependencies.jar`包放入我们准备好的`zeppelin-interpreter`文件夹内即可。
 
 #### 使用命令启动Docker容器
 
