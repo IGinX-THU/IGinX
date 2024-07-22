@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -341,7 +342,8 @@ public abstract class BaseCapacityExpansionIT {
     List<String> pathList =
         READ_ONLY_PATH_LIST.stream().map(s -> oldPrefix + "." + s).collect(Collectors.toList());
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
-    session.executeSql("explain " + statement);
+    SessionExecuteSqlResult res = session.executeSql("explain " + statement);
+    res.print(false, "ms");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     LOGGER.info("old pass");
 
@@ -375,7 +377,8 @@ public abstract class BaseCapacityExpansionIT {
     pathList =
         READ_ONLY_PATH_LIST.stream().map(s -> newPrefix + "." + s).collect(Collectors.toList());
     valuesList = READ_ONLY_VALUES_LIST;
-    session.executeSql("explain " + statement);
+    res = session.executeSql("explain " + statement);
+    res.print(false, "ms");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
     LOGGER.info("new pass;");
 
