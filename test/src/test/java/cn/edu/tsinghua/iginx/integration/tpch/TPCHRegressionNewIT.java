@@ -106,7 +106,7 @@ public class TPCHRegressionNewIT {
   }
 
   @Test
-  public void test() {
+  public void testNewBranch() {
     if (queryIds.isEmpty()) {
       LOGGER.info("No query remain, skip test new branch.");
       return;
@@ -125,9 +125,11 @@ public class TPCHRegressionNewIT {
     for (int queryId : queryIds) {
       long timeCost = TPCHUtils.executeTPCHQuery(session, queryId, needValidate);
       newTimeCosts.get(queryId - 1).add(timeCost);
-      System.out.printf(
-          "Successfully execute TPC-H query %d in new branch in iteration %d, time cost: %dms%n",
-          queryId, iterationTimes, timeCost);
+      LOGGER.info(
+          "Successfully execute TPC-H query {} in new branch in iteration {}, time cost: {}ms",
+          queryId,
+          iterationTimes,
+          timeCost);
 
       // 新旧分支查询次数不相同
       if (oldTimeCosts.get(queryId - 1).size() != newTimeCosts.get(queryId - 1).size()) {
