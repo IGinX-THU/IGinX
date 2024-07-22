@@ -349,6 +349,7 @@ public abstract class BaseCapacityExpansionIT {
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
     long id = -1;
     for (StorageEngineInfo info : engineInfoList) {
+      LOGGER.info("engine: {};", info);
       if (info.getIp().equals("127.0.0.1")
           && info.getPort() == readOnlyPort
           && !info.isSetDataPrefix()
