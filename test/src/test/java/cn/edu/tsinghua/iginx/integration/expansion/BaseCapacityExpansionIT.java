@@ -367,7 +367,14 @@ public abstract class BaseCapacityExpansionIT {
     }
     assertTrue(id != -1);
     LOGGER.info("engine: {};", id);
-    session.executeSql(String.format(ALTER_ENGINE_STRING, id, "schema_prefix:" + newPrefix));
+    // iginx_port param: for embedded engines. they need to be registered locally
+    session.executeSql(
+        String.format(
+            ALTER_ENGINE_STRING,
+            id,
+            IS_PARQUET_OR_FILE_SYSTEM
+                ? "iginx_port:" + oriPortIginx + ", schema_prefix:" + newPrefix
+                : "schema_prefix:" + newPrefix));
 
     // 查询新prefix
     statement = "select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;";
@@ -784,7 +791,8 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
+  protected void startStorageEngineWithIginx(
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
       throws InterruptedException {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
