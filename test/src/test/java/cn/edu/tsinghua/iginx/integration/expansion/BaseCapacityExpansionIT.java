@@ -171,7 +171,7 @@ public abstract class BaseCapacityExpansionIT {
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
       throws InterruptedException {
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(port, hasData, isReadOnly);
+      startStorageEngineWithIginx(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
     } else {
       // 测试会添加初始数据，所以hasData=true
       addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
@@ -784,10 +784,12 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)
+  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
       throws InterruptedException {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
+    String dataPrefixConf = dataPrefix != null ? "#data_prefix=" + dataPrefix : "";
+    String schemaPrefixConf = schemaPrefix != null ? "#schema_prefix=" + schemaPrefix : "";
     boolean isOnMac = false;
     if (os.contains("mac")) {
       isOnMac = true;
@@ -827,7 +829,7 @@ public abstract class BaseCapacityExpansionIT {
         executeShellScript(
             scriptPath,
             String.valueOf(port),
-            String.valueOf(iginxPort),
+            String.valueOf(iginxPort) + dataPrefixConf + schemaPrefixConf,
             hasData
                 ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
                 : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
