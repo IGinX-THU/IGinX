@@ -560,6 +560,8 @@ public class IginxWorker implements IService.Iface {
     newParams.remove(Constants.PORT);
     newParams.remove(Constants.DATA_PREFIX);
     newParams.remove(Constants.SCHEMA_PREFIX);
+    Map<String, String> extraParams = targetMeta.getExtraParams();
+    extraParams.putAll(newParams);
     StorageEngineMeta newMeta =
         new StorageEngineMeta(
             -1,
@@ -569,7 +571,7 @@ public class IginxWorker implements IService.Iface {
             dataPrefix,
             schemaPrefix,
             true,
-            newParams,
+            extraParams,
             targetMeta.getStorageEngine(),
             metaManager.getIginxId());
 
