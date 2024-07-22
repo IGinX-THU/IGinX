@@ -171,7 +171,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh
 ```
 
@@ -239,7 +239,7 @@ IGinX 元数据存储管理现在有 ZooKeeper 存储、写本地文件两种方
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh # 启动实例一 127.0.0.1: 6667
 ```
 

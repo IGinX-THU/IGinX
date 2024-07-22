@@ -161,8 +161,8 @@ IoTDB 是 Apache 推出的时序数据库，具体安装方式如下：
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
-$ unzip apache-iotdb-0.12.0-server-bin.zip
+$ wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip
+$ unzip apache-iotdb-0.12.6-server-bin.zip
 ```
 
 ### IGinX 安装
@@ -217,7 +217,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh
 ```
 
