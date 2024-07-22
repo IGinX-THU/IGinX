@@ -357,6 +357,7 @@ public abstract class BaseCapacityExpansionIT {
       LOGGER.info(String.valueOf(!info.isSetDataPrefix()));
       LOGGER.info(String.valueOf(info.getDataPrefix() == null));
       LOGGER.info(String.valueOf(info.getDataPrefix().isEmpty()));
+      LOGGER.info(info.getDataPrefix());
       LOGGER.info(String.valueOf(info.getSchemaPrefix().equals(oldPrefix)));
       LOGGER.info(String.valueOf(info.getType().equals(type)));
       if (info.getIp().equals("127.0.0.1")
