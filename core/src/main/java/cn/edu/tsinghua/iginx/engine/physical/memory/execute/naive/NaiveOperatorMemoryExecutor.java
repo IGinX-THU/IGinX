@@ -474,10 +474,9 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeRename(Rename rename, Table table) {
     Header header = table.getHeader();
-    Map<String, String> aliasMap = rename.getAliasMap();
-
-    List<String> ignorePatterns = rename.getIgnorePatterns();
-    Header newHeader = header.renamedHeader(aliasMap, ignorePatterns);
+    List<Pair<String, String>> aliasMap = rename.getAliasMap();
+    Header newHeader = header.renamedHeader(aliasMap, rename.getIgnorePatterns());
+    ;
 
     List<Row> rows = new ArrayList<>();
     table

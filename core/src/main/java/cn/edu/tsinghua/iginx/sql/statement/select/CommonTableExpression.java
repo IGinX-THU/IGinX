@@ -21,10 +21,10 @@ package cn.edu.tsinghua.iginx.sql.statement.select;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.sql.SQLConstant;
+import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class CommonTableExpression {
 
@@ -66,16 +66,16 @@ public class CommonTableExpression {
     this.root = root;
   }
 
-  public Map<String, String> getAliasMap() {
+  public List<Pair<String, String>> getAliasMap() {
     if (columns.isEmpty()) {
       return statement.getSubQueryAliasMap(name);
     } else {
-      Map<String, String> aliasMap = new HashMap<>();
+      List<Pair<String, String>> aliasMap = new ArrayList<>(columns.size());
       for (int i = 0; i < columns.size(); i++) {
         Expression expression = statement.getExpressions().get(i);
         String originName =
             expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-        aliasMap.put(originName, name + SQLConstant.DOT + columns.get(i));
+        aliasMap.add(new Pair<>(originName, name + SQLConstant.DOT + columns.get(i)));
       }
       return aliasMap;
     }

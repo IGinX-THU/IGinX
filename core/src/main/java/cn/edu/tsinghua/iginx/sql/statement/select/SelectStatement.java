@@ -23,10 +23,10 @@ import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.LimitClause;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.OrderByClause;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class SelectStatement extends DataStatement {
@@ -135,7 +135,7 @@ public abstract class SelectStatement extends DataStatement {
 
   public abstract void initFreeVariables();
 
-  public abstract Map<String, String> getSubQueryAliasMap(String alias);
+  public abstract List<Pair<String, String>> getSubQueryAliasMap(String alias);
 
   public enum SelectStatementType {
     UNARY,

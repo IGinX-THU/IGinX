@@ -42,6 +42,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.auto.service.AutoService;
 import java.util.*;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,7 +118,7 @@ public class ColumnPruningRule extends Rule {
         }
       } else if (operator.getType() == OperatorType.Rename) {
         Rename rename = (Rename) operator;
-        Map<String, String> aliasMap = rename.getAliasMap();
+        List<Pair<String, String>> aliasMap = rename.getAliasMap();
         columns =
             new HashSet<>(PathUtils.recoverRenamedPatterns(aliasMap, new ArrayList<>(columns)));
 
@@ -335,13 +336,13 @@ public class ColumnPruningRule extends Rule {
                 new ArrayList<>());
         for (String column : columns) {
           for (String leftPattern : leftPatterns) {
-            if (OperatorUtils.covers(leftPattern, column)) {
+            if (Pattern.matches(StringUtils.reformatPath(leftPattern), column)) {
               leftColumns.add(column);
               break;
             }
           }
           for (String rightPattern : rightPatterns) {
-            if (OperatorUtils.covers(rightPattern, column)) {
+            if (Pattern.matches(StringUtils.reformatPath(rightPattern), column)) {
               rightColumns.add(column);
               break;
             }

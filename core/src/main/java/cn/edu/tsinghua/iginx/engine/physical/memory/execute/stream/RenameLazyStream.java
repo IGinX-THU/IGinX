@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
-import java.util.Map;
 
 public class RenameLazyStream extends UnaryLazyStream {
 
@@ -40,9 +39,7 @@ public class RenameLazyStream extends UnaryLazyStream {
   public Header getHeader() throws PhysicalException {
     if (header == null) {
       Header header = stream.getHeader();
-      Map<String, String> aliasMap = rename.getAliasMap();
-
-      this.header = header.renamedHeader(aliasMap, rename.getIgnorePatterns());
+      this.header = header.renamedHeader(rename.getAliasMap(), rename.getIgnorePatterns());
     }
     return header;
   }

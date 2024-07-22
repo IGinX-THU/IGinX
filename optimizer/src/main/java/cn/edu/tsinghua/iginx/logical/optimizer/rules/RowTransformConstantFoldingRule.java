@@ -25,10 +25,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.auto.service.AutoService;
-import java.util.HashMap;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @AutoService(Rule.class)
 public class RowTransformConstantFoldingRule extends Rule {
@@ -63,7 +63,7 @@ public class RowTransformConstantFoldingRule extends Rule {
   public void onMatch(RuleCall call) {
     RowTransform rowTransform = (RowTransform) call.getMatchedRoot();
     List<FunctionCall> functionCallList = rowTransform.getFunctionCallList();
-    Map<String, String> aliasMap = new HashMap<>();
+    List<Pair<String, String>> aliasMap = new ArrayList<>();
 
     for (FunctionCall functionCall : functionCallList) {
       Expression expr = functionCall.getParams().getExpr();
@@ -74,7 +74,7 @@ public class RowTransformConstantFoldingRule extends Rule {
           Expression foldedExpression = ExprUtils.foldExpression(flattenedExpression);
           functionCall.getParams().setExpr(foldedExpression);
           String newName = foldedExpression.getColumnName();
-          aliasMap.put(newName, oldName);
+          aliasMap.add(new Pair<>(newName, oldName));
         }
       }
     }

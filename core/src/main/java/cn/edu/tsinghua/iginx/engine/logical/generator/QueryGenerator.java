@@ -804,7 +804,7 @@ public class QueryGenerator extends AbstractGenerator {
    * @return 添加了Rename操作符的根节点；如果没有AliasMap，返回原根节点
    */
   private static Operator buildRename(UnarySelectStatement selectStatement, Operator root) {
-    Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
+    List<Pair<String, String>> aliasMap = selectStatement.getSelectAliasMap();
     if (!aliasMap.isEmpty()) {
       root = new Rename(new OperatorSource(root), aliasMap);
     }

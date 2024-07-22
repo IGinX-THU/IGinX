@@ -24,11 +24,10 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.select.CommonTableExpression;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class CteFromPart implements FromPart {
 
@@ -60,10 +59,9 @@ public class CteFromPart implements FromPart {
   }
 
   @Override
-  public Map<String, String> getAliasMap() {
-    Map<String, String> aliasMap = new HashMap<>();
-    aliasMap.put(cte.getName() + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX);
-    return aliasMap;
+  public List<Pair<String, String>> getAliasMap() {
+    return Collections.singletonList(
+        new Pair<>(cte.getName() + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX));
   }
 
   @Override

@@ -19,14 +19,14 @@
 package cn.edu.tsinghua.iginx.sql.statement.frompart;
 
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.Map;
 
 public interface FromPart {
 
   FromPartType getType();
 
-  Map<String, String> getAliasMap();
+  List<Pair<String, String>> getAliasMap();
 
   boolean hasAlias();
 

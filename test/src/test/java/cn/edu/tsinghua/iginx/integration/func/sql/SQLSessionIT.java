@@ -3242,6 +3242,21 @@ public class SQLSessionIT {
             + "+----+-------------------------------+--------------------------+\n"
             + "Total line number = 10\n";
     executor.executeAndCompare(statement, expected);
+
+    // duplicate columns
+    statement = "SELECT s1 AS a, s1, s1 AS b, s2 AS c, s2 FROM us.d1 WHERE s1 > 50 AND s1 < 55;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "|key| a|us.d1.s1| b| c|us.d1.s2|\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "| 51|51|      51|51|52|      52|\n"
+            + "| 52|52|      52|52|53|      53|\n"
+            + "| 53|53|      53|53|54|      54|\n"
+            + "| 54|54|      54|54|55|      55|\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test

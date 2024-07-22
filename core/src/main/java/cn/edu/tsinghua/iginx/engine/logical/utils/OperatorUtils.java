@@ -42,11 +42,11 @@ import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class OperatorUtils {
@@ -605,7 +605,7 @@ public class OperatorUtils {
         Operator visitedOperator = visitedOperators.get(i);
         if (visitedOperator.getType() == OperatorType.Rename) {
           Rename rename = (Rename) visitedOperator;
-          Map<String, String> aliasMap = rename.getAliasMap();
+          List<Pair<String, String>> aliasMap = rename.getAliasMap();
           patterns = renamePattern(aliasMap, patterns);
         }
       }
@@ -652,13 +652,14 @@ public class OperatorUtils {
    * @param patterns 要重命名的模式列表
    * @return
    */
-  private static List<String> renamePattern(Map<String, String> aliasMap, List<String> patterns) {
+  private static List<String> renamePattern(
+      List<Pair<String, String>> aliasMap, List<String> patterns) {
     List<String> renamedPatterns = new ArrayList<>();
     for (String pattern : patterns) {
       boolean matched = false;
-      for (Map.Entry<String, String> entry : aliasMap.entrySet()) {
-        String oldPattern = entry.getKey().replace("*", "(.*)");
-        String newPattern = entry.getValue().replace("*", "$1");
+      for (Pair<String, String> pair : aliasMap) {
+        String oldPattern = pair.k.replace("*", "(.*)");
+        String newPattern = pair.v.replace("*", "$1");
         if (pattern.matches(oldPattern)) {
           if (newPattern.contains("$1") && !oldPattern.contains("*")) {
             newPattern = newPattern.replace("$1", "*");
@@ -668,12 +669,12 @@ public class OperatorUtils {
           matched = true;
           break;
         } else if (pattern.equals(oldPattern)) {
-          renamedPatterns.add(entry.getValue());
+          renamedPatterns.add(pair.v);
           matched = true;
           break;
         } else if (pattern.contains(".*")
             && oldPattern.matches(StringUtils.reformatPath(pattern))) {
-          renamedPatterns.add(entry.getKey());
+          renamedPatterns.add(pair.k);
           matched = true;
           break;
         }
