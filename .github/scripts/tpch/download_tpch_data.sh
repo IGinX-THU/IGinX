@@ -19,11 +19,11 @@
 
 
 if [ "$RUNNER_OS" = "Windows" ]; then
-  python thu_cloud_download.py \
+  python test/src/test/resources/tpch/thu_cloud_download.py \
     -l https://cloud.tsinghua.edu.cn/d/740c158819bc4759a36e/ \
     -s  "."
 else
-  python3 thu_cloud_download.py \
+  python3 test/src/test/resources/tpch/thu_cloud_download.py \
     -l https://cloud.tsinghua.edu.cn/d/740c158819bc4759a36e/ \
     -s  "."
 fi
