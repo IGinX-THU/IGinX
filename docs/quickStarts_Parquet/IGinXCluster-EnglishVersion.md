@@ -85,12 +85,12 @@ dataDir=data
 
 ### IGinX Installation
 
-Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz). That's it.
+Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases). That's it.
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
-$ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz
+$ tar -zxvf IGinX-Server-0.7.0.tar.gz
 ```
 
 ## Launch
@@ -134,8 +134,8 @@ Start the first IGinX instance
 ```shell
 $ cd ~
 $ cd Iginx
-$ chmod +x sbin/start_iginx.sh # Add startup permissions to the startup script
-$ ./sbin/start_iginx.sh
+$ chmod +x sbin/start.sh # Add startup permissions to the startup script
+$ ./sbin/start.sh
 ```
 
 Modify conf/config.Properties
@@ -154,7 +154,7 @@ restPort=7666
 Launch a second instance of IGinX.
 
 ```shell
-$ ./sbin/start_iginx.sh
+$ ./sbin/start.sh
 ```
 
 ## Access IGinX

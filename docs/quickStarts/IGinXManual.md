@@ -139,13 +139,13 @@ $ unzip apache-iotdb-0.12.6-server-bin.zip
 
 ### 下载二进制可执行文件
 
-直接访问 [IGinX 项目](https://github.com/IGinX-THU/IGinX)下载 [IGinX 项目发布包](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz)
+直接访问 [IGinX 项目](https://github.com/IGinX-THU/IGinX)下载 [IGinX 项目发布包](https://github.com/IGinX-THU/IGinX/releases)
 即可
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
-$ tar -zxvf IGinX-release-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz
+$ tar -zxvf IGinX-Server-0.7.0.tar.gz
 ```
 
 ### 使用源码编译
@@ -278,8 +278,8 @@ zookeeperConnectionString=127.0.0.1:2181
 ```shell
 $ cd ~
 $ cd Iginx
-$ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
-$ ./sbin/start_iginx.sh
+$ chmod +x sbin/start.sh # 为启动脚本添加启动权限
+$ ./sbin/start.sh
 ```
 
 修改 conf/config. Properties
@@ -294,7 +294,7 @@ restPort=7666
 启动第二个 IGinX 实例
 
 ```shell
-$ ./sbin/start_iginx.sh
+$ ./sbin/start.sh
 ```
 
 ### 配置项
@@ -641,7 +641,7 @@ session.closeSession();
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iginx-session</artifactId>
-                <version>0.5.1</version>
+                <version>0.8.0-SNAPSHOT</version>
             </dependency>
         </dependencies>
 

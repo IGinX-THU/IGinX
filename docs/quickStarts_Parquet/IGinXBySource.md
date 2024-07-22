@@ -233,8 +233,8 @@ storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#has_data=false#is_read_
 ```shell
 $ cd ~
 $ cd IGinX/core/target/iginx-core-0.8.0-SNAPSHOT
-$ chmod +x sbin/start_iginx.sh # 为启动脚本添加启动权限
-$ ./sbin/start_iginx.sh
+$ chmod +x sbin/start.sh # 为启动脚本添加启动权限
+$ ./sbin/start.sh
 ```
 
 显示出如下字样，表示 IGinX 启动成功：

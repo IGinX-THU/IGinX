@@ -55,17 +55,17 @@ IGinX is the main part of the system, and the installation package can be downlo
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-FastDeploy-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-FastDeploy-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-FastDeploy-0.7.0.tar.gz
+$ tar -xzvf IGinX-FastDeploy-0.7.0.tar.gz
 ```
 
 ## Launch
 
 ```shell
 $ cd ~
-$ cd IGinX-FastDeploy-v0.5.0-bin
-$ chmod +x ./runIginxOn1Host.sh
-$ ./runIginxOn1Host.sh
+$ cd IGinX-FastDeploy-0.7.0
+$ chmod +x ./runIGinXOn1Host.sh
+$ ./runIGinXOn1Host.sh
 ```
 
 The following display of words means the IGinX installation was successful：
@@ -79,7 +79,7 @@ You can now test IGinX. Have fun!~
 =========================================
 ```
 
-If you encounter `file not found` error on Windows OS, try modify file `./runIginxOn1Host.bat` by replacing '/' with '\\' in file paths surrounded by " ".
+If you encounter `file not found` error on Windows OS, try modify file `./runIGinXOn1Host.bat` by replacing '/' with '\\' in file paths surrounded by " ".
 
 ## Using IGinX
 

@@ -54,17 +54,17 @@ IGinX 为系统的主体部分，通过一键启动安装包
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-FastDeploy-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-FastDeploy-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-FastDeploy-0.7.0.tar.gz
+$ tar -xzvf IGinX-FastDeploy-0.7.0.tar.gz
 ```
 
 ## 启动
 
 ```shell
 $ cd ~
-$ cd IGinX-FastDeploy-v0.5.0-bin
-$ chmod +x ./runIginxOn1Host.sh
-$ ./runIginxOn1Host.sh
+$ cd IGinX-FastDeploy-0.7.0
+$ chmod +x ./runIGinXOn1Host.sh
+$ ./runIGinXOn1Host.sh
 ```
 
 显示出如下字样，表示 IGinX 启动成功：
@@ -77,7 +77,7 @@ You can now test IGinX. Have fun!~
 =====================================
 ```
 
-若在Windows系统环境下出现找不到文件路径问题，则需要使用文本编辑器修改根目录下的`runIginxOn1Host.bat`，将双引号中文件路径中的斜杠（/）改为反斜杠（\）
+若在Windows系统环境下出现找不到文件路径问题，则需要使用文本编辑器修改根目录下的`runIGinXOn1Host.bat`，将双引号中文件路径中的斜杠（/）改为反斜杠（\）
 
 ## 访问 IGinX
 
