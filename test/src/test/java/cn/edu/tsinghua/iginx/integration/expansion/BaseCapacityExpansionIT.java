@@ -21,8 +21,7 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -31,15 +30,20 @@ import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpa
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
+import cn.edu.tsinghua.iginx.session_v2.ClusterClient;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -50,6 +54,8 @@ public abstract class BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(BaseCapacityExpansionIT.class);
 
   protected static Session session;
+
+  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params \"%s\";";
 
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
@@ -244,11 +250,13 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() throws InterruptedException {
+  public void testReadOnly() throws InterruptedException, SessionException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 测试参数错误的只读节点扩容
     testInvalidDummyParams(readOnlyPort, true, false, null, EXP_SCHEMA_PREFIX);
+    // 测试只读节点的参数修改
+    testUpdateEngineParams();
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
@@ -318,6 +326,55 @@ public abstract class BaseCapacityExpansionIT {
           extraParams);
       fail();
     }
+  }
+
+  /** 测试引擎修改参数（目前仅支持dummy & read-only） */
+  protected void testUpdateEngineParams() throws InterruptedException, SessionException {
+    // action上难以自由控制数据源的ip、port等属性，因此通过修改schema_prefix，来验证功能是否正确
+
+    LOGGER.info("Testing updating engine params...");
+
+    String oldPrefix = "oldPrefix";
+    String newPrefix = "newPrefix";
+    // 添加只读节点
+    addStorageEngineInProgress(readOnlyPort, true, true, null, oldPrefix);
+    // 查询
+    String statement = "select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;";
+    List<String> pathList = READ_ONLY_PATH_LIST.stream()
+            .map( s -> oldPrefix + "." + s)
+            .collect(Collectors.toList());
+    List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 修改
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info :
+            engineInfoList) {
+      if (info.getIp().equals("127.0.0.1") &&
+      info.getPort() == readOnlyPort &&
+      !info.isSetDataPrefix() &&
+      info.getSchemaPrefix().equals(oldPrefix) &&
+      info.getType().equals(type)) {
+        id = info.getId();
+      }
+    }
+    assertTrue(id != -1);
+    session.executeSql(String.format(ALTER_ENGINE_STRING, id, "schema_prefix:" + newPrefix));
+
+    // 查询新prefix
+    statement = "select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;";
+    pathList = READ_ONLY_PATH_LIST.stream()
+            .map( s -> newPrefix + "." + s)
+            .collect(Collectors.toList());
+    valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 删除，不影响后续测试
+    session.removeHistoryDataSource(Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, newPrefix, null)
+    ));
+
   }
 
   protected void queryExtendedKeyDummy() {

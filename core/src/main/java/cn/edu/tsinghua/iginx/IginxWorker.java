@@ -326,11 +326,13 @@ public class IginxWorker implements IService.Iface {
       int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
+      // 仅add时，默认为true
       boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
+      // 仅add时，默认为true
       boolean readOnly =
           Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
 
@@ -540,13 +542,27 @@ public class IginxWorker implements IService.Iface {
     }
 
     // update meta info
-    try {
-      targetMeta.updateParams(newParams);
-    } catch (MetaStorageException e) {
-      status.setCode(RpcUtils.FAILURE.code);
-      status.setMessage(e.getMessage());
-      return status;
-    }
+    String ip = newParams.containsKey(Constants.IP) ? newParams.get(Constants.IP) : targetMeta.getIp();
+    int port = newParams.containsKey(Constants.PORT) ? Integer.parseInt(newParams.get(Constants.PORT)) : targetMeta.getPort();
+    String dataPrefix = newParams.containsKey(Constants.DATA_PREFIX) ? newParams.get(Constants.DATA_PREFIX) : targetMeta.getDataPrefix();
+    String schemaPrefix = newParams.containsKey(Constants.SCHEMA_PREFIX) ? newParams.get(Constants.SCHEMA_PREFIX) : targetMeta.getSchemaPrefix();
+    // if not exists, null will be returned
+    newParams.remove(Constants.IP);
+    newParams.remove(Constants.PORT);
+    newParams.remove(Constants.DATA_PREFIX);
+    newParams.remove(Constants.SCHEMA_PREFIX);
+    StorageEngineMeta newMeta =
+            new StorageEngineMeta(
+                    -1,
+                    ip,
+                    port,
+                    true,
+                    dataPrefix,
+                    schemaPrefix,
+                    true,
+                    newParams,
+                    targetMeta.getStorageEngine(),
+                    metaManager.getIginxId());
 
     // check existing engines
     for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
@@ -565,7 +581,7 @@ public class IginxWorker implements IService.Iface {
       return status;
     }
 
-    addStorageEngineMetas(Collections.singletonList(targetMeta), status, true);
+    addStorageEngineMetas(Collections.singletonList(newMeta), status, true);
     return status;
   }
 

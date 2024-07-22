@@ -283,37 +283,6 @@ public final class StorageEngineMeta {
     this.needReAllocate = needReAllocate;
   }
 
-  /** update new params. IP, port, extra params allowed except for HAS_DATA & IS_READ_ONLY */
-  public void updateParams(Map<String, String> newParams) throws MetaStorageException {
-    if (newParams.containsKey(Constants.HAS_DATA)
-        || newParams.containsKey(Constants.IS_READ_ONLY)) {
-      throw new MetaStorageException(
-          "Changes to HAS_DATA & IS_READ_ONLY attributes are not allowed ");
-    }
-    if (newParams.containsKey(Constants.IP)) {
-      ip = newParams.get(Constants.IP);
-      newParams.remove(Constants.IP);
-    }
-    if (newParams.containsKey(Constants.PORT)) {
-      port = Integer.parseInt(newParams.get(Constants.PORT));
-      newParams.remove(Constants.PORT);
-    }
-    // for embedded databases
-    if (newParams.containsKey(Constants.DUMMY_DIR)) {
-      newParams.put(
-          Constants.EMBEDDED_PREFIX, extractEmbeddedPrefix(newParams.get(Constants.DUMMY_DIR)));
-    }
-    if (newParams.containsKey(Constants.SCHEMA_PREFIX)) {
-      schemaPrefix = newParams.get(Constants.SCHEMA_PREFIX);
-      newParams.remove(Constants.SCHEMA_PREFIX);
-    }
-    if (newParams.containsKey(Constants.DATA_PREFIX)) {
-      dataPrefix = newParams.get(Constants.DATA_PREFIX);
-      newParams.remove(Constants.DATA_PREFIX);
-    }
-    extraParams.putAll(newParams);
-  }
-
   public static String extractEmbeddedPrefix(@NotNull String dummyDirPath) {
     if (dummyDirPath.isEmpty()) {
       return null;
