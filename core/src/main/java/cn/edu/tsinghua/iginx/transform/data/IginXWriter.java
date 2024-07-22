@@ -95,4 +95,7 @@ public class IginXWriter extends ExportWriter {
     path = path.replaceAll("[}]", "]");
     return path;
   }
+
+  @Override
+  public void reset() {}
 }

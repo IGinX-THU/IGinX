@@ -133,8 +133,8 @@ IoTDB 是 Apache 推出的时序数据库，具体安装方式如下：
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
-$ unzip apache-iotdb-0.12.0-server-bin.zip
+$ wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip
+$ unzip apache-iotdb-0.12.6-server-bin.zip
 ```
 
 ### 下载二进制可执行文件
@@ -171,7 +171,7 @@ $ mvn clean install -Dmaven.test.skip=true
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh
 ```
 
@@ -239,7 +239,7 @@ IGinX 元数据存储管理现在有 ZooKeeper 存储、写本地文件两种方
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh # 启动实例一 127.0.0.1: 6667
 ```
 

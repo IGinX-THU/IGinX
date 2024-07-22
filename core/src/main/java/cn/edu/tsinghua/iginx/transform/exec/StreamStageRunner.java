@@ -121,6 +121,10 @@ public class StreamStageRunner implements Runner {
 
     // wait for last batch finished.
     mutex.lock();
+
+    // unlock for further scheduled runs
+    mutex.unlock();
+    writer.reset();
   }
 
   @Override
@@ -128,5 +132,11 @@ public class StreamStageRunner implements Runner {
     if (reader != null) {
       reader.close();
     }
+  }
+
+  // schedule config would be set at higher level
+  @Override
+  public boolean scheduled() {
+    return false;
   }
 }
