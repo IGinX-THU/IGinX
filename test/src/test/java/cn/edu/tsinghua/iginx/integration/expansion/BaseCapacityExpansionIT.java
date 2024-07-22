@@ -337,10 +337,13 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngineInProgress(readOnlyPort, true, true, null, oldPrefix);
     // 查询
     String statement = "select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;";
+    LOGGER.info("select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;");
     List<String> pathList =
         READ_ONLY_PATH_LIST.stream().map(s -> oldPrefix + "." + s).collect(Collectors.toList());
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
+    session.executeSql("explain " + statement);
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    LOGGER.info("old pass");
 
     // 修改
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
@@ -355,14 +358,18 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
     assertTrue(id != -1);
+    LOGGER.info("engine: {};", id);
     session.executeSql(String.format(ALTER_ENGINE_STRING, id, "schema_prefix:" + newPrefix));
 
     // 查询新prefix
     statement = "select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;";
+    LOGGER.info("select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;");
     pathList =
         READ_ONLY_PATH_LIST.stream().map(s -> newPrefix + "." + s).collect(Collectors.toList());
     valuesList = READ_ONLY_VALUES_LIST;
+    session.executeSql("explain " + statement);
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    LOGGER.info("new pass;");
 
     // 删除，不影响后续测试
     session.removeHistoryDataSource(
