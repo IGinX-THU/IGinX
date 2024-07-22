@@ -1,0 +1,9 @@
+---
+taskList:
+  - taskType: "iginx"
+    timeout: 10000000
+    sqlList:
+      - "show columns;"
+schedule: "every 10 second"
+exportType: "file"
+exportFile: "test/src/test/resources/transform/export_file_every_10_s.txt"

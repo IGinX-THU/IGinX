@@ -1,0 +1,28 @@
+name: "tpch-data-writer"
+description: "insert data before test tpc-h"
+inputs:
+    DB-name:
+        description: "DB name"
+        required: false
+        default: IoTDB12
+
+runs:
+    using: "composite" # Mandatory parameter
+    steps:
+        - name: Start New IGinX
+          uses: ./.github/actions/iginxRunner
+
+        - name: Insert Data and Register UDF
+          shell: bash
+          run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
+
+        - name: Show New IGinX log
+          if: always()
+          shell: bash
+          run: cat iginx-*.log
+
+        - name: Stop New IGinX
+          uses: ./.github/actions/iginxRunner
+          with:
+              version: ${VERSION}
+              if-stop: "true"
