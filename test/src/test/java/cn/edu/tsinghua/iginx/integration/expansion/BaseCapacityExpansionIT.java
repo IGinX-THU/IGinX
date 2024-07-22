@@ -251,10 +251,10 @@ public abstract class BaseCapacityExpansionIT {
   public void testReadOnly() throws InterruptedException, SessionException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
-    // 测试参数错误的只读节点扩容
-    testInvalidDummyParams(readOnlyPort, true, false, null, EXP_SCHEMA_PREFIX);
     // 测试只读节点的参数修改
     testUpdateEngineParams();
+    // 测试参数错误的只读节点扩容
+    testInvalidDummyParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
@@ -354,13 +354,13 @@ public abstract class BaseCapacityExpansionIT {
       LOGGER.info("engine: {}; {}", info, readOnlyPort);
       LOGGER.info(String.valueOf(info.getIp().equals("127.0.0.1")));
       LOGGER.info(String.valueOf(info.getPort() == readOnlyPort));
-      LOGGER.info(String.valueOf(!info.isSetDataPrefix()));
-      LOGGER.info(String.valueOf((info.getSchemaPrefix() != null && info.getSchemaPrefix().equals(oldPrefix))));
+      LOGGER.info(String.valueOf(info.getDataPrefix().equals("null")));
+      LOGGER.info(String.valueOf(info.getSchemaPrefix().equals(oldPrefix)));
       LOGGER.info(String.valueOf(info.getType().equals(type)));
       if (info.getIp().equals("127.0.0.1")
           && info.getPort() == readOnlyPort
-          && !info.isSetDataPrefix()
-          && (info.getSchemaPrefix() != null && info.getSchemaPrefix().equals(oldPrefix))
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(oldPrefix)
           && info.getType().equals(type)) {
         id = info.getId();
       }

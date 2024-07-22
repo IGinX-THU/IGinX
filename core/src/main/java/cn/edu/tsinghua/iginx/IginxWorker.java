@@ -743,10 +743,10 @@ public class IginxWorker implements IService.Iface {
               storageEngineMeta.getStorageEngine());
       info.setSchemaPrefix(
           storageEngineMeta.getSchemaPrefix() == null
-              ? null
+              ? "null"
               : storageEngineMeta.getSchemaPrefix());
       info.setDataPrefix(
-          storageEngineMeta.getDataPrefix() == null ? null : storageEngineMeta.getDataPrefix());
+          storageEngineMeta.getDataPrefix() == null ? "null" : storageEngineMeta.getDataPrefix());
       storageEngineInfos.add(info);
     }
     storageEngineInfos.sort(Comparator.comparingLong(StorageEngineInfo::getId));
