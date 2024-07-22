@@ -171,7 +171,7 @@ public abstract class BaseCapacityExpansionIT {
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
       throws InterruptedException {
     if (IS_PARQUET_OR_FILE_SYSTEM) {
-      startStorageEngineWithIginx(port, hasData, isReadOnly, dataPrefix, schemaPrefix);
+      startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
       // 测试会添加初始数据，所以hasData=true
       addStorageEngine(port, hasData, isReadOnly, dataPrefix, schemaPrefix, extraParams);
@@ -327,7 +327,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   /** 测试引擎修改参数（目前仅支持dummy & read-only） */
-  protected void testUpdateEngineParams() throws InterruptedException, SessionException {
+  protected void testUpdateEngineParams() throws SessionException {
     // action上难以自由控制数据源的ip、port等属性，因此通过修改schema_prefix，来验证功能是否正确
 
     LOGGER.info("Testing updating engine params...");
@@ -335,7 +335,7 @@ public abstract class BaseCapacityExpansionIT {
     String oldPrefix = "oldPrefix";
     String newPrefix = "newPrefix";
     // 添加只读节点
-    addStorageEngineInProgress(readOnlyPort, true, true, null, oldPrefix);
+    addStorageEngine(readOnlyPort, true, true, null, oldPrefix, extraParams);
     // 查询
     String statement = "select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;";
     LOGGER.info("select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;");
@@ -367,14 +367,11 @@ public abstract class BaseCapacityExpansionIT {
     }
     assertTrue(id != -1);
     LOGGER.info("engine: {};", id);
-    // iginx_port param: for embedded engines. they need to be registered locally
     session.executeSql(
         String.format(
             ALTER_ENGINE_STRING,
             id,
-            IS_PARQUET_OR_FILE_SYSTEM
-                ? "iginx_port:" + oriPortIginx + ", schema_prefix:" + newPrefix
-                : "schema_prefix:" + newPrefix));
+            "schema_prefix:" + newPrefix));
 
     // 查询新prefix
     statement = "select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;";
@@ -792,12 +789,10 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   protected void startStorageEngineWithIginx(
-      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
+      int port, boolean hasData, boolean isReadOnly)
       throws InterruptedException {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
-    String dataPrefixConf = dataPrefix != null ? "#data_prefix=" + dataPrefix : "";
-    String schemaPrefixConf = schemaPrefix != null ? "#schema_prefix=" + schemaPrefix : "";
     boolean isOnMac = false;
     if (os.contains("mac")) {
       isOnMac = true;
@@ -837,7 +832,7 @@ public abstract class BaseCapacityExpansionIT {
         executeShellScript(
             scriptPath,
             String.valueOf(port),
-            String.valueOf(iginxPort) + dataPrefixConf + schemaPrefixConf,
+            String.valueOf(iginxPort),
             hasData
                 ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
                 : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
