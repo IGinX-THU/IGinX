@@ -30,11 +30,9 @@ import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpa
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
-import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session_v2.ClusterClient;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -43,7 +41,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -340,22 +337,20 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngineInProgress(readOnlyPort, true, true, null, oldPrefix);
     // 查询
     String statement = "select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;";
-    List<String> pathList = READ_ONLY_PATH_LIST.stream()
-            .map( s -> oldPrefix + "." + s)
-            .collect(Collectors.toList());
+    List<String> pathList =
+        READ_ONLY_PATH_LIST.stream().map(s -> oldPrefix + "." + s).collect(Collectors.toList());
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 修改
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
     long id = -1;
-    for (StorageEngineInfo info :
-            engineInfoList) {
-      if (info.getIp().equals("127.0.0.1") &&
-      info.getPort() == readOnlyPort &&
-      !info.isSetDataPrefix() &&
-      info.getSchemaPrefix().equals(oldPrefix) &&
-      info.getType().equals(type)) {
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && !info.isSetDataPrefix()
+          && info.getSchemaPrefix().equals(oldPrefix)
+          && info.getType().equals(type)) {
         id = info.getId();
       }
     }
@@ -364,17 +359,15 @@ public abstract class BaseCapacityExpansionIT {
 
     // 查询新prefix
     statement = "select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;";
-    pathList = READ_ONLY_PATH_LIST.stream()
-            .map( s -> newPrefix + "." + s)
-            .collect(Collectors.toList());
+    pathList =
+        READ_ONLY_PATH_LIST.stream().map(s -> newPrefix + "." + s).collect(Collectors.toList());
     valuesList = READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 删除，不影响后续测试
-    session.removeHistoryDataSource(Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, newPrefix, null)
-    ));
-
+    session.removeHistoryDataSource(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, newPrefix, null)));
   }
 
   protected void queryExtendedKeyDummy() {

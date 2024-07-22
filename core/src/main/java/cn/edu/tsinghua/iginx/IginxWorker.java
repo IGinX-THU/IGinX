@@ -44,7 +44,6 @@ import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
-import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.resource.QueryResourceManager;
 import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.transform.exec.TransformJobManager;
@@ -542,27 +541,37 @@ public class IginxWorker implements IService.Iface {
     }
 
     // update meta info
-    String ip = newParams.containsKey(Constants.IP) ? newParams.get(Constants.IP) : targetMeta.getIp();
-    int port = newParams.containsKey(Constants.PORT) ? Integer.parseInt(newParams.get(Constants.PORT)) : targetMeta.getPort();
-    String dataPrefix = newParams.containsKey(Constants.DATA_PREFIX) ? newParams.get(Constants.DATA_PREFIX) : targetMeta.getDataPrefix();
-    String schemaPrefix = newParams.containsKey(Constants.SCHEMA_PREFIX) ? newParams.get(Constants.SCHEMA_PREFIX) : targetMeta.getSchemaPrefix();
+    String ip =
+        newParams.containsKey(Constants.IP) ? newParams.get(Constants.IP) : targetMeta.getIp();
+    int port =
+        newParams.containsKey(Constants.PORT)
+            ? Integer.parseInt(newParams.get(Constants.PORT))
+            : targetMeta.getPort();
+    String dataPrefix =
+        newParams.containsKey(Constants.DATA_PREFIX)
+            ? newParams.get(Constants.DATA_PREFIX)
+            : targetMeta.getDataPrefix();
+    String schemaPrefix =
+        newParams.containsKey(Constants.SCHEMA_PREFIX)
+            ? newParams.get(Constants.SCHEMA_PREFIX)
+            : targetMeta.getSchemaPrefix();
     // if not exists, null will be returned
     newParams.remove(Constants.IP);
     newParams.remove(Constants.PORT);
     newParams.remove(Constants.DATA_PREFIX);
     newParams.remove(Constants.SCHEMA_PREFIX);
     StorageEngineMeta newMeta =
-            new StorageEngineMeta(
-                    -1,
-                    ip,
-                    port,
-                    true,
-                    dataPrefix,
-                    schemaPrefix,
-                    true,
-                    newParams,
-                    targetMeta.getStorageEngine(),
-                    metaManager.getIginxId());
+        new StorageEngineMeta(
+            -1,
+            ip,
+            port,
+            true,
+            dataPrefix,
+            schemaPrefix,
+            true,
+            newParams,
+            targetMeta.getStorageEngine(),
+            metaManager.getIginxId());
 
     // check existing engines
     for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {

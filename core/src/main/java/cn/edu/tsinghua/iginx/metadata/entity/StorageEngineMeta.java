@@ -19,8 +19,6 @@ package cn.edu.tsinghua.iginx.metadata.entity;
 
 import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
 
-import cn.edu.tsinghua.iginx.conf.Constants;
-import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,16 +32,16 @@ public final class StorageEngineMeta {
   private long id;
 
   /** 数据库所在的 ip */
-  private String ip;
+  private final String ip;
 
   /** 数据库开放的端口 */
-  private int port;
+  private final int port;
 
   private final boolean readOnly;
 
-  private String schemaPrefix;
+  private final String schemaPrefix;
 
-  private String dataPrefix;
+  private final String dataPrefix;
 
   private final boolean hasData;
 

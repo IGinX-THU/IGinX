@@ -202,4 +202,4 @@ runs:
           uses: ./.github/actions/edit
           with:
               paths: conf/config.properties
-              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g
+              statements: s|^#storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#password=mysql#has_data=false#meta_properties_path=your-meta-properties-path|storageEngineList=127.0.0.1#3306#relational#engine=mysql#username=root#has_data=false#meta_properties_path=${{ steps.mysql-properties.outputs.path }}|g
