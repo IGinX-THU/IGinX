@@ -61,8 +61,8 @@ public class LegacyParquetWrapper implements FileManager {
 
   @Override
   public DataBoundary getBoundary(@Nullable String prefix) throws IOException {
-    if (isDummy) {
-      return new DataBoundary(Long.MIN_VALUE, Long.MAX_VALUE);
+    if (!isDummy) {
+      throw new UnsupportedOperationException("getBoundary is not supported for non-dummy file manager");
     }
     try {
       List<Column> columns = delegate.getColumns();
