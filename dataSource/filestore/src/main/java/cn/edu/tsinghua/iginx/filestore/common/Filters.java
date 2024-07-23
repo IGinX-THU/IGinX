@@ -75,6 +75,10 @@ public class Filters {
         || (filter.getType() == FilterType.Bool && ((BoolFilter) filter).isTrue());
   }
 
+  public static boolean isFalse(Filter filter) {
+    return filter != null && filter.getType() == FilterType.Bool && !((BoolFilter) filter).isTrue();
+  }
+
   public static Filter toFilter(KeyInterval keyInterval) {
     if (Objects.equals(keyInterval, KeyInterval.getDefaultKeyInterval())) {
       return new BoolFilter(true);
@@ -147,4 +151,6 @@ public class Filters {
         throw new IllegalArgumentException("Unsupported filter type: " + filter.getType());
     }
   }
+
+
 }

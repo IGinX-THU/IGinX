@@ -18,10 +18,16 @@
 package cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.filestore.common.Fields;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
 import cn.edu.tsinghua.iginx.filestore.common.Ranges;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
@@ -35,12 +41,13 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.RangeSet;
 
+import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 
 public class LegacyParquetWrapper implements FileManager {
 
@@ -82,13 +89,23 @@ public class LegacyParquetWrapper implements FileManager {
   @Override
   public RowStream query(DataTarget target, @Nullable AggregateType aggregate) throws IOException {
     try {
+      Filter filter = target.getFilter();
+      List<String> patterns = target.getPatterns();
+      TagFilter tagFilter = target.getTagFilter();
+
       if (aggregate != null) {
         if (!Filters.isTrue(target.getFilter())) {
           throw new UnsupportedOperationException("Filter is not supported for aggregation");
         }
-        return delegate.aggregation(target.getPatterns(), target.getTagFilter(), null);
+        return delegate.aggregation(patterns, tagFilter, null);
       } else {
-        return delegate.project(target.getPatterns(), target.getTagFilter(), target.getFilter());
+        if (tagFilter == null && Filters.isFalse(target.getFilter())) {
+          List<Column> columns = delegate.getColumns();
+          List<Field> fields = columns.stream().map(Fields::of).collect(Collectors.toList());
+          Header header = new Header(Field.KEY, fields);
+          return new Table(header, Collections.emptyList());
+        }
+        return delegate.project(patterns, tagFilter, filter);
       }
     } catch (PhysicalException e) {
       throw new IOException(e);
