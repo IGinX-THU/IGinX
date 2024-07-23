@@ -262,7 +262,8 @@ public class RelationalStorage implements IStorage {
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
     Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
-    ResultSet rs = conn.createStatement().executeQuery(relationalMeta.getDatabaseQuerySql());
+    Statement statement = conn.createStatement();
+    ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
     while (rs.next()) {
       String databaseName = rs.getString("DATNAME");
       if (relationalMeta.getSystemDatabaseName().contains(databaseName)
@@ -272,6 +273,7 @@ public class RelationalStorage implements IStorage {
       databaseNames.add(databaseName);
     }
     rs.close();
+    statement.close();
     conn.close();
     return databaseNames;
   }
