@@ -32,9 +32,9 @@ import java.nio.file.Path;
 import java.time.Duration;
 
 @AutoService(FileStructure.class)
-public class ParquetLsm implements FileStructure {
+public class LegacyParquet implements FileStructure {
 
-  public static final String NAME = "ParquetLsm";
+  public static final String NAME = "LegacyParquet";
 
   @Override
   public String getName() {
@@ -127,7 +127,7 @@ public class ParquetLsm implements FileStructure {
 
   @Override
   public FileManager newReader(Path path, Closeable shared) throws IOException {
-    return new ParquetLsmManager(new DataManager((Shared) shared, path), true);
+    return new LegacyParquetWrapper(new DataManager((Shared) shared, path), true);
   }
 
   @Override
@@ -137,6 +137,6 @@ public class ParquetLsm implements FileStructure {
 
   @Override
   public FileManager newWriter(Path path, Closeable shared) throws IOException {
-    return new ParquetLsmManager(new DataManager((Shared) shared, path), false);
+    return new LegacyParquetWrapper(new DataManager((Shared) shared, path), false);
   }
 }

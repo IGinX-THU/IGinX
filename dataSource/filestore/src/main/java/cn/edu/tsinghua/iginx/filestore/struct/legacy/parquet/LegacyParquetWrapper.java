@@ -42,12 +42,12 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.WillCloseWhenClosed;
 
-public class ParquetLsmManager implements FileManager {
+public class LegacyParquetWrapper implements FileManager {
 
   private final DataManager delegate;
   private final boolean isDummy;
 
-  public ParquetLsmManager(@WillCloseWhenClosed DataManager delegate, boolean isDummy) {
+  public LegacyParquetWrapper(@WillCloseWhenClosed DataManager delegate, boolean isDummy) {
     this.delegate = Objects.requireNonNull(delegate);
     this.isDummy = isDummy;
   }
