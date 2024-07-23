@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
+import cn.edu.tsinghua.iginx.filestore.common.Ranges;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.data.DataManager;
@@ -32,6 +33,8 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.collect.RangeSet;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
@@ -95,7 +98,8 @@ public class ParquetLsmManager implements FileManager {
   @Override
   public void delete(DataTarget target) throws IOException {
     try {
-      List<KeyRange> keyRanges = Filters.toKeyRanges(target.getFilter());
+      RangeSet<Long> rangeSet = Filters.toRangeSet(target.getFilter());
+      List<KeyRange> keyRanges = Ranges.toKeyRanges(rangeSet);
       delegate.delete(target.getPatterns(), keyRanges, target.getTagFilter());
     } catch (PhysicalException e) {
       throw new IOException(e);
