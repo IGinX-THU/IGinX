@@ -142,12 +142,12 @@ $ unzip apache-iotdb-0.12.6-server-bin.zip
 
 ### Download the binary executables
 
-Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz).
+Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz).
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-release-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz
+$ tar -xzvf IGinX-Server-0.7.0.tar.gz
 ```
 
 ### Compilation with source code
@@ -191,7 +191,7 @@ The following display of words means the IoTDB installation was successful：
 
 #### Launch ZooKeeper
 
-If you are taking a 0.2.0 binary installation package, or if you designate Zookeeper as the metadata management storage backend in the configuration file, you need to launch ZooKeeper. Otherwise, **skip this step entirely**.
+If you are taking a binary installation package, or if you designate Zookeeper as the metadata management storage backend in the configuration file, you need to launch ZooKeeper. Otherwise, **skip this step entirely**.
 
 ```shell
 $ cd ~
@@ -213,7 +213,7 @@ Using the release package to launch
 
 ```shell
 $ cd ~
-$ cd IGinX-release-v0.5.1-bin
+$ cd IGinX-Server-0.7.0
 $ chmod +x startIginX.sh # enable permissions for startup scripts
 $ ./startIginX.sh
 ```
@@ -484,15 +484,15 @@ In addition to the RESTful interface, IGinX also provides RPC data access interf
 
 Below is a short tutorial on how to use it.
 
-Since the IGinX 0.5.1 version has not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
+Since the IGinX jars have not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
 
 ```shell
-# Download iginx 0.2 rc version source package
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# Download the newest IGinX version source package
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # Enter the project main directory
-$ cd IGinX-rc-v0.5.1
+$ cd IGinX-v0.7.0
 # Install to local maven repository
 $ mvn clean install -DskipTests
 ```
@@ -503,7 +503,7 @@ Only when you are using it, you need to introduce the following dependencies in 
 <dependency>
   <groupId>cn.edu.tsinghua</groupId>
   <artifactId>iginx-core</artifactId>
-  <version>0.8.0-SNAPSHOT</version>
+  <version>0.7.0</version>
 </dependency>
 ```
 
@@ -639,7 +639,7 @@ For the full version of the code, please refer to: https://github.com/IGinX-THU/
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>iginx-session</artifactId>
-                <version>0.5.1</version>
+                <version>0.7.0</version>
             </dependency>
         </dependencies>
 

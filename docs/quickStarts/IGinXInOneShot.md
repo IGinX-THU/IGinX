@@ -54,15 +54,15 @@ IGinX 为系统的主体部分，通过一键启动安装包
 
 ```shell
 $ cd ~
-$ wget https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-FastDeploy-v0.5.1-bin.tar.gz
-$ tar -xzvf IGinX-FastDeploy-v0.5.1-bin.tar.gz
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-FastDeploy-0.7.0.tar.gz
+$ tar -xzvf IGinX-FastDeploy-v0.7.0-bin.tar.gz
 ```
 
 ## 启动
 
 ```shell
 $ cd ~
-$ cd IGinX-FastDeploy-v0.5.0-bin
+$ cd IGinX-FastDeploy-0.7.0
 $ chmod +x ./runIginxOn1Host.sh
 $ ./runIginxOn1Host.sh
 ```
@@ -247,15 +247,15 @@ RPC 接口最常见的用法。
 
 下面是一个简短的使用教程。
 
-由于目前 IGinX 0.5.1 版本还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
+由于目前 IGinX jar包还未发布到 maven 中央仓库，因此如需使用的话，需要手动安装到本地的 maven 仓库。具体安装方式如下：
 
 ```shell
-# 下载 IGinX 0.5.1 release 版本源码包
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# 下载 IGinX 最新release 版本源码包
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.zip
 # 解压源码包
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # 进入项目主目录
-$ cd IGinX-release-v0.5.1
+$ cd IGinX-release-v0.7.0
 # 安装到本地 maven 仓库
 $ mvn clean install -DskipTests
 ```
@@ -266,7 +266,7 @@ $ mvn clean install -DskipTests
 <dependency>
   	<groupId>cn.edu.tsinghua</groupId>
   	<artifactId>iginx-core</artifactId>
-  	<version>0.8.0-SNAPSHOT</version>
+  	<version>0.7.0</version>
 </dependency>
 ```
 
