@@ -338,25 +338,17 @@ public abstract class BaseCapacityExpansionIT {
     addStorageEngine(readOnlyPort, true, true, null, oldPrefix, extraParams);
     // 查询
     String statement = "select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;";
-    LOGGER.info("select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;");
     List<String> pathList =
         READ_ONLY_PATH_LIST.stream().map(s -> oldPrefix + "." + s).collect(Collectors.toList());
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SessionExecuteSqlResult res = session.executeSql("explain " + statement);
     res.print(false, "ms");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-    LOGGER.info("old pass");
 
     // 修改
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
     long id = -1;
     for (StorageEngineInfo info : engineInfoList) {
-      LOGGER.info("engine: {}; {}", info, readOnlyPort);
-      LOGGER.info(String.valueOf(info.getIp().equals("127.0.0.1")));
-      LOGGER.info(String.valueOf(info.getPort() == readOnlyPort));
-      LOGGER.info(String.valueOf(info.getDataPrefix().equals("null")));
-      LOGGER.info(String.valueOf(info.getSchemaPrefix().equals(oldPrefix)));
-      LOGGER.info(String.valueOf(info.getType().equals(type)));
       if (info.getIp().equals("127.0.0.1")
           && info.getPort() == readOnlyPort
           && info.getDataPrefix().equals("null")
@@ -366,29 +358,21 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
     assertTrue(id != -1);
-    LOGGER.info("engine: {};", id);
-    session.executeSql(
-        String.format(
-            ALTER_ENGINE_STRING,
-            id,
-            "schema_prefix:" + newPrefix));
+    session.executeSql(String.format(ALTER_ENGINE_STRING, id, "schema_prefix:" + newPrefix));
 
     // 查询新prefix
     statement = "select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;";
-    LOGGER.info("select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;");
     pathList =
         READ_ONLY_PATH_LIST.stream().map(s -> newPrefix + "." + s).collect(Collectors.toList());
     valuesList = READ_ONLY_VALUES_LIST;
     res = session.executeSql("explain " + statement);
     res.print(false, "ms");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
-    LOGGER.info("new pass;");
 
     // 删除，不影响后续测试
     session.removeHistoryDataSource(
         Collections.singletonList(
             new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, newPrefix, "")));
-    LOGGER.info("deleted;");
   }
 
   protected void queryExtendedKeyDummy() {
@@ -788,8 +772,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  protected void startStorageEngineWithIginx(
-      int port, boolean hasData, boolean isReadOnly)
+  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)
       throws InterruptedException {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
