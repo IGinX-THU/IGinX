@@ -476,7 +476,6 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header header = table.getHeader();
     List<Pair<String, String>> aliasMap = rename.getAliasMap();
     Header newHeader = header.renamedHeader(aliasMap, rename.getIgnorePatterns());
-    ;
 
     List<Row> rows = new ArrayList<>();
     table

@@ -127,62 +127,71 @@ public final class Header {
         && Objects.equals(indexMap, header.indexMap);
   }
 
-  //  public Header renameHeaderDuplicateColumns(List<Pair<String, String>> aliasMap, List<String>
-  // ignorePatterns) {
-  //    List<Field> newFields = new ArrayList<>();
-  //
-  //
-  //    return new Header(getKey(), newFields);
-  //  }
-
   public Header renamedHeader(List<Pair<String, String>> aliasMap, List<String> ignorePatterns) {
     List<Field> newFields = new ArrayList<>();
-    fields.forEach(
-        field -> {
-          // 如果列名在ignorePatterns中，对该列不执行rename
-          for (String ignorePattern : ignorePatterns) {
-            if (StringUtils.match(field.getName(), ignorePattern)) {
-              newFields.add(field);
-              return;
-            }
+    int size = getFieldSize();
+    for (int i = 0; i < size; i++) {
+      Field field = fields.get(i);
+      // 如果列名在ignorePatterns中，对该列不执行rename
+      boolean ignore = false;
+      for (String ignorePattern : ignorePatterns) {
+        if (StringUtils.match(field.getName(), ignorePattern)) {
+          newFields.add(field);
+          ignore = true;
+          break;
+        }
+      }
+      if (ignore) {
+        continue;
+      }
+      String alias = "";
+      for (Pair<String, String> pair : aliasMap) {
+        String oldPattern = pair.k;
+        String newPattern = pair.v;
+        if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
+          String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+          alias = newPrefix + field.getName();
+        } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
+          String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
+          String newPrefix = newPattern.substring(0, newPattern.length() - 1);
+          if (field.getName().startsWith(oldPrefix)) {
+            alias = field.getName().replaceFirst(oldPrefix, newPrefix);
           }
-          String alias = "";
-          for (Pair<String, String> pair : aliasMap) {
-            String oldPattern = pair.k;
-            String newPattern = pair.v;
-            if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
-              String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-              alias = newPrefix + field.getName();
-            } else if (oldPattern.endsWith(".*") && newPattern.endsWith(".*")) {
-              String oldPrefix = oldPattern.substring(0, oldPattern.length() - 1);
-              String newPrefix = newPattern.substring(0, newPattern.length() - 1);
-              if (field.getName().startsWith(oldPrefix)) {
-                alias = field.getName().replaceFirst(oldPrefix, newPrefix);
-              }
-              break;
-            } else if (oldPattern.equals(field.getFullName())) {
-              alias = newPattern;
-              aliasMap.remove(pair);
-              break;
-            } else {
-              if (StringUtils.match(field.getName(), oldPattern)) {
-                if (newPattern.endsWith("." + oldPattern)) {
-                  String prefix =
-                      newPattern.substring(0, newPattern.length() - oldPattern.length());
-                  alias = prefix + field.getName();
-                } else {
-                  alias = newPattern;
-                }
-                break;
-              }
-            }
-          }
-          if (alias.isEmpty()) {
-            newFields.add(field);
-          } else {
+          break;
+        } else if (oldPattern.equals(field.getName())) {
+          alias = newPattern;
+          Set<Map<String, String>> tagSet = new HashSet<>();
+          Field newField = i < size - 1 ? fields.get(i + 1) : null;
+          tagSet.add(field.getTags());
+          while (newField != null
+              && oldPattern.equals(newField.getName())
+              && !tagSet.contains(newField.getTags())) {
             newFields.add(new Field(alias, field.getType(), field.getTags()));
+            field = newField;
+            i++;
+            newField = i < size - 1 ? fields.get(i + 1) : null;
+            tagSet.add(field.getTags());
           }
-        });
+          aliasMap.remove(pair);
+          break;
+        } else {
+          if (StringUtils.match(field.getName(), oldPattern)) {
+            if (newPattern.endsWith("." + oldPattern)) {
+              String prefix = newPattern.substring(0, newPattern.length() - oldPattern.length());
+              alias = prefix + field.getName();
+            } else {
+              alias = newPattern;
+            }
+            break;
+          }
+        }
+      }
+      if (alias.isEmpty()) {
+        newFields.add(field);
+      } else {
+        newFields.add(new Field(alias, field.getType(), field.getTags()));
+      }
+    }
     return new Header(getKey(), newFields);
   }
 
