@@ -89,59 +89,45 @@ jobs:
               with:
                   DB-name: ${{ matrix.DB-name }}
 
-            #            - name: Get Old Version IGinX
-            #              shell: bash
-            #              run: git clone https://github.com/IGinX-THU/IGinX.git
-            #
-            #            - name: Rewrite DB Conf in Old IGinX
-            #              uses: ./.github/actions/dbConfWriter
-            #              with:
-            #                  DB-name: ${{ matrix.DB-name }}
-            #                  Root-Dir-Path: "IGinX"
-            #
-            #            - name: Install Old IGinX with Maven
-            #              shell: bash
-            #              run: |
-            #                  cd IGinX
-            #                  mvn clean package -DskipTests -P-format -q
-            #
-            #            - name: Change Old IGinX config
-            #              uses: ./.github/actions/confWriter
-            #              with:
-            #                  DB-name: ${{ matrix.DB-name }}
-            #                  Set-Filter-Fragment-OFF: "true"
-            #                  Metadata: ${{ matrix.metadata }}
-            #                  Root-Dir-Path: "IGinX"
+            - name: Get Old Version IGinX
+              shell: bash
+              run: git clone https://github.com/IGinX-THU/IGinX.git
+
+            - name: Rewrite DB Conf in Old IGinX
+              uses: ./.github/actions/dbConfWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Root-Dir-Path: "IGinX"
+
+            - name: Install Old IGinX with Maven
+              shell: bash
+              run: |
+                  cd IGinX
+                  mvn clean package -DskipTests -P-format -q
+
+            - name: Change Old IGinX Config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Set-Filter-Fragment-OFF: "true"
+                  Metadata: ${{ matrix.metadata }}
+                  Root-Dir-Path: "IGinX"
 
             - name: Install New IGinX with Maven
               shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format -q
+              run: mvn clean package -DskipTests -P-format -q
 
-            - name: Change New IGinX config
+            - name: Change New IGinX Config
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
-            - name: Start New IGinX
-              uses: ./.github/actions/iginxRunner
-
-            - name: Insert Data and Register UDF
-              shell: bash
-              run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
-
-            - name: Stop New IGinX
-              uses: ./.github/actions/iginxRunner
+            - name: Insert Data into DB
+              uses: ./.github/actions/tpchDataWriter
               with:
-                  version: ${VERSION}
-                  if-stop: "true"
-
-            - name: Show New IGinX log
-              if: always()
-              shell: bash
-              run: cat iginx-*.log
+                  DB-name: ${{ matrix.DB-name }}
 
             - name: Run 1st Regression Test
               id: test1
