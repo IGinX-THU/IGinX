@@ -163,6 +163,7 @@ public final class Header {
           Set<Map<String, String>> tagSet = new HashSet<>();
           Field nextField = i < size - 1 ? fields.get(i + 1) : null;
           tagSet.add(field.getTags());
+          // 处理同一列但不同tag的情况
           while (nextField != null
               && oldPattern.equals(nextField.getName())
               && !tagSet.contains(nextField.getTags())) {
