@@ -161,15 +161,15 @@ public final class Header {
         } else if (oldPattern.equals(field.getName())) {
           alias = newPattern;
           Set<Map<String, String>> tagSet = new HashSet<>();
-          Field newField = i < size - 1 ? fields.get(i + 1) : null;
+          Field nextField = i < size - 1 ? fields.get(i + 1) : null;
           tagSet.add(field.getTags());
-          while (newField != null
-              && oldPattern.equals(newField.getName())
-              && !tagSet.contains(newField.getTags())) {
+          while (nextField != null
+              && oldPattern.equals(nextField.getName())
+              && !tagSet.contains(nextField.getTags())) {
             newFields.add(new Field(alias, field.getType(), field.getTags()));
-            field = newField;
+            field = nextField;
             i++;
-            newField = i < size - 1 ? fields.get(i + 1) : null;
+            nextField = i < size - 1 ? fields.get(i + 1) : null;
             tagSet.add(field.getTags());
           }
           aliasMap.remove(pair);
