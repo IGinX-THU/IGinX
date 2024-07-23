@@ -21,10 +21,9 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
-
-import javax.annotation.Nullable;
 import java.io.Closeable;
 import java.io.IOException;
+import javax.annotation.Nullable;
 
 public interface FileManager extends Closeable {
 
@@ -35,5 +34,4 @@ public interface FileManager extends Closeable {
   void delete(DataTarget target) throws IOException;
 
   void insert(DataView data) throws IOException;
-
 }

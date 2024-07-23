@@ -1,19 +1,34 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cn.edu.tsinghua.iginx.filestore.common;
 
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nullable;
 
 public class Filters {
 
-  private Filters() {
-  }
+  private Filters() {}
 
   public static Filter toFilter(List<KeyRange> keyRanges) {
     List<Filter> rangeFilters = new ArrayList<>();
@@ -36,10 +51,10 @@ public class Filters {
     boolean hasUpperBound = !(end == Long.MAX_VALUE && endInclusive);
 
     if (hasLowerBound && hasUpperBound) {
-      return new AndFilter(Arrays.asList(
-          new KeyFilter(startInclusive ? Op.GE : Op.G, start),
-          new KeyFilter(endInclusive ? Op.LE : Op.L, end)
-      ));
+      return new AndFilter(
+          Arrays.asList(
+              new KeyFilter(startInclusive ? Op.GE : Op.G, start),
+              new KeyFilter(endInclusive ? Op.LE : Op.L, end)));
     } else if (hasLowerBound) {
       return new KeyFilter(startInclusive ? Op.GE : Op.G, start);
     } else if (hasUpperBound) {
@@ -50,7 +65,8 @@ public class Filters {
   }
 
   public static boolean isTrue(@Nullable Filter filter) {
-    return filter == null || (filter.getType() == FilterType.Bool && ((BoolFilter) filter).isTrue());
+    return filter == null
+        || (filter.getType() == FilterType.Bool && ((BoolFilter) filter).isTrue());
   }
 
   public static Filter toFilter(KeyInterval keyInterval) {
@@ -75,5 +91,13 @@ public class Filters {
     } else {
       return new AndFilter(Arrays.asList(rangeFilter, selectFilter));
     }
+  }
+
+  @Nullable
+  public static List<KeyRange> toKeyRanges(@Nullable Filter filter) {
+    if (isTrue(filter)) {
+      return null;
+    }
+    throw new UnsupportedOperationException("Unsupported filter type: " + filter.getType());
   }
 }

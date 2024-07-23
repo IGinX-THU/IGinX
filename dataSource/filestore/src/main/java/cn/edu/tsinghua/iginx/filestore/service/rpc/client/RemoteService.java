@@ -21,18 +21,17 @@ package cn.edu.tsinghua.iginx.filestore.service.rpc.client;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
-import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
+import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.thrift.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import java.net.InetSocketAddress;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import java.net.InetSocketAddress;
-import java.util.Map;
 
 public class RemoteService implements Service {
 
@@ -49,7 +48,8 @@ public class RemoteService implements Service {
   }
 
   private void handleRpcException(String action, RpcException e) throws RemoteFileStoreException {
-    String msg = String.format("failed to %s remotely: %s(%s)", action, e.getStatus(), e.getMessage());
+    String msg =
+        String.format("failed to %s remotely: %s(%s)", action, e.getStatus(), e.getMessage());
     switch (e.getStatus()) {
       case FileStoreException:
         throw new RemoteFileStoreException(msg, e);
@@ -77,7 +77,8 @@ public class RemoteService implements Service {
   }
 
   @Override
-  public RowStream query(DataUnit unit, DataTarget target, @Nullable AggregateType aggregate) throws FileStoreException {
+  public RowStream query(DataUnit unit, DataTarget target, @Nullable AggregateType aggregate)
+      throws FileStoreException {
     RawDataTarget rawTarget = ClientObjectMappingUtils.constructRawDataTarget(target);
     RawAggregate rawAggregate = ClientObjectMappingUtils.constructRawAggregate(aggregate);
     try (TTransport transport = pool.borrowObject()) {
@@ -131,5 +132,3 @@ public class RemoteService implements Service {
     pool.close();
   }
 }
-
-

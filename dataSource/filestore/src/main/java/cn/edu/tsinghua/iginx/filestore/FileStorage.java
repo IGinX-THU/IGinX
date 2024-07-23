@@ -17,7 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.filestore;
 
+import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
@@ -32,9 +35,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
-import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreService;
+import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -46,19 +49,16 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigFactory;
-import org.apache.thrift.transport.TTransportException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-
-import static cn.edu.tsinghua.iginx.metadata.utils.StorageEngineUtils.isLocal;
+import javax.annotation.Nullable;
+import org.apache.thrift.transport.TTransportException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileStorage implements IStorage {
 
@@ -88,7 +88,8 @@ public class FileStorage implements IStorage {
     }
   }
 
-  static FileStoreConfig toFileStoreConfig(StorageEngineMeta meta) throws StorageInitializationException {
+  static FileStoreConfig toFileStoreConfig(StorageEngineMeta meta)
+      throws StorageInitializationException {
     Config rawConfig = toConfig(meta);
     LOGGER.debug("storage of {} config: {}", meta, rawConfig);
     FileStoreConfig fileStoreConfig = ConfigBeanFactory.create(rawConfig, FileStoreConfig.class);
@@ -116,7 +117,8 @@ public class FileStorage implements IStorage {
     boolean local = isLocal(meta);
     reshapedParams.put("server", String.valueOf(local));
 
-    Config config = ConfigFactory.parseMap(reshapedParams, "storage engine initialization parameters");
+    Config config =
+        ConfigFactory.parseMap(reshapedParams, "storage engine initialization parameters");
 
     if (local) {
       LOGGER.debug("storage of {} is local, ignore config for remote", meta);
@@ -173,14 +175,20 @@ public class FileStorage implements IStorage {
   }
 
   @Override
-  public TaskExecuteResult executeProjectWithSetTransform(Project project, SetTransform setTransform, DataArea dataArea) {
+  public TaskExecuteResult executeProjectWithSetTransform(
+      Project project, SetTransform setTransform, DataArea dataArea) {
     throw new UnsupportedOperationException();
   }
 
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
     try {
-      service.delete(unitOf(dataArea), new DataTarget(Filters.toFilter(delete.getKeyRanges()), delete.getPatterns(), delete.getTagFilter()));
+      service.delete(
+          unitOf(dataArea),
+          new DataTarget(
+              Filters.toFilter(delete.getKeyRanges()),
+              delete.getPatterns(),
+              delete.getTagFilter()));
       return new TaskExecuteResult();
     } catch (PhysicalException e) {
       return new TaskExecuteResult(e);
@@ -206,18 +214,26 @@ public class FileStorage implements IStorage {
 
     List<CompletableFuture<Void>> futures = new ArrayList<>();
     for (DataUnit unit : units.keySet()) {
-      CompletableFuture<Void> future = CompletableFuture.supplyAsync(() -> {
-        List<Column> localColumns = new ArrayList<>();
-        try (RowStream stream = service.query(unit, new DataTarget(new BoolFilter(false), null, null), null)) {
-          Header header = stream.getHeader();
-          for (Field field : header.getFields()) {
-            localColumns.add(new Column(field.getName(), field.getType(), field.getTags(), unit.isDummy()));
-          }
-        } catch (PhysicalException e) {
-          throw new CompletionException(e);
-        }
-        return localColumns;
-      }, executor).thenAccept(columnsWrapper::addAll);
+      CompletableFuture<Void> future =
+          CompletableFuture.supplyAsync(
+                  () -> {
+                    List<Column> localColumns = new ArrayList<>();
+                    try (RowStream stream =
+                        service.query(
+                            unit, new DataTarget(new BoolFilter(false), null, null), null)) {
+                      Header header = stream.getHeader();
+                      for (Field field : header.getFields()) {
+                        localColumns.add(
+                            new Column(
+                                field.getName(), field.getType(), field.getTags(), unit.isDummy()));
+                      }
+                    } catch (PhysicalException e) {
+                      throw new CompletionException(e);
+                    }
+                    return localColumns;
+                  },
+                  executor)
+              .thenAccept(columnsWrapper::addAll);
       futures.add(future);
     }
 
@@ -235,7 +251,11 @@ public class FileStorage implements IStorage {
       throws PhysicalException {
     Map<DataUnit, DataBoundary> units = service.getUnits(prefix);
     DataBoundary boundary = units.get(unitOfDummy());
-    ColumnsInterval columnsInterval = new ColumnsInterval(boundary.getStartColumn(), boundary.getEndColumn());
+    if (Objects.equals(boundary, new DataBoundary())) {
+      throw new PhysicalTaskExecuteFailureException("no data");
+    }
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(boundary.getStartColumn(), boundary.getEndColumn());
     KeyInterval keyInterval = new KeyInterval(boundary.getStartKey(), boundary.getEndKey());
     return new Pair<>(columnsInterval, keyInterval);
   }
@@ -270,7 +290,8 @@ public class FileStorage implements IStorage {
     return new DataTarget(filter, project.getPatterns(), project.getTagFilter());
   }
 
-  public TaskExecuteResult executeQuery(DataUnit unit, DataTarget target, @Nullable AggregateType aggregateType) {
+  public TaskExecuteResult executeQuery(
+      DataUnit unit, DataTarget target, @Nullable AggregateType aggregateType) {
     try {
       RowStream stream = service.query(unit, target, aggregateType);
       return new TaskExecuteResult(stream);

@@ -22,6 +22,11 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.thrift.FileStoreRpc;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -30,12 +35,6 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class Server {
 
@@ -48,8 +47,7 @@ public class Server {
   public Server(InetSocketAddress address, Service service) throws TTransportException {
     serverTransport = new TServerSocket(address);
     TProcessor processor =
-        new FileStoreRpc.Processor<
-            FileStoreRpc.Iface>(new ServerWorker(service));
+        new FileStoreRpc.Processor<FileStoreRpc.Iface>(new ServerWorker(service));
     Config config = ConfigDescriptor.getInstance().getConfig();
     ExecutorService executorService =
         new ThreadPoolExecutor(

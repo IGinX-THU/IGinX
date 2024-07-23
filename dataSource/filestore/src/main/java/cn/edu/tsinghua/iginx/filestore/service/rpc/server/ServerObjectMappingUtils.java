@@ -18,6 +18,8 @@
 
 package cn.edu.tsinghua.iginx.filestore.service.rpc.server;
 
+import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
@@ -33,21 +35,17 @@ import cn.edu.tsinghua.iginx.thrift.*;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.nio.ByteBuffer;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServerObjectMappingUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ServerObjectMappingUtils.class);
 
-  private ServerObjectMappingUtils() {
-  }
+  private ServerObjectMappingUtils() {}
 
   public static RawFilter constructRawFilter(Filter filter) {
     if (filter == null) {
@@ -238,7 +236,8 @@ public class ServerObjectMappingUtils {
   }
 
   private static Filter resolveRawValueFilter(RawFilter filter) {
-    return new ValueFilter(filter.getPath(), resolveRawFilterOp(filter.getOp()), resolveRawValue(filter.getValue()));
+    return new ValueFilter(
+        filter.getPath(), resolveRawFilterOp(filter.getOp()), resolveRawValue(filter.getValue()));
   }
 
   private static Filter resolveRawBoolFilter(RawFilter filter) {
@@ -316,27 +315,31 @@ public class ServerObjectMappingUtils {
         return new WithoutTagFilter();
       case BasePrecise:
         return new BasePreciseTagFilter(rawTagFilter.getTags());
-      case Precise: {
-        List<BasePreciseTagFilter> children = new ArrayList<>();
-        rawTagFilter
-            .getChildren()
-            .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
-        return new PreciseTagFilter(children);
-      }
-      case And: {
-        List<TagFilter> children = new ArrayList<>();
-        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-        return new AndTagFilter(children);
-      }
-      case Or: {
-        List<TagFilter> children = new ArrayList<>();
-        rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
-        return new OrTagFilter(children);
-      }
-      default: {
-        LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
-        return null;
-      }
+      case Precise:
+        {
+          List<BasePreciseTagFilter> children = new ArrayList<>();
+          rawTagFilter
+              .getChildren()
+              .forEach(child -> children.add((BasePreciseTagFilter) resolveRawTagFilter(child)));
+          return new PreciseTagFilter(children);
+        }
+      case And:
+        {
+          List<TagFilter> children = new ArrayList<>();
+          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+          return new AndTagFilter(children);
+        }
+      case Or:
+        {
+          List<TagFilter> children = new ArrayList<>();
+          rawTagFilter.getChildren().forEach(child -> children.add(resolveRawTagFilter(child)));
+          return new OrTagFilter(children);
+        }
+      default:
+        {
+          LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
+          return null;
+        }
     }
   }
 
@@ -401,7 +404,8 @@ public class ServerObjectMappingUtils {
     return new RawHeader(names, types, tagsList, hasKey);
   }
 
-  public static List<RawRow> constructRawRows(RowStream rowStream, RawHeader rawHeader) throws PhysicalException {
+  public static List<RawRow> constructRawRows(RowStream rowStream, RawHeader rawHeader)
+      throws PhysicalException {
     List<RawRow> rawRows = new ArrayList<>();
     while (rowStream.hasNext()) {
       Row row = rowStream.next();

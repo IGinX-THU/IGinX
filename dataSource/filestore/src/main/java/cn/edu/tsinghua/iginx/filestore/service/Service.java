@@ -68,7 +68,7 @@ public interface Service extends AutoCloseable {
    * @throws FileStoreException if any exception occurs during the process
    */
   void insert(DataUnit unit, DataView dataView) throws FileStoreException;
-  
+
   @Override
   void close() throws FileStoreException;
 }

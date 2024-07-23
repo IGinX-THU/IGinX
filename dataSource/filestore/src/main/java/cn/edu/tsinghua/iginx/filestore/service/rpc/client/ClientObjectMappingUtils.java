@@ -1,3 +1,20 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cn.edu.tsinghua.iginx.filestore.service.rpc.client;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
@@ -12,27 +29,25 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.thrift.*;
-import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.annotation.Nullable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ClientObjectMappingUtils {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(ClientObjectMappingUtils.class);
 
-  private ClientObjectMappingUtils() {
-  }
+  private ClientObjectMappingUtils() {}
 
   public static RawPrefix constructRawPrefix(@Nullable String prefix) {
     RawPrefix rawPrefix = new RawPrefix();
@@ -188,52 +203,59 @@ public class ClientObjectMappingUtils {
 
   public static RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
     switch (tagFilter.getType()) {
-      case Base: {
-        BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
-        RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
-        filter.setKey(baseTagFilter.getTagKey());
-        filter.setValue(baseTagFilter.getTagValue());
-        return filter;
-      }
-      case WithoutTag: {
-        return new RawTagFilter(TagFilterType.WithoutTag);
-      }
-      case BasePrecise: {
-        BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
-        RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
-        filter.setTags(basePreciseTagFilter.getTags());
-        return filter;
-      }
-      case Precise: {
-        PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
-        RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
-        List<RawTagFilter> children = new ArrayList<>();
-        preciseTagFilter
-            .getChildren()
-            .forEach(child -> children.add(constructRawTagFilter(child)));
-        filter.setChildren(children);
-        return filter;
-      }
-      case And: {
-        AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
-        RawTagFilter filter = new RawTagFilter(TagFilterType.And);
-        List<RawTagFilter> children = new ArrayList<>();
-        andTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-        filter.setChildren(children);
-        return filter;
-      }
-      case Or: {
-        OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
-        RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
-        List<RawTagFilter> children = new ArrayList<>();
-        orTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
-        filter.setChildren(children);
-        return filter;
-      }
-      default: {
-        LOGGER.error("unknown tag filter type: {}", tagFilter.getType());
-        return null;
-      }
+      case Base:
+        {
+          BaseTagFilter baseTagFilter = (BaseTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.Base);
+          filter.setKey(baseTagFilter.getTagKey());
+          filter.setValue(baseTagFilter.getTagValue());
+          return filter;
+        }
+      case WithoutTag:
+        {
+          return new RawTagFilter(TagFilterType.WithoutTag);
+        }
+      case BasePrecise:
+        {
+          BasePreciseTagFilter basePreciseTagFilter = (BasePreciseTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.BasePrecise);
+          filter.setTags(basePreciseTagFilter.getTags());
+          return filter;
+        }
+      case Precise:
+        {
+          PreciseTagFilter preciseTagFilter = (PreciseTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.Precise);
+          List<RawTagFilter> children = new ArrayList<>();
+          preciseTagFilter
+              .getChildren()
+              .forEach(child -> children.add(constructRawTagFilter(child)));
+          filter.setChildren(children);
+          return filter;
+        }
+      case And:
+        {
+          AndTagFilter andTagFilter = (AndTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.And);
+          List<RawTagFilter> children = new ArrayList<>();
+          andTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
+          filter.setChildren(children);
+          return filter;
+        }
+      case Or:
+        {
+          OrTagFilter orTagFilter = (OrTagFilter) tagFilter;
+          RawTagFilter filter = new RawTagFilter(TagFilterType.Or);
+          List<RawTagFilter> children = new ArrayList<>();
+          orTagFilter.getChildren().forEach(child -> children.add(constructRawTagFilter(child)));
+          filter.setChildren(children);
+          return filter;
+        }
+      default:
+        {
+          LOGGER.error("unknown tag filter type: {}", tagFilter.getType());
+          return null;
+        }
     }
   }
 
@@ -312,13 +334,13 @@ public class ClientObjectMappingUtils {
     }
 
     return new RawInserted(
-            paths,
-            tagsList,
-            ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
-            pair.getK(),
-            pair.getV(),
-            types,
-            dataView.getRawDataType().toString());
+        paths,
+        tagsList,
+        ByteBuffer.wrap(ByteUtils.getByteArrayFromLongArray(times)),
+        pair.getK(),
+        pair.getV(),
+        types,
+        dataView.getRawDataType().toString());
   }
 
   private static Pair<List<ByteBuffer>, List<ByteBuffer>> compressRowData(DataView dataView) {
@@ -372,6 +394,4 @@ public class ClientObjectMappingUtils {
     }
     return new Pair<>(valueBufferList, bitmapBufferList);
   }
-
-
 }

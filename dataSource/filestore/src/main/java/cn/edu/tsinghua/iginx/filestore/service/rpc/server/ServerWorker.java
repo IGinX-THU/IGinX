@@ -20,15 +20,14 @@ package cn.edu.tsinghua.iginx.filestore.service.rpc.server;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
-import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
+import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.thrift.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.HashMap;
 import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ServerWorker implements FileStoreRpc.Iface {
 
@@ -59,7 +58,8 @@ public class ServerWorker implements FileStoreRpc.Iface {
   }
 
   @Override
-  public RawDataSet query(DataUnit unit, RawDataTarget target, RawAggregate aggregate) throws RpcException {
+  public RawDataSet query(DataUnit unit, RawDataTarget target, RawAggregate aggregate)
+      throws RpcException {
     DataTarget dataTarget = ServerObjectMappingUtils.resolveRawDataTarget(target);
     AggregateType aggregateType = ServerObjectMappingUtils.resolveRawAggregate(aggregate);
     try {
@@ -92,5 +92,4 @@ public class ServerWorker implements FileStoreRpc.Iface {
       throw new RpcException(Status.FileStoreException, e.getMessage());
     }
   }
-
 }
