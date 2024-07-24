@@ -144,7 +144,7 @@ public class StorageEngineClassLoader extends ClassLoader {
         }
       }
     }
-    LOGGER.debug("find {} resources in {}: {}", name, Arrays.toString(Jars), urls);
+    LOGGER.debug("find {} resources: {}", name, urls);
     return Collections.enumeration(urls);
   }
 }
