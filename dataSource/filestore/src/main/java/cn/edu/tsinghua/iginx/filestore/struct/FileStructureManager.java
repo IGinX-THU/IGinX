@@ -45,6 +45,7 @@ public class FileStructureManager {
   }
 
   private void loadSpi(ClassLoader classLoader) {
+    LOGGER.debug("Loading FileStructure SPIs from classloader {}", classLoader);
     ServiceLoader<FileStructure> serviceLoader =
         ServiceLoader.load(FileStructure.class, classLoader);
     for (FileStructure spi : serviceLoader) {
