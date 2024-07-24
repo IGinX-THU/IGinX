@@ -98,7 +98,7 @@
                             <phase>package</phase>
                             <configuration>
                                 <target>
-                                    <copy todir="../../core/target/iginx-core-${project.version}/driver">
+                                    <copy todir="${directory.root}/core/target/iginx-core-${project.version}/driver">
                                         <fileset dir="target/${project.artifactId}-${project.version}/driver"/>
                                     </copy>
                                 </target>

@@ -25,7 +25,6 @@
         <groupId>cn.edu.tsinghua</groupId>
         <artifactId>iginx</artifactId>
         <version>${revision}</version>
-        <relativePath>../pom.xml</relativePath>
     </parent>
     <artifactId>iginx-optimizer</artifactId>
     <name>IGinX Optimizer</name>
@@ -64,7 +63,7 @@
                         </goals>
                         <phase>package</phase>
                         <configuration>
-                            <outputDirectory>../core/target/iginx-core-${project.version}/lib/</outputDirectory>
+                            <outputDirectory>${directory.root}/core/target/iginx-core-${project.version}/lib/</outputDirectory>
                             <excludeScope>provided</excludeScope>
                         </configuration>
                     </execution>
@@ -83,11 +82,11 @@
                         <phase>package</phase>
                         <configuration>
                             <target>
-                                <copy todir="../core/target/iginx-core-${project.version}/lib/">
+                                <copy todir="${directory.root}/core/target/iginx-core-${project.version}/lib/">
                                     <fileset dir="target/">
                                         <include name="iginx-optimizer-${project.version}.jar"/>
                                     </fileset>
-                                    <fileset dir="../dependency/src/main/resources/">
+                                    <fileset dir="${directory.root}/dependency/src/main/resources/">
                                         <include name="iginx-optimizer-extension-*.jar"/>
                                     </fileset>
                                 </copy>

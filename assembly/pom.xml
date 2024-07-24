@@ -131,7 +131,7 @@
                                     <outputDirectory>${project.build.directory}/conf</outputDirectory>
                                     <resources>
                                         <resource>
-                                            <directory>../conf</directory>
+                                            <directory>${directory.root}/conf</directory>
                                             <includes>
                                                 <include>config.properties</include>
                                             </includes>
@@ -149,7 +149,7 @@
                                     <outputDirectory>${project.build.directory}/udf_funcs</outputDirectory>
                                     <resources>
                                         <resource>
-                                            <directory>../udf_funcs</directory>
+                                            <directory>${directory.root}/udf_funcs</directory>
                                             <includes>
                                                 <include>udf_list</include>
                                                 <include>python_scripts/class_loader.py</include>
