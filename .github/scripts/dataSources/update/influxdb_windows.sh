@@ -39,4 +39,4 @@ id=$(echo "$output" | grep -Eo '^[a-z0-9]{16}')
 # 验证
 echo "Extracted ID: $id"
 
-sh -c "./influx org -h http://localhost:$1 -t testToken update -i $id -n $2"
+sh -c "./influx org --host http://localhost:$1 -t testToken update -i $id -n $2"
