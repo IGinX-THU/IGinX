@@ -63,7 +63,6 @@ runs:
                 echo "port = ${port}" >> "${PGCONF}"
                 echo "unix_socket_directories = ''" >> "${PGCONF}"
                 echo "fsync = off" >> "${PGCONF}"
-                echo "max_connections = 200" >> "${PGCONF}"
 
                 pg_ctl start --pgdata="${PGDATA}" 
               done
