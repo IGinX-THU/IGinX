@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filestore.common.Fields;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
+import cn.edu.tsinghua.iginx.filestore.common.Patterns;
 import cn.edu.tsinghua.iginx.filestore.common.Ranges;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
@@ -39,6 +40,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
 import javax.annotation.Nullable;
@@ -90,11 +92,14 @@ public class LegacyParquetWrapper implements FileManager {
   public RowStream query(DataTarget target, @Nullable AggregateType aggregate) throws IOException {
     try {
       Filter filter = target.getFilter();
+      if (Filters.isTrue(filter)) {
+        filter = null;
+      }
       List<String> patterns = target.getPatterns();
       TagFilter tagFilter = target.getTagFilter();
 
       if (aggregate != null) {
-        if (!Filters.isTrue(target.getFilter())) {
+        if (filter != null) {
           throw new UnsupportedOperationException("Filter is not supported for aggregation");
         }
         return delegate.aggregation(patterns, tagFilter, null);
@@ -115,9 +120,16 @@ public class LegacyParquetWrapper implements FileManager {
   @Override
   public void delete(DataTarget target) throws IOException {
     try {
+      List<KeyRange> keyRanges = null;
       RangeSet<Long> rangeSet = Filters.toRangeSet(target.getFilter());
-      List<KeyRange> keyRanges = Ranges.toKeyRanges(rangeSet);
-      delegate.delete(target.getPatterns(), keyRanges, target.getTagFilter());
+      if (!rangeSet.encloses(Range.all())) {
+        keyRanges = Ranges.toKeyRanges(rangeSet);
+      }
+      List<String> patterns = target.getPatterns();
+      if (Patterns.isAll(patterns)) {
+        patterns = null;
+      }
+      delegate.delete(patterns, keyRanges, target.getTagFilter());
     } catch (PhysicalException e) {
       throw new IOException(e);
     }

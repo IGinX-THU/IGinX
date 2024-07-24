@@ -36,7 +36,10 @@ public class Filters {
   private Filters() {
   }
 
-  public static Filter toFilter(List<KeyRange> keyRanges) {
+  public static Filter toFilter(@Nullable List<KeyRange> keyRanges) {
+    if (keyRanges == null) {
+      return new BoolFilter(true);
+    }
     List<Filter> rangeFilters = new ArrayList<>();
     for (KeyRange range : keyRanges) {
       Filter rangeFilter = toFilter(range);
@@ -139,7 +142,7 @@ public class Filters {
         }
         return rangeSet;
       }
-      case Or:{
+      case Or: {
         RangeSet<Long> rangeSet = TreeRangeSet.create();
         OrFilter orFilter = (OrFilter) filter;
         for (Filter child : orFilter.getChildren()) {
