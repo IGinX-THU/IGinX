@@ -137,8 +137,9 @@ public class StorageEngineClassLoader extends ClassLoader {
     List<URL> urls = new ArrayList<>();
     for (File jar : Jars) {
       try (JarFile jarFile = new JarFile(jar)) {
-        if (jarFile.getJarEntry(name) != null) {
-          urls.add(new URL("jar:" + jar.toURI().toURL() + "!/" + name));
+        JarEntry entry = jarFile.getJarEntry(name);
+        if (entry != null) {
+          urls.add(new URL("jar:file:" + jar.getAbsolutePath() + "!/" + name));
         }
       }
     }
