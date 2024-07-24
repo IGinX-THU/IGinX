@@ -18,6 +18,8 @@
 package cn.edu.tsinghua.iginx.filestore.service.storage;
 
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
+import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
+import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
@@ -25,6 +27,9 @@ import com.typesafe.config.Optional;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
 
+import java.io.Closeable;
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -42,6 +47,20 @@ public class StorageConfig extends AbstractConfig {
 
   @Override
   public List<ValidationProblem> validate() {
-    throw new UnsupportedOperationException("Not implemented");
+    List<ValidationProblem> problems = new ArrayList<>();
+    validateNotBlanks(problems, Fields.root, root);
+    validateNotNull(problems, Fields.struct, struct);
+    validateNotNull(problems, Fields.config, config);
+    FileStructure fileStructure = FileStructureManager.getInstance().getByName(struct);
+    if (fileStructure == null) {
+      problems.add(new ValidationProblem(Fields.struct, "Unknown file structure: " + struct));
+    } else {
+      try (Closeable shared = fileStructure.newShared(config)) {
+        // TODO: check file structure, return some warnging
+      } catch (IOException e) {
+        problems.add(new ValidationProblem(Fields.config, "Invalid config: " + e));
+      }
+    }
+    return problems;
   }
 }
