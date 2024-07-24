@@ -46,6 +46,7 @@ import com.google.common.collect.RangeSet;
 import javax.annotation.Nullable;
 import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -127,7 +128,7 @@ public class LegacyParquetWrapper implements FileManager {
       }
       List<String> patterns = target.getPatterns();
       if (Patterns.isAll(patterns)) {
-        patterns = null;
+        patterns = Collections.singletonList("*");
       }
       delegate.delete(patterns, keyRanges, target.getTagFilter());
     } catch (PhysicalException e) {
