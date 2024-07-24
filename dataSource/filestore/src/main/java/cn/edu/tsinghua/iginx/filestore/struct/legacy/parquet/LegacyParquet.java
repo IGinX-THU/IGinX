@@ -42,6 +42,11 @@ public class LegacyParquet implements FileStructure {
   }
 
   @Override
+  public String toString() {
+    return NAME;
+  }
+
+  @Override
   public Closeable newShared(Config config) throws IOException {
     StorageProperties.Builder builder = StorageProperties.builder();
     if (config.hasPath(StorageProperties.Builder.FLUSH_ON_CLOSE)) {
