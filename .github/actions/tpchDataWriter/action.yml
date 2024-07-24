@@ -14,7 +14,7 @@ runs:
 
         - name: Insert Data and Register UDF
           shell: bash
-          run: mvn test -q -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
+          run: mvn test -Dtest=TPCHDataGeneratorIT -DfailIfNoTests=false -P-format
 
         - name: Show New IGinX log
           if: always()
