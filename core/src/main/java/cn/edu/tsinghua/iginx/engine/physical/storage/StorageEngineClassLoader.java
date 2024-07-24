@@ -19,6 +19,9 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -28,8 +31,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StorageEngineClassLoader extends ClassLoader {
 
@@ -139,10 +140,11 @@ public class StorageEngineClassLoader extends ClassLoader {
       try (JarFile jarFile = new JarFile(jar)) {
         JarEntry entry = jarFile.getJarEntry(name);
         if (entry != null) {
-          urls.add(new URL("jar:file:" + jar.getAbsolutePath() + "!/" + name));
+          urls.add(new URL("jar:" + jar.toURI().toURL().toString() + "!/" + name));
         }
       }
     }
+    LOGGER.debug("find {} resources in {}: {}", name, Arrays.toString(Jars), urls);
     return Collections.enumeration(urls);
   }
 }
