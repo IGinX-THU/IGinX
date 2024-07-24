@@ -67,7 +67,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P-format -q
+                  mvn clean package -DskipTests -P-format
 
             # 第 1 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpHasData

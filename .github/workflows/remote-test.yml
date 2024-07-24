@@ -79,7 +79,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P-format -q
+                  mvn clean package -DskipTests -P-format
 
             - if: runner.os == 'Windows'
               name: Build & Run Client image
