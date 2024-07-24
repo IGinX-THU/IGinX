@@ -65,6 +65,12 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void changeParams(int port, String newOrgName) {
     String scriptPath = updateParamsScriptDir + "influxdb.sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("mac")) {
+      scriptPath = updateParamsScriptDir + "influxdb_macos.sh";
+    } else if (os.contains("win")) {
+      scriptPath = updateParamsScriptDir + "influxdb_windows.sh";
+    }
     // 脚本参数：对应端口，新参数
     int res = executeShellScript(scriptPath, String.valueOf(port), newOrgName);
     if (res != 0) {

@@ -57,13 +57,4 @@ do
   redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardError '$pathPrefix/logs/db-error.log'"
 
   powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influxd' $arguments -NoNewWindow $redirect"
-
-  arguments="-ArgumentList 'config create -n config$port -u http://localhost:$port -t testToken'"
-
-  powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influx' $arguments"
-
-  arguments="-ArgumentList 'config list'"
-
-  powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64/influx' $arguments"
-
 done

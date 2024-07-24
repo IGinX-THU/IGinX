@@ -22,12 +22,6 @@ set -e
 
 cd influxdb2-2.0.7-linux-amd64/
 
-sh -c "ls"
-sh -c "./influx config list"
-
-# 激活对应端口的influx配置
-#sh -c "./influx config set --active -n config$1"
-
 # 所有org的信息
 output=$(influx org list)
 
