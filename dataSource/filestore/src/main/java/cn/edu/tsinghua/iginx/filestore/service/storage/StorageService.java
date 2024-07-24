@@ -168,7 +168,7 @@ public class StorageService implements Service {
       Path dataRoot = Paths.get(dataConfig.getRoot());
       Path dataUnitRoot = getPathOf(dataRoot, unit.getName());
 
-      LOGGER.info("creating {} writer for {} in {}", dummyStructure, unit, dataUnitRoot);
+      LOGGER.info("creating {} writer for {} in {}", dataStructure, unit, dataUnitRoot);
       return dataStructure.newWriter(dataUnitRoot, dataShared);
     }
   }

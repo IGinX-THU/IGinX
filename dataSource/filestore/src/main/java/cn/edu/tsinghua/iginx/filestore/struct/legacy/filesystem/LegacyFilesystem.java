@@ -43,6 +43,11 @@ public class LegacyFilesystem implements FileStructure {
   }
 
   @Override
+  public String toString() {
+    return NAME;
+  }
+
+  @Override
   public Closeable newShared(Config config) throws IOException {
     return new Shared(config);
   }

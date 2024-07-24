@@ -29,6 +29,9 @@ import javax.annotation.concurrent.Immutable;
 public interface FileStructure {
   String getName();
 
+  @Override
+  String toString();
+
   Closeable newShared(Config config) throws IOException;
 
   boolean supportFilter(FilterType type);
