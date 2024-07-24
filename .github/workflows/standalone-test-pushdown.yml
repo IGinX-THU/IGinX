@@ -49,10 +49,6 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
-            - if: runner.os == 'Windows'
-              name: Set JAVA_OPTS
-              run: echo "JAVA_OPTS=-Xmx4g -Xmx2g" >> $GITHUB_ENV
-
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
@@ -72,7 +68,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "true"
+                  Push-Down: "${{ inputs.push-down }}"
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
@@ -86,7 +82,7 @@ jobs:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -q -Dtest=Controller -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=Controller -DfailIfNoTests=false -P-format
 
             - name: Show test result
               if: always()
