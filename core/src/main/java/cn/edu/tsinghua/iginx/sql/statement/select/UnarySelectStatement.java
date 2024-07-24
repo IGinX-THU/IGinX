@@ -442,35 +442,35 @@ public class UnarySelectStatement extends SelectStatement {
     selectClause.addExpression(expression);
   }
 
-  public List<Pair<String, String>> getSelectAliasMap() {
-    List<Pair<String, String>> aliasMap = new ArrayList<>();
+  public List<Pair<String, String>> getSelectAliasList() {
+    List<Pair<String, String>> aliasList = new ArrayList<>();
     AtomicBoolean hasAlias = new AtomicBoolean(false);
     getExpressions()
         .forEach(
             expression -> {
               if (expression.hasAlias()) {
-                aliasMap.add(new Pair<>(expression.getColumnName(), expression.getAlias()));
+                aliasList.add(new Pair<>(expression.getColumnName(), expression.getAlias()));
                 hasAlias.set(true);
               } else {
-                aliasMap.add(new Pair<>(expression.getColumnName(), expression.getColumnName()));
+                aliasList.add(new Pair<>(expression.getColumnName(), expression.getColumnName()));
               }
             });
-    return hasAlias.get() ? aliasMap : Collections.emptyList();
+    return hasAlias.get() ? aliasList : Collections.emptyList();
   }
 
   @Override
-  public List<Pair<String, String>> getSubQueryAliasMap(String alias) {
-    List<Pair<String, String>> aliasMap = new ArrayList<>();
+  public List<Pair<String, String>> getSubQueryAliasList(String alias) {
+    List<Pair<String, String>> aliasList = new ArrayList<>();
     getExpressions()
         .forEach(
             expression -> {
               if (expression.hasAlias()) {
-                aliasMap.add(
+                aliasList.add(
                     new Pair<>(expression.getAlias(), alias + DOT + expression.getAlias()));
               } else {
                 if (expression.getType().equals(Expression.ExpressionType.Binary)
                     || expression.getType().equals(Expression.ExpressionType.Unary)) {
-                  aliasMap.add(
+                  aliasList.add(
                       new Pair<>(
                           expression.getColumnName(),
                           alias
@@ -479,13 +479,13 @@ public class UnarySelectStatement extends SelectStatement {
                               + expression.getColumnName()
                               + R_PARENTHESES));
                 } else {
-                  aliasMap.add(
+                  aliasList.add(
                       new Pair<>(
                           expression.getColumnName(), alias + DOT + expression.getColumnName()));
                 }
               }
             });
-    return aliasMap;
+    return aliasList;
   }
 
   public boolean needRowTransform() {

@@ -93,7 +93,7 @@ public class BinarySelectStatement extends SelectStatement {
   }
 
   @Override
-  public List<Pair<String, String>> getSubQueryAliasMap(String alias) {
-    return leftQuery.getSubQueryAliasMap(alias);
+  public List<Pair<String, String>> getSubQueryAliasList(String alias) {
+    return leftQuery.getSubQueryAliasList(alias);
   }
 }

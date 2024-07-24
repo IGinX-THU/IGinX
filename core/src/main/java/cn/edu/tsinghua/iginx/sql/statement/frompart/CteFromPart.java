@@ -59,7 +59,7 @@ public class CteFromPart implements FromPart {
   }
 
   @Override
-  public List<Pair<String, String>> getAliasMap() {
+  public List<Pair<String, String>> getAliasList() {
     return Collections.singletonList(
         new Pair<>(cte.getName() + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX));
   }

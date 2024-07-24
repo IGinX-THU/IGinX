@@ -18,8 +18,6 @@
 
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
-
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
@@ -118,9 +116,9 @@ public class ColumnPruningRule extends Rule {
         }
       } else if (operator.getType() == OperatorType.Rename) {
         Rename rename = (Rename) operator;
-        List<Pair<String, String>> aliasMap = rename.getAliasMap();
+        List<Pair<String, String>> aliasList = rename.getAliasList();
         columns =
-            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasMap, new ArrayList<>(columns)));
+            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasList, new ArrayList<>(columns)));
 
       } else if (operator.getType() == OperatorType.GroupBy) {
         GroupBy groupBy = (GroupBy) operator;

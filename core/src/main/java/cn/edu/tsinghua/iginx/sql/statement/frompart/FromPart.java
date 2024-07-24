@@ -26,7 +26,7 @@ public interface FromPart {
 
   FromPartType getType();
 
-  List<Pair<String, String>> getAliasMap();
+  List<Pair<String, String>> getAliasList();
 
   boolean hasAlias();
 

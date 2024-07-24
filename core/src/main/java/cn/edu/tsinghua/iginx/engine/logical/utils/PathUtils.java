@@ -63,19 +63,19 @@ public class PathUtils {
   /**
    * 反向重命名模式列表中的模式
    *
-   * @param aliasMap 重命名规则, key为旧模式，value为新模式，在这里我们要将新模式恢复为旧模式
+   * @param aliasList 重命名规则, key为旧模式，value为新模式，在这里我们要将新模式恢复为旧模式
    * @param patterns 要重命名的模式列表
    * @return 重命名后的模式列表
    */
   public static List<String> recoverRenamedPatterns(
-      List<Pair<String, String>> aliasMap, List<String> patterns) {
+      List<Pair<String, String>> aliasList, List<String> patterns) {
     return patterns.stream()
-        .map(pattern -> recoverRenamedPattern(aliasMap, pattern))
+        .map(pattern -> recoverRenamedPattern(aliasList, pattern))
         .collect(Collectors.toList());
   }
 
-  public static String recoverRenamedPattern(List<Pair<String, String>> aliasMap, String pattern) {
-    for (Pair<String, String> pair : aliasMap) {
+  public static String recoverRenamedPattern(List<Pair<String, String>> aliasList, String pattern) {
+    for (Pair<String, String> pair : aliasList) {
       String oldPattern = pair.k.replace("*", "$1"); // 通配符转换为正则的捕获组
       String newPattern = pair.v.replace("*", "(.*)"); // 使用反向引用保留原始匹配的部分
       if (pattern.matches(newPattern)) {

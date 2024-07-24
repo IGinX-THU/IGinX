@@ -127,7 +127,7 @@ public final class Header {
         && Objects.equals(indexMap, header.indexMap);
   }
 
-  public Header renamedHeader(List<Pair<String, String>> aliasMap, List<String> ignorePatterns) {
+  public Header renamedHeader(List<Pair<String, String>> aliasList, List<String> ignorePatterns) {
     List<Field> newFields = new ArrayList<>();
     int size = getFieldSize();
     for (int i = 0; i < size; i++) {
@@ -145,7 +145,7 @@ public final class Header {
         continue;
       }
       String alias = "";
-      for (Pair<String, String> pair : aliasMap) {
+      for (Pair<String, String> pair : aliasList) {
         String oldPattern = pair.k;
         String newPattern = pair.v;
         if (oldPattern.equals("*") && newPattern.endsWith(".*")) {
@@ -173,7 +173,7 @@ public final class Header {
             nextField = i < size - 1 ? fields.get(i + 1) : null;
             tagSet.add(field.getTags());
           }
-          aliasMap.remove(pair);
+          aliasList.remove(pair);
           break;
         } else {
           if (StringUtils.match(field.getName(), oldPattern)) {

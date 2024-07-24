@@ -334,7 +334,7 @@ public class OperatorUtils {
         root =
             new Rename(
                 new OperatorSource(pushDownApply(apply, correlatedVariables)),
-                rename.getAliasMap(),
+                rename.getAliasList(),
                 ignorePatterns);
         break;
       case CrossJoin:
@@ -605,8 +605,8 @@ public class OperatorUtils {
         Operator visitedOperator = visitedOperators.get(i);
         if (visitedOperator.getType() == OperatorType.Rename) {
           Rename rename = (Rename) visitedOperator;
-          List<Pair<String, String>> aliasMap = rename.getAliasMap();
-          patterns = renamePattern(aliasMap, patterns);
+          List<Pair<String, String>> aliasList = rename.getAliasList();
+          patterns = renamePattern(aliasList, patterns);
         }
       }
       return patterns;
@@ -648,16 +648,16 @@ public class OperatorUtils {
   /**
    * 正向重命名模式列表中的pattern，将key中的pattern替换为value中的pattern
    *
-   * @param aliasMap 重命名规则, key为旧模式，value为新模式
+   * @param aliasList 重命名规则, key为旧模式，value为新模式
    * @param patterns 要重命名的模式列表
    * @return
    */
   private static List<String> renamePattern(
-      List<Pair<String, String>> aliasMap, List<String> patterns) {
+      List<Pair<String, String>> aliasList, List<String> patterns) {
     List<String> renamedPatterns = new ArrayList<>();
     for (String pattern : patterns) {
       boolean matched = false;
-      for (Pair<String, String> pair : aliasMap) {
+      for (Pair<String, String> pair : aliasList) {
         String oldPattern = pair.k.replace("*", "(.*)");
         String newPattern = pair.v.replace("*", "$1");
         if (pattern.matches(oldPattern)) {

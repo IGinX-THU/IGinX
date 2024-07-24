@@ -51,7 +51,7 @@ public class FilterPushDownRenameRule extends Rule {
   public void onMatch(RuleCall call) {
     Select select = (Select) call.getMatchedRoot();
     Rename rename = (Rename) ((OperatorSource) select.getSource()).getOperator();
-    select.setFilter(replacePathByRenameMap(select.getFilter(), rename.getAliasMap()));
+    select.setFilter(replacePathByRenameMap(select.getFilter(), rename.getAliasList()));
     select.setSource(rename.getSource());
     rename.setSource(new OperatorSource(select));
     call.transformTo(rename);

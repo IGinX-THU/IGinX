@@ -47,11 +47,11 @@ public class ShowColumnsFromPart implements FromPart {
   }
 
   @Override
-  public List<Pair<String, String>> getAliasMap() {
-    List<Pair<String, String>> aliasMap = new ArrayList<>(2);
-    aliasMap.add(new Pair<>("path", alias + ".path"));
-    aliasMap.add(new Pair<>("type", alias + ".type"));
-    return aliasMap;
+  public List<Pair<String, String>> getAliasList() {
+    List<Pair<String, String>> aliasList = new ArrayList<>(2);
+    aliasList.add(new Pair<>("path", alias + ".path"));
+    aliasList.add(new Pair<>("type", alias + ".type"));
+    return aliasList;
   }
 
   @Override

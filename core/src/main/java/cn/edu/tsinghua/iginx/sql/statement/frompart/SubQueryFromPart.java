@@ -60,8 +60,8 @@ public class SubQueryFromPart implements FromPart {
   }
 
   @Override
-  public List<Pair<String, String>> getAliasMap() {
-    return subQuery.getSubQueryAliasMap(alias);
+  public List<Pair<String, String>> getAliasList() {
+    return subQuery.getSubQueryAliasList(alias);
   }
 
   @Override

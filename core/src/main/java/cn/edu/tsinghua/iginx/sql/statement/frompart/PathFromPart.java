@@ -52,7 +52,7 @@ public class PathFromPart implements FromPart {
   }
 
   @Override
-  public List<Pair<String, String>> getAliasMap() {
+  public List<Pair<String, String>> getAliasList() {
     return Collections.singletonList(new Pair<>(path + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX));
   }
 

@@ -39,7 +39,7 @@ public class RenameLazyStream extends UnaryLazyStream {
   public Header getHeader() throws PhysicalException {
     if (header == null) {
       Header header = stream.getHeader();
-      this.header = header.renamedHeader(rename.getAliasMap(), rename.getIgnorePatterns());
+      this.header = header.renamedHeader(rename.getAliasList(), rename.getIgnorePatterns());
     }
     return header;
   }

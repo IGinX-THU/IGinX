@@ -63,7 +63,7 @@ public class RowTransformConstantFoldingRule extends Rule {
   public void onMatch(RuleCall call) {
     RowTransform rowTransform = (RowTransform) call.getMatchedRoot();
     List<FunctionCall> functionCallList = rowTransform.getFunctionCallList();
-    List<Pair<String, String>> aliasMap = new ArrayList<>();
+    List<Pair<String, String>> aliasList = new ArrayList<>();
 
     for (FunctionCall functionCall : functionCallList) {
       Expression expr = functionCall.getParams().getExpr();
@@ -74,13 +74,13 @@ public class RowTransformConstantFoldingRule extends Rule {
           Expression foldedExpression = ExprUtils.foldExpression(flattenedExpression);
           functionCall.getParams().setExpr(foldedExpression);
           String newName = foldedExpression.getColumnName();
-          aliasMap.add(new Pair<>(newName, oldName));
+          aliasList.add(new Pair<>(newName, oldName));
         }
       }
     }
 
     // 改完之后要在上面加一层Rename，因为常量折叠改变了表达式输出的列名，但是我们依然要用原列名
-    Rename rename = new Rename(new OperatorSource(rowTransform), aliasMap);
+    Rename rename = new Rename(new OperatorSource(rowTransform), aliasList);
     call.transformTo(rename);
   }
 }

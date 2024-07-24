@@ -26,25 +26,25 @@ import java.util.List;
 
 public class Rename extends AbstractUnaryOperator {
 
-  private final List<Pair<String, String>> aliasMap;
+  private final List<Pair<String, String>> aliasList;
 
   private final List<String> ignorePatterns; // 不进行重命名的列
 
-  public Rename(Source source, List<Pair<String, String>> aliasMap) {
-    this(source, aliasMap, new ArrayList<>());
+  public Rename(Source source, List<Pair<String, String>> aliasList) {
+    this(source, aliasList, new ArrayList<>());
   }
 
-  public Rename(Source source, List<Pair<String, String>> aliasMap, List<String> ignorePatterns) {
+  public Rename(Source source, List<Pair<String, String>> aliasList, List<String> ignorePatterns) {
     super(OperatorType.Rename, source);
-    if (aliasMap == null) {
-      throw new IllegalArgumentException("aliasMap shouldn't be null");
+    if (aliasList == null) {
+      throw new IllegalArgumentException("aliasList shouldn't be null");
     }
-    this.aliasMap = aliasMap;
+    this.aliasList = aliasList;
     this.ignorePatterns = ignorePatterns;
   }
 
-  public List<Pair<String, String>> getAliasMap() {
-    return aliasMap;
+  public List<Pair<String, String>> getAliasList() {
+    return aliasList;
   }
 
   public List<String> getIgnorePatterns() {
@@ -53,19 +53,19 @@ public class Rename extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new Rename(getSource().copy(), new ArrayList<>(aliasMap));
+    return new Rename(getSource().copy(), new ArrayList<>(aliasList));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new Rename(source, new ArrayList<>(aliasMap));
+    return new Rename(source, new ArrayList<>(aliasList));
   }
 
   @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
-    builder.append("AliasMap: ");
-    aliasMap.forEach(
+    builder.append("AliasList: ");
+    aliasList.forEach(
         p -> builder.append("(").append(p.k).append(", ").append(p.v).append(")").append(","));
     builder.deleteCharAt(builder.length() - 1);
     if (!ignorePatterns.isEmpty()) {
@@ -83,6 +83,6 @@ public class Rename extends AbstractUnaryOperator {
       return false;
     }
     Rename rename = (Rename) object;
-    return aliasMap.equals(rename.aliasMap) && ignorePatterns.equals(rename.ignorePatterns);
+    return aliasList.equals(rename.aliasList) && ignorePatterns.equals(rename.ignorePatterns);
   }
 }

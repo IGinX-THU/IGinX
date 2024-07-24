@@ -66,18 +66,18 @@ public class CommonTableExpression {
     this.root = root;
   }
 
-  public List<Pair<String, String>> getAliasMap() {
+  public List<Pair<String, String>> getAliasList() {
     if (columns.isEmpty()) {
-      return statement.getSubQueryAliasMap(name);
+      return statement.getSubQueryAliasList(name);
     } else {
-      List<Pair<String, String>> aliasMap = new ArrayList<>(columns.size());
+      List<Pair<String, String>> aliasList = new ArrayList<>(columns.size());
       for (int i = 0; i < columns.size(); i++) {
         Expression expression = statement.getExpressions().get(i);
         String originName =
             expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
-        aliasMap.add(new Pair<>(originName, name + SQLConstant.DOT + columns.get(i)));
+        aliasList.add(new Pair<>(originName, name + SQLConstant.DOT + columns.get(i)));
       }
-      return aliasMap;
+      return aliasList;
     }
   }
 }

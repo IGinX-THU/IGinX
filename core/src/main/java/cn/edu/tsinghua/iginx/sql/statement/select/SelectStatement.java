@@ -135,7 +135,7 @@ public abstract class SelectStatement extends DataStatement {
 
   public abstract void initFreeVariables();
 
-  public abstract List<Pair<String, String>> getSubQueryAliasMap(String alias);
+  public abstract List<Pair<String, String>> getSubQueryAliasList(String alias);
 
   public enum SelectStatementType {
     UNARY,

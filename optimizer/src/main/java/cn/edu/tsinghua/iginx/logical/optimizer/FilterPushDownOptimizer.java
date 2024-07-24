@@ -108,7 +108,7 @@ public class FilterPushDownOptimizer implements Optimizer {
       getRenameOperator(selectOperator, project, renameList);
       Filter unrenamedFilter = filter.copy();
       for (Operator rename : renameList) {
-        unrenamedFilter = replacePathByRenameMap(unrenamedFilter, ((Rename) rename).getAliasMap());
+        unrenamedFilter = replacePathByRenameMap(unrenamedFilter, ((Rename) rename).getAliasList());
       }
 
       // the same meta just call once.
