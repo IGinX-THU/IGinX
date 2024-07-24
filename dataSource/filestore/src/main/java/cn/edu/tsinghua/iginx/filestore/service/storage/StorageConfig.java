@@ -24,13 +24,12 @@ import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.Optional;
-import lombok.*;
-import lombok.experimental.FieldNameConstants;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import lombok.*;
+import lombok.experimental.FieldNameConstants;
 
 @Data
 @With
@@ -40,10 +39,8 @@ import java.util.List;
 @FieldNameConstants
 public class StorageConfig extends AbstractConfig {
   String root;
-  @Optional
-  String struct = LegacyParquet.NAME;
-  @Optional
-  Config config = ConfigFactory.empty();
+  @Optional String struct = LegacyParquet.NAME;
+  @Optional Config config = ConfigFactory.empty();
 
   @Override
   public List<ValidationProblem> validate() {

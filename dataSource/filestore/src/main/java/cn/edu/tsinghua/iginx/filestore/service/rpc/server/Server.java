@@ -22,6 +22,11 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.thrift.FileStoreRpc;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -30,12 +35,6 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 public class Server implements AutoCloseable {
 
@@ -74,7 +73,9 @@ public class Server implements AutoCloseable {
 
   @Override
   public void close() {
-    LOGGER.info("closing file store server at {}", serverTransport.getServerSocket().getLocalSocketAddress());
+    LOGGER.info(
+        "closing file store server at {}",
+        serverTransport.getServerSocket().getLocalSocketAddress());
     server.stop();
     serverTransport.close();
     serverThread.interrupt();

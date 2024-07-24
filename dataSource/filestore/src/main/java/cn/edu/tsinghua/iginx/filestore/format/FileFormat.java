@@ -18,7 +18,6 @@
 package cn.edu.tsinghua.iginx.filestore.format;
 
 import com.typesafe.config.Config;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -30,5 +29,4 @@ public interface FileFormat {
   List<String> getExtensions();
 
   FileReader newRead(Path path, Config config) throws IOException;
-  
 }

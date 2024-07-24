@@ -40,15 +40,13 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
 
 public class LegacyParquetWrapper implements FileManager {
 
@@ -63,7 +61,8 @@ public class LegacyParquetWrapper implements FileManager {
   @Override
   public DataBoundary getBoundary(@Nullable String prefix) throws IOException {
     if (!isDummy) {
-      throw new UnsupportedOperationException("getBoundary is not supported for non-dummy file manager");
+      throw new UnsupportedOperationException(
+          "getBoundary is not supported for non-dummy file manager");
     }
     try {
       List<Column> columns = delegate.getColumns();
@@ -111,7 +110,7 @@ public class LegacyParquetWrapper implements FileManager {
         }
         RowStream rowStream = delegate.project(patterns, tagFilter, filter);
         rowStream = new ClearEmptyRowStreamWrapper(rowStream);
-        if(!Filters.isTrue(filter)) {
+        if (!Filters.isTrue(filter)) {
           rowStream = new FilterRowStreamWrapper(rowStream, filter);
         }
         return rowStream;

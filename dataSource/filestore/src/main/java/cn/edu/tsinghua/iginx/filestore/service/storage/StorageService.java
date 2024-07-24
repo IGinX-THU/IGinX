@@ -28,16 +28,15 @@ import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StorageService implements Service {
 
@@ -120,8 +119,8 @@ public class StorageService implements Service {
   private static List<String> getUnitsIn(Path root) throws IOException {
     List<String> units = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(
-                 root, path -> path.getFileName().toString().startsWith(IGINX_DATA_PREFIX))) {
+        Files.newDirectoryStream(
+            root, path -> path.getFileName().toString().startsWith(IGINX_DATA_PREFIX))) {
       for (Path path : stream) {
         String unitNameWithPrefix = path.getFileName().toString();
         String unitName = unitNameWithPrefix.substring(IGINX_DATA_PREFIX.length());
@@ -138,12 +137,13 @@ public class StorageService implements Service {
     if (closed) {
       throw new IllegalStateException("storage service is closed");
     }
-    if (!managers.containsKey(unit)) synchronized (this) {
-      if (!managers.containsKey(unit)) {
-        FileManager manager = createManager(unit);
-        managers.put(unit, manager);
+    if (!managers.containsKey(unit))
+      synchronized (this) {
+        if (!managers.containsKey(unit)) {
+          FileManager manager = createManager(unit);
+          managers.put(unit, manager);
+        }
       }
-    }
     return managers.get(unit);
   }
 
@@ -181,10 +181,8 @@ public class StorageService implements Service {
     }
   }
 
-
   @Override
-  public Map<DataUnit, DataBoundary> getUnits(@Nullable String prefix)
-      throws FileStoreException {
+  public Map<DataUnit, DataBoundary> getUnits(@Nullable String prefix) throws FileStoreException {
     Map<DataUnit, DataBoundary> boundariesForEachUnit = new HashMap<>();
     for (DataUnit unit : managers.keySet()) {
       DataBoundary boundary = getBoundary(unit, prefix);
@@ -193,7 +191,8 @@ public class StorageService implements Service {
     return boundariesForEachUnit;
   }
 
-  private static final DataBoundary DATA_BOUNDARY = new DataBoundary(Long.MIN_VALUE, Long.MAX_VALUE);
+  private static final DataBoundary DATA_BOUNDARY =
+      new DataBoundary(Long.MIN_VALUE, Long.MAX_VALUE);
   private volatile DataBoundary dummyBoundary = null;
   private volatile String lastPrefix = null;
 
@@ -202,11 +201,12 @@ public class StorageService implements Service {
       throws FileStoreException {
     if (unit.isDummy()) {
       try {
-        if (dummyBoundary == null || !Objects.equals(prefix, lastPrefix)) synchronized (this) {
-          FileManager manager = getOrCreateManager(unit);
-          dummyBoundary = manager.getBoundary(prefix);
-          lastPrefix = prefix;
-        }
+        if (dummyBoundary == null || !Objects.equals(prefix, lastPrefix))
+          synchronized (this) {
+            FileManager manager = getOrCreateManager(unit);
+            dummyBoundary = manager.getBoundary(prefix);
+            lastPrefix = prefix;
+          }
         return dummyBoundary;
       } catch (IOException e) {
         String message =

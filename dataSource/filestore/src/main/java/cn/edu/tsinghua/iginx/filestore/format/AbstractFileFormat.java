@@ -18,7 +18,6 @@
 package cn.edu.tsinghua.iginx.filestore.format;
 
 import com.google.common.collect.Lists;
-
 import java.util.*;
 
 public abstract class AbstractFileFormat implements FileFormat {
@@ -29,7 +28,7 @@ public abstract class AbstractFileFormat implements FileFormat {
   public AbstractFileFormat(String formatName, String... extension) {
     this.formatName = Objects.requireNonNull(formatName);
     Collection<String> extensions = new HashSet<>();
-    for(String ext : extension) {
+    for (String ext : extension) {
       extensions.add(Objects.requireNonNull(ext));
     }
     this.extensions = Collections.unmodifiableCollection(extensions);

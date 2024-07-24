@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.filestore.format;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;

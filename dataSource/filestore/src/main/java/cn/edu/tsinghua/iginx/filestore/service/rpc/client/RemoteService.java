@@ -25,14 +25,13 @@ import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.thrift.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import java.net.InetSocketAddress;
+import java.util.Map;
+import javax.annotation.Nullable;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.transport.TTransport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import java.net.InetSocketAddress;
-import java.util.Map;
 
 public class RemoteService implements Service {
 

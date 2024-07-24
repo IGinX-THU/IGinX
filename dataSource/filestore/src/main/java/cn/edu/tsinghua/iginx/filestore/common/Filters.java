@@ -24,17 +24,15 @@ import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
-
-import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nullable;
 
 public class Filters {
 
-  private Filters() {
-  }
+  private Filters() {}
 
   public static Filter toFilter(@Nullable List<KeyRange> keyRanges) {
     if (keyRanges == null) {
@@ -111,50 +109,51 @@ public class Filters {
       return ImmutableRangeSet.of(Range.all());
     }
     switch (filter.getType()) {
-      case Key: {
-        KeyFilter keyFilter = (KeyFilter) filter;
-        long value = keyFilter.getValue();
-        switch (keyFilter.getOp()) {
-          case G:
-            return ImmutableRangeSet.of(Range.greaterThan(value));
-          case GE:
-            return ImmutableRangeSet.of(Range.atLeast(value));
-          case L:
-            return ImmutableRangeSet.of(Range.lessThan(value));
-          case LE:
-            return ImmutableRangeSet.of(Range.atMost(value));
-          case E:
-            return ImmutableRangeSet.of(Range.singleton(value));
-          case NE:
-            return ImmutableRangeSet.<Long>builder()
-                .add(Range.lessThan(value))
-                .add(Range.greaterThan(value))
-                .build();
-          default:
-            throw new IllegalArgumentException("Unsupported operator: " + keyFilter.getOp());
+      case Key:
+        {
+          KeyFilter keyFilter = (KeyFilter) filter;
+          long value = keyFilter.getValue();
+          switch (keyFilter.getOp()) {
+            case G:
+              return ImmutableRangeSet.of(Range.greaterThan(value));
+            case GE:
+              return ImmutableRangeSet.of(Range.atLeast(value));
+            case L:
+              return ImmutableRangeSet.of(Range.lessThan(value));
+            case LE:
+              return ImmutableRangeSet.of(Range.atMost(value));
+            case E:
+              return ImmutableRangeSet.of(Range.singleton(value));
+            case NE:
+              return ImmutableRangeSet.<Long>builder()
+                  .add(Range.lessThan(value))
+                  .add(Range.greaterThan(value))
+                  .build();
+            default:
+              throw new IllegalArgumentException("Unsupported operator: " + keyFilter.getOp());
+          }
         }
-      }
-      case And: {
-        AndFilter andFilter = (AndFilter) filter;
-        RangeSet<Long> rangeSet = TreeRangeSet.create();
-        rangeSet.add(Range.all());
-        for (Filter child : andFilter.getChildren()) {
-          rangeSet.removeAll(toRangeSet(child).complement());
+      case And:
+        {
+          AndFilter andFilter = (AndFilter) filter;
+          RangeSet<Long> rangeSet = TreeRangeSet.create();
+          rangeSet.add(Range.all());
+          for (Filter child : andFilter.getChildren()) {
+            rangeSet.removeAll(toRangeSet(child).complement());
+          }
+          return rangeSet;
         }
-        return rangeSet;
-      }
-      case Or: {
-        RangeSet<Long> rangeSet = TreeRangeSet.create();
-        OrFilter orFilter = (OrFilter) filter;
-        for (Filter child : orFilter.getChildren()) {
-          rangeSet.addAll(toRangeSet(child));
+      case Or:
+        {
+          RangeSet<Long> rangeSet = TreeRangeSet.create();
+          OrFilter orFilter = (OrFilter) filter;
+          for (Filter child : orFilter.getChildren()) {
+            rangeSet.addAll(toRangeSet(child));
+          }
+          return rangeSet;
         }
-        return rangeSet;
-      }
       default:
         throw new IllegalArgumentException("Unsupported filter type: " + filter.getType());
     }
   }
-
-
 }
