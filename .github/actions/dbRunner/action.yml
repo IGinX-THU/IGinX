@@ -202,7 +202,7 @@ runs:
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
-            paths: conf/config.properties
-            statements: |
-              s/^#storageEngineList=127.0.0.1#6667#filetore/storageEngineList=127.0.0.1#6667#filetore/g
-              s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
+              paths: conf/config.properties
+              statements: |
+                  s/^#storageEngineList=127.0.0.1#6667#filetore/storageEngineList=127.0.0.1#6667#filetore/g
+                  s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g

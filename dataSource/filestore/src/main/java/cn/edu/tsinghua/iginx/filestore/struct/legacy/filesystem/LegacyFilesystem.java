@@ -1,3 +1,20 @@
+/*
+ * IGinX - the polystore system with high performance
+ * Copyright (C) Tsinghua University
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
@@ -8,7 +25,6 @@ import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.shared.Constant;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -68,7 +84,9 @@ public class LegacyFilesystem implements FileStructure {
         params.put(Constant.INIT_ROOT_PREFIX, config.getString(Constant.INIT_ROOT_PREFIX));
       }
       if (config.hasPath(Constant.INIT_INFO_MEMORY_POOL_SIZE)) {
-        params.put(Constant.INIT_INFO_MEMORY_POOL_SIZE, config.getString(Constant.INIT_INFO_MEMORY_POOL_SIZE));
+        params.put(
+            Constant.INIT_INFO_MEMORY_POOL_SIZE,
+            config.getString(Constant.INIT_INFO_MEMORY_POOL_SIZE));
       }
       if (config.hasPath(Constant.INIT_INFO_CHUNK_SIZE)) {
         params.put(Constant.INIT_INFO_CHUNK_SIZE, config.getString(Constant.INIT_INFO_CHUNK_SIZE));
@@ -82,8 +100,6 @@ public class LegacyFilesystem implements FileStructure {
     }
 
     @Override
-    public void close() throws IOException {
-
-    }
+    public void close() throws IOException {}
   }
 }
