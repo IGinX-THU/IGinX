@@ -35,11 +35,11 @@
             <outputDirectory>${file.separator}</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>../conf/</directory>
+            <directory>${directory.root}/conf/</directory>
             <outputDirectory>conf</outputDirectory>
         </fileSet>
         <fileSet>
-            <directory>../udf_funcs</directory>
+            <directory>${directory.root}/udf_funcs</directory>
             <outputDirectory>udf_funcs</outputDirectory>
         </fileSet>
     </fileSets>
