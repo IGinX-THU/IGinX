@@ -54,10 +54,7 @@ import cn.edu.tsinghua.iginx.mongodb.tools.TypeUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import com.mongodb.MongoBulkWriteException;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.ServerAddress;
-import com.mongodb.WriteError;
+import com.mongodb.*;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
@@ -82,6 +79,7 @@ public class MongoDBStorage implements IStorage {
   private static final int SESSION_POOL_MAX_SIZE = 200;
   public static final String VALUE_FIELD = "v";
   public static final String[] SYSTEM_DBS = new String[] {"admin", "config", "local"};
+  public static final String CONNECTION_STRING = "uri";
   public static final String SCHEMA_SAMPLE_SIZE = "schema.sample.size";
   public static final String QUERY_SAMPLE_SIZE = "dummy.sample.size";
   public static final String SCHEMA_SAMPLE_SIZE_DEFAULT = "1000";
@@ -97,6 +95,10 @@ public class MongoDBStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
+    String defaultConnection = String.format("mongodb://%s:%d", meta.getIp(), meta.getPort());
+    String connectionString =
+        meta.getExtraParams().getOrDefault(CONNECTION_STRING, defaultConnection);
+
     String sampleSize =
         meta.getExtraParams().getOrDefault(SCHEMA_SAMPLE_SIZE, SCHEMA_SAMPLE_SIZE_DEFAULT);
     this.schemaSampleSize = Integer.parseInt(sampleSize);
@@ -106,7 +108,7 @@ public class MongoDBStorage implements IStorage {
     this.querySampleSize = Integer.parseInt(querySampleSize);
 
     try {
-      this.client = connect(meta.getIp(), meta.getPort());
+      this.client = connect(connectionString);
     } catch (Exception e) {
       String message = "fail to connect " + meta.getIp() + ":" + meta.getPort();
       LOGGER.error(message, e);
@@ -114,17 +116,16 @@ public class MongoDBStorage implements IStorage {
     }
   }
 
-  private MongoClient connect(String ip, int port) {
-    ServerAddress address = new ServerAddress(ip, port);
+  private MongoClient connect(String connectionString) {
     MongoClientSettings settings =
         MongoClientSettings.builder()
-            .applyToClusterSettings(builder -> builder.hosts(Collections.singletonList(address)))
             .applyToConnectionPoolSettings(
                 builder ->
                     builder
                         .maxWaitTime(MAX_WAIT_TIME, TimeUnit.SECONDS)
                         .maxSize(SESSION_POOL_MAX_SIZE)
                         .maxConnectionIdleTime(60, TimeUnit.SECONDS))
+            .applyConnectionString(new ConnectionString(connectionString))
             .build();
 
     return MongoClients.create(settings);
