@@ -22,4 +22,10 @@ set -e
 
 sh -c "cd apache-iotdb-0.12.6-server-bin-$1/"
 
+echo '=============================='
+sh -c "ls"
+echo '=============================='
+sh -c "ls sbin"
+echo '=============================='
+
 sh -c "sbin/start-cli.sh -h 127.0.0.1 -p $1 -u root -pw $2 -e 'ALTER USER root SET PASSWORD \\\"$3\\\";'"

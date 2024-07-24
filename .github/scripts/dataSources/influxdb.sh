@@ -48,6 +48,6 @@ do
   sudo sh -c "cd influxdb2-2.0.7-linux-amd64-$port/; ./influx config create \
                          -n config$port \
                          -u http://localhost:$port \
-                         -p user:12345678"
+                         -t testToken"
 
 done

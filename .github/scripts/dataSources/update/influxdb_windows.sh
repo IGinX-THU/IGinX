@@ -20,6 +20,23 @@
 
 set -e
 
-export PGPASSWORD=$2
+sh -c "cd influxdb2-2.0.7-windows-amd64-$1/"
 
-psql -Upostgres -p$1 -c"ALTER USER postgres WITH PASSWORD '$3';"
+sh -c "ls"
+sh -c "influx config list"
+
+# 激活对应端口的influx配置
+sh -c "influx config set --active -n config$1"
+
+# 所有org的信息
+output=$(influx org list)
+
+echo $output
+
+# 只有一个组织，所以直接匹配
+id=$(echo "$output" | grep -Eo '^[a-z0-9]{16}')
+
+# 验证
+echo "Extracted ID: $id"
+
+sh -c "influx update -i $id -n $2"

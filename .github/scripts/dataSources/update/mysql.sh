@@ -20,4 +20,4 @@
 
 set -e
 
-mysql --port=$1 -u root -p$2 -e "ALTER USER root@localhost IDENTIFIED BY '$3';"
+mysql -h 127.0.0.1 --port=$1 -u root -p$2 -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$3';"
