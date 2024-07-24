@@ -98,18 +98,20 @@
                 <artifactId>maven-antrun-plugin</artifactId>
             </plugin>
             <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
                 <configuration>
                     <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${lombok.version}</version>
-                        </path>
                         <path>
                             <groupId>com.google.auto.service</groupId>
                             <artifactId>auto-service</artifactId>
                             <version>${auto-service.version}</version>
+                        </path>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
                         </path>
                     </annotationProcessorPaths>
                 </configuration>
@@ -162,7 +164,8 @@
                 </file>
             </activation>
             <properties>
-                <thrift.exec.absolute.path>${project.build.directory}/thrift/bin/${thrift.exec.relative.path}</thrift.exec.absolute.path>
+                <thrift.exec.absolute.path>${project.build.directory}/thrift/bin/${thrift.exec.relative.path}
+                </thrift.exec.absolute.path>
             </properties>
             <build>
                 <plugins>
