@@ -137,6 +137,7 @@ public class Filters {
       case And: {
         AndFilter andFilter = (AndFilter) filter;
         RangeSet<Long> rangeSet = TreeRangeSet.create();
+        rangeSet.add(Range.all());
         for (Filter child : andFilter.getChildren()) {
           rangeSet.removeAll(toRangeSet(child).complement());
         }
