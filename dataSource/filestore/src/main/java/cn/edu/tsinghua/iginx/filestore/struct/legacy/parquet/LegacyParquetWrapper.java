@@ -21,9 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
@@ -111,7 +109,12 @@ public class LegacyParquetWrapper implements FileManager {
           Header header = new Header(Field.KEY, fields);
           return new Table(header, Collections.emptyList());
         }
-        return delegate.project(patterns, tagFilter, filter);
+        RowStream rowStream = delegate.project(patterns, tagFilter, filter);
+        rowStream = new ClearEmptyRowStreamWrapper(rowStream);
+        if(!Filters.isTrue(filter)) {
+          rowStream = new FilterRowStreamWrapper(rowStream, filter);
+        }
+        return rowStream;
       }
     } catch (PhysicalException e) {
       throw new IOException(e);
