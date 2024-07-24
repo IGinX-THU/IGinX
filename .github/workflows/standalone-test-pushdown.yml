@@ -87,7 +87,7 @@ jobs:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -Dtest=Controller -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=Controller -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Show test result
               if: always()
