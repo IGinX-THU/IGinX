@@ -20,7 +20,7 @@
 
 set -e
 
-sh -c "cd influxdb2-2.0.7-linux-amd64-$1/"
+cd influxdb2-2.0.7-linux-amd64-$1/
 
 sh -c "ls"
 sh -c "./influx config list"

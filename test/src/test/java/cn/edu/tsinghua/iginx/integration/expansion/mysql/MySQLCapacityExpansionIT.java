@@ -50,26 +50,27 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   protected void updateParams(int port) {
-    changeParams(port, "mysql", "newPassword");
+    changeParams(port, null, "newPassword");
   }
 
   @Override
   protected void restoreParams(int port) {
-    changeParams(port, "newPassword", "mysql");
+    changeParams(port, "newPassword", null);
   }
 
   private void changeParams(int port, String oldPw, String newPw) {
     String scriptPath = updateParamsScriptDir + "mysql.sh";
+    String mode = oldPw == null ? "set" : "unset";
     String os = System.getProperty("os.name").toLowerCase();
     if (os.contains("mac")) {
       // TODO: mac script
       scriptPath = updateParamsScriptDir + "mysql.sh";
     } else if (os.contains("win")) {
       // TODO: win script
-      scriptPath = updateParamsScriptDir + "mysql.sh";
+      scriptPath = updateParamsScriptDir + "mysql_windows.sh";
     }
-    // 脚本参数：对应端口，旧密码，新密码
-    int res = executeShellScript(scriptPath, String.valueOf(port), oldPw, newPw);
+    // 脚本参数：对应端口，模式（是在无密码条件下设置密码，还是在有密码条件下去掉密码），需要设置的密码/需要被去掉的密码
+    int res = executeShellScript(scriptPath, String.valueOf(port), mode, oldPw == null ? newPw : oldPw);
     if (res != 0) {
       fail("Fail to update mysql params.");
     }
