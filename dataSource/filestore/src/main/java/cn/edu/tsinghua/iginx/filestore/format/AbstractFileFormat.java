@@ -17,18 +17,31 @@
  */
 package cn.edu.tsinghua.iginx.filestore.format;
 
-import com.typesafe.config.Config;
+import com.google.common.collect.Lists;
 
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.List;
+import java.util.*;
 
-public interface FileFormat {
+public abstract class AbstractFileFormat implements FileFormat {
 
-  String getFormatName();
+  protected final String formatName;
+  protected final Collection<String> extensions;
 
-  List<String> getExtensions();
+  public AbstractFileFormat(String formatName, String... extension) {
+    this.formatName = Objects.requireNonNull(formatName);
+    Collection<String> extensions = new HashSet<>();
+    for(String ext : extension) {
+      extensions.add(Objects.requireNonNull(ext));
+    }
+    this.extensions = Collections.unmodifiableCollection(extensions);
+  }
 
-  FileReader newRead(Path path, Config config) throws IOException;
-  
+  @Override
+  public String getFormatName() {
+    return formatName;
+  }
+
+  @Override
+  public List<String> getExtensions() {
+    return Lists.newArrayList(extensions);
+  }
 }
