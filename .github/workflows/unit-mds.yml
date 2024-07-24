@@ -36,10 +36,10 @@ jobs:
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
             - name: Run test for meta manager
-              run: mvn test -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format
+              run: mvn test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Run test for sync protocol
-              run: mvn test -Dtest=ZooKeeperSyncProtocolTest -DfailIfNoTests=false -P-format
+              run: mvn test -Dtest=ZooKeeperSyncProtocolTest -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - uses: codecov/codecov-action@v1
               with:
@@ -68,10 +68,10 @@ jobs:
               uses: ./.github/actions/etcdRunner
 
             - name: Run test for meta manager
-              run: mvn test -Dtest=IMetaManagerTest -DfailIfNoTests=false -P-format
+              run: mvn test -Dtest=IMetaManagerTest -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Run test for sync protocol
-              run: mvn test -Dtest=ETCDSyncProtocolTest -DfailIfNoTests=false -P-format
+              run: mvn test -Dtest=ETCDSyncProtocolTest -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - uses: codecov/codecov-action@v1
               with:

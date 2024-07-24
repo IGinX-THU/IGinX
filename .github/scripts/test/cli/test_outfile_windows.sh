@@ -69,7 +69,7 @@ if [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
 fi
 
 # 将 downloads/large_img.jpg 的数据加载到IGinX数据库中
-bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P-format"
+bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -Dsurefire.failIfNoSpecifiedTests=false -P-format"
 
 OUTFILE_COMMAND='select count(*) from downloads;select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;'
 

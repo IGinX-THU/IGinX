@@ -15,4 +15,4 @@ runs:
         - name: Write history data
           shell: bash
           run: |
-              mvn test -Dtest=${{ inputs.DB-name }}HistoryDataGenerator#${{ inputs.Test-Way }} -DfailIfNoTests=false -P-format
+              mvn test -Dtest=${{ inputs.DB-name }}HistoryDataGenerator#${{ inputs.Test-Way }} -Dsurefire.failIfNoSpecifiedTests=false -P-format

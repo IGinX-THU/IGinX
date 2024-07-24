@@ -124,7 +124,7 @@ jobs:
             - name: Run Tests
               shell: bash
               run: |
-                  mvn test -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Show IGinX log
               if: always()

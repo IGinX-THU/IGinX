@@ -31,7 +31,7 @@ runs:
               cp -f test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt IGinX/test/src/test/resources/tpch/runtimeInfo/failedQueryIds.txt
               cp -f test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt IGinX/test/src/test/resources/tpch/runtimeInfo/iterationTimes.txt
               cd IGinX
-              mvn test -Dtest=TPCHRegressionMainIT -DfailIfNoTests=false -P-format
+              mvn test -Dtest=TPCHRegressionMainIT -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
         - name: Show Old IGinX log
           if: always()
@@ -54,7 +54,7 @@ runs:
           shell: bash
           run: |
               cp -f IGinX/test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt test/src/test/resources/tpch/runtimeInfo/oldTimeCosts.txt
-              mvn test -Dtest=TPCHRegressionNewIT -DfailIfNoTests=false -P-format
+              mvn test -Dtest=TPCHRegressionNewIT -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
         - name: Show New IGinX log
           if: always()

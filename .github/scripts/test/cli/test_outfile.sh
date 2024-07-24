@@ -71,6 +71,6 @@ downloadURL="https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/ig
 bash -c "wget -nv $downloadURL --directory-prefix=downloads"
 
 # 将 downloads/large_img.jpg 的数据加载到IGinX数据库中
-bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -DfailIfNoTests=false -P-format"
+bash -c "mvn test -q -Dtest=FileLoaderTest#loadLargeImage -Dsurefire.failIfNoSpecifiedTests=false -P-format"
 
 bash -c "echo 'select large_img_jpg from downloads into outfile "'"test/src/test/resources/fileReadAndWrite/img_outfile"'" as stream;' | xargs -0 -t -i bash client/target/iginx-client-$2/sbin/start_cli.sh -e '{}'"
