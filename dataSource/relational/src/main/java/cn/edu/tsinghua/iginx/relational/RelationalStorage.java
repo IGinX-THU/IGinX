@@ -334,7 +334,6 @@ public class RelationalStorage implements IStorage {
       }
       rs.close();
       conn.close();
-      closeConnection(databaseName);
       return columnFields;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
