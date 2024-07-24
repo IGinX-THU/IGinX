@@ -169,8 +169,6 @@ public class RelationalStorage implements IStorage {
     if (dataSource != null) {
       dataSource.close();
       connectionPoolMap.remove(databaseName);
-      LOGGER.info("close datasource: {}", databaseName);
-      LOGGER.info("connectionPoolMap remain: {}", connectionPoolMap.keySet());
     }
   }
 
@@ -305,7 +303,6 @@ public class RelationalStorage implements IStorage {
 
       rs.close();
       conn.close();
-      closeConnection(databaseName);
       return tableNames;
     } catch (SQLException | RelationalTaskExecuteFailureException e) {
       LOGGER.error("unexpected error: ", e);
@@ -1063,9 +1060,7 @@ public class RelationalStorage implements IStorage {
       for (Map.Entry<String, Map<String, String>> splitEntry : splitResults.entrySet()) {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
-        LOGGER.info("datasource: {}", connectionPoolMap.keySet());
         conn = getConnection(databaseName);
-        LOGGER.info("datasource: {}", connectionPoolMap.keySet());
         if (conn == null) {
           continue;
         }
