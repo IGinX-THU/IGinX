@@ -18,12 +18,15 @@
 package cn.edu.tsinghua.iginx.filestore.server;
 
 import cn.edu.tsinghua.iginx.filestore.service.rpc.server.Server;
-import java.net.InetSocketAddress;
-import java.util.concurrent.*;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 class ServerTest {
 
@@ -43,18 +46,13 @@ class ServerTest {
     Assertions.assertNull(serverFuture);
 
     server = new Server(address, null);
-    serverFuture = executorService.submit(server::serve);
   }
 
   @AfterEach
-  void tearDown() throws ExecutionException, InterruptedException, TimeoutException {
+  void tearDown() {
     if (server != null) {
-      server.stop();
+      server.close();
       server = null;
-    }
-    if (serverFuture != null) {
-      serverFuture.get(1, TimeUnit.SECONDS);
-      serverFuture = null;
     }
   }
 

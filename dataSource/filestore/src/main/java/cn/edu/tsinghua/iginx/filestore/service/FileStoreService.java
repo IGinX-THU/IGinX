@@ -45,11 +45,8 @@ public class FileStoreService implements Service {
       throws TTransportException, FileStoreException {
     if (config.isServer()) {
       this.service = new StorageService(config.getData(), config.getDummy());
-      LOGGER.info("Starting file store server in {}", address);
       this.server = new Server(address, this.service);
-      this.server.serve();
     } else {
-      LOGGER.info("Will connect to file store server at {}", address);
       this.service = new RemoteService(address, config.getClient());
       this.server = null;
     }
@@ -79,7 +76,7 @@ public class FileStoreService implements Service {
   @Override
   public void close() throws FileStoreException {
     if (server != null) {
-      server.stop();
+      server.close();
     }
     service.close();
   }

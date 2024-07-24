@@ -41,7 +41,7 @@ public class FileStructureManager {
 
   private FileStructureManager() {
     this.structures = new ConcurrentHashMap<>();
-    loadSpi(Thread.currentThread().getContextClassLoader());
+    loadSpi(getClass().getClassLoader());
   }
 
   private void loadSpi(ClassLoader classLoader) {
@@ -49,7 +49,7 @@ public class FileStructureManager {
         ServiceLoader.load(FileStructure.class, classLoader);
     for (FileStructure spi : serviceLoader) {
       LOGGER.debug("Discovered FileStructure {}", spi);
-      FileStructure replaced = getInstance().register(spi);
+      FileStructure replaced = register(spi);
       if (replaced != null) {
         LOGGER.warn(
             "FileStructure {} is replaced by {} due to conflict name {}",

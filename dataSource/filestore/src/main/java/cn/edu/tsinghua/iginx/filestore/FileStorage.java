@@ -112,8 +112,6 @@ public class FileStorage implements IStorage {
       }
     }
 
-    // TODO: reshape dir dummy_dir embeded_prefix
-
     boolean local = isLocal(meta);
     reshapedParams.put("server", String.valueOf(local));
 
@@ -122,20 +120,21 @@ public class FileStorage implements IStorage {
 
     if (local) {
       LOGGER.debug("storage of {} is local, ignore config for remote", meta);
-      config = config.withoutPath("client");
+      config = config.withoutPath(FileStoreConfig.Fields.client);
+
+      if (!meta.isHasData()) {
+        LOGGER.debug("storage of {} don't have data, ignore config for dummy", meta);
+        config = config.withoutPath(FileStoreConfig.Fields.dummy);
+      }
+
+      if (meta.isReadOnly()) {
+        LOGGER.debug("storage of {} is not read only, ignore config for iginx data", meta);
+        config = config.withoutPath(FileStoreConfig.Fields.data);
+      }
     } else {
       LOGGER.debug("storage of {} is remote, ignore config for local", meta);
-      config = config.withoutPath("storage");
-    }
-
-    if (!meta.isHasData()) {
-      LOGGER.debug("storage of {} don't have data, ignore config for dummy", meta);
-      config = config.withoutPath("fs.dummy");
-    }
-
-    if (meta.isReadOnly()) {
-      LOGGER.debug("storage of {} is not read only, ignore config for iginx data", meta);
-      config = config.withoutPath("fs.data");
+      config = config.withoutPath(FileStoreConfig.Fields.data);
+      config = config.withoutPath(FileStoreConfig.Fields.dummy);
     }
 
     return config;

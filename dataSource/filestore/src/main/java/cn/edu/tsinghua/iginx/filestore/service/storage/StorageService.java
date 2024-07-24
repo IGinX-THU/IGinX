@@ -35,10 +35,7 @@ import javax.annotation.Nullable;
 import javax.annotation.concurrent.GuardedBy;
 import java.io.Closeable;
 import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -76,7 +73,7 @@ public class StorageService implements Service {
     try {
       initManager();
     } catch (IOException e) {
-      throw new FileStoreException("Failed to initialize storage service", e);
+      throw new FileStoreException("failed to initialize storage service", e);
     }
   }
 
@@ -88,7 +85,7 @@ public class StorageService implements Service {
     }
     FileStructure structure = FileStructureManager.getInstance().getByName(config.getStruct());
     if (structure == null) {
-      String message = String.format("Not found file structure: %s", config.getStruct());
+      String message = String.format("unknown file structure %s", config.getStruct());
       throw new FileStoreException(message);
     }
     return structure;
@@ -103,7 +100,7 @@ public class StorageService implements Service {
     try {
       return structure.newShared(config.getConfig());
     } catch (IOException e) {
-      String message = String.format("Failed to create shared for %s", config.getStruct());
+      String message = String.format("failed to create shared for %s", config.getStruct());
       throw new FileStoreException(message, e);
     }
   }
@@ -130,13 +127,16 @@ public class StorageService implements Service {
         String unitName = unitNameWithPrefix.substring(IGINX_DATA_PREFIX.length());
         units.add(unitName);
       }
+    } catch (NoSuchFileException e) {
+      LOGGER.info("creating directory {} because it does not exist", root);
+      Files.createDirectories(root);
     }
     return units;
   }
 
   private FileManager getOrCreateManager(DataUnit unit) throws IOException {
     if (closed) {
-      throw new IllegalStateException("Storage service is closed");
+      throw new IllegalStateException("storage service is closed");
     }
     if (!managers.containsKey(unit)) synchronized (this) {
       if (!managers.containsKey(unit)) {
@@ -150,25 +150,25 @@ public class StorageService implements Service {
   private FileManager createManager(DataUnit unit) throws IOException {
     if (unit.isDummy()) {
       if (dummyConfig == null) {
-        throw new IllegalStateException("Dummy Unit data is requested but is not configured");
+        throw new IllegalStateException("dummy Unit data is requested but is not configured");
       }
       if (unit.getName() != null) {
-        throw new IllegalStateException("Dummy Unit data is requested but name is not null");
+        throw new IllegalStateException("dummy Unit data is requested but name is not null");
       }
 
       Path dummyRoot = Paths.get(dummyConfig.getRoot());
 
-      LOGGER.info("Creating {} reader for {} in {}", dummyStructure, unit, dummyRoot);
+      LOGGER.info("creating {} reader for {} in {}", dummyStructure, unit, dummyRoot);
       return dummyStructure.newReader(dummyRoot, dummyShared);
     } else {
       if (dataConfig == null) {
-        throw new IllegalStateException("Data Unit is requested but is not configured");
+        throw new IllegalStateException("data Unit is requested but is not configured");
       }
 
       Path dataRoot = Paths.get(dataConfig.getRoot());
       Path dataUnitRoot = getPathOf(dataRoot, unit.getName());
 
-      LOGGER.info("Creating {} writer for {} in {}", dummyStructure, unit, dataUnitRoot);
+      LOGGER.info("creating {} writer for {} in {}", dummyStructure, unit, dataUnitRoot);
       return dataStructure.newWriter(dataUnitRoot, dataShared);
     }
   }
@@ -202,7 +202,7 @@ public class StorageService implements Service {
       throws FileStoreException {
     if (unit.isDummy()) {
       try {
-        if (dummyBoundary == null || !Objects.equals(prefix, lastPrefix)) synchronized (this){
+        if (dummyBoundary == null || !Objects.equals(prefix, lastPrefix)) synchronized (this) {
           FileManager manager = getOrCreateManager(unit);
           dummyBoundary = manager.getBoundary(prefix);
           lastPrefix = prefix;
@@ -210,7 +210,7 @@ public class StorageService implements Service {
         return dummyBoundary;
       } catch (IOException e) {
         String message =
-            String.format("Failed to get boundary for unit %s with prefix %s", unit, prefix);
+            String.format("failed to get boundary for unit %s with prefix %s", unit, prefix);
         throw new FileStoreException(message, e);
       }
     } else {
@@ -229,7 +229,7 @@ public class StorageService implements Service {
       if (LOGGER.isDebugEnabled()) {
         msg =
             String.format(
-                "Failed to query data from %s with target %s and aggregate %s",
+                "failed to query data from %s with target %s and aggregate %s",
                 unit, target, aggregate);
       } else {
         msg = "Failed to query data";
@@ -242,7 +242,7 @@ public class StorageService implements Service {
   @Override
   public void delete(DataUnit unit, DataTarget target) throws FileStoreException {
     if (unit.isDummy()) {
-      throw new IllegalStateException("Cannot delete data from dummy unit");
+      throw new IllegalStateException("cannot delete data from dummy unit");
     }
     try {
       FileManager manager = getOrCreateManager(unit);
@@ -250,9 +250,9 @@ public class StorageService implements Service {
     } catch (IOException e) {
       String msg;
       if (LOGGER.isDebugEnabled()) {
-        msg = String.format("Failed to delete unit %s with target %s", unit, target);
+        msg = String.format("failed to delete unit %s with target %s", unit, target);
       } else {
-        msg = "Failed to delete data";
+        msg = "failed to delete data";
       }
       throw new FileStoreException(msg, e);
     }
@@ -261,7 +261,7 @@ public class StorageService implements Service {
   @Override
   public void insert(DataUnit unit, DataView dataView) throws FileStoreException {
     if (unit.isDummy()) {
-      throw new IllegalStateException("Cannot insert data into dummy unit");
+      throw new IllegalStateException("cannot insert data into dummy unit");
     }
     try {
       FileManager manager = getOrCreateManager(unit);
@@ -269,9 +269,9 @@ public class StorageService implements Service {
     } catch (IOException e) {
       String msg;
       if (LOGGER.isDebugEnabled()) {
-        msg = String.format("Failed to insert data to %s", unit);
+        msg = String.format("failed to insert data to %s", unit);
       } else {
-        msg = "Failed to insert data";
+        msg = "failed to insert data";
       }
       throw new FileStoreException(msg, e);
     }

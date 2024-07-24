@@ -22,11 +22,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.thrift.FileStoreRpc;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -36,16 +31,25 @@ import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Server {
+import java.net.InetSocketAddress;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.SynchronousQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
+public class Server implements AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Server.class);
 
-  private TServerSocket serverTransport;
+  private final TServerSocket serverTransport;
 
-  private TServer server;
+  private final TServer server;
+
+  private final Thread serverThread;
 
   public Server(InetSocketAddress address, Service service) throws TTransportException {
-    serverTransport = new TServerSocket(address);
+    LOGGER.info("starting thrift server at {}", address);
+    this.serverTransport = new TServerSocket(address);
     TProcessor processor =
         new FileStoreRpc.Processor<FileStoreRpc.Iface>(new ServerWorker(service));
     Config config = ConfigDescriptor.getInstance().getConfig();
@@ -64,21 +68,15 @@ public class Server {
             .processor(processor)
             .executorService(executorService)
             .protocolFactory(new TBinaryProtocol.Factory());
-    server = new TThreadPoolServer(args);
+    this.server = new TThreadPoolServer(args);
+    this.serverThread = new Thread(server::serve, "FileStoreServer(" + address + ")");
   }
 
-  public void serve() {
-    server.serve();
-  }
-
-  public void stop() {
-    if (server != null) {
-      server.stop();
-      server = null;
-    }
-    if (serverTransport != null) {
-      serverTransport.close();
-      serverTransport = null;
-    }
+  @Override
+  public void close() {
+    LOGGER.info("closing file store server at {}", serverTransport.getServerSocket().getLocalSocketAddress());
+    server.stop();
+    serverTransport.close();
+    serverThread.interrupt();
   }
 }
