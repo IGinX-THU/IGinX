@@ -67,6 +67,8 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <revision>0.8.0-SNAPSHOT</revision>
+        <lombok.version>1.18.34</lombok.version>
+        <auto-service.version>1.1.1</auto-service.version>
     </properties>
 
     <dependencyManagement>
@@ -307,7 +309,8 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.20</version>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
