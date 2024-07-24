@@ -64,7 +64,7 @@ do
 
   arguments="-ArgumentList 'config list'"
 
-  powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influx' $arguments"
+  powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64/influx' $arguments"
 
   sh -c "sleep 10"
 
