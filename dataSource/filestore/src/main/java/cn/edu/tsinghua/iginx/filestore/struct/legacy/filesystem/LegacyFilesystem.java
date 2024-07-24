@@ -16,9 +16,12 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class LegacyFilesystem implements FileStructure {
+
+  public static final String NAME = "LegacyFilesystem";
+
   @Override
   public String getName() {
-    return "";
+    return NAME;
   }
 
   @Override
