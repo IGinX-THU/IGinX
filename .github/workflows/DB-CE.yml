@@ -79,7 +79,7 @@ jobs:
             - name: oriHasDataExpHasData IT
               shell: bash
               run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Clear history data
               uses: ./.github/actions/dbWriter
@@ -90,7 +90,7 @@ jobs:
             - name: oriHasDataExpHasData Normal IT
               shell: bash
               run: |
-                  mvn test -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
@@ -102,7 +102,7 @@ jobs:
             - name: oriNoDataExpNoData IT
               shell: bash
               run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Clear history data
               uses: ./.github/actions/dbWriter
@@ -113,7 +113,7 @@ jobs:
             - name: oriNoDataExpNoData Normal IT
               shell: bash
               run: |
-                  mvn test -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             # 第 3 阶段测试开始==========================================
             - name: Prepare CapExp environment oriHasDataExpNoData
@@ -125,7 +125,7 @@ jobs:
             - name: oriHasDataExpNoData IT
               shell: bash
               run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Clear history data
               uses: ./.github/actions/dbWriter
@@ -136,7 +136,7 @@ jobs:
             - name: oriHasDataExpNoData Normal IT
               shell: bash
               run: |
-                  mvn test -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             # 第 4 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpHasData
@@ -148,7 +148,7 @@ jobs:
             - name: oriNoDataExpHasData IT
               shell: bash
               run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Clear history data
               uses: ./.github/actions/dbWriter
@@ -159,7 +159,7 @@ jobs:
             - name: oriNoDataExpHasData Normal IT
               shell: bash
               run: |
-                  mvn test -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
@@ -172,8 +172,8 @@ jobs:
             - name: Run testReadOnly
               shell: bash
               run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -DfailIfNoTests=false -P-format
-                  mvn test -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#testReadOnly -Dsurefire.failIfNoSpecifiedTests=false -P-format
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Show IGinX log
               if: always()

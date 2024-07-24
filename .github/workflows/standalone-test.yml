@@ -81,7 +81,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  mvn test -Dtest=UDFPathIT -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=UDFPathIT -Dsurefire.failIfNoSpecifiedTests=false -P-format
                   if [ "$RUNNER_OS" == "Linux" ]; then
                     chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh"
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register.sh" ${VERSION}
@@ -111,10 +111,10 @@ jobs:
               shell: bash
               run: |
                   if [[ "${{ matrix.DB-name }}" == "FileSystem" || "${{ matrix.DB-name }}" == "Parquet" ]]; then
-                      mvn test -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
+                      mvn test -Dtest=ExportFileIT -Dsurefire.failIfNoSpecifiedTests=false -P-format
                   else
-                      mvn test -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format
-                      mvn test -Dtest=ExportFileIT#checkExportCsv -DfailIfNoTests=false -P-format
+                      mvn test -Dtest=ExportFileIT#checkExportByteStream -Dsurefire.failIfNoSpecifiedTests=false -P-format
+                      mvn test -Dtest=ExportFileIT#checkExportCsv -Dsurefire.failIfNoSpecifiedTests=false -P-format
                   fi
 
             - name: Stop IGinX and Metadata, Clear Metadata Data, then Start Them
@@ -132,7 +132,7 @@ jobs:
               if: always()
               shell: bash
               run: |
-                  mvn test -Dtest=ImportFileIT -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=ImportFileIT -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: clean metadata and restart IGinX
               uses: ./.github/actions/context
@@ -147,7 +147,7 @@ jobs:
                   METADATA_STORAGE: ${{ matrix.metadata }}
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -Dtest=Controller -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=Controller -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Show IGinX log
               if: always()
@@ -171,7 +171,7 @@ jobs:
               shell: bash
               run: |
                   chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -Dtest=SQLSessionIT#testFilterFragmentOptimizer -DfailIfNoTests=false -P-format
+                  mvn test -Dtest=SQLSessionIT#testFilterFragmentOptimizer -Dsurefire.failIfNoSpecifiedTests=false -P-format
 
             - name: Show test result
               if: always()
