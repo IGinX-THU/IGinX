@@ -1063,6 +1063,7 @@ public class RelationalStorage implements IStorage {
         Map<String, String> tableNameToColumnNames = splitEntry.getValue();
         String databaseName = splitEntry.getKey();
         conn = getConnection(databaseName);
+        LOGGER.info("datasource: {}", connectionPoolMap.keySet());
         if (conn == null) {
           continue;
         }
