@@ -38,4 +38,11 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     LOGGER.info("parquet skips test for wrong dummy engine params.");
   }
+
+  // no param is allowed to be updated
+  @Override
+  protected void updateParams(int port) {}
+
+  @Override
+  protected void restoreParams(int port) {}
 }

@@ -37,10 +37,7 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.junit.*;
 import org.slf4j.Logger;
@@ -63,6 +60,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected List<String> wrongExtraParams = new ArrayList<>();
 
+  protected Map<String, String> updatedParams = new HashMap<>();
+
   private final boolean IS_PARQUET_OR_FILE_SYSTEM =
       this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
@@ -71,6 +70,8 @@ public abstract class BaseCapacityExpansionIT {
   private final String READ_ONLY_SCHEMA_PREFIX = null;
 
   public static final String DBCE_PARQUET_FS_TEST_DIR = "test";
+
+  protected static final String updateParamsScriptDir = ".github/scripts/dataSources/update/";
 
   protected static BaseHistoryDataGenerator generator;
 
@@ -331,19 +332,25 @@ public abstract class BaseCapacityExpansionIT {
     // action上难以自由控制数据源的ip、port等属性，因此通过修改schema_prefix，来验证功能是否正确
 
     LOGGER.info("Testing updating engine params...");
+    if (updatedParams.isEmpty()) {
+      LOGGER.info("Engine {} skipped this test.", type);
+      return;
+    }
 
-    String oldPrefix = "oldPrefix";
-    String newPrefix = "newPrefix";
+    String prefix = "prefix";
     // 添加只读节点
-    addStorageEngine(readOnlyPort, true, true, null, oldPrefix, extraParams);
+    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
     // 查询
-    String statement = "select wt01.status, wt01.temperature from " + oldPrefix + ".tm.wf05;";
+    String statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
     List<String> pathList =
-        READ_ONLY_PATH_LIST.stream().map(s -> oldPrefix + "." + s).collect(Collectors.toList());
+        READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SessionExecuteSqlResult res = session.executeSql("explain " + statement);
     res.print(false, "ms");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 修改数据库参数
+    updateParams(readOnlyPort);
 
     // 修改
     List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
@@ -352,18 +359,22 @@ public abstract class BaseCapacityExpansionIT {
       if (info.getIp().equals("127.0.0.1")
           && info.getPort() == readOnlyPort
           && info.getDataPrefix().equals("null")
-          && info.getSchemaPrefix().equals(oldPrefix)
+          && info.getSchemaPrefix().equals(prefix)
           && info.getType().equals(type)) {
         id = info.getId();
       }
     }
     assertTrue(id != -1);
-    session.executeSql(String.format(ALTER_ENGINE_STRING, id, "schema_prefix:" + newPrefix));
 
-    // 查询新prefix
-    statement = "select wt01.status, wt01.temperature from " + newPrefix + ".tm.wf05;";
-    pathList =
-        READ_ONLY_PATH_LIST.stream().map(s -> newPrefix + "." + s).collect(Collectors.toList());
+    String newParams =
+        updatedParams.entrySet().stream()
+            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .collect(Collectors.joining(", "));
+    session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
+
+    // 重新查询，使用schema_prefix验证
+    statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    pathList = READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
     valuesList = READ_ONLY_VALUES_LIST;
     res = session.executeSql("explain " + statement);
     res.print(false, "ms");
@@ -372,8 +383,15 @@ public abstract class BaseCapacityExpansionIT {
     // 删除，不影响后续测试
     session.removeHistoryDataSource(
         Collections.singletonList(
-            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, newPrefix, "")));
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+
+    // 改回数据库参数
+    restoreParams(readOnlyPort);
   }
+
+  protected abstract void updateParams(int port);
+
+  protected abstract void restoreParams(int port);
 
   protected void queryExtendedKeyDummy() {
     // ori

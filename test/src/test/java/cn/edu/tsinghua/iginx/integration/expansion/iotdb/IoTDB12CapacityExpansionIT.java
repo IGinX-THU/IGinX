@@ -18,7 +18,9 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.iotdb12;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import org.slf4j.Logger;
@@ -35,5 +37,32 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
         new IoTDB12HistoryDataGenerator());
     wrongExtraParams.add("username:root, password:wrong, sessionPoolSize:20");
     wrongExtraParams.add("username:wrong, password:root, sessionPoolSize:20");
+    updatedParams.put("password", "newPassword");
+  }
+
+  @Override
+  protected void updateParams(int port) {
+    changeParams(port, "root", "newPassword");
+  }
+
+  @Override
+  protected void restoreParams(int port) {
+    changeParams(port, "newPassword", "root");
+  }
+
+  private void changeParams(int port, String oldPw, String newPw) {
+    String scriptPath = updateParamsScriptDir + "iotdb.sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("mac")) {
+      // TODO: mac script
+      scriptPath = updateParamsScriptDir + "iotdb.sh";
+    } else if (os.contains("win")) {
+      scriptPath = updateParamsScriptDir + "iotdb_windows.sh";
+    }
+    // 脚本参数：对应端口，旧密码，新密码
+    int res = executeShellScript(scriptPath, String.valueOf(port), oldPw, newPw);
+    if (res != 0) {
+      fail("Fail to update iotdb params.");
+    }
   }
 }

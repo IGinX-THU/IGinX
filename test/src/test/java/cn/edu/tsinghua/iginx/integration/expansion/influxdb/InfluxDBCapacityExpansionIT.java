@@ -18,7 +18,9 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.influxdb;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.influxdb;
+import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
@@ -44,9 +46,29 @@ public class InfluxDBCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     wrongExtraParams.add(
         "username:user, password:12345678, token:testToken, organization:wrongOrg");
+    updatedParams.put("organization", "newOrg");
   }
 
   // dummy key range cannot be extended yet
   @Override
   protected void queryExtendedKeyDummy() {}
+
+  @Override
+  protected void updateParams(int port) {
+    changeParams(port, "newOrg");
+  }
+
+  @Override
+  protected void restoreParams(int port) {
+    changeParams(port, "testOrg");
+  }
+
+  private void changeParams(int port, String newOrgName) {
+    String scriptPath = updateParamsScriptDir + "influxdb.sh";
+    // 脚本参数：对应端口，新参数
+    int res = executeShellScript(scriptPath, String.valueOf(port), newOrgName);
+    if (res != 0) {
+      fail("Fail to update influxdb params.");
+    }
+  }
 }

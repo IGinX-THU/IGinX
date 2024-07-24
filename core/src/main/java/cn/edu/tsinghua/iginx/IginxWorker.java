@@ -541,48 +541,16 @@ public class IginxWorker implements IService.Iface {
     }
 
     // update meta info
-    String ip =
-        newParams.containsKey(Constants.IP) ? newParams.get(Constants.IP) : targetMeta.getIp();
-    int port =
-        newParams.containsKey(Constants.PORT)
-            ? Integer.parseInt(newParams.get(Constants.PORT))
-            : targetMeta.getPort();
-    String dataPrefix =
-        newParams.containsKey(Constants.DATA_PREFIX)
-            ? newParams.get(Constants.DATA_PREFIX)
-            : targetMeta.getDataPrefix();
-    String schemaPrefix =
-        newParams.containsKey(Constants.SCHEMA_PREFIX)
-            ? newParams.get(Constants.SCHEMA_PREFIX)
-            : targetMeta.getSchemaPrefix();
-    // if not exists, null will be returned
-    newParams.remove(Constants.IP);
-    newParams.remove(Constants.PORT);
-    newParams.remove(Constants.DATA_PREFIX);
-    newParams.remove(Constants.SCHEMA_PREFIX);
-    Map<String, String> extraParams = targetMeta.getExtraParams();
-    extraParams.putAll(newParams);
-    StorageEngineMeta newMeta =
-        new StorageEngineMeta(
-            -1,
-            ip,
-            port,
-            true,
-            dataPrefix,
-            schemaPrefix,
-            true,
-            extraParams,
-            targetMeta.getStorageEngine(),
-            metaManager.getIginxId());
-
-    // check existing engines
-    for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
-      if (meta.equals(targetMeta) && meta.getId() != targetId) {
-        status.setCode(RpcUtils.FAILURE.code);
-        status.setMessage("Same Engine exists.");
-        return status;
-      }
+    if (newParams.remove(Constants.IP) != null
+        || newParams.remove(Constants.PORT) != null
+        || newParams.remove(Constants.DATA_PREFIX) != null
+        || newParams.remove(Constants.SCHEMA_PREFIX) != null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "IP, port, type, data_prefix, schema_prefix cannot be altered. Removing and adding new engine is recommended.");
+      return status;
     }
+    targetMeta.updateExtraParams(newParams);
 
     // remove, then add
     if (!metaManager.removeDummyStorageEngine(targetId)) {
@@ -592,7 +560,7 @@ public class IginxWorker implements IService.Iface {
       return status;
     }
 
-    addStorageEngineMetas(Collections.singletonList(newMeta), status, true);
+    addStorageEngineMetas(Collections.singletonList(targetMeta), status, true);
     return status;
   }
 

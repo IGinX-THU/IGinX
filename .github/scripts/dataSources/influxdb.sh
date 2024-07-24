@@ -40,7 +40,14 @@ sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" 
 
 for port in "$@"
 do
+  # target location path is also used in update/<db> script
   sh -c "sudo cp -r influxdb2-2.0.7-linux-amd64/ influxdb2-2.0.7-linux-amd64-$port/"
 
   sudo sh -c "cd influxdb2-2.0.7-linux-amd64-$port/; nohup ./influxd run --bolt-path=~/.influxdbv2/influxd.bolt --engine-path=~/.influxdbv2/engine --http-bind-address=:$port --query-memory-bytes=20971520 &"
+
+  sudo sh -c "./influx config create \
+                         -n config$port \
+                         -u http://localhost:$port \
+                         -p user:12345678"
+
 done

@@ -216,6 +216,10 @@ public final class StorageEngineMeta {
     this.extraParams = extraParams;
   }
 
+  public void updateExtraParams(Map<String, String> newParams) {
+    this.extraParams.putAll(newParams);
+  }
+
   public StorageEngineType getStorageEngine() {
     return storageEngine;
   }

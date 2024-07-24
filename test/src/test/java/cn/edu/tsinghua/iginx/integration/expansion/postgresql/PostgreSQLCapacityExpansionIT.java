@@ -18,6 +18,9 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.postgresql;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -46,6 +49,8 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     Constant.readOnlyPort = dbConf.getDBCEPortMap().get(Constant.READ_ONLY_PORT_NAME);
     wrongExtraParams.add("username:wrong, password:postgres");
     // wrong password situation cannot be tested because trust mode is used
+
+    updatedParams.put("password", "newPassword");
   }
 
   @Override
@@ -136,6 +141,32 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     } catch (Exception e) {
       LOGGER.error("create table failed", e);
       assert false;
+    }
+  }
+
+  @Override
+  protected void updateParams(int port) {
+    changeParams(port, "postgres", "newPassword");
+  }
+
+  @Override
+  protected void restoreParams(int port) {
+    changeParams(port, "newPassword", "postgres");
+  }
+
+  private void changeParams(int port, String oldPw, String newPw) {
+    String scriptPath = updateParamsScriptDir + "postgresql.sh";
+    String os = System.getProperty("os.name").toLowerCase();
+    if (os.contains("mac")) {
+      // TODO: mac script
+      scriptPath = updateParamsScriptDir + "postgresql.sh";
+    } else if (os.contains("win")) {
+      scriptPath = updateParamsScriptDir + "postgresql_windows.sh";
+    }
+    // 脚本参数：对应端口，旧密码，新密码
+    int res = executeShellScript(scriptPath, String.valueOf(port), oldPw, newPw);
+    if (res != 0) {
+      fail("Fail to update postgresql params.");
     }
   }
 }
