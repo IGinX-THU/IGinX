@@ -60,8 +60,10 @@
     </distributionManagement>
 
     <properties>
+        <auto-service.version>1.1.1</auto-service.version>
         <build-plugin.jacoco.version>0.8.6</build-plugin.jacoco.version>
         <deploy.repo.dir>${project.basedir}</deploy.repo.dir>
+        <lombok.version>1.18.34</lombok.version>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -285,7 +287,8 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.20</version>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>
@@ -310,17 +313,43 @@
         <pluginManagement>
             <plugins>
                 <plugin>
-                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-antrun-plugin</artifactId>
+                    <version>3.1.0</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-dependency-plugin</artifactId>
+                    <version>3.7.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-release-plugin</artifactId>
+                    <version>3.1.1</version>
+                </plugin>
+                <plugin>
                     <artifactId>maven-surefire-plugin</artifactId>
-                    <version>2.12.4</version>
-                    <configuration>
-                        <argLine>-Dfile.encoding=UTF-8</argLine>
-                    </configuration>
+                    <version>3.3.1</version>
                 </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
                     <version>3.7.1</version>
+                </plugin>
+                <plugin>
+                    <artifactId>maven-compiler-plugin</artifactId>
+                    <version>3.13.0</version>
+                    <configuration>
+                        <annotationProcessorPaths>
+                            <path>
+                                <groupId>com.google.auto.service</groupId>
+                                <artifactId>auto-service</artifactId>
+                                <version>${auto-service.version}</version>
+                            </path>
+                            <path>
+                                <groupId>org.projectlombok</groupId>
+                                <artifactId>lombok</artifactId>
+                                <version>${lombok.version}</version>
+                            </path>
+                        </annotationProcessorPaths>
+                    </configuration>
                 </plugin>
                 <plugin>
                     <groupId>com.mycila</groupId>
@@ -344,14 +373,101 @@
                         </mapping>
                     </configuration>
                 </plugin>
+                <plugin>
+                    <groupId>org.codehaus.mojo</groupId>
+                    <artifactId>flatten-maven-plugin</artifactId>
+                    <version>1.5.0</version>
+                </plugin>
+                <plugin>
+                    <groupId>com.diffplug.spotless</groupId>
+                    <artifactId>spotless-maven-plugin</artifactId>
+                    <version>2.30.0</version>
+                    <configuration>
+                        <java>
+                            <toggleOffOn/>
+                            <importOrder/>
+                            <removeUnusedImports/>
+                            <trimTrailingWhitespace/>
+                            <googleJavaFormat>
+                                <version>1.7</version>
+                                <style>GOOGLE</style>
+                            </googleJavaFormat>
+                        </java>
+                        <python>
+                            <includes>
+                                <include>**/*.py</include>
+                            </includes>
+                        </python>
+                        <antlr4>
+                            <includes>
+                                <include>**/*.g4</include>
+                            </includes>
+                            <antlr4Formatter>
+                                <version>1.2.1</version>
+                            </antlr4Formatter>
+                        </antlr4>
+                        <sql>
+                            <includes>
+                                <include>**/*.sql</include>
+                            </includes>
+                            <!--prettier/>
+                            <dbeaver/-->
+                        </sql>
+                        <yaml>
+                            <includes>
+                                <include>**/*.yml</include>
+                                <include>**/*.yaml</include>
+                            </includes>
+                            <excludes>
+                                <exclude>.github/**/*.yml</exclude>
+                                <exclude>**/target/**/*.yml</exclude>
+                            </excludes>
+                        </yaml>
+                        <formats>
+                            <format>
+                                <includes>
+                                    <include>.github/**/*.yml</include>
+                                </includes>
+                                <prettier>
+                                    <prettierVersion>1.19.0</prettierVersion>
+                                    <config>
+                                        <tabWidth>4</tabWidth>
+                                        <useTabs>true</useTabs>
+                                    </config>
+                                </prettier>
+                            </format>
+                        </formats>
+                        <markdown>
+                            <includes>
+                                <include>**/*.md</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/target/**/*.md</exclude>
+                            </excludes>
+                            <flexmark/>
+                        </markdown>
+                        <pom>
+                            <includes>
+                                <include>pom.xml</include>
+                            </includes>
+                            <sortPom>
+                                <encoding>UTF-8</encoding>
+                                <keepBlankLines>true</keepBlankLines>
+                                <nrOfIndentSpace>4</nrOfIndentSpace>
+                                <indentBlankLines>false</indentBlankLines>
+                                <indentSchemaLocation>true</indentSchemaLocation>
+                                <expandEmptyElements>false</expandEmptyElements>
+                                <sortProperties>true</sortProperties>
+                            </sortPom>
+                        </pom>
+                    </configuration>
+                </plugin>
             </plugins>
         </pluginManagement>
         <plugins>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>flatten-maven-plugin</artifactId>
-                <version>1.5.0</version>
-                <configuration/>
                 <executions>
                     <execution>
                         <id>flatten</id>
@@ -384,86 +500,6 @@
                     <plugin>
                         <groupId>com.diffplug.spotless</groupId>
                         <artifactId>spotless-maven-plugin</artifactId>
-                        <version>2.30.0</version>
-                        <configuration>
-                            <java>
-                                <toggleOffOn/>
-                                <importOrder/>
-                                <removeUnusedImports/>
-                                <trimTrailingWhitespace/>
-                                <googleJavaFormat>
-                                    <version>1.7</version>
-                                    <style>GOOGLE</style>
-                                </googleJavaFormat>
-                            </java>
-                            <python>
-                                <includes>
-                                    <include>**/*.py</include>
-                                </includes>
-                            </python>
-                            <antlr4>
-                                <includes>
-                                    <include>**/*.g4</include>
-                                </includes>
-                                <antlr4Formatter>
-                                    <version>1.2.1</version>
-                                </antlr4Formatter>
-                            </antlr4>
-                            <sql>
-                                <includes>
-                                    <include>**/*.sql</include>
-                                </includes>
-                                <!--prettier/>
-                                <dbeaver/-->
-                            </sql>
-                            <yaml>
-                                <includes>
-                                    <include>**/*.yml</include>
-                                    <include>**/*.yaml</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>.github/**/*.yml</exclude>
-                                    <exclude>**/target/**/*.yml</exclude>
-                                </excludes>
-                            </yaml>
-                            <formats>
-                                <format>
-                                    <includes>
-                                        <include>.github/**/*.yml</include>
-                                    </includes>
-                                    <prettier>
-                                        <prettierVersion>1.19.0</prettierVersion>
-                                        <config>
-                                            <tabWidth>4</tabWidth>
-                                            <useTabs>true</useTabs>
-                                        </config>
-                                    </prettier>
-                                </format>
-                            </formats>
-                            <markdown>
-                                <includes>
-                                    <include>**/*.md</include>
-                                </includes>
-                                <excludes>
-                                    <exclude>**/target/**/*.md</exclude>
-                                </excludes>
-                                <flexmark/>
-                            </markdown>
-                            <pom>
-                                <includes>
-                                    <include>pom.xml</include>
-                                </includes>
-                                <sortPom>
-                                    <encoding>UTF-8</encoding>
-                                    <keepBlankLines>true</keepBlankLines>
-                                    <nrOfIndentSpace>4</nrOfIndentSpace>
-                                    <indentBlankLines>false</indentBlankLines>
-                                    <indentSchemaLocation>true</indentSchemaLocation>
-                                    <expandEmptyElements>false</expandEmptyElements>
-                                    <sortProperties>true</sortProperties>
-                                </sortPom>
-                            </pom>
-                        </configuration>
                         <executions>
                             <execution>
                                 <goals>
@@ -485,22 +521,6 @@
                                 <phase>initialize</phase>
                             </execution>
                         </executions>
-                    </plugin>
-                </plugins>
-            </build>
-        </profile>
-        <profile>
-            <id>common</id>
-            <build>
-                <plugins>
-                    <plugin>
-                        <groupId>org.apache.maven.plugins</groupId>
-                        <artifactId>maven-compiler-plugin</artifactId>
-                        <version>3.8.1</version>
-                        <configuration>
-                            <source>8</source>
-                            <target>8</target>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>
