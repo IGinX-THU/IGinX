@@ -86,9 +86,9 @@ public class StorageService implements Service {
     if (config == null) {
       return null;
     }
-    FileStructure structure = FileStructureManager.getInstance().getByName(config.getType());
+    FileStructure structure = FileStructureManager.getInstance().getByName(config.getStruct());
     if (structure == null) {
-      String message = String.format("Not found file structure: %s", config.getType());
+      String message = String.format("Not found file structure: %s", config.getStruct());
       throw new FileStoreException(message);
     }
     return structure;
@@ -103,7 +103,7 @@ public class StorageService implements Service {
     try {
       return structure.newShared(config.getConfig());
     } catch (IOException e) {
-      String message = String.format("Failed to create shared for %s", config.getType());
+      String message = String.format("Failed to create shared for %s", config.getStruct());
       throw new FileStoreException(message, e);
     }
   }

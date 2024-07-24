@@ -18,12 +18,14 @@
 package cn.edu.tsinghua.iginx.filestore.service.storage;
 
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.Optional;
-import java.util.List;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
+
+import java.util.List;
 
 @Data
 @With
@@ -33,8 +35,10 @@ import lombok.experimental.FieldNameConstants;
 @FieldNameConstants
 public class StorageConfig extends AbstractConfig {
   String root;
-  @Optional String type;
-  @Optional Config config = ConfigFactory.empty();
+  @Optional
+  String struct = LegacyParquet.NAME;
+  @Optional
+  Config config = ConfigFactory.empty();
 
   @Override
   public List<ValidationProblem> validate() {
