@@ -1121,9 +1121,19 @@ public class Session {
 
   public long commitTransformJob(
       List<TaskInfo> taskInfoList, ExportType exportType, String fileName) throws SessionException {
+    return commitTransformJob(taskInfoList, exportType, fileName, null);
+  }
+
+  public long commitTransformJob(
+      List<TaskInfo> taskInfoList, ExportType exportType, String fileName, String schedule)
+      throws SessionException {
     CommitTransformJobReq req = new CommitTransformJobReq(sessionId, taskInfoList, exportType);
     if (fileName != null) {
       req.setFileName(fileName);
+    }
+
+    if (schedule != null) {
+      req.setSchedule(schedule);
     }
 
     Reference<CommitTransformJobResp> ref = new Reference<>();
