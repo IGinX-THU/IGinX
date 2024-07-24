@@ -20,7 +20,7 @@
 
 set -e
 
-cd influxdb2-2.0.7-windows-amd64/
+cd influxdb2-2.0.7-darwin-amd64/
 
 sh -c "ls"
 sh -c "./influx config list"

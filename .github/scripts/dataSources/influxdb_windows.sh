@@ -66,14 +66,4 @@ do
 
   powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64/influx' $arguments"
 
-  sh -c "sleep 10"
-
-  sh -c "cat $pathPrefix/logs/db.log"
-
-  echo "==========================================="
-
-  sh -c "cat $pathPrefix/logs/db-error.log"
-
-  echo "==========================================="
-
 done
