@@ -62,6 +62,10 @@
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>filestore</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
             <artifactId>relational</artifactId>
         </dependency>
         <dependency>
