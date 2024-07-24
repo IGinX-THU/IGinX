@@ -20,4 +20,10 @@
 
 set -e
 
-mysql -h 127.0.0.1 --port=$1 -u root -p$2 -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$3';"
+if [ $2 = "set" ]; then
+    # set password when there was none
+    mysql -h 127.0.0.1 --port=$1 -u root -e "ALTER USER 'root'@'localhost' IDENTIFIED BY '$3'; flush privileges;"
+else
+    # remove password
+    mysql -h 127.0.0.1 --port=$1 -u root -p$3 -e "ALTER USER 'root'@'localhost' IDENTIFIED BY ''; flush privileges;"
+fi

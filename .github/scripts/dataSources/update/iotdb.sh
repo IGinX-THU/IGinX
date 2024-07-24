@@ -20,10 +20,9 @@
 
 set -e
 
-sh -c "cd apache-iotdb-0.12.6-server-bin-$1/"
-
 echo '=============================='
 sh -c "ls"
+sh -c "cd apache-iotdb-0.12.6-server-bin-$1/"
 echo '=============================='
 sh -c "ls sbin"
 echo '=============================='

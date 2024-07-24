@@ -22,4 +22,4 @@ set -e
 
 export PGPASSWORD=$2
 
-psql -Upostgres -p$1 -c"ALTER USER postgres WITH PASSWORD '$3';"
+psql -h 127.0.0.1 -Upostgres -p$1 -c"ALTER USER postgres WITH PASSWORD '$3';"
