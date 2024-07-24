@@ -103,7 +103,7 @@ jobs:
               shell: bash
               run: |
                   cd IGinX
-                  mvn clean package -DskipTests -P-format -q
+                  mvn clean package -DskipTests -P-format
 
             - name: Change Old IGinX Config
               uses: ./.github/actions/confWriter
@@ -115,7 +115,7 @@ jobs:
 
             - name: Install New IGinX with Maven
               shell: bash
-              run: mvn clean package -DskipTests -P-format -q
+              run: mvn clean package -DskipTests -P-format
 
             - name: Change New IGinX Config
               uses: ./.github/actions/confWriter

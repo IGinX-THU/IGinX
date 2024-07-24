@@ -56,7 +56,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P-format -q
+                  mvn clean package -DskipTests -P-format
 
             - name: Write Conf
               uses: ./.github/actions/confWriter
