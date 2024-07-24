@@ -6,6 +6,7 @@ import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.shared.Constant;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
 
 import java.io.Closeable;
@@ -15,6 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+@AutoService(FileStructure.class)
 public class LegacyFilesystem implements FileStructure {
 
   public static final String NAME = "LegacyFilesystem";
