@@ -30,8 +30,8 @@ on:
                 default: '["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "Parquet", "MySQL"]'
 
 jobs:
-    Union-DB-Test:
-        timeout-minutes: 40
+    udf-path:
+        timeout-minutes: 20
         strategy:
             fail-fast: false
             matrix:
@@ -49,6 +49,11 @@ jobs:
                   python-version: ${{ matrix.python-version }}
                   java: ${{ matrix.java }}
 
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format
+
             - name: Run Metadata
               uses: ./.github/actions/metadataRunner
               with:
@@ -58,11 +63,6 @@ jobs:
               uses: ./.github/actions/dbRunner
               with:
                   DB-name: ${{ matrix.DB-name }}
-
-            - name: Install IGinX with Maven
-              shell: bash
-              run: |
-                  mvn clean package -DskipTests -P-format
 
             - name: Change IGinX config
               uses: ./.github/actions/confWriter
@@ -93,11 +93,54 @@ jobs:
                     "${GITHUB_WORKSPACE}/.github/scripts/test/cli/test_py_register_macos.sh" ${VERSION}
                   fi
 
-            - name: set client test context
-              uses: ./.github/actions/context
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
+    export-file:
+        timeout-minutes: 20
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
               with:
-                  work-name: restart-iginx-meta
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
                   metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Metadata: ${{ matrix.metadata }}
+
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -117,11 +160,54 @@ jobs:
                       mvn test -Dtest=ExportFileIT#checkExportCsv -Dsurefire.failIfNoSpecifiedTests=false -P-format
                   fi
 
-            - name: Stop IGinX and Metadata, Clear Metadata Data, then Start Them
-              uses: ./.github/actions/context
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
+    import-file:
+        timeout-minutes: 20
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
               with:
-                  work-name: restart-iginx-meta
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
                   metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Change IGinX config
+              uses: ./.github/actions/confWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Metadata: ${{ matrix.metadata }}
+
+            - name: Start IGinX
+              uses: ./.github/actions/iginxRunner
 
             - name: set client test context
               uses: ./.github/actions/context
@@ -133,51 +219,6 @@ jobs:
               shell: bash
               run: |
                   mvn test -Dtest=ImportFileIT -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            - name: clean metadata and restart IGinX
-              uses: ./.github/actions/context
-              with:
-                  work-name: restart-iginx-meta
-                  metadata: ${{ matrix.metadata }}
-
-            - name: TestController IT
-              if: always()
-              shell: bash
-              env:
-                  METADATA_STORAGE: ${{ matrix.metadata }}
-              run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -Dtest=Controller -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            - name: Show IGinX log
-              if: always()
-              shell: bash
-              run: |
-                  cat iginx-*.log
-
-            - name: Change IGinX config
-              uses: ./.github/actions/confWriter
-              with:
-                  Set-Key-Range-Test-Policy: "true"
-
-            - name: clean metadata and restart IGinX
-              uses: ./.github/actions/context
-              with:
-                  work-name: restart-iginx-meta
-                  metadata: ${{ matrix.metadata }}
-
-            - name: FilterFragmentRuleTest IT
-              if: always()
-              shell: bash
-              run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/test/test_union.sh"
-                  mvn test -Dtest=SQLSessionIT#testFilterFragmentOptimizer -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            - name: Show test result
-              if: always()
-              shell: bash
-              run: |
-                  cat ${GITHUB_WORKSPACE}/test/src/test/resources/testResult.txt
 
             - name: Show IGinX log
               if: always()

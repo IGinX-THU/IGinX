@@ -1,0 +1,34 @@
+name: Full Test Suite
+
+on:
+    schedule:
+        - cron: "0 0 * * 0" # every Sunday
+    workflow_dispatch:
+
+concurrency:
+    group: ${{ github.workflow }}-${{ github.ref }}
+    cancel-in-progress: true
+
+jobs:
+    unit-test:
+        uses: ./.github/workflows/unit-test.yml
+    unit-mds:
+        uses: ./.github/workflows/test-metadata.yml
+    case-regression:
+        uses: ./.github/workflows/test-mixed-cluster.yml
+    standalone-test:
+        uses: ./.github/workflows/test-cli.yml
+        with:
+            push-down: false
+    standalone-test-pushdown:
+        uses: ./.github/workflows/test-single-database.yml
+        with:
+            push-down: true
+    client-test:
+        uses: ./.github/workflows/test-cli.yml
+    db-ce:
+        uses: ./.github/workflows/test-capacity-expansion.yml
+    remote-test:
+        uses: ./.github/workflows/test-remote.yml
+    assemebly-test:
+        uses: ./.github/workflows/test-assembly.yml

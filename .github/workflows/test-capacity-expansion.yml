@@ -33,7 +33,305 @@ env:
     FUNCTEST: NewSessionIT,SQLCompareIT,TagIT,RestIT,TransformIT,UDFIT,RestAnnotationIT,SQLSessionIT,SQLSessionPoolIT,SessionV2IT,SessionIT,SessionPoolIT,CompactionIT,TimePrecisionIT,PySessionIT
 
 jobs:
-    DB-CE:
+    ori-has-exp-has:
+        timeout-minutes: 40
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        env:
+            METADATA_STORAGE: ${{ matrix.metadata }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format
+
+            - name: Prepare CapExp environment oriHasDataExpHasData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriHasDataExpHasData
+
+            - name: oriHasDataExpHasData IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriHasDataExpHasData Normal IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
+            - if: always()
+              name: Show DB Logs on Windows
+              uses: ./.github/actions/dbLog
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
+    ori-no-Exp-no:
+        timeout-minutes: 40
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        env:
+            METADATA_STORAGE: ${{ matrix.metadata }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format
+
+            - name: Prepare CapExp environment oriNoDataExpNoData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriNoDataExpNoData
+
+            - name: oriNoDataExpNoData IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriNoDataExpNoData Normal IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
+            - if: always()
+              name: Show DB Logs on Windows
+              uses: ./.github/actions/dbLog
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
+    ori-has-exp-no:
+        timeout-minutes: 40
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        env:
+            METADATA_STORAGE: ${{ matrix.metadata }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format
+
+            - name: Prepare CapExp environment oriHasDataExpNoData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriHasDataExpNoData
+
+            - name: oriHasDataExpNoData IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriHasDataExpNoData Normal IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
+            - if: always()
+              name: Show DB Logs on Windows
+              uses: ./.github/actions/dbLog
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
+
+    ori-no-Exp-has:
+        timeout-minutes: 40
+        strategy:
+            fail-fast: false
+            matrix:
+                java: ${{ fromJSON(inputs.java-matrix) }}
+                python-version: ${{ fromJSON(inputs.python-matrix) }}
+                os: ${{ fromJSON(inputs.os-matrix) }}
+                metadata: ${{ fromJSON(inputs.metadata-matrix) }}
+                DB-name: ${{ fromJSON(inputs.db-matrix) }}
+        runs-on: ${{ matrix.os }}
+        env:
+            METADATA_STORAGE: ${{ matrix.metadata }}
+        steps:
+            - uses: actions/checkout@v4
+            - name: Environment dependence
+              uses: ./.github/actions/dependence
+              with:
+                  python-version: ${{ matrix.python-version }}
+                  java: ${{ matrix.java }}
+
+            - name: Run Metadata
+              uses: ./.github/actions/metadataRunner
+              with:
+                  metadata: ${{ matrix.metadata }}
+
+            - name: Run DB
+              uses: ./.github/actions/dbRunner
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - name: Install IGinX with Maven
+              shell: bash
+              run: |
+                  mvn clean package -DskipTests -P-format
+
+            - name: Prepare CapExp environment oriNoDataExpHasData
+              uses: ./.github/actions/capacityExpansionUnionTest
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: oriNoDataExpHasData
+
+            - name: oriNoDataExpHasData IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Clear history data
+              uses: ./.github/actions/dbWriter
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+                  Test-Way: clearHistoryData
+
+            - name: oriNoDataExpHasData Normal IT
+              shell: bash
+              run: |
+                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
+
+            - name: Show IGinX log
+              if: always()
+              shell: bash
+              run: |
+                  cat iginx-*.log
+
+            - if: always()
+              name: Show DB Logs on Windows
+              uses: ./.github/actions/dbLog
+              with:
+                  DB-name: ${{ matrix.DB-name }}
+
+            - uses: codecov/codecov-action@v1
+              with:
+                  file: ./**/target/site/jacoco/jacoco.xml
+                  name: codecov
+
+    read-only:
         timeout-minutes: 120
         strategy:
             fail-fast: false
@@ -69,99 +367,6 @@ jobs:
               run: |
                   mvn clean package -DskipTests -P-format
 
-            # 第 1 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpHasData
-
-            - name: oriHasDataExpHasData IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpHasData -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriHasDataExpHasData Normal IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            # 第 2 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpNoData
-
-            - name: oriNoDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpNoData -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriNoDataExpNoData Normal IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            # 第 3 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriHasDataExpNoData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriHasDataExpNoData
-
-            - name: oriHasDataExpNoData IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriHasDataExpNoData -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriHasDataExpNoData Normal IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            # 第 4 阶段测试开始==========================================
-            - name: Prepare CapExp environment oriNoDataExpHasData
-              uses: ./.github/actions/capacityExpansionUnionTest
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: oriNoDataExpHasData
-
-            - name: oriNoDataExpHasData IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${{ matrix.DB-name }}CapacityExpansionIT#oriNoDataExpHasData -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            - name: Clear history data
-              uses: ./.github/actions/dbWriter
-              with:
-                  DB-name: ${{ matrix.DB-name }}
-                  Test-Way: clearHistoryData
-
-            - name: oriNoDataExpHasData Normal IT
-              shell: bash
-              run: |
-                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
-
-            # 测试只读节点===============================================
             - name: Prepare CapExp environment for testReadOnly
               uses: ./.github/actions/capacityExpansionUnionTest
               with:

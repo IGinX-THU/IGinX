@@ -14,29 +14,39 @@ jobs:
     unit-test:
         uses: ./.github/workflows/unit-test.yml
     unit-mds:
-        uses: ./.github/workflows/unit-mds.yml
+        uses: ./.github/workflows/test-metadata.yml
     case-regression:
-        uses: ./.github/workflows/case-regression.yml
+        uses: ./.github/workflows/test-mixed-cluster.yml
         with:
             metadata-matrix: '["zookeeper"]'
     standalone-test:
-        uses: ./.github/workflows/standalone-test.yml
+        uses: ./.github/workflows/test-cli.yml
         with:
+            push-down: false
             metadata-matrix: '["zookeeper"]'
     standalone-test-pushdown:
-        uses: ./.github/workflows/standalone-test-pushdown.yml
+        uses: ./.github/workflows/test-single-database.yml
+        with:
+            push-down: true
+            metadata-matrix: '["zookeeper"]'
+    optimizer-test:
+        uses: ./.github/workflows/test-optimizer.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    client-test:
+        uses: ./.github/workflows/test-cli.yml
         with:
             metadata-matrix: '["zookeeper"]'
     db-ce:
-        uses: ./.github/workflows/DB-CE.yml
+        uses: ./.github/workflows/test-capacity-expansion.yml
         with:
             metadata-matrix: '["zookeeper"]'
     remote-test:
-        uses: ./.github/workflows/remote-test.yml
+        uses: ./.github/workflows/test-remote.yml
         with:
             metadata-matrix: '["zookeeper"]'
     assemebly-test:
-        uses: ./.github/workflows/assembly-test.yml
+        uses: ./.github/workflows/test-assembly.yml
     tpc-h-regression-test:
         uses: ./.github/workflows/tpc-h.yml
         with:
