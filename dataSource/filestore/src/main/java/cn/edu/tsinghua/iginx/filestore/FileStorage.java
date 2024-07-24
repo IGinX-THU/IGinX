@@ -73,7 +73,7 @@ public class FileStorage implements IStorage {
   private final ExecutorService executor = Executors.newCachedThreadPool();
 
   public FileStorage(StorageEngineMeta meta) throws StorageInitializationException {
-    if (!meta.getStorageEngine().equals(StorageEngineType.filesystem)) {
+    if (!meta.getStorageEngine().equals(StorageEngineType.filestore)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
