@@ -35,8 +35,7 @@ import org.slf4j.LoggerFactory;
 
 public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
 
-  private static final Logger LOGGER =
-      LoggerFactory.getLogger(FileStoreHistoryDataGenerator.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreHistoryDataGenerator.class);
 
   public FileStoreHistoryDataGenerator() {}
 

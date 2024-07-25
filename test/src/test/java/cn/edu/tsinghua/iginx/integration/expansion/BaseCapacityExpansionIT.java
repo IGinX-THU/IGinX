@@ -61,7 +61,9 @@ public abstract class BaseCapacityExpansionIT {
   protected List<String> wrongExtraParams = new ArrayList<>();
 
   private final boolean IS_EMBEDDED =
-      this instanceof FileStoreCapacityExpansionIT || this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
+      this instanceof FileStoreCapacityExpansionIT
+          || this instanceof FileSystemCapacityExpansionIT
+          || this instanceof ParquetCapacityExpansionIT;
 
   private final String EXP_SCHEMA_PREFIX = null;
 
