@@ -164,7 +164,7 @@ public class FileStorage implements IStorage {
   @Override
   public TaskExecuteResult executeProjectDummyWithSelect(
       Project project, Select select, DataArea dataArea) {
-    return executeQuery(unitOf(dataArea), getDataTargetOf(select, project, dataArea), null);
+    return executeQuery(unitOfDummy(), getDataTargetOf(select, project, dataArea), null);
   }
 
   @Override

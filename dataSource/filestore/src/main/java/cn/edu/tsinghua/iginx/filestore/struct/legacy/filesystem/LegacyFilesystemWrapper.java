@@ -18,11 +18,18 @@
 package cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
+import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.filestore.common.Fields;
+import cn.edu.tsinghua.iginx.filestore.common.Filters;
+import cn.edu.tsinghua.iginx.filestore.common.Patterns;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.exec.LocalExecutor;
@@ -32,7 +39,10 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.annotation.WillCloseWhenClosed;
 
@@ -66,9 +76,31 @@ public class LegacyFilesystemWrapper implements FileManager {
       throw new UnsupportedOperationException("LegacyFilesystem does not support aggregate");
     }
 
-    Filter filter = target.getFilter();
-    List<String> patterns = target.getPatterns();
     TagFilter tagFilter = target.getTagFilter(); // tagFilter is ignored
+
+    Filter filter = target.getFilter();
+    if (Filters.isTrue(filter)) {
+      filter =
+          new AndFilter(
+              Arrays.asList(
+                  new KeyFilter(Op.GE, Long.MIN_VALUE), new KeyFilter(Op.LE, Long.MAX_VALUE)));
+    }
+
+    List<String> patterns = target.getPatterns();
+    if (Patterns.isAll(patterns)) {
+      patterns = Collections.singletonList("*");
+    }
+
+    if (Filters.isFalse(target.getFilter())) {
+      try {
+        List<Column> columns = executor.getColumnsOfStorageUnit("*");
+        List<Field> fields = columns.stream().map(Fields::of).collect(Collectors.toList());
+        Header header = new Header(Field.KEY, fields);
+        return new Table(header, Collections.emptyList());
+      } catch (PhysicalException e) {
+        throw new IOException("failed to show columns", e);
+      }
+    }
 
     TaskExecuteResult result = executor.executeDummyProjectTask(patterns, filter);
     if (result.getException() != null) {

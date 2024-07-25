@@ -100,7 +100,7 @@ public class LegacyFilesystem implements FileStructure {
 
     public Map<String, String> getParams(Path path) {
       Map<String, String> finalParams = new HashMap<>(params);
-      finalParams.put(Constant.INIT_INFO_DUMMY_DIR, path.toString());
+      finalParams.put(Constant.INIT_INFO_DUMMY_DIR, path.toAbsolutePath().toString());
       return Collections.unmodifiableMap(finalParams);
     }
 
