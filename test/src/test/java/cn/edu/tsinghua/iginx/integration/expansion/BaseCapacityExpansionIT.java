@@ -26,6 +26,7 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
+import cn.edu.tsinghua.iginx.integration.expansion.filestore.FileStoreCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetCapacityExpansionIT;
@@ -59,8 +60,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected List<String> wrongExtraParams = new ArrayList<>();
 
-  private final boolean IS_PARQUET_OR_FILE_SYSTEM =
-      this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
+  private final boolean IS_EMBEDDED =
+      this instanceof FileStoreCapacityExpansionIT || this instanceof FileSystemCapacityExpansionIT || this instanceof ParquetCapacityExpansionIT;
 
   private final String EXP_SCHEMA_PREFIX = null;
 
@@ -100,7 +101,7 @@ public abstract class BaseCapacityExpansionIT {
         statement.append(port);
         statement.append("/");
       }
-      if (IS_PARQUET_OR_FILE_SYSTEM) {
+      if (IS_EMBEDDED) {
         statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
         statement.append(String.format(", dir:%s/iginx_", DBCE_PARQUET_FS_TEST_DIR));
@@ -166,7 +167,7 @@ public abstract class BaseCapacityExpansionIT {
   private void addStorageEngineInProgress(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
       throws InterruptedException {
-    if (IS_PARQUET_OR_FILE_SYSTEM) {
+    if (IS_EMBEDDED) {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
       // 测试会添加初始数据，所以hasData=true
@@ -729,7 +730,9 @@ public abstract class BaseCapacityExpansionIT {
       iginxPath = ".github/scripts/iginx/iginx_windows.sh";
     }
 
-    if (this instanceof FileSystemCapacityExpansionIT) {
+    if (this instanceof FileStoreCapacityExpansionIT) {
+      scriptPath = ".github/scripts/dataSources/filestore.sh";
+    } else if (this instanceof FileSystemCapacityExpansionIT) {
       if (isOnMac) {
         scriptPath = ".github/scripts/dataSources/filesystem_macos.sh";
       } else {
