@@ -29,6 +29,10 @@ import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.Function;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -37,7 +41,9 @@ import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreService;
+import cn.edu.tsinghua.iginx.filestore.service.storage.StorageConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -169,14 +175,51 @@ public class FileStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
-    // TODO: support for parquet
-    return false;
+    StorageConfig dataConfig = fileStoreConfig.getData();
+
+    if (!LegacyParquet.NAME.equals(dataConfig.getStruct())) {
+      return false;
+    }
+
+    // just push down in full column fragment
+    KeyInterval keyInterval = dataArea.getKeyInterval();
+    if (keyInterval.getStartKey() > 0 || keyInterval.getEndKey() < Long.MAX_VALUE) {
+      return false;
+    }
+
+    // just push down count(*) for now
+    List<FunctionCall> functionCalls = setTransform.getFunctionCallList();
+    if (functionCalls.size() != 1) {
+      return false;
+    }
+    FunctionCall functionCall = functionCalls.get(0);
+    Function function = functionCall.getFunction();
+    FunctionParams params = functionCall.getParams();
+    if (function.getFunctionType() != FunctionType.System) {
+      return false;
+    }
+    if (!function.getIdentifier().equals("count")) {
+      return false;
+    }
+    if (params.getPaths().size() != 1) {
+      return false;
+    }
+    String path = params.getPaths().get(0);
+    return path.equals("*") || path.equals("*.*");
   }
 
   @Override
   public TaskExecuteResult executeProjectWithSetTransform(
       Project project, SetTransform setTransform, DataArea dataArea) {
-    throw new UnsupportedOperationException();
+    if (!isSupportProjectWithSetTransform(setTransform, dataArea)) {
+      throw new IllegalArgumentException("unsupported set transform");
+    }
+
+    DataArea reshapedDataArea =
+        new DataArea(dataArea.getStorageUnit(), KeyInterval.getDefaultKeyInterval());
+
+    return executeQuery(
+        unitOf(dataArea), getDataTargetOf(project, reshapedDataArea), AggregateType.COUNT);
   }
 
   @Override
