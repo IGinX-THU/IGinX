@@ -63,10 +63,8 @@ public class MySQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     String mode = oldPw == null ? "set" : "unset";
     String os = System.getProperty("os.name").toLowerCase();
     if (os.contains("mac")) {
-      // TODO: mac script
-      scriptPath = updateParamsScriptDir + "mysql.sh";
+      scriptPath = updateParamsScriptDir + "mysql_macos.sh";
     } else if (os.contains("win")) {
-      // TODO: win script
       scriptPath = updateParamsScriptDir + "mysql_windows.sh";
     }
     // 脚本参数：对应端口，模式（是在无密码条件下设置密码，还是在有密码条件下去掉密码），需要设置的密码/需要被去掉的密码

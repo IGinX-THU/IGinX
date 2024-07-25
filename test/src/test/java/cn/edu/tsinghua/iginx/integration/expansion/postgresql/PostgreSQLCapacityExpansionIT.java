@@ -158,8 +158,7 @@ public class PostgreSQLCapacityExpansionIT extends BaseCapacityExpansionIT {
     String scriptPath = updateParamsScriptDir + "postgresql.sh";
     String os = System.getProperty("os.name").toLowerCase();
     if (os.contains("mac")) {
-      // TODO: mac script
-      scriptPath = updateParamsScriptDir + "postgresql.sh";
+      scriptPath = updateParamsScriptDir + "postgresql_macos.sh";
     } else if (os.contains("win")) {
       scriptPath = updateParamsScriptDir + "postgresql_windows.sh";
     }

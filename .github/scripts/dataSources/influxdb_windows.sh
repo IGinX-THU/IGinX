@@ -48,6 +48,7 @@ sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" 
 
 for port in "$@"
 do
+  # target path is also used in update/<db> script
   sh -c "cp -r influxdb2-2.0.7-windows-amd64/ influxdb2-2.0.7-windows-amd64-$port/"
 
   pathPrefix="influxdb2-2.0.7-windows-amd64-$port"

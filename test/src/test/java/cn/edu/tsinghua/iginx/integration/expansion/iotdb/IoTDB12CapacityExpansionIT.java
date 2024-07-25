@@ -54,8 +54,7 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
     String scriptPath = updateParamsScriptDir + "iotdb.sh";
     String os = System.getProperty("os.name").toLowerCase();
     if (os.contains("mac")) {
-      // TODO: mac script
-      scriptPath = updateParamsScriptDir + "iotdb.sh";
+      scriptPath = updateParamsScriptDir + "iotdb_macos.sh";
     } else if (os.contains("win")) {
       scriptPath = updateParamsScriptDir + "iotdb_windows.sh";
     }

@@ -33,7 +33,6 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
-import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
@@ -329,8 +328,7 @@ public abstract class BaseCapacityExpansionIT {
 
   /** 测试引擎修改参数（目前仅支持dummy & read-only） */
   protected void testUpdateEngineParams() throws SessionException {
-    // action上难以自由控制数据源的ip、port等属性，因此通过修改schema_prefix，来验证功能是否正确
-
+    // 修改前后通过相同schema_prefix查询判断引擎成功更新
     LOGGER.info("Testing updating engine params...");
     if (updatedParams.isEmpty()) {
       LOGGER.info("Engine {} skipped this test.", type);
@@ -345,8 +343,6 @@ public abstract class BaseCapacityExpansionIT {
     List<String> pathList =
         READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
-    SessionExecuteSqlResult res = session.executeSql("explain " + statement);
-    res.print(false, "ms");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 修改数据库参数
@@ -372,12 +368,10 @@ public abstract class BaseCapacityExpansionIT {
             .collect(Collectors.joining(", "));
     session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
 
-    // 重新查询，使用schema_prefix验证
+    // 重新查询
     statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
     pathList = READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
     valuesList = READ_ONLY_VALUES_LIST;
-    res = session.executeSql("explain " + statement);
-    res.print(false, "ms");
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 删除，不影响后续测试
@@ -389,8 +383,10 @@ public abstract class BaseCapacityExpansionIT {
     restoreParams(readOnlyPort);
   }
 
+  /** 这个方法需要实现：通过脚本修改port对应数据源的可变参数，如密码等 */
   protected abstract void updateParams(int port);
 
+  /** 这个方法需要实现：通过脚本恢复updateParams中修改的可变参数 */
   protected abstract void restoreParams(int port);
 
   protected void queryExtendedKeyDummy() {

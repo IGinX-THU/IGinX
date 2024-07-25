@@ -18,6 +18,8 @@
 #
 
 
+# usage:.sh <port> <mode>:set/unset <password>
+
 set -e
 
 if [ $2 = "set" ]; then

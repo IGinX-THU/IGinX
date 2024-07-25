@@ -32,7 +32,7 @@ sh -c "sudo sed -i '' 's/#storageEngineList=127.0.0.1#6667#iotdb12/storageEngine
 
 for port in "$@"
 do
-  # target location path is also used in update/<db> script
+  # target path is also used in update/<db> script
   sh -c "sudo cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb-0.12.6-server-bin-$port"
 
   sh -c "sudo sed -i '' 's/# wal_buffer_size=16777216/wal_buffer_size=167772160/' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"

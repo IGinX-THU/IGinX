@@ -59,7 +59,6 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
-import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
@@ -129,7 +128,7 @@ public class RelationalStorage implements IStorage {
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
       return newDataSource.getConnection();
-    } catch (SQLException | HikariPool.PoolInitializationException e) {
+    } catch (SQLException e) {
       LOGGER.error("Cannot get connection for database {}", databaseName, e);
       return null;
     }
@@ -1438,7 +1437,6 @@ public class RelationalStorage implements IStorage {
       throws SQLException {
     // <database name, <table name, column names>>
     Map<String, Map<String, String>> splitResults = new HashMap<>();
-    List<String> databases = getDatabaseNames();
     String databaseName;
     String tableName;
     String columnNames;
@@ -1501,9 +1499,6 @@ public class RelationalStorage implements IStorage {
           }
         }
       } else {
-        if (!databases.contains(databaseName)) {
-          continue;
-        }
         List<ColumnField> columnFieldList = getColumns(databaseName, tableName, columnNames);
         Map<String, String> tableNameToColumnNames = new HashMap<>();
         for (ColumnField columnField : columnFieldList) {

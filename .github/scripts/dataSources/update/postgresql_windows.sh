@@ -18,6 +18,8 @@
 #
 
 
+# usage:.sh <port> <old_password> <new_password>
+
 set -e
 
 export PGPASSWORD=$2

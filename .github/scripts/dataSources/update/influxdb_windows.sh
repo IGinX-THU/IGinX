@@ -18,6 +18,8 @@
 #
 
 
+# usage:.sh <target_port> <new_org_id>
+
 set -e
 
 cd influxdb2-2.0.7-windows-amd64/

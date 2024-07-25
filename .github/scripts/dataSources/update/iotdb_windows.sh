@@ -18,6 +18,8 @@
 #
 
 
+# usage:.sh <port> <old_password> <new_password>
+
 set -e
 
 cd apache-iotdb-0.12.6-server-bin-$1/

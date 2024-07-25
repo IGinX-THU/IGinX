@@ -17,6 +17,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 
+# usage:.sh <target_port> <new_org_id>
 
 set -e
 
