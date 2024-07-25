@@ -68,7 +68,7 @@ jobs:
               uses: ./.github/actions/confWriter
               with:
                   DB-name: ${{ matrix.DB-name }}
-                  Push-Down: "${{ inputs.push-down }}"
+                  Push-Down: "true"
                   Set-Filter-Fragment-OFF: "true"
                   Metadata: ${{ matrix.metadata }}
 
