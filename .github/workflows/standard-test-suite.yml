@@ -29,10 +29,11 @@ jobs:
         with:
             metadata-matrix: '["zookeeper"]'
             db-matrix: '["FileStore"]'
-#    db-ce:
-#        uses: ./.github/workflows/DB-CE.yml
-#        with:
-#            metadata-matrix: '["zookeeper"]'
+    db-ce:
+        uses: ./.github/workflows/DB-CE.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+            db-matrix: '["FileStore"]'
 #    remote-test:
 #        uses: ./.github/workflows/remote-test.yml
 #        with:
