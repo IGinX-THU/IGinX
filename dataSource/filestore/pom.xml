@@ -147,8 +147,7 @@
                 <activeByDefault>true</activeByDefault>
             </activation>
             <properties>
-                <thrift.exec.absolute.path>${project.build.directory}/thrift/bin/${thrift.exec.relative.path}
-                </thrift.exec.absolute.path>
+                <thrift.exec.absolute.path>${project.build.directory}/thrift/bin/${thrift.exec.relative.path}</thrift.exec.absolute.path>
             </properties>
             <build>
                 <plugins>
