@@ -144,7 +144,9 @@
         <profile>
             <id>thrift-generation</id>
             <activation>
-                <activeByDefault>true</activeByDefault>
+                <file>
+                    <exists>src/main/thrift</exists>
+                </file>
             </activation>
             <properties>
                 <thrift.exec.absolute.path>${project.build.directory}/thrift/bin/${thrift.exec.relative.path}</thrift.exec.absolute.path>
