@@ -29,16 +29,15 @@ import cn.edu.tsinghua.iginx.filestore.struct.units.UnitsMerger;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StorageService implements Service {
 
@@ -116,7 +115,8 @@ public class StorageService implements Service {
 
     if (dummyConfig != null) {
       if (dummyStructure.supportWrite()) {
-        TreeMap<DataUnit, FileManager> dummyManagers = new TreeMap<>(Comparator.comparing(DataUnit::getName));
+        TreeMap<DataUnit, FileManager> dummyManagers =
+            new TreeMap<>(Comparator.comparing(DataUnit::getName));
         for (String unitName : getUnitsIn(Paths.get(dummyConfig.getRoot()))) {
           DataUnit unit = new DataUnit(true, unitName);
           FileManager manager = getOrCreateManager(unit);
@@ -133,8 +133,8 @@ public class StorageService implements Service {
   private static List<String> getUnitsIn(Path root) throws IOException {
     List<String> units = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-             Files.newDirectoryStream(
-                 root, path -> path.getFileName().toString().startsWith(IGINX_DATA_PREFIX))) {
+        Files.newDirectoryStream(
+            root, path -> path.getFileName().toString().startsWith(IGINX_DATA_PREFIX))) {
       for (Path path : stream) {
         String unitNameWithPrefix = path.getFileName().toString();
         String unitName = unitNameWithPrefix.substring(IGINX_DATA_PREFIX.length());

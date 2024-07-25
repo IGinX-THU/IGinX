@@ -8,14 +8,13 @@ import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
-import org.apache.arrow.util.AutoCloseables;
-
-import javax.annotation.Nullable;
-import javax.annotation.WillNotClose;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nullable;
+import javax.annotation.WillNotClose;
+import org.apache.arrow.util.AutoCloseables;
 
 public class UnitsMerger implements FileManager {
 
@@ -97,6 +96,5 @@ public class UnitsMerger implements FileManager {
   }
 
   @Override
-  public void close() throws IOException {
-  }
+  public void close() throws IOException {}
 }

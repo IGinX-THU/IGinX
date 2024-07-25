@@ -41,14 +41,13 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
 
 public class LegacyParquetWrapper implements FileManager {
 
