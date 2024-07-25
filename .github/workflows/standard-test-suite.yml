@@ -19,10 +19,10 @@ jobs:
     #        uses: ./.github/workflows/case-regression.yml
     #        with:
     #            metadata-matrix: '["zookeeper"]'
-    #    standalone-test:
-    #        uses: ./.github/workflows/standalone-test.yml
-    #        with:
-    #            metadata-matrix: '["zookeeper"]'
+    standalone-test:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
     standalone-test-pushdown:
         uses: ./.github/workflows/standalone-test-pushdown.yml
         with:
