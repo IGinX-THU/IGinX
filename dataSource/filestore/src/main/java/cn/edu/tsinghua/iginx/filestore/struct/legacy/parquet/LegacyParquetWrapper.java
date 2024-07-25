@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filestore.common.Fields;
@@ -40,13 +41,14 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+
+import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 
 public class LegacyParquetWrapper implements FileManager {
 
@@ -91,13 +93,13 @@ public class LegacyParquetWrapper implements FileManager {
     try {
       Filter filter = target.getFilter();
       if (Filters.isTrue(filter)) {
-        filter = null;
+        filter = new BoolFilter(true);
       }
       List<String> patterns = target.getPatterns();
       TagFilter tagFilter = target.getTagFilter();
 
       if (aggregate != null) {
-        if (filter != null) {
+        if (!Filters.isTrue(filter)) {
           throw new UnsupportedOperationException("Filter is not supported for aggregation");
         }
         return delegate.aggregation(patterns, tagFilter, null);

@@ -25,18 +25,20 @@ import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
+import cn.edu.tsinghua.iginx.filestore.struct.units.UnitsMerger;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.GuardedBy;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.GuardedBy;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StorageService implements Service {
 
@@ -72,6 +74,7 @@ public class StorageService implements Service {
     try {
       initManager();
     } catch (IOException e) {
+      close();
       throw new FileStoreException("failed to initialize storage service", e);
     }
   }
@@ -112,15 +115,26 @@ public class StorageService implements Service {
     }
 
     if (dummyConfig != null) {
-      getOrCreateManager(new DataUnit(true, null));
+      if (dummyStructure.supportWrite()) {
+        TreeMap<DataUnit, FileManager> dummyManagers = new TreeMap<>(Comparator.comparing(DataUnit::getName));
+        for (String unitName : getUnitsIn(Paths.get(dummyConfig.getRoot()))) {
+          DataUnit unit = new DataUnit(true, unitName);
+          FileManager manager = getOrCreateManager(unit);
+          dummyManagers.put(unit, manager);
+        }
+        FileManager mergedDummyManager = new UnitsMerger(new ArrayList<>(dummyManagers.values()));
+        managers.put(new DataUnit(true, null), mergedDummyManager);
+      } else {
+        getOrCreateManager(new DataUnit(true, null));
+      }
     }
   }
 
   private static List<String> getUnitsIn(Path root) throws IOException {
     List<String> units = new ArrayList<>();
     try (DirectoryStream<Path> stream =
-        Files.newDirectoryStream(
-            root, path -> path.getFileName().toString().startsWith(IGINX_DATA_PREFIX))) {
+             Files.newDirectoryStream(
+                 root, path -> path.getFileName().toString().startsWith(IGINX_DATA_PREFIX))) {
       for (Path path : stream) {
         String unitNameWithPrefix = path.getFileName().toString();
         String unitName = unitNameWithPrefix.substring(IGINX_DATA_PREFIX.length());
@@ -152,11 +166,11 @@ public class StorageService implements Service {
       if (dummyConfig == null) {
         throw new IllegalStateException("dummy Unit data is requested but is not configured");
       }
-      if (unit.getName() != null) {
-        throw new IllegalStateException("dummy Unit data is requested but name is not null");
-      }
 
       Path dummyRoot = Paths.get(dummyConfig.getRoot());
+      if (unit.getName() != null) {
+        dummyRoot = getPathOf(dummyRoot, unit.getName());
+      }
 
       LOGGER.info("creating {} reader for {} in {}", dummyStructure, unit, dummyRoot);
       return dummyStructure.newReader(dummyRoot, dummyShared);
@@ -185,6 +199,9 @@ public class StorageService implements Service {
   public Map<DataUnit, DataBoundary> getUnits(@Nullable String prefix) throws FileStoreException {
     Map<DataUnit, DataBoundary> boundariesForEachUnit = new HashMap<>();
     for (DataUnit unit : managers.keySet()) {
+      if (unit.isDummy() && unit.getName() != null) {
+        continue;
+      }
       DataBoundary boundary = getBoundary(unit, prefix);
       boundariesForEachUnit.put(unit, boundary);
     }
@@ -291,8 +308,8 @@ public class StorageService implements Service {
       } catch (IOException e) {
         exception.addSuppressed(e);
       }
-      managers.clear();
     }
+    managers.clear();
     if (dataShared != null) {
       try {
         dataShared.close();
