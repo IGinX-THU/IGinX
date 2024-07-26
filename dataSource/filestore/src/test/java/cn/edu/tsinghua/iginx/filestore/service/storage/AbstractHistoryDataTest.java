@@ -26,6 +26,8 @@ import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import static cn.edu.tsinghua.iginx.filestore.service.storage.StorageService.newDataUnitOf;
+
 public abstract class AbstractHistoryDataTest {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractHistoryDataTest.class);
@@ -68,14 +70,14 @@ public abstract class AbstractHistoryDataTest {
     try (StorageService service = newDummyService()) {
       Map<DataUnit, DataBoundary> units = service.getUnits(null);
       Map<DataUnit, DataBoundary> expected =
-          Collections.singletonMap(new DataUnit(true, null), new DataBoundary());
+          Collections.singletonMap(newDataUnitOf(true, null), new DataBoundary());
       Assertions.assertEquals(expected, units);
     }
   }
 
   @Test
   public void testSingleUnit() throws PhysicalException {
-    DataUnit unit = new DataUnit(false, "unit0000");
+    DataUnit unit = newDataUnitOf(false, "unit0000");
     DataView data =
         DataViewGenerator.genRowDataViewNoKey(
             0,
@@ -96,13 +98,13 @@ public abstract class AbstractHistoryDataTest {
       boundary.setStartColumn("name");
       boundary.setEndColumn("phone~");
       Map<DataUnit, DataBoundary> expected =
-          Collections.singletonMap(new DataUnit(true, null), boundary);
+          Collections.singletonMap(newDataUnitOf(true, null), boundary);
       Assertions.assertEquals(expected, units);
 
       // test show columns
       try (RowStream result =
           service.query(
-              new DataUnit(true, null),
+              newDataUnitOf(true, null),
               new DataTarget(new BoolFilter(false), Collections.singletonList("*"), null),
               null)) {
         Assertions.assertFalse(result.hasNext());
@@ -118,7 +120,7 @@ public abstract class AbstractHistoryDataTest {
       // test query data with tag
       try (RowStream result =
           service.query(
-              new DataUnit(true, null),
+              newDataUnitOf(true, null),
               new DataTarget(
                   null, Collections.singletonList("*"), new BaseTagFilter("language", "en")),
               null)) {
@@ -138,7 +140,7 @@ public abstract class AbstractHistoryDataTest {
   public void testMultipleUnits() throws PhysicalException {
     Map<DataUnit, DataView> dataMap = new HashMap<>();
     {
-      DataUnit unit = new DataUnit(false, "unit0000");
+      DataUnit unit = newDataUnitOf(false, "unit0000");
       DataView data =
           DataViewGenerator.genRowDataViewNoKey(
               0,
@@ -152,7 +154,7 @@ public abstract class AbstractHistoryDataTest {
       dataMap.put(unit, data);
     }
     {
-      DataUnit unit = new DataUnit(false, "unit0001");
+      DataUnit unit = newDataUnitOf(false, "unit0001");
       DataView data =
           DataViewGenerator.genRowDataViewNoKey(
               0,
@@ -166,7 +168,7 @@ public abstract class AbstractHistoryDataTest {
       dataMap.put(unit, data);
     }
     {
-      DataUnit unit = new DataUnit(false, "unit0002");
+      DataUnit unit = newDataUnitOf(false, "unit0002");
       DataView data =
           DataViewGenerator.genRowDataViewNoKey(
               1,
@@ -192,13 +194,13 @@ public abstract class AbstractHistoryDataTest {
       boundary.setStartColumn("address");
       boundary.setEndColumn("year~");
       Map<DataUnit, DataBoundary> expected =
-          Collections.singletonMap(new DataUnit(true, null), boundary);
+          Collections.singletonMap(newDataUnitOf(true, null), boundary);
       Assertions.assertEquals(expected, units);
 
       // test show columns
       try (RowStream result =
           service.query(
-              new DataUnit(true, null),
+              newDataUnitOf(true, null),
               new DataTarget(new BoolFilter(false), Collections.singletonList("*"), null),
               null)) {
         Assertions.assertFalse(result.hasNext());
@@ -216,7 +218,7 @@ public abstract class AbstractHistoryDataTest {
       // query all data
       try (RowStream result =
           service.query(
-              new DataUnit(true, null),
+              newDataUnitOf(true, null),
               new DataTarget(null, Collections.singletonList("*"), null),
               null)) {
         Assertions.assertEquals(
@@ -239,7 +241,7 @@ public abstract class AbstractHistoryDataTest {
       // query overlap
       try (RowStream result =
           service.query(
-              new DataUnit(true, null),
+              newDataUnitOf(true, null),
               new DataTarget(null, Collections.singletonList("name"), null),
               null)) {
         Assertions.assertEquals(

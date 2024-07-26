@@ -106,7 +106,7 @@ public class StorageService implements Service {
     }
   }
 
-  private static DataUnit newDataUnitOf(boolean dummy, @Nullable String name) {
+  static DataUnit newDataUnitOf(boolean dummy, @Nullable String name) {
     DataUnit unit = new DataUnit(dummy);
     unit.setName(name);
     return unit;
