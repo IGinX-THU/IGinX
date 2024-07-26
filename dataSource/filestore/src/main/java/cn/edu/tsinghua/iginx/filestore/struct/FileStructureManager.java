@@ -41,13 +41,11 @@ public class FileStructureManager {
 
   private FileStructureManager() {
     this.structures = new ConcurrentHashMap<>();
-    loadSpi(getClass().getClassLoader());
+    loadSpi();
   }
 
-  private void loadSpi(ClassLoader classLoader) {
-    LOGGER.debug("Loading FileStructure SPIs from classloader {}", classLoader);
-    ServiceLoader<FileStructure> serviceLoader =
-        ServiceLoader.load(FileStructure.class, classLoader);
+  private void loadSpi() {
+    ServiceLoader<FileStructure> serviceLoader = ServiceLoader.load(FileStructure.class);
     for (FileStructure spi : serviceLoader) {
       LOGGER.debug("Discovered FileStructure {}", spi);
       FileStructure replaced = register(spi);
