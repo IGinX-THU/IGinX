@@ -22,10 +22,9 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class PathFromPart implements FromPart {
 
@@ -53,10 +52,8 @@ public class PathFromPart implements FromPart {
   }
 
   @Override
-  public Map<String, String> getAliasMap() {
-    Map<String, String> aliasMap = new HashMap<>();
-    aliasMap.put(path + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX);
-    return aliasMap;
+  public List<Pair<String, String>> getAliasList() {
+    return Collections.singletonList(new Pair<>(path + ALL_PATH_SUFFIX, alias + ALL_PATH_SUFFIX));
   }
 
   @Override

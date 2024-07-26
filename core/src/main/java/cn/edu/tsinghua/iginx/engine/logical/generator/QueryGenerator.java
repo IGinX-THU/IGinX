@@ -113,7 +113,7 @@ public class QueryGenerator extends AbstractGenerator {
         .forEach(
             cte -> {
               Operator root = generateRoot(cte.getStatement());
-              root = new Rename(new OperatorSource(root), cte.getAliasMap());
+              root = new Rename(new OperatorSource(root), cte.getAliasList());
               cte.setRoot(root);
             });
     return generateRoot(selectStatement);
@@ -382,7 +382,7 @@ public class QueryGenerator extends AbstractGenerator {
         throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
     }
     if (fromPart.hasAlias()) {
-      root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+      root = new Rename(new OperatorSource(root), fromPart.getAliasList());
     }
     return root;
   }
@@ -437,7 +437,7 @@ public class QueryGenerator extends AbstractGenerator {
                   throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
               }
               if (fromPart.hasAlias()) {
-                root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+                root = new Rename(new OperatorSource(root), fromPart.getAliasList());
               }
               joinList.add(root);
             });
@@ -797,16 +797,16 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /**
-   * 如果SelectStatement有AliasMap, 在root之上构建一个Rename操作符
+   * 如果SelectStatement有AliasList, 在root之上构建一个Rename操作符
    *
    * @param selectStatement Select上下文
    * @param root 当前根节点
-   * @return 添加了Rename操作符的根节点；如果没有AliasMap，返回原根节点
+   * @return 添加了Rename操作符的根节点；如果没有AliasList，返回原根节点
    */
   private static Operator buildRename(UnarySelectStatement selectStatement, Operator root) {
-    Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
-    if (!aliasMap.isEmpty()) {
-      root = new Rename(new OperatorSource(root), aliasMap);
+    List<Pair<String, String>> aliasList = selectStatement.getSelectAliasList();
+    if (!aliasList.isEmpty()) {
+      root = new Rename(new OperatorSource(root), aliasList);
     }
     return root;
   }
