@@ -17,6 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem;
 
+import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
+import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
+import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
@@ -31,6 +34,8 @@ import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
+import java.util.function.Predicate;
 
 @AutoService(FileStructure.class)
 public class LegacyFilesystem implements FileStructure {
@@ -99,13 +104,26 @@ public class LegacyFilesystem implements FileStructure {
     }
 
     public Map<String, String> getParams(Path path) {
+      Path checked = check(path);
       Map<String, String> finalParams = new HashMap<>(params);
-      Path absolutePath = path.toAbsolutePath();
+      Path absolutePath = checked.toAbsolutePath();
       finalParams.put(Constant.INIT_INFO_DUMMY_DIR, absolutePath.toString());
       if (!finalParams.containsKey(Constant.INIT_ROOT_PREFIX)) {
         finalParams.put(Constant.INIT_ROOT_PREFIX, absolutePath.getFileName().toString());
       }
       return Collections.unmodifiableMap(finalParams);
+    }
+
+    private static Path check(Path path) {
+      Predicate<String> ruleFilter = FilePermissionRuleNameFilters.filesystemRulesWithDefault();
+      FilePermissionManager.Checker checker =
+          FilePermissionManager.getInstance().getChecker(null, ruleFilter, FileAccessType.READ);
+
+      Optional<Path> checked = checker.normalize(path.toString());
+      if (!checked.isPresent()) {
+        throw new SecurityException("filesystem has no permission to access: " + path);
+      }
+      return checked.get();
     }
 
     @Override
