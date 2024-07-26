@@ -58,7 +58,8 @@ public class ClientObjectMappingUtils {
   }
 
   public static RawDataTarget constructRawDataTarget(DataTarget dataTarget) {
-    RawDataTarget rawDataTarget = new RawDataTarget(dataTarget.getPatterns());
+    RawDataTarget rawDataTarget = new RawDataTarget();
+    rawDataTarget.setPatterns(dataTarget.getPatterns());
     if (dataTarget.getFilter() != null) {
       rawDataTarget.setFilter(toRawFilter(dataTarget.getFilter()));
     }

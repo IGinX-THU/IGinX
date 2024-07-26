@@ -106,10 +106,16 @@ public class StorageService implements Service {
     }
   }
 
+  private static DataUnit newDataUnitOf(boolean dummy, @Nullable String name) {
+    DataUnit unit = new DataUnit(dummy);
+    unit.setName(name);
+    return unit;
+  }
+
   private void initManager() throws IOException {
     if (dataConfig != null) {
       for (String unitName : getUnitsIn(Paths.get(dataConfig.getRoot()))) {
-        getOrCreateManager(new DataUnit(false, unitName));
+        getOrCreateManager(newDataUnitOf(false, unitName));
       }
     }
 
@@ -118,14 +124,14 @@ public class StorageService implements Service {
         TreeMap<DataUnit, FileManager> dummyManagers =
             new TreeMap<>(Comparator.comparing(DataUnit::getName));
         for (String unitName : getUnitsIn(Paths.get(dummyConfig.getRoot()))) {
-          DataUnit unit = new DataUnit(true, unitName);
+          DataUnit unit = newDataUnitOf(true, unitName);
           FileManager manager = getOrCreateManager(unit);
           dummyManagers.put(unit, manager);
         }
         FileManager mergedDummyManager = new UnitsMerger(new ArrayList<>(dummyManagers.values()));
-        managers.put(new DataUnit(true, null), mergedDummyManager);
+        managers.put(newDataUnitOf(true, null), mergedDummyManager);
       } else {
-        getOrCreateManager(new DataUnit(true, null));
+        getOrCreateManager(newDataUnitOf(true, null));
       }
     }
   }
