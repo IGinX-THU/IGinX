@@ -43,6 +43,8 @@ import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreService;
 import cn.edu.tsinghua.iginx.filestore.service.storage.StorageConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
+import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
+import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
@@ -70,20 +72,23 @@ public class FileStorage implements IStorage {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
 
-  private final InetSocketAddress address;
-
   private final FileStoreService service;
 
   private final FileStoreConfig fileStoreConfig;
 
   private final ExecutorService executor = Executors.newCachedThreadPool();
 
+  static {
+    Collection<FileStructure> structures = FileStructureManager.getInstance().getAll();
+    LOGGER.info("found file structures: {}", structures);
+  }
+
   public FileStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(StorageEngineType.filestore)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
 
-    this.address = new InetSocketAddress(meta.getIp(), meta.getPort());
+    InetSocketAddress address = new InetSocketAddress(meta.getIp(), meta.getPort());
     this.fileStoreConfig = toFileStoreConfig(meta);
     try {
       this.service = new FileStoreService(address, fileStoreConfig);

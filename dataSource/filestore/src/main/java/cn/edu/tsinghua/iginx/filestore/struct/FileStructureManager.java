@@ -41,11 +41,12 @@ public class FileStructureManager {
 
   private FileStructureManager() {
     this.structures = new ConcurrentHashMap<>();
-    loadSpi();
+    // TODO: modify driver classloader to use Thread.currentThread().getContextClassLoader()
+    loadSpi(FileStructureManager.class.getClassLoader());
   }
 
-  private void loadSpi() {
-    ServiceLoader<FileStructure> serviceLoader = ServiceLoader.load(FileStructure.class);
+  private void loadSpi(ClassLoader loader) {
+    ServiceLoader<FileStructure> serviceLoader = ServiceLoader.load(FileStructure.class,loader);
     for (FileStructure spi : serviceLoader) {
       LOGGER.debug("Discovered FileStructure {}", spi);
       FileStructure replaced = register(spi);
