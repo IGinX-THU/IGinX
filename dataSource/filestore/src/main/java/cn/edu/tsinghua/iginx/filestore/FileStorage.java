@@ -118,6 +118,9 @@ public class FileStorage implements IStorage {
       }
     }
 
+    reshapedParams.put("data.root", meta.getExtraParams().get("dir"));
+    reshapedParams.put("dummy.root", meta.getExtraParams().get("dummy_dir"));
+
     boolean local = isLocal(meta);
     reshapedParams.put("server", String.valueOf(local));
 

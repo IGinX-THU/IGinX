@@ -30,9 +30,9 @@ sed -i"" "s/#iginx_port=6888#/#iginx_port=$2#/g" $7
 
 sed -i"" "s/enablePushDown=true/enablePushDown=false/g" $7
 
-sed -i"" "s#dummy.root=dummy#dummy.root=$3#g" $7
+sed -i"" "s#dummy_dir=dummy#dummy_dir=$3#g" $7
 
-sed -i"" "s#data.root=data#data.root=$4#g" $7
+sed -i"" "s#dir=data#dir=$4#g" $7
 
 sed -i"" "s/#has_data=false#/#has_data=$5#/g" $7
 

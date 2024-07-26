@@ -218,8 +218,8 @@ runs:
               statements: |
                   s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#6667#filestore/g
                   s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
-                  s#dummy.root=dummy#dummy.root=test/mn#g
-                  s#data.root=data#data.root=test/iginx_mn#g
+                  s#dummy_dir=dummy#dummy_dir=test/mn#g
+                  s#dir=data#dir=test/iginx_mn#g
                   s/chunk_size_in_bytes=1048576/chunk_size_in_bytes=8/g
                   s/write.buffer.size=104857600/write.buffer.size=1048576/g
                   s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g
