@@ -19,6 +19,9 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.net.URL;
 import java.net.URLClassLoader;
@@ -28,14 +31,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class DriverClassLoader extends URLClassLoader {
+public class StorageEngineClassLoader extends URLClassLoader {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(DriverClassLoader.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(StorageEngineClassLoader.class);
 
-  public static DriverClassLoader of(String engineName) throws IOException {
+  public static StorageEngineClassLoader of(String engineName) throws IOException {
     Path path = Paths.get(EnvUtils.loadEnv(Constants.DRIVER, Constants.DRIVER_DIR), engineName);
     List<URL> urls = new ArrayList<>();
     urls.add(path.toUri().toURL());
@@ -48,10 +49,22 @@ public class DriverClassLoader extends URLClassLoader {
         }
       }
     }
-    return new DriverClassLoader(urls.toArray(new URL[0]));
+    return new StorageEngineClassLoader(urls.toArray(new URL[0]));
   }
 
-  public DriverClassLoader(URL[] urls) {
+  public StorageEngineClassLoader(URL[] urls) {
     super(urls);
+  }
+
+  @Override
+  protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
+    Class<?> clazz = findClass(name);
+    if (clazz != null) {
+      if (resolve) {
+        resolveClass(clazz);
+      }
+      return clazz;
+    }
+    return super.loadClass(name, resolve);
   }
 }
