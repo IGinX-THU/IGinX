@@ -61,15 +61,19 @@ public class StorageEngineClassLoader extends URLClassLoader {
   @Override
   protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
     synchronized (getClassLoadingLock(name)) {
-      try {
-        Class<?> clazz = findClass(name);
-        if (resolve) {
-          resolveClass(clazz);
-        }
+      Class<?> clazz = findLoadedClass(name);
+      if (clazz != null) {
         return clazz;
+      }
+      try {
+        clazz = findClass(name);
       } catch (ClassNotFoundException e) {
         return super.loadClass(name, resolve);
       }
+      if (resolve) {
+        resolveClass(clazz);
+      }
+      return clazz;
     }
   }
 
