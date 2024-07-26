@@ -208,7 +208,7 @@ public class StorageManager {
       LOGGER.error("load class {} for engine {} failure: {}", driver, engine, e);
       return null;
     } catch (Exception e) {
-      LOGGER.error("add storage {} failure!", meta);
+      LOGGER.error("add storage {} failure!", meta, e);
       return null;
     }
   }
