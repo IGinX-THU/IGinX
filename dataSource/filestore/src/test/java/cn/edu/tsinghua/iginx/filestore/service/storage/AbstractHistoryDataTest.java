@@ -84,9 +84,9 @@ public abstract class AbstractHistoryDataTest {
             Arrays.asList("name", "phone"),
             Arrays.asList(Collections.singletonMap("language", "en"), Collections.emptyMap()),
             Arrays.asList(DataType.BINARY, DataType.LONG),
-            new Object[] {
+            Arrays.asList(
               new Object[] {"Bob".getBytes(), 1234567L}, new Object[] {"Alice".getBytes(), 2345678L}
-            });
+            ));
     try (StorageService service = newHistoryService()) {
       service.insert(unit, data);
     }
@@ -147,10 +147,10 @@ public abstract class AbstractHistoryDataTest {
               Arrays.asList("address", "year"),
               null,
               Arrays.asList(DataType.BINARY, DataType.INTEGER),
-              new Object[] {
+              Arrays.asList(
                 new Object[] {"Beijing".getBytes(), 2021},
                 new Object[] {"Shanghai".getBytes(), 2022}
-              });
+              ));
       dataMap.put(unit, data);
     }
     {
@@ -161,10 +161,10 @@ public abstract class AbstractHistoryDataTest {
               Arrays.asList("name", "phone"),
               Arrays.asList(Collections.singletonMap("language", "en"), Collections.emptyMap()),
               Arrays.asList(DataType.BINARY, DataType.LONG),
-              new Object[] {
+              Arrays.asList(
                 new Object[] {"Charlie".getBytes(), 3456789L},
                 new Object[] {"David".getBytes(), 4567890L}
-              });
+              ));
       dataMap.put(unit, data);
     }
     {
@@ -175,10 +175,10 @@ public abstract class AbstractHistoryDataTest {
               Arrays.asList("name", "phone"),
               Arrays.asList(Collections.singletonMap("language", "en"), Collections.emptyMap()),
               Arrays.asList(DataType.BINARY, DataType.LONG),
-              new Object[] {
+              Arrays.asList(
                 new Object[] {"Eve".getBytes(), 5678901L},
                 new Object[] {"Frank".getBytes(), 6789012L}
-              });
+              ));
       dataMap.put(unit, data);
     }
     try (StorageService service = newHistoryService()) {

@@ -69,6 +69,7 @@ public class Server implements AutoCloseable {
             .protocolFactory(new TBinaryProtocol.Factory());
     this.server = new TThreadPoolServer(args);
     this.serverThread = new Thread(server::serve, "FileStoreServer(" + address + ")");
+    serverThread.start();
   }
 
   @Override

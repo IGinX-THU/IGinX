@@ -19,7 +19,7 @@ public class DataViewGenerator {
       List<String> pathList,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
-      Object[] valuesList) {
+      List<Object[]> valuesList) {
     // sort path by dictionary
     List<String> sortedPaths = new ArrayList<>(pathList);
     Integer[] index = new Integer[sortedPaths.size()];
@@ -30,12 +30,12 @@ public class DataViewGenerator {
     Collections.sort(sortedPaths);
     List<DataType> sortedDataTypeList = new ArrayList<>();
     List<Map<String, String>> sortedTagsList = new ArrayList<>();
-    for (int i = 0; i < valuesList.length; i++) {
+    for (int i = 0; i < valuesList.size(); i++) {
       Object[] values = new Object[index.length];
       for (int j = 0; j < index.length; j++) {
-        values[j] = ((Object[]) valuesList[i])[index[j]];
+        values[j] = (valuesList.get(i))[index[j]];
       }
-      valuesList[i] = values;
+      valuesList.set(i, values);
     }
     for (Integer i : index) {
       sortedDataTypeList.add(dataTypeList.get(i));
@@ -71,11 +71,11 @@ public class DataViewGenerator {
             sortedPaths,
             sortedTagsList,
             keys,
-            valuesList,
+            valuesList.toArray(),
             sortedDataTypeList,
             bitmapList,
             RawDataType.Row);
 
-    return new RowDataView(rawData, 0, sortedPaths.size(), 0, valuesList.length);
+    return new RowDataView(rawData, 0, sortedPaths.size(), 0, valuesList.size());
   }
 }
