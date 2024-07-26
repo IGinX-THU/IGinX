@@ -19,116 +19,77 @@ package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.Constants;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URL;
+import java.net.URLClassLoader;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StorageEngineClassLoader extends ClassLoader {
+public class StorageEngineClassLoader extends URLClassLoader {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StorageEngineClassLoader.class);
 
-  private final File[] Jars;
-
-  private final Map<String, File> nameToJar;
-
-  private final Map<String, Class<?>> classMap = new ConcurrentHashMap<>();
-
-  public StorageEngineClassLoader(String path) throws IOException {
-    File dir = new File(EnvUtils.loadEnv(Constants.DRIVER, Constants.DRIVER_DIR), path);
-    this.Jars = dir.listFiles(f -> f.isFile() && f.getName().endsWith(".jar"));
-    this.nameToJar = new HashMap<>();
-    preloadClassNames();
+  static {
+    ClassLoader.registerAsParallelCapable();
   }
 
-  private void preloadClassNames() throws IOException {
-    if (Jars == null) {
-      return; // Instantiation of unused driver ClassLoader is not an error
-    }
-    for (File jar : Jars) {
-      try (JarFile jarFile = new JarFile(jar)) {
-        jarFile.stream()
-            .map(JarEntry::getName)
-            .filter(name -> name.endsWith(".class"))
-            .map(classFileName -> classFileName.replace(".class", "").replace('/', '.'))
-            .forEach(className -> nameToJar.put(className, jar));
+  public static StorageEngineClassLoader of(String engineName) throws IOException {
+    Path path = Paths.get(EnvUtils.loadEnv(Constants.DRIVER, Constants.DRIVER_DIR), engineName);
+    List<URL> urls = new ArrayList<>();
+    urls.add(path.toUri().toURL());
+    // Load all jar files in the driver directory
+    if (Files.isDirectory(path)) {
+      try (DirectoryStream<Path> stream = Files.newDirectoryStream(path, "*.jar")) {
+        for (Path jar : stream) {
+          LOGGER.debug("register jar for driver {}: {}", engineName, jar);
+          urls.add(jar.toUri().toURL());
+        }
       }
     }
+    return new StorageEngineClassLoader(urls.toArray(new URL[0]));
+  }
+
+  public StorageEngineClassLoader(URL[] urls) {
+    super(urls);
   }
 
   @Override
   protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-    if (classMap.containsKey(name)) {
-      return classMap.get(name);
-    }
-
-    Class<?> clazz = findClass(name);
-    if (clazz != null) {
-      if (resolve) {
-        resolveClass(clazz);
-      }
-    } else {
-      clazz = super.loadClass(name, resolve);
-    }
-    classMap.put(name, clazz);
-    return clazz;
-  }
-
-  @Override
-  protected Class<?> findClass(String name) throws ClassNotFoundException {
-    File jar = nameToJar.get(name);
-    if (jar == null) {
-      return null;
-    }
-    try (JarFile jarFile = new JarFile(jar)) {
-      String classFileName = name.replace('.', '/') + ".class";
-      try (InputStream is = jarFile.getInputStream(jarFile.getEntry(classFileName))) {
-        // Since Java 9, there are readAllBytes and transferTo
-        // However, we need to be compatible with Java 8
-        ByteArrayOutputStream os =
-            new ByteArrayOutputStream(); // Note: Closing a ByteArrayOutputStream has no
-        // effect
-        byte[] buffer = new byte[8192];
-        int read;
-        while ((read = is.read(buffer)) >= 0) {
-          os.write(buffer, 0, read);
+    synchronized (getClassLoadingLock(name)) {
+      try {
+        Class<?> clazz = findClass(name);
+        if (resolve) {
+          resolveClass(clazz);
         }
-        byte[] b = os.toByteArray();
-        return defineClass(name, b, 0, b.length);
+        return clazz;
+      } catch (ClassNotFoundException e) {
+        return super.loadClass(name, resolve);
       }
-    } catch (IOException e) {
-      LOGGER.error("unexpected error: ", e);
     }
-    return null;
   }
 
   @Override
   public URL getResource(String name) {
-    URL res = findResource(name);
-    if (res != null) {
-      return res;
+    URL url = findResource(name);
+    if (url == null) {
+      url = super.getResource(name);
     }
-    return super.getResource(name);
+    return url;
   }
 
-  @Override
-  protected URL findResource(String name) {
-    for (File jar : Jars) {
-      try (JarFile jarFile = new JarFile(jar)) {
-        if (jarFile.getJarEntry(name) != null) {
-          return new URL("jar:" + jar.toURI().toURL().toString() + "!/" + name);
-        }
-      } catch (IOException e) {
-        LOGGER.error("unexpected error: ", e);
-      }
+  public Enumeration<URL> getResources(String name) throws IOException {
+    Enumeration<URL> resources = super.getResources(name);
+    // reverse the order of the URLs
+    List<URL> list = new ArrayList<>();
+    while (resources.hasMoreElements()) {
+      list.add(resources.nextElement());
     }
-    return null;
+    Collections.reverse(list);
+    return Collections.enumeration(list);
   }
 }

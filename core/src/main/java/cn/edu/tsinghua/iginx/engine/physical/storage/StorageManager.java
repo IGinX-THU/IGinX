@@ -157,7 +157,7 @@ public class StorageManager {
       String storage = kAndV[0];
       String driver = kAndV[1];
       try {
-        ClassLoader classLoader = new StorageEngineClassLoader(storage);
+        ClassLoader classLoader = StorageEngineClassLoader.of(storage);
         StorageEngineType type = StorageEngineType.valueOf(storage.toLowerCase());
         classLoaders.put(type, classLoader);
         drivers.put(type, driver);
