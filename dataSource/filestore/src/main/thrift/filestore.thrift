@@ -33,7 +33,7 @@ exception RpcException {
 
 struct DataUnit {
     1: required bool dummy
-    2: required string name
+    2: optional string name
 }
 
 struct DataBoundary {
@@ -44,7 +44,7 @@ struct DataBoundary {
 }
 
 struct RawDataTarget {
-    1: required list<string> patterns
+    1: optional list<string> patterns
     2: optional core.RawTagFilter tagFilter
     3: optional core.RawFilter filter
 }
