@@ -34,7 +34,7 @@ public class ClientConfig extends AbstractConfig {
 
   @Optional Duration socketTimeout = Duration.ZERO;
   @Optional Duration connectTimeout = Duration.ZERO;
-  TTransportPoolConfig connectPool;
+  @Optional TTransportPoolConfig connectPool = new TTransportPoolConfig();
 
   @Override
   public List<ValidationProblem> validate() {

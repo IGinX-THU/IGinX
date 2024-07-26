@@ -34,11 +34,11 @@ public class FileStoreConfig extends AbstractConfig {
 
   boolean server;
 
-  @Optional ClientConfig client;
+  @Optional ClientConfig client = new ClientConfig();
 
-  @Optional StorageConfig data;
+  @Optional StorageConfig data = null;
 
-  @Optional StorageConfig dummy;
+  @Optional StorageConfig dummy = null;
 
   @Override
   public List<ValidationProblem> validate() {
