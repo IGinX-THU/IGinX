@@ -48,11 +48,10 @@ public class DriverClassLoader extends URLClassLoader {
         }
       }
     }
-    return new DriverClassLoader(
-        urls.toArray(new URL[0]), DriverClassLoader.class.getClassLoader());
+    return new DriverClassLoader(urls.toArray(new URL[0]));
   }
 
-  public DriverClassLoader(URL[] urls, ClassLoader classLoader) {
-    super(urls, classLoader);
+  public DriverClassLoader(URL[] urls) {
+    super(urls);
   }
 }
