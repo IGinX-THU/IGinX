@@ -59,10 +59,12 @@ public class YAMLReader {
     String exportType = "(?i)exportType";
     String exportFile = "(?i)exportFile";
     String exportNameList = "(?i)exportNameList";
+    String schedule = "(?i)schedule";
 
     conf = conf.replaceAll(exportType, "exportType");
     conf = conf.replaceAll(exportFile, "exportFile");
     conf = conf.replaceAll(exportNameList, "exportNameList");
+    conf = conf.replaceAll(schedule, "schedule");
 
     return conf;
   }

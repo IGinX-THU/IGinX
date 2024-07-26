@@ -396,17 +396,17 @@ Below is a short tutorial on how to use it.
 
 ### RPC Interface
 
-Since the IGinX 0.5.1 version has not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
+Since the IGinX jars have not been released to the Maven central repository, if you want to use it, you need to manually install it to the local Maven repository.
 
 The specific installation method is as follows:
 
 ```shell
-# download iginx 0.4 release version source code package
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# download the newest iginx release version source code package
+$ wget https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-FastDeploy-0.7.0.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # go to the main project's directory
-$ cd IGinX-rc-v0.5.1
+$ cd IGinX-rc-v0.7.0
 # Install to local Maven repository
 $ mvn clean install -DskipTests
 ```
@@ -417,7 +417,7 @@ Specifically, when using it, you only need to introduce the following dependenci
 <dependency>
     <groupId>cn.edu.tsinghua</groupId>
     <artifactId>iginx-core</artifactId>
-    <version>0.8.0-SNAPSHOT</version>
+    <version>0.7.0</version>
 </dependency>
 ```
 

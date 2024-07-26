@@ -111,4 +111,9 @@ public class FileAppendWriter extends ExportWriter {
       LOGGER.error("unexpected error: ", e);
     }
   }
+
+  @Override
+  public void reset() {
+    hasWriteHeader = false;
+  }
 }
