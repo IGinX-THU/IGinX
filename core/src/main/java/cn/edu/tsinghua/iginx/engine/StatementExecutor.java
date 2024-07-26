@@ -327,14 +327,15 @@ public class StatementExecutor {
         ((SystemStatement) statement).execute(ctx);
       }
     } catch (StatementExecutionException | PhysicalException | IOException e) {
+      LOGGER.debug("Execute Error: ", e);
       StatusCode statusCode = StatusCode.STATEMENT_EXECUTION_ERROR;
-      ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
+      ctx.setResult(new Result(RpcUtils.status(statusCode, e.toString())));
     } catch (Exception e) {
       LOGGER.error(
           "unexpected exception during dispatcher memory task, please contact developer to check: ",
           e);
       StatusCode statusCode = StatusCode.SYSTEM_ERROR;
-      ctx.setResult(new Result(RpcUtils.status(statusCode, e.getMessage())));
+      ctx.setResult(new Result(RpcUtils.status(statusCode, e.toString())));
     }
   }
 

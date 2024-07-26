@@ -92,7 +92,7 @@ public class RemoteService implements Service {
       handleRpcException("query", e);
       throw new IllegalStateException("unreachable");
     } catch (Exception e) {
-      throw new RemoteFileStoreException("failed to query", e);
+      throw new IllegalStateException("failed to query", e);
     }
   }
 
