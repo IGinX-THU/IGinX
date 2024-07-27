@@ -92,8 +92,6 @@ public class FileStorage implements IStorage {
     this.fileStoreConfig = toFileStoreConfig(meta);
     try {
       this.service = new FileStoreService(address, fileStoreConfig);
-    } catch (TTransportException e) {
-      throw new StorageInitializationException("thrift transport error", e);
     } catch (FileStoreException e) {
       throw new StorageInitializationException("file store initialization error", e);
     }
