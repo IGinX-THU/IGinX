@@ -25,6 +25,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.auto.service.AutoService;
 import java.util.*;
 
@@ -67,13 +68,13 @@ public class FunctionDistinctEliminateRule extends Rule {
   public void onMatch(RuleCall call) {
     AbstractUnaryOperator unaryOperator = (AbstractUnaryOperator) call.getMatchedRoot();
     List<FunctionCall> functionCallList = getFunctionCallList(unaryOperator);
-    Map<String, String> renameMap = new HashMap<>();
+    List<Pair<String, String>> renameMap = new ArrayList<>();
 
     // 将函数中的distinct去掉
     for (FunctionCall functionCall : functionCallList) {
       String oldName = functionCall.getFunctionStr();
       functionCall.getParams().setDistinct(false);
-      renameMap.put(functionCall.getFunctionStr(), oldName);
+      renameMap.add(new Pair<>(functionCall.getFunctionStr(), oldName));
     }
 
     // 添加一个rename节点，将不带distinct的函数结果重命名为原来的函数名，否则显示与用户输入的SQL不一致
