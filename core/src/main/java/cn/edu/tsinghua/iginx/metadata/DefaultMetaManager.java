@@ -438,8 +438,11 @@ public class DefaultMetaManager implements IMetaManager {
   public boolean removeDummyStorageEngine(long storageEngineId) {
     try {
       storage.removeDummyStorageEngine(storageEngineId);
+      // release 对接层
+      for (StorageEngineChangeHook hook : storageEngineChangeHooks) {
+        hook.onChange(getStorageEngine(storageEngineId), null);
+      }
       return cache.removeDummyStorageEngine(storageEngineId);
-      // TODO 由于当前 StorageEngineChangeHook 和 StorageUnitHook 只会处理新增事件，因此不必调用相关 onChange 函数
     } catch (MetaStorageException e) {
       LOGGER.error("remove dummy storage engine {} error: ", storageEngineId, e);
     }

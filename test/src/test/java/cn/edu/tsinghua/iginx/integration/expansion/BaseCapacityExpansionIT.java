@@ -800,15 +800,15 @@ public abstract class BaseCapacityExpansionIT {
 
     if (this instanceof FileSystemCapacityExpansionIT) {
       if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/filesystem_macos.sh";
+        scriptPath = ".github/scripts/dataSources/startup/filesystem_macos.sh";
       } else {
-        scriptPath = ".github/scripts/dataSources/filesystem_linux_windows.sh";
+        scriptPath = ".github/scripts/dataSources/startup/filesystem_linux_windows.sh";
       }
     } else if (this instanceof ParquetCapacityExpansionIT) {
       if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/parquet_macos.sh";
+        scriptPath = ".github/scripts/dataSources/startup/parquet_macos.sh";
       } else {
-        scriptPath = ".github/scripts/dataSources/parquet_linux_windows.sh";
+        scriptPath = ".github/scripts/dataSources/startup/parquet_linux_windows.sh";
       }
     } else {
       throw new IllegalStateException("Only support file system and parquet");
