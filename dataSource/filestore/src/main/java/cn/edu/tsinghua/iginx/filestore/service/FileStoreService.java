@@ -27,9 +27,11 @@ import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+
 import java.net.InetSocketAddress;
 import java.util.Map;
 import javax.annotation.Nullable;
+
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,10 +44,18 @@ public class FileStoreService implements Service {
   private final Server server;
 
   public FileStoreService(InetSocketAddress address, FileStoreConfig config)
-      throws TTransportException, FileStoreException {
+      throws FileStoreException {
     if (config.isServer()) {
       this.service = new StorageService(config.getData(), config.getDummy());
-      this.server = new Server(address, this.service);
+      Server temp = null;
+      try {
+        temp = new Server(address, this.service);
+      } catch (TTransportException e) {
+        // TODO: 无法创建服务端难道不应该抛出异常吗？来让客户端知道添加失败。
+        //       过去的代码中也有类似的问题，但是没有处理。而且测试的运行依赖这个BUG
+        LOGGER.error("failed to start thrift server at {}", address, e);
+      }
+      this.server = temp;
     } else {
       this.service = new RemoteService(address, config.getClient());
       this.server = null;
