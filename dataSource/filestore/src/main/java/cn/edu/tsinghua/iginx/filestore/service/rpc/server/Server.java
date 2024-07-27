@@ -44,8 +44,6 @@ public class Server implements AutoCloseable {
 
   private final TServer server;
 
-  private final Thread serverThread;
-
   public Server(InetSocketAddress address, Service service) throws TTransportException {
     LOGGER.info("starting thrift server at {}", address);
     this.serverTransport = new TServerSocket(address);
@@ -68,8 +66,7 @@ public class Server implements AutoCloseable {
             .executorService(executorService)
             .protocolFactory(new TBinaryProtocol.Factory());
     this.server = new TThreadPoolServer(args);
-    this.serverThread = new Thread(server::serve, "FileStoreServer(" + address + ")");
-    serverThread.start();
+    new Thread(server::serve, "FileStoreServer(" + address + ")").start();
   }
 
   @Override
