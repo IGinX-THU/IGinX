@@ -22,30 +22,30 @@ set -e
 
 cp -f conf/config.properties.bak $7
 
-sed -i"" "s/^storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/" $7
+sed -i"" -e "s/^storageEngineList=127.0.0.1#6667#iotdb12/#storageEngineList=127.0.0.1#6667#iotdb12/" $7
 
-sed -i"" "s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#$1#filestore/g" $7
+sed -i"" -e "s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#$1#filestore/g" $7
 
-sed -i"" "s/#iginx_port=6888#/#iginx_port=$2#/g" $7
+sed -i"" -e "s/#iginx_port=6888#/#iginx_port=$2#/g" $7
 
-sed -i"" "s/enablePushDown=true/enablePushDown=false/g" $7
+sed -i"" -e "s/enablePushDown=true/enablePushDown=false/g" $7
 
-sed -i"" "s#dummy_dir=dummy#dummy_dir=$3#g" $7
+sed -i"" -e "s#dummy_dir=dummy#dummy_dir=$3#g" $7
 
-sed -i"" "s#dir=data#dir=$4#g" $7
+sed -i"" -e "s#dir=data#dir=$4#g" $7
 
-sed -i"" "s/#has_data=false#/#has_data=$5#/g" $7
+sed -i"" -e "s/#has_data=false#/#has_data=$5#/g" $7
 
-sed -i"" "s/#is_read_only=false/#is_read_only=$6/g" $7
+sed -i"" -e "s/#is_read_only=false/#is_read_only=$6/g" $7
 
-sed -i"" "s#chunk_size_in_bytes=1048576#chunk_size_in_bytes=8#g" $7
+sed -i"" -e "s#chunk_size_in_bytes=1048576#chunk_size_in_bytes=8#g" $7
 
-sed -i"" "s/write.buffer.size=104857600/write.buffer.size=1048576/g" $7
+sed -i"" -e "s/write.buffer.size=104857600/write.buffer.size=1048576/g" $7
 
-sed -i"" "s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g" $7
+sed -i"" -e "s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g" $7
 
 if [ "$8" = "etcd" ]; then
-  sed -i"" 's/^metaStorage=.*$/metaStorage=etcd/g' $7
-  sed -i"" 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' $7
-  sed -i"" 's/^#etcdEndpoints=/etcdEndpoints=/g' $7
+  sed -i"" -e 's/^metaStorage=.*$/metaStorage=etcd/g' $7
+  sed -i"" -e 's/^zookeeperConnectionString=/#zookeeperConnectionString=/g' $7
+  sed -i"" -e 's/^#etcdEndpoints=/etcdEndpoints=/g' $7
 fi
