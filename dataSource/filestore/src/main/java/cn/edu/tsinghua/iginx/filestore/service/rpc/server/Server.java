@@ -79,6 +79,5 @@ public class Server implements AutoCloseable {
         serverTransport.getServerSocket().getLocalSocketAddress());
     server.stop();
     serverTransport.close();
-    serverThread.interrupt();
   }
 }
