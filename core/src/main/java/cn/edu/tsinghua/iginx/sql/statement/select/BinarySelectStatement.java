@@ -20,10 +20,10 @@ package cn.edu.tsinghua.iginx.sql.statement.select;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public class BinarySelectStatement extends SelectStatement {
@@ -93,7 +93,7 @@ public class BinarySelectStatement extends SelectStatement {
   }
 
   @Override
-  public Map<String, String> getSubQueryAliasMap(String alias) {
-    return leftQuery.getSubQueryAliasMap(alias);
+  public List<Pair<String, String>> getSubQueryAliasList(String alias) {
+    return leftQuery.getSubQueryAliasList(alias);
   }
 }

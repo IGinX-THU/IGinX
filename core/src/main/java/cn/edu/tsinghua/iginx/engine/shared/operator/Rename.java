@@ -20,32 +20,31 @@ package cn.edu.tsinghua.iginx.engine.shared.operator;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class Rename extends AbstractUnaryOperator {
 
-  private final Map<String, String> aliasMap;
+  private final List<Pair<String, String>> aliasList;
 
   private final List<String> ignorePatterns; // 不进行重命名的列
 
-  public Rename(Source source, Map<String, String> aliasMap) {
-    this(source, aliasMap, new ArrayList<>());
+  public Rename(Source source, List<Pair<String, String>> aliasList) {
+    this(source, aliasList, new ArrayList<>());
   }
 
-  public Rename(Source source, Map<String, String> aliasMap, List<String> ignorePatterns) {
+  public Rename(Source source, List<Pair<String, String>> aliasList, List<String> ignorePatterns) {
     super(OperatorType.Rename, source);
-    if (aliasMap == null) {
-      throw new IllegalArgumentException("aliasMap shouldn't be null");
+    if (aliasList == null) {
+      throw new IllegalArgumentException("aliasList shouldn't be null");
     }
-    this.aliasMap = aliasMap;
+    this.aliasList = aliasList;
     this.ignorePatterns = ignorePatterns;
   }
 
-  public Map<String, String> getAliasMap() {
-    return aliasMap;
+  public List<Pair<String, String>> getAliasList() {
+    return aliasList;
   }
 
   public List<String> getIgnorePatterns() {
@@ -54,24 +53,23 @@ public class Rename extends AbstractUnaryOperator {
 
   @Override
   public Operator copy() {
-    return new Rename(getSource().copy(), new HashMap<>(aliasMap));
+    return new Rename(getSource().copy(), new ArrayList<>(aliasList));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new Rename(source, new HashMap<>(aliasMap));
+    return new Rename(source, new ArrayList<>(aliasList));
   }
 
   @Override
   public String getInfo() {
     StringBuilder builder = new StringBuilder();
-    builder.append("AliasMap: ");
-    aliasMap.forEach(
-        (k, v) -> builder.append("(").append(k).append(", ").append(v).append(")").append(","));
+    builder.append("AliasList: ");
+    aliasList.forEach(
+        p -> builder.append("(").append(p.k).append(", ").append(p.v).append(")").append(","));
     builder.deleteCharAt(builder.length() - 1);
     if (!ignorePatterns.isEmpty()) {
-      builder.append(", IgnorePatterns: ");
-      builder.append(ignorePatterns);
+      builder.append(", IgnorePatterns: ").append(ignorePatterns);
     }
     return builder.toString();
   }
@@ -85,6 +83,6 @@ public class Rename extends AbstractUnaryOperator {
       return false;
     }
     Rename rename = (Rename) object;
-    return aliasMap.equals(rename.aliasMap) && ignorePatterns.equals(rename.ignorePatterns);
+    return aliasList.equals(rename.aliasList) && ignorePatterns.equals(rename.ignorePatterns);
   }
 }
