@@ -32,7 +32,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreCapacityExpansionIT.class);
 
   public FileStoreCapacityExpansionIT() {
-    super(filestore, "chunk_size_in_bytes:8", new FileStoreHistoryDataGenerator());
+    super(filestore, "dummy.config.chunk_size_in_bytes:8", new FileStoreHistoryDataGenerator());
   }
 
   // skip this test
