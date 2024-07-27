@@ -35,10 +35,7 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -91,54 +88,60 @@ public class ClientObjectMappingUtils {
   }
 
   private static RawFilter toRawFilter(AndFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.And);
-    for (Filter f : filter.getChildren()) {
-      RawFilter.addToChildren(toRawFilter(f));
+    RawFilter raw = new RawFilter(RawFilterType.And);
+    if (filter.getChildren().isEmpty()) {
+      raw.setChildren(Collections.emptyList());
     }
-    return RawFilter;
+    for (Filter f : filter.getChildren()) {
+      raw.addToChildren(toRawFilter(f));
+    }
+    return raw;
   }
 
   private static RawFilter toRawFilter(PathFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Path);
-    RawFilter.setPathA(filter.getPathA());
-    RawFilter.setPathB(filter.getPathB());
-    RawFilter.setOp(toRawFilterOp(filter.getOp()));
-    return RawFilter;
+    RawFilter raw = new RawFilter(RawFilterType.Path);
+    raw.setPathA(filter.getPathA());
+    raw.setPathB(filter.getPathB());
+    raw.setOp(toRawFilterOp(filter.getOp()));
+    return raw;
   }
 
   private static RawFilter toRawFilter(OrFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Or);
-    for (Filter f : filter.getChildren()) {
-      RawFilter.addToChildren(toRawFilter(f));
+    RawFilter raw = new RawFilter(RawFilterType.Or);
+    if (filter.getChildren().isEmpty()) {
+      raw.setChildren(Collections.emptyList());
     }
-    return RawFilter;
+    for (Filter f : filter.getChildren()) {
+      raw.addToChildren(toRawFilter(f));
+    }
+    return raw;
   }
 
   private static RawFilter toRawFilter(NotFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Not);
-    RawFilter.addToChildren(toRawFilter(filter.getChild()));
-    return RawFilter;
+    RawFilter raw = new RawFilter(RawFilterType.Not);
+    raw.addToChildren(toRawFilter(filter.getChild()));
+    return raw;
   }
 
   private static RawFilter toRawFilter(KeyFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Key);
-    RawFilter.setOp(toRawFilterOp(filter.getOp()));
-    RawFilter.setKeyValue(filter.getValue());
-    return RawFilter;
+    RawFilter raw = new RawFilter(RawFilterType.Key);
+    raw.setOp(toRawFilterOp(filter.getOp()));
+    raw.setKeyValue(filter.getValue());
+    return raw;
   }
 
   private static RawFilter toRawFilter(ValueFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Value);
-    RawFilter.setValue(toRawValue(filter.getValue()));
-    RawFilter.setPath(filter.getPath());
-    RawFilter.setOp(toRawFilterOp(filter.getOp()));
-    return RawFilter;
+    RawFilter raw = new RawFilter(RawFilterType.Value);
+    raw.setValue(toRawValue(filter.getValue()));
+    raw.setPath(filter.getPath());
+    raw.setOp(toRawFilterOp(filter.getOp()));
+    return raw;
   }
 
   private static RawFilter toRawFilter(BoolFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Bool);
-    RawFilter.setIsTrue(filter.isTrue());
-    return RawFilter;
+    RawFilter raw = new RawFilter(RawFilterType.Bool);
+    raw.setIsTrue(filter.isTrue());
+    return raw;
   }
 
   private static RawFilterOp toRawFilterOp(Op op) {
@@ -177,29 +180,29 @@ public class ClientObjectMappingUtils {
   }
 
   private static RawValue toRawValue(cn.edu.tsinghua.iginx.engine.shared.data.Value value) {
-    RawValue RawValue = new RawValue();
-    RawValue.setDataType(value.getDataType());
+    RawValue raw = new RawValue();
+    raw.setDataType(value.getDataType());
     switch (value.getDataType()) {
       case FLOAT:
-        RawValue.setFloatV(value.getFloatV());
+        raw.setFloatV(value.getFloatV());
         break;
       case INTEGER:
-        RawValue.setIntV(value.getIntV());
+        raw.setIntV(value.getIntV());
         break;
       case BINARY:
-        RawValue.setBinaryV(value.getBinaryV());
+        raw.setBinaryV(value.getBinaryV());
         break;
       case BOOLEAN:
-        RawValue.setBoolV(value.getBoolV());
+        raw.setBoolV(value.getBoolV());
         break;
       case DOUBLE:
-        RawValue.setDoubleV(value.getDoubleV());
+        raw.setDoubleV(value.getDoubleV());
         break;
       case LONG:
-        RawValue.setLongV(value.getLongV());
+        raw.setLongV(value.getLongV());
         break;
     }
-    return RawValue;
+    return raw;
   }
 
   public static RawTagFilter constructRawTagFilter(TagFilter tagFilter) {

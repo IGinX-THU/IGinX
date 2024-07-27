@@ -34,10 +34,7 @@ public class Filters {
 
   private Filters() {}
 
-  public static Filter toFilter(@Nullable List<KeyRange> keyRanges) {
-    if (keyRanges == null) {
-      return new BoolFilter(true);
-    }
+  public static Filter toFilter(List<KeyRange> keyRanges) {
     List<Filter> rangeFilters = new ArrayList<>();
     for (KeyRange range : keyRanges) {
       Filter rangeFilter = toFilter(range);

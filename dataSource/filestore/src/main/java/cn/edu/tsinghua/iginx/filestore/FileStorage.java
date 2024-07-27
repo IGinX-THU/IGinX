@@ -232,13 +232,15 @@ public class FileStorage implements IStorage {
 
   @Override
   public TaskExecuteResult executeDelete(Delete delete, DataArea dataArea) {
+    Filter filter;
+    if (delete.getKeyRanges() == null || delete.getKeyRanges().isEmpty()) {
+      filter = null;
+    } else {
+      filter = Filters.toFilter(delete.getKeyRanges());
+    }
     try {
       service.delete(
-          unitOf(dataArea),
-          new DataTarget(
-              Filters.toFilter(delete.getKeyRanges()),
-              delete.getPatterns(),
-              delete.getTagFilter()));
+          unitOf(dataArea), new DataTarget(filter, delete.getPatterns(), delete.getTagFilter()));
       return new TaskExecuteResult();
     } catch (PhysicalException e) {
       return new TaskExecuteResult(e);
