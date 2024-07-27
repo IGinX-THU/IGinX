@@ -79,7 +79,7 @@ jobs:
             - name: Install IGinX with Maven
               shell: bash
               run: |
-                  mvn clean package -DskipTests -P-format
+                  mvn clean package -DskipTests -P-format -q
 
             - if: runner.os == 'Windows'
               name: Build & Run Client image
@@ -124,7 +124,7 @@ jobs:
             - name: Run Tests
               shell: bash
               run: |
-                  mvn test -Dtest=${FUNCTEST} -Dsurefire.failIfNoSpecifiedTests=false -P-format
+                  mvn test -q -Dtest=${FUNCTEST} -DfailIfNoTests=false -P-format
 
             - name: Show IGinX log
               if: always()
