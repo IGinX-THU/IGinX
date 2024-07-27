@@ -17,6 +17,8 @@
  */
 package cn.edu.tsinghua.iginx.filestore.service.storage;
 
+import static cn.edu.tsinghua.iginx.filestore.service.storage.StorageService.newDataUnitOf;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -42,8 +44,6 @@ import java.util.*;
 import org.junit.jupiter.api.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static cn.edu.tsinghua.iginx.filestore.service.storage.StorageService.newDataUnitOf;
 
 public abstract class AbstractHistoryDataTest {
 
@@ -102,8 +102,8 @@ public abstract class AbstractHistoryDataTest {
             Arrays.asList(Collections.singletonMap("language", "en"), Collections.emptyMap()),
             Arrays.asList(DataType.BINARY, DataType.LONG),
             Arrays.asList(
-              new Object[] {"Bob".getBytes(), 1234567L}, new Object[] {"Alice".getBytes(), 2345678L}
-            ));
+                new Object[] {"Bob".getBytes(), 1234567L},
+                new Object[] {"Alice".getBytes(), 2345678L}));
     try (StorageService service = newHistoryService()) {
       service.insert(unit, data);
     }
@@ -165,9 +165,8 @@ public abstract class AbstractHistoryDataTest {
               null,
               Arrays.asList(DataType.BINARY, DataType.INTEGER),
               Arrays.asList(
-                new Object[] {"Beijing".getBytes(), 2021},
-                new Object[] {"Shanghai".getBytes(), 2022}
-              ));
+                  new Object[] {"Beijing".getBytes(), 2021},
+                  new Object[] {"Shanghai".getBytes(), 2022}));
       dataMap.put(unit, data);
     }
     {
@@ -179,9 +178,8 @@ public abstract class AbstractHistoryDataTest {
               Arrays.asList(Collections.singletonMap("language", "en"), Collections.emptyMap()),
               Arrays.asList(DataType.BINARY, DataType.LONG),
               Arrays.asList(
-                new Object[] {"Charlie".getBytes(), 3456789L},
-                new Object[] {"David".getBytes(), 4567890L}
-              ));
+                  new Object[] {"Charlie".getBytes(), 3456789L},
+                  new Object[] {"David".getBytes(), 4567890L}));
       dataMap.put(unit, data);
     }
     {
@@ -193,9 +191,8 @@ public abstract class AbstractHistoryDataTest {
               Arrays.asList(Collections.singletonMap("language", "en"), Collections.emptyMap()),
               Arrays.asList(DataType.BINARY, DataType.LONG),
               Arrays.asList(
-                new Object[] {"Eve".getBytes(), 5678901L},
-                new Object[] {"Frank".getBytes(), 6789012L}
-              ));
+                  new Object[] {"Eve".getBytes(), 5678901L},
+                  new Object[] {"Frank".getBytes(), 6789012L}));
       dataMap.put(unit, data);
     }
     try (StorageService service = newHistoryService()) {

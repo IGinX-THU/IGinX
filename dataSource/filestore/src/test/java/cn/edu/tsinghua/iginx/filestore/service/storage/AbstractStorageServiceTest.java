@@ -17,13 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.filestore.service.storage;
 
-import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.service.AbstractServiceTest;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import com.typesafe.config.Config;
-import org.apache.thrift.transport.TTransportException;
-
 import java.nio.file.Paths;
 import java.util.UUID;
 
@@ -62,5 +59,4 @@ public abstract class AbstractStorageServiceTest extends AbstractServiceTest {
       service = null;
     }
   }
-
 }

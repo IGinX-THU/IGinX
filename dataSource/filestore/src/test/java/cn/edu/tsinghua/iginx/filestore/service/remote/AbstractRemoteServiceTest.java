@@ -23,7 +23,6 @@ import cn.edu.tsinghua.iginx.filestore.service.rpc.client.RemoteService;
 import cn.edu.tsinghua.iginx.filestore.service.rpc.server.Server;
 import cn.edu.tsinghua.iginx.filestore.service.storage.AbstractStorageServiceTest;
 import com.typesafe.config.Config;
-
 import java.net.InetSocketAddress;
 import java.util.Random;
 
@@ -41,8 +40,8 @@ public class AbstractRemoteServiceTest extends AbstractStorageServiceTest {
 
   @Override
   protected Service getService() throws Exception {
-    if(service == null) {
-      server = new Server(address,super.getService());
+    if (service == null) {
+      server = new Server(address, super.getService());
       service = new RemoteService(address, new ClientConfig());
     }
     return service;
@@ -51,7 +50,7 @@ public class AbstractRemoteServiceTest extends AbstractStorageServiceTest {
   @Override
   public void tearDown() throws Exception {
     super.tearDown();
-    if(service!=null){
+    if (service != null) {
       service.close();
       server.close();
       service = null;

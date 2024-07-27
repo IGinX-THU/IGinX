@@ -46,7 +46,7 @@ public class FileStructureManager {
   }
 
   private void loadSpi(ClassLoader loader) {
-    ServiceLoader<FileStructure> serviceLoader = ServiceLoader.load(FileStructure.class,loader);
+    ServiceLoader<FileStructure> serviceLoader = ServiceLoader.load(FileStructure.class, loader);
     for (FileStructure spi : serviceLoader) {
       LOGGER.debug("Discovered FileStructure {}", spi);
       FileStructure replaced = register(spi);

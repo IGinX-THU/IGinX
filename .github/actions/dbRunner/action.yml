@@ -208,7 +208,7 @@ runs:
           name: Run DB
           shell: bash
           run: |
-            cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
+              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
 
         - if: inputs.DB-name == 'FileStore'
           name: Modify IGinX Config

@@ -18,19 +18,16 @@
 package cn.edu.tsinghua.iginx.filestore.service;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
-import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.test.DataViewGenerator;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.ArrayList;
+import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.thrift.transport.TTransportException;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public abstract class AbstractServiceTest {
 
@@ -62,20 +59,15 @@ public abstract class AbstractServiceTest {
     List<Object[]> valuesList = new ArrayList<>();
     for (int i = 0; i < size; i++) {
       valuesList.add(
-          new Object[]{
-              (long) i,
-              (long) i + 1,
-              ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
-              (i + 0.1d)});
+          new Object[] {
+            (long) i,
+            (long) i + 1,
+            ("\"" + RandomStringUtils.randomAlphanumeric(10) + "\"").getBytes(),
+            (i + 0.1d)
+          });
     }
 
-    return DataViewGenerator.genRowDataViewNoKey(
-        0,
-        pathList,
-        null,
-        dataTypeList,
-        valuesList
-    );
+    return DataViewGenerator.genRowDataViewNoKey(0, pathList, null, dataTypeList, valuesList);
   }
 
   private Service service;
@@ -91,7 +83,5 @@ public abstract class AbstractServiceTest {
   }
 
   @Test
-  public void testInsertAndClear() {
-  }
-
+  public void testInsertAndClear() {}
 }

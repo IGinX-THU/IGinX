@@ -25,5 +25,4 @@ public class LegacyParquetStorageServiceTest extends AbstractStorageServiceTest 
   public LegacyParquetStorageServiceTest() {
     super(LegacyParquet.NAME, ConfigFactory.empty());
   }
-
 }
