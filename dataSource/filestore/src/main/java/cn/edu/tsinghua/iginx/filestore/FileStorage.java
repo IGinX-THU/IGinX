@@ -45,6 +45,7 @@ import cn.edu.tsinghua.iginx.filestore.service.storage.StorageConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.LegacyFilesystem;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
@@ -122,6 +123,8 @@ public class FileStorage implements IStorage {
 
     reshapedParams.put("data.root", meta.getExtraParams().get("dir"));
     reshapedParams.put("dummy.root", meta.getExtraParams().get("dummy_dir"));
+    reshapedParams.putIfAbsent("data.struct", LegacyParquet.NAME);
+    reshapedParams.putIfAbsent("dummy.struct", LegacyFilesystem.NAME);
 
     boolean local = isLocal(meta);
     reshapedParams.put("server", String.valueOf(local));

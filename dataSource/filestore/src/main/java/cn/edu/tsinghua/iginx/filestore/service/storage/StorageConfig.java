@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.filestore.service.storage;
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
-import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import com.typesafe.config.Optional;
@@ -39,7 +38,7 @@ import lombok.experimental.FieldNameConstants;
 @FieldNameConstants
 public class StorageConfig extends AbstractConfig {
   String root;
-  @Optional String struct = LegacyParquet.NAME;
+  String struct;
   @Optional Config config = ConfigFactory.empty();
 
   @Override
