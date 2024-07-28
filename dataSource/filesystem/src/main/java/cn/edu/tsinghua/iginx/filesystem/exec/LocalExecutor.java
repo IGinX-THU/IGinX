@@ -332,8 +332,10 @@ public class LocalExecutor implements Executor {
       String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     if (root != null) {
+      File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
       for (File file :
-          fileSystemManager.getTargetFiles(root, storageUnit, patterns, tagFilter, false, false)) {
+          fileSystemManager.getTargetFiles(
+              directory, root, storageUnit, patterns, tagFilter, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
@@ -350,7 +352,7 @@ public class LocalExecutor implements Executor {
     if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file :
           fileSystemManager.getTargetFiles(
-              realDummyRoot, storageUnit, patterns, null, true, true)) {
+              new File(realDummyRoot), dummyRoot, storageUnit, patterns, null, true)) {
         String dummyPath =
             FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
         columns.add(new Column(dummyPath, DataType.BINARY, null, true));

@@ -393,18 +393,12 @@ public class FileSystemManager {
   }
 
   public List<File> getTargetFiles(
+      File dir,
       String root,
       String storageUnit,
       Set<String> patterns,
       TagFilter tagFilter,
-      boolean isDummy,
       boolean containsEmptyDir) {
-    File dir;
-    if (isDummy) {
-      dir = new File(root);
-    } else {
-      dir = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-    }
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
 
     List<File> res = new ArrayList<>();
