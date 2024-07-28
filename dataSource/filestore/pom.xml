@@ -33,6 +33,11 @@
 
     <dependencies>
         <dependency>
+            <groupId>org.apache.thrift</groupId>
+            <artifactId>libthrift</artifactId>
+            <version>0.20.0</version>
+        </dependency>
+        <dependency>
             <groupId>cn.edu.tsinghua.iginx</groupId>
             <artifactId>parquet-file</artifactId>
         </dependency>
