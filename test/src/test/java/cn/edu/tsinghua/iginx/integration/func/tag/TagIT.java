@@ -1341,6 +1341,18 @@ public class TagIT {
             + "Total line number = 2\n";
     executeAndCompare(statement, expected);
 
+    statement = "SELECT s AS ts, s AS ss FROM ah.hr02;";
+    expected =
+        "ResultSets:\n"
+            + "+---+----+---------+----+---------+\n"
+            + "|key|  ts|ts{t1=v1}|  ss|ss{t1=v1}|\n"
+            + "+---+----+---------+----+---------+\n"
+            + "|100|true|     null|true|     null|\n"
+            + "|400|null|    false|null|    false|\n"
+            + "+---+----+---------+----+---------+\n"
+            + "Total line number = 2\n";
+    executeAndCompare(statement, expected);
+
     statement = "SELECT s FROM ah.hr02 AS result_set;";
     expected =
         "ResultSets:\n"

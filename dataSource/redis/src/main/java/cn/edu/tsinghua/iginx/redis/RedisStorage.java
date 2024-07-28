@@ -89,9 +89,13 @@ public class RedisStorage implements IStorage {
 
   private static final String TIMEOUT = "timeout";
 
+  private static final String USERNAME = "username";
+
+  private static final String PASSWORD = "password";
+
   private static final String DATA_DB = "data_db";
 
-  private static final String DATA_PASSWORD = "dummy_db";
+  private static final String DUMMY_DB = "dummy_db";
 
   private static final int DEFAULT_TIMEOUT = 10000;
 
@@ -114,11 +118,15 @@ public class RedisStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     int timeout =
         Integer.parseInt(extraParams.getOrDefault(TIMEOUT, String.valueOf(DEFAULT_TIMEOUT)));
-    this.jedisPool = new JedisPool(new JedisPoolConfig(), meta.getIp(), meta.getPort(), timeout);
+    String username = extraParams.get(USERNAME);
+    String password = extraParams.get(PASSWORD);
+    this.jedisPool =
+        new JedisPool(
+            new JedisPoolConfig(), meta.getIp(), meta.getPort(), timeout, username, password);
     this.dataDb =
         Integer.parseInt(extraParams.getOrDefault(DATA_DB, String.valueOf(DEFAULT_DATA_DB)));
     this.dummyDb =
-        Integer.parseInt(extraParams.getOrDefault(DATA_PASSWORD, String.valueOf(DEFAULT_DUMMY_DB)));
+        Integer.parseInt(extraParams.getOrDefault(DUMMY_DB, String.valueOf(DEFAULT_DUMMY_DB)));
     this.dataPrefix = meta.getDataPrefix();
     if (dataDb == dummyDb) {
       throw new StorageInitializationException("data db and dummy db should not be the same");

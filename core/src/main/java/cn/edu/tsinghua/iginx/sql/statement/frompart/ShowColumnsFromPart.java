@@ -21,12 +21,11 @@ package cn.edu.tsinghua.iginx.sql.statement.frompart;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
 import cn.edu.tsinghua.iginx.sql.statement.ShowColumnsStatement;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class ShowColumnsFromPart implements FromPart {
 
@@ -48,11 +47,11 @@ public class ShowColumnsFromPart implements FromPart {
   }
 
   @Override
-  public Map<String, String> getAliasMap() {
-    Map<String, String> aliasMap = new HashMap<>();
-    aliasMap.put("path", alias + ".path");
-    aliasMap.put("type", alias + ".type");
-    return aliasMap;
+  public List<Pair<String, String>> getAliasList() {
+    List<Pair<String, String>> aliasList = new ArrayList<>(2);
+    aliasList.add(new Pair<>("path", alias + ".path"));
+    aliasList.add(new Pair<>("type", alias + ".type"));
+    return aliasList;
   }
 
   @Override

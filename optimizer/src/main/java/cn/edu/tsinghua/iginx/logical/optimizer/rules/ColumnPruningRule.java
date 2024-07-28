@@ -18,8 +18,6 @@
 
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
-
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
@@ -42,6 +40,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.auto.service.AutoService;
 import java.util.*;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,9 +116,9 @@ public class ColumnPruningRule extends Rule {
         }
       } else if (operator.getType() == OperatorType.Rename) {
         Rename rename = (Rename) operator;
-        Map<String, String> aliasMap = rename.getAliasMap();
+        List<Pair<String, String>> aliasList = rename.getAliasList();
         columns =
-            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasMap, new ArrayList<>(columns)));
+            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasList, new ArrayList<>(columns)));
 
       } else if (operator.getType() == OperatorType.GroupBy) {
         GroupBy groupBy = (GroupBy) operator;
@@ -335,13 +334,13 @@ public class ColumnPruningRule extends Rule {
                 new ArrayList<>());
         for (String column : columns) {
           for (String leftPattern : leftPatterns) {
-            if (OperatorUtils.covers(leftPattern, column)) {
+            if (Pattern.matches(StringUtils.reformatPath(leftPattern), column)) {
               leftColumns.add(column);
               break;
             }
           }
           for (String rightPattern : rightPatterns) {
-            if (OperatorUtils.covers(rightPattern, column)) {
+            if (Pattern.matches(StringUtils.reformatPath(rightPattern), column)) {
               rightColumns.add(column);
               break;
             }

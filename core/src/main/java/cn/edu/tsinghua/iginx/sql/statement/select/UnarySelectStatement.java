@@ -38,8 +38,18 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.FromPartType;
 import cn.edu.tsinghua.iginx.sql.statement.frompart.SubQueryFromPart;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 public class UnarySelectStatement extends SelectStatement {
 
@@ -425,48 +435,57 @@ public class UnarySelectStatement extends SelectStatement {
 
   @Override
   public List<Expression> getExpressions() {
-    List<Expression> expressions = new ArrayList<>();
-    expressions.addAll(selectClause.getExpressions());
-    return expressions;
+    return new ArrayList<>(selectClause.getExpressions());
   }
 
   public void addSelectClauseExpression(Expression expression) {
     selectClause.addExpression(expression);
   }
 
-  public Map<String, String> getSelectAliasMap() {
-    Map<String, String> aliasMap = new HashMap<>();
+  public List<Pair<String, String>> getSelectAliasList() {
+    List<Pair<String, String>> aliasList = new ArrayList<>();
+    AtomicBoolean hasAlias = new AtomicBoolean(false);
     getExpressions()
         .forEach(
             expression -> {
               if (expression.hasAlias()) {
-                aliasMap.put(expression.getColumnName(), expression.getAlias());
+                aliasList.add(new Pair<>(expression.getColumnName(), expression.getAlias()));
+                hasAlias.set(true);
+              } else {
+                aliasList.add(new Pair<>(expression.getColumnName(), expression.getColumnName()));
               }
             });
-    return aliasMap;
+    return hasAlias.get() ? aliasList : Collections.emptyList();
   }
 
   @Override
-  public Map<String, String> getSubQueryAliasMap(String alias) {
-    Map<String, String> aliasMap = new HashMap<>();
+  public List<Pair<String, String>> getSubQueryAliasList(String alias) {
+    List<Pair<String, String>> aliasList = new ArrayList<>();
     getExpressions()
         .forEach(
             expression -> {
               if (expression.hasAlias()) {
-                aliasMap.put(expression.getAlias(), alias + DOT + expression.getAlias());
+                aliasList.add(
+                    new Pair<>(expression.getAlias(), alias + DOT + expression.getAlias()));
               } else {
                 if (expression.getType().equals(Expression.ExpressionType.Binary)
                     || expression.getType().equals(Expression.ExpressionType.Unary)) {
-                  aliasMap.put(
-                      expression.getColumnName(),
-                      alias + DOT + L_PARENTHESES + expression.getColumnName() + R_PARENTHESES);
+                  aliasList.add(
+                      new Pair<>(
+                          expression.getColumnName(),
+                          alias
+                              + DOT
+                              + L_PARENTHESES
+                              + expression.getColumnName()
+                              + R_PARENTHESES));
                 } else {
-                  aliasMap.put(
-                      expression.getColumnName(), alias + DOT + expression.getColumnName());
+                  aliasList.add(
+                      new Pair<>(
+                          expression.getColumnName(), alias + DOT + expression.getColumnName()));
                 }
               }
             });
-    return aliasMap;
+    return aliasList;
   }
 
   public boolean needRowTransform() {

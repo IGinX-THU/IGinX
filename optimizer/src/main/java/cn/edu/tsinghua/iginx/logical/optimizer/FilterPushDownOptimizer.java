@@ -108,7 +108,7 @@ public class FilterPushDownOptimizer implements Optimizer {
       getRenameOperator(selectOperator, project, renameList);
       Filter unrenamedFilter = filter.copy();
       for (Operator rename : renameList) {
-        unrenamedFilter = replacePathByRenameMap(unrenamedFilter, ((Rename) rename).getAliasMap());
+        unrenamedFilter = replacePathByRenameMap(unrenamedFilter, ((Rename) rename).getAliasList());
       }
 
       // the same meta just call once.
@@ -264,7 +264,7 @@ public class FilterPushDownOptimizer implements Optimizer {
     return isCorrectRoad;
   }
 
-  private Filter replacePathByRenameMap(Filter filter, Map<String, String> renameMap) {
+  private Filter replacePathByRenameMap(Filter filter, List<Pair<String, String>> renameMap) {
     switch (filter.getType()) {
       case Or:
         List<Filter> orChildren = ((OrFilter) filter).getChildren();
@@ -282,8 +282,8 @@ public class FilterPushDownOptimizer implements Optimizer {
         break;
       case Value:
         String path = ((ValueFilter) filter).getPath();
-        for (Map.Entry<String, String> entry : renameMap.entrySet()) {
-          path = replacePathByRenameEntry(path, entry);
+        for (Pair<String, String> pair : renameMap) {
+          path = replacePathByRenameEntry(path, pair);
         }
         return new ValueFilter(
             path, ((ValueFilter) filter).getOp(), ((ValueFilter) filter).getValue());
@@ -291,8 +291,8 @@ public class FilterPushDownOptimizer implements Optimizer {
         String pathA = ((PathFilter) filter).getPathA();
         String pathB = ((PathFilter) filter).getPathB();
 
-        for (Map.Entry<String, String> entry : renameMap.entrySet()) {
-          pathA = replacePathByRenameEntry(pathA, entry);
+        for (Pair<String, String> pair : renameMap) {
+          pathA = replacePathByRenameEntry(pathA, pair);
         }
 
         return new PathFilter(pathA, ((PathFilter) filter).getOp(), pathB);
@@ -302,9 +302,9 @@ public class FilterPushDownOptimizer implements Optimizer {
     return filter;
   }
 
-  private String replacePathByRenameEntry(String path, Map.Entry<String, String> entry) {
-    String nameBeforeRename = entry.getKey();
-    String nameAfterRename = entry.getValue();
+  private String replacePathByRenameEntry(String path, Pair<String, String> pair) {
+    String nameBeforeRename = pair.k;
+    String nameAfterRename = pair.v;
     if (path.equals(nameAfterRename)) {
       return nameBeforeRename;
     }
