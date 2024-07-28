@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -391,7 +392,19 @@ public class FileSystemManager {
         .collect(Collectors.toList());
   }
 
-  public List<File> getAllFiles(File dir, boolean containsEmptyDir) {
+  public List<File> getTargetFiles(
+      String root,
+      String storageUnit,
+      Set<String> patterns,
+      TagFilter tagFilter,
+      boolean isDummy,
+      boolean containsEmptyDir) {
+    File dir;
+    if (isDummy) {
+      dir = new File(root);
+    } else {
+      dir = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
+    }
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
 
     List<File> res = new ArrayList<>();
@@ -409,8 +422,27 @@ public class FileSystemManager {
             }
 
             @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-              res.add(file.toFile());
+            public FileVisitResult visitFile(Path filePath, BasicFileAttributes attrs) {
+              File file = filePath.toFile();
+              FileMeta meta = getFileMeta(file);
+              String columnPath =
+                  FilePathUtils.convertAbsolutePathToPath(
+                      root, file.getAbsolutePath(), storageUnit);
+              if (meta == null) {
+                throw new RuntimeException(
+                    String.format(
+                        "encounter error when getting columns of storage unit because file meta %s is null",
+                        file.getAbsolutePath()));
+              }
+              // get columns by pattern
+              if (StringUtils.pathNotMatchPatterns(columnPath, patterns)) {
+                return FileVisitResult.CONTINUE;
+              }
+              // get columns by tag filter
+              if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
+                return FileVisitResult.CONTINUE;
+              }
+              res.add(file);
               return FileVisitResult.CONTINUE;
             }
 
