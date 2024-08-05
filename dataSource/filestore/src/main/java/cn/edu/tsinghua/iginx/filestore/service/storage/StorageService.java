@@ -197,6 +197,9 @@ public class StorageService implements Service {
     if (unitName == null) {
       return root;
     } else {
+      if (unitName.contains("..") || unitName.contains("/") || unitName.contains("\\")) {
+        throw new IllegalArgumentException("Invalid unit name: " + unitName);
+      }
       return root.resolve(IGINX_DATA_PREFIX + unitName);
     }
   }
