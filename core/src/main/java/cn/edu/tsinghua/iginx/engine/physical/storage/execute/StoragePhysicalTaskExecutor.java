@@ -361,9 +361,6 @@ public class StoragePhysicalTaskExecutor {
     TreeSet<Column> columnSetAfterFilter =
         new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
     for (StorageEngineMeta storage : storageList) {
-      if (!storage.isHasData()) {
-        continue;
-      }
       long id = storage.getId();
       Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
       if (pair == null) {
