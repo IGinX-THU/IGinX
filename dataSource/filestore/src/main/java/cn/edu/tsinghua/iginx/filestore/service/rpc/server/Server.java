@@ -40,13 +40,10 @@ public class Server implements AutoCloseable {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Server.class);
 
-  private final TServerSocket serverTransport;
-
   private final TServer server;
 
   public Server(InetSocketAddress address, Service service) throws TTransportException {
     LOGGER.info("starting thrift server at {}", address);
-    this.serverTransport = new TServerSocket(address);
     TProcessor processor =
         new FileStoreRpc.Processor<FileStoreRpc.Iface>(new ServerWorker(service));
     Config config = ConfigDescriptor.getInstance().getConfig();
@@ -61,7 +58,7 @@ public class Server implements AutoCloseable {
                 .setNameFormat("FileStoreServer(" + address + ")-%d")
                 .build());
     TThreadPoolServer.Args args =
-        new TThreadPoolServer.Args(serverTransport)
+        new TThreadPoolServer.Args(new TServerSocket(address))
             .processor(processor)
             .executorService(executorService)
             .protocolFactory(new TBinaryProtocol.Factory());
@@ -71,10 +68,6 @@ public class Server implements AutoCloseable {
 
   @Override
   public void close() {
-    LOGGER.info(
-        "closing file store server at {}",
-        serverTransport.getServerSocket().getLocalSocketAddress());
     server.stop();
-    serverTransport.close();
   }
 }
