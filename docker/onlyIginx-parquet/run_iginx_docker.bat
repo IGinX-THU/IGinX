@@ -180,7 +180,7 @@ if "!network!" neq "null" (
 
 set "configFileConfig=-v !localConfigFile!:/iginx/conf "
 @REM 
-set command=docker run --name="%name%" !network!!localIPConfig!!configFileConfig!--privileged -dit -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.8.0-SNAPSHOT
+set command=docker run --name="%name%" !network!!localIPConfig!!configFileConfig!--privileged -dit -e host_iginx_port=%hostPort% -p %hostPort%:!port! !engineCast!iginx:0.7.1
 echo %command%
 %command%
 
