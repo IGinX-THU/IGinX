@@ -377,23 +377,31 @@ public class StoragePhysicalTaskExecutor {
       }
       try {
         Set<String> patterns = showColumns.getPathRegexSet();
+        String schemaPrefix = storage.getSchemaPrefix();
         // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉patterns中前缀是schemaPrefix的部分
-        patterns = StringUtils.cutSchemaPrefix(storage.getSchemaPrefix(), patterns);
+        patterns = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
         if (patterns.isEmpty()) {
           continue;
         }
         // 求patterns与dataPrefix的交集
-        LOGGER.debug("before patterns: {}", patterns);
-        LOGGER.debug("dataprefix: {}", storage.getDataPrefix());
         patterns = StringUtils.intersectDataPrefix(storage.getDataPrefix(), patterns);
-        LOGGER.debug("after patterns: {}", patterns);
         if (patterns.isEmpty()) {
           continue;
         }
         if (patterns.contains("*")) {
           patterns = Collections.emptySet();
         }
-        targetColumns.addAll(pair.k.getColumns(patterns, showColumns.getTagFilter()));
+        List<Column> columnList = pair.k.getColumns(patterns, showColumns.getTagFilter());
+
+        // 列名前加上schemaPrefix
+        if (schemaPrefix != null) {
+          columnList.forEach(column -> {
+            column.setPath(schemaPrefix + "." + column.getPath());
+            targetColumns.add(column);
+          });
+        } else {
+          targetColumns.addAll(columnList);
+        }
       } catch (PhysicalException e) {
         return new TaskExecuteResult(e);
       }
