@@ -25,8 +25,10 @@ import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
 import java.io.File;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Predicate;
+import java.util.regex.Pattern;
 
 public class FilePathUtils {
 
@@ -119,5 +121,15 @@ public class FilePathUtils {
       }
       return res.substring(0, res.length() - 1);
     }
+  }
+
+  public static boolean matches(Path path, List<String> regexList) {
+    String filePath = path.toAbsolutePath().toString();
+    for (String regex : regexList) {
+      if (Pattern.matches(regex, filePath)) {
+        return true;
+      }
+    }
+    return false;
   }
 }

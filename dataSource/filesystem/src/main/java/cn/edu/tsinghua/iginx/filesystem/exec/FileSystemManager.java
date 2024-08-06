@@ -395,11 +395,11 @@ public class FileSystemManager {
   public List<File> getTargetFiles(
       File dir, String root, List<String> patterns, boolean containsEmptyDir) {
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
-    Set<String> pathRegexSet = new HashSet<>(patterns.size());
+    List<String> pathRegexList = new ArrayList<>(patterns.size());
     patterns.forEach(
         p -> {
           String pathPattern = FilePathUtils.toNormalFilePath(root, p);
-          pathRegexSet.add(StringUtils.reformatPath(pathPattern));
+          pathRegexList.add(StringUtils.reformatPath(pathPattern));
         });
 
     List<File> res = new ArrayList<>();
@@ -413,10 +413,12 @@ public class FileSystemManager {
               if (containsEmptyDir && isDirEmpty(dir)) {
                 res.add(dir.toFile());
               }
-              for (String regex : pathRegexSet) {
-                try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, regex)) {
-                  stream.forEach(path -> res.add(path.toFile()));
-                }
+              try (DirectoryStream<Path> stream =
+                  Files.newDirectoryStream(
+                      dir,
+                      path ->
+                          path.toFile().isFile() && FilePathUtils.matches(path, pathRegexList))) {
+                stream.forEach(path -> res.add(path.toFile()));
               }
               return FileVisitResult.CONTINUE;
             }
