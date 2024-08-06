@@ -118,18 +118,6 @@ public class StringUtils {
     return path;
   }
 
-  public static boolean pathNotMatchPatterns(String path, Set<String> patterns) {
-    if (patterns.isEmpty()) {
-      return false;
-    }
-    for (String pattern : patterns) {
-      if (match(path, pattern)) {
-        return false;
-      }
-    }
-    return true;
-  }
-
   public static boolean match(String string, String iginxPattern) {
     return toColumnMatcher(iginxPattern).test(string);
   }

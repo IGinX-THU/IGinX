@@ -332,6 +332,9 @@ public class LocalExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(
       String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
+    if (patterns.isEmpty()) {
+      patterns.add(WILDCARD);
+    }
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
       for (File file : fileSystemManager.getTargetFiles(directory, root, patterns, false)) {
