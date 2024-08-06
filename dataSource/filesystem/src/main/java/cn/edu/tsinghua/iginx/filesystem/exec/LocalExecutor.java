@@ -332,12 +332,13 @@ public class LocalExecutor implements Executor {
   public List<Column> getColumnsOfStorageUnit(
       String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    if (patterns.isEmpty()) {
-      patterns.add("*");
+    List<String> patternList = new ArrayList<>(patterns);
+    if (patternList.isEmpty()) {
+      patternList.add("*");
     }
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-      for (File file : fileSystemManager.getTargetFiles(directory, root, patterns, false)) {
+      for (File file : fileSystemManager.getTargetFiles(directory, root, patternList, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
@@ -357,7 +358,7 @@ public class LocalExecutor implements Executor {
     // get columns from dummy storage unit
     if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file :
-          fileSystemManager.getTargetFiles(new File(realDummyRoot), dummyRoot, patterns, true)) {
+          fileSystemManager.getTargetFiles(new File(realDummyRoot), dummyRoot, patternList, true)) {
         String dummyPath =
             FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
         columns.add(new Column(dummyPath, DataType.BINARY, null, true));

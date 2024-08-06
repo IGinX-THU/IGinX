@@ -393,7 +393,7 @@ public class FileSystemManager {
   }
 
   public List<File> getTargetFiles(
-      File dir, String root, Set<String> patterns, boolean containsEmptyDir) {
+      File dir, String root, List<String> patterns, boolean containsEmptyDir) {
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
     Set<String> pathRegexSet = new HashSet<>(patterns.size());
     patterns.forEach(
