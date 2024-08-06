@@ -44,7 +44,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -62,7 +61,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -370,8 +368,7 @@ public class StoragePhysicalTaskExecutor {
 
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
     List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
-    TreeSet<Column> columnSetAfterFilter =
-        new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
+    TreeSet<Column> targetColumns = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
     for (StorageEngineMeta storage : storageList) {
       long id = storage.getId();
       Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
@@ -380,52 +377,20 @@ public class StoragePhysicalTaskExecutor {
       }
       try {
         Set<String> patterns = showColumns.getPathRegexSet();
-        TagFilter tagFilter = showColumns.getTagFilter();
-
-        String schemaPrefix = storage.getSchemaPrefix();
-        // 不下推dataPrefix的原因：非dummy的数据库中如果有原始数据，会在show columns时被查询到并造成误解
-        String dataPrefixRegex =
-            storage.getDataPrefix() == null
-                ? null
-                : StringUtils.reformatPath(storage.getDataPrefix() + ".*");
-
-        // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉前缀是schemaPrefix的部分
-        Set<String> patternsCutSchemaPrefix = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
-        if (patternsCutSchemaPrefix.isEmpty()) {
+        // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉patterns中前缀是schemaPrefix的部分
+        patterns = StringUtils.cutSchemaPrefix(storage.getSchemaPrefix(), patterns);
+        if (patterns.isEmpty()) {
           continue;
         }
-        if (patternsCutSchemaPrefix.contains("*")) {
-          patternsCutSchemaPrefix = Collections.emptySet();
-        }
-        List<Column> columnList = pair.k.getColumns(patternsCutSchemaPrefix, tagFilter);
-
-        if (tagFilter != null) {
-          columnSetAfterFilter.addAll(columnList);
+        // 求patterns与dataPrefix的交集
+        patterns = StringUtils.intersectDataPrefix(storage.getDataPrefix(), patterns);
+        if (patterns.isEmpty()) {
           continue;
         }
-        for (Column column : columnList) {
-          if (!column.isDummy()) {
-            columnSetAfterFilter.add(column);
-            continue;
-          }
-          if (dataPrefixRegex == null || Pattern.matches(dataPrefixRegex, column.getPath())) {
-            if (schemaPrefix == null) {
-              columnSetAfterFilter.add(column);
-              continue;
-            }
-            column.setPath(schemaPrefix + "." + column.getPath());
-            boolean isMatch = patterns.isEmpty();
-            for (String pathRegex : patterns) {
-              if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
-                isMatch = true;
-                break;
-              }
-            }
-            if (isMatch) {
-              columnSetAfterFilter.add(column);
-            }
-          }
+        if (patterns.contains("*")) {
+          patterns = Collections.emptySet();
         }
+        targetColumns.addAll(pair.k.getColumns(patterns, showColumns.getTagFilter()));
       } catch (PhysicalException e) {
         return new TaskExecuteResult(e);
       }
@@ -434,12 +399,12 @@ public class StoragePhysicalTaskExecutor {
     int limit = showColumns.getLimit();
     int offset = showColumns.getOffset();
     if (limit == Integer.MAX_VALUE && offset == 0) {
-      return new TaskExecuteResult(Column.toRowStream(columnSetAfterFilter));
+      return new TaskExecuteResult(Column.toRowStream(targetColumns));
     } else {
       // only need part of data.
       List<Column> tsList = new ArrayList<>();
-      int cur = 0, size = columnSetAfterFilter.size();
-      for (Iterator<Column> iter = columnSetAfterFilter.iterator(); iter.hasNext(); cur++) {
+      int cur = 0, size = targetColumns.size();
+      for (Iterator<Column> iter = targetColumns.iterator(); iter.hasNext(); cur++) {
         if (cur >= size || cur - offset >= limit) {
           break;
         }

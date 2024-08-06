@@ -278,4 +278,104 @@ public class StringUtils {
     sb.setLength(sb.length() - 1);
     return sb.toString();
   }
+
+  public static Set<String> intersectDataPrefix(String dataPrefix, Set<String> patterns) {
+    if (dataPrefix == null || dataPrefix.isEmpty() || patterns.isEmpty()) {
+      return patterns;
+    }
+    String dataPrefixRegex = dataPrefix + ".*";
+    if (patterns.contains("*")) {
+      return Collections.singleton(dataPrefixRegex);
+    }
+
+    Set<String> target = new HashSet<>();
+    for (String pattern : patterns) {
+      Set<String> tmp = intersectDataPrefix(dataPrefix, pattern);
+      if (tmp == null) {
+        continue;
+      }
+      if (tmp.contains(dataPrefixRegex)) {
+        return Collections.singleton(dataPrefixRegex);
+      }
+      target.addAll(tmp);
+    }
+
+    // 移除不必要的pattern
+    return mergePatterns(target);
+  }
+
+  private static Set<String> intersectDataPrefix(String dataPrefix, String pattern) {
+    String[] prefixSplit = dataPrefix.split("\\.");
+    String[] patternSplit = pattern.split("\\.");
+    StringBuilder commonPrefix = new StringBuilder();
+    int minLen = Math.min(prefixSplit.length, patternSplit.length);
+    int index = 0;
+    // 逐级匹配pattern和dataPrefix
+    while (index < minLen && prefixSplit[index].equals(patternSplit[index])) {
+      commonPrefix.append(prefixSplit[index]);
+      index++;
+    }
+
+    // pattern匹配结束，dataPrefix还有剩余，则交集取dataPrefix
+    if (index == patternSplit.length) {
+      return Collections.singleton(dataPrefix + ".*");
+    }
+
+    // dataPrefix匹配结束，pattern还有剩余，则交集取pattern
+    if (index == prefixSplit.length) {
+      return Collections.singleton(pattern);
+    }
+
+    // pattern和dataPrefix不匹配
+    if (!patternSplit[index].equals("*")) {
+      return Collections.emptySet();
+    }
+
+    Set<String> target = new HashSet<>();
+    // 将pattern的'*'视为部分匹配该前缀，即把'*'下推到数据源
+    target.add(dataPrefix + "." + joinWithDot(patternSplit, index));
+    if (index + 1 < patternSplit.length) {
+      // 将pattern的'*'视为完全匹配该前缀，即不把'*'下推到数据源
+      String patternRemain = joinWithDot(patternSplit, index + 1);
+      target.add(dataPrefix + "." + patternRemain);
+
+      if (commonPrefix.length() > 0) {
+        commonPrefix.append(".");
+      }
+      // 将dataPrefix的每一级分别匹配'*'
+      for (int i = index + 1; i < prefixSplit.length; i++) {
+        commonPrefix.append(prefixSplit[i - 1]).append(".");
+        String prefixRemain = joinWithDot(prefixSplit, i);
+        Set<String> ret = intersectDataPrefix(prefixRemain, patternRemain);
+        ret.forEach(str -> target.add(commonPrefix + str));
+      }
+    }
+
+    return target;
+  }
+
+  private static Set<String> mergePatterns(Set<String> patterns) {
+    if (patterns.size() <= 1) {
+      return patterns;
+    }
+    Set<String> target = new HashSet<>();
+    List<String> list = new ArrayList<>(patterns);
+    int size = list.size();
+    List<Integer> toBeRemoved = new ArrayList<>(size);
+    for (int i = 0; i < size; i++) {
+      boolean removed = false;
+      for (int j = 0; j != i && !toBeRemoved.contains(j) && j < size; j++) {
+        // 第j个pattern包含第i个pattern
+        if (match(list.get(i), list.get(j))) {
+          toBeRemoved.add(i);
+          removed = true;
+          break;
+        }
+      }
+      if (!removed) {
+        target.add(list.get(i));
+      }
+    }
+    return target;
+  }
 }

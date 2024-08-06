@@ -75,6 +75,36 @@ public class StringUtilsTest {
     assertEquals(toSet("b.c", "*.b.c"), StringUtils.cutSchemaPrefix("a.b.c", toSet("*.b.c")));
   }
 
+  @Test
+  public void intersectDataPrefix() {
+    assertEquals(
+        toSet("a.b.c.*"), StringUtils.intersectDataPrefix(null, Collections.singleton("a.b.c.*")));
+    assertEquals(
+        toSet("a.b.*"), StringUtils.intersectDataPrefix("a.b", Collections.singleton("*")));
+    assertEquals(
+        toSet("a.b.c.*"), StringUtils.intersectDataPrefix("a.b", Collections.singleton("a.b.c.*")));
+    assertEquals(
+        toSet("a.b.c"), StringUtils.intersectDataPrefix("a.b", Collections.singleton("a.b.c")));
+    assertEquals(
+        toSet("a.b.*"), StringUtils.intersectDataPrefix("a.b", Collections.singleton("a.*")));
+    assertEquals(
+        toSet("a.b.c.*", "a.b.*.c.*"),
+        StringUtils.intersectDataPrefix("a.b", Collections.singleton("*.c.*")));
+    assertEquals(
+        toSet("a.b.*"), StringUtils.intersectDataPrefix("a.b", Collections.singleton("*.b.*")));
+    assertEquals(
+        toSet("a.b.c", "a.b.b.c", "a.b.*.b.c"),
+        StringUtils.intersectDataPrefix("a.b", Collections.singleton("*.b.c")));
+    assertEquals(
+        toSet("a.b.*.c"), StringUtils.intersectDataPrefix("a.b", Collections.singleton("*.b.*.c")));
+    assertEquals(
+        Collections.emptySet(),
+        StringUtils.intersectDataPrefix("a.b", Collections.singleton("b.*.b.*.c")));
+    assertEquals(
+        Collections.emptySet(),
+        StringUtils.intersectDataPrefix("a.b", Collections.singleton("a.c.b.*")));
+  }
+
   private Set<String> toSet(String... items) {
     return new HashSet<>(Arrays.asList(items));
   }
