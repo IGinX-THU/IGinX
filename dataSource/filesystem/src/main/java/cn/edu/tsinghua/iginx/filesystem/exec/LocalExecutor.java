@@ -338,7 +338,8 @@ public class LocalExecutor implements Executor {
     }
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-      for (File file : fileSystemManager.getTargetFiles(directory, root, patternList, false)) {
+      for (File file :
+          fileSystemManager.getTargetFiles(directory, root, storageUnit, patternList, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
@@ -358,7 +359,8 @@ public class LocalExecutor implements Executor {
     // get columns from dummy storage unit
     if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file :
-          fileSystemManager.getTargetFiles(new File(realDummyRoot), dummyRoot, patternList, true)) {
+          fileSystemManager.getTargetFiles(
+              new File(realDummyRoot), dummyRoot, null, patternList, true)) {
         String dummyPath =
             FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
         columns.add(new Column(dummyPath, DataType.BINARY, null, true));

@@ -393,13 +393,14 @@ public class FileSystemManager {
   }
 
   public List<File> getTargetFiles(
-      File dir, String root, List<String> patterns, boolean containsEmptyDir) {
+      File dir, String root, String storageUnit, List<String> patterns, boolean containsEmptyDir) {
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
     List<String> pathRegexList = new ArrayList<>(patterns.size());
+    String suffix = storageUnit == null ? "" : "\\d+"; // 末尾匹配数字
     patterns.forEach(
         p -> {
-          String pathPattern = FilePathUtils.toNormalFilePath(root, p);
-          pathRegexList.add(StringUtils.reformatPath(pathPattern));
+          String pathPattern = FilePathUtils.toFilePath(root, storageUnit, p);
+          pathRegexList.add(StringUtils.reformatPath(pathPattern) + suffix);
         });
 
     List<File> res = new ArrayList<>();

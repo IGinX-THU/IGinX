@@ -123,6 +123,27 @@ public class FilePathUtils {
     }
   }
 
+  public static String toFilePath(String root, String storageUnit, String path) {
+    if (path == null) {
+      return root;
+    }
+    StringBuilder target = new StringBuilder(root);
+    if (storageUnit != null) {
+      target.append(storageUnit).append(SEPARATOR);
+    }
+    String[] parts = path.split("\\.");
+    StringBuilder res = new StringBuilder();
+    for (String s : parts) {
+      s = s.replace("\\", ".");
+      res.append(s).append(SEPARATOR);
+    }
+    target.append(res.substring(0, res.length() - 1));
+    if (storageUnit != null) {
+      target.append(FILE_EXTENSION);
+    }
+    return target.toString();
+  }
+
   public static boolean matches(Path path, List<String> regexList) {
     String filePath = path.toAbsolutePath().toString();
     for (String regex : regexList) {
