@@ -34,6 +34,7 @@ sh -c "sed -i 's/#storageEngineList=127.0.0.1#6667#iotdb12/storageEngineList=127
 
 for port in "$@"
 do
+  # target path is also used in update/<db> script
   sh -c "cp -r apache-iotdb-0.12.6-server-bin/ apache-iotdb-0.12.6-server-bin-$port"
 
   sh -c "sed -i 's/6667/$port/g' apache-iotdb-0.12.6-server-bin-$port/conf/iotdb-engine.properties"

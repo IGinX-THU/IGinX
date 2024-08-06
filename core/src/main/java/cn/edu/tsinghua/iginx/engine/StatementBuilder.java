@@ -45,6 +45,7 @@ public class StatementBuilder {
     typeMap.put(StatementType.EXPORT_CSV_FROM_SELECT, SqlType.ExportCsv);
     typeMap.put(StatementType.EXPORT_STREAM_FROM_SELECT, SqlType.ExportStream);
     typeMap.put(StatementType.ADD_STORAGE_ENGINE, SqlType.AddStorageEngines);
+    typeMap.put(StatementType.ALTER_STORAGE_ENGINE, SqlType.AlterStorageEngine);
     typeMap.put(StatementType.REMOVE_HISTORY_DATA_SOURCE, SqlType.RemoveHistoryDataSource);
     typeMap.put(StatementType.SHOW_REPLICATION, SqlType.GetReplicaNum);
     typeMap.put(StatementType.COUNT_POINTS, SqlType.CountPoints);

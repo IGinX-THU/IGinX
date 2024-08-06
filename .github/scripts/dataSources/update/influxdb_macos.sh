@@ -16,18 +16,22 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
+
+# usage:.sh <target_port> <new_org_id>
 
 set -e
 
-sh -c "chmod +x .github/scripts/dataSources/iotdb12.sh"
+cd influxdb2-2.0.7-darwin-amd64/
 
-sh -c "chmod +x .github/scripts/dataSources/influxdb.sh"
+# 所有org的信息
+output=$(influx org list)
 
-sh -c ".github/scripts/dataSources/iotdb12.sh 6667"
+echo $output
 
-sh -c ".github/scripts/dataSources/influxdb.sh"
+# 只有一个组织，所以直接匹配
+id=$(echo "$output" | grep -Eo '^[a-z0-9]{16}')
 
-set -i "s/storageEngineList/#storageEngineList/g" conf/config.properties
+# 验证
+echo "Extracted ID: $id"
 
-echo "storageEngineList=127.0.0.1#6667#iotdb12#username=root#password=root#sessionPoolSize=50#has_data=false#is_read_only=false,127.0.0.1#8086#influxdb#url=http://localhost:8086/#token=testToken#organization=testOrg#has_data=false" >> conf/config.properties
+sh -c "./influx org update --host http://localhost:$1 -t testToken -i $id -n $2"
