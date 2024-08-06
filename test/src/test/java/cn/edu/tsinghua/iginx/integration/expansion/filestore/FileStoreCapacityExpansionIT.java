@@ -43,6 +43,12 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
+  protected void updateParams(int port) {}
+
+  @Override
+  protected void restoreParams(int port) {}
+
+  @Override
   public void testShowColumns() {
     String statement = "SHOW COLUMNS mn.*;";
     String expected =
