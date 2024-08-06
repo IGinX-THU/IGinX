@@ -1,19 +1,44 @@
 name: Standard Test Suite
 
-#on:
-#    pull_request: # when a PR is opened or reopened
-#        types: [opened, reopened]
-#        branches:
-#            - main
-on: [pull_request]
+on:
+    pull_request: # when a PR is opened or reopened
+        types: [opened, reopened]
+        branches:
+            - main
 
 concurrency:
     group: "${{ github.workflow }}-${{ github.ref }}"
     cancel-in-progress: true
 
 jobs:
+    unit-test:
+        uses: ./.github/workflows/unit-test.yml
+    unit-mds:
+        uses: ./.github/workflows/unit-mds.yml
+    case-regression:
+        uses: ./.github/workflows/case-regression.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    standalone-test:
+        uses: ./.github/workflows/standalone-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    standalone-test-pushdown:
+        uses: ./.github/workflows/standalone-test-pushdown.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
+    remote-test:
+        uses: ./.github/workflows/remote-test.yml
+        with:
+            metadata-matrix: '["zookeeper"]'
+    assemebly-test:
+        uses: ./.github/workflows/assembly-test.yml
+    tpc-h-regression-test:
+        uses: ./.github/workflows/tpc-h.yml
+        with:
             os-matrix: '["ubuntu-latest"]'
+            metadata-matrix: '["zookeeper"]'
