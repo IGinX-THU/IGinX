@@ -34,7 +34,6 @@ import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -393,13 +392,10 @@ public class FileSystemManager {
   }
 
   public List<File> getTargetFiles(
-      File dir,
-      String root,
-      String storageUnit,
-      Set<String> patterns,
-      TagFilter tagFilter,
-      boolean containsEmptyDir) {
+      File dir, String root, Set<String> patterns, boolean containsEmptyDir) {
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
+    Set<String> pathPatterns = new HashSet<>(patterns.size());
+    patterns.forEach(p -> pathPatterns.add(FilePathUtils.toNormalFilePath(root, p)));
 
     List<File> res = new ArrayList<>();
     try {
@@ -412,31 +408,16 @@ public class FileSystemManager {
               if (containsEmptyDir && isDirEmpty(dir)) {
                 res.add(dir.toFile());
               }
+              for (String pathPattern : pathPatterns) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, pathPattern)) {
+                  stream.forEach(path -> res.add(path.toFile()));
+                }
+              }
               return FileVisitResult.CONTINUE;
             }
 
             @Override
-            public FileVisitResult visitFile(Path filePath, BasicFileAttributes attrs) {
-              File file = filePath.toFile();
-              FileMeta meta = getFileMeta(file);
-              String columnPath =
-                  FilePathUtils.convertAbsolutePathToPath(
-                      root, file.getAbsolutePath(), storageUnit);
-              if (meta == null) {
-                throw new RuntimeException(
-                    String.format(
-                        "encounter error when getting columns of storage unit because file meta %s is null",
-                        file.getAbsolutePath()));
-              }
-              // get columns by pattern
-              if (StringUtils.pathNotMatchPatterns(columnPath, patterns)) {
-                return FileVisitResult.CONTINUE;
-              }
-              // get columns by tag filter
-              if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
-                return FileVisitResult.CONTINUE;
-              }
-              res.add(file);
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
               return FileVisitResult.CONTINUE;
             }
 

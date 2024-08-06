@@ -25,6 +25,7 @@ import static cn.edu.tsinghua.iginx.filesystem.shared.Constant.WILDCARD;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -333,15 +334,17 @@ public class LocalExecutor implements Executor {
     List<Column> columns = new ArrayList<>();
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-      for (File file :
-          fileSystemManager.getTargetFiles(
-              directory, root, storageUnit, patterns, tagFilter, false)) {
+      for (File file : fileSystemManager.getTargetFiles(directory, root, patterns, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
               String.format(
                   "encounter error when getting columns of storage unit because file meta %s is null",
                   file.getAbsolutePath()));
+        }
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
+          continue;
         }
         String columnPath =
             FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
@@ -351,8 +354,7 @@ public class LocalExecutor implements Executor {
     // get columns from dummy storage unit
     if (hasData && dummyRoot != null && tagFilter == null) {
       for (File file :
-          fileSystemManager.getTargetFiles(
-              new File(realDummyRoot), dummyRoot, storageUnit, patterns, null, true)) {
+          fileSystemManager.getTargetFiles(new File(realDummyRoot), dummyRoot, patterns, true)) {
         String dummyPath =
             FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
         columns.add(new Column(dummyPath, DataType.BINARY, null, true));
