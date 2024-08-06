@@ -395,10 +395,11 @@ public class StoragePhysicalTaskExecutor {
 
         // 列名前加上schemaPrefix
         if (schemaPrefix != null) {
-          columnList.forEach(column -> {
-            column.setPath(schemaPrefix + "." + column.getPath());
-            targetColumns.add(column);
-          });
+          columnList.forEach(
+              column -> {
+                column.setPath(schemaPrefix + "." + column.getPath());
+                targetColumns.add(column);
+              });
         } else {
           targetColumns.addAll(columnList);
         }
