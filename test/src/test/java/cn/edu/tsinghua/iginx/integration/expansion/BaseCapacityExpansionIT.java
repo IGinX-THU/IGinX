@@ -21,8 +21,7 @@ package cn.edu.tsinghua.iginx.integration.expansion;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
@@ -36,11 +35,10 @@ import cn.edu.tsinghua.iginx.session.ClusterInfo;
 import cn.edu.tsinghua.iginx.session.QueryDataSet;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import cn.edu.tsinghua.iginx.thrift.StorageEngineInfo;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -52,6 +50,8 @@ public abstract class BaseCapacityExpansionIT {
 
   protected static Session session;
 
+  protected static final String ALTER_ENGINE_STRING = "alter storageengine %d with params \"%s\";";
+
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
 
   protected StorageEngineType type;
@@ -59,6 +59,8 @@ public abstract class BaseCapacityExpansionIT {
   protected String extraParams;
 
   protected List<String> wrongExtraParams = new ArrayList<>();
+
+  protected Map<String, String> updatedParams = new HashMap<>();
 
   private final boolean IS_EMBEDDED =
       this instanceof FileStoreCapacityExpansionIT
@@ -70,6 +72,8 @@ public abstract class BaseCapacityExpansionIT {
   private final String READ_ONLY_SCHEMA_PREFIX = null;
 
   public static final String DBCE_PARQUET_FS_TEST_DIR = "test";
+
+  protected static final String updateParamsScriptDir = ".github/scripts/dataSources/update/";
 
   protected static BaseHistoryDataGenerator generator;
 
@@ -247,11 +251,13 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() throws InterruptedException {
+  public void testReadOnly() throws InterruptedException, SessionException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
+    // 测试只读节点的参数修改
+    testUpdateEngineParams();
     // 测试参数错误的只读节点扩容
-    testInvalidDummyParams(readOnlyPort, true, false, null, EXP_SCHEMA_PREFIX);
+    testInvalidDummyParams(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 扩容只读节点
     addStorageEngineInProgress(readOnlyPort, true, true, null, READ_ONLY_SCHEMA_PREFIX);
     // 查询扩容只读节点的历史数据，结果不为空
@@ -322,6 +328,69 @@ public abstract class BaseCapacityExpansionIT {
       fail();
     }
   }
+
+  /** 测试引擎修改参数（目前仅支持dummy & read-only） */
+  protected void testUpdateEngineParams() throws SessionException {
+    // 修改前后通过相同schema_prefix查询判断引擎成功更新
+    LOGGER.info("Testing updating engine params...");
+    if (updatedParams.isEmpty()) {
+      LOGGER.info("Engine {} skipped this test.", type);
+      return;
+    }
+
+    String prefix = "prefix";
+    // 添加只读节点
+    addStorageEngine(readOnlyPort, true, true, null, prefix, extraParams);
+    // 查询
+    String statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    List<String> pathList =
+        READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
+    List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 修改数据库参数
+    updateParams(readOnlyPort);
+
+    // 修改
+    List<StorageEngineInfo> engineInfoList = session.getClusterInfo().getStorageEngineInfos();
+    long id = -1;
+    for (StorageEngineInfo info : engineInfoList) {
+      if (info.getIp().equals("127.0.0.1")
+          && info.getPort() == readOnlyPort
+          && info.getDataPrefix().equals("null")
+          && info.getSchemaPrefix().equals(prefix)
+          && info.getType().equals(type)) {
+        id = info.getId();
+      }
+    }
+    assertTrue(id != -1);
+
+    String newParams =
+        updatedParams.entrySet().stream()
+            .map(entry -> entry.getKey() + ":" + entry.getValue())
+            .collect(Collectors.joining(", "));
+    session.executeSql(String.format(ALTER_ENGINE_STRING, id, newParams));
+
+    // 重新查询
+    statement = "select wt01.status, wt01.temperature from " + prefix + ".tm.wf05;";
+    pathList = READ_ONLY_PATH_LIST.stream().map(s -> prefix + "." + s).collect(Collectors.toList());
+    valuesList = READ_ONLY_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // 删除，不影响后续测试
+    session.removeHistoryDataSource(
+        Collections.singletonList(
+            new RemovedStorageEngineInfo("127.0.0.1", readOnlyPort, prefix, "")));
+
+    // 改回数据库参数
+    restoreParams(readOnlyPort);
+  }
+
+  /** 这个方法需要实现：通过脚本修改port对应数据源的可变参数，如密码等 */
+  protected abstract void updateParams(int port);
+
+  /** 这个方法需要实现：通过脚本恢复updateParams中修改的可变参数 */
+  protected abstract void restoreParams(int port);
 
   protected void queryExtendedKeyDummy() {
     // ori
@@ -736,15 +805,15 @@ public abstract class BaseCapacityExpansionIT {
       scriptPath = ".github/scripts/dataSources/filestore.sh";
     } else if (this instanceof FileSystemCapacityExpansionIT) {
       if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/filesystem_macos.sh";
+        scriptPath = ".github/scripts/dataSources/startup/filesystem_macos.sh";
       } else {
-        scriptPath = ".github/scripts/dataSources/filesystem_linux_windows.sh";
+        scriptPath = ".github/scripts/dataSources/startup/filesystem_linux_windows.sh";
       }
     } else if (this instanceof ParquetCapacityExpansionIT) {
       if (isOnMac) {
-        scriptPath = ".github/scripts/dataSources/parquet_macos.sh";
+        scriptPath = ".github/scripts/dataSources/startup/parquet_macos.sh";
       } else {
-        scriptPath = ".github/scripts/dataSources/parquet_linux_windows.sh";
+        scriptPath = ".github/scripts/dataSources/startup/parquet_linux_windows.sh";
       }
     } else {
       throw new IllegalStateException("Only support file system and parquet");

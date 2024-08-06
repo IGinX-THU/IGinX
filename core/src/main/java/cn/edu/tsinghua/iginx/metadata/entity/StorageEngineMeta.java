@@ -17,10 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.metadata.entity;
 
+import static cn.edu.tsinghua.iginx.utils.HostUtils.isLocalHost;
+
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import javax.validation.constraints.NotNull;
 
 public final class StorageEngineMeta {
 
@@ -212,6 +216,10 @@ public final class StorageEngineMeta {
     this.extraParams = extraParams;
   }
 
+  public void updateExtraParams(Map<String, String> newParams) {
+    this.extraParams.putAll(newParams);
+  }
+
   public StorageEngineType getStorageEngine() {
     return storageEngine;
   }
@@ -275,6 +283,29 @@ public final class StorageEngineMeta {
 
   public void setNeedReAllocate(boolean needReAllocate) {
     this.needReAllocate = needReAllocate;
+  }
+
+  public static String extractEmbeddedPrefix(@NotNull String dummyDirPath) {
+    if (dummyDirPath.isEmpty()) {
+      return null;
+    }
+    String separator = System.getProperty("file.separator");
+    // dummyDirPath是规范路径，一定不会以separator结尾
+    String prefix = dummyDirPath.substring(dummyDirPath.lastIndexOf(separator) + 1);
+    // "/" also can be used on windows, just in case
+    return prefix.substring(prefix.lastIndexOf("/") + 1);
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) return true;
+    if (o == null || getClass() != o.getClass()) return false;
+    StorageEngineMeta that = (StorageEngineMeta) o;
+    return (ip.equals(that.ip) || (isLocalHost(ip) && isLocalHost(that.ip)))
+        && port == that.port
+        && storageEngine == that.storageEngine
+        && Objects.equals(schemaPrefix, that.getSchemaPrefix())
+        && Objects.equals(dataPrefix, that.getDataPrefix());
   }
 
   @Override

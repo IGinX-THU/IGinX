@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.engine.physical.storage;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
@@ -211,5 +212,33 @@ public class StorageManager {
       LOGGER.error("add storage {} failure!", meta, e);
       return null;
     }
+  }
+
+  public boolean releaseStorage(StorageEngineMeta meta) throws PhysicalException {
+    long id = meta.getId();
+    Pair<IStorage, ThreadPoolExecutor> pair = storageMap.get(id);
+    if (pair == null) {
+      LOGGER.warn("Storage id {} not found", id);
+      return false;
+    }
+
+    ThreadPoolExecutor dispatcher = pair.getV();
+    dispatcher.shutdown(); // 停止接收新任务
+    try {
+      if (!dispatcher.awaitTermination(60, TimeUnit.SECONDS)) { // 等待任务完成
+        dispatcher.shutdownNow(); // 如果时间内未完成任务，强制关闭
+        if (!dispatcher.awaitTermination(60, TimeUnit.SECONDS)) {
+          LOGGER.error("Executor did not terminate");
+        }
+      }
+    } catch (InterruptedException ie) {
+      dispatcher.shutdownNow();
+      LOGGER.error("unexpected exception occurred in releasing storage engine: ", ie);
+      return false;
+    }
+
+    pair.getK().release();
+    storageMap.remove(id);
+    return true;
   }
 }

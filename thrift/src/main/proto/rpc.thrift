@@ -58,6 +58,7 @@ enum SqlType {
     Query,
     GetReplicaNum,
     AddStorageEngines,
+    AlterStorageEngine,
     CountPoints,
     ClearData,
     DeleteColumns,
@@ -264,6 +265,12 @@ struct QueryDataResp {
 struct AddStorageEnginesReq {
     1: required i64 sessionId
     2: required list<StorageEngine> storageEngines
+}
+
+struct AlterStorageEngineReq {
+    1: required i64 sessionId
+    2: required i64 engineId
+    3: required map<string, string> newParams
 }
 
 struct StorageEngine {
@@ -728,6 +735,8 @@ service IService {
     QueryDataResp queryData(1: QueryDataReq req);
 
     Status addStorageEngines(1: AddStorageEnginesReq req);
+
+    Status alterStorageEngine(1: AlterStorageEngineReq req);
 
     Status removeHistoryDataSource(1: RemoveHistoryDataSourceReq req);
 
