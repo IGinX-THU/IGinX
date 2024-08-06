@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.filesystem.tools.FilePathUtils;
 import cn.edu.tsinghua.iginx.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -394,8 +395,12 @@ public class FileSystemManager {
   public List<File> getTargetFiles(
       File dir, String root, Set<String> patterns, boolean containsEmptyDir) {
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
-    Set<String> pathPatterns = new HashSet<>(patterns.size());
-    patterns.forEach(p -> pathPatterns.add(FilePathUtils.toNormalFilePath(root, p)));
+    Set<String> pathRegexSet = new HashSet<>(patterns.size());
+    patterns.forEach(
+        p -> {
+          String pathPattern = FilePathUtils.toNormalFilePath(root, p);
+          pathRegexSet.add(StringUtils.reformatPath(pathPattern));
+        });
 
     List<File> res = new ArrayList<>();
     try {
@@ -408,8 +413,8 @@ public class FileSystemManager {
               if (containsEmptyDir && isDirEmpty(dir)) {
                 res.add(dir.toFile());
               }
-              for (String pathPattern : pathPatterns) {
-                try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, pathPattern)) {
+              for (String regex : pathRegexSet) {
+                try (DirectoryStream<Path> stream = Files.newDirectoryStream(dir, regex)) {
                   stream.forEach(path -> res.add(path.toFile()));
                 }
               }
