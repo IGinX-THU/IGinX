@@ -383,7 +383,10 @@ public class StoragePhysicalTaskExecutor {
           continue;
         }
         // 求patterns与dataPrefix的交集
+        LOGGER.debug("before patterns: {}", patterns);
+        LOGGER.debug("dataprefix: {}", storage.getDataPrefix());
         patterns = StringUtils.intersectDataPrefix(storage.getDataPrefix(), patterns);
+        LOGGER.debug("after patterns: {}", patterns);
         if (patterns.isEmpty()) {
           continue;
         }
