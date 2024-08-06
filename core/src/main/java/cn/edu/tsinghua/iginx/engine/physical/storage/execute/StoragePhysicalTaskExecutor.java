@@ -303,6 +303,18 @@ public class StoragePhysicalTaskExecutor {
             if (after.getCreatedBy() != metaManager.getIginxId()) {
               storageManager.addStorage(after);
             }
+          } else if (before != null && after == null) { // 删除引擎时，需要release（目前仅支持dummy & read only）
+            try {
+              if (!storageManager.releaseStorage(before)) {
+                LOGGER.error(
+                    "Fail to release deleted storage engine. Please look into server log.");
+              }
+              LOGGER.info("Release storage with id={} succeeded.", before.getId());
+            } catch (PhysicalException e) {
+              LOGGER.error(
+                  "unexpected exception during in releasing storage engine, please contact developer to check: ",
+                  e);
+            }
           }
         };
     metaManager.registerStorageEngineChangeHook(storageEngineChangeHook);

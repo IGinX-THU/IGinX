@@ -45,7 +45,14 @@ public class Constants {
 
   public static final String LEVEL_PLACEHOLDER = "*";
 
+  // engine params in sql
+  public static final String IP = "ip";
+  public static final String PORT = "port";
+
   public static final String HAS_DATA = "has_data";
+
+  // dummy dir path for embedded storage engines
+  public static final String DUMMY_DIR = "dummy_dir";
 
   public static final String IS_READ_ONLY = "is_read_only";
 

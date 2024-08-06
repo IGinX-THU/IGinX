@@ -107,7 +107,7 @@ public class IginxWorker implements IService.Iface {
       metaFromConf.setExtraParams(extraParams);
       boolean hasAdded = false;
       for (StorageEngineMeta meta : metaManager.getStorageEngineList()) {
-        if (isDuplicated(metaFromConf, meta)) {
+        if (metaFromConf.equals(meta)) {
           hasAdded = true;
           break;
         }
@@ -325,13 +325,15 @@ public class IginxWorker implements IService.Iface {
       int port = storageEngine.getPort();
       StorageEngineType type = storageEngine.getType();
       Map<String, String> extraParams = storageEngine.getExtraParams();
-      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "false"));
+      // 仅add时，默认为true
+      boolean hasData = Boolean.parseBoolean(extraParams.getOrDefault(Constants.HAS_DATA, "true"));
       String dataPrefix = null;
       if (hasData && extraParams.containsKey(Constants.DATA_PREFIX)) {
         dataPrefix = extraParams.get(Constants.DATA_PREFIX);
       }
+      // 仅add时，默认为true
       boolean readOnly =
-          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "false"));
+          Boolean.parseBoolean(extraParams.getOrDefault(Constants.IS_READ_ONLY, "true"));
 
       if (!isValidHost(ip)) { // IP 不合法
         LOGGER.error("ip {} is invalid.", ip);
@@ -400,7 +402,7 @@ public class IginxWorker implements IService.Iface {
       List<StorageEngineMeta> duplicatedStorageEngines = new ArrayList<>();
       for (StorageEngineMeta storageEngine : storageEngineMetas) {
         for (StorageEngineMeta currentStorageEngine : currentStorageEngines) {
-          if (isDuplicated(storageEngine, currentStorageEngine)) {
+          if (storageEngine.equals(currentStorageEngine)) {
             duplicatedStorageEngines.add(storageEngine);
             LOGGER.error("repeatedly add storage engine {}.", storageEngine);
             status.addToSubStatus(RpcUtils.FAILURE);
@@ -514,23 +516,52 @@ public class IginxWorker implements IService.Iface {
     }
   }
 
-  private boolean isDuplicated(StorageEngineMeta engine1, StorageEngineMeta engine2) {
-    if (!engine1.getStorageEngine().equals(engine2.getStorageEngine())) {
-      return false;
+  /** This function is only for read-only dummy, temporarily */
+  @Override
+  public Status alterStorageEngine(AlterStorageEngineReq req) {
+    if (!sessionManager.checkSession(req.getSessionId(), AuthType.Cluster)) {
+      return RpcUtils.ACCESS_DENY;
     }
-    if (engine1.getPort() != engine2.getPort()) {
-      return false;
+    Status status = new Status(RpcUtils.SUCCESS.code);
+    long targetId = req.getEngineId();
+    Map<String, String> newParams = req.getNewParams();
+    StorageEngineMeta targetMeta = metaManager.getStorageEngine(targetId);
+    if (targetMeta == null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("No engine found with id:" + targetId);
+      return status;
     }
-    if (!Objects.equals(engine1.getDataPrefix(), engine2.getDataPrefix())) {
-      return false;
+    if (!targetMeta.isHasData() || !targetMeta.isReadOnly()) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "Only read-only & dummy engines' params can be altered. Engine with id("
+              + targetId
+              + ") cannot be altered.");
+      return status;
     }
-    if (!Objects.equals(engine1.getSchemaPrefix(), engine2.getSchemaPrefix())) {
-      return false;
+
+    // update meta info
+    if (newParams.remove(Constants.IP) != null
+        || newParams.remove(Constants.PORT) != null
+        || newParams.remove(Constants.DATA_PREFIX) != null
+        || newParams.remove(Constants.SCHEMA_PREFIX) != null) {
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage(
+          "IP, port, type, data_prefix, schema_prefix cannot be altered. Removing and adding new engine is recommended.");
+      return status;
     }
-    if (isLocalHost(engine1.getIp()) && isLocalHost(engine2.getIp())) { // 都是本机IP
-      return true;
+    targetMeta.updateExtraParams(newParams);
+
+    // remove, then add
+    if (!metaManager.removeDummyStorageEngine(targetId)) {
+      LOGGER.error("unexpected error during removing dummy storage engine {}.", targetMeta);
+      status.setCode(RpcUtils.FAILURE.code);
+      status.setMessage("unexpected error occurred. Please check server log.");
+      return status;
     }
-    return engine1.getIp().equals(engine2.getIp());
+
+    addStorageEngineMetas(Collections.singletonList(targetMeta), status, true);
+    return status;
   }
 
   @Override
