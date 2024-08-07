@@ -802,7 +802,7 @@ public abstract class BaseCapacityExpansionIT {
     }
 
     if (this instanceof FileStoreCapacityExpansionIT) {
-      scriptPath = ".github/scripts/dataSources/filestore.sh";
+      scriptPath = ".github/scripts/dataSources/startup/filestore.sh";
     } else if (this instanceof FileSystemCapacityExpansionIT) {
       if (isOnMac) {
         scriptPath = ".github/scripts/dataSources/startup/filesystem_macos.sh";

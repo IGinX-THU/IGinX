@@ -142,7 +142,7 @@ public class FileStorage implements IStorage {
       }
 
       if (meta.isReadOnly()) {
-        LOGGER.debug("storage of {} is not read only, ignore config for iginx data", meta);
+        LOGGER.debug("storage of {} is read only, ignore config for iginx data", meta);
         config = config.withoutPath(FileStoreConfig.Fields.data);
       }
     } else {
