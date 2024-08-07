@@ -108,6 +108,18 @@ public class LogicalFilterUtilsTest {
     filter = statement.getFilter();
     System.out.println(filter.toString());
     System.out.println(LogicalFilterUtils.removeNot(filter).toString());
+
+    select = "SELECT a FROM root WHERE !(e like \".*aa.*\");";
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
+    filter = statement.getFilter();
+    System.out.println(filter.toString());
+    System.out.println(LogicalFilterUtils.removeNot(filter).toString());
+
+    select = "SELECT a FROM root WHERE !(e not like \".*aa.*\");";
+    statement = (UnarySelectStatement) TestUtils.buildStatement(select);
+    filter = statement.getFilter();
+    System.out.println(filter.toString());
+    System.out.println(LogicalFilterUtils.removeNot(filter).toString());
   }
 
   @Test
