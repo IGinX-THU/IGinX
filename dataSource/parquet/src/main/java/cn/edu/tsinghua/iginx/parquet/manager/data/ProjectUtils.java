@@ -183,6 +183,7 @@ class ProjectUtils {
       case E:
       case NE:
       case LIKE:
+      case NOT_LIKE:
         return false;
       case GE_AND:
       case G_AND:
@@ -191,6 +192,7 @@ class ProjectUtils {
       case E_AND:
       case NE_AND:
       case LIKE_AND:
+      case NOT_LIKE_AND:
         return true;
       default:
         throw new IllegalStateException("unsupported op: " + op);
@@ -220,6 +222,9 @@ class ProjectUtils {
       case LIKE:
       case LIKE_AND:
         return Op.LIKE;
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return Op.NOT_LIKE;
       default:
         throw new IllegalStateException("unsupported op: " + op);
     }

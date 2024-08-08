@@ -262,10 +262,6 @@ public enum Op {
     return op.equals(E) || op.equals(E_AND);
   }
 
-  public static boolean isLikeOp(Op op) {
-    return op.equals(LIKE) || op.equals(LIKE_AND) || op.equals(NOT_LIKE) || op.equals(NOT_LIKE_AND);
-  }
-
   public static boolean isOrOp(Op op) {
     return op.value >= 0 && op.value <= 9;
   }
