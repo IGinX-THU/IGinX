@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.sql;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
-import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 
@@ -43,6 +42,7 @@ import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
@@ -998,7 +998,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     boolean isDistinct = false;
     if (funcCtx.ALL() != null || funcCtx.DISTINCT() != null) {
-      if (!isCanUseSetQuantifierFunction(funcName)) {
+      if (!FunctionUtils.isCanUseSetQuantifierFunction(funcName)) {
         throw new SQLParserException(
             "Function: " + funcName + " can't use ALL or DISTINCT in bracket.");
       }
@@ -1131,22 +1131,20 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     ctx.path()
         .forEach(
             pathContext -> {
-              String path, originPath;
+              String path = parsePath(pathContext);
               // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则GROUP BY后的path只用写出后缀
               if (selectStatement.isFromSinglePath()) {
-                FromPart fromPart = selectStatement.getFromPart(0);
-                path = fromPart.getPrefix() + SQLConstant.DOT + parsePath(pathContext);
-                originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + parsePath(pathContext);
-              } else {
-                path = parsePath(pathContext);
-                originPath = parsePath(pathContext);
+                path = selectStatement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
               }
               if (path.contains("*")) {
                 throw new SQLParserException(
                     String.format("GROUP BY path '%s' has '*', which is not supported.", path));
               }
               selectStatement.setGroupByPath(path);
-              selectStatement.addGroupByPath(originPath);
+              String originPath = selectStatement.getOriginPath(path);
+              if (originPath != null) {
+                selectStatement.addGroupByPath(originPath);
+              }
             });
 
     selectStatement
@@ -1194,30 +1192,33 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private void parseOrderByClause(OrderByClauseContext ctx, SelectStatement selectStatement) {
     if (ctx.KEY() != null) {
       selectStatement.setOrderByPath(SQLConstant.KEY);
+      selectStatement.setAscending(ctx.DESC() == null);
     }
-    if (ctx.path() != null) {
-      for (PathContext pathContext : ctx.path()) {
-        String suffix = parsePath(pathContext);
-        String orderByPath = suffix;
-        if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.UNARY) {
-          UnarySelectStatement unarySelectStatement = (UnarySelectStatement) selectStatement;
-          String prefix = unarySelectStatement.getFromPart(0).getPrefix();
-
-          // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
-          if (unarySelectStatement.isFromSinglePath()) {
-            orderByPath = prefix + SQLConstant.DOT + suffix;
-          }
-        }
-        if (orderByPath.contains("*")) {
-          throw new SQLParserException(
-              String.format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
-        }
-        selectStatement.setOrderByPath(orderByPath);
+    if (ctx.orderItem() != null) {
+      for (SqlParser.OrderItemContext itemCtx : ctx.orderItem()) {
+        parseOrderItem(itemCtx, selectStatement);
       }
     }
-    if (ctx.DESC() != null) {
-      selectStatement.setAscending(false);
+  }
+
+  private void parseOrderItem(SqlParser.OrderItemContext ctx, SelectStatement selectStatement) {
+    String suffix = parsePath(ctx.path());
+    String orderByPath = suffix;
+    if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.UNARY) {
+      UnarySelectStatement unarySelectStatement = (UnarySelectStatement) selectStatement;
+      String prefix = unarySelectStatement.getFromPart(0).getPrefix();
+
+      // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
+      if (unarySelectStatement.isFromSinglePath()) {
+        orderByPath = prefix + SQLConstant.DOT + suffix;
+      }
     }
+    if (orderByPath.contains("*")) {
+      throw new SQLParserException(
+          String.format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
+    }
+    selectStatement.setOrderByPath(orderByPath);
+    selectStatement.setAscending(ctx.DESC() == null);
   }
 
   private long parseAggLen(AggLenContext ctx) {
@@ -1819,14 +1820,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     List<String> paths = new ArrayList<>();
     for (int i = 0; i < 2 && i < predicateContext.path().size(); i++) {
       String path = parsePath(predicateContext.path().get(i));
-      String originPath = path;
       // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
       if (statement.isFromSinglePath() && !statement.isSubQuery()) {
-        FromPart fromPart = statement.getFromPart(0);
-        path = fromPart.getPrefix() + SQLConstant.DOT + path;
-        originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
+        path = statement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
       }
-      if (!statement.isFreeVariable(path)) {
+      String originPath = statement.getOriginPath(path);
+      if (originPath != null) {
         paths.add(originPath);
       }
     }

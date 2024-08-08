@@ -83,7 +83,7 @@ public class RedisHistoryDataGenerator extends BaseHistoryDataGenerator {
   @Override
   public void clearHistoryDataForGivenPort(int port) {
     Jedis jedis = new Jedis(LOCAL_IP, port);
-    jedis.flushDB();
+    jedis.flushAll();
     jedis.close();
     LOGGER.info("clear data on 127.0.0.1:{} success!", port);
   }

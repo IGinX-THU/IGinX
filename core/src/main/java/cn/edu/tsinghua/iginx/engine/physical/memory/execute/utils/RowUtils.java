@@ -811,7 +811,7 @@ public class RowUtils {
     }
   }
 
-  public static void sortRows(List<Row> rows, boolean asc, List<String> sortByCols)
+  public static void sortRows(List<Row> rows, List<Boolean> ascendingList, List<String> sortByCols)
       throws PhysicalTaskExecuteFailureException {
     if (rows == null || rows.isEmpty()) {
       return;
@@ -843,12 +843,15 @@ public class RowUtils {
         (a, b) -> {
           if (finalHasKey) {
             int cmp =
-                asc ? Long.compare(a.getKey(), b.getKey()) : Long.compare(b.getKey(), a.getKey());
+                ascendingList.get(0)
+                    ? Long.compare(a.getKey(), b.getKey())
+                    : Long.compare(b.getKey(), a.getKey());
             if (cmp != 0) {
               return cmp;
             }
           }
           for (int i = 0; i < indexList.size(); i++) {
+            boolean asc = finalHasKey ? ascendingList.get(i + 1) : ascendingList.get(i);
             int cmp =
                 asc
                     ? ValueUtils.compare(

@@ -234,9 +234,11 @@ public class ColumnPruningRule extends Rule {
           columns.removeIf(column -> column.startsWith(MarkJoin.MARK_PREFIX));
           // MarkJoin的左侧是普通子树，右侧是WHERE关联子查询子树，我们只处理左侧，裁剪右侧的列会导致语义变化
           filter = markJoin.getFilter();
+          extraJoinPath.addAll(markJoin.getExtraJoinPrefix());
         } else if (operator.getType() == OperatorType.SingleJoin) {
           SingleJoin singleJoin = (SingleJoin) operator;
           filter = singleJoin.getFilter();
+          extraJoinPath.addAll(singleJoin.getExtraJoinPrefix());
         }
 
         if (isNaturalJoin) {
@@ -256,6 +258,9 @@ public class ColumnPruningRule extends Rule {
                   ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
                   new ArrayList<>());
           leftColumns.addAll(getNewColumns(rightPatterns, columns));
+          if (!extraJoinPath.isEmpty()) {
+            leftColumns.addAll(getNewColumns(leftColumns, extraJoinPath));
+          }
         }
 
         // 将columns中的列名分成以PrefixA和PrefixB开头的两部分

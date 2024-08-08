@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.StorageInitializationExce
 import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
@@ -36,7 +37,15 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilterType;
 import cn.edu.tsinghua.iginx.influxdb.exception.InfluxDBException;
@@ -47,7 +56,9 @@ import cn.edu.tsinghua.iginx.influxdb.query.entity.InfluxDBSchema;
 import cn.edu.tsinghua.iginx.influxdb.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.influxdb.tools.SchemaTransformer;
 import cn.edu.tsinghua.iginx.influxdb.tools.TagFilterUtils;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -65,7 +76,12 @@ import com.influxdb.query.FluxTable;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -94,6 +110,9 @@ public class InfluxDBStorage implements IStorage {
   private static final String SHOW_TIME_SERIES =
       "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /.*/ and r._field =~ /.+/)) |> first()";
 
+  private static final String SHOW_TIME_SERIES_BY_PATTERN =
+      "from(bucket:\"%s\") |> range(start: time(v: 0), stop: time(v: 9223372036854775807)) |> filter(fn: (r) => (r._measurement =~ /%s/ and r._field =~ /%s/)) |> first()";
+
   private final StorageEngineMeta meta;
 
   private final InfluxDBClient client;
@@ -112,7 +131,7 @@ public class InfluxDBStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     if (!testConnection()) {
-      throw new StorageInitializationException("cannot connect to " + meta.toString());
+      throw new StorageInitializationException("cannot connect to " + meta);
     }
     Map<String, String> extraParams = meta.getExtraParams();
     String url = extraParams.getOrDefault("url", "http://localhost:8086/");
@@ -229,9 +248,8 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
     List<Column> timeseries = new ArrayList<>();
-
     for (Bucket bucket :
         client.getBucketsApi().findBucketsByOrgName(organization.getName())) { // get all the bucket
       // query all the series by querying all the data with first()
@@ -241,13 +259,87 @@ public class InfluxDBStorage implements IStorage {
       boolean isDummy =
           meta.isHasData()
               && (meta.getDataPrefix() == null
-                  || bucket.getName().startsWith(meta.getDataPrefix()));
+                  || bucket
+                      .getName()
+                      .startsWith(
+                          meta.getDataPrefix().substring(0, meta.getDataPrefix().indexOf("."))));
       if (bucket.getType() == Bucket.TypeEnum.SYSTEM || (!isUnit && !isDummy)) {
         continue;
       }
 
-      String statement = String.format(SHOW_TIME_SERIES, bucket.getName());
-      List<FluxTable> tables = client.getQueryApi().query(statement, organization.getId());
+      List<FluxTable> tables = new ArrayList<>();
+      String measPattern, fieldPattern, statement, bucketPattern;
+      // <measurementPattern, fieldPattern>
+      List<Pair<String, String>> patternPairs = new ArrayList<>();
+
+      if (patterns == null
+          || patterns.size() == 0
+          || patterns.contains("*")
+          || patterns.contains("*.*")) {
+        statement = String.format(SHOW_TIME_SERIES, bucket.getName());
+        tables = client.getQueryApi().query(statement, organization.getId());
+      } else {
+        boolean thisBucketIsQueried = false;
+        for (String p : patterns) {
+          if (isDummy && !isUnit) {
+            bucketPattern = p.substring(0, p.indexOf("."));
+            // dummy path starts with <bucketName>.
+            if (!Pattern.matches(StringUtils.reformatPath(bucketPattern), bucket.getName())) {
+              continue;
+            }
+            // * can match multiple layers.
+            if (p.startsWith("*.")) {
+              // match one layer first
+              p = p.substring(2);
+              if (p.contains(".")) {
+                // pattern *.xx.xx
+                patternPairs.add(
+                    new Pair<>(
+                        StringUtils.reformatPath(p.substring(0, p.indexOf("."))),
+                        StringUtils.reformatPath(p.substring(p.indexOf(".") + 1))));
+              }
+              // match multiple layers later.
+              p = "*.*." + p;
+            }
+            // remove <bucketName>. part from pattern
+            p = p.substring(p.indexOf(".") + 1);
+          }
+          thisBucketIsQueried = true;
+
+          if (p.startsWith("*.")) {
+            // match one layer first
+            patternPairs.add(
+                new Pair<>(
+                    StringUtils.reformatPath(p.substring(0, p.indexOf("."))),
+                    StringUtils.reformatPath(p.substring(p.indexOf(".") + 1))));
+            // match multiple layers
+            patternPairs.add(
+                new Pair<>(StringUtils.reformatPath("*"), StringUtils.reformatPath(p)));
+          } else if (p.equals("*")) {
+            patternPairs.add(
+                new Pair<>(StringUtils.reformatPath("*"), StringUtils.reformatPath("*")));
+          } else if (p.contains(".")) {
+            patternPairs.add(
+                new Pair<>(
+                    StringUtils.reformatPath(p.substring(0, p.indexOf("."))),
+                    StringUtils.reformatPath(p.substring(p.indexOf(".") + 1))));
+          }
+          for (Pair<String, String> patternPair : patternPairs) {
+            measPattern = patternPair.k;
+            fieldPattern = patternPair.v;
+            // query time series based on pattern
+            statement =
+                String.format(
+                    SHOW_TIME_SERIES_BY_PATTERN, bucket.getName(), measPattern, fieldPattern);
+            LOGGER.info("executing column query: {}", statement);
+            tables.addAll(client.getQueryApi().query(statement, organization.getId()));
+          }
+        }
+        // if bucket is dummy && all patterns do not match(<bucketName>.*), move on to next bucket
+        if (!thisBucketIsQueried) {
+          continue;
+        }
+      }
 
       for (FluxTable table : tables) {
         List<FluxColumn> column = table.getColumns();
@@ -261,6 +353,13 @@ public class InfluxDBStorage implements IStorage {
           String key = column.get(i).getLabel();
           String val = (String) table.getRecords().get(0).getValues().get(key);
           tag.put(key, val);
+        }
+        if (isDummy && !isUnit) {
+          path = bucket.getName() + "." + path;
+        }
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(tag, tagFilter)) {
+          continue;
         }
 
         DataType dataType;
@@ -288,10 +387,7 @@ public class InfluxDBStorage implements IStorage {
             LOGGER.warn("DataType don't match and default is String");
             break;
         }
-        if (isDummy && !isUnit) {
-          path = bucket.getName() + "." + path;
-        }
-        timeseries.add(new Column(path, dataType, tag));
+        timeseries.add(new Column(path, dataType, tag, isDummy));
       }
     }
 
@@ -299,7 +395,7 @@ public class InfluxDBStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public void release() {
     client.close();
   }
 

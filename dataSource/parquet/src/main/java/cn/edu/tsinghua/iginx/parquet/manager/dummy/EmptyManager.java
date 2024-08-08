@@ -72,7 +72,7 @@ public class EmptyManager implements Manager {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns(List<String> paths, TagFilter tagFilter) {
     return Collections.emptyList();
   }
 
