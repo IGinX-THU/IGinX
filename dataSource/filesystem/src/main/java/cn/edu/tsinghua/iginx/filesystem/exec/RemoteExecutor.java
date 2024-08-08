@@ -31,10 +31,25 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.BitmapView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BaseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.OrTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.PreciseTagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.exception.FilesystemException;
-import cn.edu.tsinghua.iginx.filesystem.thrift.*;
+import cn.edu.tsinghua.iginx.filesystem.thrift.DeleteReq;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSHeader;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSKeyRange;
+import cn.edu.tsinghua.iginx.filesystem.thrift.FSRawData;
 import cn.edu.tsinghua.iginx.filesystem.thrift.FileSystemService.Client;
+import cn.edu.tsinghua.iginx.filesystem.thrift.GetBoundaryOfStorageResp;
+import cn.edu.tsinghua.iginx.filesystem.thrift.GetColumnsOfStorageUnitResp;
+import cn.edu.tsinghua.iginx.filesystem.thrift.InsertReq;
+import cn.edu.tsinghua.iginx.filesystem.thrift.ProjectReq;
+import cn.edu.tsinghua.iginx.filesystem.thrift.ProjectResp;
+import cn.edu.tsinghua.iginx.filesystem.thrift.RawTagFilter;
+import cn.edu.tsinghua.iginx.filesystem.thrift.Status;
 import cn.edu.tsinghua.iginx.filesystem.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.filesystem.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -50,6 +65,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.apache.thrift.TException;
 import org.apache.thrift.protocol.TBinaryProtocol;
@@ -225,11 +241,13 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
-      GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
+      GetColumnsOfStorageUnitResp resp =
+          client.getColumnsOfStorageUnit(storageUnit, patterns, constructRawTagFilter(tagFilter));
       thriftConnPool.returnTransport(transport);
       List<Column> columns = new ArrayList<>();
       resp.getPathList()
@@ -272,6 +290,9 @@ public class RemoteExecutor implements Executor {
 
   private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
     RawTagFilter filter = null;
+    if (tagFilter == null) {
+      return null;
+    }
     switch (tagFilter.getType()) {
       case Base:
         {

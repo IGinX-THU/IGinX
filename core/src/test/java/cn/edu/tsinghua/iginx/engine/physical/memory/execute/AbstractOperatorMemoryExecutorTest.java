@@ -2174,7 +2174,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Table table = generateTableForUnaryOperator(true);
     Sort sort =
         new Sort(
-            EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.ASC);
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(Constants.KEY),
+            Collections.singletonList(Sort.SortType.ASC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, table, null);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = 0;
@@ -2193,7 +2195,9 @@ public abstract class AbstractOperatorMemoryExecutorTest {
     Table copyTable = generateTableForUnaryOperator(true);
     Sort sort =
         new Sort(
-            EmptySource.EMPTY_SOURCE, Collections.singletonList(Constants.KEY), Sort.SortType.DESC);
+            EmptySource.EMPTY_SOURCE,
+            Collections.singletonList(Constants.KEY),
+            Collections.singletonList(Sort.SortType.DESC));
     RowStream stream = getExecutor().executeUnaryOperator(sort, copyTable, null);
     assertEquals(table.getHeader(), stream.getHeader());
     int index = table.getRowSize();

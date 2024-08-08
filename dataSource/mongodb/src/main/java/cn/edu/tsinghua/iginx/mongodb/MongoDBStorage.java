@@ -59,9 +59,20 @@ import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.model.*;
+import com.mongodb.client.model.BulkWriteOptions;
+import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.InsertManyOptions;
+import com.mongodb.client.model.ReplaceOneModel;
+import com.mongodb.client.model.ReplaceOptions;
+import com.mongodb.client.model.WriteModel;
 import java.text.ParseException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.bson.BsonDocument;
@@ -314,7 +325,11 @@ public class MongoDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+    List<String> patternList = new ArrayList<>(patterns);
+    if (patternList.isEmpty()) {
+      patternList.add("*");
+    }
     List<Column> columns = new ArrayList<>();
     for (String dbName : getDatabaseNames(this.client)) {
       MongoDatabase db = this.client.getDatabase(dbName);
@@ -322,7 +337,9 @@ public class MongoDBStorage implements IStorage {
         try {
           if (dbName.startsWith("unit")) {
             Field field = NameUtils.parseCollectionName(collectionName);
-            columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
+            if (NameUtils.match(field.getName(), field.getTags(), patternList, tagFilter)) {
+              columns.add(new Column(field.getName(), field.getType(), field.getTags(), false));
+            }
             continue;
           }
         } catch (Exception ignored) {
@@ -334,7 +351,9 @@ public class MongoDBStorage implements IStorage {
           Map<String, DataType> sampleSchema =
               new SchemaSample(schemaSampleSize).query(collection, true);
           for (Map.Entry<String, DataType> entry : sampleSchema.entrySet()) {
-            columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
+            if (NameUtils.match(entry.getKey(), Collections.emptyMap(), patternList, null)) {
+              columns.add(new Column(entry.getKey(), entry.getValue(), null, true));
+            }
           }
           continue;
         }
