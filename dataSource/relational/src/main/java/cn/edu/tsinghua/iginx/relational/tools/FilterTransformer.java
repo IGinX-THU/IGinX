@@ -100,7 +100,7 @@ public class FilterTransformer {
         break;
       case NOT_LIKE:
       case NOT_LIKE_AND:
-        op = "not " + relationalMeta.getRegexpOp();
+        op = relationalMeta.getNotRegexpOp();
         value = "'" + filter.getValue().getBinaryVAsString() + "$" + "'";
         break;
       default:
