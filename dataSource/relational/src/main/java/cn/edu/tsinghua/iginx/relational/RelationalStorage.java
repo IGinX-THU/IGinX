@@ -551,6 +551,7 @@ public class RelationalStorage implements IStorage {
           try {
             stmt = conn.createStatement();
             rs = stmt.executeQuery(statement);
+            stmt.close();
             LOGGER.info("[Query] execute query: {}", statement);
           } catch (SQLException e) {
             LOGGER.error("meet error when executing query {}: ", statement, e);
@@ -631,6 +632,7 @@ public class RelationalStorage implements IStorage {
         try {
           stmt = conn.createStatement();
           rs = stmt.executeQuery(statement);
+          stmt.close();
           LOGGER.info("[Query] execute query: {}", statement);
         } catch (SQLException e) {
           LOGGER.error("meet error when executing query {}: ", statement, e);
@@ -1099,6 +1101,7 @@ public class RelationalStorage implements IStorage {
             try {
               stmt = conn.createStatement();
               rs = stmt.executeQuery(statement);
+              stmt.close();
               LOGGER.info("[Query] execute query: {}", statement);
             } catch (SQLException e) {
               LOGGER.error("meet error when executing query {}: ", statement, e);
@@ -1187,6 +1190,7 @@ public class RelationalStorage implements IStorage {
           try {
             stmt = conn.createStatement();
             rs = stmt.executeQuery(statement);
+            stmt.close();
             LOGGER.info("[Query] execute query: {}", statement);
           } catch (SQLException e) {
             LOGGER.error("meet error when executing query {}: ", statement, e);
