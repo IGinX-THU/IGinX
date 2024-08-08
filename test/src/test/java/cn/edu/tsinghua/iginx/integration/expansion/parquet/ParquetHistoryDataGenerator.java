@@ -19,7 +19,8 @@
 package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.IGINX_DATA_PATH_PREFIX_NAME;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PARQUET_PARAMS;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
@@ -28,9 +29,15 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -167,17 +174,24 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
           "delete {}/{} error: does not exist or is not a file.", dir, file.getAbsoluteFile());
     }
 
+    List<String> pathList =
+        Arrays.asList(IT_DATA_DIR, IGINX_DATA_PATH_PREFIX_NAME + PARQUET_PARAMS.get(port).get(0));
     // delete the normal IT data
-    dir = DBCE_PARQUET_FS_TEST_DIR + System.getProperty("file.separator") + IT_DATA_DIR;
-    parquetPath = Paths.get("../" + dir);
-
-    try {
-      Files.walkFileTree(parquetPath, new DeleteFileVisitor());
-    } catch (NoSuchFileException e) {
-      LOGGER.warn(
-          "no such file or directory: {}", new File(parquetPath.toString()).getAbsoluteFile());
-    } catch (IOException e) {
-      LOGGER.warn("delete {} error: ", new File(parquetPath.toString()).getAbsoluteFile(), e);
+    for (String path : pathList) {
+      Path dataPath = Paths.get(path);
+      if (Files.exists(dataPath)) {
+        try {
+          Files.walkFileTree(dataPath, new DeleteFileVisitor());
+        } catch (NoSuchFileException e) {
+          LOGGER.warn(
+              "no such file or directory: {}", new File(dataPath.toString()).getAbsoluteFile());
+        } catch (IOException e) {
+          LOGGER.warn("delete {} error: ", new File(dataPath.toString()).getAbsoluteFile(), e);
+        }
+      } else {
+        LOGGER.warn(
+            "delete {} error: does not exist.", new File(dataPath.toString()).getAbsoluteFile());
+      }
     }
   }
 

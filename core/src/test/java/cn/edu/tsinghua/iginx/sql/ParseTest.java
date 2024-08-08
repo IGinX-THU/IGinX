@@ -157,12 +157,12 @@ public class ParseTest {
     String orderBy = "SELECT a FROM test ORDER BY KEY";
     statement = (UnarySelectStatement) TestUtils.buildStatement(orderBy);
     assertEquals(Collections.singletonList(SQLConstant.KEY), statement.getOrderByPaths());
-    assertTrue(statement.isAscending());
+    assertTrue(statement.getAscendingList().get(0));
 
     String orderByAndLimit = "SELECT a FROM test ORDER BY a DESC LIMIT 10 OFFSET 5;";
     statement = (UnarySelectStatement) TestUtils.buildStatement(orderByAndLimit);
     assertEquals(Collections.singletonList("test.a"), statement.getOrderByPaths());
-    assertFalse(statement.isAscending());
+    assertFalse(statement.getAscendingList().get(0));
     assertEquals(5, statement.getOffset());
     assertEquals(10, statement.getLimit());
 

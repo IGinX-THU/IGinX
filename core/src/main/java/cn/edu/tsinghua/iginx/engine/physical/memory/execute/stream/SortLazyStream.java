@@ -30,7 +30,7 @@ public class SortLazyStream extends UnaryLazyStream {
 
   private final Sort sort;
 
-  private final boolean asc;
+  private final List<Boolean> ascendingList;
 
   private final List<Row> rows;
 
@@ -41,7 +41,7 @@ public class SortLazyStream extends UnaryLazyStream {
   public SortLazyStream(Sort sort, RowStream stream) {
     super(stream);
     this.sort = sort;
-    this.asc = sort.getSortType() == Sort.SortType.ASC;
+    this.ascendingList = sort.getAscendingList();
     this.rows = new ArrayList<>();
   }
 
@@ -56,7 +56,7 @@ public class SortLazyStream extends UnaryLazyStream {
       while (stream.hasNext()) {
         rows.add(stream.next());
       }
-      RowUtils.sortRows(rows, asc, sort.getSortByCols());
+      RowUtils.sortRows(rows, ascendingList, sort.getSortByCols());
       hasSorted = true;
     }
     return cur < rows.size();
