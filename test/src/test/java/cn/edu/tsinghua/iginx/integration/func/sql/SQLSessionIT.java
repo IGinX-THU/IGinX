@@ -3295,6 +3295,23 @@ public class SQLSessionIT {
             + "+---+--+--------+--+--+--------+\n"
             + "Total line number = 4\n";
     executor.executeAndCompare(statement, expected);
+
+    // test rename in subquery with filter
+    statement =
+        "SELECT * FROM (SELECT s1, s2 FROM us.d1 AS test WHERE test.s1 >= 1000 AND test.s2 <= 1005);";
+    expected =
+        "ResultSets:\n"
+            + "+----+-------+-------+\n"
+            + "| key|test.s1|test.s2|\n"
+            + "+----+-------+-------+\n"
+            + "|1000|   1000|   1001|\n"
+            + "|1001|   1001|   1002|\n"
+            + "|1002|   1002|   1003|\n"
+            + "|1003|   1003|   1004|\n"
+            + "|1004|   1004|   1005|\n"
+            + "+----+-------+-------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
   }
 
   @Test

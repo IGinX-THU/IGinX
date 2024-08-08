@@ -1131,22 +1131,20 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     ctx.path()
         .forEach(
             pathContext -> {
-              String path, originPath;
+              String path = parsePath(pathContext);
               // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则GROUP BY后的path只用写出后缀
               if (selectStatement.isFromSinglePath()) {
-                FromPart fromPart = selectStatement.getFromPart(0);
-                path = fromPart.getPrefix() + SQLConstant.DOT + parsePath(pathContext);
-                originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + parsePath(pathContext);
-              } else {
-                path = parsePath(pathContext);
-                originPath = parsePath(pathContext);
+                path = selectStatement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
               }
               if (path.contains("*")) {
                 throw new SQLParserException(
                     String.format("GROUP BY path '%s' has '*', which is not supported.", path));
               }
               selectStatement.setGroupByPath(path);
-              selectStatement.addGroupByPath(originPath);
+              String originPath = selectStatement.getOriginPath(path);
+              if (originPath != null) {
+                selectStatement.addGroupByPath(originPath);
+              }
             });
 
     selectStatement
@@ -1822,14 +1820,12 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     List<String> paths = new ArrayList<>();
     for (int i = 0; i < 2 && i < predicateContext.path().size(); i++) {
       String path = parsePath(predicateContext.path().get(i));
-      String originPath = path;
       // 如果查询语句不是一个子查询，FROM子句只有一个部分且FROM一个前缀，则WHERE条件中的path只用写出后缀
       if (statement.isFromSinglePath() && !statement.isSubQuery()) {
-        FromPart fromPart = statement.getFromPart(0);
-        path = fromPart.getPrefix() + SQLConstant.DOT + path;
-        originPath = fromPart.getOriginPrefix() + SQLConstant.DOT + originPath;
+        path = statement.getFromPart(0).getPrefix() + SQLConstant.DOT + path;
       }
-      if (!statement.isFreeVariable(path)) {
+      String originPath = statement.getOriginPath(path);
+      if (originPath != null) {
         paths.add(originPath);
       }
     }
