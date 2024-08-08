@@ -4,7 +4,7 @@ WORKDIR /root/iginx
 RUN mvn clean package -DskipTests -P-format -e
 
 FROM openjdk:11-jre-slim
-COPY --from=builder /root/iginx/core/target/iginx-core-0.8.0-SNAPSHOT /iginx
+COPY --from=builder /root/iginx/core/target/iginx-core-0.7.1 /iginx
 
 # ports will be cast in run.bat
 
