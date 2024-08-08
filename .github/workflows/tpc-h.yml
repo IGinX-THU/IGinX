@@ -98,6 +98,7 @@ jobs:
                   cp -rf test/src/test/resources/tpch/udf/* IGinX/test/src/test/resources/tpch/udf/
                   cp -f test/src/test/resources/testConfig.properties IGinX/test/src/test/resources/testConfig.properties
                   cp -f dataSource/relational/src/main/java/cn/edu/tsinghua/iginx/relational/RelationalStorage.java IGinX/dataSource/relational/src/main/java/cn/edu/tsinghua/iginx/relational/RelationalStorage.java
+                  cp -f dataSource/relational/src/main/java/cn/edu/tsinghua/iginx/relational/query/entity/RelationQueryRowStream.java IGinX/dataSource/relational/src/main/java/cn/edu/tsinghua/iginx/relational/query/entity/RelationQueryRowStream.java
             # 新增tpc-h查询测试时，旧版本代码中没有这些查询，需从新分支复制过去，添加完所有的tpc_h测试后可删除这些复制命令
 
             - name: Rewrite DB Conf in Old IGinX
