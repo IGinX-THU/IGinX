@@ -18,15 +18,17 @@
 package cn.edu.tsinghua.iginx.filestore.format;
 
 import com.typesafe.config.Config;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
 
 public interface FileFormat {
 
-  String getFormatName();
+  String getName();
 
   List<String> getExtensions();
 
-  FileReader newRead(Path path, Config config) throws IOException;
+  FileReader newRead(@Nullable String prefix, Path path, Config config) throws IOException;
 }

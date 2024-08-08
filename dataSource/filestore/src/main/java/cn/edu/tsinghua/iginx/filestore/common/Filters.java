@@ -17,22 +17,28 @@
  */
 package cn.edu.tsinghua.iginx.filestore.common;
 
+import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.FilterRowStreamWrapper;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import com.google.common.collect.ImmutableRangeSet;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 import com.google.common.collect.TreeRangeSet;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Predicate;
 import javax.annotation.Nullable;
 
 public class Filters {
 
-  private Filters() {}
+  private Filters() {
+  }
 
   public static Filter toFilter(List<KeyRange> keyRanges) {
     List<Filter> rangeFilters = new ArrayList<>();
@@ -106,51 +112,178 @@ public class Filters {
       return ImmutableRangeSet.of(Range.all());
     }
     switch (filter.getType()) {
-      case Key:
-        {
-          KeyFilter keyFilter = (KeyFilter) filter;
-          long value = keyFilter.getValue();
-          switch (keyFilter.getOp()) {
-            case G:
-              return ImmutableRangeSet.of(Range.greaterThan(value));
-            case GE:
-              return ImmutableRangeSet.of(Range.atLeast(value));
-            case L:
-              return ImmutableRangeSet.of(Range.lessThan(value));
-            case LE:
-              return ImmutableRangeSet.of(Range.atMost(value));
-            case E:
-              return ImmutableRangeSet.of(Range.singleton(value));
-            case NE:
-              return ImmutableRangeSet.<Long>builder()
-                  .add(Range.lessThan(value))
-                  .add(Range.greaterThan(value))
-                  .build();
-            default:
-              throw new IllegalArgumentException("Unsupported operator: " + keyFilter.getOp());
-          }
+      case Key: {
+        KeyFilter keyFilter = (KeyFilter) filter;
+        long value = keyFilter.getValue();
+        switch (keyFilter.getOp()) {
+          case G:
+            return ImmutableRangeSet.of(Range.greaterThan(value));
+          case GE:
+            return ImmutableRangeSet.of(Range.atLeast(value));
+          case L:
+            return ImmutableRangeSet.of(Range.lessThan(value));
+          case LE:
+            return ImmutableRangeSet.of(Range.atMost(value));
+          case E:
+            return ImmutableRangeSet.of(Range.singleton(value));
+          case NE:
+            return ImmutableRangeSet.<Long>builder()
+                .add(Range.lessThan(value))
+                .add(Range.greaterThan(value))
+                .build();
+          default:
+            throw new IllegalArgumentException("Unsupported operator: " + keyFilter.getOp());
         }
-      case And:
-        {
-          AndFilter andFilter = (AndFilter) filter;
-          RangeSet<Long> rangeSet = TreeRangeSet.create();
-          rangeSet.add(Range.all());
-          for (Filter child : andFilter.getChildren()) {
-            rangeSet.removeAll(toRangeSet(child).complement());
-          }
-          return rangeSet;
+      }
+      case And: {
+        AndFilter andFilter = (AndFilter) filter;
+        RangeSet<Long> rangeSet = TreeRangeSet.create();
+        rangeSet.add(Range.all());
+        for (Filter child : andFilter.getChildren()) {
+          rangeSet.removeAll(toRangeSet(child).complement());
         }
-      case Or:
-        {
-          RangeSet<Long> rangeSet = TreeRangeSet.create();
-          OrFilter orFilter = (OrFilter) filter;
-          for (Filter child : orFilter.getChildren()) {
-            rangeSet.addAll(toRangeSet(child));
-          }
-          return rangeSet;
+        return rangeSet;
+      }
+      case Or: {
+        RangeSet<Long> rangeSet = TreeRangeSet.create();
+        OrFilter orFilter = (OrFilter) filter;
+        for (Filter child : orFilter.getChildren()) {
+          rangeSet.addAll(toRangeSet(child));
         }
+        return rangeSet;
+      }
       default:
         throw new IllegalArgumentException("Unsupported filter type: " + filter.getType());
     }
+  }
+
+  public static boolean match(@Nullable Filter filter, Predicate<Filter> remain) {
+    if (isTrue(filter)) {
+      return true;
+    }
+
+    boolean[] result = new boolean[1];
+
+    filter.accept(new FilterVisitor() {
+
+      private void test(Filter filter) {
+        if (!remain.test(filter)) {
+          result[0] = false;
+        }
+      }
+
+      @Override
+      public void visit(KeyFilter filter) {
+        test(filter);
+      }
+
+      @Override
+      public void visit(ValueFilter filter) {
+        test(filter);
+      }
+
+      @Override
+      public void visit(PathFilter filter) {
+        test(filter);
+      }
+
+      @Override
+      public void visit(AndFilter filter) {
+      }
+
+      @Override
+      public void visit(OrFilter filter) {
+      }
+
+      @Override
+      public void visit(NotFilter filter) {
+      }
+
+      @Override
+      public void visit(BoolFilter filter) {
+        test(filter);
+      }
+
+      @Override
+      public void visit(ExprFilter filter) {
+        test(filter);
+      }
+    });
+
+    return result[0];
+  }
+
+  @Nullable
+  public static Filter superSet(@Nullable Filter filter, Predicate<Filter> remain) {
+    if (isTrue(filter)) {
+      return null;
+    }
+
+    switch (filter.getType()) {
+      case Not:
+      case And:
+      case Or:
+        filter = LogicalFilterUtils.toCNF(filter);
+    }
+
+    switch (filter.getType()) {
+      case Not:
+        throw new IllegalStateException("Not filter should be removed before calling superSet");
+      case And: {
+        AndFilter andFilter = (AndFilter) filter;
+        List<Filter> children = new ArrayList<>();
+        for (Filter child : andFilter.getChildren()) {
+          Filter superSet = superSet(child, remain);
+          if (superSet != null) {
+            children.add(superSet);
+          }
+        }
+        if (children.isEmpty()) {
+          return null;
+        } else if (children.size() == 1) {
+          return children.get(0);
+        } else {
+          return new AndFilter(children);
+        }
+      }
+      case Or: {
+        OrFilter orFilter = (OrFilter) filter;
+        List<Filter> oldChildren = orFilter.getChildren();
+        if (oldChildren.isEmpty()) {
+          throw new IllegalStateException("Or filter should not have empty children");
+        }
+        List<Filter> children = new ArrayList<>();
+        for (Filter child : orFilter.getChildren()) {
+          Filter superSet = superSet(child, remain);
+          if (superSet != null) {
+            children.add(superSet);
+          }
+        }
+        if (children.isEmpty()) {
+          return null;
+        } else if (children.size() == 1) {
+          return children.get(0);
+        } else {
+          return new OrFilter(children);
+        }
+      }
+      default:
+        if (remain.test(filter)) {
+          return filter;
+        } else {
+          return null;
+        }
+    }
+  }
+
+  public static Predicate<Filter> removeNonKeyFilter() {
+    return filter -> filter.getType() == FilterType.Key;
+  }
+
+  public static RowStream filter(RowStream rowStream, @Nullable Filter filter) {
+    if (isTrue(filter)) {
+      return rowStream;
+    }
+    return new FilterRowStreamWrapper(rowStream, filter);
   }
 }

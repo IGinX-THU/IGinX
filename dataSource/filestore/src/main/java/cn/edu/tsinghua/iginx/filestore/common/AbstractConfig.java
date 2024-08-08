@@ -18,6 +18,9 @@
 package cn.edu.tsinghua.iginx.filestore.common;
 
 import com.google.common.collect.Range;
+import com.typesafe.config.Config;
+import com.typesafe.config.ConfigBeanFactory;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +31,10 @@ import javax.annotation.Nullable;
 public abstract class AbstractConfig {
 
   public abstract List<ValidationProblem> validate();
+
+  public static <C extends AbstractConfig> C of(Config raw, Class<C> clazz) {
+    return ConfigBeanFactory.create(raw, clazz);
+  }
 
   public static class ValidationProblem {
     private final List<String> reversedPath;

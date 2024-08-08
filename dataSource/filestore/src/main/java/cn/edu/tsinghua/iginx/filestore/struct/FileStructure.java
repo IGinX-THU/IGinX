@@ -31,10 +31,6 @@ public interface FileStructure {
 
   Closeable newShared(Config config) throws IOException;
 
-  boolean supportFilter(FilterType type);
-
-  boolean supportAggregate(AggregateType type);
-
   FileManager newReader(Path path, Closeable shared) throws IOException;
 
   boolean supportWrite();

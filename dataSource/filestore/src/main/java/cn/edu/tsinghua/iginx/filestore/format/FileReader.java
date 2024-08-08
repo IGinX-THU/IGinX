@@ -20,13 +20,16 @@ package cn.edu.tsinghua.iginx.filestore.format;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
-public interface FileReader {
+public interface FileReader extends Closeable {
   Map<String, DataType> findFields(Collection<String> fieldPatterns) throws IOException;
 
-  RowStream readRows(List<String> fields, Filter filter) throws IOException;
+  RowStream readRows(Predicate<String> fieldMatcher, Filter filter) throws IOException;
 }

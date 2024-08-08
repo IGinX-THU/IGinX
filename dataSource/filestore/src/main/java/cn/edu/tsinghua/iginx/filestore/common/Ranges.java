@@ -55,4 +55,8 @@ public class Ranges {
     }
     return keyRanges;
   }
+
+  public static boolean notEmpty(Range<Long> closedRange) {
+    return false;
+  }
 }

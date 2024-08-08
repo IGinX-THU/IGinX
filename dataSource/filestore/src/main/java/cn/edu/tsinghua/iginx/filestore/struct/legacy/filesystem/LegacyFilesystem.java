@@ -58,16 +58,6 @@ public class LegacyFilesystem implements FileStructure {
   }
 
   @Override
-  public boolean supportFilter(FilterType type) {
-    return true;
-  }
-
-  @Override
-  public boolean supportAggregate(AggregateType type) {
-    return false;
-  }
-
-  @Override
   public FileManager newReader(Path path, Closeable shared) throws IOException {
     Shared s = (Shared) shared;
     Map<String, String> params = s.getParams(path);

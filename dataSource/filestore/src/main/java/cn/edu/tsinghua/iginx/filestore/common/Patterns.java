@@ -17,7 +17,10 @@
  */
 package cn.edu.tsinghua.iginx.filestore.common;
 
+import cn.edu.tsinghua.iginx.utils.StringUtils;
+
 import java.util.Collection;
+import java.util.Collections;
 import javax.annotation.Nullable;
 
 public class Patterns {
