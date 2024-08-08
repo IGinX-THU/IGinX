@@ -41,6 +41,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -56,18 +57,14 @@ public class LegacyFilesystemWrapper implements FileManager {
 
   @Override
   public DataBoundary getBoundary(@Nullable String prefix) throws IOException {
-    try {
-      Pair<ColumnsInterval, KeyInterval> boundary = executor.getBoundaryOfStorage(prefix);
-      KeyInterval keyInterval = boundary.v;
-      ColumnsInterval columnsInterval = boundary.k;
-      DataBoundary dataBoundary =
-          new DataBoundary(keyInterval.getStartKey(), keyInterval.getEndKey());
-      dataBoundary.setStartColumn(columnsInterval.getStartColumn());
-      dataBoundary.setEndColumn(columnsInterval.getEndColumn());
-      return dataBoundary;
-    } catch (PhysicalException e) {
-      throw new IOException(e);
-    }
+    Pair<ColumnsInterval, KeyInterval> boundary = executor.getBoundaryOfStorage(prefix);
+    KeyInterval keyInterval = boundary.v;
+    ColumnsInterval columnsInterval = boundary.k;
+    DataBoundary dataBoundary =
+        new DataBoundary(keyInterval.getStartKey(), keyInterval.getEndKey());
+    dataBoundary.setStartColumn(columnsInterval.getStartColumn());
+    dataBoundary.setEndColumn(columnsInterval.getEndColumn());
+    return dataBoundary;
   }
 
   @Override
@@ -93,7 +90,8 @@ public class LegacyFilesystemWrapper implements FileManager {
 
     if (Filters.isFalse(target.getFilter())) {
       try {
-        List<Column> columns = executor.getColumnsOfStorageUnit("*");
+        List<Column> columns =
+            executor.getColumnsOfStorageUnit("*", new HashSet<>(patterns), tagFilter);
         List<Field> fields = columns.stream().map(Fields::of).collect(Collectors.toList());
         Header header = new Header(Field.KEY, fields);
         return new Table(header, Collections.emptyList());

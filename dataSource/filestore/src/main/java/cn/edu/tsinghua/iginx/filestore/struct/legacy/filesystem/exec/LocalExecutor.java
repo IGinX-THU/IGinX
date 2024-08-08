@@ -25,6 +25,7 @@ import static cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.shared.Co
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
+import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -52,6 +53,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -327,11 +329,17 @@ public class LocalExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
+    List<String> patternList = new ArrayList<>(patterns);
+    if (patternList.isEmpty()) {
+      patternList.add("*");
+    }
     if (root != null) {
       File directory = new File(FilePathUtils.toIginxPath(root, storageUnit, null));
-      for (File file : fileSystemManager.getAllFiles(directory, false)) {
+      for (File file :
+          fileSystemManager.getTargetFiles(directory, root, storageUnit, patternList, false)) {
         FileMeta meta = fileSystemManager.getFileMeta(file);
         if (meta == null) {
           throw new PhysicalException(
@@ -339,31 +347,30 @@ public class LocalExecutor implements Executor {
                   "encounter error when getting columns of storage unit because file meta %s is null",
                   file.getAbsolutePath()));
         }
-        columns.add(
-            new Column(
-                FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit),
-                meta.getDataType(),
-                meta.getTags(),
-                false));
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(meta.getTags(), tagFilter)) {
+          continue;
+        }
+        String columnPath =
+            FilePathUtils.convertAbsolutePathToPath(root, file.getAbsolutePath(), storageUnit);
+        columns.add(new Column(columnPath, meta.getDataType(), meta.getTags(), false));
       }
     }
-    if (hasData && dummyRoot != null) {
-      for (File file : fileSystemManager.getAllFiles(new File(realDummyRoot), true)) {
-        columns.add(
-            new Column(
-                FilePathUtils.convertAbsolutePathToPath(
-                    dummyRoot, file.getAbsolutePath(), storageUnit),
-                DataType.BINARY,
-                null,
-                true));
+    // get columns from dummy storage unit
+    if (hasData && dummyRoot != null && tagFilter == null) {
+      for (File file :
+          fileSystemManager.getTargetFiles(
+              new File(realDummyRoot), dummyRoot, null, patternList, true)) {
+        String dummyPath =
+            FilePathUtils.convertAbsolutePathToPath(dummyRoot, file.getAbsolutePath(), storageUnit);
+        columns.add(new Column(dummyPath, DataType.BINARY, null, true));
       }
     }
     return columns;
   }
 
   @Override
-  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix)
-      throws PhysicalException {
+  public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String dataPrefix) {
     KeyInterval keyInterval = KeyInterval.getDefaultKeyInterval();
     ColumnsInterval columnsInterval;
 

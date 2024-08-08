@@ -34,6 +34,7 @@ import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.tools.FilePathUt
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.tools.MemoryPool;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.*;
@@ -391,8 +392,16 @@ public class FileSystemManager {
         .collect(Collectors.toList());
   }
 
-  public List<File> getAllFiles(File dir, boolean containsEmptyDir) {
+  public List<File> getTargetFiles(
+      File dir, String root, String storageUnit, List<String> patterns, boolean containsEmptyDir) {
     dir = FilePathUtils.normalize(dir, FileAccessType.READ);
+    List<String> pathRegexList = new ArrayList<>(patterns.size());
+    String suffix = storageUnit == null ? "" : "\\d+"; // 末尾匹配数字
+    patterns.forEach(
+        p -> {
+          String pathPattern = FilePathUtils.toFilePath(root, storageUnit, p);
+          pathRegexList.add(StringUtils.reformatPath(pathPattern) + suffix);
+        });
 
     List<File> res = new ArrayList<>();
     try {
@@ -405,12 +414,18 @@ public class FileSystemManager {
               if (containsEmptyDir && isDirEmpty(dir)) {
                 res.add(dir.toFile());
               }
+              try (DirectoryStream<Path> stream =
+                  Files.newDirectoryStream(
+                      dir,
+                      path ->
+                          path.toFile().isFile() && FilePathUtils.matches(path, pathRegexList))) {
+                stream.forEach(path -> res.add(path.toFile()));
+              }
               return FileVisitResult.CONTINUE;
             }
 
             @Override
             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-              res.add(file.toFile());
               return FileVisitResult.CONTINUE;
             }
 
