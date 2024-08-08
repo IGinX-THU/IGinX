@@ -107,9 +107,10 @@ public abstract class BaseCapacityExpansionIT {
       if (IS_PARQUET_OR_FILE_SYSTEM) {
         statement.append(String.format(", dummy_dir:%s/", DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(String.format(", dir:%s/iginx_", DBCE_PARQUET_FS_TEST_DIR));
+        statement.append(
+            String.format(", dir:%s/" + IGINX_DATA_PATH_PREFIX_NAME, DBCE_PARQUET_FS_TEST_DIR));
         statement.append(PORT_TO_ROOT.get(port));
-        statement.append(", iginx_port:" + oriPortIginx);
+        statement.append(", iginx_port:").append(oriPortIginx);
       }
       if (extraParams != null) {
         statement.append(", ");
@@ -168,8 +169,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   private void addStorageEngineInProgress(
-      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix)
-      throws InterruptedException {
+      int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     if (IS_PARQUET_OR_FILE_SYSTEM) {
       startStorageEngineWithIginx(port, hasData, isReadOnly);
     } else {
@@ -179,7 +179,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpHasData() throws InterruptedException, SessionException {
+  public void oriHasDataExpHasData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -198,7 +198,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriHasDataExpNoData() throws InterruptedException {
+  public void oriHasDataExpNoData() {
     // 查询原始节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 写入并查询新数据
@@ -214,7 +214,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpHasData() throws InterruptedException {
+  public void oriNoDataExpHasData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -232,7 +232,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void oriNoDataExpNoData() throws InterruptedException {
+  public void oriNoDataExpNoData() {
     // 查询原始节点的历史数据，结果为空
     testQueryHistoryDataOriNoData();
     // 写入并查询新数据
@@ -248,7 +248,7 @@ public abstract class BaseCapacityExpansionIT {
   }
 
   @Test
-  public void testReadOnly() throws InterruptedException, SessionException {
+  public void testReadOnly() throws SessionException {
     // 查询原始只读节点的历史数据，结果不为空
     testQueryHistoryDataOriHasData();
     // 测试只读节点的参数修改
@@ -553,7 +553,9 @@ public abstract class BaseCapacityExpansionIT {
     List<List<Object>> valuesList = EXP_VALUES_LIST1;
 
     // 添加不同 schemaPrefix，相同 dataPrefix
+    testShowColumnsInExpansion(true);
     addStorageEngine(expPort, true, true, dataPrefix1, schemaPrefix1, extraParams);
+    testShowColumnsInExpansion(false);
 
     // 添加节点 dataPrefix = dataPrefix1 && schemaPrefix = p1 后查询
     String statement = "select status2 from *;";
@@ -599,6 +601,7 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // 通过 session 接口测试移除节点
+    testShowColumnsRemoveStorageEngine(true);
     List<RemovedStorageEngineInfo> removedStorageEngineList = new ArrayList<>();
     removedStorageEngineList.add(
         new RemovedStorageEngineInfo("127.0.0.1", expPort, "p2" + schemaPrefixSuffix, dataPrefix1));
@@ -610,6 +613,8 @@ public abstract class BaseCapacityExpansionIT {
     } catch (SessionException e) {
       LOGGER.error("remove history data source through session api error: ", e);
     }
+    testShowColumnsRemoveStorageEngine(false);
+
     // 移除节点 dataPrefix = dataPrefix1 && schemaPrefix = p2 + schemaPrefixSuffix 后再查询
     statement = "select * from p2.nt.wf03;";
     String expect =
@@ -650,6 +655,125 @@ public abstract class BaseCapacityExpansionIT {
       }
     }
     testShowClusterInfo(2);
+  }
+
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 6\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                  Path|DataType|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "|                                                                                 b.b.b|    LONG|\n"
+              + "|                                                                        ln.wf02.status| BOOLEAN|\n"
+              + "|                                                                       ln.wf02.version|  BINARY|\n"
+              + "|                                                                  nt.wf03.wt01.status2|    LONG|\n"
+              + "|                                                              nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "|                                                               p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|zzzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzz.zzzzzzzzzzzzzzzzzzzzzzzzzzzzz|    LONG|\n"
+              + "+--------------------------------------------------------------------------------------+--------+\n"
+              + "Total line number = 7\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS p1.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS *.wf03.wt01.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|    LONG|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|    LONG|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  protected void testShowColumnsRemoveStorageEngine(boolean before) {
+    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
+    String expected;
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p2.nt.wf03.wt01.status2|    LONG|\n"
+              + "|    p3.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 4\n";
+    } else { // schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源被移除
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "|p3.nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   private void testShowClusterInfo(int expected) {
@@ -786,8 +910,7 @@ public abstract class BaseCapacityExpansionIT {
     }
   }
 
-  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly)
-      throws InterruptedException {
+  protected void startStorageEngineWithIginx(int port, boolean hasData, boolean isReadOnly) {
     String scriptPath, iginxPath = ".github/scripts/iginx/iginx.sh";
     String os = System.getProperty("os.name").toLowerCase();
     boolean isOnMac = false;
@@ -833,7 +956,7 @@ public abstract class BaseCapacityExpansionIT {
             hasData
                 ? DBCE_PARQUET_FS_TEST_DIR + "/" + PORT_TO_ROOT.get(port)
                 : DBCE_PARQUET_FS_TEST_DIR + "/" + INIT_PATH_LIST.get(0).replace(".", "/"),
-            DBCE_PARQUET_FS_TEST_DIR + "/iginx_" + PORT_TO_ROOT.get(port),
+            DBCE_PARQUET_FS_TEST_DIR + "/" + IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port),
             String.valueOf(hasData),
             String.valueOf(isReadOnly),
             "core/target/iginx-core-*/conf/config.properties",

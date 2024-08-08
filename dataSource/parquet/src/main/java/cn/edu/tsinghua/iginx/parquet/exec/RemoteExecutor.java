@@ -44,8 +44,22 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.parquet.server.FilterTransformer;
-import cn.edu.tsinghua.iginx.parquet.thrift.*;
+import cn.edu.tsinghua.iginx.parquet.thrift.DeleteReq;
+import cn.edu.tsinghua.iginx.parquet.thrift.GetColumnsOfStorageUnitResp;
+import cn.edu.tsinghua.iginx.parquet.thrift.GetStorageBoundaryResp;
+import cn.edu.tsinghua.iginx.parquet.thrift.InsertReq;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetHeader;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetKeyRange;
+import cn.edu.tsinghua.iginx.parquet.thrift.ParquetRawData;
 import cn.edu.tsinghua.iginx.parquet.thrift.ParquetService.Client;
+import cn.edu.tsinghua.iginx.parquet.thrift.ProjectReq;
+import cn.edu.tsinghua.iginx.parquet.thrift.ProjectResp;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawFunction;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawFunctionCall;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawFunctionParams;
+import cn.edu.tsinghua.iginx.parquet.thrift.RawTagFilter;
+import cn.edu.tsinghua.iginx.parquet.thrift.Status;
+import cn.edu.tsinghua.iginx.parquet.thrift.TagFilterType;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
@@ -57,6 +71,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.thrift.TException;
@@ -291,6 +306,9 @@ public class RemoteExecutor implements Executor {
   }
 
   private RawTagFilter constructRawTagFilter(TagFilter tagFilter) {
+    if (tagFilter == null) {
+      return null;
+    }
     switch (tagFilter.getType()) {
       case Base:
         {
@@ -367,11 +385,13 @@ public class RemoteExecutor implements Executor {
   }
 
   @Override
-  public List<Column> getColumnsOfStorageUnit(String storageUnit) throws PhysicalException {
+  public List<Column> getColumnsOfStorageUnit(
+      String storageUnit, Set<String> patterns, TagFilter tagFilter) throws PhysicalException {
     try {
       TTransport transport = thriftConnPool.borrowTransport();
       Client client = new Client(new TBinaryProtocol(transport));
-      GetColumnsOfStorageUnitResp resp = client.getColumnsOfStorageUnit(storageUnit);
+      GetColumnsOfStorageUnitResp resp =
+          client.getColumnsOfStorageUnit(storageUnit, patterns, constructRawTagFilter(tagFilter));
       thriftConnPool.returnTransport(transport);
       List<Column> columnList = new ArrayList<>();
       resp.getTsList()
