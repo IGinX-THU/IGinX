@@ -131,6 +131,37 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
+  // filesystem中，所有dummy数据都识别为BINARY
+  @Override
+  protected void testShowColumnsRemoveStorageEngine(boolean before) {
+    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
+    String expected;
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|    p2.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|    p3.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|p3.nt.wf04.wt01.temperature|  BINARY|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 4\n";
+    } else { // 移除schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+---------------------------+--------+\n"
+              + "|                       Path|DataType|\n"
+              + "+---------------------------+--------+\n"
+              + "|    p1.nt.wf03.wt01.status2|  BINARY|\n"
+              + "|p3.nt.wf04.wt01.temperature|  BINARY|\n"
+              + "+---------------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
   @Override
   protected void updateParams(int port) {}
 
