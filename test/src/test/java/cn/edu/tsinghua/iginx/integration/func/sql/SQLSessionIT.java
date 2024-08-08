@@ -1175,7 +1175,7 @@ public class SQLSessionIT {
             + "Total line number = 9\n";
     executor.executeAndCompare(orderByQuery, expected);
 
-    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC;";
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3 DESC, s2 DESC;";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+\n"
@@ -1189,6 +1189,44 @@ public class SQLSessionIT {
             + "|  6|   dates|     119|   232.1|\n"
             + "|  5|   grape|     336|   132.5|\n"
             + "|  2|   peach|     123|   132.5|\n"
+            + "|  7|   melon|     516|   113.6|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  7|   melon|     516|   113.6|\n"
+            + "|  5|   grape|     336|   132.5|\n"
+            + "|  2|   peach|     123|   132.5|\n"
+            + "|  1|   apple|     871|   232.1|\n"
+            + "|  8|   mango|     458|   232.1|\n"
+            + "|  6|   dates|     119|   232.1|\n"
+            + "|  3|  banana|     356|   317.8|\n"
+            + "|  4|  cherry|     621|   456.1|\n"
+            + "|  9|    pear|     336|   613.1|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3 DESC, s2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  9|    pear|     336|   613.1|\n"
+            + "|  4|  cherry|     621|   456.1|\n"
+            + "|  3|  banana|     356|   317.8|\n"
+            + "|  6|   dates|     119|   232.1|\n"
+            + "|  8|   mango|     458|   232.1|\n"
+            + "|  1|   apple|     871|   232.1|\n"
+            + "|  2|   peach|     123|   132.5|\n"
+            + "|  5|   grape|     336|   132.5|\n"
             + "|  7|   melon|     516|   113.6|\n"
             + "+---+--------+--------+--------+\n"
             + "Total line number = 9\n";
@@ -2409,7 +2447,7 @@ public class SQLSessionIT {
             + "|    Logical Tree|Operator Type|                                                                                                                      Operator Info|\n"
             + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
             + "|Reorder         |      Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
-            + "|  +--Sort       |         Sort|                                                                                        SortBy: test.c,test.b,test.d, SortType: ASC|\n"
+            + "|  +--Sort       |         Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
             + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
             + "|      +--Project|      Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
             + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"

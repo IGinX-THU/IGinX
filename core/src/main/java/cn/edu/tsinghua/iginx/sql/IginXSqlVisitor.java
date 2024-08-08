@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.sql;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
-import static cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils.isCanUseSetQuantifierFunction;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 
@@ -43,6 +42,7 @@ import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.AndTagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.BasePreciseTagFilter;
@@ -998,7 +998,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
     boolean isDistinct = false;
     if (funcCtx.ALL() != null || funcCtx.DISTINCT() != null) {
-      if (!isCanUseSetQuantifierFunction(funcName)) {
+      if (!FunctionUtils.isCanUseSetQuantifierFunction(funcName)) {
         throw new SQLParserException(
             "Function: " + funcName + " can't use ALL or DISTINCT in bracket.");
       }
@@ -1192,30 +1192,33 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private void parseOrderByClause(OrderByClauseContext ctx, SelectStatement selectStatement) {
     if (ctx.KEY() != null) {
       selectStatement.setOrderByPath(SQLConstant.KEY);
+      selectStatement.setAscending(ctx.DESC() == null);
     }
-    if (ctx.path() != null) {
-      for (PathContext pathContext : ctx.path()) {
-        String suffix = parsePath(pathContext);
-        String orderByPath = suffix;
-        if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.UNARY) {
-          UnarySelectStatement unarySelectStatement = (UnarySelectStatement) selectStatement;
-          String prefix = unarySelectStatement.getFromPart(0).getPrefix();
-
-          // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
-          if (unarySelectStatement.isFromSinglePath()) {
-            orderByPath = prefix + SQLConstant.DOT + suffix;
-          }
-        }
-        if (orderByPath.contains("*")) {
-          throw new SQLParserException(
-              String.format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
-        }
-        selectStatement.setOrderByPath(orderByPath);
+    if (ctx.orderItem() != null) {
+      for (SqlParser.OrderItemContext itemCtx : ctx.orderItem()) {
+        parseOrderItem(itemCtx, selectStatement);
       }
     }
-    if (ctx.DESC() != null) {
-      selectStatement.setAscending(false);
+  }
+
+  private void parseOrderItem(SqlParser.OrderItemContext ctx, SelectStatement selectStatement) {
+    String suffix = parsePath(ctx.path());
+    String orderByPath = suffix;
+    if (selectStatement.getSelectType() == SelectStatement.SelectStatementType.UNARY) {
+      UnarySelectStatement unarySelectStatement = (UnarySelectStatement) selectStatement;
+      String prefix = unarySelectStatement.getFromPart(0).getPrefix();
+
+      // 如果查询语句的FROM子句只有一个部分且FROM一个前缀，则ORDER BY后的path只用写出后缀
+      if (unarySelectStatement.isFromSinglePath()) {
+        orderByPath = prefix + SQLConstant.DOT + suffix;
+      }
     }
+    if (orderByPath.contains("*")) {
+      throw new SQLParserException(
+          String.format("ORDER BY path '%s' has '*', which is not supported.", orderByPath));
+    }
+    selectStatement.setOrderByPath(orderByPath);
+    selectStatement.setAscending(ctx.DESC() == null);
   }
 
   private long parseAggLen(AggLenContext ctx) {
