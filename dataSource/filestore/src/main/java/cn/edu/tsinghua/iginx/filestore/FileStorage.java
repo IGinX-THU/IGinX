@@ -266,9 +266,12 @@ public class FileStorage implements IStorage {
 
     Map<DataUnit, DataBoundary> units = service.getUnits(null);
 
-    DataTarget dataTarget =
-        new DataTarget(
-            new BoolFilter(false), patterns == null ? null : new ArrayList<>(patterns), tagFilter);
+    List<String> patternList = new ArrayList<>(patterns);
+    if (patternList.isEmpty()) {
+      patternList = null;
+    }
+
+    DataTarget dataTarget = new DataTarget(new BoolFilter(false), patternList, tagFilter);
 
     List<CompletableFuture<Void>> futures = new ArrayList<>();
     for (DataUnit unit : units.keySet()) {
