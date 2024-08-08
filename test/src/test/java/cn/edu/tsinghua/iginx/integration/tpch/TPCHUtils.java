@@ -116,7 +116,6 @@ public class TPCHUtils {
     SessionExecuteSqlResult result = null;
     long startTime = System.currentTimeMillis();
     try {
-      LOGGER.info("Execute Statement: \"{}\"", sql);
       result = session.executeSql(sql);
     } catch (SessionException e) {
       LOGGER.error("Statement: \"{}\" execute fail. Caused by:", sql, e);
