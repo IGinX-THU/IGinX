@@ -323,6 +323,7 @@ public class TPCHDataGeneratorIT {
       for (int i = 0; i < sqls.length - 2; i++) {
         String sql = sqls[i] + ";";
         try {
+          LOGGER.info("Execute Statement: \"{}\"", sql);
           session.executeSql(sql);
         } catch (SessionException e) {
           LOGGER.error("Statement: \"{}\" execute fail. Caused by:", sql, e);
