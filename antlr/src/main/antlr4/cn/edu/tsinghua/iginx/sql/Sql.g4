@@ -269,7 +269,11 @@ havingClause
    ;
 
 orderByClause
-   : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
+   : ORDER BY ((KEY (DESC | ASC)?) | orderItem) (COMMA orderItem)*
+   ;
+
+orderItem
+   : path (DESC | ASC)?
    ;
 
 downsampleClause
