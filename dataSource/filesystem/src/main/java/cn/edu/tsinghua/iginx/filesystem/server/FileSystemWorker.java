@@ -37,9 +37,13 @@ import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
-import org.apache.thrift.TException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -66,7 +70,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public ProjectResp executeProject(ProjectReq req) throws TException {
+  public ProjectResp executeProject(ProjectReq req) {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
     TaskExecuteResult result =
         executor.executeProjectTask(
@@ -139,7 +143,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public Status executeInsert(InsertReq req) throws TException {
+  public Status executeInsert(InsertReq req) {
     FSRawData fsRawData = req.getRawData();
     RawDataType rawDataType = strToRawDataType(fsRawData.getRawDataType());
     if (rawDataType == null) {
@@ -194,7 +198,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public Status executeDelete(DeleteReq req) throws TException {
+  public Status executeDelete(DeleteReq req) {
     TagFilter tagFilter = resolveRawTagFilter(req.getTagFilter());
 
     // null keyRanges means delete key
@@ -216,10 +220,12 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(String storageUnit) throws TException {
+  public GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(
+      String storageUnit, Set<String> patterns, RawTagFilter tagFilter) {
     List<FSColumn> ret = new ArrayList<>();
     try {
-      List<Column> columns = executor.getColumnsOfStorageUnit(storageUnit);
+      List<Column> columns =
+          executor.getColumnsOfStorageUnit(storageUnit, patterns, resolveRawTagFilter(tagFilter));
       columns.forEach(
           column -> {
             FSColumn fsColumn =
@@ -239,7 +245,7 @@ public class FileSystemWorker implements FileSystemService.Iface {
   }
 
   @Override
-  public GetBoundaryOfStorageResp getBoundaryOfStorage(String prefix) throws TException {
+  public GetBoundaryOfStorageResp getBoundaryOfStorage(String prefix) {
     try {
       Pair<ColumnsInterval, KeyInterval> pair = executor.getBoundaryOfStorage(prefix);
       GetBoundaryOfStorageResp resp = new GetBoundaryOfStorageResp(SUCCESS);

@@ -21,41 +21,50 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class Sort extends AbstractUnaryOperator {
 
   private final List<String> sortByCols;
 
-  private final SortType sortType;
+  private final List<SortType> sortTypes;
 
-  public Sort(Source source, List<String> sortByCols, SortType sortType) {
+  public Sort(Source source, List<String> sortByCols, List<SortType> sortTypes) {
     super(OperatorType.Sort, source);
     if (sortByCols == null || sortByCols.isEmpty()) {
       throw new IllegalArgumentException("sortBy shouldn't be null");
     }
-    if (sortType == null) {
+    if (sortTypes == null || sortTypes.isEmpty()) {
       throw new IllegalArgumentException("sortType shouldn't be null");
     }
     this.sortByCols = sortByCols;
-    this.sortType = sortType;
+    this.sortTypes = sortTypes;
   }
 
   public List<String> getSortByCols() {
     return sortByCols;
   }
 
-  public SortType getSortType() {
-    return sortType;
+  public List<SortType> getSortTypes() {
+    return sortTypes;
+  }
+
+  public List<Boolean> getAscendingList() {
+    List<Boolean> ascendingList = new ArrayList<>(sortTypes.size());
+    for (SortType sortType : sortTypes) {
+      ascendingList.add(sortType == SortType.ASC);
+    }
+    return ascendingList;
   }
 
   @Override
   public Operator copy() {
-    return new Sort(getSource().copy(), new ArrayList<>(sortByCols), sortType);
+    return new Sort(getSource().copy(), new ArrayList<>(sortByCols), new ArrayList<>(sortTypes));
   }
 
   @Override
   public UnaryOperator copyWithSource(Source source) {
-    return new Sort(source, new ArrayList<>(sortByCols), sortType);
+    return new Sort(source, new ArrayList<>(sortByCols), new ArrayList<>(sortTypes));
   }
 
   public enum SortType {
@@ -65,7 +74,10 @@ public class Sort extends AbstractUnaryOperator {
 
   @Override
   public String getInfo() {
-    return "SortBy: " + String.join(",", sortByCols) + ", SortType: " + sortType;
+    return "SortBy: "
+        + String.join(",", sortByCols)
+        + ", SortType: "
+        + sortTypes.stream().map(String::valueOf).collect(Collectors.joining(","));
   }
 
   @Override
@@ -77,6 +89,6 @@ public class Sort extends AbstractUnaryOperator {
       return false;
     }
     Sort sort = (Sort) object;
-    return sortByCols.equals(sort.sortByCols) && sortType == sort.sortType;
+    return sortByCols.equals(sort.sortByCols) && sortTypes.equals(sort.sortTypes);
   }
 }

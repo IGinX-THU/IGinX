@@ -187,7 +187,7 @@ service ParquetService {
 
     Status executeDelete(1: DeleteReq req);
 
-    GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit);
+    GetColumnsOfStorageUnitResp getColumnsOfStorageUnit(1: string storageUnit, 2: set<string> patterns, 3: RawTagFilter tagFilter);
 
     GetStorageBoundaryResp getBoundaryOfStorage(1: string dataPrefix);
 

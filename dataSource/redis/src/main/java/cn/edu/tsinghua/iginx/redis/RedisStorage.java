@@ -36,12 +36,23 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.redis.entity.RedisQueryRowStream;
-import cn.edu.tsinghua.iginx.redis.tools.*;
+import cn.edu.tsinghua.iginx.redis.tools.DataCoder;
+import cn.edu.tsinghua.iginx.redis.tools.DataTransformer;
+import cn.edu.tsinghua.iginx.redis.tools.DataViewWrapper;
+import cn.edu.tsinghua.iginx.redis.tools.FilterUtils;
+import cn.edu.tsinghua.iginx.redis.tools.TagKVUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.ListIterator;
+import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -465,50 +476,66 @@ public class RedisStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() {
-    List<Column> ret = new ArrayList<>();
-    getIginxColumns(ret::add);
-    getDummyColumns(ret::add);
-    return ret;
-  }
-
-  private void getIginxColumns(Consumer<Column> ret) {
-    try (Jedis jedis = getDataConnection()) {
-      Map<String, String> pathsAndTypes = jedis.hgetAll(KEY_DATA_TYPE);
-      pathsAndTypes.forEach(
-          (k, v) -> {
-            DataType type = DataTransformer.fromStringDataType(v);
-            Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(k);
-            ret.accept(new Column(pair.k, type, pair.v));
-          });
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) {
+    try {
+      List<Column> ret = new ArrayList<>();
+      getIginxColumns(ret::add, patterns, tagFilter);
+      getDummyColumns(ret::add, patterns);
+      return ret;
+    } catch (PhysicalException e) {
+      throw new IllegalStateException("get columns error", e);
     }
   }
 
-  private void getDummyColumns(Consumer<Column> ret) {
-    try (Jedis jedis = getDummyConnection()) {
-      String pattern = STAR;
-      if (dataPrefix != null) {
-        pattern = dataPrefix + "." + pattern;
+  private void getIginxColumns(Consumer<Column> ret, Set<String> patterns, TagFilter tagFilter)
+      throws PhysicalException {
+    List<String> patternList = new ArrayList<>(patterns);
+    if (patternList.isEmpty()) {
+      patternList.add("*");
+    }
+    List<String> allPaths = determinePathList("*", patternList, tagFilter);
+    try (Jedis jedis = getDataConnection()) {
+      for (String path : allPaths) {
+        String typeStr = jedis.hget(KEY_DATA_TYPE, path);
+        if (typeStr == null) {
+          continue;
+        }
+        DataType type = DataTransformer.fromStringDataType(typeStr);
+        Pair<String, Map<String, String>> pair = TagKVUtils.splitFullName(path);
+        ret.accept(new Column(pair.k, type, pair.v));
       }
-      Set<String> keys = jedis.keys(pattern);
-      for (String key : keys) {
-        String type = jedis.type(key);
-        switch (type) {
-          case "string":
-          case "list":
-          case "set":
-          case "zset":
-            ret.accept(new Column(key, DataType.BINARY, Collections.emptyMap(), true));
-            break;
-          case "hash":
-            ret.accept(new Column(key + SUFFIX_KEY, DataType.BINARY, Collections.emptyMap(), true));
-            ret.accept(
-                new Column(key + SUFFIX_VALUE, DataType.BINARY, Collections.emptyMap(), true));
-            break;
-          case "none":
-            LOGGER.warn("key {} not exists", key);
-          default:
-            LOGGER.warn("unknown key type, type={}", type);
+    }
+  }
+
+  private void getDummyColumns(Consumer<Column> ret, Set<String> patterns) {
+    List<String> patternList = new ArrayList<>(patterns);
+    if (patternList.isEmpty()) {
+      patternList.add("*");
+    }
+    try (Jedis jedis = getDummyConnection()) {
+      for (String pattern : patternList) {
+        String redisPattern = TagKVUtils.escapeRedisSpecialCharInPattern(pattern);
+        Set<String> keys = jedis.keys(redisPattern);
+        for (String key : keys) {
+          String type = jedis.type(key);
+          switch (type) {
+            case "string":
+            case "list":
+            case "set":
+            case "zset":
+              ret.accept(new Column(key, DataType.BINARY, Collections.emptyMap(), true));
+              break;
+            case "hash":
+              ret.accept(
+                  new Column(key + SUFFIX_KEY, DataType.BINARY, Collections.emptyMap(), true));
+              ret.accept(
+                  new Column(key + SUFFIX_VALUE, DataType.BINARY, Collections.emptyMap(), true));
+              break;
+            case "none":
+              LOGGER.warn("key {} not exists", key);
+            default:
+              LOGGER.warn("unknown key type, type={}", type);
+          }
         }
       }
     }
@@ -552,7 +579,7 @@ public class RedisStorage implements IStorage {
   }
 
   @Override
-  public void release() throws PhysicalException {
+  public void release() {
     jedisPool.close();
   }
 }

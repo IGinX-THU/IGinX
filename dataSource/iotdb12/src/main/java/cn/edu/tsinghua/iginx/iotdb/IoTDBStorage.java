@@ -38,7 +38,13 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBException;
 import cn.edu.tsinghua.iginx.iotdb.exception.IoTDBTaskExecuteFailureException;
@@ -46,12 +52,22 @@ import cn.edu.tsinghua.iginx.iotdb.query.entity.IoTDBQueryRowStream;
 import cn.edu.tsinghua.iginx.iotdb.tools.DataViewWrapper;
 import cn.edu.tsinghua.iginx.iotdb.tools.FilterTransformer;
 import cn.edu.tsinghua.iginx.iotdb.tools.TagKVUtils;
-import cn.edu.tsinghua.iginx.metadata.entity.*;
+import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
+import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -95,7 +111,11 @@ public class IoTDBStorage implements IStorage {
 
   private static final String DELETE_TIMESERIES_CLAUSE = "DELETE TIMESERIES %s";
 
-  private static final String SHOW_TIMESERIES = "SHOW TIMESERIES";
+  private static final String SHOW_TIMESERIES_DUMMY = "SHOW TIMESERIES root.%s";
+
+  private static final String SHOW_TIMESERIES = "SHOW TIMESERIES root.*.%s";
+
+  private static final String SHOW_TIMESERIES_ALL = "SHOW TIMESERIES";
 
   private static final String DOES_NOT_EXISTED = "does not exist";
 
@@ -113,7 +133,7 @@ public class IoTDBStorage implements IStorage {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
     if (!testConnection()) {
-      throw new StorageInitializationException("cannot connect to " + meta.toString());
+      throw new StorageInitializationException("cannot connect to " + meta);
     }
     sessionPool = createSessionPool();
   }
@@ -154,7 +174,7 @@ public class IoTDBStorage implements IStorage {
     ColumnsInterval columnsInterval;
     try {
       if (dataPrefix == null || dataPrefix.isEmpty()) {
-        dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
+        dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES_ALL);
         while (dataSet.hasNext()) {
           record = dataSet.next();
           if (record == null || record.getFields().size() < 4) {
@@ -191,16 +211,20 @@ public class IoTDBStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+      throws PhysicalException {
     List<Column> columns = new ArrayList<>();
-    getColumns2StorageUnit(columns, null);
+    getColumns2StorageUnit(columns, null, patterns, tagFilter);
     return columns;
   }
 
-  private void getColumns2StorageUnit(List<Column> columns, Map<String, String> columns2StorageUnit)
+  private void getColumnsFromDataSet(
+      List<Column> columns,
+      Map<String, String> columns2StorageUnit,
+      TagFilter tagFilter,
+      SessionDataSetWrapper dataSet)
       throws PhysicalException {
     try {
-      SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES);
       while (dataSet.hasNext()) {
         RowRecord record = dataSet.next();
         if (record == null || record.getFields().size() < 4) {
@@ -219,6 +243,10 @@ public class IoTDBStorage implements IStorage {
         String fragment = isDummy ? "" : record.getFields().get(2).getStringValue().substring(5);
         if (columns2StorageUnit != null) {
           columns2StorageUnit.put(pair.k, fragment);
+        }
+        // get columns by tag filter
+        if (tagFilter != null && !TagKVUtils.match(pair.v, tagFilter)) {
+          continue;
         }
 
         switch (dataTypeName) {
@@ -242,7 +270,40 @@ public class IoTDBStorage implements IStorage {
             break;
         }
       }
-      dataSet.close();
+    } catch (IoTDBConnectionException | StatementExecutionException e) {
+      throw new IoTDBTaskExecuteFailureException("get time series failure: ", e);
+    }
+  }
+
+  private void getColumns2StorageUnit(
+      List<Column> columns,
+      Map<String, String> columns2StorageUnit,
+      Set<String> patterns,
+      TagFilter tagFilter)
+      throws PhysicalException {
+    try {
+      Iterator<String> iterator = patterns.iterator();
+      do {
+        String pattern = iterator.hasNext() ? iterator.next() : null;
+        SessionDataSetWrapper dataSet;
+        LOGGER.debug("get time series: {}", pattern);
+        if (pattern != null) {
+          LOGGER.debug("do show timeseries: {}", pattern);
+          dataSet = sessionPool.executeQueryStatement(String.format(SHOW_TIMESERIES, pattern));
+          getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
+          dataSet.close();
+
+          dataSet =
+              sessionPool.executeQueryStatement(String.format(SHOW_TIMESERIES_DUMMY, pattern));
+          getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
+          dataSet.close();
+        } else {
+          LOGGER.debug("do show all timeseries");
+          dataSet = sessionPool.executeQueryStatement(SHOW_TIMESERIES_ALL);
+          getColumnsFromDataSet(columns, columns2StorageUnit, tagFilter, dataSet);
+          dataSet.close();
+        }
+      } while (iterator.hasNext());
     } catch (IoTDBConnectionException | StatementExecutionException e) {
       throw new IoTDBTaskExecuteFailureException("get time series failure: ", e);
     }
@@ -300,8 +361,7 @@ public class IoTDBStorage implements IStorage {
         builder.append(',');
       }
       String statement =
-          String.format(
-              QUERY_DATA, builder.deleteCharAt(builder.length() - 1).toString(), storageUnit);
+          String.format(QUERY_DATA, builder.deleteCharAt(builder.length() - 1), storageUnit);
 
       String filterStr = getFilterString(filter, storageUnit);
       if (!filterStr.isEmpty()) {
@@ -357,7 +417,7 @@ public class IoTDBStorage implements IStorage {
         builder.append(',');
       }
       String statement =
-          String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1).toString());
+          String.format(QUERY_HISTORY_DATA, builder.deleteCharAt(builder.length() - 1));
 
       String filterStr = getFilterString(filter, "");
       if (!filterStr.isEmpty()) {
@@ -789,7 +849,7 @@ public class IoTDBStorage implements IStorage {
     } else {
       List<String> patterns = delete.getPatterns();
       TagFilter tagFilter = delete.getTagFilter();
-      List<Column> timeSeries = getColumns();
+      List<Column> timeSeries = getColumns(new HashSet<>(), null);
 
       List<String> pathList = new ArrayList<>();
       for (Column ts : timeSeries) {
@@ -808,7 +868,7 @@ public class IoTDBStorage implements IStorage {
   private List<String> determinePathList(String storageUnit, List<String> patterns)
       throws IoTDBConnectionException, StatementExecutionException {
     Set<String> pathSet = new HashSet<>();
-    String showColumns = SHOW_TIMESERIES;
+    String showColumns = SHOW_TIMESERIES_ALL;
     showColumns = storageUnit == null ? showColumns : showColumns + " " + PREFIX + storageUnit;
     SessionDataSetWrapper dataSet = sessionPool.executeQueryStatement(showColumns);
     while (dataSet.hasNext()) {
@@ -858,7 +918,7 @@ public class IoTDBStorage implements IStorage {
     if (filterStr.contains("*")) {
       List<Column> columns = new ArrayList<>();
       Map<String, String> columns2Fragment = new HashMap<>();
-      getColumns2StorageUnit(columns, columns2Fragment);
+      getColumns2StorageUnit(columns, columns2Fragment, new HashSet<>(), null);
       filterStr =
           FilterTransformer.toString(
               expandFilterWildcard(filter.copy(), columns, columns2Fragment, storageUnit));

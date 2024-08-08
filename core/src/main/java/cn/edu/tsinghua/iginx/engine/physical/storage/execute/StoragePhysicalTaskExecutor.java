@@ -32,14 +32,18 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
-import cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils;
 import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
-import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -57,7 +61,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -365,7 +368,7 @@ public class StoragePhysicalTaskExecutor {
 
   public TaskExecuteResult executeShowColumns(ShowColumns showColumns) {
     List<StorageEngineMeta> storageList = metaManager.getStorageEngineList();
-    Set<Column> columnSet = new HashSet<>();
+    TreeSet<Column> targetColumns = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
     for (StorageEngineMeta storage : storageList) {
       long id = storage.getId();
       Pair<IStorage, ThreadPoolExecutor> pair = storageManager.getStorage(id);
@@ -373,56 +376,47 @@ public class StoragePhysicalTaskExecutor {
         continue;
       }
       try {
-        List<Column> columnList = pair.k.getColumns();
-        // fix the schemaPrefix
+        Set<String> patterns = showColumns.getPathRegexSet();
         String schemaPrefix = storage.getSchemaPrefix();
-        if (schemaPrefix != null) {
-          for (Column column : columnList) {
-            if (column.isDummy()) {
-              column.setPath(schemaPrefix + "." + column.getPath());
-            }
-          }
+        // schemaPrefix是在IGinX中定义的，数据源的路径中没有该前缀，因此需要剪掉patterns中前缀是schemaPrefix的部分
+        patterns = StringUtils.cutSchemaPrefix(schemaPrefix, patterns);
+        if (patterns.isEmpty()) {
+          continue;
         }
-        columnSet.addAll(columnList);
+        // 求patterns与dataPrefix的交集
+        patterns = StringUtils.intersectDataPrefix(storage.getDataPrefix(), patterns);
+        if (patterns.isEmpty()) {
+          continue;
+        }
+        if (patterns.contains("*")) {
+          patterns = Collections.emptySet();
+        }
+        List<Column> columnList = pair.k.getColumns(patterns, showColumns.getTagFilter());
+
+        // 列名前加上schemaPrefix
+        if (schemaPrefix != null) {
+          columnList.forEach(
+              column -> {
+                column.setPath(schemaPrefix + "." + column.getPath());
+                targetColumns.add(column);
+              });
+        } else {
+          targetColumns.addAll(columnList);
+        }
       } catch (PhysicalException e) {
         return new TaskExecuteResult(e);
-      }
-    }
-
-    Set<String> pathRegexSet = showColumns.getPathRegexSet();
-    TagFilter tagFilter = showColumns.getTagFilter();
-
-    TreeSet<Column> tsSetAfterFilter = new TreeSet<>(Comparator.comparing(Column::getPhysicalPath));
-    for (Column column : columnSet) {
-      boolean isTarget = true;
-      if (!pathRegexSet.isEmpty()) {
-        isTarget = false;
-        for (String pathRegex : pathRegexSet) {
-          if (Pattern.matches(StringUtils.reformatPath(pathRegex), column.getPath())) {
-            isTarget = true;
-            break;
-          }
-        }
-      }
-      if (tagFilter != null) {
-        if (!TagKVUtils.match(column.getTags(), tagFilter)) {
-          isTarget = false;
-        }
-      }
-      if (isTarget) {
-        tsSetAfterFilter.add(column);
       }
     }
 
     int limit = showColumns.getLimit();
     int offset = showColumns.getOffset();
     if (limit == Integer.MAX_VALUE && offset == 0) {
-      return new TaskExecuteResult(Column.toRowStream(tsSetAfterFilter));
+      return new TaskExecuteResult(Column.toRowStream(targetColumns));
     } else {
       // only need part of data.
       List<Column> tsList = new ArrayList<>();
-      int cur = 0, size = tsSetAfterFilter.size();
-      for (Iterator<Column> iter = tsSetAfterFilter.iterator(); iter.hasNext(); cur++) {
+      int cur = 0, size = targetColumns.size();
+      for (Iterator<Column> iter = targetColumns.iterator(); iter.hasNext(); cur++) {
         if (cur >= size || cur - offset >= limit) {
           break;
         }

@@ -88,12 +88,12 @@ public abstract class SelectStatement extends DataStatement {
     this.orderByClause.setOrderByPaths(orderByPath);
   }
 
-  public boolean isAscending() {
-    return orderByClause.isAscending();
+  public List<Boolean> getAscendingList() {
+    return orderByClause.getAscendingList();
   }
 
   public void setAscending(boolean ascending) {
-    this.orderByClause.setAscending(ascending);
+    this.orderByClause.setAscendingList(ascending);
   }
 
   public long getLimit() {

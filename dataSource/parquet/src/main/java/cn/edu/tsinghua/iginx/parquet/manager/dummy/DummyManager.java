@@ -30,12 +30,15 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.parquet.manager.Manager;
 import cn.edu.tsinghua.iginx.parquet.manager.utils.TagKVUtils;
-import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.validation.constraints.NotNull;
@@ -104,21 +107,9 @@ public class DummyManager implements Manager {
       Set<String> paths, List<String> patterns, TagFilter tagFilter) {
     List<String> ret = new ArrayList<>();
     for (String path : paths) {
-      for (String pattern : patterns) {
-        ColumnKey columnKey = TagKVUtils.splitFullName(path);
-        if (tagFilter == null) {
-          if (StringUtils.match(columnKey.getPath(), pattern)) {
-            ret.add(path);
-            break;
-          }
-        } else {
-          if (StringUtils.match(columnKey.getPath(), pattern)
-              && cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils.match(
-                  columnKey.getTags(), tagFilter)) {
-            ret.add(path);
-            break;
-          }
-        }
+      ColumnKey columnKey = TagKVUtils.splitFullName(path);
+      if (TagKVUtils.match(columnKey, patterns, tagFilter)) {
+        ret.add(path);
       }
     }
     return ret;
@@ -136,16 +127,18 @@ public class DummyManager implements Manager {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns(List<String> paths, TagFilter tagFilter) throws PhysicalException {
     List<Column> columns = new ArrayList<>();
     for (Path path : getFilePaths()) {
       try {
         List<Field> fields = new Loader(path).getHeader();
         for (Field field : fields) {
-          ColumnKey columnKey = TagKVUtils.splitFullName(field.getName());
+          ColumnKey columnKey = TagKVUtils.splitFullName(prefix + "." + field.getName());
+          if (!TagKVUtils.match(columnKey, paths, tagFilter)) {
+            continue;
+          }
           Column column =
-              new Column(
-                  prefix + "." + columnKey.getPath(), field.getType(), columnKey.getTags(), true);
+              new Column(columnKey.getPath(), field.getType(), columnKey.getTags(), true);
           columns.add(column);
         }
       } catch (IOException e) {

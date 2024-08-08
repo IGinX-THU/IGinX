@@ -72,7 +72,7 @@ public class ShowColumns extends AbstractUnaryOperator {
     return new ShowColumns(
         (GlobalSource) getSource().copy(),
         new HashSet<>(pathRegexSet),
-        tagFilter.copy(),
+        tagFilter == null ? null : tagFilter.copy(),
         limit,
         offset);
   }
@@ -80,7 +80,11 @@ public class ShowColumns extends AbstractUnaryOperator {
   @Override
   public UnaryOperator copyWithSource(Source source) {
     return new ShowColumns(
-        (GlobalSource) source, new HashSet<>(pathRegexSet), tagFilter.copy(), limit, offset);
+        (GlobalSource) source,
+        new HashSet<>(pathRegexSet),
+        tagFilter == null ? null : tagFilter.copy(),
+        limit,
+        offset);
   }
 
   @Override

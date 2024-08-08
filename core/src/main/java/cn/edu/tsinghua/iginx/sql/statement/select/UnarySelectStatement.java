@@ -634,6 +634,29 @@ public class UnarySelectStatement extends SelectStatement {
     return false;
   }
 
+  public String getOriginPath(String path) {
+    if (path.startsWith(MarkJoin.MARK_PREFIX)) {
+      return path;
+    }
+    for (FromPart fromPart : getFromParts()) {
+      for (String pattern : fromPart.getPatterns()) {
+        if (StringUtils.match(path, pattern)) {
+          if (fromPart.hasAlias()) {
+            if (!path.startsWith(fromPart.getPrefix())) {
+              throw new RuntimeException(
+                  String.format(
+                      "prefix: %s not in path: %s, please check", fromPart.getPrefix(), path));
+            }
+            return path.replaceFirst(fromPart.getPrefix(), fromPart.getOriginPrefix());
+          } else {
+            return path;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   public boolean isFromSinglePath() {
     return !hasJoinParts()
         && !getFromParts().isEmpty()
