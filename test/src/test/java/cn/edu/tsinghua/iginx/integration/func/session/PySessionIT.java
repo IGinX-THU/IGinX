@@ -33,9 +33,11 @@ import cn.edu.tsinghua.iginx.pool.IginxInfo;
 import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.utils.EnvUtils;
+
 import java.io.*;
 import java.nio.file.Paths;
 import java.util.*;
+
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -230,6 +232,7 @@ public class PySessionIT {
       e.printStackTrace();
       throw new RuntimeException(e);
     }
+    logger.info("result: {}", result);
     // 检查Python脚本的输出是否符合预期
     assertTrue(result.contains("path    type    "));
     assertTrue(result.contains("b'test.a.a'        b'BINARY'        "));
