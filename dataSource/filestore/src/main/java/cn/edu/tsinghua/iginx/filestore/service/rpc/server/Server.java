@@ -23,10 +23,7 @@ import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.thrift.FileStoreRpc;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -63,7 +60,25 @@ public class Server implements AutoCloseable {
             .executorService(executorService)
             .protocolFactory(new TBinaryProtocol.Factory());
     this.server = new TThreadPoolServer(args);
-    new Thread(server::serve, "FileStoreServer(" + address + ")").start();
+    new Thread(server::serve, "FileStoreServer(" + server + ")").start();
+    // wait for server to be ready
+    // 因为这里有两个线程，如果由于某些原因在 server::serve 执行前就 close 了，
+    // 那么 server 会不断 accept 失败而死循环
+    await();
+  }
+
+  private void await() {
+    try {
+      for (int retry = 0; retry < 60000; retry++) {
+        if (server.getShouldStop() || server.isServing()) {
+          return;
+        }
+        Thread.sleep(1);
+      }
+    } catch (InterruptedException e) {
+      LOGGER.error("waiting for server to be ready interrupted", e);
+    }
+    LOGGER.error("waiting for server to be ready timeout");
   }
 
   @Override
