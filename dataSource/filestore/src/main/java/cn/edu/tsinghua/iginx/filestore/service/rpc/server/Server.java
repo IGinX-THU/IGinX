@@ -39,7 +39,8 @@ public class Server implements AutoCloseable {
 
   private final TServer server;
 
-  public Server(InetSocketAddress address, Service service) throws TTransportException {
+  public Server(InetSocketAddress address, Service service)
+      throws TTransportException, InterruptedException {
     LOGGER.info("starting thrift server at {}", address);
     TProcessor processor =
         new FileStoreRpc.Processor<FileStoreRpc.Iface>(new ServerWorker(service));
