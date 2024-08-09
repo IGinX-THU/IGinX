@@ -33,7 +33,9 @@ import java.util.Map;
 public class StorageEngineUtils {
 
   public static boolean isEmbeddedStorageEngine(StorageEngineType type) {
-    return type.equals(StorageEngineType.parquet) || type.equals(StorageEngineType.filesystem);
+    return type.equals(StorageEngineType.filestore)
+        || type.equals(StorageEngineType.parquet)
+        || type.equals(StorageEngineType.filesystem);
   }
 
   private static boolean isDirValid(String dir) {

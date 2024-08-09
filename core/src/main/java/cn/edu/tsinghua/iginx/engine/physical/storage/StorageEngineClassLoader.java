@@ -131,4 +131,19 @@ public class StorageEngineClassLoader extends ClassLoader {
     }
     return null;
   }
+
+  @Override
+  protected Enumeration<URL> findResources(String name) throws IOException {
+    List<URL> urls = new ArrayList<>();
+    for (File jar : Jars) {
+      try (JarFile jarFile = new JarFile(jar)) {
+        if (jarFile.getJarEntry(name) != null) {
+          urls.add(new URL("jar:" + jar.toURI().toURL().toString() + "!/" + name));
+        }
+      } catch (IOException e) {
+        LOGGER.error("unexpected error: ", e);
+      }
+    }
+    return Collections.enumeration(urls);
+  }
 }
