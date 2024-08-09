@@ -41,6 +41,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -75,6 +76,8 @@ public class RelationQueryRowStream implements RowStream {
 
   private List<Connection> connList;
 
+  private List<Statement> stmtList;
+
   private AbstractRelationalMeta relationalMeta;
 
   private String fullKeyName = KEY_NAME;
@@ -88,12 +91,14 @@ public class RelationQueryRowStream implements RowStream {
       Filter filter,
       TagFilter tagFilter,
       List<Connection> connList,
+      List<Statement> stmtList,
       AbstractRelationalMeta relationalMeta)
       throws SQLException {
     this.resultSets = resultSets;
     this.isDummy = isDummy;
     this.filter = filter;
     this.connList = connList;
+    this.stmtList = stmtList;
     this.relationalMeta = relationalMeta;
 
     if (resultSets.isEmpty()) {
@@ -195,11 +200,14 @@ public class RelationQueryRowStream implements RowStream {
       for (ResultSet resultSet : resultSets) {
         resultSet.close();
       }
+      for (Statement stmt : stmtList) {
+        stmt.close();
+      }
       for (Connection conn : connList) {
         conn.close();
       }
     } catch (SQLException e) {
-      LOGGER.error("error occurred when closing resultSets or connections", e);
+      LOGGER.error("error occurred when closing resultSets, statements or connections", e);
     }
   }
 
