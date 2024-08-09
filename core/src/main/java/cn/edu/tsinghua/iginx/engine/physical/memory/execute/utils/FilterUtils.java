@@ -211,6 +211,9 @@ public class FilterUtils {
       case LIKE:
       case LIKE_AND:
         return ValueUtils.regexCompare(valueA, valueB);
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return !ValueUtils.regexCompare(valueA, valueB);
     }
     return false;
   }

@@ -59,6 +59,8 @@ public class JDBCMeta extends AbstractRelationalMeta {
 
   private String regexpOp;
 
+  private String notRegexOp;
+
   private boolean jdbcSupportBackslash;
 
   public JDBCMeta(StorageEngineMeta meta, String propertiesPath) throws IOException {
@@ -85,6 +87,7 @@ public class JDBCMeta extends AbstractRelationalMeta {
     upsertConflictStatement = properties.getProperty("upsert_conflict_statement");
     isSupportFullJoin = Boolean.parseBoolean(properties.getProperty("is_support_full_join"));
     regexpOp = properties.getProperty("regex_like_symbol");
+    notRegexOp = properties.getProperty("not_regex_like_symbol");
     jdbcSupportBackslash =
         Boolean.parseBoolean(properties.getProperty("jdbc_support_special_char"));
   }
@@ -152,6 +155,11 @@ public class JDBCMeta extends AbstractRelationalMeta {
   @Override
   public String getRegexpOp() {
     return regexpOp;
+  }
+
+  @Override
+  public String getNotRegexpOp() {
+    return notRegexOp;
   }
 
   @Override

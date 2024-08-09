@@ -58,6 +58,7 @@ enum RawFilterOp {
     E,
     NE,
     LIKE,
+    NOT_LIKE,
     GE_AND,
     G_AND,
     LE_AND,
@@ -65,6 +66,7 @@ enum RawFilterOp {
     E_AND,
     NE_AND,
     LIKE_AND,
+    NOT_LIKE_AND,
     UNKNOWN,
 }
 
