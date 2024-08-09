@@ -91,13 +91,13 @@ The specific installation method is as follows:
 
 ```shell
 $ cd ~
-$ wget https://mirrors.bfsu.edu.cn/apache/iotdb/0.12.0/apache-iotdb-0.12.0-server-bin.zip
-$ unzip apache-iotdb-0.12.0-server-bin.zip
+$ wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/apache-iotdb-0.12.6-server-bin.zip
+$ unzip apache-iotdb-0.12.6-server-bin.zip
 ```
 
 ### IGinX Installation
 
-Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/release%2Fv0.5.1/IGinX-release-v0.5.1-bin.tar.gz). That's it.
+Go directly to the [IGinX project](https://github.com/IGinX-THU/IGinX) and download the [IGinX project release package](https://github.com/IGinX-THU/IGinX/releases/download/v0.7.0/IGinX-Server-0.7.0.tar.gz). That's it.
 
 ## Launch
 
@@ -117,7 +117,7 @@ Start the first instance:
 
 ```shell
 $ cd ~
-$ cd apache-iotdb-0.12.0-server-bin/
+$ cd apache-iotdb-0.12.6-server-bin/
 $ ./sbin/start-server.sh # start instance one 127.0.0.1:6667
 ```
 
@@ -337,15 +337,15 @@ In addition to the RESTful interface, IGinX also provides RPC data access interf
 
 Below is a short tutorial on how to use it.
 
-Since the IGinX 0.5.1 version has not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
+Since the IGinX jars have not been released to the maven central repository, if you want to use it, you need to manually install it to the local maven repository. The specific installation method is as follows:
 
 ```shell
-# Download IGinX 0.5.1 version source package
-$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/release/v0.5.1.tar.gz
+# Download the newest IGinX version source package
+$ wget https://github.com/IGinX-THU/IGinX/archive/refs/tags/v0.7.0.tar.gz
 # Unzip the source package
-$ tar -zxvf v0.5.1.tar.gz
+$ tar -zxvf v0.7.0.tar.gz
 # Enter the project's main directory
-$ cd IGinX-release-v0.5.1
+$ cd IGinX-release-v0.7.0
 # Install to local maven repository
 $ mvn clean install -DskipTests
 ```
