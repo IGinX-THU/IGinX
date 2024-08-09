@@ -200,7 +200,7 @@ public class RelationQueryRowStream implements RowStream {
       for (ResultSet resultSet : resultSets) {
         resultSet.close();
       }
-      for (Statement stmt: stmtList) {
+      for (Statement stmt : stmtList) {
         stmt.close();
       }
       for (Connection conn : connList) {
