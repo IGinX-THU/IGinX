@@ -23,10 +23,7 @@ import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.thrift.FileStoreRpc;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.net.InetSocketAddress;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.SynchronousQueue;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 import org.apache.thrift.TProcessor;
 import org.apache.thrift.protocol.TBinaryProtocol;
 import org.apache.thrift.server.TServer;
@@ -42,7 +39,8 @@ public class Server implements AutoCloseable {
 
   private final TServer server;
 
-  public Server(InetSocketAddress address, Service service) throws TTransportException {
+  public Server(InetSocketAddress address, Service service)
+      throws TTransportException, InterruptedException {
     LOGGER.info("starting thrift server at {}", address);
     TProcessor processor =
         new FileStoreRpc.Processor<FileStoreRpc.Iface>(new ServerWorker(service));
@@ -63,7 +61,23 @@ public class Server implements AutoCloseable {
             .executorService(executorService)
             .protocolFactory(new TBinaryProtocol.Factory());
     this.server = new TThreadPoolServer(args);
-    new Thread(server::serve, "FileStoreServer(" + address + ")").start();
+
+    start();
+  }
+
+  private void start() throws InterruptedException {
+    CountDownLatch latch = new CountDownLatch(1);
+    new Thread(
+            () -> {
+              latch.countDown();
+              server.serve();
+            },
+            "FileStoreServer(" + server + ")")
+        .start();
+    // wait for server to be ready
+    // 因为这里有两个线程，如果由于某些原因在 server::serve 执行前就 close 了，
+    // 那么 server 会不断 accept 失败而死循环
+    latch.await();
   }
 
   @Override
