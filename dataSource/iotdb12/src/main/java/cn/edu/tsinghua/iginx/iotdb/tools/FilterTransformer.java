@@ -87,10 +87,8 @@ public class FilterTransformer {
         return filter.getPath() + " regexp " + value;
       case NOT_LIKE:
       case NOT_LIKE_AND:
-        if (!value.endsWith("$'")) {
-          value = value.substring(0, value.length() - 1) + "$'";
-        }
-        return " not (" + filter.getPath() + " regexp " + value + ")";
+        // iotdb12不支持使用not like
+        return "";
       default:
         return filter.getPath() + " " + Op.op2StrWithoutAndOr(filter.getOp()) + " " + value;
     }
