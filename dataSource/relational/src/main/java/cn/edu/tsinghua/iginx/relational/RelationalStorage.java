@@ -148,13 +148,13 @@ public class RelationalStorage implements IStorage {
       config.setJdbcUrl(getUrl(databaseName, meta));
       config.setUsername(meta.getExtraParams().get(USERNAME));
       config.setPassword(meta.getExtraParams().get(PASSWORD));
-      config.addDataSourceProperty("prepStmtCacheSize", "250");
-      config.setLeakDetectionThreshold(2500);
-      config.setConnectionTimeout(30000);
-      config.setIdleTimeout(10000);
-      config.setMaximumPoolSize(20);
-      config.setMinimumIdle(1);
-      config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
+      config.addDataSourceProperty("prepStmtCacheSize", meta.getExtraParams().getOrDefault("prep_stmt_cache_size", "250"));
+      config.setLeakDetectionThreshold(Long.parseLong(meta.getExtraParams().getOrDefault("leak_detection_threshold", "2500")));
+      config.setConnectionTimeout(Long.parseLong(meta.getExtraParams().getOrDefault("connection_timeout", "30000")));
+      config.setIdleTimeout(Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
+      config.setMaximumPoolSize(Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "10")));
+      config.setMinimumIdle(Integer.parseInt(meta.getExtraParams().getOrDefault("minimum_idle", "1")));
+      config.addDataSourceProperty("prepStmtCacheSqlLimit", meta.getExtraParams().getOrDefault("prep_stmt_cache_sql_limit", "2048"));
 
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
