@@ -157,7 +157,7 @@ public class RelationalStorage implements IStorage {
       config.setIdleTimeout(
           Long.parseLong(meta.getExtraParams().getOrDefault("idle_timeout", "10000")));
       config.setMaximumPoolSize(
-          Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "10")));
+          Integer.parseInt(meta.getExtraParams().getOrDefault("maximum_pool_size", "20")));
       config.setMinimumIdle(
           Integer.parseInt(meta.getExtraParams().getOrDefault("minimum_idle", "1")));
       config.addDataSourceProperty(
