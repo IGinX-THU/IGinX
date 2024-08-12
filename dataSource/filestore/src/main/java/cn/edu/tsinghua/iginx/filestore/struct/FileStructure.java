@@ -17,8 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.filestore.struct;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import com.typesafe.config.Config;
 import java.io.Closeable;
 import java.io.IOException;

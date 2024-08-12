@@ -56,9 +56,7 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.typesafe.config.Config;
-import com.typesafe.config.ConfigBeanFactory;
 import com.typesafe.config.ConfigFactory;
-
 import java.net.InetSocketAddress;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -66,7 +64,6 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import javax.annotation.Nullable;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -273,8 +270,8 @@ public class FileStorage implements IStorage {
                   () -> {
                     List<Column> localColumns = new ArrayList<>();
                     try (RowStream stream =
-                             service.query(
-                                 unit, new DataTarget(new BoolFilter(false), null, null), null)) {
+                        service.query(
+                            unit, new DataTarget(new BoolFilter(false), null, null), null)) {
                       Header header = stream.getHeader();
                       for (Field field : header.getFields()) {
                         localColumns.add(

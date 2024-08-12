@@ -20,7 +20,6 @@ package cn.edu.tsinghua.iginx.filestore.common;
 import com.google.common.collect.Range;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigBeanFactory;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;

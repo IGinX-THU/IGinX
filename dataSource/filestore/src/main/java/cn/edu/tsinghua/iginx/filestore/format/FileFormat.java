@@ -18,11 +18,10 @@
 package cn.edu.tsinghua.iginx.filestore.format;
 
 import com.typesafe.config.Config;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public interface FileFormat {
 

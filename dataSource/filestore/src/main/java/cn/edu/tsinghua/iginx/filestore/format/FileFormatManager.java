@@ -1,15 +1,13 @@
 package cn.edu.tsinghua.iginx.filestore.format;
 
-import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class FileFormatManager {
@@ -53,7 +51,11 @@ public class FileFormatManager {
       for (String extension : format.getExtensions()) {
         String old = extensionToFormat.put(extension, format.getName());
         if (old != null) {
-          LOGGER.warn("Index of {} is replaced by {} due to conflict extension {}", old, format.getName(), extension);
+          LOGGER.warn(
+              "Index of {} is replaced by {} due to conflict extension {}",
+              old,
+              format.getName(),
+              extension);
         }
       }
     }
@@ -82,5 +84,4 @@ public class FileFormatManager {
     }
     return getByName(extensionToFormat.get(extension));
   }
-
 }

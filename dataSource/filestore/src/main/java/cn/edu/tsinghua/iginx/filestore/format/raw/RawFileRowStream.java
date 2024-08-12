@@ -8,20 +8,23 @@ import cn.edu.tsinghua.iginx.filestore.common.Ranges;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
 
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.channels.SeekableByteChannel;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayDeque;
 import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Queue;
+import javax.annotation.Nullable;
+import javax.annotation.WillCloseWhenClosed;
 
 public class RawFileRowStream extends FileStoreRowStream {
 
   private final Header header;
-  private final SeekableByteChannel channel;
+  private final FileChannel channel;
   private final long pageSize;
   private final Queue<Range<Long>> keyRanges;
   private long nextFetchKey = 0;
@@ -30,11 +33,12 @@ public class RawFileRowStream extends FileStoreRowStream {
 
   public RawFileRowStream(
       Header header,
-      @WillCloseWhenClosed SeekableByteChannel channel,
+      Path path,
       long pageSize,
-      RangeSet<Long> keyRanges) throws IOException {
+      RangeSet<Long> keyRanges)
+      throws IOException {
     this.header = header;
-    this.channel = channel;
+    this.channel = FileChannel.open(path, StandardOpenOption.READ);
     this.pageSize = pageSize;
 
     this.keyRanges = new ArrayDeque<>(keyRanges.asRanges().size());

@@ -17,13 +17,11 @@
  */
 package cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.StorageProperties;
-import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
 import java.io.Closeable;
@@ -118,16 +116,6 @@ public class LegacyParquet implements FileStructure {
 
     StorageProperties storageProperties = builder.build();
     return Shared.of(storageProperties);
-  }
-
-  @Override
-  public boolean supportFilter(FilterType type) {
-    return true;
-  }
-
-  @Override
-  public boolean supportAggregate(AggregateType type) {
-    return type == AggregateType.COUNT;
   }
 
   @Override
