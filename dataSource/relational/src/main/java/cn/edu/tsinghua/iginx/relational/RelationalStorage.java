@@ -152,7 +152,7 @@ public class RelationalStorage implements IStorage {
       config.setLeakDetectionThreshold(2500);
       config.setConnectionTimeout(30000);
       config.setIdleTimeout(10000);
-      config.setMaximumPoolSize(20);
+      config.setMaximumPoolSize(10);
       config.setMinimumIdle(1);
       config.addDataSourceProperty("prepStmtCacheSqlLimit", "2048");
 
@@ -526,7 +526,7 @@ public class RelationalStorage implements IStorage {
 
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
-      Statement stmt = null;
+      Statement stmt;
 
       Map<String, String> tableNameToColumnNames =
           splitAndMergeQueryPatterns(databaseName, project.getPatterns());
@@ -650,7 +650,6 @@ public class RelationalStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   Collections.singletonList(conn),
-                  Collections.singletonList(stmt),
                   relationalMeta));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
@@ -1049,7 +1048,6 @@ public class RelationalStorage implements IStorage {
 
   private TaskExecuteResult executeProjectDummyWithFilter(Project project, Filter filter) {
     List<Connection> connList = new ArrayList<>();
-    List<Statement> stmtList = new ArrayList<>();
     try {
       List<String> databaseNameList = new ArrayList<>();
       List<ResultSet> resultSets = new ArrayList<>();
@@ -1107,7 +1105,6 @@ public class RelationalStorage implements IStorage {
               continue;
             }
             databaseNameList.add(databaseName);
-            stmtList.add(stmt);
             resultSets.add(rs);
           }
         }
@@ -1196,7 +1193,6 @@ public class RelationalStorage implements IStorage {
           }
           if (rs != null) {
             databaseNameList.add(databaseName);
-            stmtList.add(stmt);
             resultSets.add(rs);
           }
         }
@@ -1211,7 +1207,6 @@ public class RelationalStorage implements IStorage {
                   filter,
                   project.getTagFilter(),
                   connList,
-                  stmtList,
                   relationalMeta));
       return new TaskExecuteResult(rowStream);
     } catch (SQLException e) {
