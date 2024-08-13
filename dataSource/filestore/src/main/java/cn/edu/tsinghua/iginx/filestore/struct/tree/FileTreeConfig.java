@@ -1,33 +1,40 @@
 package cn.edu.tsinghua.iginx.filestore.struct.tree;
 
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
-import com.typesafe.config.Config;
-import com.typesafe.config.ConfigValue;
-import com.typesafe.config.ConfigValueType;
 import com.typesafe.config.Optional;
-
-import java.util.*;
-
+import com.typesafe.config.*;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.FieldNameConstants;
+
+import java.util.*;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
 @FieldNameConstants
 public class FileTreeConfig extends AbstractConfig {
 
-  @Optional String dot = "\\";
+  @Optional
+  String dot = "\\";
 
-  @Optional boolean filenameAsPrefix = true;
+  @Optional
+  boolean filenameAsPrefix = true;
 
-  @Optional Map<String, Config> formats = Collections.emptyMap();
+  @Optional
+  Map<String, Config> formats = Collections.emptyMap();
 
   @Override
   public List<ValidationProblem> validate() {
-    return Collections.emptyList();
+    List<ValidationProblem> problems = new ArrayList<>();
+    if (validateNotNull(problems, Fields.dot, dot)) {
+      if (dot.equals(".")) {
+        problems.add(new InvalidFieldValidationProblem(Fields.dot, "dot cannot be '.'"));
+      }
+    }
+    return problems;
   }
 
+  @SuppressWarnings("unchecked")
   public static FileTreeConfig of(Config config) {
     Config withoutFormats = config.withoutPath(Fields.formats);
     FileTreeConfig fileTreeConfig = of(withoutFormats, FileTreeConfig.class);
@@ -35,23 +42,17 @@ public class FileTreeConfig extends AbstractConfig {
     if (config.hasPath(Fields.formats)) {
       ConfigValue value = config.getValue(Fields.formats);
       if (value.valueType() == ConfigValueType.OBJECT) {
-        Config formatsRawConfig = (Config) value.unwrapped();
-        Map<String, Config> formats = parseFormats(formatsRawConfig);
+        Map<String, Object> formatsRawConfig = (Map<String, Object>) value.unwrapped();
+        Map<String, Config> formats = new HashMap<>();
+        for (Map.Entry<String, Object> entry : formatsRawConfig.entrySet()) {
+          if (entry.getValue() instanceof Map) {
+            formats.put(entry.getKey(), ConfigFactory.parseMap((Map<String, Object>) entry.getValue()));
+          }
+        }
         fileTreeConfig.setFormats(formats);
       }
     }
 
     return fileTreeConfig;
-  }
-
-  private static Map<String, Config> parseFormats(Config config) {
-    Map<String, Config> formats = new HashMap<>();
-    for (String key : config.root().keySet()) {
-      ConfigValue value = config.getValue(key);
-      if (value.valueType() == ConfigValueType.OBJECT) {
-        formats.put(key, (Config) value.unwrapped());
-      }
-    }
-    return formats;
   }
 }

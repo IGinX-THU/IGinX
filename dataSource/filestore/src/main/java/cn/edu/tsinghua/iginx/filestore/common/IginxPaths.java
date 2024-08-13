@@ -1,4 +1,4 @@
-package cn.edu.tsinghua.iginx.filestore.struct.tree;
+package cn.edu.tsinghua.iginx.filestore.common;
 
 import com.google.common.collect.Iterables;
 

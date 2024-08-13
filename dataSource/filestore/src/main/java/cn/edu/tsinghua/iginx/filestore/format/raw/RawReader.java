@@ -6,17 +6,18 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
-import cn.edu.tsinghua.iginx.filestore.format.FileReader;
+import cn.edu.tsinghua.iginx.filestore.common.Patterns;
+import cn.edu.tsinghua.iginx.filestore.common.RowStreams;
+import cn.edu.tsinghua.iginx.filestore.format.FileFormat;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.RangeSet;
+
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.function.Predicate;
 
-public class RawReader implements FileReader {
+public class RawReader implements FileFormat.Reader {
 
   private final RawReaderConfig config;
   private final Path path;
@@ -34,7 +35,18 @@ public class RawReader implements FileReader {
   }
 
   @Override
+  public String toString() {
+    return "RawReader{" +
+        "config=" + config +
+        ", path=" + path +
+        '}';
+  }
+
+  @Override
   public Map<String, DataType> find(Collection<String> fieldPatterns) throws IOException {
+    if(!Patterns.match(fieldPatterns, fieldName)) {
+      return Collections.emptyMap();
+    }
     return schema;
   }
 
@@ -48,24 +60,25 @@ public class RawReader implements FileReader {
       throw new IllegalArgumentException("Unknown fields: " + fields);
     }
 
-    Predicate<Filter> removeNonKeyFilter = Filters.removeNonKeyFilter();
+    Predicate<Filter> removeNonKeyFilter = Filters.nonKeyFilter();
 
     Filter keyRangeFilter = Filters.superSet(filter, removeNonKeyFilter);
     RangeSet<Long> keyRanges = Filters.toRangeSet(keyRangeFilter);
     RowStream rowStream =
-        new RawFileRowStream(
+        new RawFormatRowStream(
             header,
             path,
             config.getPageSize().toBytes(),
             keyRanges);
 
     if (!Filters.match(filter, removeNonKeyFilter)) {
-      rowStream = Filters.filter(rowStream, filter);
+      rowStream = RowStreams.filtered(rowStream, filter);
     }
 
     return rowStream;
   }
 
   @Override
-  public void close() throws IOException {}
+  public void close() throws IOException {
+  }
 }

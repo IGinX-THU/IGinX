@@ -17,11 +17,18 @@
  */
 package cn.edu.tsinghua.iginx.filestore.common;
 
-import java.util.Collection;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.base.Strings;
+
 import javax.annotation.Nullable;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Patterns {
-  private Patterns() {}
+  private Patterns() {
+  }
 
   public static boolean isAll(String pattern) {
     return pattern.equals("*");
@@ -32,5 +39,58 @@ public class Patterns {
       return true;
     }
     return patterns.stream().anyMatch(Patterns::isAll);
+  }
+
+  public static List<String> filterByPrefix(@Nullable List<String> patterns, @Nullable String subPrefix) {
+    if (patterns == null || subPrefix == null) {
+      return patterns;
+    }
+    return patterns.stream().filter(pattern -> startsWith(pattern, subPrefix)).collect(Collectors.toList());
+  }
+
+  public static boolean startsWith(String pattern, @Nullable String prefix) {
+    if (prefix == null) {
+      return true;
+    }
+    if (pattern.startsWith("*")) {
+      return true;
+    }
+    if (pattern.startsWith(prefix)) {
+      return true;
+    }
+    String commonPrefix = Strings.commonPrefix(pattern, prefix);
+    if (!commonPrefix.isEmpty()) {
+      String patternWithoutCommonPrefix = pattern.substring(commonPrefix.length());
+      return patternWithoutCommonPrefix.startsWith("*");
+    }
+    return false;
+  }
+
+  private static final List<String> ALL = Collections.singletonList("*");
+
+  public static List<String> all() {
+    return ALL;
+  }
+
+  public static List<String> nonNull(@Nullable List<String> patterns) {
+    return patterns == null ? ALL : patterns;
+  }
+
+  public static boolean match(Collection<String> patterns, String name) {
+    if (Patterns.isAll(patterns)) {
+      return true;
+    }
+    if (patterns.contains(name)) {
+      return true;
+    }
+    return patterns.stream().anyMatch(pattern -> match(pattern, name));
+  }
+
+  public static boolean match(String patterns, String name) {
+    return StringUtils.match(name,patterns);
+  }
+
+  public static boolean isWildcard(String path) {
+    return path.contains("*");
   }
 }

@@ -17,11 +17,18 @@
  */
 package cn.edu.tsinghua.iginx.filestore.format;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.typesafe.config.Config;
+
+import javax.annotation.Nullable;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import java.util.Collection;
 import java.util.List;
-import javax.annotation.Nullable;
+import java.util.Map;
 
 public interface FileFormat {
 
@@ -29,5 +36,11 @@ public interface FileFormat {
 
   List<String> getExtensions();
 
-  FileReader newRead(@Nullable String prefix, Path path, Config config) throws IOException;
+  Reader newReader(@Nullable String prefix, Path path, Config config) throws IOException;
+
+  interface Reader extends Closeable {
+    Map<String, DataType> find(Collection<String> fieldPatterns) throws IOException;
+
+    RowStream read(List<String> fields, Filter filter) throws IOException;
+  }
 }

@@ -1,19 +1,25 @@
 package cn.edu.tsinghua.iginx.filestore.format.raw;
 
 import cn.edu.tsinghua.iginx.filestore.format.FileFormat;
-import cn.edu.tsinghua.iginx.filestore.format.FileReader;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
-import javax.annotation.Nullable;
 
 @AutoService(FileFormat.class)
 public class RawFormat implements FileFormat {
 
   public static final String NAME = "RawChunk";
+
+  private static final RawFormat INSTANCE = new RawFormat();
+
+  public static RawFormat getInstance() {
+    return INSTANCE;
+  }
 
   @Override
   public String getName() {
@@ -26,7 +32,7 @@ public class RawFormat implements FileFormat {
   }
 
   @Override
-  public FileReader newRead(@Nullable String prefix, Path path, Config config) throws IOException {
+  public Reader newReader(@Nullable String prefix, Path path, Config config) throws IOException {
     if (prefix == null) {
       prefix = "";
     }

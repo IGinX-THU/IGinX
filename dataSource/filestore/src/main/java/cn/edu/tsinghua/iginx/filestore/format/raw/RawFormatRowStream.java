@@ -11,7 +11,6 @@ import com.google.common.collect.RangeSet;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
-import java.nio.channels.SeekableByteChannel;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayDeque;
@@ -19,9 +18,8 @@ import java.util.Arrays;
 import java.util.NoSuchElementException;
 import java.util.Queue;
 import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 
-public class RawFileRowStream extends FileStoreRowStream {
+public class RawFormatRowStream extends FileStoreRowStream {
 
   private final Header header;
   private final FileChannel channel;
@@ -31,7 +29,7 @@ public class RawFileRowStream extends FileStoreRowStream {
   private boolean eof = false;
   private Row nextRow;
 
-  public RawFileRowStream(
+  public RawFormatRowStream(
       Header header,
       Path path,
       long pageSize,

@@ -1,29 +1,28 @@
 package cn.edu.tsinghua.iginx.filestore.struct.tree;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.filestore.common.IginxPaths;
 import cn.edu.tsinghua.iginx.filestore.common.RowStreams;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
-import cn.edu.tsinghua.iginx.filestore.struct.tree.query.FormatTreeJoin;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.query.Querier;
-import cn.edu.tsinghua.iginx.filestore.struct.tree.query.QuerierBuilder;
-import cn.edu.tsinghua.iginx.filestore.struct.tree.query.QuerierBuilderFactory;
+import cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj.FormatTreeJoin;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
-import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.stream.Stream;
-import javax.annotation.Nullable;
 
 public class FileTreeManager implements FileManager {
 
@@ -31,7 +30,7 @@ public class FileTreeManager implements FileManager {
 
   private final Path path;
   private final FileTreeConfig config;
-  private final QuerierBuilder querierBuilder;
+  private final Querier.Builder builder;
 
   public FileTreeManager(Path path, FileTreeConfig config) throws IOException {
     this.path = Objects.requireNonNull(path).toAbsolutePath();
@@ -40,8 +39,8 @@ public class FileTreeManager implements FileManager {
       throw new IllegalArgumentException("Path does not have a file name, but `filenameAsPrefix` is true");
     }
     String prefix = config.isFilenameAsPrefix() ? IginxPaths.get(path.getFileName(), config.getDot()) : null;
-    QuerierBuilderFactory factory = new FormatTreeJoin();
-    this.querierBuilder = factory.create(path, prefix, config);
+    Querier.Builder.Factory factory = new FormatTreeJoin();
+    this.builder = factory.create(prefix, path, config);
   }
 
   @Override
@@ -53,10 +52,14 @@ public class FileTreeManager implements FileManager {
       String prefix = targetPrefixAndPath.getKey();
       Path afterPrefix = targetPrefixAndPath.getValue();
 
-      ColumnsInterval interval = getColumnsInterval(afterPrefix);
-      if (interval != null) {
-        boundary.setStartColumn(IginxPaths.get(prefix, interval.getStartColumn()));
-        boundary.setEndColumn(IginxPaths.get(prefix, interval.getEndColumn()));
+      Map.Entry<String, String> columnsInterval = getColumnsInterval(afterPrefix);
+      if (columnsInterval != null) {
+        boundary.setStartColumn(IginxPaths.get(prefix, columnsInterval.getKey()));
+        String endColumn = IginxPaths.get(prefix, columnsInterval.getValue());
+        boundary.setEndColumn(endColumn);
+        if (endColumn != null) {
+          boundary.setEndColumn(StringUtils.nextString(endColumn));
+        }
         boundary.setStartKey(KeyInterval.getDefaultKeyInterval().getStartKey());
         boundary.setEndKey(KeyInterval.getDefaultKeyInterval().getEndKey());
       }
@@ -102,9 +105,9 @@ public class FileTreeManager implements FileManager {
   }
 
   @Nullable
-  private static ColumnsInterval getColumnsInterval(Path path) throws IOException {
+  private Map.Entry<String, String> getColumnsInterval(Path path) throws IOException {
     if (Files.isRegularFile(path)) {
-      return new ColumnsInterval(null, null);
+      return new AbstractMap.SimpleImmutableEntry<>(null, null);
     }
 
     try (Stream<Path> childStreamForMin = Files.list(path);
@@ -114,9 +117,9 @@ public class FileTreeManager implements FileManager {
       if (minChild == null || maxChild == null) {
         return null;
       }
-      String startColumn = minChild.getFileName().toString();
-      String endColumn = StringUtils.nextString(maxChild.getFileName().toString());
-      return new ColumnsInterval(startColumn, endColumn);
+      String startColumn = IginxPaths.get(minChild.getFileName(),config.getDot());
+      String endColumn = IginxPaths.get(maxChild.getFileName(),config.getDot());
+      return new AbstractMap.SimpleImmutableEntry<>(startColumn, endColumn);
     } catch (NoSuchFileException e) {
       LOGGER.warn("Directory does not exist: {}", path, e);
       return null;
@@ -128,10 +131,10 @@ public class FileTreeManager implements FileManager {
     if (aggregate != null) {
       throw new UnsupportedOperationException("Aggregate not supported");
     }
-    try (Querier querier = querierBuilder.build(target)) {
+    try (Querier querier = builder.build(target)) {
       List<RowStream> streams = querier.query();
       try {
-        return RowStreams.merge(streams);
+        return RowStreams.merged(streams);
       } catch (PhysicalException e) {
         throw new IOException(e);
       }
@@ -140,7 +143,7 @@ public class FileTreeManager implements FileManager {
 
   @Override
   public void close() throws IOException {
-    querierBuilder.close();
+    builder.close();
   }
 
   @Override

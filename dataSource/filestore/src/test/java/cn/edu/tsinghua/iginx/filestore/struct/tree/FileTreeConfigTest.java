@@ -2,12 +2,14 @@ package cn.edu.tsinghua.iginx.filestore.struct.tree;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawFormat;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawReaderConfig;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -61,5 +63,27 @@ public class FileTreeConfigTest {
     FileTreeConfig fileTreeConfig = FileTreeConfig.of(rawConfig);
 
     assertEquals(Collections.emptyMap(), fileTreeConfig.getFormats());
+  }
+
+  @Test
+  public void testIgnoreInvalidDot() {
+    Map<String, Object> rawConfigMap = new HashMap<>();
+    rawConfigMap.put(String.join(".", FileTreeConfig.Fields.dot), ".");
+
+    Config rawConfig = ConfigFactory.parseMap(rawConfigMap);
+    FileTreeConfig fileTreeConfig = FileTreeConfig.of(rawConfig);
+
+    {
+      List<AbstractConfig.ValidationProblem> problemList = fileTreeConfig.validate();
+      assertEquals(1, problemList.size());
+      assertEquals("dot:'dot cannot be '.''", problemList.get(0).toString());
+    }
+
+    {
+      fileTreeConfig.setDot(null);
+      List<AbstractConfig.ValidationProblem> problemList = fileTreeConfig.validate();
+      assertEquals(1, problemList.size());
+      assertEquals("dot:'missing field'", problemList.get(0).toString());
+    }
   }
 }
