@@ -37,6 +37,9 @@ import shaded.iginx.org.apache.parquet.schema.TypeUtil;
 
 public class IParquetWriter implements AutoCloseable {
 
+  public static final String OBJECT_MODEL_NAME_PROP = "writer.model.name";
+  public static final String OBJECT_MODEL_NAME_VALUE = "iginx";
+
   private final ParquetRecordWriter<IRecord> internalWriter;
 
   private final ParquetFileWriter fileWriter;
