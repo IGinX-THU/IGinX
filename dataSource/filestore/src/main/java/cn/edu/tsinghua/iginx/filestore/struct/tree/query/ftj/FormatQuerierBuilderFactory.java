@@ -17,7 +17,7 @@ public class FormatQuerierBuilderFactory implements Factory {
   @Override
   public Builder create(@Nullable String prefix, Path path, FileTreeConfig config) {
     String extension = getExtension(path);
-    FileFormat format = FileFormatManager.getInstance().getByExtension(extension, RawFormat.getInstance());
+    FileFormat format = FileFormatManager.getInstance().getByExtension(extension, RawFormat.INSTANCE);
     Config configForFormat = config.getFormats().getOrDefault(format.getName(), ConfigFactory.empty());
     return new FormatQuerierBuilder(prefix, path, format, configForFormat);
   }

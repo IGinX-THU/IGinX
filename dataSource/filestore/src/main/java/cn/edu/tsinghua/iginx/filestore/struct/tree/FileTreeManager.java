@@ -31,16 +31,17 @@ public class FileTreeManager implements FileManager {
   private final Path path;
   private final FileTreeConfig config;
   private final Querier.Builder builder;
+  private final String prefix;
 
   public FileTreeManager(Path path, FileTreeConfig config) throws IOException {
     this.path = Objects.requireNonNull(path).toAbsolutePath();
-    this.config = Objects.requireNonNull(config);
-    if (config.isFilenameAsPrefix() && path.getFileName() == null) {
-      throw new IllegalArgumentException("Path does not have a file name, but `filenameAsPrefix` is true");
+    if (Objects.isNull(path.getFileName())) {
+      this.config = config.withFilenameAsPrefix(false);
+    } else {
+      this.config = config;
     }
-    String prefix = config.isFilenameAsPrefix() ? IginxPaths.get(path.getFileName(), config.getDot()) : null;
-    Querier.Builder.Factory factory = new FormatTreeJoin();
-    this.builder = factory.create(prefix, path, config);
+    this.prefix = config.isFilenameAsPrefix() ? IginxPaths.get(path.getFileName(), config.getDot()) : null;
+    this.builder = new FormatTreeJoin().create(prefix, path, config);
   }
 
   @Override
@@ -74,11 +75,7 @@ public class FileTreeManager implements FileManager {
     Path afterPrefix;
 
     if (requiredPrefix == null || requiredPrefix.isEmpty()) {
-      if (config.isFilenameAsPrefix()) {
-        prefix = IginxPaths.get(path.getFileName(), config.getDot());
-      } else {
-        prefix = null;
-      }
+      prefix = this.prefix;
       afterPrefix = path;
     } else {
       Path prefixRelativePath = IginxPaths.toFilePath(requiredPrefix, config.getDot(), path.getFileSystem());
@@ -117,8 +114,8 @@ public class FileTreeManager implements FileManager {
       if (minChild == null || maxChild == null) {
         return null;
       }
-      String startColumn = IginxPaths.get(minChild.getFileName(),config.getDot());
-      String endColumn = IginxPaths.get(maxChild.getFileName(),config.getDot());
+      String startColumn = IginxPaths.get(minChild.getFileName(), config.getDot());
+      String endColumn = IginxPaths.get(maxChild.getFileName(), config.getDot());
       return new AbstractMap.SimpleImmutableEntry<>(startColumn, endColumn);
     } catch (NoSuchFileException e) {
       LOGGER.warn("Directory does not exist: {}", path, e);

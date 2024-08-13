@@ -39,7 +39,7 @@ public interface FileFormat {
   Reader newReader(@Nullable String prefix, Path path, Config config) throws IOException;
 
   interface Reader extends Closeable {
-    Map<String, DataType> find(Collection<String> fieldPatterns) throws IOException;
+    Map<String, DataType> find(Collection<String> patterns) throws IOException;
 
     RowStream read(List<String> fields, Filter filter) throws IOException;
   }

@@ -15,11 +15,7 @@ public class RawFormat implements FileFormat {
 
   public static final String NAME = "RawChunk";
 
-  private static final RawFormat INSTANCE = new RawFormat();
-
-  public static RawFormat getInstance() {
-    return INSTANCE;
-  }
+  public static final RawFormat INSTANCE = new RawFormat();
 
   @Override
   public String getName() {
@@ -33,10 +29,7 @@ public class RawFormat implements FileFormat {
 
   @Override
   public Reader newReader(@Nullable String prefix, Path path, Config config) throws IOException {
-    if (prefix == null) {
-      prefix = "";
-    }
     RawReaderConfig rawReaderConfig = RawReaderConfig.of(config);
-    return new RawReader(prefix, path, rawReaderConfig);
+    return new RawReader(String.valueOf(prefix), path, rawReaderConfig);
   }
 }

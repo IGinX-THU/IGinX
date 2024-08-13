@@ -1,9 +1,10 @@
 package cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj;
 
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filestore.common.Closeables;
-import cn.edu.tsinghua.iginx.filestore.common.DataTargets;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
 import cn.edu.tsinghua.iginx.filestore.common.IginxPaths;
+import cn.edu.tsinghua.iginx.filestore.common.Patterns;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTreeConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.query.Querier;
@@ -17,6 +18,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 class TreeJoinQuerierBuilder implements Builder {
 
@@ -50,14 +52,26 @@ class TreeJoinQuerierBuilder implements Builder {
   @Override
   public Querier build(DataTarget target) throws IOException {
     List<Querier> queriers = new ArrayList<>();
+    boolean needPostFilter = false;
     try (DirectoryStream<Path> children = Files.newDirectoryStream(path)) {
       for (Path subpath : children) {
-        // TODO: 跳过不可能的文件
         String subPrefix = IginxPaths.get(prefix, IginxPaths.get(subpath.getFileName(), config.getDot()));
-        DataTarget subTarget = DataTargets.subTarget(target, subPrefix);
+
+        List<String> subPatterns = Patterns.filterByPrefix(target.getPatterns(), subPrefix);
+        if (Patterns.isEmpty(subPatterns)) {
+          continue;
+        }
+
+        Predicate<Filter> subFilterTester = Filters.startWith(subPrefix);
+        Filter subFilter = Filters.superSet(target.getFilter(), subFilterTester);
+        if (!Filters.match(target.getFilter(), subFilterTester)) {
+          needPostFilter = true;
+        }
+
+        DataTarget subTarget = target.withPatterns(subPatterns).withFilter(subFilter);
+
         try (Builder subBuilder = factory.create(subPrefix, subpath, config)) {
           Querier querier = subBuilder.build(subTarget);
-          ;
           queriers.add(querier);
         }
       }
@@ -66,12 +80,10 @@ class TreeJoinQuerierBuilder implements Builder {
       throw e;
     }
 
-    // TODO: 何时进行后过滤？
     TreeJoinQuerier querier = new TreeJoinQuerier(queriers);
-    if (queriers.size() <= 1 || Filters.match(target.getFilter(), Filters.nonKeyFilter())) {
+    if (!needPostFilter) {
       return querier;
     }
     return Queriers.filtered(querier, target.getFilter());
   }
-
 }

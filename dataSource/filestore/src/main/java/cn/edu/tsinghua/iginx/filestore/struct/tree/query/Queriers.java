@@ -23,6 +23,11 @@ public class Queriers {
     }
 
     @Override
+    public String toString() {
+      return "EmptyQuerier{}";
+    }
+
+    @Override
     public List<RowStream> query() throws IOException {
       return Collections.emptyList();
     }
@@ -65,7 +70,7 @@ public class Queriers {
   }
 
   public static Querier filtered(Querier querier, Filter filter) {
-    if(Filters.isTrue(filter)) {
+    if (Filters.isTrue(filter)) {
       return querier;
     }
     return new FilteredQuerier(querier, filter);
@@ -94,16 +99,10 @@ public class Queriers {
     public List<RowStream> query() throws IOException {
       List<RowStream> rowStreams = querier.query();
       try {
-        rowStreams.addAll(querier.query());
-
         return Collections.singletonList(RowStreams.merged(rowStreams));
-      } catch (IOException | PhysicalException e) {
+      } catch (PhysicalException e) {
         Closeables.close(Iterables.transform(rowStreams, Closeables::closeAsIOException));
-        if (e instanceof IOException) {
-          throw (IOException) e;
-        } else {
-          throw new IOException(e);
-        }
+        throw new IOException(e);
       }
     }
   }

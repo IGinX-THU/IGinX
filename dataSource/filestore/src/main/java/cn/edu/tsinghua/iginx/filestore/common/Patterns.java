@@ -66,6 +66,13 @@ public class Patterns {
     return false;
   }
 
+  public static boolean startsWith(@Nullable List<String> patterns, @Nullable String subPrefix) {
+    if (patterns == null || subPrefix == null) {
+      return true;
+    }
+    return patterns.stream().anyMatch(pattern -> startsWith(pattern, subPrefix));
+  }
+
   private static final List<String> ALL = Collections.singletonList("*");
 
   public static List<String> all() {
@@ -87,10 +94,18 @@ public class Patterns {
   }
 
   public static boolean match(String patterns, String name) {
-    return StringUtils.match(name,patterns);
+    return StringUtils.match(name, patterns);
   }
 
   public static boolean isWildcard(String path) {
     return path.contains("*");
+  }
+
+
+  public static boolean isEmpty(@Nullable List<String> subPatterns) {
+    if (subPatterns == null) {
+      return false;
+    }
+    return subPatterns.isEmpty();
   }
 }

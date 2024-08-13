@@ -5,7 +5,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawFormat;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawReaderConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
@@ -204,6 +207,48 @@ public class FileTreeDummyTest extends AbstractDummyTest {
       assertEquals(new DataBoundary(), boundary);
     }
 
+    // query one column
+    {
+      Header justMainHeader = getSchema("home.src.main.java.Main\\java");
+      List<Row> justMainData = new RowsBuilder("home.src.main.java.Main\\java")
+          .add(0, "public c")
+          .add(1, "lass Mai")
+          .add(2, "n {\n}")
+          .build();
+
+      {
+        List<String> patterns = Collections.singletonList("home.src.main.java.Main\\java");
+        Header schema = getSchema(patterns);
+        assertEquals(justMainHeader, schema);
+        List<Row> rows = query(patterns);
+        assertEquals(justMainData, rows);
+      }
+
+      {
+        List<String> patterns = Collections.singletonList("*.Main\\java");
+        Header schema = getSchema(patterns);
+        assertEquals(justMainHeader, schema);
+        List<Row> rows = query(patterns);
+        assertEquals(justMainData, rows);
+      }
+
+      {
+        List<String> patterns = Collections.singletonList("*.main.*.Main\\java");
+        Header schema = getSchema(patterns);
+        assertEquals(justMainHeader, schema);
+        List<Row> rows = query(patterns);
+        assertEquals(justMainData, rows);
+      }
+
+      {
+        List<String> patterns = Collections.singletonList("home.*.main.*.Main\\java");
+        Header schema = getSchema(patterns);
+        assertEquals(justMainHeader, schema);
+        List<Row> rows = query(patterns);
+        assertEquals(justMainData, rows);
+      }
+    }
+
     // query all column
     {
       Header allHeader = headerOf(
@@ -274,6 +319,10 @@ public class FileTreeDummyTest extends AbstractDummyTest {
         Header schema = getSchema(patterns);
         assertEquals(allHeader, schema);
         {
+          List<Row> rows = query(patterns, new ValueFilter("home.src.main.resources.config\\properties", Op.LIKE, new Value(".*[.].*")));
+          assertEquals(allDataKey0, rows);
+        }
+        {
           List<Row> rows = query(patterns, new ValueFilter("*", Op.LIKE, new Value(".*[.].*")));
           assertEquals(allDataKey0, rows);
         }
@@ -286,53 +335,10 @@ public class FileTreeDummyTest extends AbstractDummyTest {
           assertEquals(allDataKey0, rows);
         }
         {
-          List<Row> rows = query(patterns, new ValueFilter( "home.*.main.*.config\\properties", Op.LIKE, new Value(".*[.].*")));
+          List<Row> rows = query(patterns, new ValueFilter("home.*.main.*.config\\properties", Op.LIKE, new Value(".*[.].*")));
           assertEquals(allDataKey0, rows);
         }
       }
     }
-
-    // query one column
-    {
-      Header justMainHeader = getSchema("home.src.main.java.Main\\java");
-      List<Row> justMainData = new RowsBuilder("home.src.main.java.Main\\java")
-          .add(0, "public c")
-          .add(1, "lass Mai")
-          .add(2, "n {\n}")
-          .build();
-
-      {
-        List<String> patterns = Collections.singletonList("home.src.main.java.Main\\java");
-        Header schema = getSchema(patterns);
-        assertEquals(justMainHeader, schema);
-        List<Row> rows = query(patterns);
-        assertEquals(justMainData, rows);
-      }
-
-      {
-        List<String> patterns = Collections.singletonList("*.Main\\java");
-        Header schema = getSchema(patterns);
-        assertEquals(justMainHeader, schema);
-        List<Row> rows = query(patterns);
-        assertEquals(justMainData, rows);
-      }
-
-      {
-        List<String> patterns = Collections.singletonList("*.main.*.Main\\java");
-        Header schema = getSchema(patterns);
-        assertEquals(justMainHeader, schema);
-        List<Row> rows = query(patterns);
-        assertEquals(justMainData, rows);
-      }
-
-      {
-        List<String> patterns = Collections.singletonList("home.*.main.*.Main\\java");
-        Header schema = getSchema(patterns);
-        assertEquals(justMainHeader, schema);
-        List<Row> rows = query(patterns);
-        assertEquals(justMainData, rows);
-      }
-    }
-
   }
 }

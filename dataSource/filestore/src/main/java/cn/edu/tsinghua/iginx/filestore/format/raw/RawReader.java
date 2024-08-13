@@ -43,8 +43,8 @@ public class RawReader implements FileFormat.Reader {
   }
 
   @Override
-  public Map<String, DataType> find(Collection<String> fieldPatterns) throws IOException {
-    if(!Patterns.match(fieldPatterns, fieldName)) {
+  public Map<String, DataType> find(Collection<String> patterns) throws IOException {
+    if(!Patterns.match(patterns, fieldName)) {
       return Collections.emptyMap();
     }
     return schema;

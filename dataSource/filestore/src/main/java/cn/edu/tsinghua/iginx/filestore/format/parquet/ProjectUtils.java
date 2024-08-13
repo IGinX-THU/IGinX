@@ -18,11 +18,15 @@
 
 package cn.edu.tsinghua.iginx.filestore.format.parquet;
 
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.dummy.Storer;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.dummy.Table;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Constants;
-import java.util.HashSet;
-import java.util.Objects;
-import java.util.Set;
+
+import java.io.IOException;
+import java.util.*;
 import javax.annotation.Nullable;
+
+import cn.edu.tsinghua.iginx.thrift.DataType;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 import shaded.iginx.org.apache.parquet.schema.Types;
@@ -46,5 +50,25 @@ public class ProjectUtils {
     }
 
     return builder.named(schema.getName());
+  }
+
+  static Map<String, DataType> toIginxSchema(MessageType schema) {
+    Table table = new Table();
+
+
+      Integer keyIndex = getFieldIndex(schema, Storer.KEY_FIELD_NAME);
+      Map<List<Integer>, Integer> indexMap = new HashMap<>();
+      List<Integer> schameIndexList = new ArrayList<>();
+      List<String> typeNameList = new ArrayList<>();
+      for (int i = 0; i < schema.getFieldCount(); i++) {
+        if (keyIndex != null && keyIndex == i) {
+          continue;
+        }
+        schameIndexList.add(i);
+        putIndexMap(schema.getType(i), typeNameList, schameIndexList, table, indexMap);
+        schameIndexList.clear();
+      }
+      return table.getHeader();
+
   }
 }

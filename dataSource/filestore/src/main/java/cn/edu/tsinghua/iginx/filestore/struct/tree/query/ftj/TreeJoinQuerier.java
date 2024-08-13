@@ -12,15 +12,22 @@ import java.util.Objects;
 
 class TreeJoinQuerier implements Querier {
 
-  private final Iterable<? extends Querier> queriers;
+  private final List<? extends Querier> queriers;
 
-  public TreeJoinQuerier(@WillCloseWhenClosed Iterable<? extends Querier> queriers) {
+  public TreeJoinQuerier(@WillCloseWhenClosed List<? extends Querier> queriers) {
     this.queriers = Objects.requireNonNull(queriers);
   }
 
   @Override
   public void close() throws IOException {
     Closeables.close(queriers);
+  }
+
+  @Override
+  public String toString() {
+    return "TreeJoinQuerier{" +
+        "queriers=" + queriers +
+        '}';
   }
 
   @Override

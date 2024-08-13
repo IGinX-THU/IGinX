@@ -3,15 +3,17 @@ package cn.edu.tsinghua.iginx.filestore.struct.tree;
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
 import com.typesafe.config.Optional;
 import com.typesafe.config.*;
-import lombok.Data;
-import lombok.EqualsAndHashCode;
+import lombok.*;
 import lombok.experimental.FieldNameConstants;
 
 import java.util.*;
 
 @Data
+@With
 @EqualsAndHashCode(callSuper = true)
 @FieldNameConstants
+@AllArgsConstructor
+@NoArgsConstructor
 public class FileTreeConfig extends AbstractConfig {
 
   @Optional
