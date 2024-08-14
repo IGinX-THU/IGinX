@@ -77,7 +77,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
@@ -240,7 +239,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
-    RowUtils.sortRows(table.getRows(), sort.getSortType() == SortType.ASC, sort.getSortByCols());
+    List<Boolean> ascendingList = sort.getAscendingList();
+    RowUtils.sortRows(table.getRows(), ascendingList, sort.getSortByCols());
     return table;
   }
 

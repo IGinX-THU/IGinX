@@ -26,11 +26,15 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.IStorage;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filesystem.exec.Executor;
 import cn.edu.tsinghua.iginx.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filesystem.exec.RemoteExecutor;
@@ -42,6 +46,7 @@ import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import org.apache.thrift.transport.TTransportException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -148,8 +153,9 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
-    return executor.getColumnsOfStorageUnit(WILDCARD);
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+      throws PhysicalException {
+    return executor.getColumnsOfStorageUnit(WILDCARD, patterns, tagFilter);
   }
 
   @Override
@@ -159,7 +165,7 @@ public class FileSystemStorage implements IStorage {
   }
 
   @Override
-  public synchronized void release() throws PhysicalException {
+  public synchronized void release() {
     executor.close();
     if (thread != null) {
       thread.interrupt();
