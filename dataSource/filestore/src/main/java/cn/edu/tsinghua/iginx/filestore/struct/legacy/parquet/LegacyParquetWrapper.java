@@ -66,7 +66,7 @@ public class LegacyParquetWrapper implements FileManager {
           "getBoundary is not supported for non-dummy file manager");
     }
     try {
-      List<Column> columns = delegate.getColumns();
+      List<Column> columns = delegate.getColumns(Collections.singletonList("*"), null);
       List<String> paths = columns.stream().map(Column::getPath).collect(Collectors.toList());
       if (prefix != null) {
         paths = paths.stream().filter(path -> path.startsWith(prefix)).collect(Collectors.toList());
@@ -97,14 +97,18 @@ public class LegacyParquetWrapper implements FileManager {
       List<String> patterns = target.getPatterns();
       TagFilter tagFilter = target.getTagFilter();
 
+      if (Patterns.isAll(patterns)) {
+        patterns = Collections.singletonList("*");
+      }
+
       if (aggregate != null) {
         if (!Filters.isTrue(filter)) {
           throw new UnsupportedOperationException("Filter is not supported for aggregation");
         }
         return delegate.aggregation(patterns, tagFilter, null);
       } else {
-        if (tagFilter == null && Filters.isFalse(target.getFilter())) {
-          List<Column> columns = delegate.getColumns();
+        if (Filters.isFalse(target.getFilter())) {
+          List<Column> columns = delegate.getColumns(patterns, tagFilter);
           List<Field> fields = columns.stream().map(Fields::of).collect(Collectors.toList());
           Header header = new Header(Field.KEY, fields);
           return new Table(header, Collections.emptyList());

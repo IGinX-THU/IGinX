@@ -20,10 +20,13 @@ package cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.utils;
 
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.engine.physical.storage.utils.ColumnKeyTranslator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.utils.Escaper;
+import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.text.ParseException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
@@ -58,5 +61,22 @@ public class TagKVUtils {
     } catch (ParseException e) {
       throw new IllegalStateException("Failed to parse identifier: " + fullName, e);
     }
+  }
+
+  public static boolean match(ColumnKey columnKey, List<String> patterns, TagFilter tagFilter) {
+    for (String pattern : patterns) {
+      if (tagFilter == null) {
+        if (StringUtils.match(columnKey.getPath(), pattern)) {
+          return true;
+        }
+      } else {
+        if (StringUtils.match(columnKey.getPath(), pattern)
+            && cn.edu.tsinghua.iginx.engine.physical.storage.utils.TagKVUtils.match(
+                columnKey.getTags(), tagFilter)) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }

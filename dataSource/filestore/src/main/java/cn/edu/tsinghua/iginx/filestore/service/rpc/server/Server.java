@@ -61,23 +61,25 @@ public class Server implements AutoCloseable {
             .executorService(executorService)
             .protocolFactory(new TBinaryProtocol.Factory());
     this.server = new TThreadPoolServer(args);
-
-    start();
-  }
-
-  private void start() throws InterruptedException {
-    CountDownLatch latch = new CountDownLatch(1);
-    new Thread(
-            () -> {
-              latch.countDown();
-              server.serve();
-            },
-            "FileStoreServer(" + server + ")")
-        .start();
+    new Thread(server::serve, "FileStoreServer(" + server + ")").start();
     // wait for server to be ready
     // 因为这里有两个线程，如果由于某些原因在 server::serve 执行前就 close 了，
     // 那么 server 会不断 accept 失败而死循环
-    latch.await();
+    await();
+  }
+
+  private void await() {
+    try {
+      for (int retry = 0; retry < 60000; retry++) {
+        if (server.getShouldStop() || server.isServing()) {
+          return;
+        }
+        Thread.sleep(1);
+      }
+    } catch (InterruptedException e) {
+      LOGGER.error("waiting for server to be ready interrupted", e);
+    }
+    LOGGER.error("waiting for server to be ready timeout");
   }
 
   @Override

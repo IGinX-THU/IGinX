@@ -36,6 +36,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.FunctionType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
@@ -257,11 +258,19 @@ public class FileStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws PhysicalException {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+      throws PhysicalException {
     List<Column> columns = Collections.synchronizedList(new ArrayList<>());
     List<Column> columnsWrapper = Collections.synchronizedList(columns);
 
     Map<DataUnit, DataBoundary> units = service.getUnits(null);
+
+    List<String> patternList = new ArrayList<>(patterns);
+    if (patternList.isEmpty()) {
+      patternList = null;
+    }
+
+    DataTarget dataTarget = new DataTarget(new BoolFilter(false), patternList, tagFilter);
 
     List<CompletableFuture<Void>> futures = new ArrayList<>();
     for (DataUnit unit : units.keySet()) {
@@ -269,9 +278,7 @@ public class FileStorage implements IStorage {
           CompletableFuture.supplyAsync(
                   () -> {
                     List<Column> localColumns = new ArrayList<>();
-                    try (RowStream stream =
-                        service.query(
-                            unit, new DataTarget(new BoolFilter(false), null, null), null)) {
+                    try (RowStream stream = service.query(unit, dataTarget, null)) {
                       Header header = stream.getHeader();
                       for (Field field : header.getFields()) {
                         localColumns.add(
