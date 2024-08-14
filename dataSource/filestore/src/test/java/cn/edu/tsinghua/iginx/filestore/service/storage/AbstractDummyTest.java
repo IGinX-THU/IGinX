@@ -27,7 +27,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -38,10 +37,9 @@ public abstract class AbstractDummyTest {
   protected final Path root;
   private final StorageConfig config;
   protected final DataUnit unit = new DataUnit(true);
-  protected final static String DIR_NAME = "home";
 
-  protected AbstractDummyTest(String type, Config config) {
-    this.root = Paths.get("target", "test", UUID.randomUUID().toString(), DIR_NAME);
+  protected AbstractDummyTest(String type, Config config, String rootFileName) {
+    this.root = Paths.get("target", "test", UUID.randomUUID().toString(), rootFileName);
     this.config = new StorageConfig(root.toString(), type, config);
   }
 
@@ -64,8 +62,9 @@ public abstract class AbstractDummyTest {
     DataTarget target = new DataTarget(new BoolFilter(false), pattern, null);
     try (RowStream stream = service.query(unit, target, null)) {
       Header header = stream.getHeader();
-      LOGGER.info("header with pattern {}: {}", pattern, header);
-      return stream.getHeader();
+      Header sorted = DataValidator.sort(header);
+      LOGGER.info("header with pattern {}: {}", pattern, sorted);
+      return sorted;
     }
   }
 

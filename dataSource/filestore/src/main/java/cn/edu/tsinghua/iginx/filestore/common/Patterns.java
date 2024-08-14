@@ -21,9 +21,7 @@ import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.base.Strings;
 
 import javax.annotation.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Patterns {

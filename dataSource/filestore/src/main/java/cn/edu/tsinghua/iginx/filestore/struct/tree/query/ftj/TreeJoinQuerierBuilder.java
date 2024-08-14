@@ -55,7 +55,7 @@ class TreeJoinQuerierBuilder implements Builder {
     boolean needPostFilter = false;
     try (DirectoryStream<Path> children = Files.newDirectoryStream(path)) {
       for (Path subpath : children) {
-        String subPrefix = IginxPaths.get(prefix, IginxPaths.get(subpath.getFileName(), config.getDot()));
+        String subPrefix = IginxPaths.join(prefix, IginxPaths.get(subpath.getFileName(), config.getDot()));
 
         List<String> subPatterns = Patterns.filterByPrefix(target.getPatterns(), subPrefix);
         if (Patterns.isEmpty(subPatterns)) {

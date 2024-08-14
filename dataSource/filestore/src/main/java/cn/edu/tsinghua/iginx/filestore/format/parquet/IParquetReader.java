@@ -23,11 +23,6 @@ import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
-
-import java.io.Closeable;
-import java.io.IOException;
-import java.nio.file.Path;
-import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import shaded.iginx.org.apache.parquet.ParquetReadOptions;
@@ -47,6 +42,11 @@ import shaded.iginx.org.apache.parquet.io.SeekableInputStream;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
+
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.util.*;
 
 public class IParquetReader implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
@@ -128,7 +128,7 @@ public class IParquetReader implements Closeable {
 
   public static Range<Long> getRangeOf(ParquetMetadata metadata) {
     MessageType schema = metadata.getFileMetaData().getSchema();
-    if (schema.containsPath(new String[] {Constants.KEY_FIELD_NAME})) {
+    if (schema.containsPath(new String[]{Constants.KEY_FIELD_NAME})) {
       Type type = schema.getType(Constants.KEY_FIELD_NAME);
       if (type.isPrimitive()) {
         PrimitiveType primitiveType = type.asPrimitiveType();
@@ -188,12 +188,17 @@ public class IParquetReader implements Closeable {
     }
   }
 
+  public long getCurrentRowIndex() {
+    return internalReader.getCurrentRowIndex();
+  }
+
   public static class Builder {
 
     private final ParquetReadOptions.Builder optionsBuilder = ParquetReadOptions.builder();
     private final InputFile localInputfile;
     private boolean skip = false;
     private Set<String> fields;
+    private boolean hasKey;
 
     public Builder(LocalInputFile localInputFile) {
       this.localInputfile = localInputFile;
@@ -220,7 +225,7 @@ public class IParquetReader implements Closeable {
       if (fields == null) {
         requestedSchema = schema;
       } else {
-        requestedSchema = ProjectUtils.projectMessageType(schema, fields);
+        requestedSchema = ProjectUtils.projectMessageType(schema, fields,hasKey);
         LOGGER.debug("project schema with {} as {}", fields, requestedSchema);
       }
 
@@ -236,7 +241,12 @@ public class IParquetReader implements Closeable {
     }
 
     public Builder project(Set<String> fields) {
+      return project(fields, true);
+    }
+
+    public Builder project(Set<String> fields, boolean hasKey) {
       this.fields = Objects.requireNonNull(fields);
+      this.hasKey = hasKey;
       return this;
     }
 

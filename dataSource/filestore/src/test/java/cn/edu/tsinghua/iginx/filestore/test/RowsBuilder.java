@@ -5,7 +5,10 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Objects;
 
 public class RowsBuilder {
   private final List<String> fields;
@@ -34,7 +37,7 @@ public class RowsBuilder {
     for (int i = 0; i < values.length; i++) {
       fields.add(new Field(this.fields.get(i), parseType(values[i])));
     }
-    header = new Header(Field.KEY,fields);
+    header = new Header(Field.KEY, fields);
   }
 
   private static DataType parseType(Object object) {

@@ -19,12 +19,12 @@ public class IginxPaths {
   }
 
   @Nullable
-  public static String get(String... paths) {
-    return get(Arrays.asList(paths));
+  public static String join(String... paths) {
+    return join(Arrays.asList(paths));
   }
 
   @Nullable
-  public static String get(Iterable<? extends CharSequence> paths) {
+  public static String join(Iterable<? extends CharSequence> paths) {
     Iterable<? extends CharSequence> nonNullPaths = Iterables.filter(paths, Objects::nonNull);
     if (!nonNullPaths.iterator().hasNext()) {
       return null;
@@ -37,7 +37,7 @@ public class IginxPaths {
     for (Path fsNode : path) {
       nodes.add(fsNode.toString().replace(DOT, dot));
     }
-    return get(nodes);
+    return join(nodes);
   }
 
   public static Path toFilePath(String path, String dot, FileSystem fs) {

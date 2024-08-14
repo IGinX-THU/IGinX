@@ -1,5 +1,6 @@
 package cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -77,6 +78,4 @@ class FormatQuerier implements Querier {
     }
     return RowStreams.filtered(rowStream, filter);
   }
-
-
 }

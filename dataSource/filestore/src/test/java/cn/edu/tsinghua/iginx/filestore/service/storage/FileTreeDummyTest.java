@@ -20,8 +20,6 @@ import com.google.common.io.MoreFiles;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -34,10 +32,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class FileTreeDummyTest extends AbstractDummyTest {
 
-  private final static Logger LOGGER = LoggerFactory.getLogger(FileTreeDummyTest.class);
+  protected final static String DIR_NAME = "home";
 
   public FileTreeDummyTest() {
-    super(FileTree.NAME, getConfig());
+    super(FileTree.NAME, getConfig(), DIR_NAME);
   }
 
   private static Config getConfig() {

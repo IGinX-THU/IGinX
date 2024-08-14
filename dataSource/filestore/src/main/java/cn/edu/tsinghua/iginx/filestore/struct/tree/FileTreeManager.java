@@ -55,8 +55,8 @@ public class FileTreeManager implements FileManager {
 
       Map.Entry<String, String> columnsInterval = getColumnsInterval(afterPrefix);
       if (columnsInterval != null) {
-        boundary.setStartColumn(IginxPaths.get(prefix, columnsInterval.getKey()));
-        String endColumn = IginxPaths.get(prefix, columnsInterval.getValue());
+        boundary.setStartColumn(IginxPaths.join(prefix, columnsInterval.getKey()));
+        String endColumn = IginxPaths.join(prefix, columnsInterval.getValue());
         boundary.setEndColumn(endColumn);
         if (endColumn != null) {
           boundary.setEndColumn(StringUtils.nextString(endColumn));

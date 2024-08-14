@@ -18,25 +18,30 @@
 
 package cn.edu.tsinghua.iginx.filestore.format.parquet;
 
-import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.dummy.Storer;
-import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.dummy.Table;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Constants;
-
-import java.io.IOException;
-import java.util.*;
-import javax.annotation.Nullable;
-
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 import shaded.iginx.org.apache.parquet.schema.Types;
 
-public class ProjectUtils {
-  private ProjectUtils() {}
+import javax.annotation.Nullable;
+import java.util.*;
 
-  static MessageType projectMessageType(MessageType schema, @Nullable Set<String> fields) {
+import static cn.edu.tsinghua.iginx.filestore.format.parquet.IRecordDematerializer.OBJECT_MODEL_NAME_VALUE;
+import static cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.dummy.Storer.getParquetType;
+
+public class ProjectUtils {
+  private ProjectUtils() {
+  }
+
+  static MessageType projectMessageType(MessageType schema, @Nullable Set<String> fields, boolean hasKey) {
     Set<String> schemaFields = new HashSet<>(Objects.requireNonNull(fields));
-    schemaFields.add(Constants.KEY_FIELD_NAME);
+    if (hasKey) {
+      schemaFields.add(Constants.KEY_FIELD_NAME);
+    }
 
     Types.MessageTypeBuilder builder = Types.buildMessage();
     for (String field : schemaFields) {
@@ -52,23 +57,53 @@ public class ProjectUtils {
     return builder.named(schema.getName());
   }
 
-  static Map<String, DataType> toIginxSchema(MessageType schema) {
-    Table table = new Table();
-
-
-      Integer keyIndex = getFieldIndex(schema, Storer.KEY_FIELD_NAME);
-      Map<List<Integer>, Integer> indexMap = new HashMap<>();
-      List<Integer> schameIndexList = new ArrayList<>();
-      List<String> typeNameList = new ArrayList<>();
-      for (int i = 0; i < schema.getFieldCount(); i++) {
-        if (keyIndex != null && keyIndex == i) {
-          continue;
-        }
-        schameIndexList.add(i);
-        putIndexMap(schema.getType(i), typeNameList, schameIndexList, table, indexMap);
-        schameIndexList.clear();
+  public static List<Field> toFields(MessageType schema) {
+    List<Field> fields = new ArrayList<>();
+    for (Type type : schema.getFields()) {
+      if (!type.isPrimitive()) {
+        throw new IllegalArgumentException("unsupported parquet type: " + type);
       }
-      return table.getHeader();
+      String rawName = type.getName();
+      DataType iType = IParquetReader.toIginxType(type.asPrimitiveType());
+      fields.add(new Field(rawName, iType));
+    }
+    return fields;
+  }
 
+  public static MessageType toMessageType(Header header) {
+    List<Type> parquetFields = new ArrayList<>();
+    if (header.hasKey()) {
+      parquetFields.add(getParquetType(Constants.KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
+    }
+    for (Field field : header.getFields()) {
+      parquetFields.add(getParquetType(field.getName(), field.getType(), Type.Repetition.OPTIONAL));
+    }
+    return new MessageType(OBJECT_MODEL_NAME_VALUE, parquetFields);
+  }
+
+  public static IRecord toRecord(Row row) {
+    IRecord record = new IRecord();
+    int offset = 0;
+    if (row.getHeader().hasKey()) {
+      record.add(0, row.getKey());
+      offset++;
+    }
+    for (int i = 0; i < row.getValues().length; i++) {
+      if (row.getValues()[i] != null) {
+        record.add(i + offset, row.getValues()[i]);
+      }
+    }
+    return record;
+  }
+
+  public static Row toRow(Header header, long key, IRecord record) {
+    if (!header.hasKey()) {
+      throw new IllegalArgumentException("header does not have key field");
+    }
+    Object[] values = new Object[header.getFields().size()];
+    for (Map.Entry<Integer, Object> entry : record) {
+      values[entry.getKey()] = entry.getValue();
+    }
+    return new Row(header, key, values);
   }
 }

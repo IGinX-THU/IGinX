@@ -61,20 +61,41 @@ public class DataValidator {
     }
   }
 
-  public static Row sort(Row row) {
-    List<Field> fields = row.getHeader().getFields();
+  public static Header sort(Header header) {
+    List<Field> fields = new ArrayList<>(header.getFields());
     fields.sort(Comparator.comparing(Field::getFullName));
+    return new Header(header.getKey(), fields);
+  }
+
+  public static Row sort(Row row) {
+    Header header = sort(row.getHeader());
 
     List<Object> values = new ArrayList<>();
-    for (Field field : fields) {
+    for (Field field : header.getFields()) {
       values.add(row.getValue(field));
     }
 
-    Header header = new Header(row.getHeader().getKey(), fields);
     return new Row(header, row.getKey(), values.toArray());
   }
 
   public static List<Row> normalize(List<Row> rows) {
     return rows.stream().map(DataValidator::sort).map(DataValidator::withBinaryAsString).collect(Collectors.toList());
+  }
+
+  public static Row withStringAsBinary(Row row) {
+    List<Object> values = new ArrayList<>();
+    for (Object value : row.getValues()) {
+      if (value instanceof String) {
+        values.add(((String) value).getBytes());
+      } else {
+        values.add(value);
+      }
+    }
+    Header header = row.getHeader();
+    if (header.getKey() != null) {
+      return new Row(row.getHeader(), row.getKey(), values.toArray());
+    } else {
+      return new Row(row.getHeader(), values.toArray());
+    }
   }
 }

@@ -41,7 +41,7 @@ class FormatQuerierBuilder implements Builder {
     FileFormat.Reader reader = format.newReader(prefix, path, config);
 
     FormatQuerier querier = new FormatQuerier(reader, target.withFilter(filter));
-    if (Filters.match(filter, Filters.nonKeyFilter())) {
+    if (Filters.match(target.getFilter(), Filters.nonKeyFilter())) {
       return querier;
     }
     return Queriers.filtered(querier, target.getFilter());
