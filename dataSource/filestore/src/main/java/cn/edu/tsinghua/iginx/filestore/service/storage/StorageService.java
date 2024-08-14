@@ -64,8 +64,14 @@ public class StorageService implements Service {
     this.dataConfig = dataConfig;
     this.dummyConfig = dummyConfig;
 
+    LOGGER.debug("dataConfig: {}", dataConfig);
+    LOGGER.debug("dummyConfig: {}", dummyConfig);
+
     this.dataStructure = getFileStructure(dataConfig);
     this.dummyStructure = getFileStructure(dummyConfig);
+
+    LOGGER.debug("dataStructure: {}", dataStructure);
+    LOGGER.debug("dummyStructure: {}", dummyStructure);
 
     this.dataShared = getShared(dataConfig, dataStructure);
     this.dummyShared = getShared(dummyConfig, dummyStructure);

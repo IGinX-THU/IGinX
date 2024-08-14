@@ -1,14 +1,13 @@
 package cn.edu.tsinghua.iginx.filestore.format;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
-import javax.annotation.concurrent.ThreadSafe;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
+import javax.annotation.Nullable;
+import javax.annotation.concurrent.ThreadSafe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ThreadSafe
 public class FileFormatManager {
@@ -85,7 +84,7 @@ public class FileFormatManager {
     }
     return getByName(extensionToFormat.get(extension));
   }
-  
+
   public FileFormat getByExtension(@Nullable String extension, FileFormat defaultFormat) {
     FileFormat format = getByExtension(extension);
     return format == null ? defaultFormat : format;

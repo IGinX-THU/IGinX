@@ -1,6 +1,5 @@
 package cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
@@ -9,22 +8,24 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
 import cn.edu.tsinghua.iginx.filestore.common.Patterns;
 import cn.edu.tsinghua.iginx.filestore.common.RowStreams;
+import cn.edu.tsinghua.iginx.filestore.common.Strings;
 import cn.edu.tsinghua.iginx.filestore.format.FileFormat;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
-import cn.edu.tsinghua.iginx.filestore.struct.tree.query.Querier;
+import cn.edu.tsinghua.iginx.filestore.struct.tree.query.AbstractQuerier;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
+import javax.annotation.Nullable;
 
-class FormatQuerier implements Querier {
+class FormatQuerier extends AbstractQuerier {
 
   private final FileFormat.Reader reader;
   private final List<String> patterns;
   private final Filter filter;
 
-  FormatQuerier(FileFormat.Reader reader, DataTarget target) {
+  FormatQuerier(Path path, String prefix, DataTarget target, FileFormat.Reader reader) {
+    super(path, prefix, target);
     this.reader = Objects.requireNonNull(reader);
     this.patterns = Patterns.nonNull(target.getPatterns());
     this.filter = Filters.isTrue(target.getFilter()) ? new BoolFilter(true) : target.getFilter();
@@ -37,11 +38,7 @@ class FormatQuerier implements Querier {
 
   @Override
   public String toString() {
-    return "FormatQuerier{" +
-        "reader=" + reader +
-        ", patterns=" + patterns +
-        ", filter=" + filter +
-        '}';
+    return super.toString() + "&reader=" + Strings.shiftWithNewline(reader.toString());
   }
 
   @Override

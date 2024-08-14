@@ -7,7 +7,6 @@ import cn.edu.tsinghua.iginx.filestore.common.FileStoreRowStream;
 import cn.edu.tsinghua.iginx.filestore.common.Ranges;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
-
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.channels.FileChannel;
@@ -29,11 +28,7 @@ public class RawFormatRowStream extends FileStoreRowStream {
   private boolean eof = false;
   private Row nextRow;
 
-  public RawFormatRowStream(
-      Header header,
-      Path path,
-      long pageSize,
-      RangeSet<Long> keyRanges)
+  public RawFormatRowStream(Header header, Path path, long pageSize, RangeSet<Long> keyRanges)
       throws IOException {
     this.header = header;
     this.channel = FileChannel.open(path, StandardOpenOption.READ);
@@ -117,7 +112,7 @@ public class RawFormatRowStream extends FileStoreRowStream {
       }
       data = Arrays.copyOf(data, buffer.position());
     }
-    Object[] values = new Object[]{data};
+    Object[] values = new Object[] {data};
     return new Row(header, currentKey, values);
   }
 }

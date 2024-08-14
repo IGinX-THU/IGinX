@@ -19,14 +19,12 @@ package cn.edu.tsinghua.iginx.filestore.common;
 
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.base.Strings;
-
-import javax.annotation.Nullable;
 import java.util.*;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 public class Patterns {
-  private Patterns() {
-  }
+  private Patterns() {}
 
   public static boolean isAll(String pattern) {
     return pattern.equals("*");
@@ -39,11 +37,14 @@ public class Patterns {
     return patterns.stream().anyMatch(Patterns::isAll);
   }
 
-  public static List<String> filterByPrefix(@Nullable List<String> patterns, @Nullable String subPrefix) {
+  public static List<String> filterByPrefix(
+      @Nullable List<String> patterns, @Nullable String subPrefix) {
     if (patterns == null || subPrefix == null) {
       return patterns;
     }
-    return patterns.stream().filter(pattern -> startsWith(pattern, subPrefix)).collect(Collectors.toList());
+    return patterns.stream()
+        .filter(pattern -> startsWith(pattern, subPrefix))
+        .collect(Collectors.toList());
   }
 
   public static boolean startsWith(String pattern, @Nullable String prefix) {
@@ -98,7 +99,6 @@ public class Patterns {
   public static boolean isWildcard(String path) {
     return path.contains("*");
   }
-
 
   public static boolean isEmpty(@Nullable List<String> subPatterns) {
     if (subPatterns == null) {

@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filestore.service.storage;
 
+import static org.junit.jupiter.api.Assertions.*;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
@@ -19,20 +21,17 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.io.MoreFiles;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
-import org.junit.jupiter.api.Test;
-
 import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.Test;
 
 public class FileTreeDummyTest extends AbstractDummyTest {
 
-  protected final static String DIR_NAME = "home";
+  protected static final String DIR_NAME = "home";
 
   public FileTreeDummyTest() {
     super(FileTree.NAME, getConfig(), DIR_NAME);
@@ -40,7 +39,10 @@ public class FileTreeDummyTest extends AbstractDummyTest {
 
   private static Config getConfig() {
     Map<String, Object> map = new HashMap<>();
-    map.put(String.join(".", FileTreeConfig.Fields.formats, RawFormat.NAME, RawReaderConfig.Fields.pageSize), 8);
+    map.put(
+        String.join(
+            ".", FileTreeConfig.Fields.formats, RawFormat.NAME, RawReaderConfig.Fields.pageSize),
+        8);
     return ConfigFactory.parseMap(map);
   }
 
@@ -113,11 +115,8 @@ public class FileTreeDummyTest extends AbstractDummyTest {
       assertEquals(new DataBoundary(), boundary);
     }
 
-    List<Row> expectedRows = new RowsBuilder(DIR_NAME)
-        .add(0, "first li")
-        .add(1, "ne: hell")
-        .add(2, "o world")
-        .build();
+    List<Row> expectedRows =
+        new RowsBuilder(DIR_NAME).add(0, "first li").add(1, "ne: hell").add(2, "o world").build();
 
     {
       List<String> patterns = null;
@@ -208,11 +207,12 @@ public class FileTreeDummyTest extends AbstractDummyTest {
     // query one column
     {
       Header justMainHeader = getSchema("home.src.main.java.Main\\java");
-      List<Row> justMainData = new RowsBuilder("home.src.main.java.Main\\java")
-          .add(0, "public c")
-          .add(1, "lass Mai")
-          .add(2, "n {\n}")
-          .build();
+      List<Row> justMainData =
+          new RowsBuilder("home.src.main.java.Main\\java")
+              .add(0, "public c")
+              .add(1, "lass Mai")
+              .add(2, "n {\n}")
+              .build();
 
       {
         List<String> patterns = Collections.singletonList("home.src.main.java.Main\\java");
@@ -249,26 +249,28 @@ public class FileTreeDummyTest extends AbstractDummyTest {
 
     // query all column
     {
-      Header allHeader = headerOf(
-          "home.LICENSE",
-          "home.README\\md",
-          "home.src.main.java.Main\\java",
-          "home.src.main.java.Tool\\java",
-          "home.src.main.resources.config\\properties",
-          "home.src.test.java.Test\\java");
+      Header allHeader =
+          headerOf(
+              "home.LICENSE",
+              "home.README\\md",
+              "home.src.main.java.Main\\java",
+              "home.src.main.java.Tool\\java",
+              "home.src.main.resources.config\\properties",
+              "home.src.test.java.Test\\java");
 
-      List<Row> allData = new RowsBuilder(
-          "home.LICENSE",
-          "home.README\\md",
-          "home.src.main.java.Main\\java",
-          "home.src.main.java.Tool\\java",
-          "home.src.main.resources.config\\properties",
-          "home.src.test.java.Test\\java")
-          .add(0, "Apache L", "this dir", "public c", "public c", "ip=127.0", "public c")
-          .add(1, "icense", "ectory i", "lass Mai", "lass Too", ".0.1\npor", "lass Tes")
-          .add(2, null, "s for te", "n {\n}", "l {\n}", "t=6667", "t {\n}")
-          .add(3, null, "st", null, null, null, null)
-          .build();
+      List<Row> allData =
+          new RowsBuilder(
+                  "home.LICENSE",
+                  "home.README\\md",
+                  "home.src.main.java.Main\\java",
+                  "home.src.main.java.Tool\\java",
+                  "home.src.main.resources.config\\properties",
+                  "home.src.test.java.Test\\java")
+              .add(0, "Apache L", "this dir", "public c", "public c", "ip=127.0", "public c")
+              .add(1, "icense", "ectory i", "lass Mai", "lass Too", ".0.1\npor", "lass Tes")
+              .add(2, null, "s for te", "n {\n}", "l {\n}", "t=6667", "t {\n}")
+              .add(3, null, "st", null, null, null, null)
+              .build();
 
       {
         List<String> patterns = null;
@@ -307,7 +309,10 @@ public class FileTreeDummyTest extends AbstractDummyTest {
         List<String> patterns = null;
         Header schema = getSchema(patterns);
         assertEquals(allHeader, schema);
-        List<Row> rows = query(patterns, new AndFilter(Arrays.asList(new KeyFilter(Op.GE, 1), new KeyFilter(Op.L, 3))));
+        List<Row> rows =
+            query(
+                patterns,
+                new AndFilter(Arrays.asList(new KeyFilter(Op.GE, 1), new KeyFilter(Op.L, 3))));
         assertEquals(allDataKey1to2, rows);
       }
 
@@ -317,7 +322,11 @@ public class FileTreeDummyTest extends AbstractDummyTest {
         Header schema = getSchema(patterns);
         assertEquals(allHeader, schema);
         {
-          List<Row> rows = query(patterns, new ValueFilter("home.src.main.resources.config\\properties", Op.LIKE, new Value(".*[.].*")));
+          List<Row> rows =
+              query(
+                  patterns,
+                  new ValueFilter(
+                      "home.src.main.resources.config\\properties", Op.LIKE, new Value(".*[.].*")));
           assertEquals(allDataKey0, rows);
         }
         {
@@ -325,18 +334,39 @@ public class FileTreeDummyTest extends AbstractDummyTest {
           assertEquals(allDataKey0, rows);
         }
         {
-          List<Row> rows = query(patterns, new ValueFilter("home.*", Op.LIKE, new Value(".*[.].*")));
+          List<Row> rows =
+              query(patterns, new ValueFilter("home.*", Op.LIKE, new Value(".*[.].*")));
           assertEquals(allDataKey0, rows);
         }
         {
-          List<Row> rows = query(patterns, new ValueFilter("*.config\\properties", Op.LIKE, new Value(".*[.].*")));
+          List<Row> rows =
+              query(
+                  patterns, new ValueFilter("*.config\\properties", Op.LIKE, new Value(".*[.].*")));
           assertEquals(allDataKey0, rows);
         }
         {
-          List<Row> rows = query(patterns, new ValueFilter("home.*.main.*.config\\properties", Op.LIKE, new Value(".*[.].*")));
+          List<Row> rows =
+              query(
+                  patterns,
+                  new ValueFilter(
+                      "home.*.main.*.config\\properties", Op.LIKE, new Value(".*[.].*")));
           assertEquals(allDataKey0, rows);
         }
       }
+    }
+  }
+
+  @Test
+  public void testUpperCase() throws PhysicalException, IOException {
+    createFile(root.resolve("async.hpp"), "#include <iostream>");
+    createFile(root.resolve("LICENSE"), "Apache License");
+    createFile(root.resolve("readme.md"), "this directory is for test");
+    reset();
+    {
+      DataBoundary boundary = getBoundary(null);
+      assertTrue(inBounds(boundary, "home.async\\hpp"));
+      assertTrue(inBounds(boundary, "home.LICENSE"));
+      assertTrue(inBounds(boundary, "home.readme\\md"));
     }
   }
 }

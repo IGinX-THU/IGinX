@@ -3,14 +3,12 @@ package cn.edu.tsinghua.iginx.filestore.format.parquet;
 import cn.edu.tsinghua.iginx.filestore.format.FileFormat;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
-import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import shaded.iginx.org.apache.parquet.schema.MessageType;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.Collections;
 import java.util.List;
+import javax.annotation.Nullable;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 
 @AutoService(FileFormat.class)
 public class ParquetFormat implements FileFormat {
@@ -19,6 +17,11 @@ public class ParquetFormat implements FileFormat {
 
   @Override
   public String getName() {
+    return NAME;
+  }
+
+  @Override
+  public String toString() {
     return NAME;
   }
 
@@ -35,6 +38,6 @@ public class ParquetFormat implements FileFormat {
       footer = reader.getMeta();
     }
 
-    return new ParquetFormatReader(builder, footer, prefix);
+    return new ParquetFormatReader(prefix, builder, footer);
   }
 }

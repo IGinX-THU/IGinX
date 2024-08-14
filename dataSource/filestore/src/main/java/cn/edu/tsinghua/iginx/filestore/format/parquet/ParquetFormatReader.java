@@ -8,29 +8,31 @@ import cn.edu.tsinghua.iginx.filestore.common.Patterns;
 import cn.edu.tsinghua.iginx.filestore.common.RowStreams;
 import cn.edu.tsinghua.iginx.filestore.format.FileFormat;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
-import shaded.iginx.org.apache.parquet.schema.MessageType;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
+import javax.annotation.Nullable;
+import shaded.iginx.org.apache.parquet.hadoop.metadata.ParquetMetadata;
 
 public class ParquetFormatReader implements FileFormat.Reader {
 
+  private final String prefix;
   private final IParquetReader.Builder builder;
   private final ParquetMetadata footer;
   private final Map<String, DataType> fields = new HashMap<>();
   private final Map<String, String> fieldToRawName = new HashMap<>();
   private final Map<String, String> rawNameToField = new HashMap<>();
 
-  public ParquetFormatReader(IParquetReader.Builder builder, ParquetMetadata footer, @Nullable String prefix) throws IOException {
+  public ParquetFormatReader(
+      @Nullable String prefix, IParquetReader.Builder builder, ParquetMetadata footer)
+      throws IOException {
+    this.prefix = prefix;
     this.builder = Objects.requireNonNull(builder);
     this.footer = Objects.requireNonNull(footer);
-    initSchema(footer.getFileMetaData().getSchema(), prefix);
+    initSchema();
   }
 
-  private void initSchema(MessageType schema, String prefix) throws IOException {
-    List<Field> fields = ProjectUtils.toFields(schema);
+  private void initSchema() throws IOException {
+    List<Field> fields = ProjectUtils.toFields(footer.getFileMetaData().getSchema());
     for (Field field : fields) {
       String rawName = field.getName();
       String fullName = IginxPaths.join(prefix, rawName);
@@ -41,8 +43,12 @@ public class ParquetFormatReader implements FileFormat.Reader {
   }
 
   @Override
-  public void close() throws IOException {
+  public String toString() {
+    return "ParquetFormatReader{}";
   }
+
+  @Override
+  public void close() throws IOException {}
 
   @Override
   public Map<String, DataType> find(Collection<String> patterns) throws IOException {
@@ -62,12 +68,9 @@ public class ParquetFormatReader implements FileFormat.Reader {
       rawFields.add(fieldToRawName.get(field));
     }
 
-    IParquetReader reader = builder
-        .project(rawFields, false)
-        .build(footer);
+    IParquetReader reader = builder.project(rawFields, false).build(footer);
 
     RowStream rowStream = new ParquetFormatRowStream(reader, rawNameToField::get);
     return RowStreams.filtered(rowStream, filter);
   }
-
 }

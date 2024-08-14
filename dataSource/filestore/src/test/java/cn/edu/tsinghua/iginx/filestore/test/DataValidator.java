@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -79,7 +78,10 @@ public class DataValidator {
   }
 
   public static List<Row> normalize(List<Row> rows) {
-    return rows.stream().map(DataValidator::sort).map(DataValidator::withBinaryAsString).collect(Collectors.toList());
+    return rows.stream()
+        .map(DataValidator::sort)
+        .map(DataValidator::withBinaryAsString)
+        .collect(Collectors.toList());
   }
 
   public static Row withStringAsBinary(Row row) {

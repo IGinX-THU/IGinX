@@ -1,12 +1,11 @@
 package cn.edu.tsinghua.iginx.filestore.struct.tree;
 
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
-import com.typesafe.config.Optional;
 import com.typesafe.config.*;
+import com.typesafe.config.Optional;
+import java.util.*;
 import lombok.*;
 import lombok.experimental.FieldNameConstants;
-
-import java.util.*;
 
 @Data
 @With
@@ -16,14 +15,11 @@ import java.util.*;
 @NoArgsConstructor
 public class FileTreeConfig extends AbstractConfig {
 
-  @Optional
-  String dot = "\\";
+  @Optional String dot = "\\";
 
-  @Optional
-  boolean filenameAsPrefix = true;
+  @Optional boolean filenameAsPrefix = true;
 
-  @Optional
-  Map<String, Config> formats = Collections.emptyMap();
+  @Optional Map<String, Config> formats = Collections.emptyMap();
 
   @Override
   public List<ValidationProblem> validate() {
@@ -48,7 +44,8 @@ public class FileTreeConfig extends AbstractConfig {
         Map<String, Config> formats = new HashMap<>();
         for (Map.Entry<String, Object> entry : formatsRawConfig.entrySet()) {
           if (entry.getValue() instanceof Map) {
-            formats.put(entry.getKey(), ConfigFactory.parseMap((Map<String, Object>) entry.getValue()));
+            formats.put(
+                entry.getKey(), ConfigFactory.parseMap((Map<String, Object>) entry.getValue()));
           }
         }
         fileTreeConfig.setFormats(formats);

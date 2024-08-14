@@ -11,7 +11,6 @@ import cn.edu.tsinghua.iginx.filestore.common.RowStreams;
 import cn.edu.tsinghua.iginx.filestore.format.FileFormat;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.collect.RangeSet;
-
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
@@ -36,15 +35,12 @@ public class RawReader implements FileFormat.Reader {
 
   @Override
   public String toString() {
-    return "RawReader{" +
-        "config=" + config +
-        ", path=" + path +
-        '}';
+    return "RawReader{" + "config=" + config + '}';
   }
 
   @Override
   public Map<String, DataType> find(Collection<String> patterns) throws IOException {
-    if(!Patterns.match(patterns, fieldName)) {
+    if (!Patterns.match(patterns, fieldName)) {
       return Collections.emptyMap();
     }
     return schema;
@@ -65,11 +61,7 @@ public class RawReader implements FileFormat.Reader {
     Filter keyRangeFilter = Filters.superSet(filter, removeNonKeyFilter);
     RangeSet<Long> keyRanges = Filters.toRangeSet(keyRangeFilter);
     RowStream rowStream =
-        new RawFormatRowStream(
-            header,
-            path,
-            config.getPageSize().toBytes(),
-            keyRanges);
+        new RawFormatRowStream(header, path, config.getPageSize().toBytes(), keyRanges);
 
     if (!Filters.match(filter, removeNonKeyFilter)) {
       rowStream = RowStreams.filtered(rowStream, filter);
@@ -79,6 +71,5 @@ public class RawReader implements FileFormat.Reader {
   }
 
   @Override
-  public void close() throws IOException {
-  }
+  public void close() throws IOException {}
 }

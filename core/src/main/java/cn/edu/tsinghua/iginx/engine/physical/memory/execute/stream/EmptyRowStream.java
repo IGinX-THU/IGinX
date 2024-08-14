@@ -22,7 +22,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-
 import java.util.Collections;
 import java.util.Objects;
 
@@ -44,8 +43,7 @@ public class EmptyRowStream implements RowStream {
   }
 
   @Override
-  public void close() throws PhysicalException {
-  }
+  public void close() throws PhysicalException {}
 
   @Override
   public boolean hasNext() throws PhysicalException {

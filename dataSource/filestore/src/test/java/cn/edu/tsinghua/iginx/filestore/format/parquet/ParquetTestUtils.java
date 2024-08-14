@@ -4,10 +4,9 @@ import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.filestore.test.DataValidator;
 import com.google.common.io.MoreFiles;
-import shaded.iginx.org.apache.parquet.schema.MessageType;
-
 import java.io.IOException;
 import java.nio.file.Path;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
 
 public class ParquetTestUtils {
   public static void createFile(Path path, Table table) throws IOException {

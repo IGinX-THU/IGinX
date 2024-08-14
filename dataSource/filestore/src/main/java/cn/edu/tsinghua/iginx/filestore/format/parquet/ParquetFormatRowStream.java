@@ -5,16 +5,12 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreRowStream;
-import cn.edu.tsinghua.iginx.thrift.DataType;
-import shaded.iginx.org.apache.parquet.schema.MessageType;
-import shaded.iginx.org.apache.parquet.schema.Type;
-
-import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.function.Function;
+import javax.annotation.WillCloseWhenClosed;
+import shaded.iginx.org.apache.parquet.schema.MessageType;
 
 public class ParquetFormatRowStream extends FileStoreRowStream {
 
@@ -22,7 +18,9 @@ public class ParquetFormatRowStream extends FileStoreRowStream {
   private final Header header;
   private Row nextRow;
 
-  public ParquetFormatRowStream(@WillCloseWhenClosed IParquetReader reader, Function<String, String> nameMapper) throws IOException {
+  public ParquetFormatRowStream(
+      @WillCloseWhenClosed IParquetReader reader, Function<String, String> nameMapper)
+      throws IOException {
     this.reader = reader;
     this.header = new Header(Field.KEY, toFields(reader.getSchema(), nameMapper));
     this.nextRow = fetchNext();
@@ -41,11 +39,11 @@ public class ParquetFormatRowStream extends FileStoreRowStream {
 
   private Row fetchNext() throws IOException {
     IRecord record = reader.read();
-    if(record == null) {
+    if (record == null) {
       return null;
     }
     long key = reader.getCurrentRowIndex();
-    return ProjectUtils.toRow(header,key,record);
+    return ProjectUtils.toRow(header, key, record);
   }
 
   @Override

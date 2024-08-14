@@ -20,14 +20,12 @@ package cn.edu.tsinghua.iginx.filestore.common;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
-import javax.annotation.Nullable;
 import java.util.Map;
+import javax.annotation.Nullable;
 
 public class Fields {
 
-  private Fields() {
-  }
+  private Fields() {}
 
   public static Field of(Column column) {
     String name = column.getPath();

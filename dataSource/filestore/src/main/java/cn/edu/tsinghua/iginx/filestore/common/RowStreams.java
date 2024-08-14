@@ -4,14 +4,12 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
-
-import javax.annotation.Nullable;
 import java.util.List;
+import javax.annotation.Nullable;
 
 public class RowStreams {
 
-  private RowStreams() {
-  }
+  private RowStreams() {}
 
   private static final EmptyRowStream EMPTY = new EmptyRowStream();
 

@@ -5,7 +5,6 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
-
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -30,12 +29,13 @@ public class TableBuilder {
 
   public TableBuilder names(String... names) {
     this.names = Arrays.asList(names);
-    this.names.replaceAll(name -> {
-      if (prefix != null) {
-        return prefix + "." + name;
-      }
-      return name;
-    });
+    this.names.replaceAll(
+        name -> {
+          if (prefix != null) {
+            return prefix + "." + name;
+          }
+          return name;
+        });
     return this;
   }
 

@@ -5,8 +5,7 @@ import java.io.IOException;
 
 public class Closeables {
 
-  private Closeables() {
-  }
+  private Closeables() {}
 
   public static void close(Iterable<? extends Closeable> ac) throws IOException {
     if (ac == null) {

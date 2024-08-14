@@ -1,5 +1,7 @@
 package cn.edu.tsinghua.iginx.filestore.service.storage;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -16,23 +18,20 @@ import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
 import com.typesafe.config.Config;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
+import javax.annotation.Nullable;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractDummyTest {
 
-  private final static Logger LOGGER = LoggerFactory.getLogger(AbstractDummyTest.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(AbstractDummyTest.class);
 
   protected final Path root;
   private final StorageConfig config;
@@ -90,7 +89,8 @@ public abstract class AbstractDummyTest {
     if (isEmpty(boundary)) {
       return false;
     }
-    ColumnsInterval columnsInterval = new ColumnsInterval(boundary.getStartColumn(), boundary.getEndColumn());
+    ColumnsInterval columnsInterval =
+        new ColumnsInterval(boundary.getStartColumn(), boundary.getEndColumn());
     return columnsInterval.isContain(prefix);
   }
 

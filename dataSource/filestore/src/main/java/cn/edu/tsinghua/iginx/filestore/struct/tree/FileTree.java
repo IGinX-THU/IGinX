@@ -4,14 +4,17 @@ import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
-import lombok.Value;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
+import lombok.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(FileStructure.class)
 public class FileTree implements FileStructure {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileTree.class);
 
   public static final String NAME = "FileTree";
 
@@ -26,18 +29,24 @@ public class FileTree implements FileStructure {
     FileTreeConfig config;
 
     @Override
-    public void close() throws IOException {
-    }
+    public void close() throws IOException {}
+  }
+
+  @Override
+  public String toString() {
+    return NAME;
   }
 
   @Override
   public Closeable newShared(Config config) throws IOException {
+    LOGGER.debug("Create shared instance with config: {}", config);
     FileTreeConfig fileTreeConfig = FileTreeConfig.of(config);
     return new Shared(fileTreeConfig);
   }
 
   @Override
   public FileManager newReader(Path path, Closeable shared) throws IOException {
+    LOGGER.debug("Create reader with path: {}", path);
     return new FileTreeManager(path, ((Shared) shared).getConfig());
   }
 

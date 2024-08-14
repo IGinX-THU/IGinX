@@ -18,26 +18,25 @@
 
 package cn.edu.tsinghua.iginx.filestore.format.parquet;
 
+import static cn.edu.tsinghua.iginx.filestore.format.parquet.IRecordDematerializer.OBJECT_MODEL_NAME_VALUE;
+import static cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.dummy.Storer.getParquetType;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.util.*;
+import javax.annotation.Nullable;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 import shaded.iginx.org.apache.parquet.schema.Types;
 
-import javax.annotation.Nullable;
-import java.util.*;
-
-import static cn.edu.tsinghua.iginx.filestore.format.parquet.IRecordDematerializer.OBJECT_MODEL_NAME_VALUE;
-import static cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.dummy.Storer.getParquetType;
-
 public class ProjectUtils {
-  private ProjectUtils() {
-  }
+  private ProjectUtils() {}
 
-  static MessageType projectMessageType(MessageType schema, @Nullable Set<String> fields, boolean hasKey) {
+  static MessageType projectMessageType(
+      MessageType schema, @Nullable Set<String> fields, boolean hasKey) {
     Set<String> schemaFields = new HashSet<>(Objects.requireNonNull(fields));
     if (hasKey) {
       schemaFields.add(Constants.KEY_FIELD_NAME);
@@ -73,7 +72,8 @@ public class ProjectUtils {
   public static MessageType toMessageType(Header header) {
     List<Type> parquetFields = new ArrayList<>();
     if (header.hasKey()) {
-      parquetFields.add(getParquetType(Constants.KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
+      parquetFields.add(
+          getParquetType(Constants.KEY_FIELD_NAME, DataType.LONG, Type.Repetition.REQUIRED));
     }
     for (Field field : header.getFields()) {
       parquetFields.add(getParquetType(field.getName(), field.getType(), Type.Repetition.OPTIONAL));

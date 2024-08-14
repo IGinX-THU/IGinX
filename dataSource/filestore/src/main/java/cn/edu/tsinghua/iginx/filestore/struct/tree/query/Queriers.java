@@ -6,21 +6,19 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.filestore.common.Closeables;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
 import cn.edu.tsinghua.iginx.filestore.common.RowStreams;
+import cn.edu.tsinghua.iginx.filestore.common.Strings;
 import com.google.common.collect.Iterables;
-
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
 public class Queriers {
-  private Queriers() {
-  }
+  private Queriers() {}
 
-  static class EmptyQuerier implements Querier {
+  static class EmptyQuerier extends AbstractQuerier {
     @Override
-    public void close() {
-    }
+    public void close() {}
 
     @Override
     public String toString() {
@@ -39,7 +37,7 @@ public class Queriers {
     return EMPTY_QUERIER;
   }
 
-  static class FilteredQuerier implements Querier {
+  static class FilteredQuerier extends AbstractQuerier {
     private final Querier querier;
     private final Filter filter;
 
@@ -55,10 +53,11 @@ public class Queriers {
 
     @Override
     public String toString() {
-      return "FilteredQuerier{" +
-          "querier=" + querier +
-          ", filter=" + filter +
-          '}';
+      return super.toString()
+          + "&filter="
+          + filter
+          + "&querier="
+          + Strings.shiftWithNewline(querier.toString());
     }
 
     @Override
@@ -90,9 +89,7 @@ public class Queriers {
 
     @Override
     public String toString() {
-      return "MergedQuerier{" +
-          "queriers=" + querier +
-          '}';
+      return super.toString() + "&querier=" + Strings.shiftWithNewline(querier.toString());
     }
 
     @Override

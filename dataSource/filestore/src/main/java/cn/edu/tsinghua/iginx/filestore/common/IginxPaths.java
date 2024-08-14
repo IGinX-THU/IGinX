@@ -1,8 +1,6 @@
 package cn.edu.tsinghua.iginx.filestore.common;
 
 import com.google.common.collect.Iterables;
-
-import javax.annotation.Nullable;
 import java.nio.file.FileSystem;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -10,13 +8,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.regex.Pattern;
+import javax.annotation.Nullable;
 
 public class IginxPaths {
 
   public static final String DOT = ".";
 
-  private IginxPaths() {
-  }
+  private IginxPaths() {}
 
   @Nullable
   public static String join(String... paths) {
@@ -49,6 +47,4 @@ public class IginxPaths {
     }
     return fs.getPath(fsNodes[0], Arrays.copyOfRange(fsNodes, 1, fsNodes.length));
   }
-
-
 }

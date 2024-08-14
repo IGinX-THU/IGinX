@@ -62,7 +62,7 @@ class IRecordDematerializer extends RecordDematerializer<IRecord> {
 
   @Override
   public Map<String, String> getExtraMetaData() {
-    return Collections.singletonMap(OBJECT_MODEL_NAME_PROP,OBJECT_MODEL_NAME_VALUE);
+    return Collections.singletonMap(OBJECT_MODEL_NAME_PROP, OBJECT_MODEL_NAME_VALUE);
   }
 
   private void addGroup(GroupType groupType, IRecord record) {

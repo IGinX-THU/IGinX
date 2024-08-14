@@ -2,32 +2,41 @@ package cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.filestore.common.Closeables;
+import cn.edu.tsinghua.iginx.filestore.common.Strings;
+import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
+import cn.edu.tsinghua.iginx.filestore.struct.tree.query.AbstractQuerier;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.query.Querier;
-
-import javax.annotation.WillCloseWhenClosed;
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
-class TreeJoinQuerier implements Querier {
+class TreeJoinQuerier extends AbstractQuerier {
 
-  private final List<? extends Querier> queriers;
+  private final List<Querier> queriers = new ArrayList<>();
 
-  public TreeJoinQuerier(@WillCloseWhenClosed List<? extends Querier> queriers) {
-    this.queriers = Objects.requireNonNull(queriers);
+  TreeJoinQuerier(Path path, String prefix, DataTarget target) {
+    super(path, prefix, target);
+  }
+
+  public void add(Querier querier) {
+    queriers.add(querier);
+  }
+
+  @Override
+  public String toString() {
+    StringBuilder sb = new StringBuilder();
+    sb.append(super.toString()).append("&queriers=");
+    for (Querier querier : queriers) {
+      sb.append(Strings.shiftWithNewline(querier.toString()));
+    }
+    return sb.toString();
   }
 
   @Override
   public void close() throws IOException {
     Closeables.close(queriers);
-  }
-
-  @Override
-  public String toString() {
-    return "TreeJoinQuerier{" +
-        "queriers=" + queriers +
-        '}';
+    queriers.clear();
   }
 
   @Override
@@ -38,5 +47,4 @@ class TreeJoinQuerier implements Querier {
     }
     return rowStreams;
   }
-
 }
