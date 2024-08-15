@@ -18,8 +18,6 @@
 
 package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils.*;
-
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.PathUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
@@ -42,6 +40,7 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.auto.service.AutoService;
 import java.util.*;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -117,9 +116,9 @@ public class ColumnPruningRule extends Rule {
         }
       } else if (operator.getType() == OperatorType.Rename) {
         Rename rename = (Rename) operator;
-        Map<String, String> aliasMap = rename.getAliasMap();
+        List<Pair<String, String>> aliasList = rename.getAliasList();
         columns =
-            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasMap, new ArrayList<>(columns)));
+            new HashSet<>(PathUtils.recoverRenamedPatterns(aliasList, new ArrayList<>(columns)));
 
       } else if (operator.getType() == OperatorType.GroupBy) {
         GroupBy groupBy = (GroupBy) operator;
@@ -235,9 +234,11 @@ public class ColumnPruningRule extends Rule {
           columns.removeIf(column -> column.startsWith(MarkJoin.MARK_PREFIX));
           // MarkJoin的左侧是普通子树，右侧是WHERE关联子查询子树，我们只处理左侧，裁剪右侧的列会导致语义变化
           filter = markJoin.getFilter();
+          extraJoinPath.addAll(markJoin.getExtraJoinPrefix());
         } else if (operator.getType() == OperatorType.SingleJoin) {
           SingleJoin singleJoin = (SingleJoin) operator;
           filter = singleJoin.getFilter();
+          extraJoinPath.addAll(singleJoin.getExtraJoinPrefix());
         }
 
         if (isNaturalJoin) {
@@ -257,6 +258,9 @@ public class ColumnPruningRule extends Rule {
                   ((OperatorSource) ((BinaryOperator) operator).getSourceB()).getOperator(),
                   new ArrayList<>());
           leftColumns.addAll(getNewColumns(rightPatterns, columns));
+          if (!extraJoinPath.isEmpty()) {
+            leftColumns.addAll(getNewColumns(leftColumns, extraJoinPath));
+          }
         }
 
         // 将columns中的列名分成以PrefixA和PrefixB开头的两部分
@@ -335,13 +339,13 @@ public class ColumnPruningRule extends Rule {
                 new ArrayList<>());
         for (String column : columns) {
           for (String leftPattern : leftPatterns) {
-            if (OperatorUtils.covers(leftPattern, column)) {
+            if (Pattern.matches(StringUtils.reformatPath(leftPattern), column)) {
               leftColumns.add(column);
               break;
             }
           }
           for (String rightPattern : rightPatterns) {
-            if (OperatorUtils.covers(rightPattern, column)) {
+            if (Pattern.matches(StringUtils.reformatPath(rightPattern), column)) {
               rightColumns.add(column);
               break;
             }

@@ -32,6 +32,7 @@ statement
    | SHOW COLUMNS showColumnsOptions # showColumnsStatement
    | SHOW REPLICA NUMBER # showReplicationStatement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
+   | ALTER STORAGEENGINE engineId = INT WITH PARAMS params = stringLiteral # alterEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
    | SHOW FUNCTIONS # showRegisterTaskStatement
    | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
@@ -268,7 +269,11 @@ havingClause
    ;
 
 orderByClause
-   : ORDER BY (KEY | path) (COMMA path)* (DESC | ASC)?
+   : ORDER BY ((KEY (DESC | ASC)?) | orderItem) (COMMA orderItem)*
+   ;
+
+orderItem
+   : path (DESC | ASC)?
    ;
 
 downsampleClause
@@ -452,6 +457,8 @@ keyWords
    | AS
    | udfType
    | jobStatus
+   | ALTER
+   | PARAMS
    | WITH
    | WITHOUT
    | TAG
@@ -543,6 +550,14 @@ removedStorageEngine
    
    //============================
    
+ALTER
+   : A L T E R
+   ;
+
+PARAMS
+   : P A R A M S
+   ;
+
 INSERT
    : I N S E R T
    ;

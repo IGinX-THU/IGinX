@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.integration.expansion.parquet;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,4 +39,98 @@ public class ParquetCapacityExpansionIT extends BaseCapacityExpansionIT {
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     LOGGER.info("parquet skips test for wrong dummy engine params.");
   }
+
+  @Override
+  protected void testShowColumnsInExpansion(boolean before) {
+    String statement = "SHOW COLUMNS nt.wf03.*;";
+    String expected =
+        "Columns:\n"
+            + "+--------------------+--------+\n"
+            + "|                Path|DataType|\n"
+            + "+--------------------+--------+\n"
+            + "|nt.wf03.wt01.status2|    LONG|\n"
+            + "+--------------------+--------+\n"
+            + "Total line number = 1\n";
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "|          ln.wf02.status| BOOLEAN|\n"
+              + "|         ln.wf02.version|  BINARY|\n"
+              + "|    nt.wf03.wt01.status2|    LONG|\n"
+              + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "+------------------------+--------+\n"
+              + "Total line number = 4\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+------------------------+--------+\n"
+              + "|                    Path|DataType|\n"
+              + "+------------------------+--------+\n"
+              + "|          ln.wf02.status| BOOLEAN|\n"
+              + "|         ln.wf02.version|  BINARY|\n"
+              + "|    nt.wf03.wt01.status2|    LONG|\n"
+              + "|nt.wf04.wt01.temperature|  DOUBLE|\n"
+              + "| p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+------------------------+--------+\n"
+              + "Total line number = 5\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS p1.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+----+--------+\n"
+              + "|Path|DataType|\n"
+              + "+----+--------+\n"
+              + "+----+--------+\n"
+              + "Empty set.\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 1\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+
+    statement = "SHOW COLUMNS *.wf03.wt01.*;";
+    if (before) {
+      expected =
+          "Columns:\n"
+              + "+--------------------+--------+\n"
+              + "|                Path|DataType|\n"
+              + "+--------------------+--------+\n"
+              + "|nt.wf03.wt01.status2|    LONG|\n"
+              + "+--------------------+--------+\n"
+              + "Total line number = 1\n";
+    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
+      expected =
+          "Columns:\n"
+              + "+-----------------------+--------+\n"
+              + "|                   Path|DataType|\n"
+              + "+-----------------------+--------+\n"
+              + "|   nt.wf03.wt01.status2|    LONG|\n"
+              + "|p1.nt.wf03.wt01.status2|    LONG|\n"
+              + "+-----------------------+--------+\n"
+              + "Total line number = 2\n";
+    }
+    SQLTestTools.executeAndCompare(session, statement, expected);
+  }
+
+  // no param is allowed to be updated
+  @Override
+  protected void updateParams(int port) {}
+
+  @Override
+  protected void restoreParams(int port) {}
 }

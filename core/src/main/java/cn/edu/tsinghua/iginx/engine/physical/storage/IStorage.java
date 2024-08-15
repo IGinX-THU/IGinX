@@ -21,11 +21,17 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
-import cn.edu.tsinghua.iginx.engine.shared.operator.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
+import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
+import java.util.Set;
 
 public interface IStorage {
   /** 对非叠加分片查询数据 */
@@ -60,7 +66,7 @@ public interface IStorage {
   TaskExecuteResult executeInsert(Insert insert, DataArea dataArea);
 
   /** 获取所有列信息 */
-  List<Column> getColumns() throws PhysicalException;
+  List<Column> getColumns(Set<String> patterns, TagFilter tagFilter) throws PhysicalException;
 
   /** 获取指定前缀的数据边界 */
   Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix) throws PhysicalException;

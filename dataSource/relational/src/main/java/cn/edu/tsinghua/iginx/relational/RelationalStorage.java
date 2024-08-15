@@ -18,7 +18,17 @@
 package cn.edu.tsinghua.iginx.relational;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.SEPARATOR;
-import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.ADD_COLUMN_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.BATCH_SIZE;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.CREATE_DATABASE_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.DATABASE_PREFIX;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.DROP_COLUMN_STATEMENT;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.KEY_NAME;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.PASSWORD;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.QUERY_STATEMENT_WITHOUT_KEYNAME;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.TAGKV_SEPARATOR;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.USERNAME;
+import static cn.edu.tsinghua.iginx.relational.tools.Constants.classMap;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.splitFullName;
 import static cn.edu.tsinghua.iginx.relational.tools.TagKVUtils.toFullName;
 
@@ -41,7 +51,16 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.NotFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.OrFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
@@ -59,10 +78,22 @@ import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
+import com.zaxxer.hikari.pool.HikariPool;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.sql.*;
-import java.util.*;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -128,7 +159,7 @@ public class RelationalStorage implements IStorage {
       HikariDataSource newDataSource = new HikariDataSource(config);
       connectionPoolMap.put(databaseName, newDataSource);
       return newDataSource.getConnection();
-    } catch (SQLException e) {
+    } catch (SQLException | HikariPool.PoolInitializationException e) {
       LOGGER.error("Cannot get connection for database {}", databaseName, e);
       return null;
     }
@@ -232,7 +263,8 @@ public class RelationalStorage implements IStorage {
   private List<String> getDatabaseNames() throws SQLException {
     List<String> databaseNames = new ArrayList<>();
     Connection conn = getConnection(relationalMeta.getDefaultDatabaseName());
-    ResultSet rs = conn.createStatement().executeQuery(relationalMeta.getDatabaseQuerySql());
+    Statement statement = conn.createStatement();
+    ResultSet rs = statement.executeQuery(relationalMeta.getDatabaseQuerySql());
     while (rs.next()) {
       String databaseName = rs.getString("DATNAME");
       if (relationalMeta.getSystemDatabaseName().contains(databaseName)
@@ -242,6 +274,7 @@ public class RelationalStorage implements IStorage {
       databaseNames.add(databaseName);
     }
     rs.close();
+    statement.close();
     conn.close();
     return databaseNames;
   }
@@ -335,38 +368,108 @@ public class RelationalStorage implements IStorage {
   }
 
   @Override
-  public List<Column> getColumns() throws RelationalTaskExecuteFailureException {
+  public List<Column> getColumns(Set<String> patterns, TagFilter tagFilter)
+      throws RelationalTaskExecuteFailureException {
     List<Column> columns = new ArrayList<>();
     Map<String, String> extraParams = meta.getExtraParams();
     try {
+      // dummy pattern list
+      List<String> patternList = new ArrayList<>();
+      if (patterns == null || patterns.size() == 0) {
+        patternList = new ArrayList<>(Collections.singletonList("*.*"));
+      }
+      String colPattern;
+
+      // non-dummy
       for (String databaseName : getDatabaseNames()) {
         if ((extraParams.get("has_data") == null || extraParams.get("has_data").equals("false"))
             && !databaseName.startsWith(DATABASE_PREFIX)) {
           continue;
         }
-
-        List<String> tables = getTables(databaseName, "%");
-        for (String tableName : tables) {
-          List<ColumnField> columnFieldList = getColumns(databaseName, tableName, "%");
-          for (ColumnField columnField : columnFieldList) {
-            String columnName = columnField.columnName;
-            String typeName = columnField.columnType;
-            if (columnName.equals(KEY_NAME)) { // key 列不显示
-              continue;
+        boolean isDummy =
+            extraParams.get("has_data") != null
+                && extraParams.get("has_data").equalsIgnoreCase("true")
+                && !databaseName.startsWith(DATABASE_PREFIX);
+        if (isDummy) {
+          // find pattern that match <databaseName>.* to avoid creating databases after.
+          if (patterns == null || patterns.size() == 0) {
+            continue;
+          }
+          for (String p : patterns) {
+            // dummy path starts with <bucketName>.
+            if (Pattern.matches(
+                StringUtils.reformatPath(p.substring(0, p.indexOf("."))), databaseName)) {
+              patternList.add(p);
             }
-            Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
-            if (databaseName.startsWith(DATABASE_PREFIX)) {
+          }
+          continue;
+        }
+
+        Map<String, String> tableAndColPattern = new HashMap<>();
+
+        if (patterns != null && patterns.size() != 0) {
+          tableAndColPattern = splitAndMergeQueryPatterns(databaseName, new ArrayList<>(patterns));
+        } else {
+          for (String table : getTables(databaseName, "%")) {
+            tableAndColPattern.put(table, "%");
+          }
+        }
+
+        for (String tableName : tableAndColPattern.keySet()) {
+          colPattern = tableAndColPattern.get(tableName);
+          for (String colName : colPattern.split(", ")) {
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
+            for (ColumnField columnField : columnFieldList) {
+              String columnName = columnField.columnName;
+              String typeName = columnField.columnType;
+              if (columnName.equals(KEY_NAME)) { // key 列不显示
+                continue;
+              }
+              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+              columnName = tableName + SEPARATOR + nameAndTags.k;
+              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+                continue;
+              }
               columns.add(
                   new Column(
-                      tableName + SEPARATOR + nameAndTags.k,
+                      columnName,
                       relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                      nameAndTags.v));
-            } else {
+                      nameAndTags.v,
+                      isDummy));
+            }
+          }
+        }
+      }
+
+      // dummy
+      Map<String, Map<String, String>> dummyRes = splitAndMergeHistoryQueryPatterns(patternList);
+      Map<String, String> table2cols;
+      // seemingly there are 4 nested loops, but it's only the consequence of special data structure
+      // and reused methods.
+      // the loops would not affect complexity
+      for (String databaseName : dummyRes.keySet()) {
+        table2cols = dummyRes.get(databaseName);
+        for (String tableName : table2cols.keySet()) {
+          colPattern = table2cols.get(tableName);
+          for (String colName : colPattern.split(", ")) {
+            List<ColumnField> columnFieldList = getColumns(databaseName, tableName, colName);
+            for (ColumnField columnField : columnFieldList) {
+              String columnName = columnField.columnName;
+              String typeName = columnField.columnType;
+              if (columnName.equals(KEY_NAME)) { // key 列不显示
+                continue;
+              }
+              Pair<String, Map<String, String>> nameAndTags = splitFullName(columnName);
+              columnName = databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k;
+              if (tagFilter != null && !TagKVUtils.match(nameAndTags.v, tagFilter)) {
+                continue;
+              }
               columns.add(
                   new Column(
-                      databaseName + SEPARATOR + tableName + SEPARATOR + nameAndTags.k,
+                      columnName,
                       relationalMeta.getDataTypeTransformer().fromEngineType(typeName),
-                      nameAndTags.v));
+                      nameAndTags.v,
+                      true));
             }
           }
         }
@@ -1436,6 +1539,7 @@ public class RelationalStorage implements IStorage {
   private Map<String, Map<String, String>> splitAndMergeHistoryQueryPatterns(List<String> patterns)
       throws SQLException {
     // <database name, <table name, column names>>
+    List<String> databases = getDatabaseNames();
     Map<String, Map<String, String>> splitResults = new HashMap<>();
     String databaseName;
     String tableName;
@@ -1499,6 +1603,9 @@ public class RelationalStorage implements IStorage {
           }
         }
       } else {
+        if (!databases.contains(databaseName)) {
+          continue;
+        }
         List<ColumnField> columnFieldList = getColumns(databaseName, tableName, columnNames);
         Map<String, String> tableNameToColumnNames = new HashMap<>();
         for (ColumnField columnField : columnFieldList) {
@@ -1518,8 +1625,7 @@ public class RelationalStorage implements IStorage {
           for (Map.Entry<String, String> entry : tableNameToColumnNames.entrySet()) {
             String oldColumnNames = oldTableNameToColumnNames.get(entry.getKey());
             if (oldColumnNames != null) {
-              List<String> oldColumnNameList =
-                  Arrays.asList((oldColumnNames + ", " + entry.getValue()).split(", "));
+              String[] oldColumnNameList = (oldColumnNames + ", " + entry.getValue()).split(", ");
               // 对list去重
               List<String> newColumnNameList = new ArrayList<>();
               for (String columnName : oldColumnNameList) {
@@ -1862,7 +1968,7 @@ public class RelationalStorage implements IStorage {
   private List<Pair<String, String>> determineDeletedPaths(
       List<String> paths, TagFilter tagFilter) {
     try {
-      List<Column> columns = getColumns();
+      List<Column> columns = getColumns(null, null);
       List<Pair<String, String>> deletedPaths = new ArrayList<>();
 
       for (Column column : columns) {

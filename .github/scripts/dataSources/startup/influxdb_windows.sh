@@ -48,6 +48,7 @@ sed -i "s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g" 
 
 for port in "$@"
 do
+  # target path is also used in update/<db> script
   sh -c "cp -r influxdb2-2.0.7-windows-amd64/ influxdb2-2.0.7-windows-amd64-$port/"
 
   pathPrefix="influxdb2-2.0.7-windows-amd64-$port"
@@ -57,15 +58,4 @@ do
   redirect="-RedirectStandardOutput '$pathPrefix/logs/db.log' -RedirectStandardError '$pathPrefix/logs/db-error.log'"
 
   powershell -command "Start-Process -FilePath 'influxdb2-2.0.7-windows-amd64-$port/influxd' $arguments -NoNewWindow $redirect"
-
-  sh -c "sleep 10"
-
-  sh -c "cat $pathPrefix/logs/db.log"
-
-  echo "==========================================="
-
-  sh -c "cat $pathPrefix/logs/db-error.log"
-
-  echo "==========================================="
-
 done

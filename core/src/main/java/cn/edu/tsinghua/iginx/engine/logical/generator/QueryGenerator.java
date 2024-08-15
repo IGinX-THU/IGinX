@@ -18,18 +18,14 @@
 
 package cn.edu.tsinghua.iginx.engine.logical.generator;
 
-import static cn.edu.tsinghua.iginx.engine.logical.utils.MetaUtils.getFragmentsByColumnsInterval;
-import static cn.edu.tsinghua.iginx.engine.logical.utils.MetaUtils.mergeRawData;
-import static cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils.translateApply;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ALL_PATH_SUFFIX;
 import static cn.edu.tsinghua.iginx.engine.shared.Constants.ORDINAL;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
-import static cn.edu.tsinghua.iginx.engine.shared.operator.type.JoinAlgType.chooseJoinAlg;
-import static cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinType.isNaturalJoin;
 
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.optimizer.LogicalOptimizerManager;
+import cn.edu.tsinghua.iginx.engine.logical.utils.MetaUtils;
 import cn.edu.tsinghua.iginx.engine.logical.utils.OperatorUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
@@ -113,7 +109,7 @@ public class QueryGenerator extends AbstractGenerator {
         .forEach(
             cte -> {
               Operator root = generateRoot(cte.getStatement());
-              root = new Rename(new OperatorSource(root), cte.getAliasMap());
+              root = new Rename(new OperatorSource(root), cte.getAliasList());
               cte.setRoot(root);
             });
     return generateRoot(selectStatement);
@@ -382,7 +378,7 @@ public class QueryGenerator extends AbstractGenerator {
         throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
     }
     if (fromPart.hasAlias()) {
-      root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+      root = new Rename(new OperatorSource(root), fromPart.getAliasList());
     }
     return root;
   }
@@ -411,12 +407,12 @@ public class QueryGenerator extends AbstractGenerator {
                   PathFromPart pathFromPart = (PathFromPart) fromPart;
                   String prefix = pathFromPart.getOriginPrefix() + ALL_PATH_SUFFIX;
                   Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-                      getFragmentsByColumnsInterval(
+                      MetaUtils.getFragmentsByColumnsInterval(
                           selectStatement, new ColumnsInterval(prefix, prefix));
                   Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
                   List<FragmentMeta> dummyFragments = pair.v;
                   root =
-                      mergeRawData(
+                      MetaUtils.mergeRawData(
                           fragments, dummyFragments, Collections.singletonList(prefix), tagFilter);
                   break;
                 case SubQuery:
@@ -437,7 +433,7 @@ public class QueryGenerator extends AbstractGenerator {
                   throw new RuntimeException("Unknown FromPart type: " + fromPart.getType());
               }
               if (fromPart.hasAlias()) {
-                root = new Rename(new OperatorSource(root), fromPart.getAliasMap());
+                root = new Rename(new OperatorSource(root), fromPart.getAliasList());
               }
               joinList.add(root);
             });
@@ -452,7 +448,7 @@ public class QueryGenerator extends AbstractGenerator {
 
       Filter filter = joinCondition.getFilter();
       List<String> joinColumns = joinCondition.getJoinColumns();
-      boolean isNaturalJoin = isNaturalJoin(joinCondition.getJoinType());
+      boolean isNaturalJoin = JoinType.isNaturalJoin(joinCondition.getJoinType());
 
       if (!joinColumns.isEmpty() || isNaturalJoin) {
         if (prefixA == null || prefixB == null) {
@@ -461,7 +457,7 @@ public class QueryGenerator extends AbstractGenerator {
         }
       }
 
-      JoinAlgType joinAlgType = chooseJoinAlg(filter, isNaturalJoin, joinColumns);
+      JoinAlgType joinAlgType = JoinAlgType.chooseJoinAlg(filter, isNaturalJoin, joinColumns);
       OuterJoinType outerJoinType = null;
       switch (joinCondition.getJoinType()) {
         case CrossJoin:
@@ -567,10 +563,12 @@ public class QueryGenerator extends AbstractGenerator {
     if (selectStatement.getOrderByPaths().isEmpty()) {
       return root;
     }
-    return new Sort(
-        new OperatorSource(root),
-        selectStatement.getOrderByPaths(),
-        selectStatement.isAscending() ? Sort.SortType.ASC : Sort.SortType.DESC);
+    List<Sort.SortType> sortTypes = new ArrayList<>();
+    selectStatement
+        .getAscendingList()
+        .forEach(
+            isAscending -> sortTypes.add(isAscending ? Sort.SortType.ASC : Sort.SortType.DESC));
+    return new Sort(new OperatorSource(root), selectStatement.getOrderByPaths(), sortTypes);
   }
 
   /**
@@ -797,16 +795,16 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /**
-   * 如果SelectStatement有AliasMap, 在root之上构建一个Rename操作符
+   * 如果SelectStatement有AliasList, 在root之上构建一个Rename操作符
    *
    * @param selectStatement Select上下文
    * @param root 当前根节点
-   * @return 添加了Rename操作符的根节点；如果没有AliasMap，返回原根节点
+   * @return 添加了Rename操作符的根节点；如果没有AliasList，返回原根节点
    */
   private static Operator buildRename(UnarySelectStatement selectStatement, Operator root) {
-    Map<String, String> aliasMap = selectStatement.getSelectAliasMap();
-    if (!aliasMap.isEmpty()) {
-      root = new Rename(new OperatorSource(root), aliasMap);
+    List<Pair<String, String>> aliasList = selectStatement.getSelectAliasList();
+    if (!aliasList.isEmpty()) {
+      root = new Rename(new OperatorSource(root), aliasList);
     }
     return root;
   }
@@ -933,7 +931,7 @@ public class QueryGenerator extends AbstractGenerator {
         Operator right = generateRoot(selectSubQueryParts.get(i).getSubQuery());
 
         Filter filter = selectSubQueryParts.get(i).getJoinCondition().getFilter();
-        JoinAlgType joinAlgType = chooseJoinAlg(filter);
+        JoinAlgType joinAlgType = JoinAlgType.chooseJoinAlg(filter);
 
         root =
             new SingleJoin(
@@ -989,7 +987,7 @@ public class QueryGenerator extends AbstractGenerator {
       Filter filter = whereSubQueryPart.getJoinCondition().getFilter();
       String markColumn = whereSubQueryPart.getJoinCondition().getMarkColumn();
       boolean isAntiJoin = whereSubQueryPart.getJoinCondition().isAntiJoin();
-      JoinAlgType joinAlgType = chooseJoinAlg(filter);
+      JoinAlgType joinAlgType = JoinAlgType.chooseJoinAlg(filter);
 
       if (whereSubQueryPart.getJoinCondition().getJoinType() == JoinType.MarkJoin) {
         root =
@@ -1027,7 +1025,7 @@ public class QueryGenerator extends AbstractGenerator {
     }
     // 如果存在关联变量，则将apply算子下推
     if (!correlatedVariables.isEmpty()) {
-      root = translateApply(root, correlatedVariables);
+      root = OperatorUtils.translateApply(root, correlatedVariables);
     }
     return root;
   }
@@ -1042,11 +1040,11 @@ public class QueryGenerator extends AbstractGenerator {
         new ColumnsInterval(pathList.get(0), pathList.get(pathList.size() - 1));
 
     Pair<Map<KeyInterval, List<FragmentMeta>>, List<FragmentMeta>> pair =
-        getFragmentsByColumnsInterval(selectStatement, columnsInterval);
+        MetaUtils.getFragmentsByColumnsInterval(selectStatement, columnsInterval);
     Map<KeyInterval, List<FragmentMeta>> fragments = pair.k;
     List<FragmentMeta> dummyFragments = pair.v;
 
-    return mergeRawData(fragments, dummyFragments, pathList, tagFilter);
+    return MetaUtils.mergeRawData(fragments, dummyFragments, pathList, tagFilter);
   }
 
   /** 从Expression中获取params */

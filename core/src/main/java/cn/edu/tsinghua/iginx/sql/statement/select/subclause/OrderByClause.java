@@ -23,28 +23,28 @@ import java.util.List;
 
 public class OrderByClause {
   private final List<String> orderByPaths;
-  private boolean ascending;
+  private final List<Boolean> ascendingList;
 
-  public OrderByClause(List<String> orderByPaths, boolean ascending) {
+  public OrderByClause(List<String> orderByPaths, List<Boolean> ascendingList) {
     this.orderByPaths = orderByPaths;
-    this.ascending = ascending;
+    this.ascendingList = ascendingList;
   }
 
   public OrderByClause() {
     this.orderByPaths = new ArrayList<>();
-    this.ascending = true;
+    this.ascendingList = new ArrayList<>();
   }
 
   public List<String> getOrderByPaths() {
     return orderByPaths;
   }
 
-  public boolean isAscending() {
-    return ascending;
+  public List<Boolean> getAscendingList() {
+    return ascendingList;
   }
 
-  public void setAscending(boolean ascending) {
-    this.ascending = ascending;
+  public void setAscendingList(boolean ascending) {
+    this.ascendingList.add(ascending);
   }
 
   public void setOrderByPaths(String orderByPath) {

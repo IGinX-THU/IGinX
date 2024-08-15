@@ -25,8 +25,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.logical.optimizer.core.RuleCall;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.auto.service.AutoService;
-import java.util.Map;
+import java.util.List;
 
 @AutoService(Rule.class)
 public class FilterPushDownRenameRule extends Rule {
@@ -50,13 +51,13 @@ public class FilterPushDownRenameRule extends Rule {
   public void onMatch(RuleCall call) {
     Select select = (Select) call.getMatchedRoot();
     Rename rename = (Rename) ((OperatorSource) select.getSource()).getOperator();
-    select.setFilter(replacePathByRenameMap(select.getFilter(), rename.getAliasMap()));
+    select.setFilter(replacePathByRenameMap(select.getFilter(), rename.getAliasList()));
     select.setSource(rename.getSource());
     rename.setSource(new OperatorSource(select));
     call.transformTo(rename);
   }
 
-  private Filter replacePathByRenameMap(Filter filter, Map<String, String> renameMap) {
+  private Filter replacePathByRenameMap(Filter filter, List<Pair<String, String>> renameMap) {
     Filter newFilter = filter.copy();
     newFilter.accept(
         new FilterVisitor() {
@@ -96,7 +97,8 @@ public class FilterPushDownRenameRule extends Rule {
     return newFilter;
   }
 
-  private void replaceExpressionByRenameMap(Expression expression, Map<String, String> renameMap) {
+  private void replaceExpressionByRenameMap(
+      Expression expression, List<Pair<String, String>> renameMap) {
     expression.accept(
         new ExpressionVisitor() {
           @Override

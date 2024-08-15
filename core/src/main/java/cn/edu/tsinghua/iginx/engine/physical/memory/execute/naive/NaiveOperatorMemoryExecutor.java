@@ -77,7 +77,6 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.SingleJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Sort;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Sort.SortType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
@@ -240,7 +239,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
   }
 
   private RowStream executeSort(Sort sort, Table table) throws PhysicalException {
-    RowUtils.sortRows(table.getRows(), sort.getSortType() == SortType.ASC, sort.getSortByCols());
+    List<Boolean> ascendingList = sort.getAscendingList();
+    RowUtils.sortRows(table.getRows(), ascendingList, sort.getSortByCols());
     return table;
   }
 
@@ -474,10 +474,8 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
 
   private RowStream executeRename(Rename rename, Table table) {
     Header header = table.getHeader();
-    Map<String, String> aliasMap = rename.getAliasMap();
-
-    List<String> ignorePatterns = rename.getIgnorePatterns();
-    Header newHeader = header.renamedHeader(aliasMap, ignorePatterns);
+    List<Pair<String, String>> aliasList = rename.getAliasList();
+    Header newHeader = header.renamedHeader(aliasList, rename.getIgnorePatterns());
 
     List<Row> rows = new ArrayList<>();
     table

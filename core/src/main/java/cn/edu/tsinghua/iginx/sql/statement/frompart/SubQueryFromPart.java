@@ -23,8 +23,8 @@ import cn.edu.tsinghua.iginx.sql.statement.frompart.join.JoinCondition;
 import cn.edu.tsinghua.iginx.sql.statement.select.BinarySelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
 import cn.edu.tsinghua.iginx.sql.statement.select.UnarySelectStatement;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.List;
-import java.util.Map;
 
 public class SubQueryFromPart implements FromPart {
 
@@ -60,8 +60,8 @@ public class SubQueryFromPart implements FromPart {
   }
 
   @Override
-  public Map<String, String> getAliasMap() {
-    return subQuery.getSubQueryAliasMap(alias);
+  public List<Pair<String, String>> getAliasList() {
+    return subQuery.getSubQueryAliasList(alias);
   }
 
   @Override

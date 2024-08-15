@@ -23,10 +23,10 @@ import cn.edu.tsinghua.iginx.sql.statement.DataStatement;
 import cn.edu.tsinghua.iginx.sql.statement.StatementType;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.LimitClause;
 import cn.edu.tsinghua.iginx.sql.statement.select.subclause.OrderByClause;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 public abstract class SelectStatement extends DataStatement {
@@ -88,12 +88,12 @@ public abstract class SelectStatement extends DataStatement {
     this.orderByClause.setOrderByPaths(orderByPath);
   }
 
-  public boolean isAscending() {
-    return orderByClause.isAscending();
+  public List<Boolean> getAscendingList() {
+    return orderByClause.getAscendingList();
   }
 
   public void setAscending(boolean ascending) {
-    this.orderByClause.setAscending(ascending);
+    this.orderByClause.setAscendingList(ascending);
   }
 
   public long getLimit() {
@@ -135,7 +135,7 @@ public abstract class SelectStatement extends DataStatement {
 
   public abstract void initFreeVariables();
 
-  public abstract Map<String, String> getSubQueryAliasMap(String alias);
+  public abstract List<Pair<String, String>> getSubQueryAliasList(String alias);
 
   public enum SelectStatementType {
     UNARY,

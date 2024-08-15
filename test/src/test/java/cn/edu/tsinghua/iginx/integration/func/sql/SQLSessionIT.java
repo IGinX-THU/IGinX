@@ -1175,7 +1175,7 @@ public class SQLSessionIT {
             + "Total line number = 9\n";
     executor.executeAndCompare(orderByQuery, expected);
 
-    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC;";
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3 DESC, s2 DESC;";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+--------+\n"
@@ -1189,6 +1189,44 @@ public class SQLSessionIT {
             + "|  6|   dates|     119|   232.1|\n"
             + "|  5|   grape|     336|   132.5|\n"
             + "|  2|   peach|     123|   132.5|\n"
+            + "|  7|   melon|     516|   113.6|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3, s2 DESC;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  7|   melon|     516|   113.6|\n"
+            + "|  5|   grape|     336|   132.5|\n"
+            + "|  2|   peach|     123|   132.5|\n"
+            + "|  1|   apple|     871|   232.1|\n"
+            + "|  8|   mango|     458|   232.1|\n"
+            + "|  6|   dates|     119|   232.1|\n"
+            + "|  3|  banana|     356|   317.8|\n"
+            + "|  4|  cherry|     621|   456.1|\n"
+            + "|  9|    pear|     336|   613.1|\n"
+            + "+---+--------+--------+--------+\n"
+            + "Total line number = 9\n";
+    executor.executeAndCompare(orderByQuery, expected);
+
+    orderByQuery = "SELECT * FROM us.d2 ORDER BY s3 DESC, s2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+--------+\n"
+            + "|key|us.d2.s1|us.d2.s2|us.d2.s3|\n"
+            + "+---+--------+--------+--------+\n"
+            + "|  9|    pear|     336|   613.1|\n"
+            + "|  4|  cherry|     621|   456.1|\n"
+            + "|  3|  banana|     356|   317.8|\n"
+            + "|  6|   dates|     119|   232.1|\n"
+            + "|  8|   mango|     458|   232.1|\n"
+            + "|  1|   apple|     871|   232.1|\n"
+            + "|  2|   peach|     123|   132.5|\n"
+            + "|  5|   grape|     336|   132.5|\n"
             + "|  7|   melon|     516|   113.6|\n"
             + "+---+--------+--------+--------+\n"
             + "Total line number = 9\n";
@@ -2409,7 +2447,7 @@ public class SQLSessionIT {
             + "|    Logical Tree|Operator Type|                                                                                                                      Operator Info|\n"
             + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
             + "|Reorder         |      Reorder|                                                                                Order: avg(test.a),sum(test.b),test.c,test.b,test.d|\n"
-            + "|  +--Sort       |         Sort|                                                                                        SortBy: test.c,test.b,test.d, SortType: ASC|\n"
+            + "|  +--Sort       |         Sort|                                                                                SortBy: test.c,test.b,test.d, SortType: ASC,ASC,ASC|\n"
             + "|    +--GroupBy  |      GroupBy|GroupByCols: test.c,test.b,test.d, FuncList(Name, FuncType): (avg, System),(sum, System), MappingType: SetMapping isDistinct: false|\n"
             + "|      +--Project|      Project|                                                                   Patterns: test.a,test.b,test.c,test.d, Target DU: unit0000000002|\n"
             + "+----------------+-------------+-----------------------------------------------------------------------------------------------------------------------------------+\n"
@@ -3241,6 +3279,38 @@ public class SQLSessionIT {
             + "|1009|                           1009|                      1010|\n"
             + "+----+-------------------------------+--------------------------+\n"
             + "Total line number = 10\n";
+    executor.executeAndCompare(statement, expected);
+
+    // duplicate columns
+    statement = "SELECT s1 AS a, s1, s1 AS s1, s2 AS c, s2 FROM us.d1 WHERE s1 > 50 AND s1 < 55;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "|key| a|us.d1.s1|s1| c|us.d1.s2|\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "| 51|51|      51|51|52|      52|\n"
+            + "| 52|52|      52|52|53|      53|\n"
+            + "| 53|53|      53|53|54|      54|\n"
+            + "| 54|54|      54|54|55|      55|\n"
+            + "+---+--+--------+--+--+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(statement, expected);
+
+    // test rename in subquery with filter
+    statement =
+        "SELECT * FROM (SELECT s1, s2 FROM us.d1 AS test WHERE test.s1 >= 1000 AND test.s2 <= 1005);";
+    expected =
+        "ResultSets:\n"
+            + "+----+-------+-------+\n"
+            + "| key|test.s1|test.s2|\n"
+            + "+----+-------+-------+\n"
+            + "|1000|   1000|   1001|\n"
+            + "|1001|   1001|   1002|\n"
+            + "|1002|   1002|   1003|\n"
+            + "|1003|   1003|   1004|\n"
+            + "|1004|   1004|   1005|\n"
+            + "+----+-------+-------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(statement, expected);
   }
 
@@ -6874,7 +6944,7 @@ public class SQLSessionIT {
                     + "|Reorder                 |      Reorder|                                                                                     Order: avg(bb)|\n"
                     + "|  +--GroupBy            |      GroupBy|GroupByCols: aa, FuncList(Name, FuncType): (avg, System), MappingType: SetMapping isDistinct: false|\n"
                     + "|    +--Select           |       Select|                                                                                    Filter: key > 2|\n"
-                    + "|      +--Rename         |       Rename|                                                              AliasMap: (us.d2.a, aa),(us.d2.b, bb)|\n"
+                    + "|      +--Rename         |       Rename|                                                             AliasList: (us.d2.a, aa),(us.d2.b, bb)|\n"
                     + "|        +--Reorder      |      Reorder|                                                                             Order: us.d2.a,us.d2.b|\n"
                     + "|          +--Project    |      Project|                                                                          Patterns: us.d2.a,us.d2.b|\n"
                     + "|            +--PathUnion|    PathUnion|                                                                                                   |\n"
@@ -6900,7 +6970,7 @@ public class SQLSessionIT {
                     + "|Reorder                 |      Reorder|                                                                                                                               Order: count(*)|\n"
                     + "|  +--Downsample         |   Downsample|             Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (count, System), MappingType: SetMapping|\n"
                     + "|    +--Select           |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|      +--Rename         |       Rename|                                                                                     AliasMap: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
+                    + "|      +--Rename         |       Rename|                                                                                    AliasList: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
                     + "|        +--Reorder      |      Reorder|                                                                                                            Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
                     + "|          +--Downsample |   Downsample|Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (avg, System), (sum, System), MappingType: SetMapping|\n"
                     + "|            +--Select   |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
@@ -6959,7 +7029,7 @@ public class SQLSessionIT {
                     + "|Reorder                   |      Reorder|                                                                                                                               Order: count(*)|\n"
                     + "|  +--Downsample           |   Downsample|             Precision: 20, SlideDistance: 20, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (count, System), MappingType: SetMapping|\n"
                     + "|    +--Select             |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
-                    + "|      +--Rename           |       Rename|                                                                                     AliasMap: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
+                    + "|      +--Rename           |       Rename|                                                                                    AliasList: (avg(us.d1.s1), avg_s1),(sum(us.d1.s2), sum_s2)|\n"
                     + "|        +--Reorder        |      Reorder|                                                                                                            Order: avg(us.d1.s1),sum(us.d1.s2)|\n"
                     + "|          +--Downsample   |   Downsample|Precision: 10, SlideDistance: 10, TimeRange: [1000, 1100), FuncList(Name, FunctionType): (avg, System), (sum, System), MappingType: SetMapping|\n"
                     + "|            +--Select     |       Select|                                                                                                           Filter: (key >= 1000 && key < 1100)|\n"
