@@ -18,6 +18,10 @@
 
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static org.junit.Assert.*;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
@@ -28,17 +32,12 @@ import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import java.util.*;
+import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-import java.util.stream.Collectors;
-
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static org.junit.Assert.*;
 
 public class SQLSessionIT {
 
@@ -5782,7 +5781,7 @@ public class SQLSessionIT {
     if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
       return;
     }
-    
+
     // mix path
     String insert =
         "INSERT INTO 测试.前缀.`114514`(key, `1919810`._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
@@ -7487,9 +7486,7 @@ public class SQLSessionIT {
     }
   }
 
-  /**
-   * 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠
-   */
+  /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
   @Test
   public void testConstantFolding() {
     String openRule = "SET RULES RowTransformConstantFoldingRule=on, FilterConstantFoldingRule=on;";

@@ -154,5 +154,4 @@ public class Constant {
           put(readOnlyPort, readOnlyPortIginx);
         }
       };
-
 }

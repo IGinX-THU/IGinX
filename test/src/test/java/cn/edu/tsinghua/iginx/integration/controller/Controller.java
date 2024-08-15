@@ -18,6 +18,11 @@
 
 package cn.edu.tsinghua.iginx.integration.controller;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.oriPort;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
@@ -30,16 +35,10 @@ import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.ShellRunner;
+import java.util.*;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.*;
-
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.oriPort;
-import static org.junit.Assert.fail;
 
 public class Controller {
 
@@ -166,9 +165,9 @@ public class Controller {
       boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
-              || tagsList.isEmpty()
-              || tagsList.stream().allMatch(map -> map.size() == 0))
-              && (IS_EXP_DUMMY || IS_ORI_DUMMY)
+                      || tagsList.isEmpty()
+                      || tagsList.stream().allMatch(map -> map.size() == 0))
+                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (pathList.size() * PARTITION_POINT)
               : pathList.size();
     }
@@ -261,9 +260,9 @@ public class Controller {
       boolean IS_ORI_DUMMY = testConf.getDBCETestWay().contains(ORI_HAS_DATA_STRING);
       medium =
           (tagsList == null
-              || tagsList.isEmpty()
-              || tagsList.stream().allMatch(map -> map.size() == 0))
-              && (IS_EXP_DUMMY || IS_ORI_DUMMY)
+                      || tagsList.isEmpty()
+                      || tagsList.stream().allMatch(map -> map.size() == 0))
+                  && (IS_EXP_DUMMY || IS_ORI_DUMMY)
               ? (int) (keyList.size() * PARTITION_POINT)
               : keyList.size();
     }
