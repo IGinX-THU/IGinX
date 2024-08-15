@@ -191,9 +191,9 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     statement = "SHOW COLUMNS;";
     expected =
         "Columns:\n"
-            + "+---------------------------------------+--------+\n"
-            + "|                                   Path|DataType|\n"
-            + "+---------------------------------------+--------+\n"
+            + "+--------------------------------------+--------+\n"
+            + "|                                  Path|DataType|\n"
+            + "+--------------------------------------+--------+\n"
             + "|                        a.Iris\\parquet|  BINARY|\n"
             + "|           a.Iris\\parquet.petal.length|  DOUBLE|\n"
             + "|            a.Iris\\parquet.petal.width|  DOUBLE|\n"
