@@ -11,6 +11,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.filestore.common.Configs;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawFormat;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawReaderConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
@@ -39,10 +40,9 @@ public class FileTreeDummyTest extends AbstractDummyTest {
 
   private static Config getConfig() {
     Map<String, Object> map = new HashMap<>();
-    map.put(
-        String.join(
-            ".", FileTreeConfig.Fields.formats, RawFormat.NAME, RawReaderConfig.Fields.pageSize),
-        8);
+    Configs.put(
+        map, 8, FileTreeConfig.Fields.formats, RawFormat.NAME, RawReaderConfig.Fields.pageSize);
+    Configs.put(map, DIR_NAME, FileTreeConfig.Fields.prefix);
     return ConfigFactory.parseMap(map);
   }
 

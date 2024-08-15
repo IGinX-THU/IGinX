@@ -13,6 +13,7 @@ import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import com.google.common.base.Strings;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
@@ -30,20 +31,12 @@ public class FileTreeManager implements FileManager {
   private final Path path;
   private final FileTreeConfig config;
   private final Querier.Builder builder;
-  private final String prefix;
 
   public FileTreeManager(Path path, FileTreeConfig config) throws IOException {
     LOGGER.debug("Create Manager in {} with {}", path, config);
-    this.path = Objects.requireNonNull(path).toAbsolutePath();
-    if (Objects.isNull(path.getFileName())) {
-      LOGGER.warn("Path has no file name: {}", path);
-      this.config = config.withFilenameAsPrefix(false);
-    } else {
-      this.config = config;
-    }
-    this.prefix =
-        config.isFilenameAsPrefix() ? IginxPaths.get(path.getFileName(), config.getDot()) : null;
-    this.builder = new FormatTreeJoin().create(prefix, path, config);
+    this.path = Objects.requireNonNull(path).normalize();
+    this.config = config;
+    this.builder = new FormatTreeJoin().create(config.getPrefix(), path, config);
   }
 
   @Override
@@ -75,43 +68,29 @@ public class FileTreeManager implements FileManager {
 
   @Nullable
   private Map.Entry<String, Path> getTargetPrefixAndPath(@Nullable String requiredPrefix) {
-    String prefix;
-    Path afterPrefix;
+    String embeddedStringPrefix = IginxPaths.toStringPrefix(config.getPrefix());
+    String requiredStringPrefix = IginxPaths.toStringPrefix(requiredPrefix);
+    String commonStringPrefix = Strings.commonPrefix(embeddedStringPrefix, requiredStringPrefix);
 
-    if (requiredPrefix == null || requiredPrefix.isEmpty()) {
-      prefix = this.prefix;
-      afterPrefix = path;
-    } else {
-      Path prefixRelativePath =
-          IginxPaths.toFilePath(requiredPrefix, config.getDot(), path.getFileSystem());
-      LOGGER.debug("Relative path: {}", prefixRelativePath);
-
-      if (prefixRelativePath.isAbsolute()) {
-        LOGGER.warn("Prefix is absolute: {}", prefixRelativePath);
-        return null;
-      }
-      if (!Objects.equals(prefixRelativePath, prefixRelativePath.normalize())) {
-        LOGGER.warn("Prefix is not normalized: {}", prefixRelativePath);
-        return null;
-      }
-
-      prefix = IginxPaths.get(prefixRelativePath, config.getDot());
-
-      if (config.isFilenameAsPrefix()) {
-        if (!Objects.equals(prefixRelativePath.getName(0), path.getFileName())) {
-          LOGGER.warn("Prefix is not a child of path: {} vs {}", prefixRelativePath, path);
-          return null;
-        }
-        afterPrefix = path.resolveSibling(prefixRelativePath);
-      } else {
-        afterPrefix = path.resolve(prefixRelativePath);
-      }
+    if (commonStringPrefix.length()
+        < Math.min(embeddedStringPrefix.length(), requiredStringPrefix.length())) {
+      LOGGER.warn("Prefix mismatch: {} vs {}", embeddedStringPrefix, requiredStringPrefix);
+      return null;
     }
 
-    LOGGER.debug("target prefix: {}", prefix);
-    LOGGER.debug("Path after prefix: {}", afterPrefix);
+    String requiredStringPrefixWithoutCommon =
+        requiredStringPrefix.substring(commonStringPrefix.length());
+    String requiredPrefixWithoutCommon =
+        IginxPaths.fromStringPrefix(requiredStringPrefixWithoutCommon);
 
-    return new AbstractMap.SimpleImmutableEntry<>(prefix, afterPrefix);
+    String targetPrefix =
+        IginxPaths.fromStringPrefix(embeddedStringPrefix + requiredStringPrefixWithoutCommon);
+    Path afterPrefix =
+        path.resolve(
+            IginxPaths.toFilePath(
+                requiredPrefixWithoutCommon, config.getDot(), path.getFileSystem()));
+
+    return new AbstractMap.SimpleImmutableEntry<>(targetPrefix, afterPrefix);
   }
 
   @Nullable
@@ -135,6 +114,10 @@ public class FileTreeManager implements FileManager {
               .map(p -> IginxPaths.get(p, config.getDot()))
               .max(Comparator.naturalOrder())
               .orElse(null);
+
+      if (minChild == null || maxChild == null) {
+        return null;
+      }
 
       LOGGER.debug("Start column: {}", minChild);
       LOGGER.debug("End column: {}", maxChild);

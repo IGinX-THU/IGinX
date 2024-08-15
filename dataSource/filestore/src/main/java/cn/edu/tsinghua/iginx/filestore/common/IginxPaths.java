@@ -38,7 +38,10 @@ public class IginxPaths {
     return join(nodes);
   }
 
-  public static Path toFilePath(String path, String dot, FileSystem fs) {
+  public static Path toFilePath(@Nullable String path, String dot, FileSystem fs) {
+    if (path == null) {
+      return fs.getPath("");
+    }
     Pattern splitter = Pattern.compile(Pattern.quote(DOT));
     String[] nodes = splitter.split(path);
     String[] fsNodes = new String[nodes.length];
@@ -46,5 +49,25 @@ public class IginxPaths {
       fsNodes[i] = nodes[i].replace(dot, DOT);
     }
     return fs.getPath(fsNodes[0], Arrays.copyOfRange(fsNodes, 1, fsNodes.length));
+  }
+
+  public static String toStringPrefix(@Nullable String path) {
+    if (path == null) {
+      return "";
+    } else {
+      return path + DOT;
+    }
+  }
+
+  @Nullable
+  public static String fromStringPrefix(String path) {
+    if (path.isEmpty()) {
+      return null;
+    } else {
+      if (!path.endsWith(DOT)) {
+        throw new IllegalArgumentException("not empty string prefix must not end with a dot");
+      }
+      return path.substring(0, path.length() - DOT.length());
+    }
   }
 }

@@ -13,23 +13,30 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.KeyFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.ValueFilter;
+import cn.edu.tsinghua.iginx.filestore.common.Configs;
 import cn.edu.tsinghua.iginx.filestore.format.parquet.ParquetTestUtils;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
+import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTreeConfig;
 import cn.edu.tsinghua.iginx.filestore.test.TableBuilder;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
+import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import org.junit.jupiter.api.Test;
 
 public class FileTreeParquetDummyTest extends AbstractDummyTest {
   protected static final String DIR_NAME = "home.parquet";
 
   public FileTreeParquetDummyTest() {
-    super(FileTree.NAME, ConfigFactory.empty(), DIR_NAME);
+    super(FileTree.NAME, getConfig(), DIR_NAME);
+  }
+
+  private static Config getConfig() {
+    Map<String, Object> map = new HashMap<>();
+    Configs.put(map, "home\\parquet", FileTreeConfig.Fields.prefix);
+    return ConfigFactory.parseMap(map);
   }
 
   private void testSingleFile(Path path, String prefix) throws PhysicalException, IOException {

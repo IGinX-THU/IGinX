@@ -43,7 +43,7 @@ public class FileStoreService implements Service {
 
   public FileStoreService(InetSocketAddress address, FileStoreConfig config)
       throws FileStoreException {
-    if (config.isServer()) {
+    if (config.isServe()) {
       this.service = new StorageService(config.getData(), config.getDummy());
       Server temp = null;
       try {

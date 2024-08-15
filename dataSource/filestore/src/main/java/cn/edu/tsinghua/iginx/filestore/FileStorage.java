@@ -38,6 +38,7 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.BoolFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
+import cn.edu.tsinghua.iginx.filestore.common.Configs;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
@@ -48,6 +49,7 @@ import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.LegacyFilesystem;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
+import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTreeConfig;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -56,6 +58,7 @@ import cn.edu.tsinghua.iginx.metadata.entity.StorageEngineMeta;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.Pair;
+import com.google.common.base.Strings;
 import com.typesafe.config.Config;
 import com.typesafe.config.ConfigFactory;
 import java.net.InetSocketAddress;
@@ -111,26 +114,41 @@ public class FileStorage implements IStorage {
   }
 
   static Config toConfig(StorageEngineMeta meta) throws StorageInitializationException {
-    HashMap<String, String> reshapedParams = new HashMap<>();
+    HashMap<String, String> reshaped = new HashMap<>();
 
     for (Map.Entry<String, String> param : meta.getExtraParams().entrySet()) {
       String key = param.getKey();
       String value = param.getValue();
       if (key.contains(".")) {
-        reshapedParams.put(key, value);
+        reshaped.put(key, value);
       }
     }
 
-    reshapedParams.put("data.root", meta.getExtraParams().get("dir"));
-    reshapedParams.put("dummy.root", meta.getExtraParams().get("dummy_dir"));
-    reshapedParams.putIfAbsent("data.struct", LegacyParquet.NAME);
-    reshapedParams.putIfAbsent("dummy.struct", LegacyFilesystem.NAME);
+    Configs.put(
+        reshaped,
+        meta.getExtraParams().get("dir"),
+        FileStoreConfig.Fields.data,
+        StorageConfig.Fields.root);
+    Configs.put(
+        reshaped,
+        meta.getExtraParams().get("dummy_dir"),
+        FileStoreConfig.Fields.dummy,
+        StorageConfig.Fields.root);
+    Configs.put(
+        reshaped,
+        meta.getExtraParams().get("embedded_prefix"),
+        FileStoreConfig.Fields.dummy,
+        StorageConfig.Fields.config,
+        FileTreeConfig.Fields.prefix);
+    Configs.putIfAbsent(
+        reshaped, LegacyParquet.NAME, FileStoreConfig.Fields.data, StorageConfig.Fields.struct);
+    Configs.putIfAbsent(
+        reshaped, LegacyFilesystem.NAME, FileStoreConfig.Fields.dummy, StorageConfig.Fields.struct);
 
     boolean local = isLocal(meta);
-    reshapedParams.put("server", String.valueOf(local));
+    reshaped.put(FileStoreConfig.Fields.serve, String.valueOf(local));
 
-    Config config =
-        ConfigFactory.parseMap(reshapedParams, "storage engine initialization parameters");
+    Config config = ConfigFactory.parseMap(reshaped, "storage engine initialization parameters");
 
     if (local) {
       LOGGER.debug("storage of {} is local, ignore config for remote", meta);
@@ -307,7 +325,7 @@ public class FileStorage implements IStorage {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
-    Map<DataUnit, DataBoundary> units = service.getUnits(prefix);
+    Map<DataUnit, DataBoundary> units = service.getUnits(Strings.emptyToNull(prefix));
     DataBoundary boundary = units.get(unitOfDummy());
     if (Objects.equals(boundary, new DataBoundary())) {
       throw new PhysicalTaskExecuteFailureException("no data");

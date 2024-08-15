@@ -33,7 +33,7 @@ import lombok.experimental.FieldNameConstants;
 @FieldNameConstants
 public class FileStoreConfig extends AbstractConfig {
 
-  boolean server;
+  boolean serve;
 
   @Optional ClientConfig client = new ClientConfig();
 
@@ -44,7 +44,7 @@ public class FileStoreConfig extends AbstractConfig {
   @Override
   public List<ValidationProblem> validate() {
     List<ValidationProblem> problems = new ArrayList<>();
-    if (server) {
+    if (serve) {
       if (data == null && dummy == null) {
         problems.add(
             new ValidationProblem(

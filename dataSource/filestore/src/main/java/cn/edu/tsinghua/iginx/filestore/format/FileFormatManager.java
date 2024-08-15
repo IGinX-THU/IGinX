@@ -62,6 +62,10 @@ public class FileFormatManager {
   }
 
   public FileFormat register(FileFormat format) {
+    if (format.getName().contains(".")) {
+      LOGGER.warn("FileFormat name {} contains dot, ignored", format.getName());
+      return null;
+    }
     return formats.put(format.getName(), format);
   }
 

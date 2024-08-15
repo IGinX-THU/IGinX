@@ -17,7 +17,7 @@ public class FileTreeConfig extends AbstractConfig {
 
   @Optional String dot = "\\";
 
-  @Optional boolean filenameAsPrefix = true;
+  @Optional String prefix = null;
 
   @Optional Map<String, Config> formats = Collections.emptyMap();
 
@@ -25,8 +25,8 @@ public class FileTreeConfig extends AbstractConfig {
   public List<ValidationProblem> validate() {
     List<ValidationProblem> problems = new ArrayList<>();
     if (validateNotNull(problems, Fields.dot, dot)) {
-      if (dot.equals(".")) {
-        problems.add(new InvalidFieldValidationProblem(Fields.dot, "dot cannot be '.'"));
+      if (dot.contains(".")) {
+        problems.add(new InvalidFieldValidationProblem(Fields.dot, "dot cannot contain '.'"));
       }
     }
     return problems;
