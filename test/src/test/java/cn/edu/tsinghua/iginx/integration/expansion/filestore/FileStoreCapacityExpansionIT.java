@@ -239,7 +239,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|                   tm.wf05.wt01.status|  BINARY|\n"
             + "|              tm.wf05.wt01.temperature|  BINARY|\n"
             + "+--------------------------------------+--------+\n"
-            + "Total line number = 44";
+            + "Total line number = 44\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS nt.*;";
