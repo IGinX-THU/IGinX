@@ -73,22 +73,8 @@
  * <pre>
  * Exception
  * └─PhysicalException
- *     ├─FilesystemException
  *     ├─PostgreSQLException
  *     └─IoTDBException
- * </pre>
- *
- * </blockquote>
- *
- * <p><b>Filesystem模块</b>
- *
- * <p>FilesystemException是filesystem模块下所有自定义异常的基类。
- *
- * <blockquote>
- *
- * <pre>
- * PhysicalException
- * └─FilesystemException
  * </pre>
  *
  * </blockquote>

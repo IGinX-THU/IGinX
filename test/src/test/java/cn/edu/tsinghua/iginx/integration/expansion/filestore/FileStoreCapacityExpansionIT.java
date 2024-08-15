@@ -48,7 +48,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     LOGGER.info("filestore skips test for wrong dummy engine params.");
   }
 
-  // filesystem中，所有dummy数据都识别为BINARY
+  // filestore 的 LegacyFilesystem 结构中，所有dummy数据都识别为BINARY
   @Override
   protected void testShowColumnsInExpansion(boolean before) {
     String statement = "SHOW COLUMNS nt.wf03.*;";
