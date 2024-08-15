@@ -18,10 +18,6 @@
 
 package cn.edu.tsinghua.iginx.integration.func.sql;
 
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
-import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
-import static org.junit.Assert.*;
-
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
@@ -32,12 +28,17 @@ import cn.edu.tsinghua.iginx.pool.SessionPool;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
-import java.util.*;
-import java.util.stream.Collectors;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.util.*;
+import java.util.stream.Collectors;
+
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
+import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static org.junit.Assert.*;
 
 public class SQLSessionIT {
 
@@ -5725,159 +5726,82 @@ public class SQLSessionIT {
 
   @Test
   public void testSpecialCharacterPath() {
-    // filesystem does not support special character path on windows
     if (!isSupportSpecialCharacterPath) {
       return;
     }
 
-    boolean isTestingFilesystemOnWin = isOnWin && runningEngine.equalsIgnoreCase("filesystem");
+    // IGinX SQL 路径中支持的合法字符
+    String insert =
+        "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~\\^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
+    executor.execute(insert);
 
-    if (!isTestingFilesystemOnWin) {
-      // IGinX SQL 路径中支持的合法字符
-      String insert =
-          "INSERT INTO _:@#$~^{}(key, _:@#$~^{}, _:@#$~\\^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
-      executor.execute(insert);
+    String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|\n"
+            + "+---+-------------------+\n"
+            + "|  1|                  1|\n"
+            + "|  2|                  2|\n"
+            + "|  3|                  3|\n"
+            + "|  4|                  4|\n"
+            + "|  5|                  5|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
 
-      String query = "SELECT _:@#$~^{} FROM _:@#$~^{};";
-      String expected =
-          "ResultSets:\n"
-              + "+---+-------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|\n"
-              + "+---+-------------------+\n"
-              + "|  1|                  1|\n"
-              + "|  2|                  2|\n"
-              + "|  3|                  3|\n"
-              + "|  4|                  4|\n"
-              + "|  5|                  5|\n"
-              + "+---+-------------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
+    query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|\n"
+            + "+---+-------------------+\n"
+            + "|  2|                  2|\n"
+            + "|  3|                  3|\n"
+            + "|  4|                  4|\n"
+            + "+---+-------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
 
-      query = "SELECT _:@#$~^{} FROM _:@#$~^{} WHERE _:@#$~^{} >= 2 AND _:@#$~^{} <= 4;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|\n"
-              + "+---+-------------------+\n"
-              + "|  2|                  2|\n"
-              + "|  3|                  3|\n"
-              + "|  4|                  4|\n"
-              + "+---+-------------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-------------------+------------------+\n"
-              + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
-              + "+---+-------------------+------------------+\n"
-              + "|  1|                  1|                 2|\n"
-              + "|  2|                  2|                 3|\n"
-              + "|  3|                  3|                 4|\n"
-              + "+---+-------------------+------------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-    } else {
-      // :, \\ can't be used in filesystem in windows
-      String insert =
-          "INSERT INTO _@#$~^{}(key, _@#$~^{}, _@#$~^) VALUES (1, 1, 2), (2, 2, 3), (3, 3, 4), (4, 4, 4), (5, 5, 5);";
-      executor.execute(insert);
-
-      String query = "SELECT _@#$~^{} FROM _@#$~^{};";
-      String expected =
-          "ResultSets:\n"
-              + "+---+-----------------+\n"
-              + "|key|_@#$~^{}._@#$~^{}|\n"
-              + "+---+-----------------+\n"
-              + "|  1|                1|\n"
-              + "|  2|                2|\n"
-              + "|  3|                3|\n"
-              + "|  4|                4|\n"
-              + "|  5|                5|\n"
-              + "+---+-----------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _@#$~^{} FROM _@#$~^{} WHERE _@#$~^{} >= 2 AND _@#$~^{} <= 4;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-----------------+\n"
-              + "|key|_@#$~^{}._@#$~^{}|\n"
-              + "+---+-----------------+\n"
-              + "|  2|                2|\n"
-              + "|  3|                3|\n"
-              + "|  4|                4|\n"
-              + "+---+-----------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-
-      query = "SELECT _@#$~^{}, _@#$~^ FROM _@#$~^{} WHERE _@#$~^{} < _@#$~^;";
-      expected =
-          "ResultSets:\n"
-              + "+---+-----------------+---------------+\n"
-              + "|key|_@#$~^{}._@#$~^{}|_@#$~^{}._@#$~^|\n"
-              + "+---+-----------------+---------------+\n"
-              + "|  1|                1|              2|\n"
-              + "|  2|                2|              3|\n"
-              + "|  3|                3|              4|\n"
-              + "+---+-----------------+---------------+\n"
-              + "Total line number = 3\n";
-      executor.executeAndCompare(query, expected);
-    }
+    query = "SELECT _:@#$~^{}, _:@#$~\\^ FROM _:@#$~^{} WHERE _:@#$~^{} < _:@#$~\\^;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------------------+------------------+\n"
+            + "|key|_:@#$~^{}._:@#$~^{}|_:@#$~^{}._:@#$~\\^|\n"
+            + "+---+-------------------+------------------+\n"
+            + "|  1|                  1|                 2|\n"
+            + "|  2|                  2|                 3|\n"
+            + "|  3|                  3|                 4|\n"
+            + "+---+-------------------+------------------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
   }
 
   @Test
   public void testMixSpecialPath() {
-    // filesystem does not support special character path on windows
     if (!isSupportChinesePath || !isSupportNumericalPath || !isSupportSpecialCharacterPath) {
       return;
     }
+    
+    // mix path
+    String insert =
+        "INSERT INTO 测试.前缀.`114514`(key, `1919810`._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
+    executor.execute(insert);
 
-    boolean isTestingFilesystemOnWin = isOnWin && runningEngine.equalsIgnoreCase("filesystem");
-
-    if (!isTestingFilesystemOnWin) {
-      // mix path
-      String insert =
-          "INSERT INTO 测试.前缀.`114514`(key, `1919810`._:@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-      executor.execute(insert);
-
-      String query = "SELECT `1919810`._:@#$.后缀 FROM 测试.前缀.`114514`;";
-      String expected =
-          "ResultSets:\n"
-              + "+---+-----------------------------+\n"
-              + "|key|测试.前缀.114514.1919810._:@#$.后缀|\n"
-              + "+---+-----------------------------+\n"
-              + "|  1|                            1|\n"
-              + "|  2|                            2|\n"
-              + "|  3|                            3|\n"
-              + "|  4|                            4|\n"
-              + "|  5|                            5|\n"
-              + "+---+-----------------------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
-    } else {
-      // :, \\ can't be used in filesystem in windows
-      // mix path
-      String insert =
-          "INSERT INTO 测试.前缀.`114514`(key, `1919810`._@#$.后缀) VALUES (1, 1), (2, 2), (3, 3), (4, 4), (5, 5);";
-      executor.execute(insert);
-
-      String query = "SELECT `1919810`._@#$.后缀 FROM 测试.前缀.`114514`;";
-      String expected =
-          "ResultSets:\n"
-              + "+---+----------------------------+\n"
-              + "|key|测试.前缀.114514.1919810._@#$.后缀|\n"
-              + "+---+----------------------------+\n"
-              + "|  1|                           1|\n"
-              + "|  2|                           2|\n"
-              + "|  3|                           3|\n"
-              + "|  4|                           4|\n"
-              + "|  5|                           5|\n"
-              + "+---+----------------------------+\n"
-              + "Total line number = 5\n";
-      executor.executeAndCompare(query, expected);
-    }
+    String query = "SELECT `1919810`._:@#$.后缀 FROM 测试.前缀.`114514`;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-----------------------------+\n"
+            + "|key|测试.前缀.114514.1919810._:@#$.后缀|\n"
+            + "+---+-----------------------------+\n"
+            + "|  1|                            1|\n"
+            + "|  2|                            2|\n"
+            + "|  3|                            3|\n"
+            + "|  4|                            4|\n"
+            + "|  5|                            5|\n"
+            + "+---+-----------------------------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
   }
 
   @Test
@@ -7563,7 +7487,9 @@ public class SQLSessionIT {
     }
   }
 
-  /** 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠 */
+  /**
+   * 对常量折叠进行测试，因为RowTransform常量折叠和Filter常量折叠使用的代码都是公共的，所以这里只测试更好对比结果的RowTransform常量折叠
+   */
   @Test
   public void testConstantFolding() {
     String openRule = "SET RULES RowTransformConstantFoldingRule=on, FilterConstantFoldingRule=on;";

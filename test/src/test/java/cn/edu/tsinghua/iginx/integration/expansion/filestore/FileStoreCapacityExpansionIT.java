@@ -48,7 +48,6 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     LOGGER.info("filestore skips test for wrong dummy engine params.");
   }
 
-  // filestore 的 LegacyFilesystem 结构中，所有dummy数据都识别为BINARY
   @Override
   protected void testShowColumnsInExpansion(boolean before) {
     String statement = "SHOW COLUMNS nt.wf03.*;";
@@ -137,7 +136,6 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
-  // filesystem中，所有dummy数据都识别为BINARY
   @Override
   protected void testShowColumnsRemoveStorageEngine(boolean before) {
     String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
@@ -472,7 +470,6 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     params.put("has_data", "true");
     params.put("is_read_only", "true");
     params.put("iginx_port", "6888");
-    // dummy.struct=LegacyFilesystem#dummy.config.
     params.put("dummy.struct", FileTree.NAME);
     params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
     String addStorageParams = getAddStorageParams(params);
