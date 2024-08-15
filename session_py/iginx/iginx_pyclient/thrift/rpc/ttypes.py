@@ -64,36 +64,30 @@ class DataType(object):
 class StorageEngineType(object):
     iotdb12 = 0
     influxdb = 1
-    parquet = 2
-    relational = 3
-    mongodb = 4
-    redis = 5
-    filesystem = 6
-    filestore = 7
-    unknown = 8
+    relational = 2
+    mongodb = 3
+    redis = 4
+    filestore = 5
+    unknown = 6
 
     _VALUES_TO_NAMES = {
         0: "iotdb12",
         1: "influxdb",
-        2: "parquet",
-        3: "relational",
-        4: "mongodb",
-        5: "redis",
-        6: "filesystem",
-        7: "filestore",
-        8: "unknown",
+        2: "relational",
+        3: "mongodb",
+        4: "redis",
+        5: "filestore",
+        6: "unknown",
     }
 
     _NAMES_TO_VALUES = {
         "iotdb12": 0,
         "influxdb": 1,
-        "parquet": 2,
-        "relational": 3,
-        "mongodb": 4,
-        "redis": 5,
-        "filesystem": 6,
-        "filestore": 7,
-        "unknown": 8,
+        "relational": 2,
+        "mongodb": 3,
+        "redis": 4,
+        "filestore": 5,
+        "unknown": 6,
     }
 
 
