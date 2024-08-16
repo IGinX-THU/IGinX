@@ -337,6 +337,11 @@ public class Controller {
     }
   }
 
+  // 处理IT在每个写入数据后先关操作
+  public static <T> void after(T session) {
+    // do nothing
+  }
+
   private static <T> void addEmbeddedStorageEngine(T session, String stmt) throws SessionException {
     MultiConnection multiConnection = null;
     if (session instanceof MultiConnection) {
