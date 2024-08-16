@@ -39,9 +39,10 @@ runs:
           shell: bash
           run: |
               brew update
-              brew install docker colima
-              colima version
-              colima start --cpu 3 --memory 6 --disk 100 --vm-type=qemu --mount-type=sshfs --dns=1.1.1.1
+              brew install docker
+              brew install colima
+              sudo curl -L -o /opt/homebrew/Cellar/lima/0.22.0/bin/limactl https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x /opt/homebrew/Cellar/lima/0.22.0/bin/limactl
+              colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
         - if: inputs.scope=='all'
