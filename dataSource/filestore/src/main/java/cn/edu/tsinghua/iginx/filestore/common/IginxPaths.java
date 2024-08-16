@@ -87,4 +87,11 @@ public class IginxPaths {
       return path.substring(0, path.length() - DOT.length());
     }
   }
+
+  public static String[] split(@Nullable String path) {
+    if (path == null) {
+      return new String[0];
+    }
+    return path.split(Pattern.quote(DOT));
+  }
 }

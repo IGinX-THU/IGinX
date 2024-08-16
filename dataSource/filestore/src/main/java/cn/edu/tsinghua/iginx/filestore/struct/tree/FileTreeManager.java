@@ -25,7 +25,7 @@ import cn.edu.tsinghua.iginx.filestore.common.RowStreams;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.query.Querier;
-import cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj.FormatTreeJoin;
+import cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj.MergeFormatTree;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
 import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
@@ -53,7 +53,7 @@ public class FileTreeManager implements FileManager {
     LOGGER.debug("Create Manager in {} with {}", path, config);
     this.path = Objects.requireNonNull(path).normalize();
     this.config = config;
-    this.builder = new FormatTreeJoin().create(config.getPrefix(), path, config);
+    this.builder = new MergeFormatTree().create(config.getPrefix(), path, config);
   }
 
   @Override

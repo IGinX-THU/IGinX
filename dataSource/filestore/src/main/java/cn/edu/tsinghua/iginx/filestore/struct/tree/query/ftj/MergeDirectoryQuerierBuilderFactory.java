@@ -26,13 +26,14 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class TreeJoinQuerierBuilderFactory implements Factory {
+public class MergeDirectoryQuerierBuilderFactory implements Factory {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(TreeJoinQuerierBuilderFactory.class);
+  private static final Logger LOGGER =
+      LoggerFactory.getLogger(MergeDirectoryQuerierBuilderFactory.class);
 
   private final Factory factory;
 
-  public TreeJoinQuerierBuilderFactory(Factory factory) {
+  public MergeDirectoryQuerierBuilderFactory(Factory factory) {
     this.factory = Objects.requireNonNull(factory);
     if (factory == this) {
       throw new IllegalArgumentException("Factory cannot be itself");
@@ -42,6 +43,6 @@ public class TreeJoinQuerierBuilderFactory implements Factory {
   @Override
   public Builder create(@Nullable String prefix, Path path, FileTreeConfig config) {
     LOGGER.debug("create tree join querier for {} at '{}' with {}", path, prefix, config);
-    return new TreeJoinQuerierBuilder(prefix, path, factory, config);
+    return new MergeDirectoryQuerierBuilder(prefix, path, factory, config);
   }
 }

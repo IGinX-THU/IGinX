@@ -19,15 +19,19 @@ package cn.edu.tsinghua.iginx.filestore.common;
 
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.base.Strings;
-import java.util.*;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 public class Patterns {
   private Patterns() {}
 
+  private static final String STAR = "*";
+
   public static boolean isAll(String pattern) {
-    return pattern.equals("*");
+    return pattern.equals(STAR);
   }
 
   public static boolean isAll(@Nullable Collection<String> patterns) {
@@ -51,7 +55,7 @@ public class Patterns {
     if (prefix == null) {
       return true;
     }
-    if (pattern.startsWith("*")) {
+    if (pattern.startsWith(STAR)) {
       return true;
     }
     if (pattern.startsWith(prefix)) {
@@ -60,7 +64,7 @@ public class Patterns {
     String commonPrefix = Strings.commonPrefix(pattern, prefix);
     if (!commonPrefix.isEmpty()) {
       String patternWithoutCommonPrefix = pattern.substring(commonPrefix.length());
-      return patternWithoutCommonPrefix.startsWith("*");
+      return patternWithoutCommonPrefix.startsWith(STAR);
     }
     return false;
   }
@@ -72,7 +76,7 @@ public class Patterns {
     return patterns.stream().anyMatch(pattern -> startsWith(pattern, subPrefix));
   }
 
-  private static final List<String> ALL = Collections.singletonList("*");
+  private static final List<String> ALL = Collections.singletonList(STAR);
 
   public static List<String> all() {
     return ALL;
@@ -97,7 +101,7 @@ public class Patterns {
   }
 
   public static boolean isWildcard(String path) {
-    return path.contains("*");
+    return path.contains(STAR);
   }
 
   public static boolean isEmpty(@Nullable List<String> subPatterns) {
@@ -105,5 +109,33 @@ public class Patterns {
       return false;
     }
     return subPatterns.isEmpty();
+  }
+
+  public static List<String> nullToAll(@Nullable List<String> patterns) {
+    return patterns == null ? all() : patterns;
+  }
+
+  public static String suffix(String pattern, @Nullable String prefix) {
+    if (prefix == null) {
+      return pattern;
+    }
+    String stringPrefix = IginxPaths.toStringPrefix(prefix);
+    String patternStringPrefix = IginxPaths.toStringPrefix(pattern);
+
+    int starIndex = patternStringPrefix.indexOf(STAR);
+    starIndex = starIndex == -1 ? patternStringPrefix.length() : starIndex;
+    String beforeWildcard = patternStringPrefix.substring(0, starIndex);
+    String wildcardSuffix = patternStringPrefix.substring(starIndex);
+
+    if (beforeWildcard.startsWith(stringPrefix)) {
+      return IginxPaths.fromStringPrefix(patternStringPrefix.substring(stringPrefix.length()));
+    } else {
+      if (stringPrefix.startsWith(beforeWildcard)) {
+        if (!wildcardSuffix.isEmpty()) {
+          return IginxPaths.fromStringPrefix(wildcardSuffix);
+        }
+      }
+      throw new IllegalArgumentException(pattern + " does not start with " + prefix);
+    }
   }
 }

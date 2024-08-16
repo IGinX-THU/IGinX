@@ -25,10 +25,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import javax.annotation.Nullable;
 
-public class FormatTreeJoin implements Factory {
+public class MergeFormatTree implements Factory {
 
   private final Factory forRegularFile = new FormatQuerierBuilderFactory();
-  private final Factory forDirectory = new TreeJoinQuerierBuilderFactory(this);
+  private final Factory forDirectory = new MergeDirectoryQuerierBuilderFactory(this);
 
   @Override
   public Builder create(@Nullable String prefix, Path path, FileTreeConfig config)

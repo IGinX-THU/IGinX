@@ -28,11 +28,11 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
-class TreeJoinQuerier extends AbstractQuerier {
+class MergeDirectoryQuerier extends AbstractQuerier {
 
   private final List<Querier> queriers = new ArrayList<>();
 
-  TreeJoinQuerier(Path path, String prefix, DataTarget target) {
+  MergeDirectoryQuerier(Path path, String prefix, DataTarget target) {
     super(path, prefix, target);
   }
 

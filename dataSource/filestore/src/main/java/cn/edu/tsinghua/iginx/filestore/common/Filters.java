@@ -159,7 +159,7 @@ public class Filters {
       return true;
     }
 
-    boolean[] result = new boolean[1];
+    boolean[] result = new boolean[] {true};
 
     filter.accept(
         new FilterVisitor() {
