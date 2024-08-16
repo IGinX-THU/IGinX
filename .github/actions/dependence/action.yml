@@ -34,6 +34,7 @@ runs:
               tzutil /s "China Standard Time"
               echo "JAVA_OPTS=-Xmx4g -Xms2g" >> %GITHUB_ENV%
 
+        # we use a patched version of lima(slower) because colima cannot start on M1 chips and the docker task is lightweight.
         - if: runner.os == 'macOS' &&  inputs.docker-required=='true'
           name: Install Docker on MacOS
           shell: bash
