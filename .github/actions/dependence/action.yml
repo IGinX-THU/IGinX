@@ -62,7 +62,7 @@ runs:
           uses: actions/setup-java@v4
           with:
               java-version: ${{ inputs.java }}
-              distribution: "temurin"
+              distribution: ${{ runner.os == 'macOS' && matrix.java == '8' && 'liberica' || 'temurin' }}
               cache: "maven"
 
         - name: Get project info
