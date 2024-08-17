@@ -76,6 +76,7 @@ public abstract class AbstractDummyTest {
 
   protected Header getSchema(List<String> pattern) throws PhysicalException {
     DataTarget target = new DataTarget(new BoolFilter(false), pattern, null);
+    LOGGER.info("get schema with {}", pattern);
     try (RowStream stream = service.query(unit, target, null)) {
       Header header = stream.getHeader();
       Header sorted = DataValidator.sort(header);
@@ -90,6 +91,7 @@ public abstract class AbstractDummyTest {
 
   protected List<Row> query(List<String> pattern, Filter filter) throws PhysicalException {
     DataTarget target = new DataTarget(filter, pattern, null);
+    LOGGER.info("query with {} and {}", pattern, filter);
     try (RowStream stream = service.query(unit, target, null)) {
       List<Row> rows = DataValidator.toList(stream);
       List<Row> normalized = DataValidator.normalize(rows);

@@ -59,7 +59,7 @@ public class Queriers {
     private final Filter filter;
 
     FilteredQuerier(Querier querier, Filter filter) {
-      this.querier = merged(querier);
+      this.querier = union(querier);
       this.filter = Objects.requireNonNull(filter);
     }
 
@@ -92,10 +92,10 @@ public class Queriers {
     return new FilteredQuerier(querier, filter);
   }
 
-  static class MergedQuerier implements Querier {
+  static class UnionQuerier implements Querier {
     private final Querier querier;
 
-    MergedQuerier(Querier querier) {
+    UnionQuerier(Querier querier) {
       this.querier = Objects.requireNonNull(querier);
     }
 
@@ -113,7 +113,7 @@ public class Queriers {
     public List<RowStream> query() throws IOException {
       List<RowStream> rowStreams = querier.query();
       try {
-        return Collections.singletonList(RowStreams.merged(rowStreams));
+        return Collections.singletonList(RowStreams.union(rowStreams));
       } catch (PhysicalException e) {
         Closeables.close(Iterables.transform(rowStreams, Closeables::closeAsIOException));
         throw new IOException(e);
@@ -121,7 +121,7 @@ public class Queriers {
     }
   }
 
-  public static Querier merged(Querier querier) {
-    return new MergedQuerier(querier);
+  public static Querier union(Querier querier) {
+    return new UnionQuerier(querier);
   }
 }

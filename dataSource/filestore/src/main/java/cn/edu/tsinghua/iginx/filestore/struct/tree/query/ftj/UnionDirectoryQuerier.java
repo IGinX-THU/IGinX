@@ -27,17 +27,15 @@ import java.io.IOException;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
-class MergeDirectoryQuerier extends AbstractQuerier {
+class UnionDirectoryQuerier extends AbstractQuerier {
 
-  private final List<Querier> queriers = new ArrayList<>();
+  private final List<Querier> queriers;
 
-  MergeDirectoryQuerier(Path path, String prefix, DataTarget target) {
+  UnionDirectoryQuerier(Path path, String prefix, DataTarget target, List<Querier> subQueriers) {
     super(path, prefix, target);
-  }
-
-  public void add(Querier querier) {
-    queriers.add(querier);
+    queriers = Objects.requireNonNull(subQueriers);
   }
 
   @Override

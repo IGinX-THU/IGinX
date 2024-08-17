@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.filestore.struct.tree.query.ftj;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.filestore.common.Closeables;
 import cn.edu.tsinghua.iginx.filestore.common.Filters;
 import cn.edu.tsinghua.iginx.filestore.common.IginxPaths;
 import cn.edu.tsinghua.iginx.filestore.common.Patterns;
@@ -30,25 +31,21 @@ import java.io.IOException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Predicate;
+import java.util.*;
 import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class MergeDirectoryQuerierBuilder implements Builder {
+class UnionDirectoryQuerierBuilder implements Builder {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MergeDirectoryQuerierBuilder.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UnionDirectoryQuerierBuilder.class);
 
   private final String prefix;
   private final Path path;
   private final Factory factory;
   private final FileTreeConfig config;
 
-  MergeDirectoryQuerierBuilder(
+  UnionDirectoryQuerierBuilder(
       @Nullable String prefix, Path path, Factory factory, FileTreeConfig config) {
     this.prefix = prefix;
     this.path = path;
@@ -81,36 +78,39 @@ class MergeDirectoryQuerierBuilder implements Builder {
     Map<String, Path> matchedChildren = matchedChildren(target);
 
     boolean needPostFilter = false;
-    MergeDirectoryQuerier mergeDirectoryQuerier = new MergeDirectoryQuerier(path, prefix, target);
+    List<Querier> subQueriers = new ArrayList<>();
     try {
       for (Map.Entry<String, Path> entry : matchedChildren.entrySet()) {
         String subPrefix = entry.getKey();
-        Path subpath = entry.getValue();
+        Path subPath = entry.getValue();
 
-        Predicate<Filter> subFilterTester = Filters.startWith(subPrefix);
-        Filter subFilter = Filters.superSet(target.getFilter(), subFilterTester);
-        if (!Filters.match(target.getFilter(), subFilterTester)) {
-          needPostFilter = true;
-        }
-
-        List<String> subPatterns = Patterns.filterByPrefix(target.getPatterns(), subPrefix);
-        DataTarget subTarget = target.withPatterns(subPatterns).withFilter(subFilter);
-
-        try (Builder subBuilder = factory.create(subPrefix, subpath, config)) {
+        DataTarget subTarget = extractTarget(target, subPrefix);
+        try (Builder subBuilder = factory.create(subPrefix, subPath, config)) {
           Querier subQuerier = subBuilder.build(subTarget);
-          mergeDirectoryQuerier.add(subQuerier);
+          subQueriers.add(subQuerier);
+        }
+        if (!Filters.match(target.getFilter(), Filters.startWith(subPrefix))) {
+          needPostFilter = true;
         }
       }
     } catch (IOException e) {
-      mergeDirectoryQuerier.close();
+      Closeables.close(subQueriers);
       throw e;
     }
 
+    UnionDirectoryQuerier unionDirectoryQuerier =
+        new UnionDirectoryQuerier(path, prefix, target, subQueriers);
     if (!needPostFilter) {
-      return mergeDirectoryQuerier;
+      return unionDirectoryQuerier;
     }
     LOGGER.debug("set post filter for {}", target);
-    return Queriers.filtered(mergeDirectoryQuerier, target.getFilter());
+    return Queriers.filtered(unionDirectoryQuerier, target.getFilter());
+  }
+
+  private DataTarget extractTarget(DataTarget target, String subPrefix) {
+    List<String> subPatterns = Patterns.filterByPrefix(target.getPatterns(), subPrefix);
+    Filter subFilter = Filters.superSet(target.getFilter(), Filters.startWith(subPrefix));
+    return target.withPatterns(subPatterns).withFilter(subFilter);
   }
 
   private String subPrefix(String prefix, Path subpath) {
@@ -120,6 +120,9 @@ class MergeDirectoryQuerierBuilder implements Builder {
   private Map<String, Path> matchedChildren(DataTarget target) throws IOException {
     HashMap<String, Path> matchedChildren = new LinkedHashMap<>();
     for (String pattern : Patterns.nullToAll(target.getPatterns())) {
+      if (!Patterns.startsWith(pattern, prefix)) {
+        continue;
+      }
       String patternSuffix = Patterns.suffix(pattern, prefix);
       String[] subPatterns = IginxPaths.split(patternSuffix);
       if (subPatterns.length == 0) {

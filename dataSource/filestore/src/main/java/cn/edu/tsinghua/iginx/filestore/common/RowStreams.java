@@ -38,7 +38,7 @@ public class RowStreams {
     return new EmptyRowStream(header);
   }
 
-  public static RowStream merged(List<RowStream> rowStreams) throws PhysicalException {
+  public static RowStream union(List<RowStream> rowStreams) throws PhysicalException {
     if (rowStreams.isEmpty()) {
       return empty();
     } else if (rowStreams.size() == 1) {

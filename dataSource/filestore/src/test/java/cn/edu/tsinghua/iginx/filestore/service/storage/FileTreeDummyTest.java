@@ -371,6 +371,28 @@ public class FileTreeDummyTest extends AbstractDummyTest {
         }
       }
     }
+
+    // query not exist column
+    List<String> notExistPatterns =
+        Arrays.asList(
+            "home.target.flattened",
+            "home.target.*",
+            "home.target.*.flattened",
+            "temp.flattened",
+            "temp.flattened.*",
+            "temp.*.flattened",
+            "temp.*.flattened.*.flattened",
+            "",
+            "home.src..*",
+            "..home.src.*",
+            "home.src.*..");
+    for (String notExistPattern : notExistPatterns) {
+      List<String> patterns = Collections.singletonList(notExistPattern);
+      Header schema = getSchema(patterns);
+      assertEquals(new Header(Field.KEY, Collections.emptyList()), schema);
+      List<Row> rows = query(patterns);
+      assertEquals(Collections.emptyList(), rows);
+    }
   }
 
   @Test
