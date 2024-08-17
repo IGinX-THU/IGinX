@@ -321,6 +321,18 @@ In order to facilitate installation and management of IGinX, IGinX provides user
 | statisticsCollectorClassName | Statistics collection class                                                 | cn.edu.tsinghua.iginx.statistics.StatisticsCollector                                                                                                                                                                                                                                                                                  |
 | statisticsLogInterval        | Statistics print interval, in milliseconds                                  | 1000                                                                                                                                                                                                                                                                                                                                  |
 
+When connecting to relational databases such as PostgreSQL and MySQL, you can configure the parameters of the HikariDataSource at `storageEngineList`
+
+|    Configuration Item     |                           Description                           | Defalt |
+|---------------------------|-----------------------------------------------------------------|--------|
+| connection_timeout        | Connection timeout (ms)                                         | 30000  |
+| idle_timeout              | Idle connection timeout (ms)                                    | 10000  |
+| maximum_pool_size         | The maximum number of connections in the connection pool        | 20     |
+| minimum_idle              | Minimum number of idle connections in the connection pool       | 1      |
+| leak_detection_threshold  | Threshold for detecting connection leaks (ms)                   | 2500   |
+| prep_stmt_cache_size      | Number of SQL precompiled objects cached                        | 250    |
+| prep_stmt_cache_sql_limit | The upper limit of the number of SQL precompiled objects cached | 2048   |
+
 #### Rest Configuration
 
 | Configuration item |          Description           | Default value |
