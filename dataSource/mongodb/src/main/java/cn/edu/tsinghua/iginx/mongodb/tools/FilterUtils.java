@@ -331,6 +331,15 @@ public class FilterUtils {
                 "$regexMatch",
                 new Document("input", "$" + fieldName)
                     .append("regex", value.asString().getValue() + "$")));
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        return expr(
+            new Document(
+                "$not",
+                new Document(
+                    "$regexMatch",
+                    new Document("input", "$" + fieldName)
+                        .append("regex", value.asString().getValue() + "$"))));
     }
     throw new IllegalStateException("unexpected Filter op: " + op);
   }

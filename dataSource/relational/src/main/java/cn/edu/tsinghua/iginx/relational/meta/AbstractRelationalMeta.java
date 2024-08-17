@@ -171,6 +171,13 @@ public abstract class AbstractRelationalMeta {
    */
   public abstract String getRegexpOp();
 
+  /**
+   * 获取不匹配正则表达式的操作符
+   *
+   * @return 不匹配正则表达式的操作符
+   */
+  public abstract String getNotRegexpOp();
+
   /** jdbc获取元数据是否支持反斜杠的识别 */
   public abstract boolean jdbcSupportSpecialChar();
 }
