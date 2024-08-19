@@ -165,4 +165,16 @@ public class FilePermissionManagerTest {
     assertTrue(p.isPresent());
     assertEquals(Paths.get("test").toAbsolutePath(), p.get());
   }
+
+  @Test
+  public void testDenormalizedAbsolutePath() {
+    FilePermissionManager.Checker checker = path -> true;
+
+    Path basePath = Paths.get("test").toAbsolutePath();
+    Path testPath = basePath.resolve("../test");
+
+    Optional<Path> p = checker.normalize(testPath.toString());
+    assertTrue(p.isPresent());
+    assertEquals(Paths.get("test").toAbsolutePath(), p.get());
+  }
 }
