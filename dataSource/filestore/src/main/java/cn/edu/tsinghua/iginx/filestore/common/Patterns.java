@@ -52,21 +52,16 @@ public class Patterns {
   }
 
   public static boolean startsWith(String pattern, @Nullable String prefix) {
-    if (prefix == null) {
+    String patternStringPrefix = IginxPaths.toStringPrefix(pattern);
+    String prefixStringPrefix = IginxPaths.toStringPrefix(prefix);
+
+    if (patternStringPrefix.startsWith(prefixStringPrefix)) {
       return true;
     }
-    if (pattern.startsWith(STAR)) {
-      return true;
-    }
-    if (pattern.startsWith(prefix)) {
-      return true;
-    }
-    String commonPrefix = Strings.commonPrefix(pattern, prefix);
-    if (!commonPrefix.isEmpty()) {
-      String patternWithoutCommonPrefix = pattern.substring(commonPrefix.length());
-      return patternWithoutCommonPrefix.startsWith(STAR);
-    }
-    return false;
+
+    String commonPrefix = Strings.commonPrefix(patternStringPrefix, prefixStringPrefix);
+    String patternWithoutCommonPrefix = pattern.substring(commonPrefix.length());
+    return patternWithoutCommonPrefix.startsWith(STAR);
   }
 
   public static boolean startsWith(@Nullable List<String> patterns, @Nullable String subPrefix) {
