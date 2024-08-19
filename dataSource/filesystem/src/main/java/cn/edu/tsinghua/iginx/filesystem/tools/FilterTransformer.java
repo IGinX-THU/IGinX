@@ -113,6 +113,8 @@ public class FilterTransformer {
         return FSOp.LE;
       case LIKE:
         return FSOp.LIKE;
+      case NOT_LIKE:
+        return FSOp.NOT_LIKE;
       case NE:
         return FSOp.NE;
       case E:
@@ -127,6 +129,8 @@ public class FilterTransformer {
         return FSOp.LE_AND;
       case LIKE_AND:
         return FSOp.LIKE_AND;
+      case NOT_LIKE_AND:
+        return FSOp.NOT_LIKE_AND;
       case NE_AND:
         return FSOp.NE_AND;
       case E_AND:
@@ -234,6 +238,8 @@ public class FilterTransformer {
         return LE;
       case LIKE:
         return LIKE;
+      case NOT_LIKE:
+        return NOT_LIKE;
       case NE:
         return NE;
       case E:
@@ -248,6 +254,8 @@ public class FilterTransformer {
         return LE_AND;
       case LIKE_AND:
         return LIKE_AND;
+      case NOT_LIKE_AND:
+        return NOT_LIKE_AND;
       case NE_AND:
         return NE_AND;
       case E_AND:
