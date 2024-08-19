@@ -1,30 +1,38 @@
-select
+SELECT
     customer.c_name,
     customer.c_custkey,
     orders.o_orderkey,
     orders.o_orderdate,
     orders.o_totalprice,
-    sum(lineitem.l_quantity)
-from
+    SUM( lineitem.l_quantity )
+FROM
     customer
-    join orders on customer.c_custkey = orders.o_custkey
-    join lineitem on orders.o_orderkey = lineitem.l_orderkey
-where orders.o_orderkey in (
-    select lineitem.l_orderkey
-    from (
-        select
-            l_orderkey,
-            sum(l_quantity)
-        from lineitem
-        group by l_orderkey
-        having sum(lineitem.l_quantity) > 300
+JOIN orders ON
+    customer.c_custkey = orders.o_custkey
+JOIN lineitem ON
+    orders.o_orderkey = lineitem.l_orderkey
+WHERE
+    orders.o_orderkey IN(
+        SELECT
+            lineitem.l_orderkey
+        FROM
+            (
+                SELECT
+                    l_orderkey,
+                    SUM( l_quantity )
+                FROM
+                    lineitem
+                GROUP BY
+                    l_orderkey
+                HAVING
+                    SUM( lineitem.l_quantity )> 300
+            )
     )
-)
-group by
+GROUP BY
     customer.c_name,
     customer.c_custkey,
     orders.o_orderkey,
     orders.o_orderdate,
     orders.o_totalprice
-order by orders.o_totalprice desc
-limit 100;
+ORDER BY
+    orders.o_totalprice DESC LIMIT 100;
