@@ -35,7 +35,6 @@ jobs:
         uses: ./.github/workflows/remote-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            os-matrix: '["macos-latest"]'
     assemebly-test:
         uses: ./.github/workflows/assembly-test.yml
     tpc-h-regression-test:
