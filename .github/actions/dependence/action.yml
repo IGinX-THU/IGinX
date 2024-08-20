@@ -42,7 +42,8 @@ runs:
               brew update
               brew install docker
               brew install colima
-              sudo curl -L -o /opt/homebrew/Cellar/lima/0.23.1/bin/limactl https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x /opt/homebrew/Cellar/lima/0.23.1/bin/limactl
+              LIMACTL_PATH=$(brew --prefix)/bin/limactl
+              sudo curl -L -o $LIMACTL_PATH https://github.com/mikekazakov/lima-nohvf/raw/master/limactl && sudo chmod +x $LIMACTL_PATH
               colima start --network-address --arch arm64 --vm-type=qemu
               docker --version
 
