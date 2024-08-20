@@ -28,6 +28,7 @@ public enum Op {
   E,
   NE,
   LIKE,
+  NOT_LIKE,
   // and op: [10, 19]
   GE_AND(10),
   G_AND,
@@ -35,7 +36,8 @@ public enum Op {
   L_AND,
   E_AND,
   NE_AND,
-  LIKE_AND;
+  LIKE_AND,
+  NOT_LIKE_AND;
 
   private int value;
 
@@ -79,6 +81,9 @@ public enum Op {
         return GE;
       case LIKE:
       case LIKE_AND:
+        return NOT_LIKE;
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
         return LIKE;
       default:
         return op;
@@ -100,6 +105,8 @@ public enum Op {
       case L:
         return GE_AND;
       case LIKE:
+        return NOT_LIKE_AND;
+      case NOT_LIKE:
         return LIKE_AND;
       case NE_AND:
         return E;
@@ -114,6 +121,8 @@ public enum Op {
       case L_AND:
         return GE;
       case LIKE_AND:
+        return NOT_LIKE;
+      case NOT_LIKE_AND:
         return LIKE;
       default:
         return op;
@@ -170,6 +179,9 @@ public enum Op {
       case "like":
       case "|like":
         return LIKE;
+      case "not like":
+      case "not |like":
+        return NOT_LIKE;
       case "&=":
       case "&==":
         return E_AND;
@@ -186,6 +198,8 @@ public enum Op {
         return LE_AND;
       case "&like":
         return LIKE_AND;
+      case "not &like":
+        return NOT_LIKE_AND;
       default:
         throw new SQLParserException(String.format("Not support comparison operator %s", op));
     }
@@ -207,6 +221,8 @@ public enum Op {
         return "!=";
       case LIKE:
         return "like";
+      case NOT_LIKE:
+        return "not like";
       case GE_AND:
         return "&>=";
       case G_AND:
@@ -221,6 +237,8 @@ public enum Op {
         return "&!=";
       case LIKE_AND:
         return "&like";
+      case NOT_LIKE_AND:
+        return "not &like";
       default:
         return "";
     }
@@ -234,7 +252,7 @@ public enum Op {
    */
   public static String op2StrWithoutAndOr(Op op) {
     String opStr = Op.op2Str(op);
-    if (opStr.startsWith("&")) {
+    if (opStr.contains("&")) {
       return opStr.substring(1);
     }
     return opStr;
@@ -242,10 +260,6 @@ public enum Op {
 
   public static boolean isEqualOp(Op op) {
     return op.equals(E) || op.equals(E_AND);
-  }
-
-  public static boolean isLikeOp(Op op) {
-    return op.equals(LIKE) || op.equals(LIKE_AND);
   }
 
   public static boolean isOrOp(Op op) {

@@ -448,6 +448,21 @@ public class SQLSessionIT {
             + "Total line number = 4\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT c FROM us.d2 WHERE c not like \"^a.*\";";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  2|  sadaa|\n"
+            + "|  3| sadada|\n"
+            + "|  5| deadsa|\n"
+            + "|  6|  dasda|\n"
+            + "|  8|  frgsa|\n"
+            + "+---+-------+\n"
+            + "Total line number = 5\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT c FROM us.d2 WHERE c like \"^[s|f].*\";";
     expected =
         "ResultSets:\n"
@@ -459,6 +474,22 @@ public class SQLSessionIT {
             + "|  8|  frgsa|\n"
             + "+---+-------+\n"
             + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT c FROM us.d2 WHERE c not like \"^[s|f].*\";";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  1|  asdas|\n"
+            + "|  4|  asdad|\n"
+            + "|  5| deadsa|\n"
+            + "|  6|  dasda|\n"
+            + "|  7| asdsad|\n"
+            + "|  9|  asdad|\n"
+            + "+---+-------+\n"
+            + "Total line number = 6\n";
     executor.executeAndCompare(query, expected);
 
     query = "SELECT c FROM us.d2 WHERE c like \"^.*[s|d]\";";
@@ -473,6 +504,21 @@ public class SQLSessionIT {
             + "|  9|  asdad|\n"
             + "+---+-------+\n"
             + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT c FROM us.d2 WHERE c not like \"^.*[s|d]\";";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  2|  sadaa|\n"
+            + "|  3| sadada|\n"
+            + "|  5| deadsa|\n"
+            + "|  6|  dasda|\n"
+            + "|  8|  frgsa|\n"
+            + "+---+-------+\n"
+            + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
     StringBuilder builder = new StringBuilder();

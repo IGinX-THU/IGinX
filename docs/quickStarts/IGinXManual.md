@@ -320,6 +320,18 @@ IGinX、Rest、元数据管理三方面配置。
 | statisticsCollectorClassName | 统计信息收集类              | cn.edu.tsinghua.iginx.statistics.StatisticsCollector                                                                                                                                                                                                                                                                                  |
 | statisticsLogInterval        | 统计信息打印间隔，单位毫秒        | 1000                                                                                                                                                                                                                                                                                                                                  |
 
+连接PostgreSQL、MySQL等关系数据库时，可在storageEngineList处配置HikariDataSource连接池的参数
+
+|            配置项            |        描述        |  默认值  |
+|---------------------------|------------------|-------|
+| connection_timeout        | 连接超时时间（单位：毫秒）    | 30000 |
+| idle_timeout              | 空闲连接超时时间（单位：毫秒）  | 10000 |
+| maximum_pool_size         | 连接池中的最大连接数       | 20    |
+| minimum_idle              | 连接池中的最小空闲连接数     | 1     |
+| leak_detection_threshold  | 检测连接泄漏的阈值（单位：毫秒） | 2500  |
+| prep_stmt_cache_size      | SQL预编译对象缓存个数     | 250   |
+| prep_stmt_cache_sql_limit | SQL预编译对象缓存个数上限   | 2048  |
+
 #### Rest 配置
 
 |        配置项        |      描述      |   默认值   |

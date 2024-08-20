@@ -115,6 +115,8 @@ public class FilterTransformer {
         return RawFilterOp.LE;
       case LIKE:
         return RawFilterOp.LIKE;
+      case NOT_LIKE:
+        return RawFilterOp.NOT_LIKE;
       case NE:
         return RawFilterOp.NE;
       case E:
@@ -129,6 +131,8 @@ public class FilterTransformer {
         return RawFilterOp.LE_AND;
       case LIKE_AND:
         return RawFilterOp.LIKE_AND;
+      case NOT_LIKE_AND:
+        return RawFilterOp.NOT_LIKE_AND;
       case NE_AND:
         return RawFilterOp.NE_AND;
       case E_AND:
@@ -236,6 +240,8 @@ public class FilterTransformer {
         return LE;
       case LIKE:
         return LIKE;
+      case NOT_LIKE:
+        return NOT_LIKE;
       case NE:
         return NE;
       case E:
@@ -250,6 +256,8 @@ public class FilterTransformer {
         return LE_AND;
       case LIKE_AND:
         return LIKE_AND;
+      case NOT_LIKE_AND:
+        return NOT_LIKE_AND;
       case NE_AND:
         return NE_AND;
       case E_AND:
