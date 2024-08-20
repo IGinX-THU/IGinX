@@ -34,7 +34,7 @@ public class PooledTTransport extends ForwardTTransport {
     returnToPool();
   }
 
-  void destroy() {
+  public void destroy() {
     super.close();
   }
 
