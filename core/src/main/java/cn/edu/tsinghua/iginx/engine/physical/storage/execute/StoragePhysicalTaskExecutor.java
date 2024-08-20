@@ -37,13 +37,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Insert;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Select;
-import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
@@ -56,14 +50,15 @@ import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskExecutor {
 
@@ -162,11 +157,11 @@ public class StoragePhysicalTaskExecutor {
                                   boolean needSetTransformPushDown =
                                       operators.size() == 2
                                           && operators.get(1).getType()
-                                              == OperatorType.SetTransform;
+                                          == OperatorType.SetTransform;
                                   boolean canSetTransformPushDown =
                                       needSetTransformPushDown
                                           && pair.k.isSupportProjectWithSetTransform(
-                                              (SetTransform) operators.get(1), dataArea);
+                                          (SetTransform) operators.get(1), dataArea);
                                   if (isDummyStorageUnit) {
                                     if (needSelectPushDown) {
                                       result =
@@ -261,8 +256,8 @@ public class StoragePhysicalTaskExecutor {
                                 LOGGER.error(
                                     "task "
                                         + task
-                                        + " will not broadcasting to replicas for the sake of exception: "
-                                        + result.getException());
+                                        + " will not broadcasting to replicas for the sake of exception",
+                                    result.getException());
                                 task.setResult(new TaskExecuteResult(result.getException()));
                               } else {
                                 StorageUnitMeta masterStorageUnit =
