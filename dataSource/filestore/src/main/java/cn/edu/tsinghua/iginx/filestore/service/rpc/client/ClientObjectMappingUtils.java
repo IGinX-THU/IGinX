@@ -83,7 +83,7 @@ public class ClientObjectMappingUtils {
       case Path:
         return toRawFilter((PathFilter) filter);
       default:
-        return null;
+        throw new UnsupportedOperationException("unsupported filter type: " + filter.getType());
     }
   }
 
@@ -152,6 +152,8 @@ public class ClientObjectMappingUtils {
         return RawFilterOp.LE;
       case LIKE:
         return RawFilterOp.LIKE;
+      case NOT_LIKE:
+        return RawFilterOp.NOT_LIKE;
       case NE:
         return RawFilterOp.NE;
       case E:
@@ -166,6 +168,8 @@ public class ClientObjectMappingUtils {
         return RawFilterOp.LE_AND;
       case LIKE_AND:
         return RawFilterOp.LIKE_AND;
+      case NOT_LIKE_AND:
+        return RawFilterOp.NOT_LIKE_AND;
       case NE_AND:
         return RawFilterOp.NE_AND;
       case E_AND:
@@ -175,7 +179,7 @@ public class ClientObjectMappingUtils {
       case G_AND:
         return RawFilterOp.G_AND;
       default:
-        return RawFilterOp.UNKNOWN;
+        throw new UnsupportedOperationException("unsupported op: " + op);
     }
   }
 
@@ -201,6 +205,8 @@ public class ClientObjectMappingUtils {
       case LONG:
         raw.setLongV(value.getLongV());
         break;
+      default:
+        throw new UnsupportedOperationException("unsupported data type: " + value.getDataType());
     }
     return raw;
   }
@@ -256,10 +262,8 @@ public class ClientObjectMappingUtils {
           return filter;
         }
       default:
-        {
-          LOGGER.error("unknown tag filter type: {}", tagFilter.getType());
-          return null;
-        }
+        throw new UnsupportedOperationException(
+            "unsupported tag filter type: " + tagFilter.getType());
     }
   }
 
