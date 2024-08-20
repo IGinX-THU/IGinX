@@ -3,7 +3,7 @@ INSERT
         tmpTableC(
             KEY,
             orderkey,
-            YEAR
+            orderyear
         )
     VALUES(
         SELECT
@@ -21,7 +21,7 @@ FROM
     (
         SELECT
             nation.n_name AS nation,
-            tmpTableC.year AS o_year,
+            tmpTableC.orderyear AS o_year,
             lineitem.l_extendedprice *(
                 1 - lineitem.l_discount
             )- partsupp.ps_supplycost * lineitem.l_quantity AS amount
