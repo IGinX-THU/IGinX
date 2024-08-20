@@ -47,142 +47,6 @@ public class ServerObjectMappingUtils {
 
   private ServerObjectMappingUtils() {}
 
-  public static RawFilter constructRawFilter(Filter filter) {
-    if (filter == null) {
-      return null;
-    }
-    switch (filter.getType()) {
-      case And:
-        return constructRawFilter((AndFilter) filter);
-      case Or:
-        return constructRawFilter((OrFilter) filter);
-      case Not:
-        return constructRawFilter((NotFilter) filter);
-      case Value:
-        return constructRawFilter((ValueFilter) filter);
-      case Key:
-        return constructRawFilter((KeyFilter) filter);
-      case Bool:
-        return constructRawFilter((BoolFilter) filter);
-      case Path:
-        return constructRawFilter((PathFilter) filter);
-      default:
-        return null;
-    }
-  }
-
-  private static RawFilter constructRawFilter(AndFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.And);
-    for (Filter f : filter.getChildren()) {
-      RawFilter.addToChildren(constructRawFilter(f));
-    }
-    return RawFilter;
-  }
-
-  private static RawFilter constructRawFilter(PathFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Path);
-    RawFilter.setPathA(filter.getPathA());
-    RawFilter.setPathB(filter.getPathB());
-    RawFilter.setOp(constructRawFilterOp(filter.getOp()));
-    return RawFilter;
-  }
-
-  private static RawFilter constructRawFilter(OrFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Or);
-    for (Filter f : filter.getChildren()) {
-      RawFilter.addToChildren(constructRawFilter(f));
-    }
-    return RawFilter;
-  }
-
-  private static RawFilter constructRawFilter(NotFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Not);
-    RawFilter.addToChildren(constructRawFilter(filter.getChild()));
-    return RawFilter;
-  }
-
-  private static RawFilter constructRawFilter(KeyFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Key);
-    RawFilter.setOp(constructRawFilterOp(filter.getOp()));
-    RawFilter.setKeyValue(filter.getValue());
-    return RawFilter;
-  }
-
-  private static RawFilter constructRawFilter(ValueFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Value);
-    RawFilter.setValue(constructRawValue(filter.getValue()));
-    RawFilter.setPath(filter.getPath());
-    RawFilter.setOp(constructRawFilterOp(filter.getOp()));
-    return RawFilter;
-  }
-
-  private static RawFilter constructRawFilter(BoolFilter filter) {
-    RawFilter RawFilter = new RawFilter(RawFilterType.Bool);
-    RawFilter.setIsTrue(filter.isTrue());
-    return RawFilter;
-  }
-
-  private static RawFilterOp constructRawFilterOp(Op op) {
-    switch (op) {
-      case L:
-        return RawFilterOp.L;
-      case LE:
-        return RawFilterOp.LE;
-      case LIKE:
-        return RawFilterOp.LIKE;
-      case NE:
-        return RawFilterOp.NE;
-      case E:
-        return RawFilterOp.E;
-      case GE:
-        return RawFilterOp.GE;
-      case G:
-        return RawFilterOp.G;
-      case L_AND:
-        return RawFilterOp.L_AND;
-      case LE_AND:
-        return RawFilterOp.LE_AND;
-      case LIKE_AND:
-        return RawFilterOp.LIKE_AND;
-      case NE_AND:
-        return RawFilterOp.NE_AND;
-      case E_AND:
-        return RawFilterOp.E_AND;
-      case GE_AND:
-        return RawFilterOp.GE_AND;
-      case G_AND:
-        return RawFilterOp.G_AND;
-      default:
-        return RawFilterOp.UNKNOWN;
-    }
-  }
-
-  private static RawValue constructRawValue(Value value) {
-    RawValue RawValue = new RawValue();
-    RawValue.setDataType(value.getDataType());
-    switch (value.getDataType()) {
-      case FLOAT:
-        RawValue.setFloatV(value.getFloatV());
-        break;
-      case INTEGER:
-        RawValue.setIntV(value.getIntV());
-        break;
-      case BINARY:
-        RawValue.setBinaryV(value.getBinaryV());
-        break;
-      case BOOLEAN:
-        RawValue.setBoolV(value.getBoolV());
-        break;
-      case DOUBLE:
-        RawValue.setDoubleV(value.getDoubleV());
-        break;
-      case LONG:
-        RawValue.setLongV(value.getLongV());
-        break;
-    }
-    return RawValue;
-  }
-
   public static Filter resolveRawFilter(RawFilter filter) {
     if (filter == null) {
       return null;
@@ -203,7 +67,7 @@ public class ServerObjectMappingUtils {
       case Path:
         return resolveRawPathFilter(filter);
       default:
-        return null;
+        throw new UnsupportedOperationException("unsupported filter type: " + filter.getType());
     }
   }
 
@@ -252,6 +116,8 @@ public class ServerObjectMappingUtils {
         return LE;
       case LIKE:
         return LIKE;
+      case NOT_LIKE:
+        return NOT_LIKE;
       case NE:
         return NE;
       case E:
@@ -266,6 +132,8 @@ public class ServerObjectMappingUtils {
         return LE_AND;
       case LIKE_AND:
         return LIKE_AND;
+      case NOT_LIKE_AND:
+        return NOT_LIKE_AND;
       case NE_AND:
         return NE_AND;
       case E_AND:
@@ -275,7 +143,7 @@ public class ServerObjectMappingUtils {
       case G_AND:
         return G_AND;
       default:
-        return null;
+        throw new UnsupportedOperationException("unsupported filter op: " + op);
     }
   }
 
@@ -336,10 +204,8 @@ public class ServerObjectMappingUtils {
           return new OrTagFilter(children);
         }
       default:
-        {
-          LOGGER.error("unknown tag filter type: {}", rawTagFilter.getType());
-          return null;
-        }
+        throw new UnsupportedOperationException(
+            "unsupported tag filter type: " + rawTagFilter.getType());
     }
   }
 
@@ -354,7 +220,7 @@ public class ServerObjectMappingUtils {
       case "nonalignedcolumn":
         return RawDataType.NonAlignedColumn;
       default:
-        return null;
+        throw new UnsupportedOperationException("unsupported data type: " + type);
     }
   }
 

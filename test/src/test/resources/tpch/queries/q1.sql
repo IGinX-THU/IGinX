@@ -10,19 +10,17 @@ select
     avg(lineitem.l_discount) as avg_disc,
     count(lineitem.l_returnflag) as count_order
 from (
-         select
-             l_returnflag,
-             l_linestatus,
-             l_quantity,
-             l_extendedprice,
-             l_discount,
-             l_extendedprice * (1 - l_discount) as tmp1,
-             l_extendedprice * (1 - l_discount) * (1 + l_tax) as tmp2
-         from
-             lineitem
-         where
-                 lineitem.l_shipdate <= 904694400000
-     )
+    select
+        l_returnflag,
+        l_linestatus,
+        l_quantity,
+        l_extendedprice,
+        l_discount,
+        l_extendedprice * (1 - l_discount) as tmp1,
+        l_extendedprice * (1 - l_discount) * (1 + l_tax) as tmp2
+    from lineitem
+    where lineitem.l_shipdate <= 904694400000
+)
 group by
     lineitem.l_returnflag,
     lineitem.l_linestatus
