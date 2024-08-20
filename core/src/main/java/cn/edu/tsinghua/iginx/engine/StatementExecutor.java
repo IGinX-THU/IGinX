@@ -18,6 +18,12 @@
 
 package cn.edu.tsinghua.iginx.engine;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
+import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.logical.constraint.ConstraintChecker;
@@ -61,12 +67,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.Status;
 import cn.edu.tsinghua.iginx.utils.*;
 import cn.hutool.core.io.CharsetDetector;
-import org.antlr.v4.runtime.misc.ParseCancellationException;
-import org.apache.commons.csv.CSVParser;
-import org.apache.commons.csv.CSVRecord;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -76,12 +76,11 @@ import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
-
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
-import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
-import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
-import static cn.edu.tsinghua.iginx.utils.StringUtils.tryParse2Key;
+import org.antlr.v4.runtime.misc.ParseCancellationException;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StatementExecutor {
 
@@ -157,10 +156,10 @@ public class StatementExecutor {
         statisticsCollector.startBroadcasting();
       }
     } catch (ClassNotFoundException
-             | InstantiationException
-             | IllegalAccessException
-             | NoSuchMethodException
-             | InvocationTargetException e) {
+        | InstantiationException
+        | IllegalAccessException
+        | NoSuchMethodException
+        | InvocationTargetException e) {
       LOGGER.error("initial statistics collector error: ", e);
     }
   }

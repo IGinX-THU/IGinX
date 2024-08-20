@@ -50,15 +50,14 @@ import cn.edu.tsinghua.iginx.monitor.HotSpotMonitor;
 import cn.edu.tsinghua.iginx.monitor.RequestsMonitor;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StoragePhysicalTaskExecutor {
 
@@ -157,11 +156,11 @@ public class StoragePhysicalTaskExecutor {
                                   boolean needSetTransformPushDown =
                                       operators.size() == 2
                                           && operators.get(1).getType()
-                                          == OperatorType.SetTransform;
+                                              == OperatorType.SetTransform;
                                   boolean canSetTransformPushDown =
                                       needSetTransformPushDown
                                           && pair.k.isSupportProjectWithSetTransform(
-                                          (SetTransform) operators.get(1), dataArea);
+                                              (SetTransform) operators.get(1), dataArea);
                                   if (isDummyStorageUnit) {
                                     if (needSelectPushDown) {
                                       result =
