@@ -413,8 +413,9 @@
                                 <includes>
                                     <include>**/*.sql</include>
                                 </includes>
-                                <!--prettier/>
-                                <dbeaver/-->
+                                <!--<prettier/>-->
+                                <dbeaver/>
+                                <toggleOffOn/>
                             </sql>
                             <yaml>
                                 <includes>

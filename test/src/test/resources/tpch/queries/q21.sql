@@ -1,32 +1,39 @@
-select
+SELECT
     supplier.s_name,
-    count(supplier.s_name) as numwait
-from
-    lineitem as l1
-    join supplier on supplier.s_suppkey = l1.l_suppkey
-    join orders on orders.o_orderkey = l1.l_orderkey
-    join nation on supplier.s_nationkey = nation.n_nationkey
-where
+    COUNT( supplier.s_name ) AS numwait
+FROM
+    lineitem AS l1
+JOIN supplier ON
+    supplier.s_suppkey = l1.l_suppkey
+JOIN orders ON
+    orders.o_orderkey = l1.l_orderkey
+JOIN nation ON
+    supplier.s_nationkey = nation.n_nationkey
+WHERE
     orders.o_orderstatus = 'F'
-    and l1.l_receiptdate > l1.l_commitdate
-    and exists (
-        select l_orderkey
-        from lineitem as l2
-        where
+    AND l1.l_receiptdate > l1.l_commitdate
+    AND EXISTS(
+        SELECT
+            l_orderkey
+        FROM
+            lineitem AS l2
+        WHERE
             l2.l_orderkey = l1.l_orderkey
-            and l2.l_suppkey <> l1.l_suppkey
+            AND l2.l_suppkey <> l1.l_suppkey
     )
-    and not exists (
-        select l_orderkey
-        from lineitem as l3
-        where
+    AND NOT EXISTS(
+        SELECT
+            l_orderkey
+        FROM
+            lineitem AS l3
+        WHERE
             l3.l_orderkey = l1.l_orderkey
-            and l3.l_suppkey <> l1.l_suppkey
-            and l3.l_receiptdate > l3.l_commitdate
+            AND l3.l_suppkey <> l1.l_suppkey
+            AND l3.l_receiptdate > l3.l_commitdate
     )
-    and nation.n_name = 'SAUDI ARABIA'
-group by supplier.s_name
-order by
-    `count(supplier.s_name)` desc,
+    AND nation.n_name = 'SAUDI ARABIA'
+GROUP BY
     supplier.s_name
-limit 100;
+ORDER BY -- spotless:off
+    `count(supplier.s_name)` DESC, -- spotless:on
+    supplier.s_name LIMIT 100;
