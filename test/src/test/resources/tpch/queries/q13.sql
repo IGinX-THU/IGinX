@@ -16,6 +16,6 @@ FROM
     )
 GROUP BY
     c_count
-ORDER BY
-    ` COUNT( c_custkey )` DESC,
+ORDER BY -- spotless:off
+    `count(c_custkey)` DESC, -- spotless:on
     c_count DESC;

@@ -24,8 +24,9 @@ WHERE
                     lineitem
                 GROUP BY
                     l_orderkey
-                HAVING
-                    SUM( lineitem.l_quantity )> 300
+                HAVING -- spotless:off
+                    sum(lineitem.l_quantity)> 300 -- spotless:on
+
             )
     )
 GROUP BY
