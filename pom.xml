@@ -415,6 +415,7 @@
                                 </includes>
                                 <!--<prettier/>-->
                                 <dbeaver/>
+                                <toggleOffOn/>
                             </sql>
                             <yaml>
                                 <includes>
