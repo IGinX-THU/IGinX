@@ -47,6 +47,10 @@ public class TPCHUtils {
     try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
       String line;
       while ((line = br.readLine()) != null) {
+        int index = line.indexOf("--");
+        if (index != -1) {
+          line = line.substring(0, index);
+        }
         contentBuilder.append(line).append("\n");
       }
     }

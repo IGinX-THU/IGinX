@@ -1,16 +1,21 @@
-select
+SELECT
     o_orderpriority,
-    count(o_orderkey) as order_count
-from orders
-where
+    COUNT( o_orderkey ) AS order_count
+FROM
+    orders
+WHERE
     o_orderdate >= 741456000000
-    and o_orderdate < 749404800000
-    and exists (
-        select l_orderkey
-        from lineitem
-        where
+    AND o_orderdate < 749404800000
+    AND EXISTS(
+        SELECT
+            l_orderkey
+        FROM
+            lineitem
+        WHERE
             lineitem.l_orderkey = orders.o_orderkey
-            and lineitem.l_commitdate < lineitem.l_receiptdate
+            AND lineitem.l_commitdate < lineitem.l_receiptdate
     )
-group by o_orderpriority
-order by o_orderpriority;
+GROUP BY
+    o_orderpriority
+ORDER BY
+    o_orderpriority;
