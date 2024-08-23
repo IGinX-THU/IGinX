@@ -139,7 +139,7 @@ public class InfluxDBStorage implements IStorage {
     OkHttpClient.Builder builder =
         new OkHttpClient.Builder()
             .retryOnConnectionFailure(true)
-            .readTimeout(0, TimeUnit.MICROSECONDS);
+            .readTimeout(10, TimeUnit.MINUTES);
     InfluxDBClientOptions options =
         InfluxDBClientOptions.builder()
             .url(url)
