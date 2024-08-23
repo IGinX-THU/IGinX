@@ -137,9 +137,7 @@ public class InfluxDBStorage implements IStorage {
     Map<String, String> extraParams = meta.getExtraParams();
     String url = extraParams.getOrDefault("url", "http://localhost:8086/");
     OkHttpClient.Builder builder =
-        new OkHttpClient.Builder()
-            .retryOnConnectionFailure(true)
-            .readTimeout(10, TimeUnit.MINUTES);
+        new OkHttpClient.Builder().retryOnConnectionFailure(true).readTimeout(10, TimeUnit.MINUTES);
     InfluxDBClientOptions options =
         InfluxDBClientOptions.builder()
             .url(url)
