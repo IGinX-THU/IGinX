@@ -83,6 +83,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import okhttp3.OkHttpClient;
@@ -135,7 +136,8 @@ public class InfluxDBStorage implements IStorage {
     }
     Map<String, String> extraParams = meta.getExtraParams();
     String url = extraParams.getOrDefault("url", "http://localhost:8086/");
-    OkHttpClient.Builder builder = new OkHttpClient.Builder().retryOnConnectionFailure(true);
+    OkHttpClient.Builder builder =
+        new OkHttpClient.Builder().retryOnConnectionFailure(true).readTimeout(10, TimeUnit.MINUTES);
     InfluxDBClientOptions options =
         InfluxDBClientOptions.builder()
             .url(url)
