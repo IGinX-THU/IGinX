@@ -467,6 +467,12 @@ public abstract class BaseCapacityExpansionIT {
     List<String> pathList = READ_ONLY_PATH_LIST;
     List<List<Object>> valuesList = READ_ONLY_VALUES_LIST;
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+
+    // test float value compare
+    statement =
+        "select wf01.wt01.status, wf01.wt01.temperature from mn where wf01.wt01.temperature = 10012.01;";
+    valuesList = Collections.singletonList(Arrays.asList(55555555L, 10012.01F));
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
   private void testWriteAndQueryNewData() {

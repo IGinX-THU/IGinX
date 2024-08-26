@@ -82,7 +82,7 @@ public class Constant {
   public static List<DataType> EXP_DATA_TYPE_LIST = Arrays.asList(DataType.LONG, DataType.DOUBLE);
 
   public static List<DataType> READ_ONLY_DATA_TYPE_LIST =
-      Arrays.asList(DataType.LONG, DataType.DOUBLE);
+      Arrays.asList(DataType.LONG, DataType.FLOAT);
 
   // values
   public static List<List<Object>> INIT_VALUES_LIST =
@@ -113,10 +113,10 @@ public class Constant {
       Arrays.asList(Collections.singletonList(66123.23), Collections.singletonList(77123.71));
 
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
-      Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
+      Arrays.asList(Arrays.asList(55555555L, 10012.01F), Arrays.asList(66666666L, 99123.99F));
 
   public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST =
-      Collections.singletonList(Arrays.asList(9999999L, 152346.1));
+      Collections.singletonList(Arrays.asList(9999999L, 152346.1F));
 
   public static List<List<Object>> REPEAT_EXP_VALUES_LIST1 =
       Arrays.asList(Arrays.asList(33333333L, 33333333L), Arrays.asList(44444444L, 44444444L));
