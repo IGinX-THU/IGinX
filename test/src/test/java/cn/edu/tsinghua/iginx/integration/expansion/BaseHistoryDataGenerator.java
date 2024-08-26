@@ -109,6 +109,11 @@ public abstract class BaseHistoryDataGenerator {
   public void writeHistoryDataToReadOnly() {
     writeHistoryData(
         readOnlyPort, READ_ONLY_PATH_LIST, READ_ONLY_DATA_TYPE_LIST, READ_ONLY_VALUES_LIST);
+    writeHistoryData(
+        readOnlyPort,
+        READ_ONLY_FLOAT_PATH_LIST,
+        new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
+        READ_ONLY_FLOAT_VALUES_LIST);
   }
 
   public void writeExtendedHistoryDataToReadOnly() {

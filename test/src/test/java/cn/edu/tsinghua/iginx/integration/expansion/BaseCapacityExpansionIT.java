@@ -469,9 +469,12 @@ public abstract class BaseCapacityExpansionIT {
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
 
     // test float value compare
-    statement =
-        "select wf01.wt01.status, wf01.wt01.temperature from mn where wf01.wt01.temperature = 10012.01;";
-    valuesList = Collections.singletonList(Arrays.asList(55555555L, 10012.01F));
+    statement = "select wt01.float from tm.wf05 where wt01.float <= 44.55;";
+    pathList = READ_ONLY_FLOAT_PATH_LIST;
+    valuesList = READ_ONLY_FLOAT_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    statement = "select wt01.float from tm.wf05 where wt01.float = 44.55;";
+    valuesList = Collections.singletonList(Collections.singletonList(44.55F));
     SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 
