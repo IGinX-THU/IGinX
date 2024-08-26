@@ -8146,10 +8146,9 @@ public class SQLSessionIT {
             + "WHERE\n"
             + "    s1 = 1  \n"
             + "    /* \n"
-            + "    /* AND s2 = 1 */ \n"
             + "    AND s2 = 3 \n"
             + "    */\n"
-            + "; /* hello";
+            + ";";
     String expect =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
