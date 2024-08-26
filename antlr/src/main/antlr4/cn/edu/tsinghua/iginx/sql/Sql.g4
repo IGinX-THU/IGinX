@@ -1388,11 +1388,11 @@ fragment Z
    ;
 
 SIMPLE_COMMENT
-   : '--' ('\\\n' | ~ [\r\n])* '\r'? '\n'? -> channel (HIDDEN)
+   : '--' ~ [\r\n]* '\r'? '\n'? -> channel (HIDDEN)
    ;
 
 BRACKETED_COMMENT
-   : '/*' (BRACKETED_COMMENT | .)*? ('*/' | EOF) -> channel (HIDDEN)
+   : '/*' .*? '*/' -> channel (HIDDEN)
    ;
 
 WS
