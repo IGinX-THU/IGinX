@@ -36,7 +36,14 @@ import java.util.List;
 
 public class ExprUtils {
 
-  private static final FunctionManager functionManager = FunctionManager.getInstance();
+  private static FunctionManager functionManager;
+
+  private static void initFunctionManager() {
+    if (functionManager != null) {
+      return;
+    }
+    functionManager = FunctionManager.getInstance();
+  }
 
   public static Value calculateExpr(Row row, Expression expr) {
     switch (expr.getType()) {
@@ -84,6 +91,7 @@ public class ExprUtils {
   }
 
   private static Value calculateFuncExprNative(Row row, FuncExpression funcExpr) {
+    initFunctionManager();
     Function function = functionManager.getFunction(funcExpr.getFuncName());
     if (!function.getMappingType().equals(MappingType.RowMapping)) {
       throw new RuntimeException("only row mapping function can be used in expr");

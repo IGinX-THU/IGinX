@@ -74,6 +74,10 @@ public class FunctionUtils {
     if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())) {
       return true;
     }
+    if (sysSetToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
+      return false;
+    }
     initFunctionManager();
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udtf");
@@ -83,6 +87,10 @@ public class FunctionUtils {
     if (sysSetToRowFunctionSet.contains(identifier.toLowerCase())) {
       return true;
     }
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
+      return false;
+    }
     initFunctionManager();
     Function function = functionManager.getFunction(identifier);
     return function.getIdentifier().equals("py_udaf");
@@ -91,6 +99,10 @@ public class FunctionUtils {
   public static boolean isSetToSetFunction(String identifier) {
     if (sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
       return true;
+    }
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())
+        || sysSetToRowFunctionSet.contains(identifier.toLowerCase())) {
+      return false;
     }
     initFunctionManager();
     Function function = functionManager.getFunction(identifier);
