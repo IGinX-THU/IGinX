@@ -287,6 +287,12 @@ public class FilterUtils {
         PathFilter pathFilter = (PathFilter) filter;
         paths.add(pathFilter.getPathA());
         paths.add(pathFilter.getPathB());
+        break;
+      case Expr:
+        ExprFilter exprFilter = (ExprFilter) filter;
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionA()));
+        paths.addAll(ExprUtils.getPathFromExpr(exprFilter.getExpressionB()));
+        break;
       default:
         break;
     }

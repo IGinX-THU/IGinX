@@ -28,8 +28,10 @@ import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 public class ExprUtils {
@@ -52,6 +54,8 @@ public class ExprUtils {
         return calculateBinaryExpr(row, (BinaryExpression) expr);
       case Multiple:
         return calculateMultipleExpr(row, (MultipleExpression) expr);
+      case CaseWhen:
+        return calculateCaseWhenExpr(row, (CaseWhenExpression) expr);
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
     }
@@ -211,6 +215,22 @@ public class ExprUtils {
     return values.get(values.size() - 1);
   }
 
+  public static Value calculateCaseWhenExpr(Row row, CaseWhenExpression caseWhenExpr) {
+    for (int i = 0; i < caseWhenExpr.getConditions().size(); i++) {
+      try {
+        if (FilterUtils.validate(caseWhenExpr.getConditions().get(i), row)) {
+          return calculateExpr(row, caseWhenExpr.getResults().get(i));
+        }
+      } catch (PhysicalException e) {
+        throw new RuntimeException(e);
+      }
+    }
+    if (caseWhenExpr.getResultElse() != null) {
+      return calculateExpr(row, caseWhenExpr.getResultElse());
+    }
+    return null;
+  }
+
   private static Value calculatePlus(Value left, Value right) {
     switch (left.getDataType()) {
       case INTEGER:
@@ -287,15 +307,15 @@ public class ExprUtils {
   }
 
   public static List<String> getPathFromExpr(Expression expr) {
+    List<String> ret = new ArrayList<>();
     switch (expr.getType()) {
       case Constant:
-        return new ArrayList<>();
+        return ret;
       case Base:
-        List<String> ret = new ArrayList<>();
         ret.add(expr.getColumnName());
         return ret;
       case Function:
-        return ((FuncExpression) expr).getColumns();
+        return new ArrayList<>(((FuncExpression) expr).getColumns());
       case Bracket:
         return getPathFromExpr(((BracketExpression) expr).getExpression());
       case Unary:
@@ -306,11 +326,22 @@ public class ExprUtils {
         left.addAll(right);
         return left;
       case Multiple:
-        List<String> paths = new ArrayList<>();
         for (Expression child : ((MultipleExpression) expr).getChildren()) {
-          paths.addAll(getPathFromExpr(child));
+          ret.addAll(getPathFromExpr(child));
         }
-        return paths;
+        return ret;
+      case CaseWhen:
+        CaseWhenExpression caseWhenExpr = (CaseWhenExpression) expr;
+        for (Filter filter : caseWhenExpr.getConditions()) {
+          ret.addAll(FilterUtils.getAllPathsFromFilter(filter));
+        }
+        for (Expression expression : caseWhenExpr.getResults()) {
+          ret.addAll(getPathFromExpr(expression));
+        }
+        if (caseWhenExpr.getResultElse() != null) {
+          ret.addAll(getPathFromExpr(caseWhenExpr.getResultElse()));
+        }
+        return ret;
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
     }
@@ -466,6 +497,13 @@ public class ExprUtils {
         MultipleExpression multipleExpression = (MultipleExpression) expr;
         multipleExpression.getChildren().replaceAll(ExprUtils::flattenExpression);
         return multipleExpression;
+      case CaseWhen:
+        CaseWhenExpression caseWhenExpression = (CaseWhenExpression) expr;
+        caseWhenExpression.getResults().replaceAll(ExprUtils::flattenExpression);
+        if (caseWhenExpression.getResultElse() != null) {
+          caseWhenExpression.setResultElse(flattenExpression(caseWhenExpression.getResultElse()));
+        }
+        return caseWhenExpression;
       default:
         throw new IllegalArgumentException(String.format("Unknown expr type: %s", expr.getType()));
     }
@@ -690,9 +728,9 @@ public class ExprUtils {
         FuncExpression funcExpression = (FuncExpression) expression;
         return new FuncExpression(
             funcExpression.getFuncName(),
-            funcExpression.getColumns(),
-            funcExpression.getArgs(),
-            funcExpression.getKvargs(),
+            new ArrayList<>(funcExpression.getColumns()),
+            new ArrayList<>(funcExpression.getArgs()),
+            new HashMap<>(funcExpression.getKvargs()),
             funcExpression.isDistinct());
       case Bracket:
         return new BracketExpression(copy(((BracketExpression) expression).getExpression()));
@@ -713,9 +751,59 @@ public class ExprUtils {
           children.add(copy(child));
         }
         return new MultipleExpression(children, multipleExpression.getOps());
+      case CaseWhen:
+        CaseWhenExpression caseWhenExpression = (CaseWhenExpression) expression;
+        List<Filter> conditions = new ArrayList<>();
+        for (Filter filter : caseWhenExpression.getConditions()) {
+          conditions.add(filter.copy());
+        }
+        List<Expression> resultCopy = new ArrayList<>();
+        for (Expression result : caseWhenExpression.getResults()) {
+          resultCopy.add(copy(result));
+        }
+        Expression resultElse =
+            caseWhenExpression.getResultElse() != null
+                ? copy(caseWhenExpression.getResultElse())
+                : null;
+        return new CaseWhenExpression(
+            conditions, resultCopy, resultElse, caseWhenExpression.getColumnName());
       default:
         throw new IllegalArgumentException(
             String.format("Unknown expr type: %s", expression.getType()));
+    }
+  }
+
+  public static boolean hasCaseWhen(List<Expression> expressions) {
+    for (Expression expression : expressions) {
+      if (hasCaseWhen(expression)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private static boolean hasCaseWhen(Expression expr) {
+    switch (expr.getType()) {
+      case CaseWhen:
+        return true;
+      case Unary:
+        return hasCaseWhen(((UnaryExpression) expr).getExpression());
+      case Bracket:
+        return hasCaseWhen(((BracketExpression) expr).getExpression());
+      case Binary:
+        BinaryExpression binaryExpression = (BinaryExpression) expr;
+        return hasCaseWhen(binaryExpression.getLeftExpression())
+            && hasCaseWhen(binaryExpression.getRightExpression());
+      case Multiple:
+        MultipleExpression multipleExpression = (MultipleExpression) expr;
+        for (Expression child : multipleExpression.getChildren()) {
+          if (hasCaseWhen(child)) {
+            return true;
+          }
+        }
+        return false;
+      default:
+        return false;
     }
   }
 }

@@ -21,15 +21,18 @@ package cn.edu.tsinghua.iginx.sql;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MAX_VAL;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_MIN_VAL;
 import static cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin.MARK_PREFIX;
+import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.caseWhenCount;
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.CaseWhenExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.ConstantExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FromValueExpression;
@@ -58,6 +61,7 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.AndExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndPreciseExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.AndTagExpressionContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CancelJobStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.CaseSpecificationContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ClearDataStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CommitTransformJobStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.CommonTableExprContext;
@@ -100,6 +104,8 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.PredicateWithSubqueryContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.QueryClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.RegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.RemoveHistoryDataSourceStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SearchedCaseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SearchedWhenClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SelectStatementContext;
@@ -116,6 +122,8 @@ import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRegisterTaskStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowReplicationStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowRulesStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.ShowSessionIDStatementContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SimipleCaseContext;
+import cn.edu.tsinghua.iginx.sql.SqlParser.SimpleWhenClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SpecialClauseContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.SqlStatementContext;
 import cn.edu.tsinghua.iginx.sql.SqlParser.StorageEngineContext;
@@ -927,6 +935,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     if (ctx.constant() != null) {
       return Collections.singletonList(new ConstantExpression(parseValue(ctx.constant())));
     }
+    if (ctx.caseSpecification() != null) {
+      return Collections.singletonList(
+          parseCaseWhenExpression(ctx.caseSpecification(), selectStatement));
+    }
 
     List<Expression> ret = new ArrayList<>();
     if (ctx.inBracketExpr != null) {
@@ -1061,6 +1073,87 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     }
   }
 
+  private Expression parseCaseWhenExpression(
+      CaseSpecificationContext ctx, UnarySelectStatement selectStatement) {
+    if (ctx.simipleCase() != null) {
+      return parseSimpleCase(ctx.simipleCase(), selectStatement);
+    } else if (ctx.searchedCase() != null) {
+      return parseSearchedCase(ctx.searchedCase(), selectStatement);
+    } else {
+      throw new SQLParserException("Illegal case when selected expression");
+    }
+  }
+
+  private CaseWhenExpression parseSimpleCase(
+      SimipleCaseContext ctx, UnarySelectStatement selectStatement) {
+    List<Filter> conditions = new ArrayList<>();
+    List<Expression> results = new ArrayList<>();
+    Expression leftExpr = parseExpression(ctx.expression(), selectStatement).get(0);
+    String leftPath = ExpressionUtils.transformToBaseExpr(leftExpr);
+
+    for (SimpleWhenClauseContext context : ctx.simpleWhenClause()) {
+      if (context.value != null) {
+        Expression rightExpr = parseExpression(context.value, selectStatement).get(0);
+        String rightPath = ExpressionUtils.transformToBaseExpr(rightExpr);
+        Op op =
+            context.comparisonOperator() == null
+                ? Op.E
+                : Op.str2Op(context.comparisonOperator().getText().trim().toLowerCase());
+        if (leftPath != null && rightPath != null) {
+          conditions.add(new PathFilter(leftPath, op, rightPath));
+        } else {
+          conditions.add(new ExprFilter(leftExpr, op, rightExpr));
+        }
+      } else {
+        String strOp = context.stringLikeOperator().getText().trim().toLowerCase();
+        if (context.OPERATOR_NOT() != null) {
+          strOp = "not " + strOp;
+        }
+        Op op = Op.str2Op(strOp);
+        String regex = context.regex.getText();
+        Value value = new Value(regex.substring(1, regex.length() - 1));
+        if (leftPath != null) {
+          conditions.add(new ValueFilter(leftPath, op, value));
+        } else {
+          conditions.add(new ExprFilter(leftExpr, op, new ConstantExpression(value)));
+        }
+      }
+
+      results.add(parseExpression(context.result, selectStatement).get(0));
+    }
+    Expression resultElse = null;
+    if (ctx.elseClause() != null) {
+      resultElse = parseExpression(ctx.elseClause().expression(), selectStatement).get(0);
+    }
+    String columnName = CaseWhenExpression.CASE_WHEN_PREFIX + caseWhenCount;
+    caseWhenCount++;
+    return new CaseWhenExpression(conditions, results, resultElse, columnName);
+  }
+
+  private CaseWhenExpression parseSearchedCase(
+      SearchedCaseContext ctx, UnarySelectStatement selectStatement) {
+    List<Filter> conditions = new ArrayList<>();
+    List<Expression> results = new ArrayList<>();
+    for (SearchedWhenClauseContext context : ctx.searchedWhenClause()) {
+      FilterData filterData = parseOrExpression(context.condition, selectStatement);
+      if (!filterData.getSubQueryFromPartList().isEmpty()) {
+        throw new SQLParserException(
+            "Subquery is not supported to be used in case when expression.");
+      }
+      conditions.add(filterData.getFilter());
+      filterData.getPathList().forEach(selectStatement::addSelectPath);
+      results.add(parseExpression(context.result, selectStatement).get(0));
+    }
+
+    Expression resultElse = null;
+    if (ctx.elseClause() != null) {
+      resultElse = parseExpression(ctx.elseClause().expression(), selectStatement).get(0);
+    }
+    String columnName = CaseWhenExpression.CASE_WHEN_PREFIX + caseWhenCount;
+    caseWhenCount++;
+    return new CaseWhenExpression(conditions, results, resultElse, columnName);
+  }
+
   private Operator parseOperator(ExpressionContext ctx) {
     if (ctx.STAR() != null) {
       return Operator.STAR;
@@ -1094,6 +1187,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private void parseDownsampleClause(
       DownsampleClauseContext ctx, UnarySelectStatement selectStatement) {
+    if (ExprUtils.hasCaseWhen(selectStatement.getExpressions())) {
+      throw new SQLParserException(
+          "CASE WHEN is not supported to be selected when sql is downsample.");
+    }
     long precision = parseAggLen(ctx.aggLen(0));
     Pair<Long, Long> timeInterval =
         ctx.timeInterval() == null ? null : parseTimeInterval(ctx.timeInterval());
@@ -1126,6 +1223,10 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private void parseGroupByClause(GroupByClauseContext ctx, UnarySelectStatement selectStatement) {
+    if (ExprUtils.hasCaseWhen(selectStatement.getExpressions())) {
+      throw new SQLParserException(
+          "CASE WHEN is not supported to be selected when sql has GROUP BY.");
+    }
     selectStatement.setHasGroupBy(true);
 
     ctx.path()

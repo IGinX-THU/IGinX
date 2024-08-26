@@ -18,6 +18,7 @@
 
 package cn.edu.tsinghua.iginx.engine.shared.operator.filter;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 
 public class ExprFilter implements Filter {
@@ -72,7 +73,7 @@ public class ExprFilter implements Filter {
 
   @Override
   public Filter copy() {
-    return new ExprFilter(expressionA, op, expressionB);
+    return new ExprFilter(ExprUtils.copy(expressionA), op, ExprUtils.copy(expressionB));
   }
 
   @Override

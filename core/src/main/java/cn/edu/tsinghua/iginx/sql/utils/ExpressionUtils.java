@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.sql.utils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BinaryExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.BracketExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.expr.UnaryExpression;
 
 public class ExpressionUtils {
@@ -41,6 +42,25 @@ public class ExpressionUtils {
             && isConstantArithmeticExpr(binaryExpression.getRightExpression());
       default:
         return false;
+    }
+  }
+
+  public static String transformToBaseExpr(Expression expression) {
+    switch (expression.getType()) {
+      case Base:
+        return expression.getColumnName();
+      case Bracket:
+        BracketExpression bracketExpression = (BracketExpression) expression;
+        return transformToBaseExpr(bracketExpression.getExpression());
+      case Unary:
+        UnaryExpression unaryExpression = (UnaryExpression) expression;
+        if (unaryExpression.getOperator().equals(Operator.PLUS)) {
+          return transformToBaseExpr(unaryExpression.getExpression());
+        } else {
+          return null;
+        }
+      default:
+        return null;
     }
   }
 }

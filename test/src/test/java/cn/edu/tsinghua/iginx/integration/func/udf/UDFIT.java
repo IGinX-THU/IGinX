@@ -888,9 +888,10 @@ public class UDFIT {
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
             + "|Reorder          |      Reorder|                                                                 Order: *|\n"
             + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
+            + "|    +--Project   |      Project|                                                  Patterns: test.b,test.a|\n"
+            + "|      +--Project |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "Total line number = 3\n";
+            + "Total line number = 4\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
