@@ -18,13 +18,23 @@
 
 package cn.edu.tsinghua.iginx.transform.data;
 
+import static cn.edu.tsinghua.iginx.constant.GlobalConstant.TRANSFORM_PREFIX;
+import static cn.edu.tsinghua.iginx.utils.ByteUtils.getByteArrayFromLongArray;
+
 import cn.edu.tsinghua.iginx.engine.ContextBuilder;
 import cn.edu.tsinghua.iginx.engine.StatementExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.thrift.ExecuteStatementReq;
-import java.time.Instant;
+import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.Bitmap;
+import cn.edu.tsinghua.iginx.utils.ByteUtils;
+import java.nio.ByteBuffer;
+import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,57 +53,114 @@ public class IginXWriter extends ExportWriter {
 
   @Override
   public void write(BatchData batchData) {
-    String insertSQL = buildSQL(batchData);
-    LOGGER.info("Insert statement: {}", insertSQL);
-
-    if (!insertSQL.equals("")) {
-      ExecuteStatementReq req = new ExecuteStatementReq(sessionId, insertSQL);
-      RequestContext context = contextBuilder.build(req);
-      executor.execute(context);
-    } else {
-      LOGGER.error("Fail to execute insert statement.");
+    InsertRowRecordsReq rowRecordsReq = buildInsertRowReq(batchData);
+    if (rowRecordsReq != null) {
+      RequestContext ctx = contextBuilder.build(rowRecordsReq);
+      executor.execute(ctx);
     }
   }
 
-  private String buildSQL(BatchData batchData) {
-    StringBuilder builder = new StringBuilder();
-
-    // construct paths
-    builder.append("INSERT INTO transform(key, ");
+  private InsertRowRecordsReq buildInsertRowReq(BatchData batchData) {
     Header header = batchData.getHeader();
-    header
-        .getFields()
-        .forEach(field -> builder.append(reformatPath(field.getFullName())).append(","));
-    builder.deleteCharAt(builder.length() - 1);
+    List<String> paths;
+    Object[] valuesList;
+    List<DataType> dataTypeList;
 
-    // construct values
-    builder.append(") VALUES");
-    // use System.nanoTime() to avoid timestamp mistake on windows runner in action
-    long index = System.nanoTime();
-    for (Row row : batchData.getRowList()) {
-      builder.append(" (");
-      builder.append(index).append(",");
-      for (Object value : row.getValues()) {
-        builder.append(value).append(",");
-      }
-      builder.deleteCharAt(builder.length() - 1);
-      builder.append("),");
-      index++;
+    paths =
+        header.getFields().stream()
+            .map(e -> TRANSFORM_PREFIX + "." + e.getName())
+            .collect(Collectors.toList());
+    dataTypeList = header.getFields().stream().map(Field::getType).collect(Collectors.toList());
+    valuesList = batchData.getRowList().stream().map(Row::getValues).toArray();
+    long[] keys = new long[valuesList.length];
+    long startKey = System.nanoTime();
+    for (int i = 0; i < valuesList.length; i++) {
+      keys[i] = startKey + i;
     }
-    builder.deleteCharAt(builder.length() - 1).append(";");
-    return builder.toString();
+
+    List<Map<String, String>> tagsList =
+        paths.stream().map(this::parseTags).collect(Collectors.toList());
+    if (tagsList.contains(null)) {
+      LOGGER.error("Unexpected error occurred during exporting.");
+      return null;
+    }
+
+    List<String> sortedPaths = paths.stream().map(this::getPathName).collect(Collectors.toList());
+    Integer[] index = new Integer[sortedPaths.size()];
+    for (int i = 0; i < sortedPaths.size(); i++) {
+      index[i] = i;
+    }
+    Arrays.sort(index, Comparator.comparing(sortedPaths::get));
+    Collections.sort(sortedPaths);
+    Object[] sortedValuesList = Arrays.copyOf(valuesList, valuesList.length);
+    List<DataType> sortedDataTypeList = new ArrayList<>();
+    for (int i = 0; i < sortedValuesList.length; i++) {
+      Object[] values = new Object[index.length];
+      for (int j = 0; j < index.length; j++) {
+        values[j] = ((Object[]) sortedValuesList[i])[index[j]];
+      }
+      sortedValuesList[i] = values;
+    }
+    for (Integer i : index) {
+      sortedDataTypeList.add(dataTypeList.get(i));
+    }
+    List<Map<String, String>> sortedTagsList = new ArrayList<>();
+    for (Integer i : index) {
+      sortedTagsList.add(tagsList.get(i));
+    }
+
+    List<ByteBuffer> valueBufferList = new ArrayList<>();
+    List<ByteBuffer> bitmapBufferList = new ArrayList<>();
+    for (int i = 0; i < keys.length; i++) {
+      Object[] values = (Object[]) sortedValuesList[i];
+      valueBufferList.add(ByteUtils.getRowByteBuffer(values, sortedDataTypeList));
+      Bitmap bitmap = new Bitmap(values.length);
+      for (int j = 0; j < values.length; j++) {
+        if (values[j] != null) {
+          bitmap.mark(j);
+        }
+      }
+      bitmapBufferList.add(ByteBuffer.wrap(bitmap.getBytes()));
+    }
+
+    InsertRowRecordsReq req = new InsertRowRecordsReq();
+    req.setSessionId(sessionId);
+    req.setPaths(sortedPaths);
+    req.setKeys(getByteArrayFromLongArray(keys));
+    req.setValuesList(valueBufferList);
+    req.setBitmapList(bitmapBufferList);
+    req.setDataTypeList(sortedDataTypeList);
+    req.setTagsList(sortedTagsList);
+    req.setTimePrecision(TimePrecision.NS);
+    return req;
   }
 
-  private long getCurrentTimeInNS() {
-    Instant now = Instant.now();
-    return now.getEpochSecond() * 1_000_000_000L + now.getNano();
+  private Map<String, String> parseTags(String name) {
+    // <string>[<string>=<string>(, <string>=<string>)*]
+    String patternString =
+        "^[^\\[\\]]+\\[([^\\[\\]=,]+)=([^\\[\\]=,]+)(?:, ([^\\[\\]=,]+)=([^\\[\\]=,]+))*\\]$";
+    if (name.matches("^[^\\[\\]]+$")) return new HashMap<>();
+    if (name.matches(patternString)) {
+      Map<String, String> tagMap = new HashMap<>();
+      Pattern pattern = Pattern.compile(patternString);
+      Matcher matcher = pattern.matcher(name);
+      for (int i = 1; i <= matcher.groupCount(); i += 2) {
+        String key = matcher.group(i).trim();
+        String value = matcher.group(i + 1).trim();
+        tagMap.put(key, value);
+      }
+      return tagMap;
+    }
+    LOGGER.error("Invalid path format for:{}. Tags should be wrapped around by '[' & ']'.", name);
+    return null;
   }
 
-  private String reformatPath(String path) {
-    if (!path.contains("(") && !path.contains(")")) return path;
-    path = path.replaceAll("[{]", "[");
-    path = path.replaceAll("[}]", "]");
-    return path;
+  private String getPathName(String name) {
+    if (name.contains("[")) {
+      return name.substring(0, name.indexOf("["));
+    } else {
+      return name;
+    }
   }
 
   @Override

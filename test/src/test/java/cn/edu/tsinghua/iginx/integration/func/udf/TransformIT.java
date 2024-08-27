@@ -20,10 +20,7 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.appendFile;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
+import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -99,6 +96,8 @@ public class TransformIT {
         "AddOneTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_add_one.py");
     TASK_MAP.put("SumTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_sum.py");
     TASK_MAP.put("SleepTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_sleep.py");
+    TASK_MAP.put(
+        "ToBytesTransformer", OUTPUT_DIR_PREFIX + File.separator + "transformer_to_bytes.py");
   }
 
   @BeforeClass
@@ -663,6 +662,47 @@ public class TransformIT {
       }
 
       verifyMultiplePythonJobs(queryResult, timeIndex, sumIndex, 200);
+    } catch (SessionException | InterruptedException e) {
+      LOGGER.error("Transform:  execute fail. Caused by:", e);
+      fail();
+    }
+  }
+
+  @Test
+  public void commitPythonExportBinaryToIginxTest() {
+    LOGGER.info("commitPythonExportBinaryToIginxTest");
+    try {
+      String[] taskList = {"ToBytesTransformer"};
+      for (String task : taskList) {
+        registerTask(task);
+      }
+
+      String yamlFileName =
+          OUTPUT_DIR_PREFIX + File.separator + "TransformBinaryExportToIginx.yaml";
+      SessionExecuteSqlResult result =
+          session.executeSql(String.format(COMMIT_SQL_FORMATTER, yamlFileName));
+      long jobId = result.getJobId();
+
+      verifyJobState(jobId);
+
+      SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
+      SessionExecuteSqlResult oriResult =
+          session.executeSql("SELECT s3 FROM us.d1 WHERE key < 50;");
+      int timeIndex = queryResult.getPaths().indexOf("transform.key");
+      int valueIndex = queryResult.getPaths().indexOf("transform.us.d1.s3");
+      if (needCompareResult) {
+        assertNotEquals(-1, timeIndex);
+        assertNotEquals(-1, valueIndex);
+      }
+      int index = 0;
+      List<Object> oriRow;
+      for (List<Object> row : queryResult.getValues()) {
+        oriRow = oriResult.getValues().get(index);
+        assertEquals(oriResult.getKeys()[index], row.get(timeIndex));
+        assertArrayEquals((byte[]) oriRow.get(0), (byte[]) row.get(valueIndex));
+        index++;
+      }
+      assertEquals(50, index);
     } catch (SessionException | InterruptedException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();

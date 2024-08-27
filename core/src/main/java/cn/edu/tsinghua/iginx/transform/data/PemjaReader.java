@@ -48,15 +48,21 @@ public class PemjaReader implements Reader {
 
   private Header getHeaderFromData() {
     List<Object> firstRow;
+    List<DataType> typeList = new ArrayList<>();
+    List<Field> fieldList = new ArrayList<>();
     if (isList(data.get(0))) {
       firstRow = (List<Object>) data.get(0);
+      if (data.size() >= 2 && isList(data.get(1))) {
+        typeList = parseTypeList((List<Object>) data.get(1));
+      }
     } else {
       firstRow = data;
     }
 
-    List<Field> fieldList = new ArrayList<>();
-    for (Object fieldName : firstRow) {
-      fieldList.add(new Field((String) fieldName, DataType.BINARY));
+    for (int i = 0; i < firstRow.size(); i++) {
+      Object fieldName = firstRow.get(i);
+      fieldList.add(
+          new Field((String) fieldName, typeList.isEmpty() ? DataType.BINARY : typeList.get(i)));
     }
     return new Header(fieldList);
   }
@@ -78,6 +84,23 @@ public class PemjaReader implements Reader {
       return false;
     }
     return object instanceof List<?>;
+  }
+
+  private List<DataType> parseTypeList(List<Object> dataList) {
+    List<DataType> res = new ArrayList<>();
+    for (Object value : dataList) {
+      // python won't pass integer & float
+      if (value instanceof Long) {
+        res.add(DataType.LONG);
+      } else if (value instanceof Double) {
+        res.add(DataType.DOUBLE);
+      } else if (value instanceof Boolean) {
+        res.add(DataType.BOOLEAN);
+      } else {
+        res.add(DataType.BINARY);
+      }
+    }
+    return res;
   }
 
   @Override
