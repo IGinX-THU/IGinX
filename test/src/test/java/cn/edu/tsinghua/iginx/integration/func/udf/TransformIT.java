@@ -169,7 +169,11 @@ public class TransformIT {
 
   private static void dropAllTask() throws SessionException {
     String[] taskList = {
-      "RowSumTransformer", "AddOneTransformer", "SumTransformer", "SleepTransformer"
+      "RowSumTransformer",
+      "AddOneTransformer",
+      "SumTransformer",
+      "SleepTransformer",
+      "ToBytesTransformer"
     };
     for (String task : taskList) {
       dropTask(task);
