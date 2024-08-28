@@ -36,7 +36,7 @@ statement
    | SHOW CLUSTER INFO # showClusterInfoStatement
    | CREATE USER username = nodeName IDENTIFIED BY password = nodeName # createUserStatement
    | GRANT permissionSpec TO USER username = nodeName # grantUserStatement
-   | SET PASSWORD FOR username = nodeName OPERATOR_EQ PASSWORD LR_BRACKET password = nodeName RR_BRACKET # changePasswordStatement
+   | ALTER USER username = nodeName IDENTIFIED BY password = nodeName # changePasswordStatement
    | DROP USER username = nodeName # dropUserStatement
    | SHOW USER userSpec? # showUserStatement
    | SHOW FUNCTIONS # showRegisterTaskStatement
