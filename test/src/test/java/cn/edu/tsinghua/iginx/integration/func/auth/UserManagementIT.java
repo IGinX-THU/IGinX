@@ -28,9 +28,9 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UserPermissionIT {
+public class UserManagementIT {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(UserPermissionIT.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(UserManagementIT.class);
 
   private Session rootSession;
 
@@ -50,17 +50,36 @@ public class UserPermissionIT {
   public void testUserGuideSample() throws SessionException {
     rootSession.executeSql("CREATE USER root1 IDENTIFIED BY root1;");
     rootSession.executeSql("GRANT WRITE, READ TO USER root1;");
-    SessionExecuteSqlResult res = rootSession.executeSql("SHOW USER root, root1;");
-    String resultInString = res.getResultInString(false, null);
-    String expected =
-        "User Info:\n"
-            + "+-----+-------------+-----------------------------+\n"
-            + "| name|         type|                        auths|\n"
-            + "+-----+-------------+-----------------------------+\n"
-            + "| root|Administrator|[Read, Write, Admin, Cluster]|\n"
-            + "|root1| OrdinaryUser|                [Read, Write]|\n"
-            + "+-----+-------------+-----------------------------+\n";
-    assertEquals(expected, resultInString);
+    rootSession.executeSql("GRANT READ TO USER root1;");
+    rootSession.executeSql("ALTER USER root1 IDENTIFIED BY root2;");
+
+    {
+      SessionExecuteSqlResult res = rootSession.executeSql("SHOW USER root, root1;");
+      String resultInString = res.getResultInString(false, null);
+      String expected =
+          "User Info:\n"
+              + "+-----+-------------+-----------------------------+\n"
+              + "| name|         type|                        auths|\n"
+              + "+-----+-------------+-----------------------------+\n"
+              + "| root|Administrator|[Read, Write, Admin, Cluster]|\n"
+              + "|root1| OrdinaryUser|                       [Read]|\n"
+              + "+-----+-------------+-----------------------------+\n";
+      assertEquals(expected, resultInString);
+    }
+
     rootSession.executeSql("DROP USER root1;");
+
+    {
+      SessionExecuteSqlResult res = rootSession.executeSql("SHOW USER;");
+      String resultInString = res.getResultInString(false, null);
+      String expected =
+          "User Info:\n"
+              + "+----+-------------+-----------------------------+\n"
+              + "|name|         type|                        auths|\n"
+              + "+----+-------------+-----------------------------+\n"
+              + "|root|Administrator|[Read, Write, Admin, Cluster]|\n"
+              + "+----+-------------+-----------------------------+\n";
+      assertEquals(expected, resultInString);
+    }
   }
 }
