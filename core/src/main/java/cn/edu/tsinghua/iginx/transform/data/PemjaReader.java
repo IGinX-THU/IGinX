@@ -18,15 +18,24 @@
 
 package cn.edu.tsinghua.iginx.transform.data;
 
+import static cn.edu.tsinghua.iginx.utils.TagKVUtils.fromFullName;
+import static cn.edu.tsinghua.iginx.utils.TagKVUtils.tagMatchRegex;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
+import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class PemjaReader implements Reader {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(PemjaReader.class);
 
   private final List<Object> data;
 
@@ -43,6 +52,10 @@ public class PemjaReader implements Reader {
     this.batchSize = batchSize;
 
     this.header = getHeaderFromData();
+    if (this.header == null) {
+      throw new IllegalArgumentException(
+          "Invalid column names provided by transformer. Please check log.");
+    }
     this.rowList = getRowListFromData();
   }
 
@@ -59,10 +72,17 @@ public class PemjaReader implements Reader {
       firstRow = data;
     }
 
+    String fieldName;
+    Pair<String, Map<String, String>> p;
     for (int i = 0; i < firstRow.size(); i++) {
-      Object fieldName = firstRow.get(i);
-      fieldList.add(
-          new Field((String) fieldName, typeList.isEmpty() ? DataType.BINARY : typeList.get(i)));
+      fieldName = (String) firstRow.get(i);
+      if (!fieldName.matches(tagMatchRegex)) {
+        LOGGER.error("Invalid path :{}. Tags should be wrapped around by '{' & '}'.", fieldName);
+        return null;
+      } else {
+        p = fromFullName(fieldName);
+        fieldList.add(new Field(p.k, typeList.isEmpty() ? DataType.BINARY : typeList.get(i), p.v));
+      }
     }
     return new Header(fieldList);
   }
@@ -89,15 +109,18 @@ public class PemjaReader implements Reader {
   private List<DataType> parseTypeList(List<Object> dataList) {
     List<DataType> res = new ArrayList<>();
     for (Object value : dataList) {
-      // python won't pass integer & float
+      // python won't pass integer, float, byte
       if (value instanceof Long) {
         res.add(DataType.LONG);
       } else if (value instanceof Double) {
         res.add(DataType.DOUBLE);
       } else if (value instanceof Boolean) {
         res.add(DataType.BOOLEAN);
-      } else {
+      } else if (value instanceof String || value instanceof byte[]) {
         res.add(DataType.BINARY);
+      } else {
+        throw new IllegalArgumentException(
+            "Invalid datatype for " + value + " of class: " + value.getClass());
       }
     }
     return res;

@@ -32,8 +32,6 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import java.nio.ByteBuffer;
 import java.util.*;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,15 +60,8 @@ public class IginXWriter extends ExportWriter {
 
   private InsertRowRecordsReq buildInsertRowReq(BatchData batchData) {
     Header header = batchData.getHeader();
-    List<String> paths;
     Object[] valuesList;
-    List<DataType> dataTypeList;
 
-    paths =
-        header.getFields().stream()
-            .map(e -> TRANSFORM_PREFIX + "." + e.getName())
-            .collect(Collectors.toList());
-    dataTypeList = header.getFields().stream().map(Field::getType).collect(Collectors.toList());
     valuesList = batchData.getRowList().stream().map(Row::getValues).toArray();
     long[] keys = new long[valuesList.length];
     long startKey = System.nanoTime();
@@ -78,22 +69,15 @@ public class IginXWriter extends ExportWriter {
       keys[i] = startKey + i;
     }
 
-    List<Map<String, String>> tagsList =
-        paths.stream().map(this::parseTags).collect(Collectors.toList());
-    if (tagsList.contains(null)) {
-      LOGGER.error("Unexpected error occurred during exporting.");
-      return null;
-    }
-
-    List<String> sortedPaths = paths.stream().map(this::getPathName).collect(Collectors.toList());
-    Integer[] index = new Integer[sortedPaths.size()];
-    for (int i = 0; i < sortedPaths.size(); i++) {
+    List<Field> sortedFields = header.getFields();
+    Integer[] index = new Integer[sortedFields.size()];
+    for (int i = 0; i < sortedFields.size(); i++) {
       index[i] = i;
     }
-    Arrays.sort(index, Comparator.comparing(sortedPaths::get));
-    Collections.sort(sortedPaths);
+    Arrays.sort(index, Comparator.comparing(i -> sortedFields.get(i).getName()));
+    sortedFields.sort(Comparator.comparing(Field::getName));
+
     Object[] sortedValuesList = Arrays.copyOf(valuesList, valuesList.length);
-    List<DataType> sortedDataTypeList = new ArrayList<>();
     for (int i = 0; i < sortedValuesList.length; i++) {
       Object[] values = new Object[index.length];
       for (int j = 0; j < index.length; j++) {
@@ -101,13 +85,14 @@ public class IginXWriter extends ExportWriter {
       }
       sortedValuesList[i] = values;
     }
-    for (Integer i : index) {
-      sortedDataTypeList.add(dataTypeList.get(i));
-    }
-    List<Map<String, String>> sortedTagsList = new ArrayList<>();
-    for (Integer i : index) {
-      sortedTagsList.add(tagsList.get(i));
-    }
+    List<String> sortedPaths =
+        sortedFields.stream()
+            .map(e -> TRANSFORM_PREFIX + "." + e.getName())
+            .collect(Collectors.toList());
+    List<DataType> sortedDataTypeList =
+        sortedFields.stream().map(Field::getType).collect(Collectors.toList());
+    List<Map<String, String>> sortedTagsList =
+        sortedFields.stream().map(Field::getTags).collect(Collectors.toList());
 
     List<ByteBuffer> valueBufferList = new ArrayList<>();
     List<ByteBuffer> bitmapBufferList = new ArrayList<>();
@@ -133,34 +118,6 @@ public class IginXWriter extends ExportWriter {
     req.setTagsList(sortedTagsList);
     req.setTimePrecision(TimePrecision.NS);
     return req;
-  }
-
-  private Map<String, String> parseTags(String name) {
-    // <string>[<string>=<string>(, <string>=<string>)*]
-    String patternString =
-        "^[^\\[\\]]+\\[([^\\[\\]=,]+)=([^\\[\\]=,]+)(?:, ([^\\[\\]=,]+)=([^\\[\\]=,]+))*\\]$";
-    if (name.matches("^[^\\[\\]]+$")) return new HashMap<>();
-    if (name.matches(patternString)) {
-      Map<String, String> tagMap = new HashMap<>();
-      Pattern pattern = Pattern.compile(patternString);
-      Matcher matcher = pattern.matcher(name);
-      for (int i = 1; i <= matcher.groupCount(); i += 2) {
-        String key = matcher.group(i).trim();
-        String value = matcher.group(i + 1).trim();
-        tagMap.put(key, value);
-      }
-      return tagMap;
-    }
-    LOGGER.error("Invalid path format for:{}. Tags should be wrapped around by '[' & ']'.", name);
-    return null;
-  }
-
-  private String getPathName(String name) {
-    if (name.contains("[")) {
-      return name.substring(0, name.indexOf("["));
-    } else {
-      return name;
-    }
   }
 
   @Override

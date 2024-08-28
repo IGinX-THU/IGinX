@@ -41,6 +41,10 @@ public class TagKVUtils {
    */
   public static final String tagSuffix = "A"; // "#tagSuffix";
 
+  /** 匹配类似 <string>({<string>=<string>(, <string>=<string>)*})? 的可能含tag的列名全名 */
+  public static final String tagMatchRegex =
+      "^[^\\{\\}]+(?:\\{[^\\{\\}=,]+=[^\\{\\}=,]+(?:, [^\\{\\}=,]+=[^\\{\\}=,]+)*\\})?$";
+
   public static String toPhysicalPath(String name, Map<String, String> tags) {
     StringBuilder builder = new StringBuilder();
     builder.append(name);

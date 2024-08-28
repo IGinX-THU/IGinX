@@ -77,15 +77,17 @@ public class PemjaWorker {
             });
 
     List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
-    PemjaReader reader = new PemjaReader(res, config.getBatchSize());
 
     try {
+      PemjaReader reader = new PemjaReader(res, config.getBatchSize());
       while (reader.hasNextBatch()) {
         BatchData nextBatchData = reader.loadNextBatch();
         writer.writeBatch(nextBatchData);
       }
     } catch (WriteBatchException e) {
       LOGGER.error("PemjaWorker identifier={} fail to writer data.", identifier, e);
+    } catch (IllegalArgumentException e) {
+      LOGGER.error("Failed to read data from python transformer.", e);
     }
   }
 
