@@ -26,10 +26,12 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.transform.api.Reader;
+import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Matcher;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,19 +49,15 @@ public class PemjaReader implements Reader {
 
   private int offset = 0;
 
-  public PemjaReader(List<Object> data, int batchSize) {
+  public PemjaReader(List<Object> data, int batchSize) throws ReadBatchException {
     this.data = data;
     this.batchSize = batchSize;
 
     this.header = getHeaderFromData();
-    if (this.header == null) {
-      throw new IllegalArgumentException(
-          "Invalid column names provided by transformer. Please check log.");
-    }
     this.rowList = getRowListFromData();
   }
 
-  private Header getHeaderFromData() {
+  private Header getHeaderFromData() throws ReadBatchException {
     List<Object> firstRow;
     List<DataType> typeList = new ArrayList<>();
     List<Field> fieldList = new ArrayList<>();
@@ -76,9 +74,10 @@ public class PemjaReader implements Reader {
     Pair<String, Map<String, String>> p;
     for (int i = 0; i < firstRow.size(); i++) {
       fieldName = (String) firstRow.get(i);
-      if (!fieldName.matches(tagMatchRegex)) {
-        LOGGER.error("Invalid path :{}. Tags should be wrapped around by '{' & '}'.", fieldName);
-        return null;
+      Matcher matcher = tagMatchRegex.matcher(fieldName);
+      if (!matcher.find()) {
+        throw new ReadBatchException(
+            "Invalid path :" + fieldName + ". Tags should be wrapped around by '{' & '}'.");
       } else {
         p = fromFullName(fieldName);
         fieldList.add(new Field(p.k, typeList.isEmpty() ? DataType.BINARY : typeList.get(i), p.v));

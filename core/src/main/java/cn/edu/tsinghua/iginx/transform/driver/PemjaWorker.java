@@ -28,6 +28,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.transform.api.Writer;
 import cn.edu.tsinghua.iginx.transform.data.BatchData;
 import cn.edu.tsinghua.iginx.transform.data.PemjaReader;
+import cn.edu.tsinghua.iginx.transform.exception.ReadBatchException;
 import cn.edu.tsinghua.iginx.transform.exception.WriteBatchException;
 import java.util.*;
 import org.slf4j.Logger;
@@ -86,7 +87,7 @@ public class PemjaWorker {
       }
     } catch (WriteBatchException e) {
       LOGGER.error("PemjaWorker identifier={} fail to writer data.", identifier, e);
-    } catch (IllegalArgumentException e) {
+    } catch (ReadBatchException e) {
       LOGGER.error("Failed to read data from python transformer.", e);
     }
   }
