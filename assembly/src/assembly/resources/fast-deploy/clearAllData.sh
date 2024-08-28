@@ -21,7 +21,7 @@
 REMOVE_DIRS=(
 	include/apache-zookeeper/data
 	include/apache-zookeeper/logs
-	sbin/parquetData
+	sbin/data
 	sbin/logs
 )
 

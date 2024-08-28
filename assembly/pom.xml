@@ -176,7 +176,7 @@
                                 </replacement>
                                 <replacement>
                                     <token>#storageEngineList=127.0.0.1#6667#filestore.*</token>
-                                    <value>storageEngineList=127.0.0.1#6667#filestore#dir=parquetData#iginx_port=6888</value>
+                                    <value>storageEngineList=127.0.0.1#6667#filestore#dir=data#iginx_port=6888</value>
                                 </replacement>
                                 <replacement>
                                     <token>UD[ATS]F,.*,.*,.*[.]py</token>
