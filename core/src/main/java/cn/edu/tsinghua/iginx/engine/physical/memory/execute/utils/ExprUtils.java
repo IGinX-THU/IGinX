@@ -801,7 +801,7 @@ public class ExprUtils {
       case Binary:
         BinaryExpression binaryExpression = (BinaryExpression) expr;
         return hasCaseWhen(binaryExpression.getLeftExpression())
-            && hasCaseWhen(binaryExpression.getRightExpression());
+            || hasCaseWhen(binaryExpression.getRightExpression());
       case Multiple:
         MultipleExpression multipleExpression = (MultipleExpression) expr;
         for (Expression child : multipleExpression.getChildren()) {
