@@ -72,7 +72,7 @@ public class Constant {
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
   public static final List<String> READ_ONLY_FLOAT_PATH_LIST =
-      Collections.singletonList("tm.wf05.wt01.float");
+      Collections.singletonList("tm.wf05.wt02.float");
 
   public static final List<String> READ_ONLY_EXTEND_PATH_LIST =
       Arrays.asList("a.a.c.status", "a.a.c.temperature");

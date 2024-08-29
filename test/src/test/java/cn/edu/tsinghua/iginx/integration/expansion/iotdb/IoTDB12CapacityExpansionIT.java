@@ -18,11 +18,16 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.READ_ONLY_FLOAT_PATH_LIST;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.READ_ONLY_FLOAT_VALUES_LIST;
 import static cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools.executeShellScript;
 import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.iotdb12;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import java.util.Arrays;
+import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -63,5 +68,17 @@ public class IoTDB12CapacityExpansionIT extends BaseCapacityExpansionIT {
     if (res != 0) {
       fail("Fail to update iotdb params.");
     }
+  }
+
+  @Override
+  protected void testQuerySpecialHistoryData() {
+    // test float value compare
+    String statement = "select wt02.float from tm.wf05 where wt02.float <= 44.55;";
+    List<String> pathList = READ_ONLY_FLOAT_PATH_LIST;
+    List<List<Object>> valuesList = READ_ONLY_FLOAT_VALUES_LIST;
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
+    statement = "select wt02.float from tm.wf05 where wt02.float = 44.55;";
+    valuesList = Arrays.asList(Arrays.asList(44.55F));
+    SQLTestTools.executeAndCompare(session, statement, pathList, valuesList);
   }
 }
