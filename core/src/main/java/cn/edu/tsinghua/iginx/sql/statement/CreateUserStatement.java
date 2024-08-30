@@ -27,8 +27,8 @@ import java.util.HashSet;
 
 public class CreateUserStatement extends SystemStatement {
 
-  private String username;
-  private String password;
+  private final String username;
+  private final String password;
 
   public CreateUserStatement(String username, String password) {
     this.statementType = StatementType.CREATE_USER;

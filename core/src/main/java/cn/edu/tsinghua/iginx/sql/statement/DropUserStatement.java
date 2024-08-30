@@ -26,7 +26,7 @@ import cn.edu.tsinghua.iginx.thrift.Status;
 
 public class DropUserStatement extends SystemStatement {
 
-  private String username;
+  private final String username;
 
   public DropUserStatement(String username) {
     this.statementType = StatementType.DROP_USER;

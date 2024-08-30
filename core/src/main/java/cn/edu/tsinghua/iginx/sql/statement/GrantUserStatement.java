@@ -27,8 +27,8 @@ import cn.edu.tsinghua.iginx.thrift.UpdateUserReq;
 import java.util.Set;
 
 public class GrantUserStatement extends SystemStatement {
-  private String username;
-  private Set<AuthType> authTypes;
+  private final String username;
+  private final Set<AuthType> authTypes;
 
   public GrantUserStatement(String username, Set<AuthType> authTypes) {
     this.statementType = StatementType.GRANT_USER;

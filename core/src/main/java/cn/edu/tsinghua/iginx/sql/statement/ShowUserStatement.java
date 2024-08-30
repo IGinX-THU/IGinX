@@ -27,7 +27,7 @@ import java.util.List;
 
 public class ShowUserStatement extends SystemStatement {
 
-  private List<String> users;
+  private final List<String> users;
 
   public ShowUserStatement(List<String> users) {
     this.statementType = StatementType.SHOW_USER;

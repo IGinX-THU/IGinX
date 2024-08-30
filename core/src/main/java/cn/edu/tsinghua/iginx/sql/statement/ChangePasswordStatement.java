@@ -26,8 +26,8 @@ import cn.edu.tsinghua.iginx.thrift.UpdateUserReq;
 
 public class ChangePasswordStatement extends SystemStatement {
 
-  private String username;
-  private String password;
+  private final String username;
+  private final String password;
 
   public ChangePasswordStatement(String username, String password) {
     this.statementType = StatementType.CHANGE_USER_PASSWORD;
