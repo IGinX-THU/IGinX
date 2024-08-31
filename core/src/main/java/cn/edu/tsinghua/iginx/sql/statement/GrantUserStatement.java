@@ -15,36 +15,43 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cn.edu.tsinghua.iginx.sql.statement;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
-import cn.edu.tsinghua.iginx.thrift.DropTaskReq;
+import cn.edu.tsinghua.iginx.thrift.AuthType;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cn.edu.tsinghua.iginx.thrift.UpdateUserReq;
+import java.util.Set;
 
-public class DropTaskStatement extends SystemStatement {
+public class GrantUserStatement extends SystemStatement {
+  private final String username;
+  private final Set<AuthType> authTypes;
 
-  @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(DropTaskStatement.class);
+  public GrantUserStatement(String username, Set<AuthType> authTypes) {
+    this.statementType = StatementType.GRANT_USER;
+    this.username = username;
+    this.authTypes = authTypes;
+  }
 
-  private final String name;
+  public String getUsername() {
+    return username;
+  }
 
-  private final IginxWorker worker = IginxWorker.getInstance();
-
-  public DropTaskStatement(String name) {
-    this.statementType = StatementType.DROP_TASK;
-    this.name = name;
+  public Set<AuthType> getAuthTypes() {
+    return authTypes;
   }
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    DropTaskReq req = new DropTaskReq(ctx.getSessionId(), name);
-    Status status = worker.dropTask(req);
+    IginxWorker worker = IginxWorker.getInstance();
+    UpdateUserReq req = new UpdateUserReq(ctx.getSessionId(), username);
+    if (authTypes != null && !authTypes.isEmpty()) {
+      req.setAuths(authTypes);
+    }
+    Status status = worker.updateUser(req);
     ctx.setResult(new Result(status));
   }
 }
