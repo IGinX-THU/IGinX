@@ -37,6 +37,17 @@ if [[ -z "$IGINX_HOME" ]]; then
   fi
 fi
 
+if [[ -z "$IGINX_CONF_DIR" ]]; then
+  IGINX_CONF_DIR="${IGINX_HOME}/conf"
+fi
+
+IGINX_CONF="${IGINX_CONF_DIR}/config.properties"
+IGINX_DRIVER="${IGINX_HOME}/driver"
+IGINX_ENV="${IGINX_CONF_DIR}/iginx-env.sh"
+if [[ -f "${IGINX_ENV}" ]]; then
+  source "${IGINX_ENV}"
+fi
+
 MAIN_CLASS=cn.edu.tsinghua.iginx.Iginx
 
 CLASSPATH="$IGINX_HOME/conf"
@@ -120,13 +131,15 @@ HEAP_OPTS[0]=-Xmx$MAX_HEAP_SIZE
 HEAP_OPTS[1]=-Xms$MAX_HEAP_SIZE
 
 # continue to other parameters
-ICONF="$IGINX_HOME/conf/config.properties"
-IDRIVER="$IGINX_HOME/driver/"
+LOCAL_JAVA_OPTS=(
+ -ea
+ -cp "$CLASSPATH"
+ -DIGINX_HOME="$IGINX_HOME"
+ -DIGINX_DRIVER="$IGINX_DRIVER"
+ -DIGINX_CONF="$IGINX_CONF"
+)
 
-export IGINX_CONF=$ICONF
-export IGINX_DRIVER=$IDRIVER
-
-exec "$JAVA" -Duser.timezone=GMT+8 ${HEAP_OPTS[@]} -cp "$CLASSPATH" "$MAIN_CLASS" "$@"
+exec "$JAVA" ${HEAP_OPTS[@]} ${IGINX_JAVA_OPTS[@]} ${LOCAL_JAVA_OPTS[@]} "$MAIN_CLASS" "$@"
 
 # Double quoted to avoid Word Splitting when IFS contains digit
 exit "$?"
