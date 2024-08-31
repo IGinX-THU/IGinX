@@ -2534,6 +2534,17 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
 
+    query = "select avg(a), b from test group by b having AVG(a) < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------+------+\n"
+            + "|avg(test.a)|test.b|\n"
+            + "+-----------+------+\n"
+            + "|        1.0|     3|\n"
+            + "+-----------+------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
     query = "select min(a), c from test group by c having c > 1.5 order by c;";
     expected =
         "ResultSets:\n"
@@ -8112,5 +8123,51 @@ public class SQLSessionIT {
     closeExplain = executor.execute("EXPLAIN " + statement);
     assertEquals(openResult, closeResult);
     assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+  }
+
+  @Test
+  public void testSingleLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1\n"
+            + "    -- AND s2 = 1\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
+  }
+
+  @Test
+  public void testMultiLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1  \n"
+            + "    /* \n"
+            + "    AND s2 = 3 \n"
+            + "    */\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
   }
 }
