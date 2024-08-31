@@ -35,16 +35,14 @@ import java.util.*;
 import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
-public class PyUDSF implements UDSF {
+public class PyUDSF extends PyUDF implements UDSF {
 
   private static final String PY_UDSF = "py_udsf";
 
-  private final BlockingQueue<PythonInterpreter> interpreters;
-
   private final String funcName;
 
-  public PyUDSF(BlockingQueue<PythonInterpreter> interpreters, String funcName) {
-    this.interpreters = interpreters;
+  public PyUDSF(BlockingQueue<PythonInterpreter> interpreters, String funcName, String moduleName) {
+    super(interpreters, moduleName);
     this.funcName = funcName;
   }
 

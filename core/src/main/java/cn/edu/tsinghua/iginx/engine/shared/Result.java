@@ -31,10 +31,7 @@ import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import lombok.Data;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -85,6 +82,10 @@ public class Result {
   private List<Long> sessionIDs;
 
   private Map<String, Boolean> rules;
+
+  private List<String> usernames;
+  private List<UserType> userTypes;
+  private List<Set<AuthType>> auths;
 
   public Result(Status status) {
     this.status = status;
@@ -196,6 +197,10 @@ public class Result {
     resp.setRules(rules);
     // import udf
     resp.setUDFModulePath(UDFModulePath);
+    // SHOW USER
+    resp.setUsernames(usernames);
+    resp.setUserTypes(userTypes);
+    resp.setAuths(auths);
     return resp;
   }
 

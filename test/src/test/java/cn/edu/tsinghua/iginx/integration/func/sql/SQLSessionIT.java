@@ -2534,6 +2534,17 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
 
+    query = "select avg(a), b from test group by b having AVG(a) < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------+------+\n"
+            + "|avg(test.a)|test.b|\n"
+            + "+-----------+------+\n"
+            + "|        1.0|     3|\n"
+            + "+-----------+------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
     query = "select min(a), c from test group by c having c > 1.5 order by c;";
     expected =
         "ResultSets:\n"
