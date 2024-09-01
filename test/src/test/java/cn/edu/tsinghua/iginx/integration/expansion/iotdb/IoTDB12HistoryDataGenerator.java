@@ -18,11 +18,8 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.iotdb;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.READ_ONLY_FLOAT_PATH_LIST;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.READ_ONLY_FLOAT_VALUES_LIST;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.readOnlyPort;
-
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -121,10 +118,10 @@ public class IoTDB12HistoryDataGenerator extends BaseHistoryDataGenerator {
   public void writeSpecialHistoryData() {
     // write float value
     writeHistoryData(
-        readOnlyPort,
-        READ_ONLY_FLOAT_PATH_LIST,
+        Constant.readOnlyPort,
+        Constant.READ_ONLY_FLOAT_PATH_LIST,
         new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
-        READ_ONLY_FLOAT_VALUES_LIST);
+        Constant.READ_ONLY_FLOAT_VALUES_LIST);
   }
 
   @Override
