@@ -854,7 +854,7 @@ public abstract class BaseCapacityExpansionIT {
             + "Total line number = 2\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
-    statement = "SHOW COLUMNS tm.*;";
+    statement = "SHOW COLUMNS tm.wf05.wt01.*;";
     expected =
         "Columns:\n"
             + "+------------------------+--------+\n"
@@ -870,7 +870,7 @@ public abstract class BaseCapacityExpansionIT {
   // test dummy query for data out of initial key range (should be visible)
   protected void testDummyKeyRange() {
     String statement;
-    statement = "select * from mn where key < 1;";
+    statement = "select * from mn.wf01.wt01 where key < 1;";
     String expected =
         "Columns:\n"
             + "+------------------------+--------+\n"
