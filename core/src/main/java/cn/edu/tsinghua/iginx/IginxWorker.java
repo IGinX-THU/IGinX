@@ -1072,6 +1072,7 @@ public class IginxWorker implements IService.Iface {
         FileUtils.deleteFileOrDir(file);
       }
       metaManager.dropTransformTask(name);
+      FunctionManager.getInstance().removeFunction(name);
       LOGGER.info("Register file has been dropped, path={}", filePath);
       return RpcUtils.SUCCESS;
     } catch (IOException e) {

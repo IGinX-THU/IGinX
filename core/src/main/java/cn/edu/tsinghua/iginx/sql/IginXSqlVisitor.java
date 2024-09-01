@@ -582,6 +582,60 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   @Override
+  public Statement visitCreateUserStatement(SqlParser.CreateUserStatementContext ctx) {
+    String username = ctx.username.getChild(0).toString();
+    String password = ctx.password.getChild(0).toString();
+    return new CreateUserStatement(username, password);
+  }
+
+  @Override
+  public Statement visitGrantUserStatement(SqlParser.GrantUserStatementContext ctx) {
+    String username = ctx.username.getChild(0).toString();
+    Set<AuthType> authTypes = new HashSet<>();
+    if (ctx.permissionSpec() != null) {
+      ctx.permissionSpec().permission().forEach(e -> authTypes.add(parseAuthType(e.getText())));
+    }
+    return new GrantUserStatement(username, authTypes);
+  }
+
+  @Override
+  public Statement visitChangePasswordStatement(SqlParser.ChangePasswordStatementContext ctx) {
+    String username = ctx.username.getChild(0).toString();
+    String password = ctx.password.getChild(0).toString();
+    return new ChangePasswordStatement(username, password);
+  }
+
+  @Override
+  public Statement visitDropUserStatement(SqlParser.DropUserStatementContext ctx) {
+    String username = ctx.username.getChild(0).toString();
+    return new DropUserStatement(username);
+  }
+
+  @Override
+  public Statement visitShowUserStatement(SqlParser.ShowUserStatementContext ctx) {
+    List<String> users = new ArrayList<>();
+    if (ctx.userSpec() != null) {
+      ctx.userSpec().nodeName().forEach(e -> users.add(e.getText()));
+    }
+    return new ShowUserStatement(users);
+  }
+
+  private AuthType parseAuthType(String authType) {
+    switch (authType.trim().toLowerCase()) {
+      case "read":
+        return AuthType.Read;
+      case "write":
+        return AuthType.Write;
+      case "admin":
+        return AuthType.Admin;
+      case "cluster":
+        return AuthType.Cluster;
+      default:
+        throw new SQLParserException(String.format("Unknown auth type [%s].", authType));
+    }
+  }
+
+  @Override
   public Statement visitRemoveHistoryDataSourceStatement(
       RemoveHistoryDataSourceStatementContext ctx) {
     RemoveHistoryDataSourceStatement statement = new RemoveHistoryDataSourceStatement();
@@ -1389,7 +1443,11 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     // deal with having filter with functions like having avg(a) > 3.
     // we need a instead of avg(a) to combine fragments' raw data.
     if (ctx.functionName() != null) {
-      path = ctx.functionName().getText() + "(" + path + ")";
+      String funcName = ctx.functionName().getText();
+      if (FunctionUtils.isSysFunc(funcName)) {
+        funcName = funcName.toLowerCase();
+      }
+      path = funcName + "(" + path + ")";
     }
 
     Op op;

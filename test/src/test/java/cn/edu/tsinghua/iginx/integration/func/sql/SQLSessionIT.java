@@ -492,6 +492,19 @@ public class SQLSessionIT {
             + "Total line number = 6\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT c FROM us.d2 WHERE !(c not like \"^[s|f].*\");";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  2|  sadaa|\n"
+            + "|  3| sadada|\n"
+            + "|  8|  frgsa|\n"
+            + "+---+-------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT c FROM us.d2 WHERE c like \"^.*[s|d]\";";
     expected =
         "ResultSets:\n"
@@ -536,6 +549,20 @@ public class SQLSessionIT {
     executor.execute(insert);
 
     query = "SELECT s1 FROM us.* WHERE s1 &> 200 and s1 &< 210;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|201|     201|     206|\n"
+            + "|202|     202|     207|\n"
+            + "|203|     203|     208|\n"
+            + "|204|     204|     209|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT s1 FROM us.* WHERE !(s1 <= 200 or s1 >= 210);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -687,6 +714,20 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT a, b FROM us.d9 WHERE !(!(a < b));";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|us.d9.a|us.d9.b|\n"
+            + "+---+-------+-------+\n"
+            + "|  1|      1|      9|\n"
+            + "|  2|      2|      8|\n"
+            + "|  3|      3|      7|\n"
+            + "|  4|      4|      6|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT a, b FROM us.d9 WHERE a = b;";
     expected =
         "ResultSets:\n"
@@ -714,6 +755,17 @@ public class SQLSessionIT {
             + "|  9|      9|      1|\n"
             + "+---+-------+-------+\n"
             + "Total line number = 8\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT a, b FROM us.d9 WHERE !(a != b);";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|us.d9.a|us.d9.b|\n"
+            + "+---+-------+-------+\n"
+            + "|  5|      5|      5|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
   }
 
@@ -2524,6 +2576,17 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
 
     query = "select avg(a), b from test group by b having avg(a) < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------+------+\n"
+            + "|avg(test.a)|test.b|\n"
+            + "+-----------+------+\n"
+            + "|        1.0|     3|\n"
+            + "+-----------+------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select avg(a), b from test group by b having AVG(a) < 2;";
     expected =
         "ResultSets:\n"
             + "+-----------+------+\n"
@@ -8112,5 +8175,51 @@ public class SQLSessionIT {
     closeExplain = executor.execute("EXPLAIN " + statement);
     assertEquals(openResult, closeResult);
     assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+  }
+
+  @Test
+  public void testSingleLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1\n"
+            + "    -- AND s2 = 1\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
+  }
+
+  @Test
+  public void testMultiLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1  \n"
+            + "    /* \n"
+            + "    AND s2 = 3 \n"
+            + "    */\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
   }
 }
