@@ -18,6 +18,7 @@
 
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
+import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
@@ -49,7 +50,7 @@ public class ExprUtils {
     functionManager = FunctionManager.getInstance();
   }
 
-  public static Value calculateExpr(Row row, Expression expr) {
+  public static Value calculateExpr(Row row, Expression expr) throws PhysicalException {
     switch (expr.getType()) {
       case Constant:
         return calculateConstantExpr((ConstantExpression) expr);
@@ -85,7 +86,8 @@ public class ExprUtils {
     return new Value(row.getValues()[index]);
   }
 
-  private static Value calculateFuncExpr(Row row, FuncExpression funcExpr) {
+  private static Value calculateFuncExpr(Row row, FuncExpression funcExpr)
+      throws PhysicalException {
     String colName = funcExpr.getColumnName();
     int index = row.getHeader().indexOf(colName);
     if (index == -1) {
@@ -94,11 +96,12 @@ public class ExprUtils {
     return new Value(row.getValues()[index]);
   }
 
-  private static Value calculateFuncExprNative(Row row, FuncExpression funcExpr) {
+  private static Value calculateFuncExprNative(Row row, FuncExpression funcExpr)
+      throws PhysicalException {
     initFunctionManager();
     Function function = functionManager.getFunction(funcExpr.getFuncName());
     if (!function.getMappingType().equals(MappingType.RowMapping)) {
-      throw new RuntimeException("only row mapping function can be used in expr");
+      throw new InvalidOperatorParameterException("only row mapping function can be used in expr");
     }
     RowMappingFunction rowMappingFunction = (RowMappingFunction) function;
     FunctionParams params =
@@ -108,7 +111,8 @@ public class ExprUtils {
       Row ret = rowMappingFunction.transform(row, params);
       int retValueSize = ret.getValues().length;
       if (retValueSize != 1) {
-        throw new RuntimeException("the func in the expr can only have one return value");
+        throw new InvalidOperatorParameterException(
+            "the func in the expr can only have one return value");
       }
       return ret.getAsValue(0);
     } catch (Exception e) {
@@ -116,12 +120,14 @@ public class ExprUtils {
     }
   }
 
-  private static Value calculateBracketExpr(Row row, BracketExpression bracketExpr) {
+  private static Value calculateBracketExpr(Row row, BracketExpression bracketExpr)
+      throws PhysicalException {
     Expression expr = bracketExpr.getExpression();
     return calculateExpr(row, expr);
   }
 
-  private static Value calculateUnaryExpr(Row row, UnaryExpression unaryExpr) {
+  private static Value calculateUnaryExpr(Row row, UnaryExpression unaryExpr)
+      throws PhysicalException {
     Expression expr = unaryExpr.getExpression();
     Operator operator = unaryExpr.getOperator();
 
@@ -144,7 +150,8 @@ public class ExprUtils {
     }
   }
 
-  private static Value calculateBinaryExpr(Row row, BinaryExpression binaryExpr) {
+  private static Value calculateBinaryExpr(Row row, BinaryExpression binaryExpr)
+      throws PhysicalException {
     Expression leftExpr = binaryExpr.getLeftExpression();
     Expression rightExpr = binaryExpr.getRightExpression();
     Operator operator = binaryExpr.getOp();
@@ -178,7 +185,8 @@ public class ExprUtils {
     }
   }
 
-  public static Value calculateMultipleExpr(Row row, MultipleExpression multipleExpr) {
+  public static Value calculateMultipleExpr(Row row, MultipleExpression multipleExpr)
+      throws PhysicalException {
     List<Expression> children = multipleExpr.getChildren();
     List<Operator> ops = multipleExpr.getOps();
     List<Value> values = new ArrayList<>();
@@ -227,14 +235,11 @@ public class ExprUtils {
     return values.get(values.size() - 1);
   }
 
-  public static Value calculateCaseWhenExpr(Row row, CaseWhenExpression caseWhenExpr) {
+  public static Value calculateCaseWhenExpr(Row row, CaseWhenExpression caseWhenExpr)
+      throws PhysicalException {
     for (int i = 0; i < caseWhenExpr.getConditions().size(); i++) {
-      try {
-        if (FilterUtils.validate(caseWhenExpr.getConditions().get(i), row)) {
-          return calculateExpr(row, caseWhenExpr.getResults().get(i));
-        }
-      } catch (PhysicalException e) {
-        LOGGER.error("encounter error when calculate case-when: ", e);
+      if (FilterUtils.validate(caseWhenExpr.getConditions().get(i), row)) {
+        return calculateExpr(row, caseWhenExpr.getResults().get(i));
       }
     }
     if (caseWhenExpr.getResultElse() != null) {
@@ -538,8 +543,12 @@ public class ExprUtils {
         if (i == 0) {
           constantValue = calculateConstantExpr((ConstantExpression) children.get(i));
           if (multipleExpression.getOps().get(0) == Operator.MINUS) {
-            constantValue =
-                calculateUnaryExpr(null, new UnaryExpression(Operator.MINUS, children.get(i)));
+            try {
+              constantValue =
+                  calculateUnaryExpr(null, new UnaryExpression(Operator.MINUS, children.get(i)));
+            } catch (PhysicalException e) {
+              LOGGER.error("encounter error when calculate expression: ", e);
+            }
           }
         } else {
           cn.edu.tsinghua.iginx.engine.shared.expr.Operator op = multipleExpression.getOps().get(i);
