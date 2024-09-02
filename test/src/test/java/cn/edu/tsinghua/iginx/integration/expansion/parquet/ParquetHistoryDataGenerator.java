@@ -26,6 +26,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.domain.ColumnKey;
 import cn.edu.tsinghua.iginx.format.parquet.ParquetWriter;
 import cn.edu.tsinghua.iginx.format.parquet.example.ExampleParquetWriter;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
+import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import java.io.File;
 import java.io.IOException;
@@ -38,6 +39,7 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -150,6 +152,16 @@ public class ParquetHistoryDataGenerator extends BaseHistoryDataGenerator {
     List<Long> keyList =
         Stream.iterate(0L, n -> n + 1).limit(valuesList.size()).collect(Collectors.toList());
     writeHistoryData(port, pathList, dataTypeList, keyList, valuesList);
+  }
+
+  @Override
+  public void writeSpecialHistoryData() {
+    // write float value
+    writeHistoryData(
+        Constant.readOnlyPort,
+        Constant.READ_ONLY_FLOAT_PATH_LIST,
+        new ArrayList<>(Collections.singletonList(DataType.FLOAT)),
+        Constant.READ_ONLY_FLOAT_VALUES_LIST);
   }
 
   @Override
