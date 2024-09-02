@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.integration.func.udf;
 
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KEY;
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
+import static cn.edu.tsinghua.iginx.integration.tool.TestUtils.downloadFile;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.appendFile;
 import static org.junit.Assert.*;
 
@@ -30,11 +31,10 @@ import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.session.Session;
 import cn.edu.tsinghua.iginx.session.SessionExecuteSqlResult;
 import cn.edu.tsinghua.iginx.thrift.*;
-import cn.edu.tsinghua.iginx.utils.JobFromYAML;
-import cn.edu.tsinghua.iginx.utils.RpcUtils;
-import cn.edu.tsinghua.iginx.utils.YAMLReader;
-import cn.edu.tsinghua.iginx.utils.YAMLWriter;
+import cn.edu.tsinghua.iginx.utils.*;
+import cn.hutool.core.collection.CollectionUtil;
 import java.io.*;
+import java.io.FileReader;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -63,6 +63,17 @@ public class TransformIT {
           + "resources"
           + File.separator
           + "transform";
+
+  private static final String DOWNLOAD_DIR =
+      System.getProperty("user.dir")
+          + File.separator
+          + "src"
+          + File.separator
+          + "test"
+          + File.separator
+          + "resources"
+          + File.separator
+          + "downloads";
 
   private static final long START_TIMESTAMP = 0L;
 
@@ -665,14 +676,29 @@ public class TransformIT {
     }
   }
 
+  /**
+   * add picture dummy dir as engine; convert to bytes and export to iginx; compare result and
+   * original pic data
+   */
   @Test
   public void commitPythonExportBinaryToIginxTest() {
     LOGGER.info("commitPythonExportBinaryToIginxTest");
+    String picDirSuffix = "pics";
+    String picDir = DOWNLOAD_DIR + File.separator + picDirSuffix;
     try {
       String[] taskList = {"ToBytesTransformer"};
       for (String task : taskList) {
         registerTask(task);
       }
+      downloadFile(
+          "https://raw.githubusercontent.com/IGinX-THU/IGinX-resources/main/iginx-python-example/image/small.png",
+          picDir + File.separator + "small.png");
+      Map<String, String> params = new HashMap<>();
+      params.put("iginx_port", "6888");
+      params.put("dummy_dir", "test/src/test/resources/downloads/pics");
+      params.put("is_read_only", "true");
+      params.put("has_data", "true");
+      session.addStorageEngine("127.0.0.1", 6660, StorageEngineType.filesystem, params);
 
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformBinaryExportToIginx.yaml";
@@ -683,26 +709,30 @@ public class TransformIT {
       verifyJobState(jobId);
 
       SessionExecuteSqlResult queryResult = session.executeSql("SELECT * FROM transform;");
-      SessionExecuteSqlResult oriResult =
-          session.executeSql("SELECT s3 FROM us.d1 WHERE key < 50;");
-      int timeIndex = queryResult.getPaths().indexOf("transform.key");
-      int valueIndex = queryResult.getPaths().indexOf("transform.us.d1.s3");
-      if (needCompareResult) {
-        assertNotEquals(-1, timeIndex);
-        assertNotEquals(-1, valueIndex);
+      SessionExecuteSqlResult oriResult = session.executeSql("select * from pics;");
+      assertEquals(queryResult.getPaths().size() - 1, oriResult.getPaths().size());
+      List<Object> oriRow, row;
+      for (int i = 0; i < queryResult.getValues().size(); i++) {
+        row = queryResult.getValues().get(i);
+        // remove transform.key
+        row.remove(0);
+        oriRow = oriResult.getValues().get(i);
+        CollectionUtil.isEqualList(row, oriRow);
+        i++;
       }
-      int index = 0;
-      List<Object> oriRow;
-      for (List<Object> row : queryResult.getValues()) {
-        oriRow = oriResult.getValues().get(index);
-        assertEquals(oriResult.getKeys()[index], row.get(timeIndex));
-        assertArrayEquals((byte[]) oriRow.get(0), (byte[]) row.get(valueIndex));
-        index++;
-      }
-      assertEquals(50, index);
-    } catch (SessionException | InterruptedException e) {
+    } catch (SessionException | InterruptedException | IOException e) {
       LOGGER.error("Transform:  execute fail. Caused by:", e);
       fail();
+    } finally {
+      try {
+        Files.deleteIfExists(Paths.get(picDir));
+        session.removeHistoryDataSource(
+            Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")));
+      } catch (SessionException e) {
+        LOGGER.error("Remove read-only dummy engine failed:", e);
+      } catch (IOException e) {
+        LOGGER.error("Remove test resource dir failed:", e);
+      }
     }
   }
 

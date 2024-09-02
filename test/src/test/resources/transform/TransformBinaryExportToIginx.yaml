@@ -3,7 +3,7 @@ taskList:
   - taskType: "iginx"
     timeout: 10000000
     sqlList:
-      - "SELECT s3 FROM us.d1 WHERE key < 50;"
+      - "SELECT * from pics;"
   - taskType: "python"
     dataFlowType: "stream"
     timeout: 10000000
