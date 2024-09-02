@@ -137,7 +137,7 @@ public class FilterUtils {
         }
         return true; // 所有子条件均满足，返回true
       } else {
-        throw new RuntimeException("Unknown op type: " + valueFilter.getOp());
+        throw new IllegalArgumentException("Unknown op type: " + valueFilter.getOp());
       }
     } else {
       Value value = row.getAsValue(path);
@@ -330,7 +330,7 @@ public class FilterUtils {
       case Bool:
         return false;
       default:
-        throw new RuntimeException("Unexpected filter type: " + filter.getType());
+        throw new IllegalArgumentException("Unexpected filter type: " + filter.getType());
     }
   }
 

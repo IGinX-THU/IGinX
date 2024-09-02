@@ -33,8 +33,12 @@ import cn.edu.tsinghua.iginx.utils.DataTypeUtils;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ExprUtils {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(ExprUtils.class);
 
   private static FunctionManager functionManager;
 
@@ -230,7 +234,7 @@ public class ExprUtils {
           return calculateExpr(row, caseWhenExpr.getResults().get(i));
         }
       } catch (PhysicalException e) {
-        throw new RuntimeException(e);
+        LOGGER.error("encounter error when calculate case-when: ", e);
       }
     }
     if (caseWhenExpr.getResultElse() != null) {
