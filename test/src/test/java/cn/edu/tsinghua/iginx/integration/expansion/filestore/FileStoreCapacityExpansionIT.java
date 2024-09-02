@@ -239,7 +239,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|                   tm.wf05.wt01.status|  BINARY|\n"
             + "|              tm.wf05.wt01.temperature|  BINARY|\n"
             + "+--------------------------------------+--------+\n"
-            + "Total line number = 44\n";
+            + "Total line number = 46\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
 
     statement = "SHOW COLUMNS nt.*;";
@@ -311,7 +311,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|           a.other.price\\parquet.price|    LONG|\n"
             + "|         a.other.price\\parquet.stories|    LONG|\n"
             + "+--------------------------------------+--------+\n"
-            + "Total line number = 36\n";
+            + "Total line number = 38\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
