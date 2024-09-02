@@ -21,6 +21,7 @@ import static cn.edu.tsinghua.iginx.integration.controller.Controller.SUPPORT_KE
 import static cn.edu.tsinghua.iginx.integration.controller.Controller.clearAllData;
 import static cn.edu.tsinghua.iginx.integration.tool.TestUtils.downloadFile;
 import static cn.edu.tsinghua.iginx.utils.FileUtils.appendFile;
+import static cn.edu.tsinghua.iginx.utils.FileUtils.deleteFileOrDir;
 import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
@@ -677,8 +678,8 @@ public class TransformIT {
   }
 
   /**
-   * add picture dummy dir as engine; convert to bytes and export to iginx; compare result and
-   * original pic data
+   * add picture dummy dir as engine; convert to bytes in transform function and export to iginx;
+   * compare result and original pic data
    */
   @Test
   public void commitPythonExportBinaryToIginxTest() {
@@ -725,13 +726,15 @@ public class TransformIT {
       fail();
     } finally {
       try {
-        Files.deleteIfExists(Paths.get(picDir));
+        deleteFileOrDir(Paths.get(picDir).toFile());
+      } catch (IOException e) {
+        LOGGER.error("Remove test resource dir failed:", e);
+      }
+      try {
         session.removeHistoryDataSource(
             Collections.singletonList(new RemovedStorageEngineInfo("127.0.0.1", 6660, "", "")));
       } catch (SessionException e) {
         LOGGER.error("Remove read-only dummy engine failed:", e);
-      } catch (IOException e) {
-        LOGGER.error("Remove test resource dir failed:", e);
       }
     }
   }

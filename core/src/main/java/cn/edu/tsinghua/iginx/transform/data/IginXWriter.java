@@ -52,10 +52,8 @@ public class IginXWriter extends ExportWriter {
   @Override
   public void write(BatchData batchData) {
     InsertRowRecordsReq rowRecordsReq = buildInsertRowReq(batchData);
-    if (rowRecordsReq != null) {
-      RequestContext ctx = contextBuilder.build(rowRecordsReq);
-      executor.execute(ctx);
-    }
+    RequestContext ctx = contextBuilder.build(rowRecordsReq);
+    executor.execute(ctx);
   }
 
   private InsertRowRecordsReq buildInsertRowReq(BatchData batchData) {
@@ -87,7 +85,7 @@ public class IginXWriter extends ExportWriter {
     }
     List<String> sortedPaths =
         sortedFields.stream()
-            .map(e -> TRANSFORM_PREFIX + "." + e.getName())
+            .map(e -> TRANSFORM_PREFIX + "." + reformatPath(e.getName()))
             .collect(Collectors.toList());
     List<DataType> sortedDataTypeList =
         sortedFields.stream().map(Field::getType).collect(Collectors.toList());
@@ -118,6 +116,11 @@ public class IginXWriter extends ExportWriter {
     req.setTagsList(sortedTagsList);
     req.setTimePrecision(TimePrecision.NS);
     return req;
+  }
+
+  private String reformatPath(String path) {
+    // iotdb cannot handle "\" in path
+    return path.replace("\\", "_");
   }
 
   @Override
