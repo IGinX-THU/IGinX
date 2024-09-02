@@ -30,13 +30,10 @@ enum DataType {
 enum StorageEngineType {
     iotdb12,
     influxdb,
-    parquet,
     relational,
     mongodb,
     redis,
-    filesystem,
-    opentsdb,
-    timescaledb,
+    filestore,
     unknown
 }
 

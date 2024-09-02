@@ -60,8 +60,10 @@
     </distributionManagement>
 
     <properties>
+        <auto-service.version>1.1.1</auto-service.version>
         <build-plugin.jacoco.version>0.8.6</build-plugin.jacoco.version>
         <deploy.repo.dir>${project.basedir}</deploy.repo.dir>
+        <lombok.version>1.18.34</lombok.version>
         <maven.compiler.source>8</maven.compiler.source>
         <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -108,11 +110,6 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>filesystem</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>influxdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
@@ -123,7 +120,7 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>parquet</artifactId>
+                <artifactId>filestore</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -285,7 +282,8 @@
             <dependency>
                 <groupId>org.projectlombok</groupId>
                 <artifactId>lombok</artifactId>
-                <version>1.18.20</version>
+                <version>${lombok.version}</version>
+                <scope>provided</scope>
             </dependency>
             <dependency>
                 <groupId>com.google.guava</groupId>

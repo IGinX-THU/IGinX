@@ -52,7 +52,7 @@
             <artifactId>slf4j-api</artifactId>
         </dependency>
     </dependencies>
-
+    <!--TODO: 自动将thrift生成python代码覆盖到session_py 中-->
     <build>
         <pluginManagement>
             <plugins>

@@ -23,13 +23,18 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import java.util.Collections;
+import java.util.Objects;
 
 public class EmptyRowStream implements RowStream {
 
   private final Header header;
 
   public EmptyRowStream() {
-    this.header = new Header(Field.KEY, Collections.emptyList());
+    this(new Header(Field.KEY, Collections.emptyList()));
+  }
+
+  public EmptyRowStream(Header header) {
+    this.header = Objects.requireNonNull(header);
   }
 
   @Override
