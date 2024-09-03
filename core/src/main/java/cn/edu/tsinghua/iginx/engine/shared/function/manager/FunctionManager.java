@@ -35,6 +35,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Ratio;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDTF;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
@@ -172,6 +173,10 @@ public class FunctionManager {
   }
 
   public void removeFunction(String identifier) {
+    if (functions.containsKey(identifier)) {
+      PyUDF function = (PyUDF) functions.get(identifier);
+      function.close();
+    }
     functions.remove(identifier);
   }
 
@@ -213,15 +218,15 @@ public class FunctionManager {
     }
 
     if (taskMeta.getType().equals(UDFType.UDAF)) {
-      PyUDAF udaf = new PyUDAF(queue, identifier);
+      PyUDAF udaf = new PyUDAF(queue, identifier, moduleName);
       functions.put(identifier, udaf);
       return udaf;
     } else if (taskMeta.getType().equals(UDFType.UDTF)) {
-      PyUDTF udtf = new PyUDTF(queue, identifier);
+      PyUDTF udtf = new PyUDTF(queue, identifier, moduleName);
       functions.put(identifier, udtf);
       return udtf;
     } else if (taskMeta.getType().equals(UDFType.UDSF)) {
-      PyUDSF udsf = new PyUDSF(queue, identifier);
+      PyUDSF udsf = new PyUDSF(queue, identifier, moduleName);
       functions.put(identifier, udsf);
       return udsf;
     } else {

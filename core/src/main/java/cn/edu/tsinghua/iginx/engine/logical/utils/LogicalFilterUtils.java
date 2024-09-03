@@ -357,7 +357,7 @@ public class LogicalFilterUtils {
   }
 
   public static List<KeyRange> getKeyRangesFromFilter(Filter filter) {
-    filter = toDNF(filter);
+    filter = toDNF(filter.copy());
     List<KeyRange> keyRanges = new ArrayList<>();
     extractKeyRange(keyRanges, filter);
     return unionKeyRanges(keyRanges);

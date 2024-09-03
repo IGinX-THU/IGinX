@@ -17,7 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.relational.tools;
 
-import static cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op.isLikeOp;
 import static cn.edu.tsinghua.iginx.relational.tools.Constants.*;
 
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.*;
@@ -90,20 +89,29 @@ public class FilterTransformer {
   private String toString(ValueFilter filter) {
     RelationSchema schema = new RelationSchema(filter.getPath(), relationalMeta.getQuote());
     String path = schema.getQuoteFullName();
+    String op;
+    Object value;
 
-    String op =
-        isLikeOp(filter.getOp())
-            ? relationalMeta.getRegexpOp()
-            : Op.op2StrWithoutAndOr(filter.getOp())
-                .replace("==", "="); // postgresql does not support "==" but uses "=" instead
-
-    String regexSymbol = isLikeOp(filter.getOp()) ? "$" : "";
-
-    Object value =
-        filter.getValue().getDataType() == DataType.BINARY
-            ? "'" + filter.getValue().getBinaryVAsString() + regexSymbol + "'"
-            : filter.getValue().getValue();
-
+    switch (filter.getOp()) {
+      case LIKE:
+      case LIKE_AND:
+        op = relationalMeta.getRegexpOp();
+        value = "'" + filter.getValue().getBinaryVAsString() + "$" + "'";
+        break;
+      case NOT_LIKE:
+      case NOT_LIKE_AND:
+        op = relationalMeta.getNotRegexpOp();
+        value = "'" + filter.getValue().getBinaryVAsString() + "$" + "'";
+        break;
+      default:
+        // postgresql does not support "==" but uses "=" instead
+        op = Op.op2StrWithoutAndOr(filter.getOp()).replace("==", "=");
+        value =
+            filter.getValue().getDataType() == DataType.BINARY
+                ? "'" + filter.getValue().getBinaryVAsString() + "'"
+                : filter.getValue().getValue();
+        break;
+    }
     return path + " " + op + " " + value;
   }
 

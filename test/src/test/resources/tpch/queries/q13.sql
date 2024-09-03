@@ -1,25 +1,21 @@
-select
+SELECT
     c_count,
-    custdist
-from (
-         select
-             c_count,
-             count(c_custkey) as custdist
-         from (
-                  select
-                      customer.c_custkey as c_custkey,
-                      count(orders.o_orderkey) as c_count
-                  from
-                      customer
-                          left outer join orders
-                                          on customer.c_custkey = orders.o_custkey
-                                              and !(orders.o_comment like '.*pending.*')
-                  group by
-                      customer.c_custkey
-              )
-         group by
-             c_count
-     )
-order by
-    custdist,
-    c_count desc;
+    COUNT( c_custkey ) AS custdist
+FROM
+    (
+        SELECT
+            customer.c_custkey AS c_custkey,
+            COUNT( orders.o_orderkey ) AS c_count
+        FROM
+            customer
+        LEFT OUTER JOIN orders ON
+            customer.c_custkey = orders.o_custkey
+            AND orders.o_comment NOT LIKE '.*special.*requests.*'
+        GROUP BY
+            customer.c_custkey
+    )
+GROUP BY
+    c_count
+ORDER BY -- spotless:off
+    `count(c_custkey)` DESC, -- spotless:on
+    c_count DESC;

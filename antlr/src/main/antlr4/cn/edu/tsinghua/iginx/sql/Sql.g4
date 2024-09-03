@@ -34,6 +34,11 @@ statement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | ALTER STORAGEENGINE engineId = INT WITH PARAMS params = stringLiteral # alterEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
+   | CREATE USER username = nodeName IDENTIFIED BY password = nodeName # createUserStatement
+   | GRANT permissionSpec TO USER username = nodeName # grantUserStatement
+   | ALTER USER username = nodeName IDENTIFIED BY password = nodeName # changePasswordStatement
+   | DROP USER username = nodeName # dropUserStatement
+   | SHOW USER userSpec? # showUserStatement
    | SHOW FUNCTIONS # showRegisterTaskStatement
    | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
    | DROP FUNCTION name = stringLiteral # dropTaskStatement
@@ -148,7 +153,7 @@ predicate
    : (KEY | path | functionName LR_BRACKET path RR_BRACKET) comparisonOperator constant
    | constant comparisonOperator (KEY | path | functionName LR_BRACKET path RR_BRACKET)
    | path comparisonOperator path
-   | path stringLikeOperator regex = stringLiteral
+   | path OPERATOR_NOT? stringLikeOperator regex = stringLiteral
    | OPERATOR_NOT? LR_BRACKET orExpression RR_BRACKET
    | predicateWithSubquery
    | expression comparisonOperator expression
@@ -329,6 +334,21 @@ linesOption
    : LINES TERMINATED BY linesTerminated = stringLiteral
    ;
 
+permissionSpec
+   : permission (COMMA permission)*
+   ;
+
+userSpec
+   : nodeName (COMMA nodeName)*
+   ;
+
+permission
+   : READ
+   | WRITE
+   | ADMIN
+   | CLUSTER
+   ;
+
 comparisonOperator
    : type = OPERATOR_GT
    | type = OPERATOR_GTE
@@ -447,6 +467,12 @@ keyWords
    | POINTS
    | DATA
    | REPLICA
+   | USER
+   | PASSWORD
+   | CLUSTER
+   | ADMIN
+   | WRITE
+   | READ
    | DROP
    | CREATE
    | FUNCTION
@@ -570,6 +596,18 @@ SELECT
    : S E L E C T
    ;
 
+GRANT
+   : G R A N T
+   ;
+
+USER
+   : U S E R
+   ;
+
+PASSWORD
+   : P A S S W O R D
+   ;
+
 SHOW
    : S H O W
    ;
@@ -586,6 +624,18 @@ CLUSTER
    : C L U S T E R
    ;
 
+ADMIN
+   : A D M I N
+   ;
+
+READ
+   : R E A D
+   ;
+
+WRITE
+   : W R I T E
+   ;
+
 INFO
    : I N F O
    ;
@@ -594,12 +644,24 @@ WHERE
    : W H E R E
    ;
 
+IDENTIFIED
+   : I D E N T I F I E D
+   ;
+
 IN
    : I N
    ;
 
+TO
+   : T O
+   ;
+
 INTO
    : I N T O
+   ;
+
+FOR
+   : F O R
    ;
 
 FROM
@@ -680,6 +742,10 @@ DATA
 
 ADD
    : A D D
+   ;
+
+UPDATE
+   : U P D A T E
    ;
 
 RULES
@@ -1385,6 +1451,14 @@ fragment Y
 fragment Z
    : 'z'
    | 'Z'
+   ;
+
+SIMPLE_COMMENT
+   : '--' ~ [\r\n]* '\r'? '\n'? -> channel (HIDDEN)
+   ;
+
+BRACKETED_COMMENT
+   : '/*' .*? '*/' -> channel (HIDDEN)
    ;
 
 WS
