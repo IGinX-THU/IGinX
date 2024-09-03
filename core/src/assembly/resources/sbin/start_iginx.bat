@@ -28,6 +28,16 @@ pushd %~dp0..
 if NOT DEFINED IGINX_HOME set IGINX_HOME=%CD%
 popd
 
+if NOT DEFINED IGINX_CONF_DIR set IGINX_CONF_DIR=%IGINX_HOME%\conf
+
+set IGINX_ENV=%IGINX_CONF_DIR%\iginx-env.cmd
+set IGINX_CONF=%IGINX_CONF_DIR%\config.properties
+set IGINX_DRIVER=%IGINX_HOME%\driver
+
+if exist "%IGINX_ENV%" (
+    call "%IGINX_ENV%"
+)
+
 set PATH="%JAVA_HOME%\bin\";%PATH%
 set "FULL_VERSION="
 set "MAJOR_VERSION="
@@ -106,12 +116,6 @@ if %half_% GTR %quarter_% (
 set MAX_HEAP_SIZE=%max_heap_size_in_mb%M
 
 @REM -----------------------------------------------------------------------------
-@REM JVM Opts we'll use in legacy run or installation
-set JAVA_OPTS=-ea^
- -DIGINX_HOME=%IGINX_HOME%^
- -DIGINX_DRIVER=%IGINX_HOME%\driver^
- -DIGINX_CONF=%IGINX_CONF%
-
 set HEAP_OPTS=-Xmx%MAX_HEAP_SIZE% -Xms%MAX_HEAP_SIZE% -Xloggc:"%IGINX_HOME%\gc.log" -XX:+PrintGCDateStamps -XX:+PrintGCDetails
 
 @REM ***** CLASSPATH library setting *****
@@ -122,10 +126,17 @@ goto okClasspath
 @REM -----------------------------------------------------------------------------
 :okClasspath
 
+set LOCAL_JAVA_OPTS=^
+ -ea^
+ -cp %CLASSPATH%^
+ -DIGINX_HOME=%IGINX_HOME%^
+ -DIGINX_DRIVER=%IGINX_DRIVER%^
+ -DIGINX_CONF=%IGINX_CONF%
+
 @REM set DRIVER=
 @REM setx DRIVER "%IGINX_HOME%\driver"
 
-"%JAVA_HOME%\bin\java" %JAVA_OPTS% %HEAP_OPTS% -Dfile.encoding=UTF-8 -cp %CLASSPATH% %MAIN_CLASS%
+"%JAVA_HOME%\bin\java" %HEAP_OPTS% %IGINX_JAVA_OPTS% %LOCAL_JAVA_OPTS% %MAIN_CLASS%
 
 @REM reg delete "HKEY_CURRENT_USER\Environment" /v "DRIVER" /f
 @REM set DRIVER=

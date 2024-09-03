@@ -15,26 +15,27 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package cn.edu.tsinghua.iginx.filestore.format;
 
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+import com.google.common.collect.Lists;
+import java.util.*;
 
-public interface ExpressionVisitor {
+public abstract class AbstractFileFormat implements FileFormat {
 
-  void visit(BaseExpression expression);
+  protected final String formatName;
+  protected final Collection<String> extensions;
 
-  void visit(BinaryExpression expression);
+  public AbstractFileFormat(String formatName, String... extension) {
+    this.formatName = Objects.requireNonNull(formatName);
+    Collection<String> extensions = new HashSet<>();
+    for (String ext : extension) {
+      extensions.add(Objects.requireNonNull(ext));
+    }
+    this.extensions = Collections.unmodifiableCollection(extensions);
+  }
 
-  void visit(BracketExpression expression);
-
-  void visit(ConstantExpression expression);
-
-  void visit(FromValueExpression expression);
-
-  void visit(FuncExpression expression);
-
-  void visit(MultipleExpression expression);
-
-  void visit(UnaryExpression expression);
-
-  void visit(CaseWhenExpression expression);
+  @Override
+  public List<String> getExtensions() {
+    return Lists.newArrayList(extensions);
+  }
 }

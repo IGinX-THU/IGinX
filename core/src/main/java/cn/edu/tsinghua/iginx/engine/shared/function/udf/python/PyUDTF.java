@@ -35,16 +35,14 @@ import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import pemja.core.PythonInterpreter;
 
-public class PyUDTF implements UDTF {
+public class PyUDTF extends PyUDF implements UDTF {
 
   private static final String PY_UDTF = "py_udtf";
 
-  private final BlockingQueue<PythonInterpreter> interpreters;
-
   private final String funcName;
 
-  public PyUDTF(BlockingQueue<PythonInterpreter> interpreters, String funcName) {
-    this.interpreters = interpreters;
+  public PyUDTF(BlockingQueue<PythonInterpreter> interpreters, String funcName, String moduleName) {
+    super(interpreters, moduleName);
     this.funcName = funcName;
   }
 
