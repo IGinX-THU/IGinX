@@ -325,7 +325,7 @@ public class FileStorage implements IStorage {
   @Override
   public Pair<ColumnsInterval, KeyInterval> getBoundaryOfStorage(String prefix)
       throws PhysicalException {
-    Map<DataUnit, DataBoundary> units = service.getUnits(Strings.emptyToNull(prefix))
+    Map<DataUnit, DataBoundary> units = service.getUnits(Strings.emptyToNull(prefix));
     DataBoundary boundary = units.get(unitOfDummy());
     if (Objects.equals(boundary, new DataBoundary())) {
       throw new PhysicalTaskExecuteFailureException("no data");
