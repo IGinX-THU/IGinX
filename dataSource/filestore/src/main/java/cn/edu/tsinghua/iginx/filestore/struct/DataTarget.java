@@ -21,8 +21,10 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import java.util.List;
 import lombok.Value;
+import lombok.With;
 
 @Value
+@With
 public class DataTarget {
   /** filter rows, null only if return all rows */
   Filter filter;

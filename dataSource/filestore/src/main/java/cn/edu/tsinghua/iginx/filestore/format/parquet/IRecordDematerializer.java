@@ -30,6 +30,9 @@ import shaded.iginx.org.apache.parquet.schema.Type;
 
 class IRecordDematerializer extends RecordDematerializer<IRecord> {
 
+  public static final String OBJECT_MODEL_NAME_PROP = "writer.model.name";
+  public static final String OBJECT_MODEL_NAME_VALUE = "iginx";
+
   private final MessageType schema;
 
   IRecordDematerializer(MessageType schema) {
@@ -59,7 +62,7 @@ class IRecordDematerializer extends RecordDematerializer<IRecord> {
 
   @Override
   public Map<String, String> getExtraMetaData() {
-    return Collections.emptyMap();
+    return Collections.singletonMap(OBJECT_MODEL_NAME_PROP, OBJECT_MODEL_NAME_VALUE);
   }
 
   private void addGroup(GroupType groupType, IRecord record) {

@@ -20,12 +20,11 @@ package cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem;
 import cn.edu.tsinghua.iginx.auth.FilePermissionManager;
 import cn.edu.tsinghua.iginx.auth.entity.FileAccessType;
 import cn.edu.tsinghua.iginx.auth.utils.FilePermissionRuleNameFilters;
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.exec.LocalExecutor;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.shared.Constant;
-import cn.edu.tsinghua.iginx.thrift.AggregateType;
+import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTreeConfig;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
 import java.io.Closeable;
@@ -58,16 +57,6 @@ public class LegacyFilesystem implements FileStructure {
   }
 
   @Override
-  public boolean supportFilter(FilterType type) {
-    return true;
-  }
-
-  @Override
-  public boolean supportAggregate(AggregateType type) {
-    return false;
-  }
-
-  @Override
   public FileManager newReader(Path path, Closeable shared) throws IOException {
     Shared s = (Shared) shared;
     Map<String, String> params = s.getParams(path);
@@ -90,8 +79,8 @@ public class LegacyFilesystem implements FileStructure {
     private final Map<String, String> params = new HashMap<>();
 
     public Shared(Config config) {
-      if (config.hasPath(Constant.INIT_ROOT_PREFIX)) {
-        params.put(Constant.INIT_ROOT_PREFIX, config.getString(Constant.INIT_ROOT_PREFIX));
+      if (config.hasPath(FileTreeConfig.Fields.prefix)) {
+        params.put(Constant.INIT_ROOT_PREFIX, config.getString(FileTreeConfig.Fields.prefix));
       }
       if (config.hasPath(Constant.INIT_INFO_MEMORY_POOL_SIZE)) {
         params.put(
@@ -108,9 +97,6 @@ public class LegacyFilesystem implements FileStructure {
       Map<String, String> finalParams = new HashMap<>(params);
       Path absolutePath = checked.toAbsolutePath();
       finalParams.put(Constant.INIT_INFO_DUMMY_DIR, absolutePath.toString());
-      if (!finalParams.containsKey(Constant.INIT_ROOT_PREFIX)) {
-        finalParams.put(Constant.INIT_ROOT_PREFIX, absolutePath.getFileName().toString());
-      }
       return Collections.unmodifiableMap(finalParams);
     }
 

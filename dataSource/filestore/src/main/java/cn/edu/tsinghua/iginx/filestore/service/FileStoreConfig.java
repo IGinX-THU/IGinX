@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.filestore.service;
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filestore.service.rpc.client.ClientConfig;
 import cn.edu.tsinghua.iginx.filestore.service.storage.StorageConfig;
+import com.typesafe.config.Config;
 import com.typesafe.config.Optional;
 import java.util.ArrayList;
 import java.util.List;
@@ -32,7 +33,7 @@ import lombok.experimental.FieldNameConstants;
 @FieldNameConstants
 public class FileStoreConfig extends AbstractConfig {
 
-  boolean server;
+  boolean serve;
 
   @Optional ClientConfig client = new ClientConfig();
 
@@ -43,7 +44,7 @@ public class FileStoreConfig extends AbstractConfig {
   @Override
   public List<ValidationProblem> validate() {
     List<ValidationProblem> problems = new ArrayList<>();
-    if (server) {
+    if (serve) {
       if (data == null && dummy == null) {
         problems.add(
             new ValidationProblem(
@@ -59,5 +60,9 @@ public class FileStoreConfig extends AbstractConfig {
       validateSubConfig(problems, Fields.client, client);
     }
     return problems;
+  }
+
+  public static FileStoreConfig of(Config config) {
+    return of(config, FileStoreConfig.class);
   }
 }

@@ -17,8 +17,6 @@
  */
 package cn.edu.tsinghua.iginx.filestore.struct;
 
-import cn.edu.tsinghua.iginx.engine.shared.operator.filter.FilterType;
-import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import com.typesafe.config.Config;
 import java.io.Closeable;
 import java.io.IOException;
@@ -30,10 +28,6 @@ public interface FileStructure {
   String getName();
 
   Closeable newShared(Config config) throws IOException;
-
-  boolean supportFilter(FilterType type);
-
-  boolean supportAggregate(AggregateType type);
 
   FileManager newReader(Path path, Closeable shared) throws IOException;
 

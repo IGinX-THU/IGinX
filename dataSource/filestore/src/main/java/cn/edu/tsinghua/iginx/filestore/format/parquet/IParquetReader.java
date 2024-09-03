@@ -23,6 +23,7 @@ import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import com.google.common.collect.Range;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.*;
@@ -46,7 +47,7 @@ import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.PrimitiveType;
 import shaded.iginx.org.apache.parquet.schema.Type;
 
-public class IParquetReader implements AutoCloseable {
+public class IParquetReader implements Closeable {
   private static final Logger LOGGER = LoggerFactory.getLogger(IParquetReader.class);
 
   private final ParquetRecordReader<IRecord> internalReader;
@@ -105,7 +106,7 @@ public class IParquetReader implements AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() throws IOException {
     if (internalReader != null) {
       internalReader.close();
     }
@@ -186,12 +187,17 @@ public class IParquetReader implements AutoCloseable {
     }
   }
 
+  public long getCurrentRowIndex() {
+    return internalReader.getCurrentRowIndex();
+  }
+
   public static class Builder {
 
     private final ParquetReadOptions.Builder optionsBuilder = ParquetReadOptions.builder();
     private final InputFile localInputfile;
     private boolean skip = false;
     private Set<String> fields;
+    private boolean hasKey;
 
     public Builder(LocalInputFile localInputFile) {
       this.localInputfile = localInputFile;
@@ -218,7 +224,7 @@ public class IParquetReader implements AutoCloseable {
       if (fields == null) {
         requestedSchema = schema;
       } else {
-        requestedSchema = ProjectUtils.projectMessageType(schema, fields);
+        requestedSchema = ProjectUtils.projectMessageType(schema, fields, hasKey);
         LOGGER.debug("project schema with {} as {}", fields, requestedSchema);
       }
 
@@ -233,8 +239,23 @@ public class IParquetReader implements AutoCloseable {
       return new IParquetReader(internalReader, requestedSchema, footer);
     }
 
+    @Override
+    public String toString() {
+      return "Builder{"
+          + "optionsBuilder="
+          + optionsBuilder
+          + ", localInputfile="
+          + localInputfile
+          + '}';
+    }
+
     public Builder project(Set<String> fields) {
+      return project(fields, true);
+    }
+
+    public Builder project(Set<String> fields, boolean hasKey) {
       this.fields = Objects.requireNonNull(fields);
+      this.hasKey = hasKey;
       return this;
     }
 

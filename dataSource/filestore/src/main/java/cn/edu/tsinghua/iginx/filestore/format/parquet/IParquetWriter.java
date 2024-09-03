@@ -18,9 +18,11 @@
 
 package cn.edu.tsinghua.iginx.filestore.format.parquet;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.util.iterator.Scanner;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Constants;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.exception.StorageException;
+import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import shaded.iginx.org.apache.parquet.ParquetWriteOptions;
@@ -35,7 +37,9 @@ import shaded.iginx.org.apache.parquet.io.OutputFile;
 import shaded.iginx.org.apache.parquet.schema.MessageType;
 import shaded.iginx.org.apache.parquet.schema.TypeUtil;
 
-public class IParquetWriter implements AutoCloseable {
+public class IParquetWriter implements Closeable {
+
+  public static final String KEY_FIELD_NAME = Field.KEY.getName();
 
   private final ParquetRecordWriter<IRecord> internalWriter;
 
@@ -60,7 +64,7 @@ public class IParquetWriter implements AutoCloseable {
   }
 
   @Override
-  public void close() throws Exception {
+  public void close() throws IOException {
     internalWriter.close();
   }
 

@@ -22,10 +22,9 @@ import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
 
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import com.google.common.io.MoreFiles;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -122,9 +121,13 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
     // │           └── 1.txt
     // ├── e
     // │   └── 2.txt
-    // └── f
-    //     └── g
-    //         └── 3.txt
+    // ├── f
+    // │   └── g
+    // │       └── 3.txt
+    // ├── Iris.parquet
+    // └── other
+    //     ├── MT cars.parquet
+    //     └── price.parquet
     StringBuilder content1 = new StringBuilder();
     StringBuilder content2 = new StringBuilder();
     StringBuilder content3 = new StringBuilder();
@@ -141,23 +144,39 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
     createAndWriteFile(content1.toString().getBytes(), "test", "a", "b", "c", "d", "1.txt");
     createAndWriteFile(content2.toString().getBytes(), "test", "a", "e", "2.txt");
     createAndWriteFile(content3.toString().getBytes(), "test", "a", "f", "g", "3.txt");
+
+    String parquetResourceDir = "dummy/parquet/";
+    copyFileFromResource(
+        parquetResourceDir + "Iris.parquet", Paths.get("test", "a", "Iris.parquet"));
+    copyFileFromResource(
+        parquetResourceDir + "MT cars.parquet", Paths.get("test", "a", "other", "MT cars.parquet"));
+    copyFileFromResource(
+        parquetResourceDir + "price.parquet", Paths.get("test", "a", "other", "price.parquet"));
+  }
+
+  private static void copyFileFromResource(String resourcePath, Path targetPath) {
+    try {
+      MoreFiles.createParentDirectories(targetPath);
+    } catch (IOException e) {
+      LOGGER.error("create parent directories for {} failed", targetPath);
+      return;
+    }
+    try (InputStream is =
+        FileStoreHistoryDataGenerator.class.getClassLoader().getResourceAsStream(resourcePath)) {
+      if (is == null) {
+        LOGGER.error("resource {} not found", resourcePath);
+        return;
+      }
+      Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
+    } catch (IOException e) {
+      LOGGER.error("copy file from resource {} to {} failed", resourcePath, targetPath);
+    }
   }
 
   private void createAndWriteFile(byte[] content, String first, String... more) {
     File file = new File(Paths.get(first, more).toString());
     try {
-      if (file.exists()) {
-        LOGGER.info("file {} has existed", file.getAbsolutePath());
-        return;
-      }
-      if (!file.getParentFile().mkdirs()) {
-        LOGGER.error("create directory {} failed", file.getParentFile().getAbsolutePath());
-        return;
-      }
-      if (!file.exists() && !file.createNewFile()) {
-        LOGGER.error("create file {} failed", file.getAbsolutePath());
-        return;
-      }
+      MoreFiles.createParentDirectories(file.toPath());
       try (FileOutputStream fos = new FileOutputStream(file)) {
         fos.write(content);
       }
