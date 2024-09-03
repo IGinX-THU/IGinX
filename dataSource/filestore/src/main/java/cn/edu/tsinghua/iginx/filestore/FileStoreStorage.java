@@ -71,9 +71,9 @@ import javax.annotation.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class FileStorage implements IStorage {
+public class FileStoreStorage implements IStorage {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(FileStorage.class);
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreStorage.class);
 
   private final FileStoreService service;
 
@@ -88,7 +88,7 @@ public class FileStorage implements IStorage {
     LOGGER.info("found file structures: {}", structures);
   }
 
-  public FileStorage(StorageEngineMeta meta) throws StorageInitializationException {
+  public FileStoreStorage(StorageEngineMeta meta) throws StorageInitializationException {
     if (!meta.getStorageEngine().equals(StorageEngineType.filestore)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
