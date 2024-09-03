@@ -32,6 +32,7 @@
     <name>IGinX Driver</name>
 
     <modules>
+        <module>filestore</module>
         <module>filesystem</module>
         <module>influxdb</module>
         <module>iotdb12</module>
