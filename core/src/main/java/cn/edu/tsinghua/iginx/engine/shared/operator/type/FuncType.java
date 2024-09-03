@@ -18,6 +18,8 @@
 
 package cn.edu.tsinghua.iginx.engine.shared.operator.type;
 
+import java.util.Set;
+
 public enum FuncType {
   // Exception [0, 10)
   Null(0),
@@ -58,6 +60,15 @@ public enum FuncType {
 
   private static class OperatorTypeCounter {
     private static int nextValue = 0;
+  }
+
+  public static boolean isRow2RowFunc(Set<FuncType> types) {
+    for (FuncType type : types) {
+      if (!isRow2RowFunc(type)) {
+        return false;
+      }
+    }
+    return true;
   }
 
   public static boolean isRow2RowFunc(FuncType type) {
