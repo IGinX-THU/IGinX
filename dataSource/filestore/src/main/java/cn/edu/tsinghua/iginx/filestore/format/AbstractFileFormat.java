@@ -35,11 +35,6 @@ public abstract class AbstractFileFormat implements FileFormat {
   }
 
   @Override
-  public String getFormatName() {
-    return formatName;
-  }
-
-  @Override
   public List<String> getExtensions() {
     return Lists.newArrayList(extensions);
   }
