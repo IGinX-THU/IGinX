@@ -22,8 +22,10 @@ import static cn.edu.tsinghua.iginx.sql.SQLConstant.DOT;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.L_PARENTHESES;
 import static cn.edu.tsinghua.iginx.sql.SQLConstant.R_PARENTHESES;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.FilterUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.MarkJoin;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.AndFilter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
@@ -249,6 +251,14 @@ public class UnarySelectStatement extends SelectStatement {
         case Unary:
           queue.add(((UnaryExpression) expression).getExpression());
           break;
+        case Function:
+          FuncExpression funcExpression = (FuncExpression) expression;
+          if (FunctionUtils.isRowToRowFunction(funcExpression.getFuncName())) {
+            for (String column : funcExpression.getColumns()) {
+              baseExpressionList.add(new BaseExpression(column));
+            }
+          }
+          break;
         case Bracket:
           queue.add(((BracketExpression) expression).getExpression());
           break;
@@ -256,6 +266,22 @@ public class UnarySelectStatement extends SelectStatement {
           queue.add(((BinaryExpression) expression).getLeftExpression());
           queue.add(((BinaryExpression) expression).getRightExpression());
           break;
+        case Multiple:
+          queue.addAll(((MultipleExpression) expression).getChildren());
+          break;
+        case CaseWhen:
+          CaseWhenExpression caseWhenExpr = (CaseWhenExpression) expression;
+          Set<String> pathList = new HashSet<>();
+          for (Filter filter : caseWhenExpr.getConditions()) {
+            pathList.addAll(FilterUtils.getAllPathsFromFilter(filter));
+          }
+          for (String path : pathList) {
+            baseExpressionList.add(new BaseExpression(path));
+          }
+          queue.addAll(caseWhenExpr.getResults());
+          if (caseWhenExpr.getResultElse() != null) {
+            queue.add(caseWhenExpr.getResultElse());
+          }
       }
     }
     return baseExpressionList;
@@ -490,8 +516,12 @@ public class UnarySelectStatement extends SelectStatement {
 
   public boolean needRowTransform() {
     for (Expression expression : getExpressions()) {
-      if (!expression.getType().equals(Expression.ExpressionType.Base)
-          && !expression.getType().equals(Expression.ExpressionType.Function)
+      if (expression.getType().equals(Expression.ExpressionType.Function)) {
+        FuncExpression funcExpression = (FuncExpression) expression;
+        if (FunctionUtils.isRowToRowFunction(funcExpression.getFuncName())) {
+          return true;
+        }
+      } else if (!expression.getType().equals(Expression.ExpressionType.Base)
           && !expression.getType().equals(Expression.ExpressionType.FromValue)) {
         return true;
       }
@@ -668,7 +698,10 @@ public class UnarySelectStatement extends SelectStatement {
     if (hasGroupBy()) {
       setQueryType(QueryType.GroupByQuery);
     } else if (hasFunc()) {
-      if (hasDownsample()) {
+      if (ExprUtils.hasCaseWhen(selectClause.getExpressions())
+          || FuncType.isRow2RowFunc(getFuncTypeSet())) {
+        setQueryType(QueryType.SimpleQuery);
+      } else if (hasDownsample()) {
         setQueryType(QueryType.DownSampleQuery);
       } else {
         setQueryType(QueryType.AggregateQuery);

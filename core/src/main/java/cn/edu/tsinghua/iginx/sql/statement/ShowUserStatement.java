@@ -15,36 +15,42 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cn.edu.tsinghua.iginx.sql.statement;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
-import cn.edu.tsinghua.iginx.thrift.DropTaskReq;
-import cn.edu.tsinghua.iginx.thrift.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import cn.edu.tsinghua.iginx.thrift.GetUserReq;
+import cn.edu.tsinghua.iginx.thrift.GetUserResp;
+import java.util.List;
 
-public class DropTaskStatement extends SystemStatement {
+public class ShowUserStatement extends SystemStatement {
 
-  @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(DropTaskStatement.class);
+  private final List<String> users;
 
-  private final String name;
+  public ShowUserStatement(List<String> users) {
+    this.statementType = StatementType.SHOW_USER;
+    this.users = users;
+  }
 
-  private final IginxWorker worker = IginxWorker.getInstance();
-
-  public DropTaskStatement(String name) {
-    this.statementType = StatementType.DROP_TASK;
-    this.name = name;
+  public List<String> getUsers() {
+    return users;
   }
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    DropTaskReq req = new DropTaskReq(ctx.getSessionId(), name);
-    Status status = worker.dropTask(req);
-    ctx.setResult(new Result(status));
+    IginxWorker worker = IginxWorker.getInstance();
+    GetUserReq req = new GetUserReq(ctx.getSessionId());
+    if (users != null && !users.isEmpty()) {
+      req.setUsernames(users);
+    }
+    GetUserResp getUserResp = worker.getUser(req);
+    Result result = new Result(getUserResp.getStatus());
+    result.setAuths(getUserResp.getAuths());
+    result.setUsernames(getUserResp.getUsernames());
+    result.setUserTypes(getUserResp.getUserTypes());
+
+    ctx.setResult(result);
   }
 }

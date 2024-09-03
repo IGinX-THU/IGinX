@@ -15,36 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cn.edu.tsinghua.iginx.sql.statement;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
-import cn.edu.tsinghua.iginx.thrift.DropTaskReq;
+import cn.edu.tsinghua.iginx.thrift.DeleteUserReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
-public class DropTaskStatement extends SystemStatement {
+public class DropUserStatement extends SystemStatement {
 
-  @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(DropTaskStatement.class);
+  private final String username;
 
-  private final String name;
+  public DropUserStatement(String username) {
+    this.statementType = StatementType.DROP_USER;
+    this.username = username;
+  }
 
-  private final IginxWorker worker = IginxWorker.getInstance();
-
-  public DropTaskStatement(String name) {
-    this.statementType = StatementType.DROP_TASK;
-    this.name = name;
+  public String getUsername() {
+    return username;
   }
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    DropTaskReq req = new DropTaskReq(ctx.getSessionId(), name);
-    Status status = worker.dropTask(req);
+    IginxWorker worker = IginxWorker.getInstance();
+    DeleteUserReq req = new DeleteUserReq(ctx.getSessionId(), username);
+    Status status = worker.deleteUser(req);
     ctx.setResult(new Result(status));
   }
 }

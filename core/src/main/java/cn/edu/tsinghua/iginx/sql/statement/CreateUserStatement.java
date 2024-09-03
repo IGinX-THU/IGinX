@@ -15,36 +15,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cn.edu.tsinghua.iginx.sql.statement;
 
 import cn.edu.tsinghua.iginx.IginxWorker;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
-import cn.edu.tsinghua.iginx.thrift.DropTaskReq;
+import cn.edu.tsinghua.iginx.thrift.AddUserReq;
 import cn.edu.tsinghua.iginx.thrift.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import java.util.HashSet;
 
-public class DropTaskStatement extends SystemStatement {
+public class CreateUserStatement extends SystemStatement {
 
-  @SuppressWarnings("unused")
-  private static final Logger LOGGER = LoggerFactory.getLogger(DropTaskStatement.class);
+  private final String username;
+  private final String password;
 
-  private final String name;
+  public CreateUserStatement(String username, String password) {
+    this.statementType = StatementType.CREATE_USER;
+    this.username = username;
+    this.password = password;
+  }
 
-  private final IginxWorker worker = IginxWorker.getInstance();
+  public String getUsername() {
+    return username;
+  }
 
-  public DropTaskStatement(String name) {
-    this.statementType = StatementType.DROP_TASK;
-    this.name = name;
+  public String getPassword() {
+    return password;
   }
 
   @Override
   public void execute(RequestContext ctx) throws StatementExecutionException {
-    DropTaskReq req = new DropTaskReq(ctx.getSessionId(), name);
-    Status status = worker.dropTask(req);
+    IginxWorker worker = IginxWorker.getInstance();
+    AddUserReq req = new AddUserReq(ctx.getSessionId(), username, password, new HashSet<>());
+    Status status = worker.addUser(req);
     ctx.setResult(new Result(status));
   }
 }

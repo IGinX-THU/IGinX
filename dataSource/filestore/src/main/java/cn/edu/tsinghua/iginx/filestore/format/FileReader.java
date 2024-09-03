@@ -15,26 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package cn.edu.tsinghua.iginx.filestore.format;
 
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
 
-public interface ExpressionVisitor {
+public interface FileReader {
+  Map<String, DataType> findFields(Collection<String> fieldPatterns) throws IOException;
 
-  void visit(BaseExpression expression);
-
-  void visit(BinaryExpression expression);
-
-  void visit(BracketExpression expression);
-
-  void visit(ConstantExpression expression);
-
-  void visit(FromValueExpression expression);
-
-  void visit(FuncExpression expression);
-
-  void visit(MultipleExpression expression);
-
-  void visit(UnaryExpression expression);
-
-  void visit(CaseWhenExpression expression);
+  RowStream readRows(List<String> fields, Filter filter) throws IOException;
 }
