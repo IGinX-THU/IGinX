@@ -16,20 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cn.edu.tsinghua.iginx.constant;
+package cn.edu.tsinghua.iginx.transform.exception;
 
-public class GlobalConstant {
+public class ReadBatchException extends TransformException {
 
-  public static final String KEY_NAME = "key";
+  private static final long serialVersionUID = -2342950195730341247L;
 
-  public static final String SEPARATOR = ".";
-
-  public static final String CLEAR_DUMMY_DATA_CAUTION =
-      "Unable to delete data from read-only nodes. The data of the writable nodes has been cleared.";
-
-  public static final Long KEY_MIN_VAL = Long.MIN_VALUE + 1;
-
-  public static final Long KEY_MAX_VAL = Long.MAX_VALUE;
-
-  public static final String TRANSFORM_PREFIX = "transform";
+  public ReadBatchException(String message) {
+    super(message);
+  }
 }
