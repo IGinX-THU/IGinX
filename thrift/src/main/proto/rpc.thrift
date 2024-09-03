@@ -35,8 +35,7 @@ enum StorageEngineType {
     mongodb,
     redis,
     filesystem,
-    opentsdb,
-    timescaledb,
+    filestore,
     unknown
 }
 

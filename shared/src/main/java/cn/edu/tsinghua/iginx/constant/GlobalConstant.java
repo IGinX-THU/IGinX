@@ -30,4 +30,6 @@ public class GlobalConstant {
   public static final Long KEY_MIN_VAL = Long.MIN_VALUE + 1;
 
   public static final Long KEY_MAX_VAL = Long.MAX_VALUE;
+
+  public static final String TRANSFORM_PREFIX = "transform";
 }

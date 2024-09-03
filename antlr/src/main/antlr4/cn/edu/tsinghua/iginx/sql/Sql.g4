@@ -120,6 +120,7 @@ expression
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
    | leftExpr = expression (PLUS | MINUS) rightExpr = expression
+   | caseSpecification
    | subquery
    ;
 
@@ -135,6 +136,31 @@ param
 functionName
    : ID
    | COUNT
+   ;
+
+caseSpecification
+   : simipleCase
+   | searchedCase
+   ;
+
+simipleCase
+   : CASE expression simpleWhenClause (simpleWhenClause)* elseClause? END
+   ;
+
+simpleWhenClause
+   : WHEN ((comparisonOperator? value = expression) | (OPERATOR_NOT? stringLikeOperator regex = stringLiteral)) THEN result = expression
+   ;
+
+searchedCase
+   : CASE searchedWhenClause (searchedWhenClause)* elseClause? END
+   ;
+
+searchedWhenClause
+   : WHEN condition = orExpression THEN result = expression
+   ;
+
+elseClause
+   : ELSE expression
    ;
 
 whereClause
@@ -534,6 +560,11 @@ keyWords
    | WINDOW
    | SIZE
    | SLIDE
+   | CASE
+   | WHEN
+   | THEN
+   | ELSE
+   | END
    ;
 
 dateFormat
@@ -1074,6 +1105,26 @@ SLIDE
 
 VALUE2META
    : V A L U E INT_2 M E T A
+   ;
+
+CASE
+   : C A S E
+   ;
+
+WHEN
+   : W H E N
+   ;
+
+THEN
+   : T H E N
+   ;
+
+ELSE
+   : E L S E
+   ;
+
+END
+   : E N D
    ;
    //============================
    

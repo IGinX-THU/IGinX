@@ -32,6 +32,7 @@ import java.util.Set;
 public abstract class SelectStatement extends DataStatement {
 
   public static int markJoinCount = 0;
+  public static int caseWhenCount = 0;
   protected SelectStatementType selectStatementType;
   protected boolean needLogicalExplain = false;
   protected boolean needPhysicalExplain = false;

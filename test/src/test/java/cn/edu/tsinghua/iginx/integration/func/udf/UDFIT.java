@@ -879,6 +879,21 @@ public class UDFIT {
       return;
     }
 
+    query = "explain select a, cos(a) from test;";
+    ret = tool.execute(query);
+    expected =
+        "ResultSets:\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
+            + "|     Logical Tree|Operator Type|                                                                           Operator Info|\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
+            + "|Reorder          |      Reorder|                                                               Order: test.a,cos(test.a)|\n"
+            + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (arithmetic_expr, System), (cos, UDF), MappingType: RowMapping|\n"
+            + "|    +--Project   |      Project|                                                                        Patterns: test.a|\n"
+            + "|      +--Project |      Project|                                             Patterns: test.a, Target DU: unit0000000002|\n"
+            + "+-----------------+-------------+----------------------------------------------------------------------------------------+\n"
+            + "Total line number = 4\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
+
     query = "explain select cos(a), pow(b, 2) from test;";
     ret = tool.execute(query);
     expected =
@@ -888,9 +903,10 @@ public class UDFIT {
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
             + "|Reorder          |      Reorder|                                                                 Order: *|\n"
             + "|  +--RowTransform| RowTransform|FuncList(Name, FuncType): (cos, UDF), (pow, UDF), MappingType: RowMapping|\n"
-            + "|    +--Project   |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
+            + "|    +--Project   |      Project|                                                  Patterns: test.b,test.a|\n"
+            + "|      +--Project |      Project|                       Patterns: test.a,test.b, Target DU: unit0000000002|\n"
             + "+-----------------+-------------+-------------------------------------------------------------------------+\n"
-            + "Total line number = 3\n";
+            + "Total line number = 4\n";
     assertEquals(expected, ret.getResultInString(false, ""));
   }
 
