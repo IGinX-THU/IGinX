@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.InvalidOperatorParameterException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.expr.*;
@@ -107,17 +108,20 @@ public class ExprUtils {
     FunctionParams params =
         new FunctionParams(
             funcExpr.getColumns(), funcExpr.getArgs(), funcExpr.getKvargs(), funcExpr.isDistinct());
+    Row ret;
     try {
-      Row ret = rowMappingFunction.transform(row, params);
-      int retValueSize = ret.getValues().length;
-      if (retValueSize != 1) {
-        throw new InvalidOperatorParameterException(
-            "the func in the expr can only have one return value");
-      }
-      return ret.getAsValue(0);
+      ret = rowMappingFunction.transform(row, params);
     } catch (Exception e) {
-      throw new RuntimeException(e);
+      throw new PhysicalTaskExecuteFailureException(
+          "encounter error when execute row mapping function " + rowMappingFunction.getIdentifier(),
+          e);
     }
+    int retValueSize = ret.getValues().length;
+    if (retValueSize != 1) {
+      throw new InvalidOperatorParameterException(
+          "the func in the expr can only have one return value");
+    }
+    return ret.getAsValue(0);
   }
 
   private static Value calculateBracketExpr(Row row, BracketExpression bracketExpr)
