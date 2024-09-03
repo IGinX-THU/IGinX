@@ -876,8 +876,17 @@ public class QueryGenerator extends AbstractGenerator {
     }
     List<FunctionCall> functionCallList = new ArrayList<>();
     for (Expression expression : selectStatement.getExpressions()) {
-      FunctionParams params = new FunctionParams(expression);
-      functionCallList.add(new FunctionCall(functionManager.getFunction(ARITHMETIC_EXPR), params));
+      if (expression instanceof FuncExpression) {
+        FuncExpression funcExpression = (FuncExpression) expression;
+        functionCallList.add(
+            new FunctionCall(
+                functionManager.getFunction(funcExpression.getFuncName()),
+                getFunctionParams(funcExpression.getFuncName(), funcExpression)));
+      } else {
+        functionCallList.add(
+            new FunctionCall(
+                functionManager.getFunction(ARITHMETIC_EXPR), new FunctionParams(expression)));
+      }
     }
     root = new RowTransform(new OperatorSource(root), functionCallList);
 
