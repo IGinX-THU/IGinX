@@ -34,6 +34,7 @@ if len(sys.argv) <= 1 or sys.argv[1] == '--help':
     print('  Status deleteDataInColumns(DeleteDataInColumnsReq req)')
     print('  QueryDataResp queryData(QueryDataReq req)')
     print('  Status addStorageEngines(AddStorageEnginesReq req)')
+    print('  Status alterStorageEngine(AlterStorageEngineReq req)')
     print('  Status removeHistoryDataSource(RemoveHistoryDataSourceReq req)')
     print('  AggregateQueryResp aggregateQuery(AggregateQueryReq req)')
     print('  LastQueryResp lastQuery(LastQueryReq req)')
@@ -201,6 +202,12 @@ elif cmd == 'addStorageEngines':
         print('addStorageEngines requires 1 args')
         sys.exit(1)
     pp.pprint(client.addStorageEngines(eval(args[0]),))
+
+elif cmd == 'alterStorageEngine':
+    if len(args) != 1:
+        print('alterStorageEngine requires 1 args')
+        sys.exit(1)
+    pp.pprint(client.alterStorageEngine(eval(args[0]),))
 
 elif cmd == 'removeHistoryDataSource':
     if len(args) != 1:

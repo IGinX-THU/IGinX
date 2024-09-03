@@ -20,7 +20,7 @@ package cn.edu.tsinghua.iginx.engine.shared.data.read;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 
-public interface RowStream {
+public interface RowStream extends AutoCloseable {
 
   Header getHeader() throws PhysicalException;
 
