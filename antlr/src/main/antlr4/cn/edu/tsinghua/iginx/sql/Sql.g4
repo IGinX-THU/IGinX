@@ -34,6 +34,11 @@ statement
    | ADD STORAGEENGINE storageEngineSpec # addStorageEngineStatement
    | ALTER STORAGEENGINE engineId = INT WITH PARAMS params = stringLiteral # alterEngineStatement
    | SHOW CLUSTER INFO # showClusterInfoStatement
+   | CREATE USER username = nodeName IDENTIFIED BY password = nodeName # createUserStatement
+   | GRANT permissionSpec TO USER username = nodeName # grantUserStatement
+   | ALTER USER username = nodeName IDENTIFIED BY password = nodeName # changePasswordStatement
+   | DROP USER username = nodeName # dropUserStatement
+   | SHOW USER userSpec? # showUserStatement
    | SHOW FUNCTIONS # showRegisterTaskStatement
    | CREATE FUNCTION udfType udfClassRef (COMMA (udfType)? udfClassRef)* IN filePath = stringLiteral # registerTaskStatement
    | DROP FUNCTION name = stringLiteral # dropTaskStatement
@@ -115,6 +120,7 @@ expression
    | (PLUS | MINUS) expr = expression
    | leftExpr = expression (STAR | DIV | MOD) rightExpr = expression
    | leftExpr = expression (PLUS | MINUS) rightExpr = expression
+   | caseSpecification
    | subquery
    ;
 
@@ -130,6 +136,31 @@ param
 functionName
    : ID
    | COUNT
+   ;
+
+caseSpecification
+   : simipleCase
+   | searchedCase
+   ;
+
+simipleCase
+   : CASE expression simpleWhenClause (simpleWhenClause)* elseClause? END
+   ;
+
+simpleWhenClause
+   : WHEN ((comparisonOperator? value = expression) | (OPERATOR_NOT? stringLikeOperator regex = stringLiteral)) THEN result = expression
+   ;
+
+searchedCase
+   : CASE searchedWhenClause (searchedWhenClause)* elseClause? END
+   ;
+
+searchedWhenClause
+   : WHEN condition = orExpression THEN result = expression
+   ;
+
+elseClause
+   : ELSE expression
    ;
 
 whereClause
@@ -329,6 +360,21 @@ linesOption
    : LINES TERMINATED BY linesTerminated = stringLiteral
    ;
 
+permissionSpec
+   : permission (COMMA permission)*
+   ;
+
+userSpec
+   : nodeName (COMMA nodeName)*
+   ;
+
+permission
+   : READ
+   | WRITE
+   | ADMIN
+   | CLUSTER
+   ;
+
 comparisonOperator
    : type = OPERATOR_GT
    | type = OPERATOR_GTE
@@ -447,6 +493,12 @@ keyWords
    | POINTS
    | DATA
    | REPLICA
+   | USER
+   | PASSWORD
+   | CLUSTER
+   | ADMIN
+   | WRITE
+   | READ
    | DROP
    | CREATE
    | FUNCTION
@@ -508,6 +560,11 @@ keyWords
    | WINDOW
    | SIZE
    | SLIDE
+   | CASE
+   | WHEN
+   | THEN
+   | ELSE
+   | END
    ;
 
 dateFormat
@@ -570,6 +627,18 @@ SELECT
    : S E L E C T
    ;
 
+GRANT
+   : G R A N T
+   ;
+
+USER
+   : U S E R
+   ;
+
+PASSWORD
+   : P A S S W O R D
+   ;
+
 SHOW
    : S H O W
    ;
@@ -586,6 +655,18 @@ CLUSTER
    : C L U S T E R
    ;
 
+ADMIN
+   : A D M I N
+   ;
+
+READ
+   : R E A D
+   ;
+
+WRITE
+   : W R I T E
+   ;
+
 INFO
    : I N F O
    ;
@@ -594,12 +675,24 @@ WHERE
    : W H E R E
    ;
 
+IDENTIFIED
+   : I D E N T I F I E D
+   ;
+
 IN
    : I N
    ;
 
+TO
+   : T O
+   ;
+
 INTO
    : I N T O
+   ;
+
+FOR
+   : F O R
    ;
 
 FROM
@@ -680,6 +773,10 @@ DATA
 
 ADD
    : A D D
+   ;
+
+UPDATE
+   : U P D A T E
    ;
 
 RULES
@@ -1008,6 +1105,26 @@ SLIDE
 
 VALUE2META
    : V A L U E INT_2 M E T A
+   ;
+
+CASE
+   : C A S E
+   ;
+
+WHEN
+   : W H E N
+   ;
+
+THEN
+   : T H E N
+   ;
+
+ELSE
+   : E L S E
+   ;
+
+END
+   : E N D
    ;
    //============================
    
@@ -1385,6 +1502,14 @@ fragment Y
 fragment Z
    : 'z'
    | 'Z'
+   ;
+
+SIMPLE_COMMENT
+   : '--' ~ [\r\n]* '\r'? '\n'? -> channel (HIDDEN)
+   ;
+
+BRACKETED_COMMENT
+   : '/*' .*? '*/' -> channel (HIDDEN)
    ;
 
 WS

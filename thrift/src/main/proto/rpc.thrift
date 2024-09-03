@@ -35,8 +35,7 @@ enum StorageEngineType {
     mongodb,
     redis,
     filesystem,
-    opentsdb,
-    timescaledb,
+    filestore,
     unknown
 }
 
@@ -82,6 +81,11 @@ enum SqlType {
     ShowSessionID,
     ShowRules,
     SetRules,
+    CreateUser,
+    GrantUser,
+    ChangeUserPassword,
+    DropUser,
+    ShowUser,
 }
 
 enum AuthType {
@@ -394,6 +398,9 @@ struct ExecuteSqlResp {
     27: optional list<i64> sessionIDList
     28: optional map<string, bool> rules
     29: optional string UDFModulePath
+    30: optional list<string> usernames
+    31: optional list<UserType> userTypes
+    32: optional list<set<AuthType>> auths
 }
 
 struct UpdateUserReq {

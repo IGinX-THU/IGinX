@@ -131,6 +131,9 @@ public class FilterPushDownRenameRule extends Rule {
 
           @Override
           public void visit(UnaryExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
         });
   }
 }
