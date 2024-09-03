@@ -875,7 +875,7 @@ public abstract class BaseCapacityExpansionIT {
     if (this instanceof FileStoreCapacityExpansionIT) {
       scriptPath = ".github/scripts/dataSources/startup/filestore.sh";
     } else {
-      throw new IllegalStateException("Only support file system and parquet");
+      throw new IllegalStateException("Only support filestore");
     }
 
     int iginxPort = PORT_TO_IGINXPORT.get(port);
