@@ -124,8 +124,7 @@ public class Constant {
   // key list
   public static List<Long> INIT_KEYS_LIST = Arrays.asList(1L, (long) Integer.MAX_VALUE);
 
-  // for file system
-  // for file system & influxdb
+  // for filestore & influxdb
   public static Map<Integer, String> PORT_TO_ROOT =
       new HashMap<Integer, String>() {
         {
