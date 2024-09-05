@@ -125,11 +125,6 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>filestore</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>postgresql</artifactId>
                 <version>${project.version}</version>
             </dependency>
