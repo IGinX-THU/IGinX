@@ -18,9 +18,6 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.filestore;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.IGINX_DATA_PATH_PREFIX_NAME;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PORT_TO_ROOT;
-
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
@@ -32,21 +29,29 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.IGINX_DATA_PATH_PREFIX_NAME;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PORT_TO_ROOT;
 
 public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreHistoryDataGenerator.class);
 
-  public FileStoreHistoryDataGenerator() {}
+  public FileStoreHistoryDataGenerator() {
+  }
 
   @Override
   public void writeHistoryData(
@@ -65,7 +70,7 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<DataType> dataTypeList,
       List<Long> keyList,
       List<List<Object>> valuesList) {
-    LOGGER.debug("write history data {} to port {} ", valuesList, port);
+    LOGGER.debug("write history data {} to port {} ", pathList, port);
     if (!keyList.isEmpty()) {
       LOGGER.debug(
           "write history data with keys from {} to {}",
@@ -76,6 +81,8 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
     StorageConfig config = new StorageConfig();
     config.setRoot(PORT_TO_ROOT.get(port));
     config.setStruct(FileStoreConfig.DEFAULT_DATA_STRUCT);
+
+    LOGGER.debug("config root {}", Paths.get(config.getRoot()).toFile().getAbsolutePath());
 
     DataUnit dataUnit = new DataUnit();
     dataUnit.setDummy(false);
@@ -101,10 +108,11 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
         rootPath = Paths.get(IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port));
       }
       LOGGER.info("clear path {}", rootPath.toFile().getAbsolutePath());
+      if (!rootPath.toFile().exists()) {
+        continue;
+      }
       try {
         MoreFiles.deleteRecursively(rootPath, RecursiveDeleteOption.ALLOW_INSECURE);
-      } catch (NoSuchFileException e) {
-        LOGGER.info("path {} not exist", rootPath);
       } catch (IOException e) {
         LOGGER.error("delete {} failure", rootPath, e);
       }
@@ -165,7 +173,7 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
       return;
     }
     try (InputStream is =
-        FileStoreHistoryDataGenerator.class.getClassLoader().getResourceAsStream(resourcePath)) {
+             FileStoreHistoryDataGenerator.class.getClassLoader().getResourceAsStream(resourcePath)) {
       if (is == null) {
         LOGGER.error("resource {} not found", resourcePath);
         return;
