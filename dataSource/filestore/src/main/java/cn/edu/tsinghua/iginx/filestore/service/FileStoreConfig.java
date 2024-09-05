@@ -77,20 +77,6 @@ public class FileStoreConfig extends AbstractConfig {
     if (result.isServe()) {
       LOGGER.debug("storage of {} is local, ignore config for remote", config);
       result.setClient(null);
-
-      StorageConfig dataConfig = result.getData();
-      if (dataConfig != null) {
-        if (dataConfig.getStruct() == null) {
-          dataConfig.setStruct(DEFAULT_DATA_STRUCT);
-        }
-      }
-
-      StorageConfig dummyConfig = result.getDummy();
-      if (dummyConfig != null) {
-        if (dummyConfig.getStruct() == null) {
-          dummyConfig.setStruct(DEFAULT_DUMMY_STRUCT);
-        }
-      }
     } else {
       LOGGER.debug("storage of {} is remote, ignore config for local", config);
       result.setData(null);

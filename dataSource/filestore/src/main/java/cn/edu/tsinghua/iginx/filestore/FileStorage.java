@@ -131,6 +131,7 @@ public class FileStorage implements IStorage {
       }
     }
 
+    Configs.put(reshaped, String.valueOf(isLocal(meta)), FileStoreConfig.Fields.serve);
     Configs.put(
         reshaped,
         meta.getExtraParams().get("dir"),
@@ -147,7 +148,16 @@ public class FileStorage implements IStorage {
         FileStoreConfig.Fields.dummy,
         StorageConfig.Fields.config,
         FileTreeConfig.Fields.prefix);
-    Configs.put(reshaped, String.valueOf(isLocal(meta)), FileStoreConfig.Fields.serve);
+    Configs.putIfAbsent(
+        reshaped,
+        FileStoreConfig.DEFAULT_DATA_STRUCT,
+        FileStoreConfig.Fields.data,
+        StorageConfig.Fields.struct);
+    Configs.putIfAbsent(
+        reshaped,
+        FileStoreConfig.DEFAULT_DUMMY_STRUCT,
+        FileStoreConfig.Fields.dummy,
+        StorageConfig.Fields.struct);
 
     Config config = ConfigFactory.parseMap(reshaped, "storage engine initialization parameters");
 
@@ -155,7 +165,6 @@ public class FileStorage implements IStorage {
       LOGGER.debug("storage of {} don't have data, ignore config for dummy", meta);
       config = config.withoutPath(FileStoreConfig.Fields.dummy);
     }
-
     if (meta.isReadOnly()) {
       LOGGER.debug("storage of {} is read only, ignore config for iginx data", meta);
       config = config.withoutPath(FileStoreConfig.Fields.data);
