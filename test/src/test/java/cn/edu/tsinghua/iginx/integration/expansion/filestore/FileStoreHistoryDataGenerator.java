@@ -32,11 +32,11 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
-import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.List;
 import org.slf4j.Logger;
@@ -65,6 +65,14 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
       List<DataType> dataTypeList,
       List<Long> keyList,
       List<List<Object>> valuesList) {
+    LOGGER.debug("write history data {} to port {} ", valuesList, port);
+    if (!keyList.isEmpty()) {
+      LOGGER.debug(
+          "write history data with keys from {} to {}",
+          keyList.get(0),
+          keyList.get(keyList.size() - 1));
+    }
+
     StorageConfig config = new StorageConfig();
     config.setRoot(PORT_TO_ROOT.get(port));
     config.setStruct(FileStoreConfig.DEFAULT_DATA_STRUCT);
@@ -95,8 +103,10 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
       LOGGER.info("clear path {}", rootPath.toFile().getAbsolutePath());
       try {
         MoreFiles.deleteRecursively(rootPath, RecursiveDeleteOption.ALLOW_INSECURE);
+      } catch (NoSuchFileException e) {
+        LOGGER.info("path {} not exist", rootPath);
       } catch (IOException e) {
-        LOGGER.error("delete {} failure", rootPath);
+        LOGGER.error("delete {} failure", rootPath, e);
       }
     }
   }
@@ -162,7 +172,7 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
       }
       Files.copy(is, targetPath, StandardCopyOption.REPLACE_EXISTING);
     } catch (IOException e) {
-      LOGGER.error("copy file from resource {} to {} failed", resourcePath, targetPath);
+      LOGGER.error("copy file from resource {} to {} failed", resourcePath, targetPath, e);
     }
   }
 
@@ -174,7 +184,7 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
         fos.write(content);
       }
     } catch (IOException e) {
-      LOGGER.error("createAndWriteFile failed first {} more {}", first, more);
+      LOGGER.error("createAndWriteFile failed first {} more {}", first, more, e);
     }
   }
 }
