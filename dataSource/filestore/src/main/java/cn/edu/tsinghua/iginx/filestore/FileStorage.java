@@ -47,7 +47,6 @@ import cn.edu.tsinghua.iginx.filestore.service.storage.StorageConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructure;
 import cn.edu.tsinghua.iginx.filestore.struct.FileStructureManager;
-import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.LegacyFilesystem;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTreeConfig;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
@@ -148,33 +147,18 @@ public class FileStorage implements IStorage {
         FileStoreConfig.Fields.dummy,
         StorageConfig.Fields.config,
         FileTreeConfig.Fields.prefix);
-    Configs.putIfAbsent(
-        reshaped, LegacyParquet.NAME, FileStoreConfig.Fields.data, StorageConfig.Fields.struct);
-    Configs.putIfAbsent(
-        reshaped, LegacyFilesystem.NAME, FileStoreConfig.Fields.dummy, StorageConfig.Fields.struct);
-
-    boolean local = isLocal(meta);
-    reshaped.put(FileStoreConfig.Fields.serve, String.valueOf(local));
+    Configs.put(reshaped, String.valueOf(isLocal(meta)), FileStoreConfig.Fields.serve);
 
     Config config = ConfigFactory.parseMap(reshaped, "storage engine initialization parameters");
 
-    if (local) {
-      LOGGER.debug("storage of {} is local, ignore config for remote", meta);
-      config = config.withoutPath(FileStoreConfig.Fields.client);
-
-      if (!meta.isHasData()) {
-        LOGGER.debug("storage of {} don't have data, ignore config for dummy", meta);
-        config = config.withoutPath(FileStoreConfig.Fields.dummy);
-      }
-
-      if (meta.isReadOnly()) {
-        LOGGER.debug("storage of {} is read only, ignore config for iginx data", meta);
-        config = config.withoutPath(FileStoreConfig.Fields.data);
-      }
-    } else {
-      LOGGER.debug("storage of {} is remote, ignore config for local", meta);
-      config = config.withoutPath(FileStoreConfig.Fields.data);
+    if (!meta.isHasData()) {
+      LOGGER.debug("storage of {} don't have data, ignore config for dummy", meta);
       config = config.withoutPath(FileStoreConfig.Fields.dummy);
+    }
+
+    if (meta.isReadOnly()) {
+      LOGGER.debug("storage of {} is read only, ignore config for iginx data", meta);
+      config = config.withoutPath(FileStoreConfig.Fields.data);
     }
 
     return config;

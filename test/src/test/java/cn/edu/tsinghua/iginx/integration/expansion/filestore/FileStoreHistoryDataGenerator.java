@@ -18,17 +18,27 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.filestore;
 
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.IGINX_DATA_PATH_PREFIX_NAME;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PORT_TO_ROOT;
 
+import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
+import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
+import cn.edu.tsinghua.iginx.filestore.service.storage.StorageConfig;
+import cn.edu.tsinghua.iginx.filestore.service.storage.StorageService;
+import cn.edu.tsinghua.iginx.filestore.test.DataViewGenerator;
+import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.io.MoreFiles;
+import com.google.common.io.RecursiveDeleteOption;
 import java.io.*;
-import java.nio.file.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
-import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,21 +50,37 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   @Override
   public void writeHistoryData(
+      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
+    List<Long> keyList = new ArrayList<>();
+    for (int i = 0; i < valuesList.size(); i++) {
+      keyList.add((long) i);
+    }
+    writeHistoryData(port, pathList, dataTypeList, keyList, valuesList);
+  }
+
+  @Override
+  public void writeHistoryData(
       int port,
       List<String> pathList,
       List<DataType> dataTypeList,
       List<Long> keyList,
       List<List<Object>> valuesList) {
-    // 创建并写入文件
-    createFileAndWriteValues(pathList, valuesList);
-    // 仅用于扩容文件系统后查询文件
-    writeSpecificDirectoriesAndFiles();
-  }
+    StorageConfig config = new StorageConfig();
+    config.setRoot(PORT_TO_ROOT.get(port));
+    config.setStruct(FileStoreConfig.DEFAULT_DATA_STRUCT);
 
-  @Override
-  public void writeHistoryData(
-      int port, List<String> pathList, List<DataType> dataTypeList, List<List<Object>> valuesList) {
-    writeHistoryData(port, pathList, dataTypeList, new ArrayList<>(), valuesList);
+    DataUnit dataUnit = new DataUnit();
+    dataUnit.setDummy(false);
+    dataUnit.setName("test0001");
+
+    DataView dataView =
+        DataViewGenerator.genRowDataView(pathList, dataTypeList, keyList, valuesList);
+
+    try (StorageService storageService = new StorageService(config, null)) {
+      storageService.insert(dataUnit, dataView);
+    } catch (FileStoreException e) {
+      LOGGER.error("create storage service failure", e);
+    }
   }
 
   @Override
@@ -67,50 +93,17 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
         rootPath = Paths.get(IGINX_DATA_PATH_PREFIX_NAME + PORT_TO_ROOT.get(port));
       }
       LOGGER.info("clear path {}", rootPath.toFile().getAbsolutePath());
-      if (!Files.exists(rootPath)) {
-        LOGGER.info("path {} does not exist", rootPath.toFile().getAbsolutePath());
-        continue;
-      }
-      try (Stream<Path> walk = Files.walk(rootPath)) {
-        walk.sorted(Comparator.reverseOrder()).forEach(this::deleteDirectoryStream);
+      try {
+        MoreFiles.deleteRecursively(rootPath, RecursiveDeleteOption.ALLOW_INSECURE);
       } catch (IOException e) {
         LOGGER.error("delete {} failure", rootPath);
       }
     }
   }
 
-  private void createFileAndWriteValues(List<String> pathList, List<List<Object>> valuesList) {
-    String separator = System.getProperty("file.separator");
-    List<List<Object>> reversedValuesList = new ArrayList<>();
-    for (int i = 0; i < valuesList.get(0).size(); i++) {
-      reversedValuesList.add(new ArrayList<>());
-    }
-    for (List<Object> values : valuesList) {
-      for (int i = 0; i < values.size(); i++) {
-        reversedValuesList.get(i).add(values.get(i));
-      }
-    }
-    for (int i = 0; i < pathList.size(); i++) {
-      String realFilePath = pathList.get(i).replace(".", separator);
-      File file = new File(realFilePath);
-      file.getParentFile().mkdirs();
-      LOGGER.info("create file {} success", file.getAbsolutePath());
-      try (OutputStream out = Files.newOutputStream(file.toPath())) {
-        for (Object value : reversedValuesList.get(i)) {
-          out.write(value.toString().getBytes());
-        }
-      } catch (IOException e) {
-        LOGGER.error("write file {} failure", file.getAbsolutePath());
-      }
-    }
-  }
-
-  private void deleteDirectoryStream(Path path) {
-    try {
-      Files.deleteIfExists(path);
-    } catch (IOException e) {
-      LOGGER.error("delete {} failure", path);
-    }
+  @Override
+  public void writeSpecialHistoryData() {
+    writeSpecificDirectoriesAndFiles();
   }
 
   private void writeSpecificDirectoriesAndFiles() {

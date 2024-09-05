@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawFormat;
+import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
@@ -38,7 +39,13 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreCapacityExpansionIT.class);
 
   public FileStoreCapacityExpansionIT() {
-    super(filestore, "dummy.config.chunk_size_in_bytes:8", new FileStoreHistoryDataGenerator());
+    super(filestore, getAddStorageParams(), new FileStoreHistoryDataGenerator());
+  }
+
+  private static String getAddStorageParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy.struct", FileStoreConfig.DEFAULT_DATA_STRUCT);
+    return getAddStorageParams(params);
   }
 
   // skip this test
