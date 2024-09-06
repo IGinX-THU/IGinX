@@ -149,10 +149,12 @@ public class LegacyParquetWrapper implements FileManager {
 
   private void reload() throws IOException {
     while (true) {
-      long lastModified = Files.getLastModifiedTime(path).toMillis();
+      FileTime lastModifiedTime = Files.getLastModifiedTime(path);
+      long lastModified = lastModifiedTime.toMillis();
       if (lastModified <= this.lastModified) {
         return;
       }
+      LOGGER.info("reloading legacy parquet files in {} with last modified time {}", path, lastModified);
       close();
       delegate = factory.create(path);
       this.lastModified = lastModified;
