@@ -218,18 +218,20 @@ public class ParquetReadWriter implements ReadWriter {
   }
 
   @Override
-  public Iterable<String> tableNames() throws IOException {
+  public Iterable<String> reload() throws IOException {
     List<String> names = new ArrayList<>();
     try (DirectoryStream<Path> stream =
         Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
         String fileName = path.getFileName().toString();
+        shared.getCachePool().asMap().remove(fileName);
         String tableName = getTableName(fileName);
         names.add(tableName);
       }
     } catch (NoSuchFileException ignored) {
       LOGGER.debug("dir {} not existed.", dir);
     }
+    tombstoneStorage.reload();
     return names;
   }
 

@@ -41,7 +41,7 @@ public interface ReadWriter {
 
   void delete(String name);
 
-  Iterable<String> tableNames() throws IOException;
+  Iterable<String> reload() throws IOException;
 
   void clear() throws IOException;
 }

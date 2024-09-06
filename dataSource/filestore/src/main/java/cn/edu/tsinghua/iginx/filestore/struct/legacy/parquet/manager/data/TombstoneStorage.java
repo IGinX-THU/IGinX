@@ -117,6 +117,17 @@ public class TombstoneStorage implements Closeable {
     }
   }
 
+  public void reload() throws IOException {
+    try (DirectoryStream<Path> stream =
+             Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_TOMBSTONE)) {
+      for (Path path : stream) {
+        Files.deleteIfExists(path);
+        String fileName = path.toString();
+        shared.getCachePool().asMap().remove(fileName);
+      }
+    }
+  }
+
   public void clear() {
     lock.writeLock().lock();
     try {
