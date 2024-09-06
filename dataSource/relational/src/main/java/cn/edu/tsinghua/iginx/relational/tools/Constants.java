@@ -44,9 +44,16 @@ public abstract class Constants {
 
   public static final String DROP_COLUMN_STATEMENT = "ALTER TABLE %s DROP COLUMN %s;";
 
-  public static final Map<String, String> classMap = new HashMap<>();
+  public static final Map<String, String> metaClassMap = new HashMap<>();
 
   static {
-    classMap.put("postgresql", "cn.edu.tsinghua.iginx.relational.meta.PostgreSQLMeta");
+    metaClassMap.put("postgresql", "cn.edu.tsinghua.iginx.relational.meta.PostgreSQLMeta");
+  }
+
+  public static final Map<String, String> metaPathMap = new HashMap<>();
+
+  // relative path to <module>/resources
+  static {
+    metaPathMap.put("mysql", "mysql-meta-template.properties");
   }
 }
