@@ -23,22 +23,18 @@ jobs:
         uses: ./.github/workflows/standalone-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["PostgreSQL", "MySQL"]'
     standalone-test-pushdown:
         uses: ./.github/workflows/standalone-test-pushdown.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["PostgreSQL", "MySQL"]'
     db-ce:
         uses: ./.github/workflows/DB-CE.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["PostgreSQL", "MySQL"]'
     remote-test:
         uses: ./.github/workflows/remote-test.yml
         with:
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["PostgreSQL", "MySQL"]'
     assemebly-test:
         uses: ./.github/workflows/assembly-test.yml
     tpc-h-regression-test:
@@ -46,4 +42,3 @@ jobs:
         with:
             os-matrix: '["ubuntu-latest"]'
             metadata-matrix: '["zookeeper"]'
-            db-matrix: '["PostgreSQL", "MySQL"]'
