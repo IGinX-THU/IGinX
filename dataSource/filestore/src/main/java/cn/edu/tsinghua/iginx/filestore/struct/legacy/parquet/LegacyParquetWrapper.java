@@ -154,7 +154,7 @@ public class LegacyParquetWrapper implements FileManager {
       if (lastModified <= this.lastModified) {
         return;
       }
-      LOGGER.info("reloading legacy parquet files in {} with last modified time {}", path, lastModified);
+      LOGGER.info("reloading {} at {}", path, lastModifiedTime);
       close();
       delegate = factory.create(path);
       this.lastModified = lastModified;
