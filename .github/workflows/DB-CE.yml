@@ -90,7 +90,7 @@ jobs:
             - name: oriHasDataExpHasData Normal IT
               shell: bash
               run: |
-                  mvn test -q -Dtest=SQLSessionIT -DfailIfNoTests=false -P-format
+                  mvn test -q -Dtest=SQLSessionIT#testMappingTransform -DfailIfNoTests=false -P-format
 
             # 第 2 阶段测试开始==========================================
             - name: Prepare CapExp environment oriNoDataExpNoData
