@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.StorageProperties;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
+
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
@@ -120,7 +121,7 @@ public class LegacyParquet implements FileStructure {
 
   @Override
   public FileManager newReader(Path path, Closeable shared) throws IOException {
-    return new LegacyParquetWrapper(new DataManager((Shared) shared, path), true);
+    return new LegacyParquetWrapper(p->new DataManager((Shared) shared, p), path, true);
   }
 
   @Override
@@ -130,6 +131,6 @@ public class LegacyParquet implements FileStructure {
 
   @Override
   public FileManager newWriter(Path path, Closeable shared) throws IOException {
-    return new LegacyParquetWrapper(new DataManager((Shared) shared, path), false);
+    return new LegacyParquetWrapper(p->new DataManager((Shared) shared, p), path, false);
   }
 }

@@ -41,22 +41,41 @@ import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import com.google.common.collect.Range;
 import com.google.common.collect.RangeSet;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.Nullable;
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.nio.file.attribute.FileTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
-import javax.annotation.WillCloseWhenClosed;
 
 public class LegacyParquetWrapper implements FileManager {
 
-  private final DataManager delegate;
-  private final boolean isDummy;
+  private static final Logger LOGGER = LoggerFactory.getLogger(LegacyParquetWrapper.class);
 
-  public LegacyParquetWrapper(@WillCloseWhenClosed DataManager delegate, boolean isDummy) {
-    this.delegate = Objects.requireNonNull(delegate);
+  public interface DataManagerFactory {
+    DataManager create(Path dir) throws IOException;
+  }
+
+  private final DataManagerFactory factory;
+  private final Path path;
+  private final boolean isDummy;
+  private volatile long lastModified;
+  private DataManager delegate;
+
+  public LegacyParquetWrapper(DataManagerFactory factory, Path path, boolean isDummy)
+      throws IOException {
+    this.factory = Objects.requireNonNull(factory);
+    this.path = Objects.requireNonNull(path);
     this.isDummy = isDummy;
+    this.lastModified = System.currentTimeMillis();
+    this.delegate = factory.create(path);
   }
 
   @Override
@@ -89,6 +108,9 @@ public class LegacyParquetWrapper implements FileManager {
 
   @Override
   public RowStream query(DataTarget target, @Nullable AggregateType aggregate) throws IOException {
+    if (isDummy) {
+      reload();
+    }
     try {
       Filter filter = target.getFilter();
       if (Filters.isTrue(filter)) {
@@ -125,8 +147,35 @@ public class LegacyParquetWrapper implements FileManager {
     }
   }
 
+  private void reload() throws IOException {
+    while (true) {
+      long lastModified = Files.getLastModifiedTime(path).toMillis();
+      if (lastModified <= this.lastModified) {
+        return;
+      }
+      close();
+      delegate = factory.create(path);
+      this.lastModified = lastModified;
+    }
+  }
+
+  private void touch() {
+    if (isDummy) {
+      throw new UnsupportedOperationException("touch is not supported for dummy file manager");
+    }
+    try {
+      Files.setLastModifiedTime(path, FileTime.fromMillis(System.currentTimeMillis()));
+    } catch (NoSuchFileException ignored) {
+    } catch (IOException e) {
+      LOGGER.error("Failed to touch file {}", path, e);
+    }
+  }
+
   @Override
   public void delete(DataTarget target) throws IOException {
+    if (isDummy) {
+      throw new UnsupportedOperationException("delete is not supported for dummy file manager");
+    }
     try {
       List<KeyRange> keyRanges = null;
       RangeSet<Long> rangeSet = Filters.toRangeSet(target.getFilter());
@@ -138,6 +187,7 @@ public class LegacyParquetWrapper implements FileManager {
         patterns = Collections.singletonList("*");
       }
       delegate.delete(patterns, keyRanges, target.getTagFilter());
+      touch();
     } catch (PhysicalException e) {
       throw new IOException(e);
     }
@@ -145,8 +195,12 @@ public class LegacyParquetWrapper implements FileManager {
 
   @Override
   public void insert(DataView data) throws IOException {
+    if (isDummy) {
+      throw new UnsupportedOperationException("insert is not supported for dummy file manager");
+    }
     try {
       delegate.insert(data);
+      touch();
     } catch (PhysicalException e) {
       throw new IOException(e);
     }
