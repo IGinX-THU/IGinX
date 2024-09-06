@@ -18,6 +18,9 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.filestore;
 
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.IGINX_DATA_PATH_PREFIX_NAME;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PORT_TO_ROOT;
+
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
@@ -29,9 +32,6 @@ import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import com.google.common.io.MoreFiles;
 import com.google.common.io.RecursiveDeleteOption;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -43,16 +43,14 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
-
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.IGINX_DATA_PATH_PREFIX_NAME;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PORT_TO_ROOT;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreHistoryDataGenerator.class);
 
-  public FileStoreHistoryDataGenerator() {
-  }
+  public FileStoreHistoryDataGenerator() {}
 
   @Override
   public void writeHistoryData(
@@ -100,7 +98,7 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
 
     Path rootPath = Paths.get(PORT_TO_ROOT.get(port));
     LOGGER.debug("walk start from {}", rootPath.toFile().getAbsolutePath());
-    try(Stream<Path> pathStream = Files.walk(rootPath)) {
+    try (Stream<Path> pathStream = Files.walk(rootPath)) {
       pathStream.forEach(path -> LOGGER.debug(path.toFile().getAbsolutePath()));
     } catch (IOException e) {
       LOGGER.error("walk path {} failure", rootPath, e);
@@ -183,7 +181,7 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
       return;
     }
     try (InputStream is =
-             FileStoreHistoryDataGenerator.class.getClassLoader().getResourceAsStream(resourcePath)) {
+        FileStoreHistoryDataGenerator.class.getClassLoader().getResourceAsStream(resourcePath)) {
       if (is == null) {
         LOGGER.error("resource {} not found", resourcePath);
         return;
