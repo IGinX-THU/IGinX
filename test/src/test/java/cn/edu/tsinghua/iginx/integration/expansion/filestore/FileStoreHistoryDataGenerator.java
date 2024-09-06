@@ -42,6 +42,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.IGINX_DATA_PATH_PREFIX_NAME;
 import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.PORT_TO_ROOT;
@@ -96,6 +97,15 @@ public class FileStoreHistoryDataGenerator extends BaseHistoryDataGenerator {
     } catch (FileStoreException e) {
       LOGGER.error("create storage service failure", e);
     }
+
+    Path rootPath = Paths.get(PORT_TO_ROOT.get(port));
+    LOGGER.debug("walk start from {}", rootPath.toFile().getAbsolutePath());
+    try(Stream<Path> pathStream = Files.walk(rootPath)) {
+      pathStream.forEach(path -> LOGGER.debug(path.toFile().getAbsolutePath()));
+    } catch (IOException e) {
+      LOGGER.error("walk path {} failure", rootPath, e);
+    }
+    LOGGER.debug("walk end");
   }
 
   @Override
