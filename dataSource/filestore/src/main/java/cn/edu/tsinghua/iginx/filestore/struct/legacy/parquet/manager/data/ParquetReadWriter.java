@@ -223,8 +223,8 @@ public class ParquetReadWriter implements ReadWriter {
     try (DirectoryStream<Path> stream =
         Files.newDirectoryStream(dir, "*" + Constants.SUFFIX_FILE_PARQUET)) {
       for (Path path : stream) {
+        shared.getCachePool().asMap().remove(path.toString());
         String fileName = path.getFileName().toString();
-        shared.getCachePool().asMap().remove(fileName);
         String tableName = getTableName(fileName);
         names.add(tableName);
       }
