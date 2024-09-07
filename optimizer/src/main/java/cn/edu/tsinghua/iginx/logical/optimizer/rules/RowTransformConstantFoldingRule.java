@@ -21,6 +21,7 @@ package cn.edu.tsinghua.iginx.logical.optimizer.rules;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Rename;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
@@ -48,8 +49,8 @@ public class RowTransformConstantFoldingRule extends Rule {
     RowTransform rowTransform = (RowTransform) call.getMatchedRoot();
     List<FunctionCall> functionCallList = rowTransform.getFunctionCallList();
     for (FunctionCall functionCall : functionCallList) {
-      Expression expr = functionCall.getParams().getExpr();
-      if (expr != null) {
+      if (functionCall.getFunction() instanceof ArithmeticExpr) {
+        Expression expr = functionCall.getParams().getExpression(0);
         Expression flattenedExpression = ExprUtils.flattenExpression(ExprUtils.copy(expr));
         if (ExprUtils.hasMultiConstantsInMultipleExpression(flattenedExpression)) {
           return true;
@@ -66,13 +67,13 @@ public class RowTransformConstantFoldingRule extends Rule {
     List<Pair<String, String>> aliasList = new ArrayList<>();
 
     for (FunctionCall functionCall : functionCallList) {
-      Expression expr = functionCall.getParams().getExpr();
-      if (expr != null) {
+      if (functionCall.getFunction() instanceof ArithmeticExpr) {
+        Expression expr = functionCall.getParams().getExpression(0);
         String oldName = expr.getColumnName();
         Expression flattenedExpression = ExprUtils.flattenExpression(expr);
         if (ExprUtils.hasMultiConstantsInMultipleExpression(flattenedExpression)) {
           Expression foldedExpression = ExprUtils.foldExpression(flattenedExpression);
-          functionCall.getParams().setExpr(foldedExpression);
+          functionCall.getParams().setExpression(0, foldedExpression);
           String newName = foldedExpression.getColumnName();
           aliasList.add(new Pair<>(newName, oldName));
         }

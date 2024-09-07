@@ -29,6 +29,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawData;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RawDataType;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
@@ -327,7 +329,11 @@ public class ParquetWorker implements ParquetService.Iface {
   }
 
   private FunctionParams resolveRawFunctionParams(RawFunctionParams rawFunctionParams) {
-    return new FunctionParams(rawFunctionParams.getPatterns());
+    List<Expression> expressions = new ArrayList<>();
+    rawFunctionParams
+        .getPatterns()
+        .forEach(pattern -> expressions.add(new BaseExpression(pattern)));
+    return new FunctionParams(expressions);
   }
 
   @Override

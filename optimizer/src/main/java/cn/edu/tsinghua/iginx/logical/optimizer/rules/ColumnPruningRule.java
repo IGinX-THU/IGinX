@@ -381,7 +381,7 @@ public class ColumnPruningRule extends Rule {
       List<FunctionCall> functionCallList, Set<String> columns) {
     for (FunctionCall functionCall : functionCallList) {
       String functionName = FunctionUtils.getFunctionName(functionCall.getFunction());
-      List<String> paths = functionCall.getParams().getPaths();
+      List<String> paths = ExprUtils.getPathFromExprList(functionCall.getParams().getExpressions());
       boolean isPyUDF;
       try {
         isPyUDF = FunctionUtils.isPyUDF(functionName);
@@ -395,9 +395,9 @@ public class ColumnPruningRule extends Rule {
         columns.remove("value");
         columns.addAll(paths);
       } else if (functionName.equals(ArithmeticExpr.ARITHMETIC_EXPR)) {
-        String functionStr = functionCall.getParams().getExpr().getColumnName();
+        String functionStr = functionCall.getParams().getExpression(0).getColumnName();
         columns.remove(functionStr);
-        columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpr()));
+        columns.addAll(ExprUtils.getPathFromExpr(functionCall.getParams().getExpression(0)));
       } else if (isPyUDF) {
         // UDF结果列括号内可以随意命名，因此我们识别columns中所有开头为UDF的列，不识别括号内的内容
         String prefix = functionName + "(";
@@ -412,9 +412,10 @@ public class ColumnPruningRule extends Rule {
         columns.clear();
         columns.addAll(newColumns);
       } else {
-        String functionStr = functionName + "(" + String.join(", ", paths) + ")";
+        List<String> columnNames = functionCall.getParams().getPaths();
+        String functionStr = functionName + "(" + String.join(", ", columnNames) + ")";
         if (functionCall.getParams().isDistinct()) {
-          functionStr = functionName + "(distinct " + String.join(", ", paths) + ")";
+          functionStr = functionName + "(distinct " + String.join(", ", columnNames) + ")";
         }
         columns.addAll(paths);
         if (columns.contains(functionStr)) {
