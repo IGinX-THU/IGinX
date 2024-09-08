@@ -7221,7 +7221,7 @@ public class SQLSessionIT {
                     + "|  +--Project          |      Project|                                                                                                            Patterns: *|\n"
                     + "|    +--Reorder        |      Reorder|                                                                            Order: max(us.d1.s2),min(us.d1.s3),us.d1.s1|\n"
                     + "|      +--Select       |       Select|                                                                                           Filter: (max(us.d1.s2) > 10)|\n"
-                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (min, System),(max, System), MappingType: SetMapping isDistinct: false|\n"
+                    + "|        +--GroupBy    |      GroupBy|GroupByCols: us.d1.s1, FuncList(Name, FuncType): (max, System),(min, System), MappingType: SetMapping isDistinct: false|\n"
                     + "|          +--Select   |       Select|                                                                                                Filter: (us.d1.s1 < 10)|\n"
                     + "|            +--Project|      Project|                                                        Patterns: us.d1.s1,us.d1.s2,us.d1.s3, Target DU: unit0000000000|\n"
                     + "+----------------------+-------------+-----------------------------------------------------------------------------------------------------------------------+\n"
