@@ -22,7 +22,6 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
-import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
@@ -97,23 +96,13 @@ public class ParseTest {
     assertTrue(statement.hasDownsample());
     assertEquals(UnarySelectStatement.QueryType.DownSampleQuery, statement.getQueryType());
 
-    assertEquals(5, statement.getTargetTypeFuncExprList(MappingType.SetMapping).size());
-
-    assertEquals(
-        Collections.singletonList(new BaseExpression("a.b.c")),
-        statement.getTargetTypeFuncExprList(MappingType.SetMapping).get(0).getExpressions());
-    assertEquals(
-        Collections.singletonList(new BaseExpression("a.b.d")),
-        statement.getTargetTypeFuncExprList(MappingType.SetMapping).get(1).getExpressions());
-    assertEquals(
-        Collections.singletonList(new BaseExpression("a.b.e")),
-        statement.getTargetTypeFuncExprList(MappingType.SetMapping).get(2).getExpressions());
-    assertEquals(
-        Collections.singletonList(new BaseExpression("a.b.f")),
-        statement.getTargetTypeFuncExprList(MappingType.SetMapping).get(3).getExpressions());
-    assertEquals(
-        Collections.singletonList(new BaseExpression("a.b.g")),
-        statement.getTargetTypeFuncExprList(MappingType.SetMapping).get(4).getExpressions());
+    List<FuncExpression> funcExprList = statement.getTargetTypeFuncExprList(MappingType.SetMapping);
+    assertEquals(5, funcExprList.size());
+    assertEquals("sum(a.b.c)", funcExprList.get(0).getColumnName());
+    assertEquals("sum(a.b.d)", funcExprList.get(1).getColumnName());
+    assertEquals("sum(a.b.e)", funcExprList.get(2).getColumnName());
+    assertEquals("count(a.b.f)", funcExprList.get(3).getColumnName());
+    assertEquals("count(a.b.g)", funcExprList.get(4).getColumnName());
 
     assertEquals(
         "(((key > 100 && key < 1000) || a.b.d == \"abc\" || a.b.c >= \"666\" || (a.b.e < 10 && !(a.b.f < 10))) && key >= 200 && key < 300)",
@@ -238,8 +227,7 @@ public class ParseTest {
 
     FuncExpression expression =
         subStatement.getTargetTypeFuncExprList(MappingType.SetMapping).get(0);
-    assertEquals(
-        Collections.singletonList(new BaseExpression("res.a")), expression.getExpressions());
+    assertEquals("max(res.a)", expression.getColumnName());
     assertEquals("max", expression.getFuncName());
     assertEquals("max_a", expression.getAlias());
   }

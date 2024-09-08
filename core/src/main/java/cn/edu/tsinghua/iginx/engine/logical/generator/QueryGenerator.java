@@ -791,7 +791,8 @@ public class QueryGenerator extends AbstractGenerator {
     if (!selectStatement.needRowTransform()) {
       return root;
     }
-    List<FunctionCall> functionCallList = FunctionUtils.getFunctionCalls(selectStatement.getExpressions());
+    List<FunctionCall> functionCallList =
+        FunctionUtils.getFunctionCalls(selectStatement.getExpressions());
     root = new RowTransform(new OperatorSource(root), functionCallList);
 
     return root;
