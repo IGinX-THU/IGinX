@@ -32,6 +32,7 @@ import cn.edu.tsinghua.iginx.filestore.common.Patterns;
 import cn.edu.tsinghua.iginx.filestore.common.Ranges;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
+import cn.edu.tsinghua.iginx.filestore.struct.exception.NoSuchUnitException;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.manager.data.DataManager;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.exception.StorageException;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
@@ -146,17 +147,21 @@ public class LegacyParquetWrapper implements FileManager {
     }
   }
 
-  private void reload() throws IOException {
+  private synchronized void reload() throws IOException {
     while (true) {
-      FileTime lastModifiedTime = Files.getLastModifiedTime(path);
-      long lastModified = lastModifiedTime.toMillis();
-      if (lastModified <= this.lastModified) {
-        return;
+      try {
+        FileTime lastModifiedTime = Files.getLastModifiedTime(path);
+        long lastModified = lastModifiedTime.toMillis();
+        if (lastModified <= this.lastModified) {
+          return;
+        }
+        LOGGER.info("reloading {} at {}", path, lastModifiedTime);
+        this.lastModified = lastModified;
+      } catch (NoSuchFileException e) {
+        throw new NoSuchUnitException(e);
       }
-      LOGGER.info("reloading {} at {}", path, lastModifiedTime);
       close();
       delegate = factory.create(path);
-      this.lastModified = lastModified;
     }
   }
 
@@ -208,7 +213,7 @@ public class LegacyParquetWrapper implements FileManager {
   }
 
   @Override
-  public void close() throws IOException {
+  public synchronized void close() throws IOException {
     try {
       delegate.close();
     } catch (RuntimeException e) {
