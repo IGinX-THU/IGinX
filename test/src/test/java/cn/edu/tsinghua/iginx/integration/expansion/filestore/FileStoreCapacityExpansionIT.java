@@ -27,6 +27,8 @@ import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -249,15 +251,33 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void testQueryLegacyFileSystem() {
-    try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filestore\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\");");
+    String ip = "127.0.0.1";
+    int port = 6670;
+    String schemaPrefix = null;
+    String dataPrefix = null;
 
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/a");
+    params.put("has_data", "true");
+    params.put("is_read_only", "true");
+    params.put("iginx_port", "6888");
+    params.put("chunk_size_in_bytes", "1048576");
+
+    try {
+      session.addStorageEngine(ip, port, filestore, params);
     } catch (SessionException e) {
-      LOGGER.error("test query for filestore failed ", e);
+      LOGGER.error("add read only storage engine failed ", e);
       fail();
     }
     testQueryRawChunks();
+    try {
+      session.removeHistoryDataSource(
+          Collections.singletonList(
+              new RemovedStorageEngineInfo(ip, port, schemaPrefix, dataPrefix)));
+    } catch (SessionException e) {
+      LOGGER.error("remove storage engine failed ", e);
+      fail();
+    }
   }
 
   @Override
@@ -267,27 +287,36 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   private void testQueryFileTree() {
+    String ip = "127.0.0.1";
+    int port = 6671;
+    String schemaPrefix = null;
+    String dataPrefix = null;
+
     Map<String, String> params = new LinkedHashMap<>();
     params.put("dummy_dir", "test/test/a");
     params.put("has_data", "true");
     params.put("is_read_only", "true");
     params.put("iginx_port", "6888");
-    // dummy.struct=LegacyFilesystem#dummy.config.
     params.put("dummy.struct", FileTree.NAME);
     params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
-    String addStorageParams = getAddStorageParams(params);
 
     try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6671, \"filestore\", \"" + addStorageParams + "\");");
+      session.addStorageEngine(ip, port, filestore, params);
     } catch (SessionException e) {
-      LOGGER.error("add storage engine failed ", e);
-      if (!e.getMessage().contains("repeatedly")) {
-        fail();
-      }
+      LOGGER.error("add read only storage engine failed ", e);
+      fail();
     }
 
     testQueryRawChunks();
     testQueryParquets();
+
+    try {
+      session.removeHistoryDataSource(
+          Collections.singletonList(
+              new RemovedStorageEngineInfo(ip, port, schemaPrefix, dataPrefix)));
+    } catch (SessionException e) {
+      LOGGER.error("remove storage engine failed ", e);
+      fail();
+    }
   }
 }
