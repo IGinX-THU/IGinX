@@ -253,8 +253,8 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   private void testQueryLegacyFileSystem() {
     String ip = "127.0.0.1";
     int port = 6670;
-    String schemaPrefix = null;
-    String dataPrefix = null;
+    String schemaPrefix = "";
+    String dataPrefix = "";
 
     Map<String, String> params = new LinkedHashMap<>();
     params.put("dummy_dir", "test/test/a");
@@ -289,8 +289,8 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   private void testQueryFileTree() {
     String ip = "127.0.0.1";
     int port = 6671;
-    String schemaPrefix = null;
-    String dataPrefix = null;
+    String schemaPrefix = "";
+    String dataPrefix = "";
 
     Map<String, String> params = new LinkedHashMap<>();
     params.put("dummy_dir", "test/test/a");
