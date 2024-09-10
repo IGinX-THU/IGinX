@@ -75,8 +75,24 @@ public class TempDummyDataSource implements AutoCloseable {
 
   private void init() throws SessionException {
     LinkedHashMap<String, String> params = new LinkedHashMap<>(extraParams);
-    params.put("schema_prefix", schemaPrefix);
-    params.put("data_prefix", dataPrefix);
+    if (params.containsKey("schema_prefix")) {
+      throw new IllegalArgumentException("schema_prefix is a reserved key");
+    }
+    if (params.containsKey("data_prefix")) {
+      throw new IllegalArgumentException("data_prefix is a reserved key");
+    }
+    if (params.containsKey("has_data")) {
+      throw new IllegalArgumentException("has_data is a reserved key");
+    }
+    if (params.containsKey("is_read_only")) {
+      throw new IllegalArgumentException("is_read_only is a reserved key");
+    }
+    if (!schemaPrefix.isEmpty()) {
+      params.put("schema_prefix", schemaPrefix);
+    }
+    if (!dataPrefix.isEmpty()) {
+      params.put("data_prefix", dataPrefix);
+    }
     params.put("has_data", "true");
     params.put("is_read_only", "true");
     session.addStorageEngine(ip, port, type, params);
