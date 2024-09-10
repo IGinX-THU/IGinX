@@ -179,8 +179,8 @@ runs:
               paths: conf/config.properties
               statements: |
                   s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#6667#filestore/g
-                  s#dir=data#dir=test/iginx_mn#g
-                  s#dummy_dir=dummy#dummy_dir=test/mn#g
+                  s#dir=data#dir=${GITHUB_WORKSPACE}/test/iginx_mn#g
+                  s#dummy_dir=dummy#dummy_dir=${GITHUB_WORKSPACE}/test/mn#g
                   s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
                   s/dummy.struct=LegacyFilesystem/dummy.struct=LegacyParquet/g
                   s/chunk_size_in_bytes=1048576/chunk_size_in_bytes=8/g
