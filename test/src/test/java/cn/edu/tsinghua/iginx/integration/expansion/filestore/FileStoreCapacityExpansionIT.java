@@ -18,6 +18,9 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.filestore;
 
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.filestore;
+import static org.junit.Assert.fail;
+
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawFormat;
 import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
@@ -25,17 +28,13 @@ import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.TempDummyDataSource;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.StringJoiner;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.StringJoiner;
-
-import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.filestore;
-import static org.junit.Assert.fail;
 
 public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
 
@@ -67,12 +66,10 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   }
 
   @Override
-  protected void updateParams(int port) {
-  }
+  protected void updateParams(int port) {}
 
   @Override
-  protected void restoreParams(int port) {
-  }
+  protected void restoreParams(int port) {}
 
   @Override
   public void testShowColumns() {
@@ -80,9 +77,9 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
 
     // show dummy columns
     try (TempDummyDataSource ignoredFileTree =
-             new TempDummyDataSource(session, filestore, getLegacyFileSystemDummyParams());
-         TempDummyDataSource ignoredLegacyFileSystem =
-             new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
+            new TempDummyDataSource(session, filestore, getLegacyFileSystemDummyParams());
+        TempDummyDataSource ignoredLegacyFileSystem =
+            new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
       testShowDummyColumns();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
@@ -103,7 +100,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void testQueryLegacyFileSystem() {
     try (TempDummyDataSource ignored =
-             new TempDummyDataSource(session, filestore, getLegacyFileSystemDummyParams())) {
+        new TempDummyDataSource(session, filestore, getLegacyFileSystemDummyParams())) {
       testQueryRawChunks();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);
@@ -113,7 +110,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   private void testQueryFileTree() {
     try (TempDummyDataSource ignored =
-             new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
+        new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
       testQueryRawChunks();
       testQueryParquets();
     } catch (SessionException e) {
