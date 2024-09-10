@@ -27,11 +27,11 @@ import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
-import cn.edu.tsinghua.iginx.thrift.RemovedStorageEngineInfo;
-import java.util.Collections;
+import cn.edu.tsinghua.iginx.integration.tool.TempDummyDataSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -48,6 +48,14 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     Map<String, String> params = new LinkedHashMap<>();
     params.put("dummy.struct", FileStoreConfig.DEFAULT_DATA_STRUCT);
     return getAddStorageParams(params);
+  }
+
+  public static String getAddStorageParams(Map<String, String> params) {
+    StringJoiner joiner = new StringJoiner(",");
+    for (Map.Entry<String, String> entry : params.entrySet()) {
+      joiner.add(entry.getKey() + ":" + entry.getValue());
+    }
+    return joiner.toString();
   }
 
   // skip this test
@@ -68,6 +76,65 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
     super.testShowColumns();
 
     // show dummy columns
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
+      testShowDummyColumns();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  @Test
+  public void testDummy() {
+    testQuerySpecialHistoryData();
+  }
+
+  @Override
+  protected void testQuerySpecialHistoryData() {
+    testQueryLegacyFileSystem();
+    testQueryFileTree();
+  }
+
+  private void testQueryLegacyFileSystem() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, filestore, getLegacyFileSystemDummyParams())) {
+      testQueryRawChunks();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  private void testQueryFileTree() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
+      testQueryRawChunks();
+      testQueryParquets();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  private static @NotNull Map<String, String> getLegacyFileSystemDummyParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/a");
+    params.put("iginx_port", "6888");
+    params.put("chunk_size_in_bytes", "1048576");
+    return params;
+  }
+
+  private static @NotNull Map<String, String> getFileTreeDummyParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/a");
+    params.put("iginx_port", "6888");
+    params.put("dummy.struct", FileTree.NAME);
+    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
+    return params;
+  }
+
+  private void testShowDummyColumns() {
     String statement = "SHOW COLUMNS a.*;";
     String expected =
         "Columns:\n"
@@ -113,19 +180,6 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+--------------------------------------+--------+\n"
             + "Total line number = 36\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
-  }
-
-  public static String getAddStorageParams(Map<String, String> params) {
-    StringJoiner joiner = new StringJoiner(",");
-    for (Map.Entry<String, String> entry : params.entrySet()) {
-      joiner.add(entry.getKey() + ":" + entry.getValue());
-    }
-    return joiner.toString();
-  }
-
-  @Test
-  public void testDummy() {
-    testQuerySpecialHistoryData();
   }
 
   private void testQueryRawChunks() {
@@ -248,75 +302,5 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+---------------------------+\n"
             + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-  }
-
-  private void testQueryLegacyFileSystem() {
-    String ip = "127.0.0.1";
-    int port = 6670;
-    String schemaPrefix = "";
-    String dataPrefix = "";
-
-    Map<String, String> params = new LinkedHashMap<>();
-    params.put("dummy_dir", "test/test/a");
-    params.put("has_data", "true");
-    params.put("is_read_only", "true");
-    params.put("iginx_port", "6888");
-    params.put("chunk_size_in_bytes", "1048576");
-
-    try {
-      session.addStorageEngine(ip, port, filestore, params);
-    } catch (SessionException e) {
-      LOGGER.error("add read only storage engine failed ", e);
-      fail();
-    }
-    testQueryRawChunks();
-    try {
-      session.removeHistoryDataSource(
-          Collections.singletonList(
-              new RemovedStorageEngineInfo(ip, port, schemaPrefix, dataPrefix)));
-    } catch (SessionException e) {
-      LOGGER.error("remove storage engine failed ", e);
-      fail();
-    }
-  }
-
-  @Override
-  protected void testQuerySpecialHistoryData() {
-    testQueryLegacyFileSystem();
-    testQueryFileTree();
-  }
-
-  private void testQueryFileTree() {
-    String ip = "127.0.0.1";
-    int port = 6671;
-    String schemaPrefix = "";
-    String dataPrefix = "";
-
-    Map<String, String> params = new LinkedHashMap<>();
-    params.put("dummy_dir", "test/test/a");
-    params.put("has_data", "true");
-    params.put("is_read_only", "true");
-    params.put("iginx_port", "6888");
-    params.put("dummy.struct", FileTree.NAME);
-    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
-
-    try {
-      session.addStorageEngine(ip, port, filestore, params);
-    } catch (SessionException e) {
-      LOGGER.error("add read only storage engine failed ", e);
-      fail();
-    }
-
-    testQueryRawChunks();
-    testQueryParquets();
-
-    try {
-      session.removeHistoryDataSource(
-          Collections.singletonList(
-              new RemovedStorageEngineInfo(ip, port, schemaPrefix, dataPrefix)));
-    } catch (SessionException e) {
-      LOGGER.error("remove storage engine failed ", e);
-      fail();
-    }
   }
 }
