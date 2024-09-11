@@ -9,6 +9,9 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - id: project
+          uses: ./.github/actions/project
+
         - name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
@@ -179,8 +182,8 @@ runs:
               paths: conf/config.properties
               statements: |
                   s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#6667#filestore/g
-                  s#dir=data#dir=${PWD}/test/iginx_mn#g
-                  s#dummy_dir=dummy#dummy_dir=${PWD}/test/mn#g
+                  s#dir=data#dir=${{ steps.project.outputs.workspace }}/test/iginx_mn#g
+                  s#dummy_dir=dummy#dummy_dir=${{ steps.project.outputs.workspace }}/test/mn#g
                   s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
                   s/dummy.struct=LegacyFilesystem/dummy.struct=LegacyParquet/g
                   s/chunk_size_in_bytes=1048576/chunk_size_in_bytes=8/g
