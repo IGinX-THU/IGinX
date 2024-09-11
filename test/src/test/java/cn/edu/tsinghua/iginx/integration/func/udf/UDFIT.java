@@ -281,6 +281,18 @@ public class UDFIT {
       double actual = (double) ret.getValues().get(0).get(i);
       compareResult(expected, actual, delta);
     }
+
+    statement = "SELECT avg(s1), cos(avg(s1)) FROM us.d1 WHERE s1 < 10;";
+    ret = tool.execute(statement);
+    compareResult(Arrays.asList("avg(us.d1.s1)", "cos(avg(us.d1.s1))"), ret.getPaths());
+    assertEquals(1, ret.getValues().size());
+    expectedValues = Arrays.asList(4.5, -0.2107957994307797);
+    assertEquals(2, ret.getValues().get(0).size());
+    for (int i = 0; i < 2; i++) {
+      double expected = expectedValues.get(i);
+      double actual = (double) ret.getValues().get(0).get(i);
+      compareResult(expected, actual, delta);
+    }
   }
 
   @Test

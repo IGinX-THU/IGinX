@@ -2891,6 +2891,55 @@ public class SQLSessionIT {
   }
 
   @Test
+  public void testGroupByWithCaseWhen() {
+    String insert =
+        "insert into test(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
+    executor.execute(insert);
+
+    String query = "select * from test;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+------+------+------+------+\n"
+            + "|key|test.a|test.b|test.c|test.d|\n"
+            + "+---+------+------+------+------+\n"
+            + "|  1|     3|     2|   3.1|  val1|\n"
+            + "|  2|     1|     3|   2.1|  val2|\n"
+            + "|  3|     2|     2|   1.1|  val5|\n"
+            + "|  4|     3|     2|   2.1|  val2|\n"
+            + "|  5|     1|     2|   3.1|  val1|\n"
+            + "|  6|     2|     2|   5.1|  val3|\n"
+            + "+---+------+------+------+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "select b, sum(case when d = \"val1\" then 1 when d = \"val2\" then 2 else 3 end) as val from test group by b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+---+\n"
+            + "|test.b|val|\n"
+            + "+------+---+\n"
+            + "|     2| 10|\n"
+            + "|     3|  2|\n"
+            + "+------+---+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+
+    query =
+        "select b, sum(case when a = 1 then 1 else 0 end) + sum(a) as column from test group by b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+------+\n"
+            + "|test.b|column|\n"
+            + "+------+------+\n"
+            + "|     2|    12|\n"
+            + "|     3|     2|\n"
+            + "+------+------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(query, expected);
+  }
+
+  @Test
   public void testJoinWithGroupBy() {
     String insert =
         "insert into test1(key, a, b, c, d) values (1, 3, 2, 3.1, \"val1\"), (2, 1, 3, 2.1, \"val2\"), (3, 2, 2, 1.1, \"val5\"), (4, 3, 2, 2.1, \"val2\"), (5, 1, 2, 3.1, \"val1\"), (6, 2, 2, 5.1, \"val3\");";
