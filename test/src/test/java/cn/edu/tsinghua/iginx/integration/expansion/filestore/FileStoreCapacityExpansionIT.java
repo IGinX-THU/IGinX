@@ -77,9 +77,9 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
 
     // show dummy columns
     try (TempDummyDataSource ignoredFileTree =
-            new TempDummyDataSource(session, filestore, getLegacyFileSystemDummyParams());
+            new TempDummyDataSource(session, 16667, filestore, getLegacyFileSystemDummyParams());
         TempDummyDataSource ignoredLegacyFileSystem =
-            new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
+            new TempDummyDataSource(session, 16668, filestore, getFileTreeDummyParams())) {
       testShowDummyColumns();
     } catch (SessionException e) {
       LOGGER.error("add or remove read only storage engine failed ", e);

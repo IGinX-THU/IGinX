@@ -44,14 +44,13 @@ public class TempDummyDataSource implements AutoCloseable {
   public TempDummyDataSource(
       Session session, StorageEngineType type, Map<String, String> extraParams)
       throws SessionException {
-    this(
-        session,
-        DEFAULT_IP,
-        DEFAULT_PORT,
-        type,
-        DEFAULT_SCHEMA_PREFIX,
-        DEFAULT_PREFIX,
-        extraParams);
+    this(session, DEFAULT_PORT, type, extraParams);
+  }
+
+  public TempDummyDataSource(
+      Session session, int port, StorageEngineType type, Map<String, String> extraParams)
+      throws SessionException {
+    this(session, DEFAULT_IP, port, type, DEFAULT_SCHEMA_PREFIX, DEFAULT_PREFIX, extraParams);
   }
 
   public TempDummyDataSource(
