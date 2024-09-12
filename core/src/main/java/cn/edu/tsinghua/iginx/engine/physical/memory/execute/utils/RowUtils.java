@@ -32,6 +32,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
@@ -46,6 +47,7 @@ import cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Downsample;
 import cn.edu.tsinghua.iginx.engine.shared.operator.GroupBy;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
+import cn.edu.tsinghua.iginx.sql.utils.ExpressionUtils;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.*;
@@ -1343,5 +1345,23 @@ public class RowUtils {
     } else {
       return RowUtils.joinMultipleTablesByOrdinal(tableList);
     }
+  }
+
+  public static Row buildConstRow(List<Expression> expressions) throws PhysicalException {
+    List<Field> fields = new ArrayList<>();
+    Object[] values = new Object[expressions.size()];
+
+    for (int i = 0; i < expressions.size(); i++) {
+      Expression expression = expressions.get(i);
+      if (!ExpressionUtils.isConstantArithmeticExpr(expression)) {
+        throw new PhysicalException("expression is not constant: " + expression);
+      }
+      Value value = ExprUtils.calculateExpr(null, expression);
+      values[i] = value.getValue();
+      fields.add(new Field(expression.getColumnName(), value.getDataType()));
+    }
+
+    Header header = new Header(fields);
+    return new Row(header, values);
   }
 }

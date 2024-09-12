@@ -8626,4 +8626,99 @@ public class SQLSessionIT {
             + "Total line number = 1\n";
     executor.executeAndCompare(statement, expect);
   }
+
+  @Test
+  public void testSelectWithoutFromClause() {
+    String statement = "select 1+1 as one_plus_one, 2, 3*3, 10 as ten;";
+    String expected =
+        "ResultSets:\n"
+            + "+------------+-+-----+---+\n"
+            + "|one_plus_one|2|3 × 3|ten|\n"
+            + "+------------+-+-----+---+\n"
+            + "|           2|2|    9| 10|\n"
+            + "+------------+-+-----+---+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select ratio(20, 5) as rate;";
+    expected =
+        "ResultSets:\n"
+            + "+----+\n"
+            + "|rate|\n"
+            + "+----+\n"
+            + "| 4.0|\n"
+            + "+----+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testConstantExpression() {
+    String insert = "insert into test.a(key, a, b) values (1, 1, 1.1), (2, 3, 3.1);";
+    executor.execute(insert);
+    insert = "insert into test.b(key, a, b) values (1, 2, 2.1), (2, 3, 3.1), (3, 4, 4.1);";
+    executor.execute(insert);
+
+    String statement = "select 1, 2+19, 4*2 as eight from test.a;";
+    String expected =
+        "ResultSets:\n"
+            + "+---+-+------+-----+\n"
+            + "|key|1|2 + 19|eight|\n"
+            + "+---+-+------+-----+\n"
+            + "|  1|1|    21|    8|\n"
+            + "|  2|1|    21|    8|\n"
+            + "+---+-+------+-----+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select 1, a from test.a;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-+--------+\n"
+            + "|key|1|test.a.a|\n"
+            + "+---+-+--------+\n"
+            + "|  1|1|       1|\n"
+            + "|  2|1|       3|\n"
+            + "+---+-+--------+\n"
+            + "Total line number = 2\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select 1, a from test.a where a > 2;";
+    expected =
+        "ResultSets:\n"
+            + "+---+-+--------+\n"
+            + "|key|1|test.a.a|\n"
+            + "+---+-+--------+\n"
+            + "|  2|1|       3|\n"
+            + "+---+-+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select sum(1), sum(a), avg(1), count(1) from test.b;";
+    expected =
+        "ResultSets:\n"
+            + "+------+-------------+------+--------+\n"
+            + "|sum(1)|sum(test.b.a)|avg(1)|count(1)|\n"
+            + "+------+-------------+------+--------+\n"
+            + "|     3|            9|   1.0|       3|\n"
+            + "+------+-------------+------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement = "select 1, 2+19, 4*2 as eight from test.a, test.b;";
+    expected =
+        "ResultSets:\n"
+            + "+-+------+-----+\n"
+            + "|1|2 + 19|eight|\n"
+            + "+-+------+-----+\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "|1|    21|    8|\n"
+            + "+-+------+-----+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+  }
 }

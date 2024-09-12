@@ -100,7 +100,7 @@ queryClause
    ;
 
 select
-   : selectClause fromClause whereClause? withClause? specialClause?
+   : selectClause (fromClause whereClause? withClause? specialClause?)?
    ;
 
 selectClause

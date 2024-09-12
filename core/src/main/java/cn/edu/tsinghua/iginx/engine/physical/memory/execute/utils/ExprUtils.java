@@ -94,6 +94,9 @@ public class ExprUtils {
 
   private static Value calculateFuncExpr(Row row, FuncExpression funcExpr)
       throws PhysicalException {
+    if (row == null) {
+      row = RowUtils.buildConstRow(funcExpr.getExpressions());
+    }
     String colName = funcExpr.getColumnName();
     int index = row.getHeader().indexOf(colName);
     if (index == -1) {

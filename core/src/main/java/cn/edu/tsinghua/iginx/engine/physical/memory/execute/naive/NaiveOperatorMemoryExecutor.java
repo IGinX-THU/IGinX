@@ -82,7 +82,9 @@ import cn.edu.tsinghua.iginx.engine.shared.operator.Union;
 import cn.edu.tsinghua.iginx.engine.shared.operator.ValueToSelectedPath;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Filter;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OuterJoinType;
+import cn.edu.tsinghua.iginx.engine.shared.source.ConstantSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.EmptySource;
+import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -191,7 +193,21 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return new Table(header, rows);
   }
 
-  private RowStream executeProject(Project project, Table table) {
+  private RowStream executeProject(Project project, Table table) throws PhysicalException {
+    Source source = project.getSource();
+    switch (source.getType()) {
+      case Operator:
+        return executeProjectFromOperator(project, table);
+      case Constant:
+        ConstantSource constantSource = (ConstantSource) project.getSource();
+        return new Table(RowUtils.buildConstRow(constantSource.getExpressionList()));
+      default:
+        throw new PhysicalException(
+            "Unexpected project source type in memory task: " + source.getType());
+    }
+  }
+
+  private RowStream executeProjectFromOperator(Project project, Table table) {
     List<String> patterns = project.getPatterns();
     Header header = table.getHeader();
     List<Field> targetFields = new ArrayList<>();
