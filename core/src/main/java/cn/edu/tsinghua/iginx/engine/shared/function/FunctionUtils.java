@@ -18,6 +18,7 @@
 
 package cn.edu.tsinghua.iginx.engine.shared.function;
 
+import static cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr.ARITHMETIC_EXPR;
 import static cn.edu.tsinghua.iginx.utils.DataTypeUtils.isWholeNumber;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
@@ -25,6 +26,8 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.expr.Expression;
+import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
@@ -295,5 +298,64 @@ public class FunctionUtils {
     } else {
       return new ArrayList<>();
     }
+  }
+
+  public static MappingType getFunctionMappingType(String identifier) {
+    if (sysRowToRowFunctionSet.contains(identifier.toLowerCase())) {
+      return MappingType.RowMapping;
+    } else if (sysSetToRowFunctionSet.contains(identifier.toLowerCase())) {
+      return MappingType.SetMapping;
+    } else if (sysSetToSetFunctionSet.contains(identifier.toLowerCase())) {
+      return MappingType.Mapping;
+    } else {
+      initFunctionManager();
+      Function function = functionManager.getFunction(identifier);
+      switch (function.getIdentifier()) {
+        case "py_udtf":
+          return MappingType.RowMapping;
+        case "py_udaf":
+          return MappingType.SetMapping;
+        case "py_udsf":
+          return MappingType.Mapping;
+        default:
+          throw new IllegalArgumentException(
+              String.format("unexpected py_udf type for %s.", function.getIdentifier()));
+      }
+    }
+  }
+
+  public static List<FunctionCall> getFunctionCalls(List<Expression> expressions) {
+    initFunctionManager();
+    List<FunctionCall> list = new ArrayList<>();
+    for (Expression expression : expressions) {
+      if (expression instanceof FuncExpression) {
+        FuncExpression funcExpr = (FuncExpression) expression;
+        if (isRowToRowFunction(funcExpr.getFuncName())) {
+          list.add(
+              new FunctionCall(
+                  functionManager.getFunction(funcExpr.getFuncName()),
+                  new FunctionParams(
+                      funcExpr.getExpressions(), funcExpr.getArgs(), funcExpr.getKvargs())));
+          continue;
+        }
+      }
+      list.add(
+          new FunctionCall(
+              functionManager.getFunction(ARITHMETIC_EXPR),
+              new FunctionParams(new ArrayList<>(Collections.singletonList(expression)))));
+    }
+    return list;
+  }
+
+  public static List<FunctionCall> getArithFunctionCalls(List<Expression> expressions) {
+    initFunctionManager();
+    List<FunctionCall> list = new ArrayList<>(expressions.size());
+    for (Expression expression : expressions) {
+      list.add(
+          new FunctionCall(
+              functionManager.getFunction(ARITHMETIC_EXPR),
+              new FunctionParams(new ArrayList<>(Collections.singletonList(expression)))));
+    }
+    return list;
   }
 }

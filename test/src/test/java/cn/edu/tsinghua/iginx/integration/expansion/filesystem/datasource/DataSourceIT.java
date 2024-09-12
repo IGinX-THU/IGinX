@@ -29,6 +29,7 @@ import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
@@ -272,7 +273,8 @@ public class DataSourceIT {
 
     Project project = new Project(source, Collections.singletonList("*"), null);
     OperatorSource projectSource = new OperatorSource(project);
-    FunctionParams countParams = new FunctionParams(Collections.singletonList("*"));
+    FunctionParams countParams =
+        new FunctionParams(Collections.singletonList(new BaseExpression("*")));
     FunctionCall countCall = new FunctionCall(Count.getInstance(), countParams);
     SetTransform countOperator =
         new SetTransform(projectSource, Collections.singletonList(countCall));

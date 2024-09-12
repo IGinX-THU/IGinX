@@ -59,10 +59,10 @@ public class ArithmeticExpr implements RowMappingFunction {
 
   @Override
   public Row transform(Row row, FunctionParams params) throws Exception {
-    if (params.getExpr() == null) {
+    if (params.getExpressions().size() != 1) {
       throw new IllegalArgumentException("unexpected params for arithmetic_expr.");
     }
-    Expression expr = params.getExpr();
+    Expression expr = params.getExpression(0);
 
     Value ret = ExprUtils.calculateExpr(row, expr);
     if (ret == null) {

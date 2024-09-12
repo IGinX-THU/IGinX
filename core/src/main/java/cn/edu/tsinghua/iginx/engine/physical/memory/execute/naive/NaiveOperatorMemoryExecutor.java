@@ -262,83 +262,65 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Header header = table.getHeader();
     if (!header.hasKey()) {
       throw new InvalidOperatorParameterException(
-          "downsample operator is not support for row stream without timestamps.");
+          "downsample operator is not support for row stream without key.");
     }
-    List<Row> rows = table.getRows();
-    long bias = downsample.getKeyRange().getActualBeginKey();
-    long endKey = downsample.getKeyRange().getActualEndKey();
-    if (downsample.notSetInterval()) {
-      if (table.getRowSize() <= 0) {
-        return Table.EMPTY_TABLE;
-      }
-      bias = table.getRow(0).getKey();
-      endKey = table.getRow(table.getRowSize() - 1).getKey();
+    if (downsample.notSetInterval() && table.getRowSize() <= 0) {
+      return Table.EMPTY_TABLE;
     }
-    long precision = downsample.getPrecision();
-    long slideDistance = downsample.getSlideDistance();
-    // startKey + (n - 1) * slideDistance + precision - 1 >= endKey
-    long n = (int) (Math.ceil((double) (endKey - bias - precision + 1) / slideDistance) + 1);
 
+    long precision = downsample.getPrecision();
+    Map<List<String>, Table> rowTransformMap = new HashMap<>();
     List<Table> tableList = new ArrayList<>();
     boolean firstCol = true;
     for (FunctionCall functionCall : downsample.getFunctionCallList()) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
 
-      TreeMap<Long, List<Row>> groups = new TreeMap<>();
-      if (precision == slideDistance) {
-        for (Row row : rows) {
-          long timestamp = row.getKey() - (row.getKey() - bias) % precision;
-          groups.compute(timestamp, (k, v) -> v == null ? new ArrayList<>() : v).add(row);
+      Table functable;
+      if (functionCall.isNeedPreRowTransform()) {
+        List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+        if (rowTransformMap.containsKey(params.getPaths())) {
+          functable = rowTransformMap.get(params.getPaths());
+        } else {
+          functable = RowUtils.calRowTransform(table, list);
+          rowTransformMap.put(params.getPaths(), functable);
         }
       } else {
-        HashMap<Long, Long> timestamps = new HashMap<>();
-        for (long i = 0; i < n; i++) {
-          timestamps.put(i, bias + i * slideDistance);
-        }
-        for (Row row : rows) {
-          long rowTimestamp = row.getKey();
-          for (long i = 0; i < n; i++) {
-            if (rowTimestamp - timestamps.get(i) >= 0
-                && rowTimestamp - timestamps.get(i) < precision) {
-              groups
-                  .compute(timestamps.get(i), (k, v) -> v == null ? new ArrayList<>() : v)
-                  .add(row);
-            }
-          }
-        }
+        functable = table;
       }
+      TreeMap<Long, List<Row>> groups = RowUtils.computeDownsampleGroup(downsample, functable);
+
       // <<window_start, window_end> row>
       List<Pair<Pair<Long, Long>, Row>> transformedRawRows = new ArrayList<>();
-      try {
-        for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
-          long windowStartKey = entry.getKey();
-          long windowEndKey = windowStartKey + precision - 1;
-          List<Row> group = entry.getValue();
+      for (Map.Entry<Long, List<Row>> entry : groups.entrySet()) {
+        long windowStartKey = entry.getKey();
+        long windowEndKey = windowStartKey + precision - 1;
+        List<Row> group = entry.getValue();
 
-          if (params.isDistinct()) {
-            if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
-              throw new IllegalArgumentException(
-                  "function " + function.getIdentifier() + " can't use DISTINCT");
-            }
-            // min和max无需去重
-            if (!function.getIdentifier().equals(Max.MAX)
-                && !function.getIdentifier().equals(Min.MIN)) {
-              group = removeDuplicateRows(group);
-            }
+        if (params.isDistinct()) {
+          if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
+            throw new IllegalArgumentException(
+                "function " + function.getIdentifier() + " can't use DISTINCT");
           }
+          // min和max无需去重
+          if (!function.getIdentifier().equals(Max.MAX)
+              && !function.getIdentifier().equals(Min.MIN)) {
+            group = removeDuplicateRows(group);
+          }
+        }
 
-          Row row = function.transform(new Table(header, group), params);
+        try {
+          Row row = function.transform(new Table(functable.getHeader(), group), params);
           if (row != null) {
             transformedRawRows.add(new Pair<>(new Pair<>(windowStartKey, windowEndKey), row));
           }
+        } catch (Exception e) {
+          throw new PhysicalTaskExecuteFailureException(
+              "encounter error when execute set mapping function " + function.getIdentifier() + ".",
+              e);
         }
-      } catch (Exception e) {
-        throw new PhysicalTaskExecuteFailureException(
-            "encounter error when execute set mapping function " + function.getIdentifier() + ".",
-            e);
       }
-      if (transformedRawRows.size() == 0) {
+      if (transformedRawRows.isEmpty()) {
         return Table.EMPTY_TABLE;
       }
 
@@ -370,66 +352,34 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     return RowUtils.joinMultipleTablesByKey(tableList);
   }
 
-  private RowStream executeRowTransform(RowTransform rowTransform, Table table) {
-    List<Pair<RowMappingFunction, FunctionParams>> list = new ArrayList<>();
-    rowTransform
-        .getFunctionCallList()
-        .forEach(
-            functionCall -> {
-              list.add(
-                  new Pair<>(
-                      (RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
-            });
-
-    List<Row> rows = new ArrayList<>();
-    while (table.hasNext()) {
-      Row current = table.next();
-      List<Row> columnList = new ArrayList<>();
-      list.forEach(
-          pair -> {
-            RowMappingFunction function = pair.k;
-            FunctionParams params = pair.v;
-            try {
-              // 分别计算每个表达式得到相应的结果
-              Row column = function.transform(current, params);
-              if (column != null) {
-                columnList.add(column);
-              }
-            } catch (Exception e) {
-              try {
-                throw new PhysicalTaskExecuteFailureException(
-                    "encounter error when execute row mapping function "
-                        + function.getIdentifier()
-                        + ".",
-                    e);
-              } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new RuntimeException(ex);
-              }
-            }
-          });
-      // 如果计算结果都不为空，将计算结果合并成一行
-      if (columnList.size() == list.size()) {
-        rows.add(combineMultipleColumns(columnList));
-      }
-    }
-    if (rows.size() == 0) {
-      return Table.EMPTY_TABLE;
-    }
-    Header header = rows.get(0).getHeader();
-    return new Table(header, rows);
+  private RowStream executeRowTransform(RowTransform rowTransform, Table table)
+      throws PhysicalException {
+    List<FunctionCall> functionCallList = rowTransform.getFunctionCallList();
+    return RowUtils.calRowTransform(table, functionCallList);
   }
 
   private RowStream executeSetTransform(SetTransform setTransform, Table table)
       throws PhysicalException {
     List<FunctionCall> functionList = setTransform.getFunctionCallList();
-
+    Map<List<String>, Table> rowTransformMap = new HashMap<>();
     Map<List<String>, Table> distinctMap = new HashMap<>();
     List<Row> rows = new ArrayList<>();
 
     for (FunctionCall functionCall : functionList) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
+
       Table functable = table;
+      if (functionCall.isNeedPreRowTransform()) {
+        List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+        if (rowTransformMap.containsKey(params.getPaths())) {
+          functable = rowTransformMap.get(params.getPaths());
+        } else {
+          functable = RowUtils.calRowTransform(table, list);
+          rowTransformMap.put(params.getPaths(), functable);
+        }
+      }
+
       if (setTransform.isDistinct()) {
         // min和max无需去重
         if (!function.getIdentifier().equals(Max.MAX)
