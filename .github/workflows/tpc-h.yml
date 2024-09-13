@@ -81,7 +81,7 @@ jobs:
                   wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
                   sudo apt-get install p7zip-full
                   7za x tpc.7z
-                  ls
+                  ls tpc
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner
