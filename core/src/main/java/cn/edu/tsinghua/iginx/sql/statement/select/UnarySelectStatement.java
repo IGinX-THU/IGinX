@@ -218,6 +218,10 @@ public class UnarySelectStatement extends SelectStatement {
     selectClause.setHasValueToSelectedPath(hasValueToSelectedPath);
   }
 
+  public boolean isAllConstArith() {
+    return selectClause.isAllConstArith();
+  }
+
   public boolean isLastFirst() {
     return getQueryType().equals(QueryType.MappingQuery) && selectClause.isLastFirst();
   }
@@ -617,6 +621,7 @@ public class UnarySelectStatement extends SelectStatement {
   public void checkQueryType() {
     boolean isAllConstArith =
         getExpressions().stream().allMatch(ExpressionUtils::isConstantArithmeticExpr);
+    selectClause.setAllConstArith(isAllConstArith);
     if (getFromParts().isEmpty() && !isAllConstArith) {
       throw new SQLParserException(
           "Statement without FROM clause should only contain constant arithmetic expressions.");

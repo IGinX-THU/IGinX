@@ -197,6 +197,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     Source source = project.getSource();
     switch (source.getType()) {
       case Operator:
+      case Empty:
         return executeProjectFromOperator(project, table);
       case Constant:
         ConstantSource constantSource = (ConstantSource) project.getSource();

@@ -55,7 +55,7 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
   }
 
   public boolean isProjectFromConstant() {
-    return OperatorUtils.isProjectFromConstant(getOperators().get(0));
+    return !getOperators().isEmpty() && OperatorUtils.isProjectFromConstant(getOperators().get(0));
   }
 
   @Override

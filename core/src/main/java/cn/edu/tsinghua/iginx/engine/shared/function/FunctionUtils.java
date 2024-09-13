@@ -178,7 +178,7 @@ public class FunctionUtils {
   }
 
   public static int getExpectedParamNum(String identifier) {
-    return expectedParamNumMap.get(identifier);
+    return expectedParamNumMap.get(identifier.toLowerCase());
   }
 
   /**

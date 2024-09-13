@@ -1354,7 +1354,7 @@ public class RowUtils {
     for (int i = 0; i < expressions.size(); i++) {
       Expression expression = expressions.get(i);
       if (!ExpressionUtils.isConstantArithmeticExpr(expression)) {
-        throw new PhysicalException("expression is not constant: " + expression);
+        throw new PhysicalException("expression is not constant: " + expression.getColumnName());
       }
       Value value = ExprUtils.calculateExpr(null, expression);
       values[i] = value.getValue();

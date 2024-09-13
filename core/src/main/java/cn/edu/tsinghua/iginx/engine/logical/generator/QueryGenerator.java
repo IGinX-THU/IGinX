@@ -177,7 +177,7 @@ public class QueryGenerator extends AbstractGenerator {
     root = initProjectWaitingForPath(selectStatement);
     root = root != null ? root : initFilterAndMergeFragmentsWithJoin(selectStatement);
     root = root != null ? root : initFromPart(selectStatement);
-    root = root != null ? root : initWithoutFromPart(selectStatement);
+    root = root != null ? root : initSelectConstArith(selectStatement);
     root = root != null ? root : initFilterAndMergeFragments(selectStatement);
 
     if (!checkRoot(root) && !checkIsMetaWritable()) {
@@ -386,13 +386,13 @@ public class QueryGenerator extends AbstractGenerator {
   }
 
   /**
-   * 如果SelectStatement的from部分为空，构造以ConstantSource为输入Project操作符来初始化操作符树
+   * 如果SelectStatement的select部分全为常数表达式且from部分为空，构造以ConstantSource为输入Project操作符来初始化操作符树
    *
    * @param selectStatement select语句上下文
    * @return 以ConstantSource为输入Project操作符的操作符树；
    */
-  private Operator initWithoutFromPart(UnarySelectStatement selectStatement) {
-    if (!selectStatement.getFromParts().isEmpty()) {
+  private Operator initSelectConstArith(UnarySelectStatement selectStatement) {
+    if (!selectStatement.isAllConstArith() || !selectStatement.getFromParts().isEmpty()) {
       return null;
     }
     List<String> columnNames =

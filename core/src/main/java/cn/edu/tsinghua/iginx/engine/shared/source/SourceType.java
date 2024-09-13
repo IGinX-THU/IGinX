@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.engine.shared.source;
 
 public enum SourceType {
   Unknown,
+  Empty,
   Constant,
   Fragment,
   Operator,
