@@ -15,26 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package cn.edu.tsinghua.iginx.filestore.struct.exception;
 
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+import java.io.IOException;
 
-public interface ExpressionVisitor {
+public class FileStructureException extends IOException {
 
-  void visit(BaseExpression expression);
+  public FileStructureException() {}
 
-  void visit(BinaryExpression expression);
+  public FileStructureException(String message) {
+    super(message);
+  }
 
-  void visit(BracketExpression expression);
+  public FileStructureException(String message, Throwable cause) {
+    super(message, cause);
+  }
 
-  void visit(ConstantExpression expression);
-
-  void visit(FromValueExpression expression);
-
-  void visit(FuncExpression expression);
-
-  void visit(MultipleExpression expression);
-
-  void visit(UnaryExpression expression);
-
-  void visit(CaseWhenExpression expression);
+  public FileStructureException(Throwable cause) {
+    super(cause);
+  }
 }

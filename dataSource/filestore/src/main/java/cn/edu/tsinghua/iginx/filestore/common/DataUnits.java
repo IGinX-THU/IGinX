@@ -15,26 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package cn.edu.tsinghua.iginx.filestore.common;
 
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
+import javax.annotation.Nullable;
 
-public interface ExpressionVisitor {
+public class DataUnits {
 
-  void visit(BaseExpression expression);
+  private DataUnits() {}
 
-  void visit(BinaryExpression expression);
-
-  void visit(BracketExpression expression);
-
-  void visit(ConstantExpression expression);
-
-  void visit(FromValueExpression expression);
-
-  void visit(FuncExpression expression);
-
-  void visit(MultipleExpression expression);
-
-  void visit(UnaryExpression expression);
-
-  void visit(CaseWhenExpression expression);
+  public static DataUnit of(boolean dummy, @Nullable String name) {
+    DataUnit unit = new DataUnit(dummy);
+    unit.setName(name);
+    return unit;
+  }
 }

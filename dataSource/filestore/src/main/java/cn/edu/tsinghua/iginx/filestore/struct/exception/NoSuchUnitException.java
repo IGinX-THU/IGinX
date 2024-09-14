@@ -15,26 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package cn.edu.tsinghua.iginx.filestore.struct.exception;
 
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+public class NoSuchUnitException extends FileStructureException {
 
-public interface ExpressionVisitor {
-
-  void visit(BaseExpression expression);
-
-  void visit(BinaryExpression expression);
-
-  void visit(BracketExpression expression);
-
-  void visit(ConstantExpression expression);
-
-  void visit(FromValueExpression expression);
-
-  void visit(FuncExpression expression);
-
-  void visit(MultipleExpression expression);
-
-  void visit(UnaryExpression expression);
-
-  void visit(CaseWhenExpression expression);
+  public NoSuchUnitException(Throwable cause) {
+    super(cause);
+  }
 }

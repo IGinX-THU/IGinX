@@ -18,6 +18,11 @@
 
 package cn.edu.tsinghua.iginx.integration.tool;
 
+import java.io.*;
+import java.net.URL;
+import java.nio.channels.Channels;
+import java.nio.channels.FileChannel;
+import java.nio.channels.ReadableByteChannel;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -79,6 +84,22 @@ public class TestUtils {
         }
       }
       return 0;
+    }
+  }
+
+  public static void downloadFile(String fileUrl, String destinationFile) throws IOException {
+    File file = new File(destinationFile);
+    File parentDir = file.getParentFile();
+    if (parentDir != null && !parentDir.exists()) {
+      if (!parentDir.mkdirs()) {
+        throw new IOException("Cannot create dir：" + parentDir);
+      }
+    }
+    URL url = new URL(fileUrl);
+    try (ReadableByteChannel readableByteChannel = Channels.newChannel(url.openStream());
+        FileOutputStream out = new FileOutputStream(destinationFile);
+        FileChannel fileChannel = out.getChannel()) {
+      fileChannel.transferFrom(readableByteChannel, 0, Long.MAX_VALUE);
     }
   }
 }

@@ -342,16 +342,6 @@ public class Controller {
     // do nothing
   }
 
-  private static <T> void addEmbeddedStorageEngine(T session, String stmt) throws SessionException {
-    MultiConnection multiConnection = null;
-    if (session instanceof MultiConnection) {
-      multiConnection = ((MultiConnection) session);
-    } else if (session instanceof Session) {
-      multiConnection = new MultiConnection(((Session) session));
-    }
-    multiConnection.executeSql(stmt);
-  }
-
   private static <T> void writeDataWithSession(
       T session,
       List<String> paths,

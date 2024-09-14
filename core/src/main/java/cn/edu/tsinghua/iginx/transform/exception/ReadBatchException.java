@@ -16,25 +16,13 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package cn.edu.tsinghua.iginx.engine.shared.expr;
+package cn.edu.tsinghua.iginx.transform.exception;
 
-public interface ExpressionVisitor {
+public class ReadBatchException extends TransformException {
 
-  void visit(BaseExpression expression);
+  private static final long serialVersionUID = -2342950195730341247L;
 
-  void visit(BinaryExpression expression);
-
-  void visit(BracketExpression expression);
-
-  void visit(ConstantExpression expression);
-
-  void visit(FromValueExpression expression);
-
-  void visit(FuncExpression expression);
-
-  void visit(MultipleExpression expression);
-
-  void visit(UnaryExpression expression);
-
-  void visit(CaseWhenExpression expression);
+  public ReadBatchException(String message) {
+    super(message);
+  }
 }
