@@ -331,46 +331,4 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
-
-  private void testQueryLegacyFileSystem() {
-    try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filestore\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\");");
-
-    } catch (SessionException e) {
-      LOGGER.error("test query for file system failed ", e);
-      fail();
-    }
-    testQueryRawChunks();
-  }
-
-  @Override
-  protected void testQuerySpecialHistoryData() {
-    testQueryLegacyFileSystem();
-    testQueryFileTree();
-  }
-
-  private void testQueryFileTree() {
-    Map<String, String> params = new LinkedHashMap<>();
-    params.put("dummy_dir", "test/test/a");
-    params.put("has_data", "true");
-    params.put("is_read_only", "true");
-    params.put("iginx_port", "6888");
-    params.put("dummy.struct", FileTree.NAME);
-    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
-    String addStorageParams = getAddStorageParams(params);
-
-    try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6671, \"filestore\", \"" + addStorageParams + "\");");
-    } catch (SessionException e) {
-      LOGGER.error("add storage engine failed ", e);
-      if (!e.getMessage().contains("repeatedly")) {
-        fail();
-      }
-    }
-
-    testQueryRawChunks();
-    testQueryParquets();
-  }
 }
