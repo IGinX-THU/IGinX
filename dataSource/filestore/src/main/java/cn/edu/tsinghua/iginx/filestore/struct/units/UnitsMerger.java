@@ -23,22 +23,32 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.struct.FileManager;
+import cn.edu.tsinghua.iginx.filestore.struct.exception.NoSuchUnitException;
 import cn.edu.tsinghua.iginx.filestore.thrift.DataBoundary;
+import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import javax.annotation.Nullable;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.util.AutoCloseables;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class UnitsMerger implements FileManager {
 
-  private final List<FileManager> managers;
+  private static final Logger LOGGER = LoggerFactory.getLogger(UnitsMerger.class);
 
-  public UnitsMerger(@WillNotClose List<FileManager> managers) {
-    this.managers = Objects.requireNonNull(managers);
+  public interface UnitListSupplier {
+    Map<DataUnit, FileManager> getUnits() throws IOException;
+  }
+
+  private final UnitListSupplier supplier;
+
+  public UnitsMerger(UnitListSupplier supplier) throws IOException {
+    this.supplier = Objects.requireNonNull(supplier);
   }
 
   @Override
@@ -48,7 +58,7 @@ public class UnitsMerger implements FileManager {
     String startColumn = "";
     String endColumn = "";
     boolean set = false;
-    for (FileManager manager : managers) {
+    for (FileManager manager : supplier.getUnits().values()) {
       DataBoundary boundary = manager.getBoundary(prefix);
       if (Objects.equals(boundary, new DataBoundary())) {
         continue;
@@ -91,8 +101,12 @@ public class UnitsMerger implements FileManager {
     }
     List<RowStream> streams = new ArrayList<>();
     try {
-      for (FileManager manager : managers) {
-        streams.add(manager.query(target, null));
+      for (Map.Entry<DataUnit, FileManager> entry : supplier.getUnits().entrySet()) {
+        try {
+          streams.add(entry.getValue().query(target, null));
+        } catch (NoSuchUnitException e) {
+          LOGGER.warn("Unit {} is not found", entry.getKey());
+        }
       }
       return new MergeFieldRowStreamWrapper(streams);
     } catch (IOException | PhysicalException e) {

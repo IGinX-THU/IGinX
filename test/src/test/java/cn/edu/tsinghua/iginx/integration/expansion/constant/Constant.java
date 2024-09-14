@@ -124,8 +124,7 @@ public class Constant {
   // key list
   public static List<Long> INIT_KEYS_LIST = Arrays.asList(1L, (long) Integer.MAX_VALUE);
 
-  // for file system
-  // for file system & influxdb
+  // for filestore & influxdb
   public static Map<Integer, String> PORT_TO_ROOT =
       new HashMap<Integer, String>() {
         {
@@ -152,29 +151,6 @@ public class Constant {
           put(oriPort, oriPortIginx);
           put(expPort, expPortIginx);
           put(readOnlyPort, readOnlyPortIginx);
-        }
-      };
-
-  // for parquet
-  // <port, [dataDir, dataFilename]>
-  private static final String oriDir = "mn";
-
-  private static final String expDir = "nt";
-
-  private static final String readOnlyDir = "tm";
-
-  private static final String oriFilename = "oriData.parquet";
-
-  private static final String expFilename = "expData.parquet";
-
-  private static final String readOnlyFilename = "readOnlyData.parquet";
-
-  public static final Map<Integer, List<String>> PARQUET_PARAMS =
-      new HashMap<Integer, List<String>>() {
-        {
-          put(oriPort, Arrays.asList(oriDir, oriFilename));
-          put(expPort, Arrays.asList(expDir, expFilename));
-          put(readOnlyPort, Arrays.asList(readOnlyDir, readOnlyFilename));
         }
       };
 }

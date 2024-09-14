@@ -9,6 +9,9 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        - id: project
+          uses: ./.github/actions/project
+
         - name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
@@ -77,25 +80,6 @@ runs:
                 exit 1
               fi
 
-        - if: inputs.DB-name=='Parquet' #test/iginx_mn is the path for IT test data
-          name: Run DB
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [[ "$RUNNER_OS" == "Linux" ]]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/parquet_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/parquet_linux_windows.sh" 6667 6888 test/mn ${GITHUB_WORKSPACE}/test/iginx_mn false false conf/config.properties
-              elif [[ "$RUNNER_OS" == "Windows" ]]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/parquet_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/parquet_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/parquet_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/parquet_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
-
         - if: inputs.DB-name=='MongoDB'
           name: Setup DB
           uses: ./.github/actions/setup/mongodb
@@ -115,25 +99,6 @@ runs:
           with:
               paths: conf/config.properties
               statements: s/^#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
-
-        - if: inputs.DB-name=='FileSystem' #test/iginx_mn is the path for IT test data
-          name: Run DB
-          shell: bash
-          run: |
-              cp -f "${GITHUB_WORKSPACE}/conf/config.properties" "${GITHUB_WORKSPACE}/conf/config.properties.bak"
-              if [[ "$RUNNER_OS" == "Linux" ]]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/filesystem_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/filesystem_linux_windows.sh" 6667 6888 test/mn ${GITHUB_WORKSPACE}/test/iginx_mn false false conf/config.properties
-              elif [[ "$RUNNER_OS" == "Windows" ]]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/filesystem_linux_windows.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/filesystem_linux_windows.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              elif [ "$RUNNER_OS" == "macOS" ]; then
-                chmod +x "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/filesystem_macos.sh"
-                "${GITHUB_WORKSPACE}/.github/scripts/dataSources/startup/filesystem_macos.sh" 6667 6888 test/mn test/iginx_mn false false conf/config.properties
-              else
-                echo "$RUNNER_OS is not supported"
-                exit 1
-              fi
 
         - if: inputs.DB-name=='Redis'
           name: Setup DB
@@ -217,9 +182,10 @@ runs:
               paths: conf/config.properties
               statements: |
                   s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#6667#filestore/g
+                  s#dir=data#dir=${{ steps.project.outputs.workspace }}/test/iginx_mn#g
+                  s#dummy_dir=dummy#dummy_dir=${{ steps.project.outputs.workspace }}/test/mn#g
                   s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
-                  s#dummy_dir=dummy#dummy_dir=test/mn#g
-                  s#dir=data#dir=test/iginx_mn#g
+                  s/dummy.struct=LegacyFilesystem/dummy.struct=LegacyParquet/g
                   s/chunk_size_in_bytes=1048576/chunk_size_in_bytes=8/g
                   s/write.buffer.size=104857600/write.buffer.size=1048576/g
                   s/client.connectPool.maxTotal=100/client.connectPool.maxTotal=2/g

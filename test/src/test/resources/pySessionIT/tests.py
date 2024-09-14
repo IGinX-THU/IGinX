@@ -58,24 +58,12 @@ class Tests:
             self.session.add_storage_engine(
                 "127.0.0.1",
                 6670,
-                StorageEngineType.parquet,
+                StorageEngineType.filestore,
                 {
-                    "dir": f"{os.getcwd()}/pq/data",
                     "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
-                    "thrift_timeout": "30000",
-                    "thrift_pool_max_size": "10",
-                    "thrift_pool_min_evictable_idle_time_millis": "600000",
-                    "write_buffer_size": "104857600",
-                    "write_batch_size": "1048576",
-                    "flusher_permits": "16",
-                    "cache.capacity": "1073741824",
-                    "cache.timeout": "PT1H",
-                    "cache.soft_values": "false",
-                    "parquet.row_group_size": "134217728",
-                    "parquet.page_size": "8192"
                 }
             )
             # 输出所有存储引擎
@@ -90,41 +78,23 @@ class Tests:
             pq_engine = StorageEngine(
                 "127.0.0.1",
                 6670,
-                StorageEngineType.parquet,
+                StorageEngineType.filestore,
                 {
-                    "dir": f"{os.getcwd()}/pq/data",
                     "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
-                    "thrift_timeout": "30000",
-                    "thrift_pool_max_size": "10",
-                    "thrift_pool_min_evictable_idle_time_millis": "600000",
-                    "write_buffer_size": "104857600",
-                    "write_batch_size": "1048576",
-                    "flusher_permits": "16",
-                    "cache.capacity": "1073741824",
-                    "cache.timeout": "PT1H",
-                    "cache.soft_values": "false",
-                    "parquet.row_group_size": "134217728",
-                    "parquet.page_size": "8192"
                 }
             )
             fs_engine = StorageEngine(
                 "127.0.0.1",
                 6671,
-                StorageEngineType.filesystem,
+                StorageEngineType.filestore,
                 {
-                    "dir": f"{os.getcwd()}/fs/data",
                     "dummy_dir": f"{os.getcwd()}/fs/dummy",
                     "iginx_port": "6888",
                     "has_data": "true",
                     "is_read_only": "true",
-                    "thrift_timeout": "5000",
-                    "thrift_pool_max_size": "100",
-                    "memory_pool_size": "100",
-                    "chunk_size_in_bytes": "1048576",
-                    "thrift_pool_min_evictable_idle_time_millis": "600000"
                 }
             )
             self.session.batch_add_storage_engine([pq_engine, fs_engine])

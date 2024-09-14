@@ -19,17 +19,13 @@
 package cn.edu.tsinghua.iginx.integration.controller;
 
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
-import static cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT.DBCE_PARQUET_FS_TEST_DIR;
-import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.*;
-import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator.IT_DATA_DIR;
-import static cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator.IT_DATA_FILENAME;
-import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.parquet;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.expPort;
+import static cn.edu.tsinghua.iginx.integration.expansion.constant.Constant.oriPort;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.expansion.constant.Constant;
-import cn.edu.tsinghua.iginx.integration.expansion.parquet.ParquetHistoryDataGenerator;
 import cn.edu.tsinghua.iginx.integration.func.session.InsertAPIType;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
 import cn.edu.tsinghua.iginx.integration.tool.DBConf;
@@ -40,10 +36,6 @@ import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import cn.edu.tsinghua.iginx.utils.ShellRunner;
 import java.util.*;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,10 +54,6 @@ public class Controller {
 
   private static final String MVN_RUN_TEST = "../.github/scripts/test/test_union.sh";
 
-  private static final String ADD_STORAGE_ENGINE_PARQUET =
-      "ADD STORAGEENGINE (\"127.0.0.1\", 6668, \"parquet\", \"has_data:true, is_read_only:true, dir:test/parquet, dummy_dir:%s, iginx_port:6888, data_prefix:%s\");";
-  // 记录在一个IT中写入dummy数据的路径
-  private static Set<String> parquet_dir = new HashSet<>();
   // 将数据划分为两部分，一部分写入dummy数据库，一部分写入非dummy数据库, 0.3 为划分比例，即 30% 的数据写入 dummy 数据库
   private static final double PARTITION_POINT = 0.3;
   // 向 dummy 分片写入的初始化序列，用来初始化 dummy 分片的原数据空间范围
@@ -75,7 +63,6 @@ public class Controller {
   private static final String EXP_HAS_DATA_STRING = "ExpHasData";
   private static final String ORI_HAS_DATA_STRING = "oriHasData";
   private static final ConfLoader testConf = new ConfLoader(Controller.CONFIG_FILE);
-  private static int PARQUET_INDEX = 0;
 
   public static final Map<String, Boolean> SUPPORT_KEY =
       new HashMap<String, Boolean>() {
@@ -223,33 +210,12 @@ public class Controller {
           LOGGER.error("write data fail, caused by generator is null");
           return;
         }
-        if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == parquet) {
-          ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
-          String path = pathList.get(i);
-          String tableName = path.substring(0, path.indexOf("."));
-          String dir =
-              DBCE_PARQUET_FS_TEST_DIR
-                  + System.getProperty("file.separator")
-                  + IT_DATA_DIR
-                  + System.getProperty("file.separator")
-                  + tableName;
-          parquetGenerator.writeHistoryData(
-              port,
-              dir,
-              String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
-              Collections.singletonList(pathList.get(i)),
-              Collections.singletonList(dataTypeList.get(i)),
-              keyList.get(i),
-              rowValues);
-          parquet_dir.add(dir);
-        } else {
-          generator.writeHistoryData(
-              port,
-              Collections.singletonList(pathList.get(i)),
-              Collections.singletonList(dataTypeList.get(i)),
-              keyList.get(i),
-              rowValues);
-        }
+        generator.writeHistoryData(
+            port,
+            Collections.singletonList(pathList.get(i)),
+            Collections.singletonList(dataTypeList.get(i)),
+            keyList.get(i),
+            rowValues);
       }
     }
   }
@@ -267,28 +233,7 @@ public class Controller {
       LOGGER.error("write data fail, caused by generator is null");
       return;
     }
-    if (StorageEngineType.valueOf(conf.getStorageType(false).toLowerCase()) == parquet) {
-      ParquetHistoryDataGenerator parquetGenerator = (ParquetHistoryDataGenerator) generator;
-      String path = pathList.get(0);
-      String tableName = path.substring(0, path.indexOf("."));
-      String dir =
-          DBCE_PARQUET_FS_TEST_DIR
-              + System.getProperty("file.separator")
-              + IT_DATA_DIR
-              + System.getProperty("file.separator")
-              + tableName;
-      parquetGenerator.writeHistoryData(
-          port,
-          dir,
-          String.format(IT_DATA_FILENAME, PARQUET_INDEX++),
-          pathList,
-          dataTypeList,
-          keyList,
-          valuesList);
-      parquet_dir.add(dir);
-    } else {
-      generator.writeHistoryData(port, pathList, dataTypeList, keyList, valuesList);
-    }
+    generator.writeHistoryData(port, pathList, dataTypeList, keyList, valuesList);
   }
 
   public static <T> void writeRowsData(
@@ -394,33 +339,7 @@ public class Controller {
 
   // 处理IT在每个写入数据后先关操作
   public static <T> void after(T session) {
-    // 处理parquet扩容操作
-    for (String dir : parquet_dir) {
-      try {
-        addEmbeddedStorageEngine(
-            session,
-            String.format(
-                ADD_STORAGE_ENGINE_PARQUET,
-                dir,
-                dir.substring(dir.lastIndexOf(System.getProperty("file.separator")) + 1)));
-      } catch (SessionException e) {
-        if (!e.getMessage().contains("repeatedly add storage engine")) {
-          LOGGER.error("add embedded storage engine fail, caused by: ", e);
-          fail();
-        }
-      }
-    }
-    parquet_dir.clear();
-  }
-
-  private static <T> void addEmbeddedStorageEngine(T session, String stmt) throws SessionException {
-    MultiConnection multiConnection = null;
-    if (session instanceof MultiConnection) {
-      multiConnection = ((MultiConnection) session);
-    } else if (session instanceof Session) {
-      multiConnection = new MultiConnection(((Session) session));
-    }
-    multiConnection.executeSql(stmt);
+    // do nothing
   }
 
   private static <T> void writeDataWithSession(

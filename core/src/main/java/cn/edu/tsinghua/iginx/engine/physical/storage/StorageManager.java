@@ -66,7 +66,6 @@ public class StorageManager {
     StorageEngineType engine = meta.getStorageEngine();
     String driver = drivers.get(engine);
     long id = meta.getId();
-    boolean needRelease = false;
     IStorage storage = null;
     try {
       if (storageMap.containsKey(id)) {
@@ -76,9 +75,6 @@ public class StorageManager {
         storage =
             (IStorage)
                 loader.loadClass(driver).getConstructor(StorageEngineMeta.class).newInstance(meta);
-        if (!engine.equals(StorageEngineType.filesystem)) {
-          needRelease = true;
-        }
       }
       return storage.getBoundaryOfStorage(dataPrefix);
     } catch (ClassNotFoundException e) {
@@ -89,9 +85,7 @@ public class StorageManager {
       return null;
     } finally {
       try {
-        if (needRelease) {
-          storage.release();
-        }
+        storage.release();
       } catch (Exception e) {
         LOGGER.error("release session pool failure!");
       }

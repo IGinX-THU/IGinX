@@ -33,11 +33,9 @@
 
     <modules>
         <module>filestore</module>
-        <module>filesystem</module>
         <module>influxdb</module>
         <module>iotdb12</module>
         <module>mongodb</module>
-        <module>parquet</module>
         <module>redis</module>
         <module>relational</module>
     </modules>

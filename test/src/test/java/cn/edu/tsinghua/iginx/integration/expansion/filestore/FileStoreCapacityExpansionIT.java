@@ -23,12 +23,15 @@ import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.filestore.format.raw.RawFormat;
+import cn.edu.tsinghua.iginx.filestore.service.FileStoreConfig;
 import cn.edu.tsinghua.iginx.filestore.struct.tree.FileTree;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
+import cn.edu.tsinghua.iginx.integration.tool.TempDummyDataSource;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
+import org.jetbrains.annotations.NotNull;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,7 +41,21 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreCapacityExpansionIT.class);
 
   public FileStoreCapacityExpansionIT() {
-    super(filestore, "dummy.config.chunk_size_in_bytes:8", new FileStoreHistoryDataGenerator());
+    super(filestore, getAddStorageParams(), new FileStoreHistoryDataGenerator());
+  }
+
+  private static String getAddStorageParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy.struct", FileStoreConfig.DEFAULT_DATA_STRUCT);
+    return getAddStorageParams(params);
+  }
+
+  public static String getAddStorageParams(Map<String, String> params) {
+    StringJoiner joiner = new StringJoiner(",");
+    for (Map.Entry<String, String> entry : params.entrySet()) {
+      joiner.add(entry.getKey() + ":" + entry.getValue());
+    }
+    return joiner.toString();
   }
 
   // skip this test
@@ -46,126 +63,6 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
   protected void testInvalidDummyParams(
       int port, boolean hasData, boolean isReadOnly, String dataPrefix, String schemaPrefix) {
     LOGGER.info("filestore skips test for wrong dummy engine params.");
-  }
-
-  // filesystem中，所有dummy数据都识别为BINARY
-  @Override
-  protected void testShowColumnsInExpansion(boolean before) {
-    String statement = "SHOW COLUMNS nt.wf03.*;";
-    String expected =
-        "Columns:\n"
-            + "+--------------------+--------+\n"
-            + "|                Path|DataType|\n"
-            + "+--------------------+--------+\n"
-            + "|nt.wf03.wt01.status2|  BINARY|\n"
-            + "+--------------------+--------+\n"
-            + "Total line number = 1\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
-
-    statement = "SHOW COLUMNS;";
-    if (before) {
-      expected =
-          "Columns:\n"
-              + "+------------------------+--------+\n"
-              + "|                    Path|DataType|\n"
-              + "+------------------------+--------+\n"
-              + "|          ln.wf02.status| BOOLEAN|\n"
-              + "|         ln.wf02.version|  BINARY|\n"
-              + "|    nt.wf03.wt01.status2|  BINARY|\n"
-              + "|nt.wf04.wt01.temperature|  BINARY|\n"
-              + "+------------------------+--------+\n"
-              + "Total line number = 4\n";
-    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
-      expected =
-          "Columns:\n"
-              + "+------------------------+--------+\n"
-              + "|                    Path|DataType|\n"
-              + "+------------------------+--------+\n"
-              + "|          ln.wf02.status| BOOLEAN|\n"
-              + "|         ln.wf02.version|  BINARY|\n"
-              + "|    nt.wf03.wt01.status2|  BINARY|\n"
-              + "|nt.wf04.wt01.temperature|  BINARY|\n"
-              + "| p1.nt.wf03.wt01.status2|  BINARY|\n"
-              + "+------------------------+--------+\n"
-              + "Total line number = 5\n";
-    }
-    SQLTestTools.executeAndCompare(session, statement, expected);
-
-    if (before) {
-      statement = "SHOW COLUMNS p1.*;";
-      expected =
-          "Columns:\n"
-              + "+----+--------+\n"
-              + "|Path|DataType|\n"
-              + "+----+--------+\n"
-              + "+----+--------+\n"
-              + "Empty set.\n";
-    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
-      statement = "SHOW COLUMNS p1.*;";
-      expected =
-          "Columns:\n"
-              + "+-----------------------+--------+\n"
-              + "|                   Path|DataType|\n"
-              + "+-----------------------+--------+\n"
-              + "|p1.nt.wf03.wt01.status2|  BINARY|\n"
-              + "+-----------------------+--------+\n"
-              + "Total line number = 1\n";
-    }
-    SQLTestTools.executeAndCompare(session, statement, expected);
-
-    statement = "SHOW COLUMNS *.wf03.wt01.*;";
-    if (before) {
-      expected =
-          "Columns:\n"
-              + "+--------------------+--------+\n"
-              + "|                Path|DataType|\n"
-              + "+--------------------+--------+\n"
-              + "|nt.wf03.wt01.status2|  BINARY|\n"
-              + "+--------------------+--------+\n"
-              + "Total line number = 1\n";
-    } else { // 添加schemaPrefix为p1，dataPrefix为nt.wf03的数据源
-      expected =
-          "Columns:\n"
-              + "+-----------------------+--------+\n"
-              + "|                   Path|DataType|\n"
-              + "+-----------------------+--------+\n"
-              + "|   nt.wf03.wt01.status2|  BINARY|\n"
-              + "|p1.nt.wf03.wt01.status2|  BINARY|\n"
-              + "+-----------------------+--------+\n"
-              + "Total line number = 2\n";
-    }
-    SQLTestTools.executeAndCompare(session, statement, expected);
-  }
-
-  // filesystem中，所有dummy数据都识别为BINARY
-  @Override
-  protected void testShowColumnsRemoveStorageEngine(boolean before) {
-    String statement = "SHOW COLUMNS p1.*, p2.*, p3.*;";
-    String expected;
-    if (before) {
-      expected =
-          "Columns:\n"
-              + "+---------------------------+--------+\n"
-              + "|                       Path|DataType|\n"
-              + "+---------------------------+--------+\n"
-              + "|    p1.nt.wf03.wt01.status2|  BINARY|\n"
-              + "|    p2.nt.wf03.wt01.status2|  BINARY|\n"
-              + "|    p3.nt.wf03.wt01.status2|  BINARY|\n"
-              + "|p3.nt.wf04.wt01.temperature|  BINARY|\n"
-              + "+---------------------------+--------+\n"
-              + "Total line number = 4\n";
-    } else { // 移除schemaPrefix为p2及p3，dataPrefix为nt.wf03的数据源
-      expected =
-          "Columns:\n"
-              + "+---------------------------+--------+\n"
-              + "|                       Path|DataType|\n"
-              + "+---------------------------+--------+\n"
-              + "|    p1.nt.wf03.wt01.status2|  BINARY|\n"
-              + "|p3.nt.wf04.wt01.temperature|  BINARY|\n"
-              + "+---------------------------+--------+\n"
-              + "Total line number = 2\n";
-    }
-    SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
   @Override
@@ -176,98 +73,72 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
 
   @Override
   public void testShowColumns() {
-    String statement = "SHOW COLUMNS mn.*;";
+    super.testShowColumns();
+
+    // show dummy columns
+    try (TempDummyDataSource ignoredFileTree =
+            new TempDummyDataSource(session, 16667, filestore, getLegacyFileSystemDummyParams());
+        TempDummyDataSource ignoredLegacyFileSystem =
+            new TempDummyDataSource(session, 16668, filestore, getFileTreeDummyParams())) {
+      testShowDummyColumns();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  @Test
+  public void testDummy() {
+    testQuerySpecialHistoryData();
+  }
+
+  @Override
+  protected void testQuerySpecialHistoryData() {
+    testQueryLegacyFileSystem();
+    testQueryFileTree();
+  }
+
+  private void testQueryLegacyFileSystem() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, filestore, getLegacyFileSystemDummyParams())) {
+      testQueryRawChunks();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  private void testQueryFileTree() {
+    try (TempDummyDataSource ignored =
+        new TempDummyDataSource(session, filestore, getFileTreeDummyParams())) {
+      testQueryRawChunks();
+      testQueryParquets();
+    } catch (SessionException e) {
+      LOGGER.error("add or remove read only storage engine failed ", e);
+      fail();
+    }
+  }
+
+  private static @NotNull Map<String, String> getLegacyFileSystemDummyParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/a");
+    params.put("iginx_port", "6888");
+    params.put("chunk_size_in_bytes", "1048576");
+    return params;
+  }
+
+  private static @NotNull Map<String, String> getFileTreeDummyParams() {
+    Map<String, String> params = new LinkedHashMap<>();
+    params.put("dummy_dir", "test/test/a");
+    params.put("iginx_port", "6888");
+    params.put("dummy.struct", FileTree.NAME);
+    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
+    return params;
+  }
+
+  private void testShowDummyColumns() {
+    String statement = "SHOW COLUMNS a.*;";
     String expected =
-        "Columns:\n"
-            + "+------------------------+--------+\n"
-            + "|                    Path|DataType|\n"
-            + "+------------------------+--------+\n"
-            + "|     mn.wf01.wt01.status|  BINARY|\n"
-            + "|mn.wf01.wt01.temperature|  BINARY|\n"
-            + "+------------------------+--------+\n"
-            + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
-
-    statement = "SHOW COLUMNS;";
-    expected =
-        "Columns:\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                                  Path|DataType|\n"
-            + "+--------------------------------------+--------+\n"
-            + "|                        a.Iris\\parquet|  BINARY|\n"
-            + "|           a.Iris\\parquet.petal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.petal.width|  DOUBLE|\n"
-            + "|           a.Iris\\parquet.sepal.length|  DOUBLE|\n"
-            + "|            a.Iris\\parquet.sepal.width|  DOUBLE|\n"
-            + "|                a.Iris\\parquet.variety|  BINARY|\n"
-            + "|                         a.b.c.d.1\\txt|  BINARY|\n"
-            + "|                             a.e.2\\txt|  BINARY|\n"
-            + "|                           a.f.g.3\\txt|  BINARY|\n"
-            + "|               a.other.MT cars\\parquet|  BINARY|\n"
-            + "|            a.other.MT cars\\parquet.am| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.carb| INTEGER|\n"
-            + "|           a.other.MT cars\\parquet.cyl| INTEGER|\n"
-            + "|          a.other.MT cars\\parquet.disp|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.drat|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.gear| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.hp| INTEGER|\n"
-            + "|         a.other.MT cars\\parquet.model|  BINARY|\n"
-            + "|           a.other.MT cars\\parquet.mpg|  DOUBLE|\n"
-            + "|          a.other.MT cars\\parquet.qsec|  DOUBLE|\n"
-            + "|            a.other.MT cars\\parquet.vs| INTEGER|\n"
-            + "|            a.other.MT cars\\parquet.wt|  DOUBLE|\n"
-            + "|                 a.other.price\\parquet|  BINARY|\n"
-            + "| a.other.price\\parquet.airconditioning|  BINARY|\n"
-            + "|            a.other.price\\parquet.area|    LONG|\n"
-            + "|        a.other.price\\parquet.basement|  BINARY|\n"
-            + "|       a.other.price\\parquet.bathrooms|    LONG|\n"
-            + "|        a.other.price\\parquet.bedrooms|    LONG|\n"
-            + "|a.other.price\\parquet.furnishingstatus|  BINARY|\n"
-            + "|       a.other.price\\parquet.guestroom|  BINARY|\n"
-            + "| a.other.price\\parquet.hotwaterheating|  BINARY|\n"
-            + "|        a.other.price\\parquet.mainroad|  BINARY|\n"
-            + "|         a.other.price\\parquet.parking|    LONG|\n"
-            + "|        a.other.price\\parquet.prefarea|  BINARY|\n"
-            + "|           a.other.price\\parquet.price|    LONG|\n"
-            + "|         a.other.price\\parquet.stories|    LONG|\n"
-            + "|                        ln.wf02.status| BOOLEAN|\n"
-            + "|                       ln.wf02.version|  BINARY|\n"
-            + "|                   mn.wf01.wt01.status|  BINARY|\n"
-            + "|              mn.wf01.wt01.temperature|  BINARY|\n"
-            + "|                  nt.wf03.wt01.status2|  BINARY|\n"
-            + "|              nt.wf04.wt01.temperature|  BINARY|\n"
-            + "|                   tm.wf05.wt01.status|  BINARY|\n"
-            + "|              tm.wf05.wt01.temperature|  BINARY|\n"
-            + "+--------------------------------------+--------+\n"
-            + "Total line number = 44\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
-
-    statement = "SHOW COLUMNS nt.*;";
-    expected =
-        "Columns:\n"
-            + "+------------------------+--------+\n"
-            + "|                    Path|DataType|\n"
-            + "+------------------------+--------+\n"
-            + "|    nt.wf03.wt01.status2|  BINARY|\n"
-            + "|nt.wf04.wt01.temperature|  BINARY|\n"
-            + "+------------------------+--------+\n"
-            + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
-
-    statement = "SHOW COLUMNS tm.*;";
-    expected =
-        "Columns:\n"
-            + "+------------------------+--------+\n"
-            + "|                    Path|DataType|\n"
-            + "+------------------------+--------+\n"
-            + "|     tm.wf05.wt01.status|  BINARY|\n"
-            + "|tm.wf05.wt01.temperature|  BINARY|\n"
-            + "+------------------------+--------+\n"
-            + "Total line number = 2\n";
-    SQLTestTools.executeAndCompare(session, statement, expected);
-
-    statement = "SHOW COLUMNS a.*;";
-    expected =
         "Columns:\n"
             + "+--------------------------------------+--------+\n"
             + "|                                  Path|DataType|\n"
@@ -311,19 +182,6 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+--------------------------------------+--------+\n"
             + "Total line number = 36\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
-  }
-
-  public static String getAddStorageParams(Map<String, String> params) {
-    StringJoiner joiner = new StringJoiner(",");
-    for (Map.Entry<String, String> entry : params.entrySet()) {
-      joiner.add(entry.getKey() + ":" + entry.getValue());
-    }
-    return joiner.toString();
-  }
-
-  @Test
-  public void testDummy() {
-    testQuerySpecialHistoryData();
   }
 
   private void testQueryRawChunks() {
@@ -446,48 +304,5 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "+---+---------------------------+\n"
             + "Total line number = 10\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
-  }
-
-  private void testQueryLegacyFileSystem() {
-    try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6670, \"filestore\", \"dummy_dir:test/test/a, has_data:true, is_read_only:true, iginx_port:6888, chunk_size_in_bytes:1048576\");");
-
-    } catch (SessionException e) {
-      LOGGER.error("test query for file system failed ", e);
-      fail();
-    }
-    testQueryRawChunks();
-  }
-
-  @Override
-  protected void testQuerySpecialHistoryData() {
-    testQueryLegacyFileSystem();
-    testQueryFileTree();
-  }
-
-  private void testQueryFileTree() {
-    Map<String, String> params = new LinkedHashMap<>();
-    params.put("dummy_dir", "test/test/a");
-    params.put("has_data", "true");
-    params.put("is_read_only", "true");
-    params.put("iginx_port", "6888");
-    // dummy.struct=LegacyFilesystem#dummy.config.
-    params.put("dummy.struct", FileTree.NAME);
-    params.put("dummy.config.formats." + RawFormat.NAME + ".pageSize", "1048576");
-    String addStorageParams = getAddStorageParams(params);
-
-    try {
-      session.executeSql(
-          "ADD STORAGEENGINE (\"127.0.0.1\", 6671, \"filestore\", \"" + addStorageParams + "\");");
-    } catch (SessionException e) {
-      LOGGER.error("add storage engine failed ", e);
-      if (!e.getMessage().contains("repeatedly")) {
-        fail();
-      }
-    }
-
-    testQueryRawChunks();
-    testQueryParquets();
   }
 }

@@ -28,15 +28,13 @@ enum DataType {
 }
 
 enum StorageEngineType {
+    unknown,
     iotdb12,
     influxdb,
-    parquet,
+    filestore,
     relational,
     mongodb,
-    redis,
-    filesystem,
-    filestore,
-    unknown
+    redis
 }
 
 enum AggregateType {

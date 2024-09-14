@@ -110,22 +110,12 @@
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>filesystem</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>influxdb</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
                 <groupId>cn.edu.tsinghua</groupId>
                 <artifactId>mongodb</artifactId>
-                <version>${project.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>cn.edu.tsinghua</groupId>
-                <artifactId>parquet</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
@@ -329,6 +319,11 @@
     <build>
         <pluginManagement>
             <plugins>
+                <plugin>
+                    <groupId>org.apache.maven.plugins</groupId>
+                    <artifactId>maven-jar-plugin</artifactId>
+                    <version>3.4.2</version>
+                </plugin>
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>

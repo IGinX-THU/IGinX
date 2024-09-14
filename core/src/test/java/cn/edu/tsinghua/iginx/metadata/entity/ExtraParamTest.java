@@ -95,9 +95,9 @@ public class ExtraParamTest {
       extraParam.put(DUMMY_DIR, dummyDir);
     }
     if (valid) {
-      assertTrue(checkEmbeddedStorageExtraParams(StorageEngineType.parquet, extraParam));
+      assertTrue(checkEmbeddedStorageExtraParams(StorageEngineType.filestore, extraParam));
     } else {
-      assertFalse(checkEmbeddedStorageExtraParams(StorageEngineType.parquet, extraParam));
+      assertFalse(checkEmbeddedStorageExtraParams(StorageEngineType.filestore, extraParam));
     }
   }
 
