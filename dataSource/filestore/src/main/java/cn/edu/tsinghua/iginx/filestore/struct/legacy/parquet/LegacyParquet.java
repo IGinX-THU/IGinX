@@ -24,13 +24,12 @@ import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.Shared;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util.StorageProperties;
 import com.google.auto.service.AutoService;
 import com.typesafe.config.Config;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(FileStructure.class)
 public class LegacyParquet implements FileStructure {
@@ -69,7 +68,7 @@ public class LegacyParquet implements FileStructure {
       builder.setWriteBufferChunkValuesMin(
           config.getInt(StorageProperties.Builder.WRITE_BUFFER_CHUNK_VALUES_MIN));
     }
-    if(config.hasPath(StorageProperties.Builder.WRITE_BUFFER_CONFLICT_RESOLVER)) {
+    if (config.hasPath(StorageProperties.Builder.WRITE_BUFFER_CONFLICT_RESOLVER)) {
       builder.setWriteBufferConflictResolverType(
           config.getString(StorageProperties.Builder.WRITE_BUFFER_CONFLICT_RESOLVER));
     }
