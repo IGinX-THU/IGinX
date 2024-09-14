@@ -15,38 +15,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.filestore.service.rpc.client.pool;
+package cn.edu.tsinghua.iginx.filestore.struct.exception;
 
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.thrift.transport.TTransport;
+public class NoSuchUnitException extends FileStructureException {
 
-public class PooledTTransport extends ForwardTTransport {
-
-  final ObjectPool<PooledTTransport> source;
-
-  PooledTTransport(TTransport transport, ObjectPool<PooledTTransport> source) {
-    super(transport);
-    this.source = source;
-  }
-
-  @Override
-  public void close() {
-    if (isOpen()) {
-      returnToPool();
-    }
-  }
-
-  public void destroy() {
-    super.close();
-  }
-
-  void returnToPool() {
-    try {
-      source.returnObject(this);
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
-    }
+  public NoSuchUnitException(Throwable cause) {
+    super(cause);
   }
 }

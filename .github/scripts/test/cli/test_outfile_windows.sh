@@ -57,14 +57,13 @@ for file in test/src/test/resources/fileReadAndWrite/byteDummy/*; do
     mv "$file" "${file}.ext"
 done
 
-bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filesystem"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteDummy.*;'"
+bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e 'ADD STORAGEENGINE ("'"127.0.0.1"'", 6670, "'"filestore"'", "'"dummy_dir:test/src/test/resources/fileReadAndWrite/byteDummy,iginx_port:6888,has_data:true,is_read_only:true"'");show columns byteDummy.*;'"
 
 bash -c "client/target/iginx-client-$2/sbin/start_cli.bat -e 'select * from byteDummy into outfile "'"test/src/test/resources/fileReadAndWrite/byteStreamExport"'" as stream;'"
 
 db_name=$1
 
-# 只测FileSystem和Parquet
-if [[ "$db_name" != "FileStore" ]] && [[ "$db_name" != "FileSystem" ]] && [[ "$db_name" != "Parquet" ]]; then
+if [[ "$db_name" != "FileStore" ]]; then
   exit 0
 fi
 

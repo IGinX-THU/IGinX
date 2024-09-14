@@ -45,7 +45,8 @@ public class TableIndex {
 
   public TableIndex(TableStorage tableStorage) {
     try {
-      for (String tableName : tableStorage.tableNames()) {
+      for (String tableName : tableStorage.reload()) {
+        LOGGER.debug("rebuilt table index for table: {}", tableName);
         TableMeta meta = tableStorage.getMeta(tableName);
         declareFields(meta.getSchema());
         addTable(tableName, meta);

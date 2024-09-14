@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["FileSystem", "IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "Parquet", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileStore", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
     TPC-H-Test:
