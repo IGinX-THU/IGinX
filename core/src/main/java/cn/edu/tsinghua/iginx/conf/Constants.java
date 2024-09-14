@@ -58,7 +58,7 @@ public class Constants {
 
   public static final String DATA_PREFIX = "data_prefix";
 
-  // especially for embedded storage engines: parquet, filesystem
+  // especially for embedded storage engines: filestore
   public static final String EMBEDDED_PREFIX = "embedded_prefix";
 
   public static final String SCHEMA_PREFIX = "schema_prefix";

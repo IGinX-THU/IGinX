@@ -81,7 +81,7 @@ public class IginxWorker implements IService.Iface {
   private static final Config config = ConfigDescriptor.getInstance().getConfig();
 
   private IginxWorker() {
-    // if there are new local parquets/file systems in conf, add them to cluster.
+    // if there are new local filestore in conf, add them to cluster.
     if (!addLocalStorageEngineMetas()) {
       LOGGER.error("there are no valid storage engines!");
       System.exit(-1);
@@ -459,8 +459,8 @@ public class IginxWorker implements IService.Iface {
       }
     }
 
-    // init local parquet/file system before adding to meta
-    // exclude remote parquet/file system
+    // init local filestore before adding to meta
+    // exclude remote filestore
     List<StorageEngineMeta> localMetas = new ArrayList<>();
     List<StorageEngineMeta> otherMetas = new ArrayList<>();
     for (StorageEngineMeta meta : storageEngineMetas) {

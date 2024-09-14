@@ -52,7 +52,7 @@ public class TableStorage implements AutoCloseable {
   public TableStorage(Shared shared, ReadWriter readWriter) throws IOException {
     this.readWriter = readWriter;
 
-    Iterable<String> tableNames = readWriter.tableNames();
+    Iterable<String> tableNames = readWriter.reload();
     String last =
         StreamSupport.stream(tableNames.spliterator(), false)
             .max(Comparator.naturalOrder())
@@ -130,8 +130,8 @@ public class TableStorage implements AutoCloseable {
     }
   }
 
-  public Iterable<String> tableNames() throws IOException {
-    return readWriter.tableNames();
+  public Iterable<String> reload() throws IOException {
+    return readWriter.reload();
   }
 
   @Override

@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
+import cn.edu.tsinghua.iginx.filestore.service.rpc.client.pool.PooledTTransport;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
 import cn.edu.tsinghua.iginx.filestore.thrift.*;
 import cn.edu.tsinghua.iginx.thrift.AggregateType;
@@ -64,14 +65,19 @@ public class RemoteService implements Service {
   @Override
   public Map<DataUnit, DataBoundary> getUnits(@Nullable String prefix) throws FileStoreException {
     RawPrefix rawPrefix = ClientObjectMappingUtils.constructRawPrefix(prefix);
-    try (TTransport transport = pool.borrowObject()) {
+    try (PooledTTransport transport = pool.borrowObject()) {
       FileStoreRpc.Client client = wrapClient(transport);
-      return client.getUnits(rawPrefix);
+      try {
+        return client.getUnits(rawPrefix);
+      } catch (Exception e) {
+        transport.destroy();
+        throw e;
+      }
     } catch (RuntimeException e) {
       throw e;
     } catch (RpcException e) {
       handleRpcException("get units", e);
-      throw new IllegalStateException("unreachable");
+      throw new IllegalStateException("unreachable", e);
     } catch (Exception e) {
       throw new RemoteFileStoreException("failed to get storage units", e);
     }
@@ -82,15 +88,20 @@ public class RemoteService implements Service {
       throws FileStoreException {
     RawDataTarget rawTarget = ClientObjectMappingUtils.constructRawDataTarget(target);
     RawAggregate rawAggregate = ClientObjectMappingUtils.constructRawAggregate(aggregate);
-    try (TTransport transport = pool.borrowObject()) {
+    try (PooledTTransport transport = pool.borrowObject()) {
       FileStoreRpc.Client client = wrapClient(transport);
-      RawDataSet dataSet = client.query(unit, rawTarget, rawAggregate);
-      return ClientObjectMappingUtils.constructRowStream(dataSet);
+      try {
+        RawDataSet dataSet = client.query(unit, rawTarget, rawAggregate);
+        return ClientObjectMappingUtils.constructRowStream(dataSet);
+      } catch (Exception e) {
+        transport.destroy();
+        throw e;
+      }
     } catch (RuntimeException e) {
       throw e;
     } catch (RpcException e) {
       handleRpcException("query", e);
-      throw new IllegalStateException("unreachable");
+      throw new IllegalStateException("unreachable", e);
     } catch (Exception e) {
       throw new IllegalStateException("failed to query", e);
     }
@@ -99,14 +110,19 @@ public class RemoteService implements Service {
   @Override
   public void delete(DataUnit dataUnit, DataTarget target) throws FileStoreException {
     RawDataTarget rawTarget = ClientObjectMappingUtils.constructRawDataTarget(target);
-    try (TTransport transport = pool.borrowObject()) {
+    try (PooledTTransport transport = pool.borrowObject()) {
       FileStoreRpc.Client client = wrapClient(transport);
-      client.delete(dataUnit, rawTarget);
+      try {
+        client.delete(dataUnit, rawTarget);
+      } catch (Exception e) {
+        transport.destroy();
+        throw e;
+      }
     } catch (RuntimeException e) {
       throw e;
     } catch (RpcException e) {
       handleRpcException("delete", e);
-      throw new IllegalStateException("unreachable");
+      throw new IllegalStateException("unreachable", e);
     } catch (Exception e) {
       throw new RemoteFileStoreException("failed to delete", e);
     }
@@ -115,14 +131,19 @@ public class RemoteService implements Service {
   @Override
   public void insert(DataUnit unit, DataView dataView) throws FileStoreException {
     RawInserted rawInserted = ClientObjectMappingUtils.constructRawInserted(dataView);
-    try (TTransport transport = pool.borrowObject()) {
+    try (PooledTTransport transport = pool.borrowObject()) {
       FileStoreRpc.Client client = wrapClient(transport);
-      client.insert(unit, rawInserted);
+      try {
+        client.insert(unit, rawInserted);
+      } catch (Exception e) {
+        transport.destroy();
+        throw e;
+      }
     } catch (RuntimeException e) {
       throw e;
     } catch (RpcException e) {
       handleRpcException("insert", e);
-      throw new IllegalStateException("unreachable");
+      throw new IllegalStateException("unreachable", e);
     } catch (Exception e) {
       throw new RemoteFileStoreException("failed to insert", e);
     }

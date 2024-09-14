@@ -38,6 +38,8 @@ sed -i"" -e "s/#has_data=false#/#has_data=$5#/g" $7
 
 sed -i"" -e "s/#is_read_only=false/#is_read_only=$6/g" $7
 
+sed -i"" -e "s/dummy.struct=LegacyFilesystem/dummy.struct=LegacyParquet/g" $7
+
 sed -i"" -e "s#chunk_size_in_bytes=1048576#chunk_size_in_bytes=8#g" $7
 
 sed -i"" -e "s/write.buffer.size=104857600/write.buffer.size=1048576/g" $7

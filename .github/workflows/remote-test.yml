@@ -26,7 +26,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "Parquet", "FileStore"]'
+                default: '["IoTDB12", "FileStore"]'
 
 env:
     FUNCTEST: RemoteUDFIT
