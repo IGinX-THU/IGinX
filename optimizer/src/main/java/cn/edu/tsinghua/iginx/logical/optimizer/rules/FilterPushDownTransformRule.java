@@ -187,6 +187,9 @@ public class FilterPushDownTransformRule extends Rule {
 
           @Override
           public void visit(MultipleExpression expression) {}
+
+          @Override
+          public void visit(CaseWhenExpression expression) {}
         });
 
     return hasFunction[0];

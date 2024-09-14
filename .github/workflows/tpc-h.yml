@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileStore", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
     TPC-H-Test:
@@ -78,8 +78,10 @@ jobs:
             - name: Download TPC-H Data
               shell: bash
               run: |
-                  chmod +x "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
-                  "${GITHUB_WORKSPACE}/.github/scripts/tpch/download_tpch_data.sh"
+                  wget https://github.com/IGinX-THU/IGinX-resources/raw/main/resources/tpc.7z
+                  sudo apt-get install p7zip-full
+                  7za x tpc.7z
+                  ls tpc
 
             - name: Run ZooKeeper
               uses: ./.github/actions/zookeeperRunner

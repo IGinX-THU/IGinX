@@ -21,7 +21,7 @@
 setlocal enabledelayedexpansion
 set folders[1]="include\apache-zookeeper\data"
 set folders[2]="include\apache-zookeeper\logs"
-set folders[3]="sbin\parquetData"
+set folders[3]="sbin\data"
 set folders[4]="sbin\logs"
 
 for /l %%i in (1,1,4) do (

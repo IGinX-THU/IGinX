@@ -492,6 +492,19 @@ public class SQLSessionIT {
             + "Total line number = 6\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT c FROM us.d2 WHERE !(c not like \"^[s|f].*\");";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+\n"
+            + "|key|us.d2.c|\n"
+            + "+---+-------+\n"
+            + "|  2|  sadaa|\n"
+            + "|  3| sadada|\n"
+            + "|  8|  frgsa|\n"
+            + "+---+-------+\n"
+            + "Total line number = 3\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT c FROM us.d2 WHERE c like \"^.*[s|d]\";";
     expected =
         "ResultSets:\n"
@@ -536,6 +549,20 @@ public class SQLSessionIT {
     executor.execute(insert);
 
     query = "SELECT s1 FROM us.* WHERE s1 &> 200 and s1 &< 210;";
+    expected =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d2.s1|\n"
+            + "+---+--------+--------+\n"
+            + "|201|     201|     206|\n"
+            + "|202|     202|     207|\n"
+            + "|203|     203|     208|\n"
+            + "|204|     204|     209|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT s1 FROM us.* WHERE !(s1 <= 200 or s1 >= 210);";
     expected =
         "ResultSets:\n"
             + "+---+--------+--------+\n"
@@ -687,6 +714,20 @@ public class SQLSessionIT {
             + "Total line number = 5\n";
     executor.executeAndCompare(query, expected);
 
+    query = "SELECT a, b FROM us.d9 WHERE !(!(a < b));";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|us.d9.a|us.d9.b|\n"
+            + "+---+-------+-------+\n"
+            + "|  1|      1|      9|\n"
+            + "|  2|      2|      8|\n"
+            + "|  3|      3|      7|\n"
+            + "|  4|      4|      6|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
+
     query = "SELECT a, b FROM us.d9 WHERE a = b;";
     expected =
         "ResultSets:\n"
@@ -714,6 +755,17 @@ public class SQLSessionIT {
             + "|  9|      9|      1|\n"
             + "+---+-------+-------+\n"
             + "Total line number = 8\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "SELECT a, b FROM us.d9 WHERE !(a != b);";
+    expected =
+        "ResultSets:\n"
+            + "+---+-------+-------+\n"
+            + "|key|us.d9.a|us.d9.b|\n"
+            + "+---+-------+-------+\n"
+            + "|  5|      5|      5|\n"
+            + "+---+-------+-------+\n"
+            + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
   }
 
@@ -2524,6 +2576,17 @@ public class SQLSessionIT {
     executor.executeAndCompare(query, expected);
 
     query = "select avg(a), b from test group by b having avg(a) < 2;";
+    expected =
+        "ResultSets:\n"
+            + "+-----------+------+\n"
+            + "|avg(test.a)|test.b|\n"
+            + "+-----------+------+\n"
+            + "|        1.0|     3|\n"
+            + "+-----------+------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(query, expected);
+
+    query = "select avg(a), b from test group by b having AVG(a) < 2;";
     expected =
         "ResultSets:\n"
             + "+-----------+------+\n"
@@ -4809,6 +4872,94 @@ public class SQLSessionIT {
             + "|  6|       2|                     4.0|\n"
             + "+---+--------+------------------------+\n"
             + "Total line number = 5\n";
+    executor.executeAndCompare(statement, expected);
+  }
+
+  @Test
+  public void testCaseWhen() {
+    String insert =
+        "INSERT INTO student(key, s_id, name, sex, age) VALUES "
+            + "(0, 1, \"Alan\", 1, 16), (1, 2, \"Bob\", 1, 14), (2, 3, \"Candy\", 0, 17), "
+            + "(3, 4, \"Alice\", 0, 22), (4, 5, \"Jack\", 1, 36), (5, 6, \"Tom\", 1, 20);";
+    executor.execute(insert);
+
+    insert =
+        "INSERT INTO math(key, s_id, score) VALUES (0, 1, 82), (1, 2, 58), (2, 3, 54), (3, 4, 92), (4, 5, 78), (5, 6, 98);";
+    executor.execute(insert);
+
+    String statement =
+        "SELECT student.name AS name, student.age AS age,\n"
+            + "    CASE student.sex\n"
+            + "        WHEN 1 THEN 'Male'\n"
+            + "        WHEN 0 THEN 'Female'\n"
+            + "        ELSE 'Unknown'\n"
+            + "    END AS strSex,\n"
+            + "    CASE\n"
+            + "        WHEN math.score >= 90 THEN 'A'\n"
+            + "        WHEN math.score >= 80 AND math.score < 90 THEN 'B'\n"
+            + "        WHEN math.score >= 70 AND math.score < 80 THEN 'C'\n"
+            + "        WHEN math.score >= 60 AND math.score < 70 THEN 'D'\n"
+            + "        ELSE 'F'\n"
+            + "    END AS gpa\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n"
+            + "ORDER BY student.age\n;";
+    String expected =
+        "ResultSets:\n"
+            + "+-----+---+------+---+\n"
+            + "| name|age|strSex|gpa|\n"
+            + "+-----+---+------+---+\n"
+            + "|  Bob| 14|  Male|  F|\n"
+            + "| Alan| 16|  Male|  B|\n"
+            + "|Candy| 17|Female|  F|\n"
+            + "|  Tom| 20|  Male|  A|\n"
+            + "|Alice| 22|Female|  A|\n"
+            + "| Jack| 36|  Male|  C|\n"
+            + "+-----+---+------+---+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT student.name AS name,\n"
+            + "    CASE math.score - 20\n"
+            + "        WHEN > student.age * 3 THEN 3 * student.s_id\n"
+            + "        WHEN > student.age * 2 THEN 2 * student.s_id\n"
+            + "        ELSE student.s_id\n"
+            + "    END AS result\n"
+            + "FROM student JOIN math ON student.s_id = math.s_id\n;";
+    expected =
+        "ResultSets:\n"
+            + "+-----+------+\n"
+            + "| name|result|\n"
+            + "+-----+------+\n"
+            + "| Alan|     3|\n"
+            + "|  Bob|     4|\n"
+            + "|Candy|     3|\n"
+            + "|Alice|    12|\n"
+            + "| Jack|     5|\n"
+            + "|  Tom|    18|\n"
+            + "+-----+------+\n"
+            + "Total line number = 6\n";
+    executor.executeAndCompare(statement, expected);
+
+    statement =
+        "SELECT strSex, avg(score) FROM (\n"
+            + "    SELECT math.score AS score,\n"
+            + "        CASE student.sex\n"
+            + "            WHEN 1 THEN 'Male'\n"
+            + "            WHEN 0 THEN 'Female'\n"
+            + "            ELSE 'Unknown'\n"
+            + "        END AS strSex\n"
+            + "    FROM student JOIN math ON student.s_id = math.s_id)\n"
+            + "GROUP BY strSex ORDER BY strSex;\n";
+    expected =
+        "ResultSets:\n"
+            + "+------+----------+\n"
+            + "|strSex|avg(score)|\n"
+            + "+------+----------+\n"
+            + "|Female|      73.0|\n"
+            + "|  Male|      79.0|\n"
+            + "+------+----------+\n"
+            + "Total line number = 2\n";
     executor.executeAndCompare(statement, expected);
   }
 
@@ -8035,5 +8186,51 @@ public class SQLSessionIT {
     closeExplain = executor.execute("EXPLAIN " + statement);
     assertEquals(openResult, closeResult);
     assertTrue(!openExplain.contains("OuterJoin") && closeExplain.contains("OuterJoin"));
+  }
+
+  @Test
+  public void testSingleLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1\n"
+            + "    -- AND s2 = 1\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
+  }
+
+  @Test
+  public void testMultiLineComment() {
+    String statement =
+        "SELECT\n"
+            + "    s1, s2\n"
+            + "FROM\n"
+            + "    us.d1\n"
+            + "WHERE\n"
+            + "    s1 = 1  \n"
+            + "    /* \n"
+            + "    AND s2 = 3 \n"
+            + "    */\n"
+            + ";";
+    String expect =
+        "ResultSets:\n"
+            + "+---+--------+--------+\n"
+            + "|key|us.d1.s1|us.d1.s2|\n"
+            + "+---+--------+--------+\n"
+            + "|  1|       1|       2|\n"
+            + "+---+--------+--------+\n"
+            + "Total line number = 1\n";
+    executor.executeAndCompare(statement, expect);
   }
 }
