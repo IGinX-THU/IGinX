@@ -15,38 +15,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.filestore.service.rpc.client.pool;
+package cn.edu.tsinghua.iginx.filestore.common;
 
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.thrift.transport.TTransport;
+import cn.edu.tsinghua.iginx.filestore.thrift.DataUnit;
+import javax.annotation.Nullable;
 
-public class PooledTTransport extends ForwardTTransport {
+public class DataUnits {
 
-  final ObjectPool<PooledTTransport> source;
+  private DataUnits() {}
 
-  PooledTTransport(TTransport transport, ObjectPool<PooledTTransport> source) {
-    super(transport);
-    this.source = source;
-  }
-
-  @Override
-  public void close() {
-    if (isOpen()) {
-      returnToPool();
-    }
-  }
-
-  public void destroy() {
-    super.close();
-  }
-
-  void returnToPool() {
-    try {
-      source.returnObject(this);
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
-    }
+  public static DataUnit of(boolean dummy, @Nullable String name) {
+    DataUnit unit = new DataUnit(dummy);
+    unit.setName(name);
+    return unit;
   }
 }

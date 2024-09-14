@@ -47,40 +47,16 @@ runs:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
               statements: s/#storageEngineList=127.0.0.1#8086/storageEngineList=127.0.0.1#8086/g
 
-        - if: inputs.DB-name == 'Parquet'
+        - if: inputs.DB-name == 'FileStore'
           name: Modify IGinX Config
           uses: ./.github/actions/edit
           with:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s/^#storageEngineList=127.0.0.1#6667#parquet/storageEngineList=127.0.0.1#6667#parquet/g
-
-        - if: inputs.DB-name == 'Parquet'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s#dir=/path/to/your/parquet#dir=${GITHUB_WORKSPACE}/test/iginx_mn#g
-
-        - if: inputs.DB-name == 'Parquet'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s/#thrift_timeout=30000/#thrift_timeout=50000/g
-
-        - if: inputs.DB-name == 'Parquet'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s/#thrift_pool_max_size=100/#thrift_pool_max_size=2/g
-
-        - if: inputs.DB-name == 'Parquet'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s/write.buffer.size=104857600/write.buffer.size=1048576/g
+              statements: |
+                  s/^#storageEngineList=127.0.0.1#6667#filestore/storageEngineList=127.0.0.1#6667#filestore/g
+                  s#dir=data#dir=${PWD}/test/iginx_mn#g
+                  s/data.config.write.buffer.size=104857600/data.config.write.buffer.size=1048576/g
+                  s/write.buffer.size=104857600/write.buffer.size=1048576/g
 
         - if: inputs.DB-name == 'MongoDB'
           name: Modify IGinX Config
@@ -88,41 +64,6 @@ runs:
           with:
               paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
               statements: s/^#storageEngineList=127.0.0.1#27017/storageEngineList=127.0.0.1#27017/g
-
-        - if: inputs.DB-name == 'FileSystem'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s/^#storageEngineList=127.0.0.1#6667#filesystem/storageEngineList=127.0.0.1#6667#filesystem/g
-
-        - if: inputs.DB-name == 'FileSystem'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s#dir=/path/to/your/filesystem#dir=${GITHUB_WORKSPACE}/test/iginx_mn#g
-
-        - if: inputs.DB-name == 'FileSystem'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s#chunk_size_in_bytes=1048576#chunk_size_in_bytes=8#g
-
-        - if: inputs.DB-name == 'FileSystem'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s#thrift_timeout=5000#thrift_timeout=10000#g
-
-        - if: inputs.DB-name == 'FileSystem'
-          name: Modify IGinX Config
-          uses: ./.github/actions/edit
-          with:
-              paths: ${{ inputs.Root-Dir-Path }}/conf/config.properties
-              statements: s/#thrift_pool_max_size=100/#thrift_pool_max_size=2/g
 
         - if: inputs.DB-name == 'Redis'
           name: Modify IGinX Config

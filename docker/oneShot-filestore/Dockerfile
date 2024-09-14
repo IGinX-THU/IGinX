@@ -1,4 +1,3 @@
-#!/bin/bash
 #
 # IGinX - the polystore system with high performance
 # Copyright (C) Tsinghua University
@@ -16,51 +15,12 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
- 
 
-REMOVE_DIRS=(
-	include/apache-zookeeper/data
-	include/apache-zookeeper/logs
-	sbin/data
-	sbin/logs
-)
+FROM maven:3-amazoncorretto-8 AS builder
+COPY . /root/IGinX
+WORKDIR /root/IGinX
+RUN --mount=type=cache,target=/root/.m2 mvn clean package -pl core,dataSources/filestore -am -Dmaven.test.skip=true -Drevision=dev
 
-for folder in ${REMOVE_DIRS[@]}; do
-
-	if [ -d "$folder" ]; then
-		rm -rf $folder
-	fi
-
-done
-
-REMOVE_FIELS=(
-	iginx.out
-	gc.log
-	sbin/nohup.out
-	include/apache-zookeeper/nohup.out
-)
-
-for file in ${REMOVE_FIELS[@]}; do
-
-	if [ -f "$file" ]; then
-		rm -f $file
-	fi
-
-done
-
-BUILT_IN_UDF=(
-  udf_list
-  python_scripts/class_loader.py
-  python_scripts/constant.py
-  python_scripts/py_worker.py
-)
-
-mv udf_funcs udf_funcs_bak
-mkdir -p udf_funcs/python_scripts
-for file in ${BUILT_IN_UDF[@]}; do
-  mv udf_funcs_bak/$file udf_funcs/$file
-done
-rm -rf udf_funcs_bak
-
-echo Done!
-
+FROM amazoncorretto:8
+COPY --from=builder /root/IGinX/core/target/iginx-core-dev /root/IGinX
+ENV PS1='\u@\h:\w\$ '

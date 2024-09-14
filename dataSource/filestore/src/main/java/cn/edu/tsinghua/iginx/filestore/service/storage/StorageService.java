@@ -19,6 +19,7 @@ package cn.edu.tsinghua.iginx.filestore.service.storage;
 
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.write.DataView;
+import cn.edu.tsinghua.iginx.filestore.common.DataUnits;
 import cn.edu.tsinghua.iginx.filestore.common.FileStoreException;
 import cn.edu.tsinghua.iginx.filestore.service.Service;
 import cn.edu.tsinghua.iginx.filestore.struct.DataTarget;
@@ -112,34 +113,36 @@ public class StorageService implements Service {
     }
   }
 
-  static DataUnit newDataUnitOf(boolean dummy, @Nullable String name) {
-    DataUnit unit = new DataUnit(dummy);
-    unit.setName(name);
-    return unit;
-  }
-
   private void initManager() throws IOException {
     if (dataConfig != null) {
       for (String unitName : getUnitsIn(Paths.get(dataConfig.getRoot()))) {
-        getOrCreateManager(newDataUnitOf(false, unitName));
+        getOrCreateManager(DataUnits.of(false, unitName));
       }
     }
 
     if (dummyConfig != null) {
       if (dummyStructure.supportWrite()) {
-        TreeMap<DataUnit, FileManager> dummyManagers =
-            new TreeMap<>(Comparator.comparing(DataUnit::getName));
-        for (String unitName : getUnitsIn(Paths.get(dummyConfig.getRoot()))) {
-          DataUnit unit = newDataUnitOf(true, unitName);
-          FileManager manager = getOrCreateManager(unit);
-          dummyManagers.put(unit, manager);
-        }
-        FileManager mergedDummyManager = new UnitsMerger(new ArrayList<>(dummyManagers.values()));
-        managers.put(newDataUnitOf(true, null), mergedDummyManager);
+        FileManager mergedDummyManager = new UnitsMerger(this::getNamedDummyUnits);
+        managers.put(DataUnits.of(true, null), mergedDummyManager);
       } else {
-        getOrCreateManager(newDataUnitOf(true, null));
+        getOrCreateManager(DataUnits.of(true, null));
       }
     }
+  }
+
+  private TreeMap<DataUnit, FileManager> getNamedDummyUnits() throws IOException {
+    for (String unitName : getUnitsIn(Paths.get(dummyConfig.getRoot()))) {
+      getOrCreateManager(DataUnits.of(true, unitName));
+    }
+    TreeMap<DataUnit, FileManager> dummyManagers =
+        new TreeMap<>(Comparator.comparing(DataUnit::getName));
+    managers.forEach(
+        (unit, manager) -> {
+          if (unit.isDummy() && unit.getName() != null) {
+            dummyManagers.put(unit, manager);
+          }
+        });
+    return dummyManagers;
   }
 
   private static List<String> getUnitsIn(Path root) throws IOException {

@@ -24,6 +24,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.write.RowDataView;
 import cn.edu.tsinghua.iginx.thrift.DataType;
 import cn.edu.tsinghua.iginx.utils.Bitmap;
 import java.util.*;
+import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +37,29 @@ public class DataViewGenerator {
       List<String> pathList,
       List<Map<String, String>> tagsList,
       List<DataType> dataTypeList,
+      List<Object[]> valuesList) {
+    List<Long> keyList = new ArrayList<>();
+    for (int i = 0; i < valuesList.size(); i++) {
+      keyList.add(keyStart + i);
+    }
+    return genRowDataView(pathList, tagsList, dataTypeList, keyList, valuesList);
+  }
+
+  public static DataView genRowDataView(
+      List<String> pathList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
+      List<List<Object>> valuesList) {
+    List<Object[]> valueArrayList =
+        valuesList.stream().map(List::toArray).collect(Collectors.toList());
+    return genRowDataView(pathList, null, dataTypeList, keyList, valueArrayList);
+  }
+
+  public static DataView genRowDataView(
+      List<String> pathList,
+      List<Map<String, String>> tagsList,
+      List<DataType> dataTypeList,
+      List<Long> keyList,
       List<Object[]> valuesList) {
     // sort path by dictionary
     List<String> sortedPaths = new ArrayList<>(pathList);
@@ -65,11 +89,7 @@ public class DataViewGenerator {
 
     // generate bitmaps and key
     List<Bitmap> bitmapList = new ArrayList<>();
-    List<Long> keys = new ArrayList<>();
-    long keyIndex = keyStart;
-    for (Object o : valuesList) {
-      Object[] values = (Object[]) o;
-      keys.add(keyIndex++);
+    for (Object[] values : valuesList) {
       if (values.length != pathList.size()) {
         LOGGER.error("The sizes of paths and the element of valuesList should be equal.");
         return null;
@@ -87,7 +107,7 @@ public class DataViewGenerator {
         new RawData(
             sortedPaths,
             sortedTagsList,
-            keys,
+            keyList,
             valuesList.toArray(),
             sortedDataTypeList,
             bitmapList,

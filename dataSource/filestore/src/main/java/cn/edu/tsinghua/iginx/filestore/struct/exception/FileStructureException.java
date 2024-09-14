@@ -15,38 +15,23 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.filestore.service.rpc.client.pool;
+package cn.edu.tsinghua.iginx.filestore.struct.exception;
 
-import org.apache.commons.pool2.ObjectPool;
-import org.apache.thrift.transport.TTransport;
+import java.io.IOException;
 
-public class PooledTTransport extends ForwardTTransport {
+public class FileStructureException extends IOException {
 
-  final ObjectPool<PooledTTransport> source;
+  public FileStructureException() {}
 
-  PooledTTransport(TTransport transport, ObjectPool<PooledTTransport> source) {
-    super(transport);
-    this.source = source;
+  public FileStructureException(String message) {
+    super(message);
   }
 
-  @Override
-  public void close() {
-    if (isOpen()) {
-      returnToPool();
-    }
+  public FileStructureException(String message, Throwable cause) {
+    super(message, cause);
   }
 
-  public void destroy() {
-    super.close();
-  }
-
-  void returnToPool() {
-    try {
-      source.returnObject(this);
-    } catch (RuntimeException e) {
-      throw e;
-    } catch (Exception e) {
-      throw new IllegalStateException(e);
-    }
+  public FileStructureException(Throwable cause) {
+    super(cause);
   }
 }
