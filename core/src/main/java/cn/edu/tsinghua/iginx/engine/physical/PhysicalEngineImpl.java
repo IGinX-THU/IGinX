@@ -29,7 +29,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTask
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -66,7 +66,7 @@ public class PhysicalEngineImpl implements PhysicalEngine {
   }
 
   @Override
-  public RowStream execute(RequestContext ctx, Operator root) throws PhysicalException {
+  public BatchStream execute(RequestContext ctx, Operator root) throws PhysicalException {
     if (OperatorType.isGlobalOperator(root.getType())) { // 全局任务临时兼容逻辑
       // 迁移任务单独处理
       if (root.getType() == OperatorType.Migration) {
@@ -74,11 +74,9 @@ public class PhysicalEngineImpl implements PhysicalEngine {
             .execute(ctx, (Migration) root, storageTaskExecutor);
       } else {
         GlobalPhysicalTask task = new GlobalPhysicalTask(root, ctx);
-        TaskExecuteResult result = storageTaskExecutor.executeGlobalTask(task);
-        if (result.getException() != null) {
-          throw result.getException();
+        try (TaskResult result = storageTaskExecutor.executeGlobalTask(task)) {
+          return result.unwrap();
         }
-        return result.getRowStream();
       }
     }
     PhysicalTask task = optimizer.optimize(root, ctx);
@@ -86,11 +84,9 @@ public class PhysicalEngineImpl implements PhysicalEngine {
     List<PhysicalTask> bottomTasks = new ArrayList<>();
     getBottomTasks(bottomTasks, task);
     commitBottomTasks(bottomTasks);
-    TaskExecuteResult result = task.getResult();
-    if (result.getException() != null) {
-      throw result.getException();
+    try (TaskResult result = task.getResult()) {
+      return result.unwrap();
     }
-    return result.getRowStream();
   }
 
   private void commitBottomTasks(List<PhysicalTask> bottomTasks) {

@@ -109,81 +109,83 @@ public abstract class Compaction {
   protected void compactFragmentGroupToTargetStorageUnit(
       List<FragmentMeta> fragmentGroup, StorageUnitMeta targetStorageUnit, long totalPoints)
       throws PhysicalException {
-    String startTimeseries = fragmentGroup.get(0).getColumnsInterval().getStartColumn();
-    String endTimeseries = fragmentGroup.get(0).getColumnsInterval().getEndColumn();
-    long startTime = fragmentGroup.get(0).getKeyInterval().getStartKey();
-    long endTime = fragmentGroup.get(0).getKeyInterval().getEndKey();
-
-    for (FragmentMeta fragmentMeta : fragmentGroup) {
-      // 找到新分片空间
-      if (startTimeseries == null || fragmentMeta.getColumnsInterval().getStartColumn() == null) {
-        startTimeseries = null;
-      } else {
-        startTimeseries =
-            startTimeseries.compareTo(fragmentMeta.getColumnsInterval().getStartColumn()) > 0
-                ? fragmentMeta.getColumnsInterval().getStartColumn()
-                : startTimeseries;
-      }
-
-      if (endTimeseries == null || fragmentMeta.getColumnsInterval().getEndColumn() == null) {
-        endTimeseries = null;
-      } else {
-        endTimeseries =
-            endTimeseries.compareTo(fragmentMeta.getColumnsInterval().getEndColumn()) > 0
-                ? endTimeseries
-                : fragmentMeta.getColumnsInterval().getEndColumn();
-      }
-
-      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
-      if (!storageUnitId.equals(targetStorageUnit.getId())) {
-        // 重写该分片的数据
-        Set<String> pathRegexSet = new HashSet<>();
-        ShowColumns showColumns =
-            new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-        RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
-        SortedSet<String> pathSet = new TreeSet<>();
-        while (rowStream != null && rowStream.hasNext()) {
-          Row row = rowStream.next();
-          String timeSeries = new String((byte[]) row.getValue(0));
-          if (timeSeries.contains("{") && timeSeries.contains("}")) {
-            timeSeries = timeSeries.split("\\{")[0];
-          }
-          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-            pathSet.add(timeSeries);
-          }
-        }
-
-        // TODO: pathSet 不应为空，目前通过判空做补丁，有待深入处理
-        if (!pathSet.isEmpty()) {
-          Migration migration =
-              new Migration(
-                  new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-          physicalEngine.execute(new RequestContext(), migration);
-        }
-      }
-    }
-    // TODO add write lock
-    // 创建新分片
-    FragmentMeta newFragment =
-        new FragmentMeta(startTimeseries, endTimeseries, startTime, endTime, targetStorageUnit);
-    metaManager.addFragment(newFragment);
-    // 更新存储点数信息
-    metaManager.updateFragmentPoints(newFragment, totalPoints);
-
-    for (FragmentMeta fragmentMeta : fragmentGroup) {
-      metaManager.removeFragment(fragmentMeta);
-    }
-    // TODO release write lock
-
-    for (FragmentMeta fragmentMeta : fragmentGroup) {
-      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
-      if (!storageUnitId.equals(targetStorageUnit.getId())) {
-        // 删除原分片节点数据
-        Delete delete =
-            new Delete(
-                new FragmentSource(fragmentMeta), new ArrayList<>(), new ArrayList<>(), null);
-        physicalEngine.execute(new RequestContext(), delete);
-      }
-    }
+    // TODO: implement this method
+    throw new UnsupportedOperationException("Not implemented yet");
+//    String startTimeseries = fragmentGroup.get(0).getColumnsInterval().getStartColumn();
+//    String endTimeseries = fragmentGroup.get(0).getColumnsInterval().getEndColumn();
+//    long startTime = fragmentGroup.get(0).getKeyInterval().getStartKey();
+//    long endTime = fragmentGroup.get(0).getKeyInterval().getEndKey();
+//
+//    for (FragmentMeta fragmentMeta : fragmentGroup) {
+//      // 找到新分片空间
+//      if (startTimeseries == null || fragmentMeta.getColumnsInterval().getStartColumn() == null) {
+//        startTimeseries = null;
+//      } else {
+//        startTimeseries =
+//            startTimeseries.compareTo(fragmentMeta.getColumnsInterval().getStartColumn()) > 0
+//                ? fragmentMeta.getColumnsInterval().getStartColumn()
+//                : startTimeseries;
+//      }
+//
+//      if (endTimeseries == null || fragmentMeta.getColumnsInterval().getEndColumn() == null) {
+//        endTimeseries = null;
+//      } else {
+//        endTimeseries =
+//            endTimeseries.compareTo(fragmentMeta.getColumnsInterval().getEndColumn()) > 0
+//                ? endTimeseries
+//                : fragmentMeta.getColumnsInterval().getEndColumn();
+//      }
+//
+//      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
+//      if (!storageUnitId.equals(targetStorageUnit.getId())) {
+//        // 重写该分片的数据
+//        Set<String> pathRegexSet = new HashSet<>();
+//        ShowColumns showColumns =
+//            new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+//        RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+//        SortedSet<String> pathSet = new TreeSet<>();
+//        while (rowStream != null && rowStream.hasNext()) {
+//          Row row = rowStream.next();
+//          String timeSeries = new String((byte[]) row.getValue(0));
+//          if (timeSeries.contains("{") && timeSeries.contains("}")) {
+//            timeSeries = timeSeries.split("\\{")[0];
+//          }
+//          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+//            pathSet.add(timeSeries);
+//          }
+//        }
+//
+//        // TODO: pathSet 不应为空，目前通过判空做补丁，有待深入处理
+//        if (!pathSet.isEmpty()) {
+//          Migration migration =
+//              new Migration(
+//                  new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
+//          physicalEngine.execute(new RequestContext(), migration);
+//        }
+//      }
+//    }
+//    // TODO add write lock
+//    // 创建新分片
+//    FragmentMeta newFragment =
+//        new FragmentMeta(startTimeseries, endTimeseries, startTime, endTime, targetStorageUnit);
+//    metaManager.addFragment(newFragment);
+//    // 更新存储点数信息
+//    metaManager.updateFragmentPoints(newFragment, totalPoints);
+//
+//    for (FragmentMeta fragmentMeta : fragmentGroup) {
+//      metaManager.removeFragment(fragmentMeta);
+//    }
+//    // TODO release write lock
+//
+//    for (FragmentMeta fragmentMeta : fragmentGroup) {
+//      String storageUnitId = fragmentMeta.getMasterStorageUnitId();
+//      if (!storageUnitId.equals(targetStorageUnit.getId())) {
+//        // 删除原分片节点数据
+//        Delete delete =
+//            new Delete(
+//                new FragmentSource(fragmentMeta), new ArrayList<>(), new ArrayList<>(), null);
+//        physicalEngine.execute(new RequestContext(), delete);
+//      }
+//    }
   }
 }

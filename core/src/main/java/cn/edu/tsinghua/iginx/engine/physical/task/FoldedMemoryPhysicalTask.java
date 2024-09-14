@@ -34,14 +34,8 @@ import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.storage.execute.StoragePhysicalTaskExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.Value;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Project;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ProjectWaitingForPath;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Reorder;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.tag.TagFilter;
 import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.metadata.entity.ColumnsInterval;
@@ -50,10 +44,8 @@ import cn.edu.tsinghua.iginx.metadata.entity.KeyInterval;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.SortUtils;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -92,18 +84,31 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
   }
 
   @Override
-  public TaskExecuteResult execute() {
-    List<RowStream> streams = new ArrayList<>();
+  public TaskResult execute() {
+    PhysicalException exception = null;
+    List<BatchStream> streams = new ArrayList<>();
+
     for (PhysicalTask parentTask : getParentTasks()) {
-      TaskExecuteResult parentResult = parentTask.getResult();
-      if (parentResult == null) {
-        return new TaskExecuteResult(
-            new PhysicalException("unexpected parent task execute result for " + this + ": null"));
+      try {
+        streams.add(parentTask.getResult().unwrap());
+      } catch (PhysicalException e) {
+        if (exception == null) {
+          exception = e;
+        } else {
+          exception.addSuppressed(e);
+        }
       }
-      if (parentResult.getException() != null) {
-        return parentResult;
+    }
+
+    if (exception != null) {
+      for (BatchStream stream : streams) {
+        try {
+          stream.close();
+        } catch (PhysicalException e) {
+          exception.addSuppressed(e);
+        }
       }
-      streams.add(parentResult.getRowStream());
+      return new TaskResult(exception);
     }
 
     // 根据运行时结果生成最终操作树
@@ -149,35 +154,37 @@ public class FoldedMemoryPhysicalTask extends MultipleMemoryPhysicalTask {
     }
   }
 
-  private Operator reGenerateRoot(Operator root, List<RowStream> streams) {
-    Set<String> set = new HashSet<>();
-    List<String> selectedPaths = new ArrayList<>();
-    streams.forEach(
-        stream -> {
-          try {
-            int index = stream.getHeader().indexOf("SelectedPath");
-            if (index == -1) {
-              return;
-            }
-            while (stream.hasNext()) {
-              Row row = stream.next();
-              Value value = row.getAsValue(index);
-              if (value.isNull()) {
-                continue;
-              }
-              String path = value.getBinaryVAsString();
-              if (!set.contains(path)) {
-                set.add(path);
-                selectedPaths.add(path);
-              }
-            }
-          } catch (PhysicalException e) {
-            LOGGER.error("encounter error when execute operator in memory: ", e);
-            throw new RuntimeException(e);
-          }
-        });
-
-    return fillRootWithPath(root, selectedPaths);
+  private Operator reGenerateRoot(Operator root, List<BatchStream> streams) {
+    // TODO: implement this method
+    throw new UnsupportedOperationException("Not implemented yet");
+    // Set<String> set = new HashSet<>();
+    // List<String> selectedPaths = new ArrayList<>();
+    // streams.forEach(
+    //     stream -> {
+    //       try {
+    //         int index = stream.getHeader().indexOf("SelectedPath");
+    //         if (index == -1) {
+    //           return;
+    //         }
+    //         while (stream.hasNext()) {
+    //           Row row = stream.next();
+    //           Value value = row.getAsValue(index);
+    //           if (value.isNull()) {
+    //             continue;
+    //           }
+    //           String path = value.getBinaryVAsString();
+    //           if (!set.contains(path)) {
+    //             set.add(path);
+    //             selectedPaths.add(path);
+    //           }
+    //         }
+    //       } catch (PhysicalException e) {
+    //         LOGGER.error("encounter error when execute operator in memory: ", e);
+    //         throw new RuntimeException(e);
+    //       }
+    //     });
+    //
+    // return fillRootWithPath(root, selectedPaths);
   }
 
   private Operator fillRootWithPath(Operator operator, List<String> selectedPaths) {

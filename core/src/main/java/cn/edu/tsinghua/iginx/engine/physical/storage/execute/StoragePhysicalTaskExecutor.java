@@ -32,10 +32,7 @@ import cn.edu.tsinghua.iginx.engine.physical.storage.StorageManager;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.Column;
 import cn.edu.tsinghua.iginx.engine.physical.storage.domain.DataArea;
 import cn.edu.tsinghua.iginx.engine.physical.storage.queue.StoragePhysicalTaskQueue;
-import cn.edu.tsinghua.iginx.engine.physical.task.GlobalPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.MemoryPhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.StoragePhysicalTask;
-import cn.edu.tsinghua.iginx.engine.physical.task.TaskExecuteResult;
+import cn.edu.tsinghua.iginx.engine.physical.task.*;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
@@ -117,12 +114,13 @@ public class StoragePhysicalTaskExecutor {
                       task.setDummyStorageUnit(isDummy);
                       if (pair.v.getQueue().size() > maxCachedPhysicalTaskPerStorage) {
                         task.setResult(
-                            new TaskExecuteResult(new TooManyPhysicalTasksException(storageId)));
+                            new TaskResult(new TooManyPhysicalTasksException(storageId)));
                         continue;
                       }
-                      if (isCancelled(task.getSessionId())) {
+                      if (isCancelled(task.getContext().getSessionId())) {
                         LOGGER.warn(
-                            "StoragePhysicalTask[sessionId={}] is cancelled.", task.getSessionId());
+                            "StoragePhysicalTask[sessionId={}] is cancelled.",
+                            task.getContext().getSessionId());
                         continue;
                       }
                       pair.v.submit(
@@ -239,7 +237,7 @@ public class StoragePhysicalTaskExecutor {
                               LOGGER.error("Monitor catch error:", e);
                             }
                             long span = System.currentTimeMillis() - startTime;
-                            task.setSpan(span);
+                            task.getMetrics().addCpuTime(span);
                             task.setResult(result);
                             if (task.getFollowerTask() != null
                                 && task.isSync()) { // 只有同步任务才会影响后续任务的执行
@@ -257,7 +255,7 @@ public class StoragePhysicalTaskExecutor {
                                         + task
                                         + " will not broadcasting to replicas for the sake of exception",
                                     result.getException());
-                                task.setResult(new TaskExecuteResult(result.getException()));
+                                task.setResult(new TaskResult(result.getException()));
                               } else {
                                 StorageUnitMeta masterStorageUnit =
                                     task.getTargetFragment().getMasterStorageUnit();
@@ -338,13 +336,13 @@ public class StoragePhysicalTaskExecutor {
     storageTaskQueues.get(storageUnitId).addTask(task);
   }
 
-  public TaskExecuteResult executeGlobalTask(GlobalPhysicalTask task) {
+  public TaskResult executeGlobalTask(GlobalPhysicalTask task) {
     switch (task.getOperator().getType()) {
       case ShowColumns:
         long startTime = System.currentTimeMillis();
         TaskExecuteResult result = executeShowColumns((ShowColumns) task.getOperator());
         long span = System.currentTimeMillis() - startTime;
-        task.setSpan(span);
+        task.getMetrics().addCpuTime(span);
         task.setResult(result);
         if (task.getFollowerTask() != null) {
           MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();
@@ -353,9 +351,9 @@ public class StoragePhysicalTaskExecutor {
             memoryTaskExecutor.addMemoryTask(followerTask);
           }
         }
-        return result;
+        return task.getResult();
       default:
-        return new TaskExecuteResult(
+        return new TaskResult(
             new UnexpectedOperatorException("unknown op: " + task.getOperator().getType()));
     }
   }

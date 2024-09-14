@@ -2095,7 +2095,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
         context = tableB.getContext();
       }
       if (context != null && containOverlappedKeys) {
-        context.setWarningMsg("The query results contain overlapped keys.");
+        context.addWarningMessage("The query results contain overlapped keys.");
       }
       table.setContext(context);
 

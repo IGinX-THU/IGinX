@@ -21,7 +21,7 @@ import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
 
-public interface PhysicalTask extends Measurable {
+public interface PhysicalTask {
 
   void accept(TaskVisitor visitor);
 
@@ -29,9 +29,13 @@ public interface PhysicalTask extends Measurable {
 
   List<Operator> getOperators();
 
-  TaskExecuteResult getResult();
+  TaskContext getContext();
 
-  void setResult(TaskExecuteResult result);
+  TaskMetrics getMetrics();
+
+  TaskResult getResult();
+
+  void setResult(TaskResult result);
 
   PhysicalTask getFollowerTask();
 

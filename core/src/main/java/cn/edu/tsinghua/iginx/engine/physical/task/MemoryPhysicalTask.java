@@ -31,7 +31,7 @@ public abstract class MemoryPhysicalTask extends AbstractPhysicalTask {
     parentReadyCount = new AtomicInteger(0);
   }
 
-  public abstract TaskExecuteResult execute(); // 在 parent 都完成执行后，可以执行该任务
+  public abstract TaskResult execute(); // 在 parent 都完成执行后，可以执行该任务
 
   public abstract boolean notifyParentReady(); // 通知当前任务的某个父节点已经完成，该方法会返回 boolean 值，表示当前的任务是否可以执行
 }

@@ -18,7 +18,6 @@
 
 package cn.edu.tsinghua.iginx.engine;
 
-import static cn.edu.tsinghua.iginx.constant.GlobalConstant.CLEAR_DUMMY_DATA_CAUTION;
 import static cn.edu.tsinghua.iginx.constant.GlobalConstant.KEY_NAME;
 import static cn.edu.tsinghua.iginx.engine.shared.function.system.utils.ValueUtils.moveForwardNotNull;
 import static cn.edu.tsinghua.iginx.utils.StringUtils.replaceSpecialCharsWithUnderscore;
@@ -32,24 +31,16 @@ import cn.edu.tsinghua.iginx.engine.logical.generator.*;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.Table;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream.EmptyRowStream;
 import cn.edu.tsinghua.iginx.engine.physical.task.PhysicalTask;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.Result;
 import cn.edu.tsinghua.iginx.engine.shared.constraint.ConstraintManager;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.*;
 import cn.edu.tsinghua.iginx.engine.shared.exception.StatementExecutionException;
 import cn.edu.tsinghua.iginx.engine.shared.file.FileType;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportCsv;
 import cn.edu.tsinghua.iginx.engine.shared.file.read.ImportFile;
-import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportByteStream;
-import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
-import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportFile;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import cn.edu.tsinghua.iginx.engine.shared.operator.visitor.OperatorInfoVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.processor.*;
@@ -74,7 +65,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
 import java.nio.file.Files;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -336,7 +326,7 @@ public class StatementExecutor {
       after(ctx, postLogicalProcessors);
       if (root == null && !metaManager.hasWritableStorageEngines()) {
         ctx.setResult(new Result(RpcUtils.SUCCESS));
-        setResult(ctx, new EmptyRowStream());
+        setResult(ctx, BatchStreams.empty());
         return;
       }
       if (constraintManager.check(root) && checker.check(root)) {
@@ -349,7 +339,7 @@ public class StatementExecutor {
         }
 
         before(ctx, prePhysicalProcessors);
-        RowStream stream = engine.execute(ctx, root);
+        BatchStream stream = engine.execute(ctx, root);
         after(ctx, postPhysicalProcessors);
 
         if (type == StatementType.SELECT) {
@@ -402,18 +392,20 @@ public class StatementExecutor {
 
   private void formatTree(RequestContext ctx, Header header, List<Object[]> cache, int maxLen)
       throws PhysicalException, StatementExecutionException {
-    List<Row> rows = new ArrayList<>();
-    for (Object[] rowValues : cache) {
-      StringBuilder str = new StringBuilder(((String) rowValues[0]));
-      while (str.length() < maxLen) {
-        str.append(" ");
-      }
-      rowValues[0] = str.toString().getBytes();
-      rows.add(new Row(header, rowValues));
-    }
-
-    RowStream stream = new Table(header, rows);
-    setResult(ctx, stream);
+    // TODO: refactor this part
+    throw new UnsupportedOperationException("Not implemented yet");
+    //    List<Row> rows = new ArrayList<>();
+    //    for (Object[] rowValues : cache) {
+    //      StringBuilder str = new StringBuilder(((String) rowValues[0]));
+    //      while (str.length() < maxLen) {
+    //        str.append(" ");
+    //      }
+    //      rowValues[0] = str.toString().getBytes();
+    //      rows.add(new Row(header, rowValues));
+    //    }
+    //
+    //    RowStream stream = new Table(header, rows);
+    //    setResult(ctx, stream);
   }
 
   private void processExportFileFromSelect(RequestContext ctx)
@@ -424,23 +416,27 @@ public class StatementExecutor {
     SelectStatement selectStatement = statement.getSelectStatement();
     RequestContext selectContext = new RequestContext(ctx.getSessionId(), selectStatement, true);
     process(selectContext);
-    RowStream stream = selectContext.getResult().getResultStream();
 
-    // step 2: export file
-    setResultFromRowStream(ctx, stream);
-    ExportFile exportFile = statement.getExportFile();
-    switch (exportFile.getType()) {
-      case CSV:
-        ExportCsv exportCsv = (ExportCsv) exportFile;
-        ctx.getResult().setExportCsv(exportCsv);
-        break;
-      case BYTE_STREAM:
-        ExportByteStream exportByteStream = (ExportByteStream) exportFile;
-        ctx.getResult().setExportByteStreamDir(exportByteStream.getDir());
-        break;
-      default:
-        throw new RuntimeException("Unknown export file type: " + exportFile.getType());
-    }
+    // TODO: refactor this part
+    throw new UnsupportedOperationException("Not implemented yet");
+
+    //    RowStream stream = selectContext.getResult().getResultStream();
+    //
+    //    // step 2: export file
+    //    setResultFromRowStream(ctx, stream);
+    //    ExportFile exportFile = statement.getExportFile();
+    //    switch (exportFile.getType()) {
+    //      case CSV:
+    //        ExportCsv exportCsv = (ExportCsv) exportFile;
+    //        ctx.getResult().setExportCsv(exportCsv);
+    //        break;
+    //      case BYTE_STREAM:
+    //        ExportByteStream exportByteStream = (ExportByteStream) exportFile;
+    //        ctx.getResult().setExportByteStreamDir(exportByteStream.getDir());
+    //        break;
+    //      default:
+    //        throw new RuntimeException("Unknown export file type: " + exportFile.getType());
+    //    }
   }
 
   private void processInsertFromFile(RequestContext ctx)
@@ -752,117 +748,122 @@ public class StatementExecutor {
     ctx.setResult(result);
   }
 
-  private void setResult(RequestContext ctx, RowStream stream)
+  private void setResult(RequestContext ctx, BatchStream stream)
       throws PhysicalException, StatementExecutionException {
-    Statement statement = ctx.getStatement();
-    switch (statement.getType()) {
-      case INSERT:
-        ctx.setResult(new Result(RpcUtils.SUCCESS));
-        break;
-      case DELETE:
-        DeleteStatement deleteStatement = (DeleteStatement) statement;
-        if (deleteStatement.isInvolveDummyData()) {
-          throw new StatementExecutionException(CLEAR_DUMMY_DATA_CAUTION);
-        } else {
-          ctx.setResult(new Result(RpcUtils.SUCCESS));
-        }
-        break;
-      case SELECT:
-        setResultFromRowStream(ctx, stream);
-        break;
-      case SHOW_COLUMNS:
-        setShowTSRowStreamResult(ctx, stream);
-        break;
-      default:
-        throw new StatementExecutionException(
-            String.format("Execute Error: unknown statement type [%s].", statement.getType()));
-    }
+    // TODO: need to be refactored
+    throw new UnsupportedOperationException("Not implemented yet");
+    //    Statement statement = ctx.getStatement();
+    //    switch (statement.getType()) {
+    //      case INSERT:
+    //        ctx.setResult(new Result(RpcUtils.SUCCESS));
+    //        break;
+    //      case DELETE:
+    //        DeleteStatement deleteStatement = (DeleteStatement) statement;
+    //        if (deleteStatement.isInvolveDummyData()) {
+    //          throw new StatementExecutionException(CLEAR_DUMMY_DATA_CAUTION);
+    //        } else {
+    //          ctx.setResult(new Result(RpcUtils.SUCCESS));
+    //        }
+    //        break;
+    //      case SELECT:
+    //        setResultFromRowStream(ctx, stream);
+    //        break;
+    //      case SHOW_COLUMNS:
+    //        setShowTSRowStreamResult(ctx, stream);
+    //        break;
+    //      default:
+    //        throw new StatementExecutionException(
+    //            String.format("Execute Error: unknown statement type [%s].",
+    // statement.getType()));
+    //    }
   }
 
-  private void setResultFromRowStream(RequestContext ctx, RowStream stream)
+  private void setResultFromRowStream(RequestContext ctx, BatchStream stream)
       throws PhysicalException {
-    Result result = null;
-    if (ctx.isUseStream()) {
-      Status status = RpcUtils.SUCCESS;
-      if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
-        status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
-        status.setMessage(ctx.getWarningMsg());
-      }
-      result = new Result(status);
-      result.setResultStream(stream);
-      ctx.setResult(result);
-      return;
-    }
-
-    if (stream == null) {
-      setEmptyQueryResp(ctx, new ArrayList<>());
-      return;
-    }
-
-    List<String> paths = new ArrayList<>();
-    List<Map<String, String>> tagsList = new ArrayList<>();
-    List<DataType> types = new ArrayList<>();
-    stream
-        .getHeader()
-        .getFields()
-        .forEach(
-            field -> {
-              paths.add(field.getFullName());
-              types.add(field.getType());
-              if (field.getTags() == null) {
-                tagsList.add(new HashMap<>());
-              } else {
-                tagsList.add(field.getTags());
-              }
-            });
-
-    List<Long> timestampList = new ArrayList<>();
-    List<ByteBuffer> valuesList = new ArrayList<>();
-    List<ByteBuffer> bitmapList = new ArrayList<>();
-
-    boolean hasTimestamp = stream.getHeader().hasKey();
-    while (stream.hasNext()) {
-      Row row = stream.next();
-
-      Object[] rowValues = row.getValues();
-      valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-      Bitmap bitmap = new Bitmap(rowValues.length);
-      for (int i = 0; i < rowValues.length; i++) {
-        if (rowValues[i] != null) {
-          bitmap.mark(i);
-        }
-      }
-      bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-
-      if (hasTimestamp) {
-        timestampList.add(row.getKey());
-      }
-    }
-
-    if (valuesList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx, paths);
-      return;
-    }
-
-    Status status = RpcUtils.SUCCESS;
-    if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
-      status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
-      status.setMessage(ctx.getWarningMsg());
-    }
-    result = new Result(status);
-    if (timestampList.size() != 0) {
-      Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
-      result.setKeys(timestamps);
-    }
-    result.setValuesList(valuesList);
-    result.setBitmapList(bitmapList);
-    result.setPaths(paths);
-    result.setTagsList(tagsList);
-    result.setDataTypes(types);
-    ctx.setResult(result);
-
-    stream.close();
+    // TODO: need to be refactored
+    throw new UnsupportedOperationException("Not implemented yet");
+    //    Result result = null;
+    //    if (ctx.isUseStream()) {
+    //      Status status = RpcUtils.SUCCESS;
+    //      if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
+    //        status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
+    //        status.setMessage(ctx.getWarningMsg());
+    //      }
+    //      result = new Result(status);
+    //      result.setResultStream(stream);
+    //      ctx.setResult(result);
+    //      return;
+    //    }
+    //
+    //    if (stream == null) {
+    //      setEmptyQueryResp(ctx, new ArrayList<>());
+    //      return;
+    //    }
+    //
+    //    List<String> paths = new ArrayList<>();
+    //    List<Map<String, String>> tagsList = new ArrayList<>();
+    //    List<DataType> types = new ArrayList<>();
+    //    stream
+    //        .getHeader()
+    //        .getFields()
+    //        .forEach(
+    //            field -> {
+    //              paths.add(field.getFullName());
+    //              types.add(field.getType());
+    //              if (field.getTags() == null) {
+    //                tagsList.add(new HashMap<>());
+    //              } else {
+    //                tagsList.add(field.getTags());
+    //              }
+    //            });
+    //
+    //    List<Long> timestampList = new ArrayList<>();
+    //    List<ByteBuffer> valuesList = new ArrayList<>();
+    //    List<ByteBuffer> bitmapList = new ArrayList<>();
+    //
+    //    boolean hasTimestamp = stream.getHeader().hasKey();
+    //    while (stream.hasNext()) {
+    //      Row row = stream.next();
+    //
+    //      Object[] rowValues = row.getValues();
+    //      valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
+    //
+    //      Bitmap bitmap = new Bitmap(rowValues.length);
+    //      for (int i = 0; i < rowValues.length; i++) {
+    //        if (rowValues[i] != null) {
+    //          bitmap.mark(i);
+    //        }
+    //      }
+    //      bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
+    //
+    //      if (hasTimestamp) {
+    //        timestampList.add(row.getKey());
+    //      }
+    //    }
+    //
+    //    if (valuesList.isEmpty()) { // empty result
+    //      setEmptyQueryResp(ctx, paths);
+    //      return;
+    //    }
+    //
+    //    Status status = RpcUtils.SUCCESS;
+    //    if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
+    //      status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
+    //      status.setMessage(ctx.getWarningMsg());
+    //    }
+    //    result = new Result(status);
+    //    if (timestampList.size() != 0) {
+    //      Long[] timestamps = timestampList.toArray(new Long[timestampList.size()]);
+    //      result.setKeys(timestamps);
+    //    }
+    //    result.setValuesList(valuesList);
+    //    result.setBitmapList(bitmapList);
+    //    result.setPaths(paths);
+    //    result.setTagsList(tagsList);
+    //    result.setDataTypes(types);
+    //    ctx.setResult(result);
+    //
+    //    stream.close();
   }
 
   private void setShowTSRowStreamResult(RequestContext ctx, RowStream stream)

@@ -19,20 +19,16 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.OperatorMemoryExecutorFactory;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
-import cn.edu.tsinghua.iginx.engine.shared.operator.type.OperatorType;
 import java.util.List;
+import javax.annotation.WillClose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
+public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(UnaryMemoryPhysicalTask.class);
 
@@ -53,32 +49,17 @@ public class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
   }
 
   @Override
-  public TaskExecuteResult execute() {
-    TaskExecuteResult parentResult = parentTask.getResult();
-    if (parentResult == null) {
-      return new TaskExecuteResult(
-          new PhysicalException("unexpected parent task execute result for " + this + ": null"));
-    }
-    if (parentResult.getException() != null) {
-      return parentResult;
-    }
-    List<Operator> operators = getOperators();
-    RowStream stream = parentResult.getRowStream();
-    OperatorMemoryExecutor executor =
-        OperatorMemoryExecutorFactory.getInstance().getMemoryExecutor();
-    try {
-      for (Operator op : operators) {
-        if (!OperatorType.isUnaryOperator(op.getType())) {
-          throw new UnexpectedOperatorException("unexpected operator " + op + " in unary task");
-        }
-        stream = executor.executeUnaryOperator((UnaryOperator) op, stream, getContext());
-      }
+  public TaskResult execute() {
+    try (TaskResult parentResult = parentTask.getResult()) {
+      BatchStream stream = parentResult.unwrap();
+      BatchStream result = compute(stream);
+      return new TaskResult(result);
     } catch (PhysicalException e) {
-      LOGGER.error("encounter error when execute operator in memory: ", e);
-      return new TaskExecuteResult(e);
+      return new TaskResult(e);
     }
-    return new TaskExecuteResult(stream);
   }
+
+  protected abstract BatchStream compute(@WillClose BatchStream previous) throws PhysicalException;
 
   @Override
   public boolean notifyParentReady() {

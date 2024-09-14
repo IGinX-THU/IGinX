@@ -18,8 +18,12 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -36,11 +40,9 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
   private final List<Operator> operators;
   private final CountDownLatch resultLatch = new CountDownLatch(1);
   private PhysicalTask followerTask;
-  private TaskExecuteResult result;
+  private TaskResult result;
 
-  private int affectRows = 0;
-
-  private long span = 0;
+  private final TaskMetrics metrics = new TaskMetrics();
 
   public AbstractPhysicalTask(TaskType type, List<Operator> operators, RequestContext context) {
     this.type = type;
@@ -48,12 +50,9 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     this.context = context;
   }
 
+  @Override
   public RequestContext getContext() {
     return context;
-  }
-
-  public long getSessionId() {
-    return context.getSessionId();
   }
 
   @Override
@@ -76,8 +75,12 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     this.followerTask = task;
   }
 
+  public TaskMetrics getMetrics() {
+    return metrics;
+  }
+
   @Override
-  public TaskExecuteResult getResult() {
+  public TaskResult getResult() {
     try {
       this.resultLatch.await();
     } catch (InterruptedException e) {
@@ -87,25 +90,25 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
   }
 
   @Override
-  public void setResult(TaskExecuteResult result) {
+  public void setResult(TaskResult result) {
+    Objects.requireNonNull(result);
     this.result = result;
     this.resultLatch.countDown();
-    this.affectRows = result.getAffectRows();
   }
 
-  @Override
-  public long getSpan() {
-    return span;
-  }
-
-  @Override
-  public void setSpan(long span) {
-    this.span = span;
-  }
-
-  @Override
-  public int getAffectedRows() {
-    return affectRows;
+  @Deprecated
+  public void setResult(TaskExecuteResult result) {
+    if (result == null) {
+      setResult(new TaskResult());
+    } else if (result.getException() != null) {
+      setResult(new TaskResult(result.getException()));
+    } else if (result.getRowStream() != null) {
+      RowStream rowStream = result.getRowStream();
+      BatchStream batchStream = BatchStreams.wrap(getContext().getAllocator(), rowStream);
+      setResult(new TaskResult(batchStream));
+    } else {
+      setResult(new TaskResult());
+    }
   }
 
   @Override
