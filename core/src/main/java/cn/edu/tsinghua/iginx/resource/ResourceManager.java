@@ -20,8 +20,12 @@ package cn.edu.tsinghua.iginx.resource;
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
+import cn.edu.tsinghua.iginx.resource.exception.ResourceException;
 import cn.edu.tsinghua.iginx.resource.system.DefaultSystemMetricsService;
 import cn.edu.tsinghua.iginx.resource.system.SystemMetricsService;
+import cn.edu.tsinghua.iginx.utils.RpcUtils;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,6 +40,8 @@ public class ResourceManager {
   private final double systemMemoryThreshold;
 
   private final double systemCpuThreshold;
+
+  private final RootAllocator allocator = new RootAllocator(Long.MAX_VALUE);
 
   private ResourceManager() {
     Config config = ConfigDescriptor.getInstance().getConfig();
@@ -57,6 +63,16 @@ public class ResourceManager {
     return heapMemoryOverwhelmed()
         || systemMetrics.getRecentCpuUsage() > systemCpuThreshold
         || systemMetrics.getRecentMemoryUsage() > systemMemoryThreshold;
+  }
+
+  public ResourceSet setup(RequestContext ctx) throws ResourceException {
+    if (reject(ctx)) {
+      throw new ResourceException(RpcUtils.SERVICE_UNAVAILABLE);
+    }
+    String name = String.format("request-%d", ctx.getId());
+    BufferAllocator allocator = this.allocator.newChildAllocator(name, 0, Long.MAX_VALUE);
+    ctx.setAllocator(allocator);
+    return new ResourceSet(allocator);
   }
 
   private boolean heapMemoryOverwhelmed() {

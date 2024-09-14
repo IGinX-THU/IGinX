@@ -57,6 +57,8 @@ import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.resource.ResourceManager;
+import cn.edu.tsinghua.iginx.resource.ResourceSet;
+import cn.edu.tsinghua.iginx.resource.exception.ResourceException;
 import cn.edu.tsinghua.iginx.sql.exception.SQLParserException;
 import cn.edu.tsinghua.iginx.sql.statement.*;
 import cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement;
@@ -238,17 +240,17 @@ public class StatementExecutor {
   }
 
   public void execute(RequestContext ctx) {
-    if (config.isEnableMemoryControl() && resourceManager.reject(ctx)) {
-      ctx.setResult(new Result(RpcUtils.SERVICE_UNAVAILABLE));
-      return;
+    try (ResourceSet holder = resourceManager.setup(ctx)) {
+      before(ctx, preExecuteProcessors);
+      if (ctx.isFromSQL()) {
+        executeSQL(ctx);
+      } else {
+        executeStatement(ctx);
+      }
+      after(ctx, postExecuteProcessors);
+    } catch (ResourceException e) {
+      ctx.setResult(new Result(e.getStatus()));
     }
-    before(ctx, preExecuteProcessors);
-    if (ctx.isFromSQL()) {
-      executeSQL(ctx);
-    } else {
-      executeStatement(ctx);
-    }
-    after(ctx, postExecuteProcessors);
   }
 
   public void executeSQL(RequestContext ctx) {
