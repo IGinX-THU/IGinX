@@ -71,6 +71,9 @@ public class Constant {
   public static final List<String> READ_ONLY_PATH_LIST =
       Arrays.asList("tm.wf05.wt01.status", "tm.wf05.wt01.temperature");
 
+  public static final List<String> READ_ONLY_FLOAT_PATH_LIST =
+      Collections.singletonList("tm.wf05.wt02.float");
+
   public static final List<String> READ_ONLY_EXTEND_PATH_LIST =
       Arrays.asList("a.a.c.status", "a.a.c.temperature");
 
@@ -114,6 +117,9 @@ public class Constant {
 
   public static List<List<Object>> READ_ONLY_VALUES_LIST =
       Arrays.asList(Arrays.asList(55555555L, 10012.01), Arrays.asList(66666666L, 99123.99));
+
+  public static List<List<Object>> READ_ONLY_FLOAT_VALUES_LIST =
+      Arrays.asList(Collections.singletonList(22.33F), Collections.singletonList(44.55F));
 
   public static List<List<Object>> READ_ONLY_EXTEND_VALUES_LIST =
       Collections.singletonList(Arrays.asList(9999999L, 152346.1));
