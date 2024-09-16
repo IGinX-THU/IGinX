@@ -285,7 +285,7 @@ def load_largecsv_and_export(session: Session, csv_path, out_file_path="csv_outf
 
 
 def add_storage_engine(session: Session, ip: str = "127.0.0.1", port: int = 6668,
-                       type: int = StorageEngineType.filesystem,
+                       type: int = StorageEngineType.filestore,
                        extra_params=None, dummy_path=None):
     if extra_params is None:
         extra_params = {

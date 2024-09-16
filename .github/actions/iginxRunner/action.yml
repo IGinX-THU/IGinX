@@ -13,6 +13,7 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
+        # TODO: use iginx binaries in assembly rather than core
         - if: inputs.if-test-udf=='true'
           name: Test UDF Path
           shell: bash

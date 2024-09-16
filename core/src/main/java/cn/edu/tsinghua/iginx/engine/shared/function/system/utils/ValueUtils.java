@@ -22,6 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.math.BigDecimal;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -53,7 +54,8 @@ public class ValueUtils {
         dVal = value.getLongV().doubleValue();
         break;
       case FLOAT:
-        dVal = value.getFloatV().doubleValue();
+        BigDecimal bd = new BigDecimal(value.getFloatV().toString());
+        dVal = bd.doubleValue();
         break;
       case DOUBLE:
         dVal = value.getDoubleV();
