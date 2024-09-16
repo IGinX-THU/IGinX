@@ -71,6 +71,10 @@ public class SubQueryFromPart implements FromPart {
 
   @Override
   public boolean hasSinglePrefix() {
+    if (!subQuery.isSimpleQuery()) {
+      return false;
+    }
+
     if (hasAlias()) {
       return true;
     }
