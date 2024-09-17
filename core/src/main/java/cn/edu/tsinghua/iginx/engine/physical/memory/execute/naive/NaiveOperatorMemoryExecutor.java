@@ -200,7 +200,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
       case Empty:
         return executeProjectFromOperator(project, table);
       case Constant:
-        ConstantSource constantSource = (ConstantSource) project.getSource();
+        ConstantSource constantSource = (ConstantSource) source;
         return new Table(RowUtils.buildConstRow(constantSource.getExpressionList()));
       default:
         throw new PhysicalException(
