@@ -31,10 +31,12 @@ public class PooledTTransport extends ForwardTTransport {
 
   @Override
   public void close() {
-    returnToPool();
+    if (isOpen()) {
+      returnToPool();
+    }
   }
 
-  void destroy() {
+  public void destroy() {
     super.close();
   }
 

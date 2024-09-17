@@ -48,8 +48,7 @@ public class WriteBatches {
     public ChunkSnapshotBuilder(ColumnKey columnKey, DataType type, BufferAllocator allocator) {
       this.keyVector = ArrowVectors.key(allocator);
       Types.MinorType minorType = ArrowTypes.minorTypeOf(type);
-      this.valueVector =
-          minorType.getNewVector(ArrowFields.of(false, columnKey, type), allocator, null);
+      this.valueVector = minorType.getNewVector(ArrowFields.of(columnKey, type), allocator, null);
       this.valueWriter = minorType.getNewFieldWriter(valueVector);
       switch (type) {
         case BOOLEAN:

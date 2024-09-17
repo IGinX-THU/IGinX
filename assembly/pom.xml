@@ -44,7 +44,7 @@
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>filesystem</artifactId>
+            <artifactId>filestore</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
@@ -57,10 +57,6 @@
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>mongodb</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>parquet</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
@@ -179,8 +175,8 @@
                                     <value>#storageEngineList=127.0.0.1#6667#iotdb</value>
                                 </replacement>
                                 <replacement>
-                                    <token>#storageEngineList=127.0.0.1#6667#parquet.*</token>
-                                    <value>storageEngineList=127.0.0.1#6667#parquet#dir=parquetData#iginx_port=6888</value>
+                                    <token>#storageEngineList=127.0.0.1#6667#filestore.*</token>
+                                    <value>storageEngineList=127.0.0.1#6667#filestore#dir=data#iginx_port=6888</value>
                                 </replacement>
                                 <replacement>
                                     <token>UD[ATS]F,.*,.*,.*[.]py</token>

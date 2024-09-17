@@ -90,8 +90,6 @@ public class Chunk implements AutoCloseable {
       Preconditions.checkNotNull(keys);
       Preconditions.checkNotNull(values);
       Preconditions.checkArgument(keys.getValueCount() == values.getValueCount());
-      Preconditions.checkArgument(!keys.getField().isNullable());
-      Preconditions.checkArgument(!values.getField().isNullable());
 
       this.keys = keys;
       this.values = values;

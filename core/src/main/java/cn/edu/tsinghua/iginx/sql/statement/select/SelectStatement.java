@@ -138,6 +138,8 @@ public abstract class SelectStatement extends DataStatement {
 
   public abstract List<Pair<String, String>> getSubQueryAliasList(String alias);
 
+  public abstract boolean isSimpleQuery();
+
   public enum SelectStatementType {
     UNARY,
     BINARY

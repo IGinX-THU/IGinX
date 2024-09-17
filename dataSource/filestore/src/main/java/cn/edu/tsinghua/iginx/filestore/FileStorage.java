@@ -81,6 +81,8 @@ public class FileStorage implements IStorage {
 
   private final ExecutorService executor = Executors.newCachedThreadPool();
 
+  private final boolean isLegacyParquet;
+
   static {
     Collection<FileStructure> structures = FileStructureManager.getInstance().getAll();
     LOGGER.info("found file structures: {}", structures);
@@ -90,6 +92,12 @@ public class FileStorage implements IStorage {
     if (!meta.getStorageEngine().equals(StorageEngineType.filestore)) {
       throw new StorageInitializationException("unexpected database: " + meta.getStorageEngine());
     }
+
+    String dataStructPath =
+        String.join(".", FileStoreConfig.Fields.data, StorageConfig.Fields.struct);
+    isLegacyParquet =
+        LegacyParquet.NAME.equals(
+            meta.getExtraParams().getOrDefault(dataStructPath, LegacyParquet.NAME));
 
     InetSocketAddress address = new InetSocketAddress(meta.getIp(), meta.getPort());
     this.fileStoreConfig = toFileStoreConfig(meta);
@@ -201,9 +209,7 @@ public class FileStorage implements IStorage {
 
   @Override
   public boolean isSupportProjectWithSetTransform(SetTransform setTransform, DataArea dataArea) {
-    StorageConfig dataConfig = fileStoreConfig.getData();
-
-    if (!LegacyParquet.NAME.equals(dataConfig.getStruct())) {
+    if (!isLegacyParquet) {
       return false;
     }
 

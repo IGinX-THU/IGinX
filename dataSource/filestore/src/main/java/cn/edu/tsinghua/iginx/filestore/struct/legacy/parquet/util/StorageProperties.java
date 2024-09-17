@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.util;
 
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.lsm.buffer.chunk.IndexedChunk;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.lsm.buffer.chunk.IndexedChunkType;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.lsm.buffer.conflict.ConflictResolverType;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Optional;
@@ -32,6 +33,7 @@ public class StorageProperties {
   private final long writeBufferSize;
   private final int writeBufferChunkValuesMax;
   private final int writeBufferChunkValuesMin;
+  private final ConflictResolverType writeBufferConflictResolverType;
   private final IndexedChunkType writeBufferChunkType;
   private final Duration writeBufferTimeout;
   private final long writeBatchSize;
@@ -54,6 +56,7 @@ public class StorageProperties {
       int writeBufferPermits,
       int writeBufferChunkValuesMax,
       int writeBufferChunkValuesMin,
+      ConflictResolverType writeBufferConflictResolverType,
       IndexedChunkType writeBufferChunkType,
       Duration writeBufferTimeout,
       long writeBatchSize,
@@ -72,6 +75,7 @@ public class StorageProperties {
     this.writeBufferSize = writeBufferSize;
     this.writeBufferChunkValuesMax = writeBufferChunkValuesMax;
     this.writeBufferChunkValuesMin = writeBufferChunkValuesMin;
+    this.writeBufferConflictResolverType = writeBufferConflictResolverType;
     this.writeBufferChunkType = writeBufferChunkType;
     this.writeBufferTimeout = writeBufferTimeout;
     this.writeBatchSize = writeBatchSize;
@@ -133,6 +137,15 @@ public class StorageProperties {
    */
   public int getWriteBufferChunkValuesMin() {
     return writeBufferChunkValuesMin;
+  }
+
+  /**
+   * Get the write buffer conflict resolver type
+   *
+   * @return the write buffer conflict resolver type
+   */
+  public ConflictResolverType getWriteBufferConflictResolverType() {
+    return writeBufferConflictResolverType;
   }
 
   /**
@@ -297,6 +310,7 @@ public class StorageProperties {
     public static final String WRITE_BUFFER_PERMITS = "write.buffer.permits";
     public static final String WRITE_BUFFER_CHUNK_VALUES_MAX = "write.buffer.chunk.values.max";
     public static final String WRITE_BUFFER_CHUNK_VALUES_MIN = "write.buffer.chunk.values.min";
+    public static final String WRITE_BUFFER_CONFLICT_RESOLVER = "write.buffer.conflictResolver";
     public static final String WRITE_BUFFER_CHUNK_INDEX = "write.buffer.chunk.index";
     public static final String WRITE_BUFFER_TIMEOUT = "write.buffer.timeout";
     public static final String WRITE_BATCH_SIZE = "write.batch.size";
@@ -317,6 +331,7 @@ public class StorageProperties {
     private int writeBufferPermits = 2;
     private int writeBufferChunkValuesMax = BaseValueVector.INITIAL_VALUE_ALLOCATION;
     private int writeBufferChunkValuesMin = BaseValueVector.INITIAL_VALUE_ALLOCATION;
+    private ConflictResolverType writeBufferConflictResolverType = ConflictResolverType.NONE;
     private IndexedChunkType writeBufferChunkIndex = IndexedChunkType.NONE;
     private Duration writeBufferTimeout = Duration.ofSeconds(0);
     private long writeBatchSize = 1024 * 1024; // BYTE
@@ -391,6 +406,18 @@ public class StorageProperties {
     public Builder setWriteBufferChunkValuesMin(int writeBufferChunkValuesMin) {
       ParseUtils.checkPositive(writeBufferChunkValuesMin);
       this.writeBufferChunkValuesMin = writeBufferChunkValuesMin;
+      return this;
+    }
+
+    /**
+     * Set the write buffer conflict resolver type
+     *
+     * @param writeBufferConflictResolverType the write buffer conflict resolver type
+     * @return this builder
+     */
+    public Builder setWriteBufferConflictResolverType(String writeBufferConflictResolverType) {
+      this.writeBufferConflictResolverType =
+          ConflictResolverType.valueOf(writeBufferConflictResolverType);
       return this;
     }
 
@@ -575,6 +602,8 @@ public class StorageProperties {
           .ifPresent(this::setWriteBufferChunkValuesMax);
       ParseUtils.getOptionalInteger(properties, WRITE_BUFFER_CHUNK_VALUES_MIN)
           .ifPresent(this::setWriteBufferChunkValuesMin);
+      ParseUtils.getOptionalString(properties, WRITE_BUFFER_CONFLICT_RESOLVER)
+          .ifPresent(this::setWriteBufferConflictResolverType);
       ParseUtils.getOptionalString(properties, WRITE_BUFFER_CHUNK_INDEX)
           .ifPresent(this::setWriteBufferChunkIndex);
       ParseUtils.getOptionalDuration(properties, WRITE_BUFFER_TIMEOUT)
@@ -612,6 +641,7 @@ public class StorageProperties {
           writeBufferPermits,
           writeBufferChunkValuesMax,
           writeBufferChunkValuesMin,
+          writeBufferConflictResolverType,
           writeBufferChunkIndex,
           writeBufferTimeout,
           writeBatchSize,

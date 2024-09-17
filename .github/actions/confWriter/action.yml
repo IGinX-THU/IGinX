@@ -33,14 +33,14 @@ inputs:
 runs:
     using: "composite" # Mandatory parameter
     steps:
-        - if: inputs.DB-name=='FileStore' || inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
-          name: save config for FileSystem and Parquet
+        - if: inputs.DB-name=='FileStore'
+          name: save config for FileStore
           shell: bash
           run: |
               cp -f "${{ inputs.Root-Dir-Path }}/conf/config.properties" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties"
 
-        - if: inputs.DB-name=='FileStore' || inputs.DB-name=='FileSystem' || inputs.DB-name=='Parquet'
-          name: save config for FileSystem and Parquet
+        - if: inputs.DB-name=='FileStore'
+          name: save config for FileStore
           shell: bash
           run: |
               cp -f "${{ inputs.Root-Dir-Path }}/conf/config.properties" "${{ inputs.Root-Dir-Path }}/core/target/iginx-core-${VERSION}/conf/config.properties"

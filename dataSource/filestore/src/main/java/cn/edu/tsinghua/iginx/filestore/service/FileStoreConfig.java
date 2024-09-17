@@ -20,6 +20,8 @@ package cn.edu.tsinghua.iginx.filestore.service;
 import cn.edu.tsinghua.iginx.filestore.common.AbstractConfig;
 import cn.edu.tsinghua.iginx.filestore.service.rpc.client.ClientConfig;
 import cn.edu.tsinghua.iginx.filestore.service.storage.StorageConfig;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.filesystem.LegacyFilesystem;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.LegacyParquet;
 import com.typesafe.config.Config;
 import com.typesafe.config.Optional;
 import java.util.ArrayList;
@@ -27,11 +29,18 @@ import java.util.List;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.experimental.FieldNameConstants;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Data
 @EqualsAndHashCode(callSuper = true)
 @FieldNameConstants
 public class FileStoreConfig extends AbstractConfig {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(FileStoreConfig.class);
+
+  public static final String DEFAULT_DATA_STRUCT = LegacyParquet.NAME;
+  public static final String DEFAULT_DUMMY_STRUCT = LegacyFilesystem.NAME;
 
   boolean serve;
 
@@ -63,6 +72,17 @@ public class FileStoreConfig extends AbstractConfig {
   }
 
   public static FileStoreConfig of(Config config) {
-    return of(config, FileStoreConfig.class);
+    FileStoreConfig result = of(config, FileStoreConfig.class);
+
+    if (result.isServe()) {
+      LOGGER.debug("storage of {} is local, ignore config for remote", config);
+      result.setClient(null);
+    } else {
+      LOGGER.debug("storage of {} is remote, ignore config for local", config);
+      result.setData(null);
+      result.setDummy(null);
+    }
+
+    return result;
   }
 }

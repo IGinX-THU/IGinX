@@ -42,11 +42,18 @@
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>iotdb12</artifactId>
+            <artifactId>filestore</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>filesystem</artifactId>
+            <artifactId>filestore</artifactId>
+            <version>${project.version}</version>
+            <classifier>tests</classifier>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>cn.edu.tsinghua</groupId>
+            <artifactId>iotdb12</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
@@ -58,70 +65,11 @@
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>parquet</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
-            <artifactId>filestore</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cn.edu.tsinghua</groupId>
             <artifactId>relational</artifactId>
         </dependency>
         <dependency>
             <groupId>cn.edu.tsinghua</groupId>
             <artifactId>redis</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.apache.iotdb</groupId>
-            <artifactId>iotdb-session</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>com.influxdb</groupId>
-            <artifactId>influxdb-client-java</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>cn.edu.tsinghua.iginx</groupId>
-            <artifactId>parquet-file</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>io.etcd</groupId>
-            <artifactId>jetcd-core</artifactId>
-            <optional>true</optional>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-log4j12</artifactId>
-                </exclusion>
-                <exclusion>
-                    <groupId>log4j</groupId>
-                    <artifactId>log4j</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.postgresql</groupId>
-            <artifactId>postgresql</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>redis.clients</groupId>
-            <artifactId>jedis</artifactId>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.mongodb</groupId>
-            <artifactId>mongodb-driver</artifactId>
         </dependency>
     </dependencies>
 

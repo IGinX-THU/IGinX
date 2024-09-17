@@ -699,7 +699,7 @@ public class TransformIT {
       params.put("dummy_dir", "test/src/test/resources/downloads/pics");
       params.put("is_read_only", "true");
       params.put("has_data", "true");
-      session.addStorageEngine("127.0.0.1", 6660, StorageEngineType.filesystem, params);
+      session.addStorageEngine("127.0.0.1", 6660, StorageEngineType.filestore, params);
 
       String yamlFileName =
           OUTPUT_DIR_PREFIX + File.separator + "TransformBinaryExportToIginx.yaml";

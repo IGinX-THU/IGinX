@@ -379,6 +379,11 @@ public class UnarySelectStatement extends SelectStatement {
     this.groupByClause.setSlideDistance(slideDistance);
   }
 
+  @Override
+  public boolean isSimpleQuery() {
+    return groupByClause.getQueryType() == QueryType.SimpleQuery;
+  }
+
   public QueryType getQueryType() {
     return groupByClause.getQueryType();
   }
