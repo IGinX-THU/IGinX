@@ -17,20 +17,14 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.stream;
 
-import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils.combineMultipleColumns;
-
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
-import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
-import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
-import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -45,16 +39,18 @@ public class RowTransformLazyStream extends UnaryLazyStream {
   public RowTransformLazyStream(RowTransform rowTransform, RowStream stream) {
     super(stream);
     this.functionCallList = new ArrayList<>();
-    rowTransform.getFunctionCallList().forEach(
-        functionCall -> {
-          if (functionCall == null || functionCall.getFunction() == null) {
-            throw new IllegalArgumentException("function shouldn't be null");
-          }
-          if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
-            throw new IllegalArgumentException("function should be set mapping function");
-          }
-          this.functionCallList.add(functionCall);
-        });
+    rowTransform
+        .getFunctionCallList()
+        .forEach(
+            functionCall -> {
+              if (functionCall == null || functionCall.getFunction() == null) {
+                throw new IllegalArgumentException("function shouldn't be null");
+              }
+              if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
+                throw new IllegalArgumentException("function should be set mapping function");
+              }
+              this.functionCallList.add(functionCall);
+            });
   }
 
   @Override
