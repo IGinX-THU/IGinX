@@ -39,13 +39,19 @@ public class SetTransformLazyStream extends UnaryLazyStream {
 
   private Row nextRow;
 
-  private Map<List<String>, RowStream> distinctStreamMap; // 用于存储distinct处理过的stream，其中null指向原始stream
+  private final Map<List<String>, RowStream> rowTransformStreamMap; // 用于存储参数为表达式的stream
+
+  private final Map<List<String>, RowStream> distinctStreamMap; // 用于存储distinct处理过的stream
 
   private boolean hasConsumed = false;
 
   public SetTransformLazyStream(
-      SetTransform setTransform, Map<List<String>, RowStream> distinctStreamMap) {
-    super(distinctStreamMap.get(null));
+      SetTransform setTransform,
+      RowStream stream,
+      Map<List<String>, RowStream> rowTransformStreamMap,
+      Map<List<String>, RowStream> distinctStreamMap) {
+    super(stream);
+    this.rowTransformStreamMap = rowTransformStreamMap;
     this.distinctStreamMap = distinctStreamMap;
     this.functionCallList = setTransform.getFunctionCallList();
   }
@@ -77,6 +83,9 @@ public class SetTransformLazyStream extends UnaryLazyStream {
         FunctionParams params = functionCall.getParams();
         if (params.isDistinct()) {
           rowList.add(function.transform((Table) distinctStreamMap.get(params.getPaths()), params));
+        } else if (functionCall.isNeedPreRowTransform()) {
+          rowList.add(
+              function.transform((Table) rowTransformStreamMap.get(params.getPaths()), params));
         } else {
           rowList.add(function.transform((Table) stream, params));
         }
