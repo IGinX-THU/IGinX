@@ -18,6 +18,7 @@
 package cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.lsm.buffer;
 
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.lsm.buffer.chunk.Chunk;
+import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.lsm.buffer.conflict.ConflictResolver;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.lsm.table.MemoryTable;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.util.AreaSet;
 import cn.edu.tsinghua.iginx.filestore.struct.legacy.parquet.db.util.iterator.Scanner;
@@ -44,6 +45,7 @@ public class ActiveMemTable {
 
   private final Shared shared;
   private final BufferAllocator allocator;
+  private final ConflictResolver resolver;
 
   private long activeId = 0;
   private BufferAllocator activeAllocator = null;
@@ -53,6 +55,7 @@ public class ActiveMemTable {
   ActiveMemTable(Shared shared, BufferAllocator allocator) {
     this.shared = Preconditions.checkNotNull(shared);
     this.allocator = Preconditions.checkNotNull(allocator);
+    this.resolver = shared.getStorageProperties().getWriteBufferConflictResolverType().create();
   }
 
   public boolean isOverloaded() {
@@ -70,7 +73,7 @@ public class ActiveMemTable {
     switchTableLock.readLock().lock();
     try {
       createMemtableIfNotExist();
-      activeTable.store(data);
+      resolver.append(activeTable, data);
     } finally {
       switchTableLock.readLock().unlock();
     }
@@ -211,6 +214,7 @@ public class ActiveMemTable {
     flushLock.writeLock().lock();
     switchTableLock.writeLock().lock();
     try {
+      resolver.reset();
       if (activeTable != null) {
         activeTable.close();
         activeAllocator.close();

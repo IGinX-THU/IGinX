@@ -3037,6 +3037,21 @@ public class SQLSessionIT {
             + "+-----+----+\n"
             + "Total line number = 1\n";
     executor.executeAndCompare(query, expected);
+
+    query =
+        "select test1.d, sum(avg_a) from test1 join (select d, avg(a) as avg_a from test2 group by d) on test1.d = test2.d group by test1.d;";
+    expected =
+        "ResultSets:\n"
+            + "+-------+----------+\n"
+            + "|test1.d|sum(avg_a)|\n"
+            + "+-------+----------+\n"
+            + "|   val5|       2.0|\n"
+            + "|   val3|       2.0|\n"
+            + "|   val2|       4.0|\n"
+            + "|   val1|       4.0|\n"
+            + "+-------+----------+\n"
+            + "Total line number = 4\n";
+    executor.executeAndCompare(query, expected);
   }
 
   @Test

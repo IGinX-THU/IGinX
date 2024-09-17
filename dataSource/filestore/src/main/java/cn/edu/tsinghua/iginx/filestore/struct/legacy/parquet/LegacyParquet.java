@@ -28,9 +28,13 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @AutoService(FileStructure.class)
 public class LegacyParquet implements FileStructure {
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(LegacyParquet.class);
 
   public static final String NAME = "LegacyParquet";
 
@@ -63,6 +67,10 @@ public class LegacyParquet implements FileStructure {
     if (config.hasPath(StorageProperties.Builder.WRITE_BUFFER_CHUNK_VALUES_MIN)) {
       builder.setWriteBufferChunkValuesMin(
           config.getInt(StorageProperties.Builder.WRITE_BUFFER_CHUNK_VALUES_MIN));
+    }
+    if (config.hasPath(StorageProperties.Builder.WRITE_BUFFER_CONFLICT_RESOLVER)) {
+      builder.setWriteBufferConflictResolverType(
+          config.getString(StorageProperties.Builder.WRITE_BUFFER_CONFLICT_RESOLVER));
     }
     if (config.hasPath(StorageProperties.Builder.WRITE_BUFFER_CHUNK_INDEX)) {
       builder.setWriteBufferChunkIndex(
@@ -115,6 +123,9 @@ public class LegacyParquet implements FileStructure {
     }
 
     StorageProperties storageProperties = builder.build();
+
+    LOGGER.info("Create shared storage properties: {}", storageProperties);
+
     return Shared.of(storageProperties);
   }
 

@@ -152,6 +152,8 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|                         a.b.c.d.1\\txt|  BINARY|\n"
             + "|                             a.e.2\\txt|  BINARY|\n"
             + "|                           a.f.g.3\\txt|  BINARY|\n"
+            + "|                   a.floatTest\\parquet|  BINARY|\n"
+            + "|        a.floatTest\\parquet.floatValue|   FLOAT|\n"
             + "|               a.other.MT cars\\parquet|  BINARY|\n"
             + "|            a.other.MT cars\\parquet.am| INTEGER|\n"
             + "|          a.other.MT cars\\parquet.carb| INTEGER|\n"
@@ -180,7 +182,7 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "|           a.other.price\\parquet.price|    LONG|\n"
             + "|         a.other.price\\parquet.stories|    LONG|\n"
             + "+--------------------------------------+--------+\n"
-            + "Total line number = 36\n";
+            + "Total line number = 38\n";
     SQLTestTools.executeAndCompare(session, statement, expected);
   }
 
@@ -303,6 +305,30 @@ public class FileStoreCapacityExpansionIT extends BaseCapacityExpansionIT {
             + "| 48|                        1.5|\n"
             + "+---+---------------------------+\n"
             + "Total line number = 10\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    // test float value compare
+    statement = "select floatValue from `a.floatTest\\parquet` where floatValue >= 22.33;";
+    expect =
+        "ResultSets:\n"
+            + "+---+------------------------------+\n"
+            + "|key|a.floatTest\\parquet.floatValue|\n"
+            + "+---+------------------------------+\n"
+            + "|  0|                         22.33|\n"
+            + "|  1|                         44.55|\n"
+            + "+---+------------------------------+\n"
+            + "Total line number = 2\n";
+    SQLTestTools.executeAndCompare(session, statement, expect);
+
+    statement = "select floatValue from `a.floatTest\\parquet` where floatValue = 44.55;";
+    expect =
+        "ResultSets:\n"
+            + "+---+------------------------------+\n"
+            + "|key|a.floatTest\\parquet.floatValue|\n"
+            + "+---+------------------------------+\n"
+            + "|  1|                         44.55|\n"
+            + "+---+------------------------------+\n"
+            + "Total line number = 1\n";
     SQLTestTools.executeAndCompare(session, statement, expect);
   }
 }
