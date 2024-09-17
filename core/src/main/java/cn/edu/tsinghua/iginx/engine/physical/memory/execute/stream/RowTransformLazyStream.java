@@ -21,10 +21,13 @@ import static cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtil
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalTaskExecuteFailureException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.RowUtils;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.function.RowMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
 import cn.edu.tsinghua.iginx.utils.Pair;
@@ -33,9 +36,7 @@ import java.util.List;
 
 public class RowTransformLazyStream extends UnaryLazyStream {
 
-  private final RowTransform rowTransform;
-
-  private final List<Pair<RowMappingFunction, FunctionParams>> functionAndParamslist;
+  private final List<FunctionCall> functionCallList;
 
   private Row nextRow;
 
@@ -43,16 +44,17 @@ public class RowTransformLazyStream extends UnaryLazyStream {
 
   public RowTransformLazyStream(RowTransform rowTransform, RowStream stream) {
     super(stream);
-    this.rowTransform = rowTransform;
-    this.functionAndParamslist = new ArrayList<>();
-    rowTransform
-        .getFunctionCallList()
-        .forEach(
-            functionCall -> {
-              this.functionAndParamslist.add(
-                  new Pair<>(
-                      (RowMappingFunction) functionCall.getFunction(), functionCall.getParams()));
-            });
+    this.functionCallList = new ArrayList<>();
+    rowTransform.getFunctionCallList().forEach(
+        functionCall -> {
+          if (functionCall == null || functionCall.getFunction() == null) {
+            throw new IllegalArgumentException("function shouldn't be null");
+          }
+          if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
+            throw new IllegalArgumentException("function should be set mapping function");
+          }
+          this.functionCallList.add(functionCall);
+        });
   }
 
   @Override
@@ -68,33 +70,9 @@ public class RowTransformLazyStream extends UnaryLazyStream {
 
   private Row calculateNext() throws PhysicalException {
     while (stream.hasNext()) {
-      List<Row> columnList = new ArrayList<>();
-      functionAndParamslist.forEach(
-          pair -> {
-            RowMappingFunction function = pair.k;
-            FunctionParams params = pair.v;
-            Row column = null;
-            try {
-              // 分别计算每个表达式得到相应的结果
-              column = function.transform(stream.next(), params);
-            } catch (Exception e) {
-              try {
-                throw new PhysicalTaskExecuteFailureException(
-                    "encounter error when execute row mapping function "
-                        + function.getIdentifier()
-                        + ".",
-                    e);
-              } catch (PhysicalTaskExecuteFailureException ex) {
-                throw new RuntimeException(ex);
-              }
-            }
-            if (column != null) {
-              columnList.add(column);
-            }
-          });
-      // 如果计算结果都不为空，将计算结果合并成一行
-      if (columnList.size() == functionAndParamslist.size()) {
-        return combineMultipleColumns(columnList);
+      Row row = RowUtils.calRowTransform(stream.next(), functionCallList, false);
+      if (!row.equals(Row.EMPTY_ROW)) {
+        return row;
       }
     }
     return null;
