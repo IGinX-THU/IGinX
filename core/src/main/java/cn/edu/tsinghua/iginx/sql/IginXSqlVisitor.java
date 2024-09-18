@@ -1076,7 +1076,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
     int expectedColumnsSize =
         FunctionUtils.isSysFunc(funcName)
             ? FunctionUtils.getExpectedParamNum(funcName)
-            : 0; // TODO : UDF的期望列名参数个数？
+            : 1; // 目前，只把UDF常数参数中的第一个转化成常量列传入UDF，剩余其它常量参数依然是作为现有UDF的常量参数传进去
     while (iter.hasPrevious() && columns.size() > expectedColumnsSize) {
       Expression expression = iter.previous();
       if (!ExpressionUtils.isConstantArithmeticExpr(expression)) {
