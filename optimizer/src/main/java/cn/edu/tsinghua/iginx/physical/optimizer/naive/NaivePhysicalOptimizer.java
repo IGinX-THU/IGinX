@@ -18,6 +18,8 @@
 package cn.edu.tsinghua.iginx.physical.optimizer.naive;
 
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorType;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline.PipelineExecutor;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.PhysicalOptimizer;
 import cn.edu.tsinghua.iginx.engine.physical.optimizer.ReplicaDispatcher;
 import cn.edu.tsinghua.iginx.engine.physical.task.*;
@@ -29,11 +31,14 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
 public class NaivePhysicalOptimizer implements PhysicalOptimizer {
+
+  private final NaivePhysicalExecutorFactory executorFactory = new NaivePhysicalExecutorFactory();
 
   public static NaivePhysicalOptimizer getInstance() {
     return NaivePhysicalOptimizerHolder.INSTANCE;
@@ -57,7 +62,8 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     return NaiveReplicaDispatcher.getInstance();
   }
 
-  public void setRules(Collection<Rule> rules) {}
+  public void setRules(Collection<Rule> rules) {
+  }
 
   private PhysicalTask constructTask(Operator operator, RequestContext context) {
     if (OperatorType.isUnaryOperator(operator.getType())) {
@@ -93,28 +99,24 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
               return sourceTask;
           }
         }
-        throw new UnsupportedOperationException("Not implemented yet");
-//        List<Operator> operators = new ArrayList<>();
-//        operators.add(operator);
-
-//        PhysicalTask task = new UnaryMemoryPhysicalTask(operators, sourceTask, context);
-//        sourceTask.setFollowerTask(task);
-//        return task;
+        UnaryMemoryPhysicalTask task = constructUnaryMemoryTask((UnaryOperator) operator, sourceTask, context);
+        sourceTask.setFollowerTask(task);
+        return task;
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
       throw new UnsupportedOperationException("Not implemented yet");
-//      BinaryOperator binaryOperator = (BinaryOperator) operator;
-//      OperatorSource sourceA = (OperatorSource) binaryOperator.getSourceA();
-//      OperatorSource sourceB = (OperatorSource) binaryOperator.getSourceB();
-//      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
-//      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
-//      List<Operator> operators = new ArrayList<>();
-//      operators.add(operator);
-//      PhysicalTask task =
-//          new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB, context);
-//      sourceTaskA.setFollowerTask(task);
-//      sourceTaskB.setFollowerTask(task);
-//      return task;
+      //      BinaryOperator binaryOperator = (BinaryOperator) operator;
+      //      OperatorSource sourceA = (OperatorSource) binaryOperator.getSourceA();
+      //      OperatorSource sourceB = (OperatorSource) binaryOperator.getSourceB();
+      //      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
+      //      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
+      //      List<Operator> operators = new ArrayList<>();
+      //      operators.add(operator);
+      //      PhysicalTask task =
+      //          new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB, context);
+      //      sourceTaskA.setFollowerTask(task);
+      //      sourceTaskB.setFollowerTask(task);
+      //      return task;
     } else if (operator.getType().equals(OperatorType.ShowColumns)) {
       return new GlobalPhysicalTask(operator, context);
     } else {
@@ -150,10 +152,24 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     }
   }
 
+  private UnaryMemoryPhysicalTask constructUnaryMemoryTask(
+      UnaryOperator operator, PhysicalTask source, RequestContext context) {
+    ExecutorType executorType = executorFactory.getExecutorType(operator);
+    switch (executorType) {
+      case Pipeline:
+        PipelineExecutor pipelineExecutor = executorFactory.createPipelineExecutor(operator);
+        return new PipelineMemoryPhysicalTask(source, context, pipelineExecutor);
+
+      default:
+        throw new UnsupportedOperationException("Unsupported executor type: " + executorType);
+    }
+  }
+
   private static class NaivePhysicalOptimizerHolder {
 
     private static final NaivePhysicalOptimizer INSTANCE = new NaivePhysicalOptimizer();
 
-    private NaivePhysicalOptimizerHolder() {}
+    private NaivePhysicalOptimizerHolder() {
+    }
   }
 }

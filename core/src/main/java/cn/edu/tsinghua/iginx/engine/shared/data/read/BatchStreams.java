@@ -8,11 +8,11 @@ public class BatchStreams {
 
   public static BatchStream wrap(BufferAllocator allocator, RowStream rowStream) {
     throw new UnsupportedOperationException("Not implemented yet");
-//    return new RowStreamToBatchStreamWrapper(allocator, rowStream);
+    //    return new RowStreamToBatchStreamWrapper(allocator, rowStream);
   }
 
   public static BatchStream empty() {
     throw new UnsupportedOperationException("Not implemented yet");
-//    return new EmptyBatchStream();
+    //    return new EmptyBatchStream();
   }
 }

@@ -22,8 +22,7 @@ import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.task.visitor.TaskVisitor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
-import java.util.List;
+import java.util.Collections;
 import javax.annotation.WillClose;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,9 +33,8 @@ public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
 
   private PhysicalTask parentTask;
 
-  public UnaryMemoryPhysicalTask(
-      List<Operator> operators, PhysicalTask parentTask, RequestContext context) {
-    super(TaskType.UnaryMemory, operators, context);
+  public UnaryMemoryPhysicalTask(PhysicalTask parentTask, RequestContext context) {
+    super(TaskType.UnaryMemory, Collections.emptyList(), context);
     this.parentTask = parentTask;
   }
 
@@ -77,4 +75,7 @@ public abstract class UnaryMemoryPhysicalTask extends MemoryPhysicalTask {
     }
     visitor.leave();
   }
+
+  @Override
+  public abstract String getInfo();
 }

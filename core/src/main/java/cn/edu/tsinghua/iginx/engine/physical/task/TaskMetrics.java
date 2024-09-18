@@ -9,11 +9,11 @@ public class TaskMetrics {
   private final LongAdder affectRows = new LongAdder();
   private final LongAdder span = new LongAdder();
 
-  public void addAffectRows(long number) {
+  public void accumulateAffectRows(long number) {
     affectRows.add(number);
   }
 
-  public void addCpuTime(long ms) {
+  public void accumulateCpuTime(long ms) {
     this.span.add(ms);
   }
 
