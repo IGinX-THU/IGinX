@@ -18,8 +18,6 @@
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-
 import java.util.Objects;
 
 public abstract class PhysicalExecutor implements AutoCloseable {

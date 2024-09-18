@@ -17,16 +17,15 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import javax.annotation.WillCloseWhenClosed;
+import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.table.Table;
-
-import javax.annotation.WillCloseWhenClosed;
-import javax.annotation.WillNotClose;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
 
 public class Batch implements AutoCloseable {
 
