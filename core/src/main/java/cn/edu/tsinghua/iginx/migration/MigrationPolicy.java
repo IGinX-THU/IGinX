@@ -23,16 +23,6 @@ import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngine;
 import cn.edu.tsinghua.iginx.engine.physical.PhysicalEngineImpl;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Delete;
-import cn.edu.tsinghua.iginx.engine.shared.operator.Migration;
-import cn.edu.tsinghua.iginx.engine.shared.operator.ShowColumns;
-import cn.edu.tsinghua.iginx.engine.shared.source.FragmentSource;
-import cn.edu.tsinghua.iginx.engine.shared.source.GlobalSource;
 import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.*;
 import cn.edu.tsinghua.iginx.metadata.exception.MetaStorageException;
@@ -44,14 +34,11 @@ import cn.edu.tsinghua.iginx.policy.PolicyManager;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Queue;
 import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
 import java.util.concurrent.ExecutorService;
 import org.slf4j.Logger;
 
@@ -270,55 +257,56 @@ public abstract class MigrationPolicy {
       throws PhysicalException {
     // TODO: refactor
     throw new UnsupportedOperationException("Not implemented yet");
-//    // 分区不存在直接返回
-//    //    if (!DefaultMetaManager.getInstance()
-//    //        .checkFragmentExistenceByTimeInterval(fragmentMeta.getTsInterval())) {
-//    //      return;
-//    //    }
-//    try {
-//      logger.info("start to reshard timeseries by write");
-//      migrationLogger.logMigrationExecuteTaskStart(
-//          new MigrationExecuteTask(
-//              fragmentMeta,
-//              fragmentMeta.getMasterStorageUnitId(),
-//              0L,
-//              0L,
-//              MigrationExecuteType.RESHARD_TIME_SERIES));
-//
-//      Set<String> pathRegexSet = new HashSet<>();
-//      pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
-//      ShowColumns showColumns =
-//          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-//      BatchStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
-//      SortedSet<String> pathSet = new TreeSet<>();
-//      while (rowStream.hasNext()) {
-//        Row row = rowStream.next();
-//        String timeSeries = new String((byte[]) row.getValue(0));
-//        if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-//          pathSet.add(timeSeries);
-//        }
-//      }
-//      logger.info("start to add new fragment");
-//      String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
-//      logger.info("timeseries split middleTimeseries={}", middleTimeseries);
-//      ColumnsInterval sourceColumnsInterval =
-//          new ColumnsInterval(
-//              fragmentMeta.getColumnsInterval().getStartColumn(),
-//              fragmentMeta.getColumnsInterval().getEndColumn());
-//      FragmentMeta newFragment =
-//          new FragmentMeta(
-//              middleTimeseries,
-//              sourceColumnsInterval.getEndColumn(),
-//              fragmentMeta.getKeyInterval().getStartKey(),
-//              fragmentMeta.getKeyInterval().getEndKey(),
-//              fragmentMeta.getMasterStorageUnit());
-//      logger.info("timeseries split new fragment={}", newFragment);
-//      DefaultMetaManager.getInstance().addFragment(newFragment);
-//      logger.info("start to add old fragment");
-//      DefaultMetaManager.getInstance().endFragmentByColumnsInterval(fragmentMeta, middleTimeseries);
-//    } finally {
-//      migrationLogger.logMigrationExecuteTaskEnd();
-//    }
+    //    // 分区不存在直接返回
+    //    //    if (!DefaultMetaManager.getInstance()
+    //    //        .checkFragmentExistenceByTimeInterval(fragmentMeta.getTsInterval())) {
+    //    //      return;
+    //    //    }
+    //    try {
+    //      logger.info("start to reshard timeseries by write");
+    //      migrationLogger.logMigrationExecuteTaskStart(
+    //          new MigrationExecuteTask(
+    //              fragmentMeta,
+    //              fragmentMeta.getMasterStorageUnitId(),
+    //              0L,
+    //              0L,
+    //              MigrationExecuteType.RESHARD_TIME_SERIES));
+    //
+    //      Set<String> pathRegexSet = new HashSet<>();
+    //      pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
+    //      ShowColumns showColumns =
+    //          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+    //      BatchStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+    //      SortedSet<String> pathSet = new TreeSet<>();
+    //      while (rowStream.hasNext()) {
+    //        Row row = rowStream.next();
+    //        String timeSeries = new String((byte[]) row.getValue(0));
+    //        if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+    //          pathSet.add(timeSeries);
+    //        }
+    //      }
+    //      logger.info("start to add new fragment");
+    //      String middleTimeseries = new ArrayList<>(pathSet).get(pathSet.size() / 2);
+    //      logger.info("timeseries split middleTimeseries={}", middleTimeseries);
+    //      ColumnsInterval sourceColumnsInterval =
+    //          new ColumnsInterval(
+    //              fragmentMeta.getColumnsInterval().getStartColumn(),
+    //              fragmentMeta.getColumnsInterval().getEndColumn());
+    //      FragmentMeta newFragment =
+    //          new FragmentMeta(
+    //              middleTimeseries,
+    //              sourceColumnsInterval.getEndColumn(),
+    //              fragmentMeta.getKeyInterval().getStartKey(),
+    //              fragmentMeta.getKeyInterval().getEndKey(),
+    //              fragmentMeta.getMasterStorageUnit());
+    //      logger.info("timeseries split new fragment={}", newFragment);
+    //      DefaultMetaManager.getInstance().addFragment(newFragment);
+    //      logger.info("start to add old fragment");
+    //      DefaultMetaManager.getInstance().endFragmentByColumnsInterval(fragmentMeta,
+    // middleTimeseries);
+    //    } finally {
+    //      migrationLogger.logMigrationExecuteTaskEnd();
+    //    }
   }
 
   /** 在时间序列层面将分片在同一个du下分为两块（已知时间序列） */
@@ -474,111 +462,113 @@ public abstract class MigrationPolicy {
   private void migrateData(long sourceStorageId, long targetStorageId, FragmentMeta fragmentMeta) {
     // TODO: refactor
     throw new UnsupportedOperationException("Not implemented yet");
-//    try {
-//      // 在目标节点创建新du
-//      StorageUnitMeta storageUnitMeta;
-//      try {
-//        storageUnitMeta =
-//            DefaultMetaManager.getInstance()
-//                .generateNewStorageUnitMetaByFragment(fragmentMeta, targetStorageId);
-//      } catch (MetaStorageException e) {
-//        logger.error("cannot create storage unit in target storage engine", e);
-//        throw new PhysicalException(e);
-//      }
-//      migrationLogger.logMigrationExecuteTaskStart(
-//          new MigrationExecuteTask(
-//              fragmentMeta,
-//              storageUnitMeta.getId(),
-//              sourceStorageId,
-//              targetStorageId,
-//              MigrationExecuteType.MIGRATION));
-//
-//      Set<String> pathRegexSet = new HashSet<>();
-//      pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
-//      ShowColumns showColumns =
-//          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-//      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
-//      SortedSet<String> pathSet = new TreeSet<>();
-//      rowStream
-//          .getHeader()
-//          .getFields()
-//          .forEach(
-//              field -> {
-//                String timeSeries = field.getName();
-//                if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-//                  pathSet.add(timeSeries);
-//                }
-//              });
-//      // 开始迁移数据
-//      Migration migration =
-//          new Migration(
-//              new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), storageUnitMeta);
-//      physicalEngine.execute(new RequestContext(), migration);
-//      // 迁移完开始删除原数据
-//
-//      List<String> paths = new ArrayList<>();
-//      paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
-//      List<KeyRange> keyRanges = new ArrayList<>();
-//      keyRanges.add(
-//          new KeyRange(
-//              fragmentMeta.getKeyInterval().getStartKey(),
-//              true,
-//              fragmentMeta.getKeyInterval().getEndKey(),
-//              false));
-//      Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
-//      physicalEngine.execute(new RequestContext(), delete);
-//    } catch (Exception e) {
-//      logger.error(
-//          "encounter error when migrate data from {} to {} ", sourceStorageId, targetStorageId, e);
-//    } finally {
-//      migrationLogger.logMigrationExecuteTaskEnd();
-//    }
+    //    try {
+    //      // 在目标节点创建新du
+    //      StorageUnitMeta storageUnitMeta;
+    //      try {
+    //        storageUnitMeta =
+    //            DefaultMetaManager.getInstance()
+    //                .generateNewStorageUnitMetaByFragment(fragmentMeta, targetStorageId);
+    //      } catch (MetaStorageException e) {
+    //        logger.error("cannot create storage unit in target storage engine", e);
+    //        throw new PhysicalException(e);
+    //      }
+    //      migrationLogger.logMigrationExecuteTaskStart(
+    //          new MigrationExecuteTask(
+    //              fragmentMeta,
+    //              storageUnitMeta.getId(),
+    //              sourceStorageId,
+    //              targetStorageId,
+    //              MigrationExecuteType.MIGRATION));
+    //
+    //      Set<String> pathRegexSet = new HashSet<>();
+    //      pathRegexSet.add(fragmentMeta.getMasterStorageUnitId());
+    //      ShowColumns showColumns =
+    //          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+    //      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+    //      SortedSet<String> pathSet = new TreeSet<>();
+    //      rowStream
+    //          .getHeader()
+    //          .getFields()
+    //          .forEach(
+    //              field -> {
+    //                String timeSeries = field.getName();
+    //                if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+    //                  pathSet.add(timeSeries);
+    //                }
+    //              });
+    //      // 开始迁移数据
+    //      Migration migration =
+    //          new Migration(
+    //              new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), storageUnitMeta);
+    //      physicalEngine.execute(new RequestContext(), migration);
+    //      // 迁移完开始删除原数据
+    //
+    //      List<String> paths = new ArrayList<>();
+    //      paths.add(fragmentMeta.getMasterStorageUnitId() + "*");
+    //      List<KeyRange> keyRanges = new ArrayList<>();
+    //      keyRanges.add(
+    //          new KeyRange(
+    //              fragmentMeta.getKeyInterval().getStartKey(),
+    //              true,
+    //              fragmentMeta.getKeyInterval().getEndKey(),
+    //              false));
+    //      Delete delete = new Delete(new FragmentSource(fragmentMeta), keyRanges, paths, null);
+    //      physicalEngine.execute(new RequestContext(), delete);
+    //    } catch (Exception e) {
+    //      logger.error(
+    //          "encounter error when migrate data from {} to {} ", sourceStorageId,
+    // targetStorageId, e);
+    //    } finally {
+    //      migrationLogger.logMigrationExecuteTaskEnd();
+    //    }
   }
 
   public boolean migrationData(String sourceStorageUnitId, String targetStorageUnitId) {
     // TODO: refactor
     throw new UnsupportedOperationException("Not implemented yet");
-//    try {
-//      List<FragmentMeta> fragmentMetas =
-//          DefaultMetaManager.getInstance().getFragmentsByStorageUnit(sourceStorageUnitId);
-//
-//      Set<String> pathRegexSet = new HashSet<>();
-//      ShowColumns showColumns =
-//          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
-//      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
-//      SortedSet<String> pathSet = new TreeSet<>();
-//      while (rowStream.hasNext()) {
-//        Row row = rowStream.next();
-//        String timeSeries = new String((byte[]) row.getValue(0));
-//        if (timeSeries.contains("{") && timeSeries.contains("}")) {
-//          timeSeries = timeSeries.split("\\{")[0];
-//        }
-//        logger.info("[migrationData] need migration path: {}", timeSeries);
-//        for (FragmentMeta fragmentMeta : fragmentMetas) {
-//          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
-//            pathSet.add(timeSeries);
-//            logger.info("[migrationData] path {} belong to {}", timeSeries, fragmentMeta);
-//          }
-//        }
-//      }
-//      StorageUnitMeta targetStorageUnit =
-//          DefaultMetaManager.getInstance().getStorageUnit(targetStorageUnitId);
-//      // 开始迁移数据
-//      for (FragmentMeta fragmentMeta : fragmentMetas) {
-//        Migration migration =
-//            new Migration(
-//                new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet), targetStorageUnit);
-//        physicalEngine.execute(new RequestContext(), migration);
-//      }
-//      return true;
-//    } catch (Exception e) {
-//      logger.error(
-//          "encounter error when migrate data from {} to {} ",
-//          sourceStorageUnitId,
-//          targetStorageUnitId,
-//          e);
-//    }
-//    return false;
+    //    try {
+    //      List<FragmentMeta> fragmentMetas =
+    //          DefaultMetaManager.getInstance().getFragmentsByStorageUnit(sourceStorageUnitId);
+    //
+    //      Set<String> pathRegexSet = new HashSet<>();
+    //      ShowColumns showColumns =
+    //          new ShowColumns(new GlobalSource(), pathRegexSet, null, Integer.MAX_VALUE, 0);
+    //      RowStream rowStream = physicalEngine.execute(new RequestContext(), showColumns);
+    //      SortedSet<String> pathSet = new TreeSet<>();
+    //      while (rowStream.hasNext()) {
+    //        Row row = rowStream.next();
+    //        String timeSeries = new String((byte[]) row.getValue(0));
+    //        if (timeSeries.contains("{") && timeSeries.contains("}")) {
+    //          timeSeries = timeSeries.split("\\{")[0];
+    //        }
+    //        logger.info("[migrationData] need migration path: {}", timeSeries);
+    //        for (FragmentMeta fragmentMeta : fragmentMetas) {
+    //          if (fragmentMeta.getColumnsInterval().isContain(timeSeries)) {
+    //            pathSet.add(timeSeries);
+    //            logger.info("[migrationData] path {} belong to {}", timeSeries, fragmentMeta);
+    //          }
+    //        }
+    //      }
+    //      StorageUnitMeta targetStorageUnit =
+    //          DefaultMetaManager.getInstance().getStorageUnit(targetStorageUnitId);
+    //      // 开始迁移数据
+    //      for (FragmentMeta fragmentMeta : fragmentMetas) {
+    //        Migration migration =
+    //            new Migration(
+    //                new GlobalSource(), fragmentMeta, new ArrayList<>(pathSet),
+    // targetStorageUnit);
+    //        physicalEngine.execute(new RequestContext(), migration);
+    //      }
+    //      return true;
+    //    } catch (Exception e) {
+    //      logger.error(
+    //          "encounter error when migrate data from {} to {} ",
+    //          sourceStorageUnitId,
+    //          targetStorageUnitId,
+    //          e);
+    //    }
+    //    return false;
   }
 
   private FragmentMeta reshardFragment(

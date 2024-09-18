@@ -31,7 +31,6 @@ import cn.edu.tsinghua.iginx.engine.shared.source.OperatorSource;
 import cn.edu.tsinghua.iginx.engine.shared.source.Source;
 import cn.edu.tsinghua.iginx.engine.shared.source.SourceType;
 import cn.edu.tsinghua.iginx.physical.optimizer.rule.Rule;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -62,8 +61,7 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
     return NaiveReplicaDispatcher.getInstance();
   }
 
-  public void setRules(Collection<Rule> rules) {
-  }
+  public void setRules(Collection<Rule> rules) {}
 
   private PhysicalTask constructTask(Operator operator, RequestContext context) {
     if (OperatorType.isUnaryOperator(operator.getType())) {
@@ -99,7 +97,8 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
               return sourceTask;
           }
         }
-        UnaryMemoryPhysicalTask task = constructUnaryMemoryTask((UnaryOperator) operator, sourceTask, context);
+        UnaryMemoryPhysicalTask task =
+            constructUnaryMemoryTask((UnaryOperator) operator, sourceTask, context);
         sourceTask.setFollowerTask(task);
         return task;
       }
@@ -169,7 +168,6 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
 
     private static final NaivePhysicalOptimizer INSTANCE = new NaivePhysicalOptimizer();
 
-    private NaivePhysicalOptimizerHolder() {
-    }
+    private NaivePhysicalOptimizerHolder() {}
   }
 }
