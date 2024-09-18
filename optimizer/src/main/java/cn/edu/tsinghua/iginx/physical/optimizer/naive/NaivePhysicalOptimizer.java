@@ -93,25 +93,28 @@ public class NaivePhysicalOptimizer implements PhysicalOptimizer {
               return sourceTask;
           }
         }
-        List<Operator> operators = new ArrayList<>();
-        operators.add(operator);
-        PhysicalTask task = new UnaryMemoryPhysicalTask(operators, sourceTask, context);
-        sourceTask.setFollowerTask(task);
-        return task;
+        throw new UnsupportedOperationException("Not implemented yet");
+//        List<Operator> operators = new ArrayList<>();
+//        operators.add(operator);
+
+//        PhysicalTask task = new UnaryMemoryPhysicalTask(operators, sourceTask, context);
+//        sourceTask.setFollowerTask(task);
+//        return task;
       }
     } else if (OperatorType.isBinaryOperator(operator.getType())) {
-      BinaryOperator binaryOperator = (BinaryOperator) operator;
-      OperatorSource sourceA = (OperatorSource) binaryOperator.getSourceA();
-      OperatorSource sourceB = (OperatorSource) binaryOperator.getSourceB();
-      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
-      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
-      List<Operator> operators = new ArrayList<>();
-      operators.add(operator);
-      PhysicalTask task =
-          new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB, context);
-      sourceTaskA.setFollowerTask(task);
-      sourceTaskB.setFollowerTask(task);
-      return task;
+      throw new UnsupportedOperationException("Not implemented yet");
+//      BinaryOperator binaryOperator = (BinaryOperator) operator;
+//      OperatorSource sourceA = (OperatorSource) binaryOperator.getSourceA();
+//      OperatorSource sourceB = (OperatorSource) binaryOperator.getSourceB();
+//      PhysicalTask sourceTaskA = constructTask(sourceA.getOperator(), context);
+//      PhysicalTask sourceTaskB = constructTask(sourceB.getOperator(), context);
+//      List<Operator> operators = new ArrayList<>();
+//      operators.add(operator);
+//      PhysicalTask task =
+//          new BinaryMemoryPhysicalTask(operators, sourceTaskA, sourceTaskB, context);
+//      sourceTaskA.setFollowerTask(task);
+//      sourceTaskB.setFollowerTask(task);
+//      return task;
     } else if (operator.getType().equals(OperatorType.ShowColumns)) {
       return new GlobalPhysicalTask(operator, context);
     } else {
