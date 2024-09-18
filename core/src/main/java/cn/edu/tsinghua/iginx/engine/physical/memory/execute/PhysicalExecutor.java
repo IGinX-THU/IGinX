@@ -17,7 +17,31 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
-public interface PhysicalExecutor {
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 
-  String getDescription();
+import java.util.Objects;
+
+public abstract class PhysicalExecutor implements AutoCloseable {
+
+  private ExecutorContext context = null;
+
+  protected void initialize(ExecutorContext context) throws PhysicalException {
+    if (this.context != null) {
+      throw new IllegalStateException("Already initialized");
+    }
+    this.context = Objects.requireNonNull(context);
+  }
+
+  protected ExecutorContext getContext() {
+    if (context == null) {
+      throw new IllegalStateException("Not initialized");
+    }
+    return context;
+  }
+
+  public abstract String getDescription();
+
+  @Override
+  public abstract void close() throws PhysicalException;
 }

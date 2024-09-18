@@ -33,11 +33,13 @@ import jdk.nashorn.internal.ir.annotations.Immutable;
 public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   private final PipelineExecutor executor;
+  private final ExecutorContext context;
 
   public PipelineMemoryPhysicalTask(
       PhysicalTask parentTask, RequestContext context, PipelineExecutor executor) {
     super(parentTask, context);
     this.executor = Objects.requireNonNull(executor);
+    this.context = new PhysicalTaskExecutorContext(this);
   }
 
   @Override
@@ -47,27 +49,32 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
   @Override
   protected BatchStream compute(@WillClose BatchStream previous) throws PhysicalException {
-    return new PipelineBatchStream(previous, executor, new PhysicalTaskExecutorContext(this));
+    try {
+      executor.internalInitialize(context, previous.getSchema());
+    } catch (Throwable e) {
+      try {
+        previous.close();
+      } catch (Throwable e2) {
+        e.addSuppressed(e2);
+      }
+      throw e;
+    }
+    return new PipelineBatchStream(previous, executor);
   }
 
   private static class PipelineBatchStream implements BatchStream {
 
     private final BatchStream source;
     private final PipelineExecutor executor;
-    private final ExecutorContext context;
 
-    public PipelineBatchStream(
-        @WillCloseWhenClosed BatchStream source,
-        PipelineExecutor executor,
-        ExecutorContext context) {
+    public PipelineBatchStream(@WillCloseWhenClosed BatchStream source, PipelineExecutor executor) {
       this.source = Objects.requireNonNull(source);
       this.executor = Objects.requireNonNull(executor);
-      this.context = Objects.requireNonNull(context);
     }
 
     @Override
-    public BatchSchema getSchema() throws PhysicalException {
-      return executor.getOutputSchema(context, source.getSchema());
+    public BatchSchema getSchema() {
+      return executor.getOutputSchema();
     }
 
     @Override
@@ -76,12 +83,15 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
       if (sourceNext == null) {
         return null;
       }
-      return executor.compute(context, sourceNext);
+      return executor.compute(sourceNext);
     }
 
     @Override
     public void close() throws PhysicalException {
-      source.close();
+      try (BatchStream source = this.source;
+          PipelineExecutor executor = this.executor) {
+        // Do nothing
+      }
     }
   }
 }

@@ -24,28 +24,40 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
-@Immutable
-public abstract class PipelineExecutor implements PhysicalExecutor {
+public abstract class PipelineExecutor extends PhysicalExecutor {
 
-  public abstract BatchSchema getOutputSchema(ExecutorContext context, BatchSchema inputSchema)
-      throws PhysicalException;
+  private BatchSchema outputSchema;
 
-  public Batch compute(ExecutorContext context, @WillClose Batch batch) throws PhysicalException {
+  public void internalInitialize(ExecutorContext context, BatchSchema inputSchema)
+      throws PhysicalException {
+    super.initialize(context);
+    outputSchema = internalInitialize(inputSchema);
+  }
+
+  public BatchSchema getOutputSchema() {
+    if (outputSchema == null) {
+      throw new IllegalStateException("Not initialized");
+    }
+    return outputSchema;
+  }
+
+  public Batch compute(@WillClose Batch batch) throws PhysicalException {
     try {
       long start = System.currentTimeMillis();
-      Batch producedBatch = computeWithoutTimer(context, batch);
+      Batch producedBatch = internalCompute(batch);
       long end = System.currentTimeMillis();
       long elapsed = end - start;
-      context.accumulateCpuTime(elapsed);
-      context.accumulateProducedRows(producedBatch.getRowCount());
+      getContext().accumulateCpuTime(elapsed);
+      getContext().accumulateProducedRows(producedBatch.getRowCount());
       return producedBatch;
     } finally {
       batch.close();
     }
   }
 
-  protected abstract Batch computeWithoutTimer(ExecutorContext context, @WillNotClose Batch batch)
+  protected abstract BatchSchema internalInitialize(BatchSchema inputSchema)
       throws PhysicalException;
+
+  protected abstract Batch internalCompute(@WillNotClose Batch batch) throws PhysicalException;
 }

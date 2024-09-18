@@ -17,22 +17,25 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import javax.annotation.WillCloseWhenClosed;
-import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.table.Table;
 
+import javax.annotation.WillCloseWhenClosed;
+import javax.annotation.WillNotClose;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+
 public class Batch implements AutoCloseable {
 
   private final Table table;
+  private final transient BatchSchema schema;
 
   protected Batch(@WillCloseWhenClosed Table table) {
-    this.table = Objects.requireNonNull(table);
+    this.table = table;
+    this.schema = new BatchSchema(table.getSchema());
   }
 
   @Override
@@ -69,6 +72,10 @@ public class Batch implements AutoCloseable {
   public static Builder builder(
       BufferAllocator allocator, BatchSchema schema, int initialCapacity) {
     return new Builder(allocator, schema, initialCapacity);
+  }
+
+  public BatchSchema getSchema() {
+    return schema;
   }
 
   public static class Builder implements AutoCloseable {

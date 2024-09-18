@@ -17,7 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 
@@ -29,12 +29,15 @@ public class Projector extends PipelineExecutor {
   }
 
   @Override
-  public BatchSchema getOutputSchema(ExecutorContext context, BatchSchema inputSchema) {
+  public void close() throws PhysicalException {}
+
+  @Override
+  protected BatchSchema internalInitialize(BatchSchema inputSchema) throws PhysicalException {
     throw new UnsupportedOperationException("Not implemented yet");
   }
 
   @Override
-  protected Batch computeWithoutTimer(ExecutorContext context, Batch batch) {
+  protected Batch internalCompute(Batch batch) throws PhysicalException {
     throw new UnsupportedOperationException("Not implemented yet");
   }
 }
