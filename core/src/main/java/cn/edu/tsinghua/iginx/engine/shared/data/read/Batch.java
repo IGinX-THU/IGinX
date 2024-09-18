@@ -16,4 +16,8 @@ public class Batch implements AutoCloseable {
   public void close() {
     table.close();
   }
+
+  public long getRowCount() {
+    return table.getRowCount();
+  }
 }

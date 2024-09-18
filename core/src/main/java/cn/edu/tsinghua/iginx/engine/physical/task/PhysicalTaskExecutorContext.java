@@ -26,4 +26,9 @@ public class PhysicalTaskExecutorContext implements ExecutorContext {
   public void accumulateCpuTime(long millis) {
     task.getMetrics().accumulateCpuTime(millis);
   }
+
+  @Override
+  public void accumulateProducedRows(long rows) {
+    task.getMetrics().accumulateAffectRows(rows);
+  }
 }

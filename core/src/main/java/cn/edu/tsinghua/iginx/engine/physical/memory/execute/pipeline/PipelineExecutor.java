@@ -22,6 +22,7 @@ public abstract class PipelineExecutor implements PhysicalExecutor {
       long end = System.currentTimeMillis();
       long elapsed = end - start;
       context.accumulateCpuTime(elapsed);
+      context.accumulateProducedRows(producedBatch.getRowCount());
       return producedBatch;
     } finally {
       batch.close();

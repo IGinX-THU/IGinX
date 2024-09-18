@@ -9,4 +9,6 @@ public interface ExecutorContext {
   void addWarningMessage(String message);
 
   void accumulateCpuTime(long millis);
+
+  void accumulateProducedRows(long rows);
 }
