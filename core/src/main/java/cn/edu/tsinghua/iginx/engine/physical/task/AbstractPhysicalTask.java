@@ -104,7 +104,9 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
       setResult(new TaskResult(result.getException()));
     } else if (result.getRowStream() != null) {
       RowStream rowStream = result.getRowStream();
-      BatchStream batchStream = BatchStreams.wrap(getContext().getAllocator(), rowStream);
+      BatchStream batchStream =
+          BatchStreams.wrap(
+              getContext().getAllocator(), rowStream, getContext().getBatchRowCount());
       setResult(new TaskResult(batchStream));
     } else {
       setResult(new TaskResult());

@@ -15,17 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
+package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
-import org.apache.arrow.memory.BufferAllocator;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import java.util.Objects;
 
-public interface ExecutorContext {
+class EmptyBatchStream implements BatchStream {
 
-  BufferAllocator getAllocator();
+  private final BatchSchema schema;
 
-  void addWarningMessage(String message);
+  public EmptyBatchStream(BatchSchema schema) {
+    this.schema = Objects.requireNonNull(schema);
+  }
 
-  void accumulateCpuTime(long millis);
+  public EmptyBatchStream() {
+    this(BatchSchema.builder().build());
+  }
 
-  void accumulateProducedRows(long rows);
+  @Override
+  public BatchSchema getSchema() throws PhysicalException {
+    return schema;
+  }
+
+  @Override
+  public Batch getNext() throws PhysicalException {
+    return null;
+  }
+
+  @Override
+  public void close() {}
 }
