@@ -18,6 +18,7 @@
 
 package cn.edu.tsinghua.iginx.integration.expansion.filesystem;
 
+import static cn.edu.tsinghua.iginx.thrift.StorageEngineType.filesystem;
 import static org.junit.Assert.fail;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
@@ -27,7 +28,6 @@ import cn.edu.tsinghua.iginx.filesystem.struct.tree.FileTree;
 import cn.edu.tsinghua.iginx.integration.expansion.BaseCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.TempDummyDataSource;
-import cn.edu.tsinghua.iginx.thrift.StorageEngineType;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.StringJoiner;
@@ -41,8 +41,7 @@ public class FileSystemCapacityExpansionIT extends BaseCapacityExpansionIT {
   private static final Logger LOGGER = LoggerFactory.getLogger(FileSystemCapacityExpansionIT.class);
 
   public FileSystemCapacityExpansionIT() {
-    super(
-        StorageEngineType.filesystem, getAddStorageParams(), new FileSystemHistoryDataGenerator());
+    super(filesystem, getAddStorageParams(), new FileSystemHistoryDataGenerator());
   }
 
   private static String getAddStorageParams() {
