@@ -237,7 +237,7 @@ public class StoragePhysicalTaskExecutor {
                               LOGGER.error("Monitor catch error:", e);
                             }
                             long span = System.currentTimeMillis() - startTime;
-                            task.getMetrics().addCpuTime(span);
+                            task.getMetrics().accumulateCpuTime(span);
                             task.setResult(result);
                             if (task.getFollowerTask() != null
                                 && task.isSync()) { // 只有同步任务才会影响后续任务的执行
@@ -342,7 +342,7 @@ public class StoragePhysicalTaskExecutor {
         long startTime = System.currentTimeMillis();
         TaskExecuteResult result = executeShowColumns((ShowColumns) task.getOperator());
         long span = System.currentTimeMillis() - startTime;
-        task.getMetrics().addCpuTime(span);
+        task.getMetrics().accumulateCpuTime(span);
         task.setResult(result);
         if (task.getFollowerTask() != null) {
           MemoryPhysicalTask followerTask = (MemoryPhysicalTask) task.getFollowerTask();

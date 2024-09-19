@@ -15,26 +15,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
-package cn.edu.tsinghua.iginx.engine.physical.task;
-
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
-
-public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
-
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, context);
-  }
-
-  @Override
-  protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    return previous;
-  }
-
-  @Override
-  public String getInfo() {
-    return "CompletedFoldedPhysicalTask";
-  }
+public enum ExecutorType {
+  Pipeline,
 }

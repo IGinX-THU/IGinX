@@ -15,26 +15,37 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import java.util.Objects;
+import org.apache.arrow.memory.BufferAllocator;
 
-public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
+public class PhysicalTaskExecutorContext implements ExecutorContext {
 
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, context);
+  private final PhysicalTask task;
+
+  public PhysicalTaskExecutorContext(PhysicalTask task) {
+    this.task = Objects.requireNonNull(task);
   }
 
   @Override
-  protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    return previous;
+  public BufferAllocator getAllocator() {
+    return task.getContext().getAllocator();
   }
 
   @Override
-  public String getInfo() {
-    return "CompletedFoldedPhysicalTask";
+  public void addWarningMessage(String message) {
+    task.getContext().addWarningMessage(message);
+  }
+
+  @Override
+  public void accumulateCpuTime(long millis) {
+    task.getMetrics().accumulateCpuTime(millis);
+  }
+
+  @Override
+  public void accumulateProducedRows(long rows) {
+    task.getMetrics().accumulateAffectRows(rows);
   }
 }

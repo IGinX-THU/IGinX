@@ -15,26 +15,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 
-public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
+public class Projector extends PipelineExecutor {
 
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, context);
+  @Override
+  public String getDescription() {
+    throw new UnsupportedOperationException("Not implemented yet");
   }
 
   @Override
-  protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    return previous;
+  public void close() throws PhysicalException {}
+
+  @Override
+  protected BatchSchema internalInitialize(BatchSchema inputSchema) throws PhysicalException {
+    throw new UnsupportedOperationException("Not implemented yet");
   }
 
   @Override
-  public String getInfo() {
-    return "CompletedFoldedPhysicalTask";
+  protected Batch internalCompute(Batch batch) throws PhysicalException {
+    throw new UnsupportedOperationException("Not implemented yet");
   }
 }

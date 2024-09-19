@@ -15,26 +15,33 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import java.util.Objects;
 
-public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
+class EmptyBatchStream implements BatchStream {
 
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, context);
+  private final BatchSchema schema;
+
+  public EmptyBatchStream(BatchSchema schema) {
+    this.schema = Objects.requireNonNull(schema);
+  }
+
+  public EmptyBatchStream() {
+    this(BatchSchema.builder().build());
   }
 
   @Override
-  protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    return previous;
+  public BatchSchema getSchema() throws PhysicalException {
+    return schema;
   }
 
   @Override
-  public String getInfo() {
-    return "CompletedFoldedPhysicalTask";
+  public Batch getNext() throws PhysicalException {
+    return null;
   }
+
+  @Override
+  public void close() {}
 }

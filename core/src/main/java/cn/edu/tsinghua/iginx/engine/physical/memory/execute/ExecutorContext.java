@@ -15,26 +15,17 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
-package cn.edu.tsinghua.iginx.engine.physical.task;
+import org.apache.arrow.memory.BufferAllocator;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+public interface ExecutorContext {
 
-public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
+  BufferAllocator getAllocator();
 
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, context);
-  }
+  void addWarningMessage(String message);
 
-  @Override
-  protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    return previous;
-  }
+  void accumulateCpuTime(long millis);
 
-  @Override
-  public String getInfo() {
-    return "CompletedFoldedPhysicalTask";
-  }
+  void accumulateProducedRows(long rows);
 }

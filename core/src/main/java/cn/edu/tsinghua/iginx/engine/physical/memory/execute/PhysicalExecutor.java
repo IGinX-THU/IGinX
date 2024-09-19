@@ -15,26 +15,31 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-package cn.edu.tsinghua.iginx.engine.physical.task;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
+import java.util.Objects;
 
-public class CompletedFoldedPhysicalTask extends UnaryMemoryPhysicalTask {
+public abstract class PhysicalExecutor implements AutoCloseable {
 
-  public CompletedFoldedPhysicalTask(PhysicalTask parentTask, RequestContext context) {
-    super(parentTask, context);
+  private ExecutorContext context = null;
+
+  protected void initialize(ExecutorContext context) throws PhysicalException {
+    if (this.context != null) {
+      throw new IllegalStateException("Already initialized");
+    }
+    this.context = Objects.requireNonNull(context);
   }
+
+  protected ExecutorContext getContext() {
+    if (context == null) {
+      throw new IllegalStateException("Not initialized");
+    }
+    return context;
+  }
+
+  public abstract String getDescription();
 
   @Override
-  protected BatchStream compute(BatchStream previous) throws PhysicalException {
-    return previous;
-  }
-
-  @Override
-  public String getInfo() {
-    return "CompletedFoldedPhysicalTask";
-  }
+  public abstract void close() throws PhysicalException;
 }

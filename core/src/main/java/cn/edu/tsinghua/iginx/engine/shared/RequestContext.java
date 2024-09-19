@@ -68,6 +68,15 @@ public class RequestContext implements TaskContext {
 
   private List<String> warningMsg = Collections.synchronizedList(new ArrayList<>());
 
+  // TODO: make this configurable
+
+  /**
+   * The maximum number of rows in a batch.
+   *
+   * @see org.apache.arrow.vector.BaseValueVector#INITIAL_VALUE_ALLOCATION
+   */
+  private volatile int batchRowCount = 1984;
+
   private void init() {
     this.id = SnowFlakeUtils.getInstance().nextId();
     this.startTime = System.currentTimeMillis();
