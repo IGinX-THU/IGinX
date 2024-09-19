@@ -58,7 +58,7 @@ class Tests:
             self.session.add_storage_engine(
                 "127.0.0.1",
                 6670,
-                StorageEngineType.filestore,
+                StorageEngineType.filesystem,
                 {
                     "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
@@ -78,7 +78,7 @@ class Tests:
             pq_engine = StorageEngine(
                 "127.0.0.1",
                 6670,
-                StorageEngineType.filestore,
+                StorageEngineType.filesystem,
                 {
                     "dummy_dir": f"{os.getcwd()}/pq/dummy",
                     "iginx_port": "6888",
@@ -89,7 +89,7 @@ class Tests:
             fs_engine = StorageEngine(
                 "127.0.0.1",
                 6671,
-                StorageEngineType.filestore,
+                StorageEngineType.filesystem,
                 {
                     "dummy_dir": f"{os.getcwd()}/fs/dummy",
                     "iginx_port": "6888",
