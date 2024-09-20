@@ -17,11 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.session;
 
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getLongArrayFromByteBuffer;
-import static cn.edu.tsinghua.iginx.utils.ByteUtils.getValuesFromBufferAndBitmaps;
-
 import cn.edu.tsinghua.iginx.constant.GlobalConstant;
 import cn.edu.tsinghua.iginx.thrift.*;
+import cn.edu.tsinghua.iginx.utils.ByteUtils;
 import cn.edu.tsinghua.iginx.utils.FormatUtils;
 import java.util.*;
 
@@ -134,15 +132,9 @@ public class SessionExecuteSqlResult {
     this.paths = resp.getPaths();
     this.dataTypeList = resp.getDataTypeList();
 
-    if (resp.keys != null) {
-      this.keys = getLongArrayFromByteBuffer(resp.keys);
-    }
-
     // parse values
-    if (resp.getQueryDataSet() != null) {
-      this.values =
-          getValuesFromBufferAndBitmaps(
-              resp.dataTypeList, resp.queryDataSet.valuesList, resp.queryDataSet.bitmapList);
+    if (resp.getQueryArrowData() != null) {
+      this.values = ByteUtils.getValuesFromArrowData(resp.getQueryArrowData());
     } else {
       this.values = new ArrayList<>();
     }
@@ -219,13 +211,31 @@ public class SessionExecuteSqlResult {
   private String buildQueryResult(boolean needFormatTime, String timePrecision) {
     StringBuilder builder = new StringBuilder();
     builder.append("ResultSets:").append("\n");
-
-    List<List<String>> cache =
-        cacheResult(needFormatTime, FormatUtils.DEFAULT_TIME_FORMAT, timePrecision);
+    List<List<String>> cache = cacheArrowResult(needFormatTime, timePrecision);
     builder.append(FormatUtils.formatResult(cache));
-
     builder.append(FormatUtils.formatCount(cache.size() - 1));
     return builder.toString();
+  }
+
+  private List<List<String>> cacheArrowResult(boolean needFormatTime, String timePrecision) {
+    // TODO: time format
+    List<List<String>> cache = new ArrayList<>();
+    for (List<Object> rowValues : values) {
+      List<String> rowCache = new ArrayList<>();
+      boolean isNull = true;
+      for (Object o : rowValues) {
+        String rowValue = FormatUtils.valueToString(o);
+        rowCache.add(rowValue);
+        if (!rowValue.equalsIgnoreCase("null")) {
+          isNull = false;
+        }
+      }
+      if (!isNull) {
+        cache.add(rowCache);
+      }
+    }
+    cache.add(0, paths);
+    return cache;
   }
 
   private List<List<String>> cacheResult(
