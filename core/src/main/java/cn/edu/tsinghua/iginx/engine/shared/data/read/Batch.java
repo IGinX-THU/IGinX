@@ -37,6 +37,11 @@ public class Batch implements AutoCloseable {
     this.schema = new BatchSchema(table.getSchema());
   }
 
+  public Batch(@WillCloseWhenClosed Table table, BatchSchema schema) {
+    this.table = table;
+    this.schema = schema;
+  }
+
   @Override
   public void close() {
     table.close();

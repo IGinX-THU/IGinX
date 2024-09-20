@@ -40,6 +40,27 @@ public class BatchSchema {
     this.schema = Objects.requireNonNull(schema);
   }
 
+  public boolean hasKey() {
+    return !schema.getFields().isEmpty()
+        && schema.getFields().get(0).getName().equals(Constants.KEY);
+  }
+
+  public Field getField(int index) {
+    return schema.getFields().get(index);
+  }
+
+  public String getFieldName(int index) {
+    return schema.getFields().get(index).getName();
+  }
+
+  public ArrowType getFieldArrowType(int index) {
+    return schema.getFields().get(index).getType();
+  }
+
+  public Map<String, String> getTag(int index) {
+    return schema.getFields().get(index).getMetadata();
+  }
+
   @Override
   public boolean equals(Object o) {
     if (this == o) return true;
@@ -134,5 +155,34 @@ public class BatchSchema {
 
   public static ArrowType toArrowType(DataType dataType) {
     return toMinorType(dataType).getType();
+  }
+
+  public static DataType toDataType(ArrowType arrowType) {
+    switch (arrowType.getTypeID()) {
+      case Bool:
+        return DataType.BOOLEAN;
+      case Int:
+        switch (((ArrowType.Int) arrowType).getBitWidth()) {
+          case 32:
+            return DataType.INTEGER;
+          case 64:
+            return DataType.LONG;
+          default:
+            throw new UnsupportedOperationException("Unsupported arrow type: " + arrowType);
+        }
+      case FloatingPoint:
+        switch (((ArrowType.FloatingPoint) arrowType).getPrecision()) {
+          case SINGLE:
+            return DataType.FLOAT;
+          case DOUBLE:
+            return DataType.DOUBLE;
+          default:
+            throw new UnsupportedOperationException("Unsupported arrow type: " + arrowType);
+        }
+      case Binary:
+        return DataType.BINARY;
+      default:
+        throw new UnsupportedOperationException("Unsupported arrow type: " + arrowType);
+    }
   }
 }

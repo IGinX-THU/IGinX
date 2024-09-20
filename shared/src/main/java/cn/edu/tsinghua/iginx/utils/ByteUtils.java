@@ -17,11 +17,19 @@
  */
 package cn.edu.tsinghua.iginx.utils;
 
+import cn.edu.tsinghua.iginx.exception.IginxRuntimeException;
 import cn.edu.tsinghua.iginx.exception.UnsupportedDataTypeException;
 import cn.edu.tsinghua.iginx.thrift.DataType;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
+import org.apache.arrow.vector.FieldVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.ipc.ArrowStreamReader;
 
 public class ByteUtils {
 
@@ -502,5 +510,31 @@ public class ByteUtils {
       default:
         throw new UnsupportedOperationException(dataType.toString());
     }
+  }
+
+  public static List<List<Object>> getValuesFromArrowData(List<ByteBuffer> dataList) {
+    List<List<Object>> ret = new ArrayList<>();
+    try (BufferAllocator allocator = new RootAllocator(Long.MAX_VALUE)) {
+      for (ByteBuffer data : dataList) {
+        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(data.array());
+            ArrowStreamReader reader = new ArrowStreamReader(byteArrayInputStream, allocator);
+            VectorSchemaRoot root = reader.getVectorSchemaRoot()) {
+          while (reader.loadNextBatch()) {
+            int rowCnt = root.getRowCount();
+            List<FieldVector> vectors = root.getFieldVectors();
+            for (int i = 0; i < rowCnt; i++) {
+              List<Object> row = new ArrayList<>();
+              for (FieldVector vector : vectors) {
+                row.add(vector.getObject(i));
+              }
+              ret.add(row);
+            }
+          }
+        } catch (IOException e) {
+          throw new IginxRuntimeException(e);
+        }
+      }
+    }
+    return ret;
   }
 }

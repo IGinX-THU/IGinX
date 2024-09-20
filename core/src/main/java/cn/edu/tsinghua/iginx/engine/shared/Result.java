@@ -19,11 +19,12 @@
 package cn.edu.tsinghua.iginx.engine.shared;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
-import cn.edu.tsinghua.iginx.engine.shared.file.CSVFile;
 import cn.edu.tsinghua.iginx.engine.shared.file.write.ExportCsv;
 import cn.edu.tsinghua.iginx.exception.StatusCode;
 import cn.edu.tsinghua.iginx.thrift.*;
@@ -33,6 +34,7 @@ import cn.edu.tsinghua.iginx.utils.RpcUtils;
 import java.nio.ByteBuffer;
 import java.util.*;
 import lombok.Data;
+import org.apache.arrow.vector.types.pojo.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +50,9 @@ public class Result {
   private Long[] keys;
   private List<ByteBuffer> valuesList;
   private List<ByteBuffer> bitmapList;
+  private List<ByteBuffer> dataList;
+
+  private BatchStream batchStream;
 
   private SqlType sqlType;
   private Long pointsNum;
@@ -171,16 +176,7 @@ public class Result {
     resp.setPaths(paths);
     resp.setTagsList(tagsList);
     resp.setDataTypeList(dataTypes);
-
-    if (valuesList != null) {
-      if (keys != null) {
-        ByteBuffer keyBuffer = ByteUtils.getByteBufferFromLongArray(keys);
-        resp.setKeys(keyBuffer);
-        resp.setQueryDataSet(new QueryDataSet(keyBuffer, valuesList, bitmapList));
-      } else {
-        resp.setQueryDataSet(new QueryDataSet(ByteBuffer.allocate(0), valuesList, bitmapList));
-      }
-    }
+    resp.setQueryArrowData(dataList);
 
     resp.setIginxInfos(iginxInfos);
     resp.setStorageEngineInfos(storageEngineInfos);
@@ -215,76 +211,70 @@ public class Result {
       List<String> paths = new ArrayList<>();
       List<Map<String, String>> tagsList = new ArrayList<>();
       List<DataType> types = new ArrayList<>();
-
-      Header header = resultStream.getHeader();
-
-      if (header.hasKey()) {
-        paths.add(Field.KEY.getFullName());
-        types.add(Field.KEY.getType());
-        tagsList.add(new HashMap<>());
-      }
-
-      resultStream
-          .getHeader()
+      Schema schema = batchStream.getSchema().raw();
+      schema
           .getFields()
           .forEach(
               field -> {
-                paths.add(field.getFullName());
-                types.add(field.getType());
-                if (field.getTags() == null) {
+                paths.add(field.getName());
+                if (field.getMetadata() == null) {
                   tagsList.add(new HashMap<>());
                 } else {
-                  tagsList.add(field.getTags());
+                  tagsList.add(field.getMetadata());
                 }
+                types.add(BatchSchema.toDataType(field.getType()));
               });
 
-      List<ByteBuffer> valuesList = new ArrayList<>();
-      List<ByteBuffer> bitmapList = new ArrayList<>();
-
-      int cnt = 0;
-      boolean hasKey = resultStream.getHeader().hasKey();
-      while (resultStream.hasNext() && cnt < fetchSize) {
-        Row row = resultStream.next();
-
-        Object[] rawValues = row.getValues();
-        Object[] rowValues = rawValues;
-        if (hasKey) {
-          rowValues = new Object[rawValues.length + 1];
-          rowValues[0] = row.getKey();
-          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
-        }
-        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
-
-        Bitmap bitmap = new Bitmap(rowValues.length);
-        for (int i = 0; i < rowValues.length; i++) {
-          if (rowValues[i] != null) {
-            bitmap.mark(i);
-          }
-        }
-        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
-        cnt++;
-      }
-      resp.setColumns(paths);
-      resp.setTagsList(tagsList);
-      resp.setDataTypeList(types);
-      resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
-
-      // OUTFILE AS STREAM
-      resp.setExportStreamDir(exportByteStreamDir);
-
-      // OUTFILE AS CSV
-      if (exportCsv != null) {
-        CSVFile csvFile = exportCsv.getCsvFile();
-        resp.setExportCSV(
-            new ExportCSV(
-                exportCsv.getFilepath(),
-                exportCsv.isExportHeader(),
-                csvFile.getDelimiter(),
-                csvFile.isOptionallyQuote(),
-                (short) csvFile.getQuote(),
-                (short) csvFile.getEscaped(),
-                csvFile.getRecordSeparator()));
-      }
+      // TODO: need to be refactored
+      throw new UnsupportedOperationException("Not implemented yet");
+      //      List<ByteBuffer> valuesList = new ArrayList<>();
+      //      List<ByteBuffer> bitmapList = new ArrayList<>();
+      //
+      //      int cnt = 0;
+      //      boolean hasKey = resultStream.getHeader().hasKey();
+      //      while (resultStream.hasNext() && cnt < fetchSize) {
+      //        Row row = resultStream.next();
+      //
+      //        Object[] rawValues = row.getValues();
+      //        Object[] rowValues = rawValues;
+      //        if (hasKey) {
+      //          rowValues = new Object[rawValues.length + 1];
+      //          rowValues[0] = row.getKey();
+      //          System.arraycopy(rawValues, 0, rowValues, 1, rawValues.length);
+      //        }
+      //        valuesList.add(ByteUtils.getRowByteBuffer(rowValues, types));
+      //
+      //        Bitmap bitmap = new Bitmap(rowValues.length);
+      //        for (int i = 0; i < rowValues.length; i++) {
+      //          if (rowValues[i] != null) {
+      //            bitmap.mark(i);
+      //          }
+      //        }
+      //        bitmapList.add(ByteBuffer.wrap(bitmap.getBytes()));
+      //        cnt++;
+      //      }
+      //
+      //      resp.setColumns(paths);
+      //      resp.setTagsList(tagsList);
+      //      resp.setDataTypeList(types);
+      //      // resp.setQueryDataSet(new QueryDataSetV2(valuesList, bitmapList));
+      //
+      //      // OUTFILE AS STREAM
+      //      resp.setExportStreamDir(exportByteStreamDir);
+      //
+      //      // OUTFILE AS CSV
+      //      if (exportCsv != null) {
+      //        CSVFile csvFile = exportCsv.getCsvFile();
+      //        resp.setExportCSV(
+      //            new ExportCSV(
+      //                exportCsv.getFilepath(),
+      //                exportCsv.isExportHeader(),
+      //                csvFile.getDelimiter(),
+      //                csvFile.isOptionallyQuote(),
+      //                (short) csvFile.getQuote(),
+      //                (short) csvFile.getEscaped(),
+      //                csvFile.getRecordSeparator()));
+      //      }
     } catch (PhysicalException e) {
       LOGGER.error("unexpected error when load row stream: ", e);
       resp.setStatus(RpcUtils.FAILURE);

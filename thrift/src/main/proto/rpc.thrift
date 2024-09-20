@@ -399,6 +399,7 @@ struct ExecuteSqlResp {
     30: optional list<string> usernames
     31: optional list<UserType> userTypes
     32: optional list<set<AuthType>> auths
+    33: optional list<binary> queryArrowData
 }
 
 struct UpdateUserReq {
