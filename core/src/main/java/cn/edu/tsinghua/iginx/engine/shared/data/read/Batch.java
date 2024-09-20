@@ -17,9 +17,9 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 import javax.annotation.WillCloseWhenClosed;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
@@ -73,30 +73,34 @@ public class Batch implements AutoCloseable {
     return table.getRowCount();
   }
 
-  public static Builder builder(
-      BufferAllocator allocator, BatchSchema schema, int initialCapacity) {
-    return new Builder(allocator, schema, initialCapacity);
-  }
-
   public BatchSchema getSchema() {
     return schema;
   }
 
   public static class Builder implements AutoCloseable {
     private final VectorSchemaRoot root;
-    private final List<ColumnBuilder> fieldBuilders = new ArrayList<>();
+    private final List<ColumnBuilder> fieldBuilders;
 
-    Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema, int initialCapacity) {
+    public Builder(@WillNotClose BufferAllocator allocator, BatchSchema schema) {
       this.root = VectorSchemaRoot.create(schema.raw(), allocator);
-      for (FieldVector vector : root.getFieldVectors()) {
-        vector.setInitialCapacity(initialCapacity);
-        fieldBuilders.add(ColumnBuilder.create(vector));
-      }
+      this.fieldBuilders =
+          root.getFieldVectors().stream().map(ColumnBuilder::create).collect(Collectors.toList());
     }
 
     @Override
     public void close() {
       root.close();
+    }
+
+    public VectorSchemaRoot raw() {
+      return root;
+    }
+
+    public Builder setInitialCapacity(int initialCapacity) {
+      for (FieldVector vector : root.getFieldVectors()) {
+        vector.setInitialCapacity(initialCapacity);
+      }
+      return this;
     }
 
     public Builder appendRow(long key, Object... values) {

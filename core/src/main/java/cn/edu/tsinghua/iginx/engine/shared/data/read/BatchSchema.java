@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.annotation.Nullable;
 import org.apache.arrow.vector.types.Types;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
@@ -49,12 +50,16 @@ public class BatchSchema {
     return schema.getFields().get(index);
   }
 
-  public String getFieldName(int index) {
+  public String getName(int index) {
     return schema.getFields().get(index).getName();
   }
 
-  public ArrowType getFieldArrowType(int index) {
+  public ArrowType getArrowType(int index) {
     return schema.getFields().get(index).getType();
+  }
+
+  public DataType getDataType(int index) {
+    return toDataType(getArrowType(index));
   }
 
   public Map<String, String> getTag(int index) {
@@ -102,8 +107,10 @@ public class BatchSchema {
     }
 
     protected Builder addField(Field field) {
-      if (Objects.equals(field.getName(), KEY.getName())) {
-        throw new IllegalArgumentException("Field name cannot be duplicated with key field");
+      Objects.requireNonNull(field);
+      Objects.requireNonNull(field.getName());
+      if (field.getName().equals(Constants.KEY)) {
+        throw new IllegalStateException("Do not add key field manually");
       }
       fields.add(field);
       return this;
@@ -113,15 +120,19 @@ public class BatchSchema {
       return addField(new Field(name, type, null));
     }
 
-    public Builder addField(String name, ArrowType type, Map<String, String> tags) {
+    public Builder addField(String name, ArrowType type, @Nullable Map<String, String> tags) {
       return addField(name, new FieldType(true, type, null, tags));
+    }
+
+    public Builder addFieldWithName(Field field, String name) {
+      return addField(name, field.getFieldType());
     }
 
     public Builder addField(String name, ArrowType type) {
       return addField(name, type, null);
     }
 
-    public Builder addField(String name, DataType type, Map<String, String> tags) {
+    public Builder addField(String name, DataType type, @Nullable Map<String, String> tags) {
       return addField(name, toArrowType(type), tags);
     }
 

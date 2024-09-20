@@ -73,7 +73,8 @@ class RowStreamToBatchStreamWrapper implements BatchStream {
       return null;
     }
 
-    try (Batch.Builder builder = Batch.builder(allocator, getSchema(), batchSize)) {
+    try (Batch.Builder builder = new Batch.Builder(allocator, getSchema())) {
+      builder.setInitialCapacity(batchSize);
       Header header = rowStream.getHeader();
       int rowCount = 0;
       while (rowStream.hasNext() && rowCount < batchSize) {

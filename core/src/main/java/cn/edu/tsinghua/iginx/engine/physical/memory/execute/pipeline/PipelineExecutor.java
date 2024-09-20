@@ -20,6 +20,7 @@ package cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline;
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.PhysicalExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import javax.annotation.WillClose;
@@ -31,8 +32,10 @@ public abstract class PipelineExecutor extends PhysicalExecutor {
 
   public void internalInitialize(ExecutorContext context, BatchSchema inputSchema)
       throws PhysicalException {
-    super.initialize(context);
-    outputSchema = internalInitialize(inputSchema);
+    try (StopWatch watch = new StopWatch(getContext())) {
+      super.initialize(context);
+      outputSchema = internalInitialize(inputSchema);
+    }
   }
 
   public BatchSchema getOutputSchema() {
@@ -43,12 +46,8 @@ public abstract class PipelineExecutor extends PhysicalExecutor {
   }
 
   public Batch compute(@WillClose Batch batch) throws PhysicalException {
-    try {
-      long start = System.currentTimeMillis();
+    try (StopWatch watch = new StopWatch(getContext())) {
       Batch producedBatch = internalCompute(batch);
-      long end = System.currentTimeMillis();
-      long elapsed = end - start;
-      getContext().accumulateCpuTime(elapsed);
       getContext().accumulateProducedRows(producedBatch.getRowCount());
       return producedBatch;
     } finally {
