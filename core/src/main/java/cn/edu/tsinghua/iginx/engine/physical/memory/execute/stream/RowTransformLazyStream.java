@@ -47,7 +47,7 @@ public class RowTransformLazyStream extends UnaryLazyStream {
                 throw new IllegalArgumentException("function shouldn't be null");
               }
               if (functionCall.getFunction().getMappingType() != MappingType.RowMapping) {
-                throw new IllegalArgumentException("function should be set mapping function");
+                throw new IllegalArgumentException("function should be row mapping function");
               }
               this.functionCallList.add(functionCall);
             });

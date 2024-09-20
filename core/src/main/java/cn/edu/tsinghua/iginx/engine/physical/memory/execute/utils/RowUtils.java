@@ -1299,19 +1299,7 @@ public class RowUtils {
                 + " is not a mapping function");
       }
       MappingFunction function = (MappingFunction) functionCall.getFunction();
-
-      Table input;
-      if (functionCall.isNeedPreRowTransform()) {
-        List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
-        if (rowTransformMap.containsKey(params.getPaths())) {
-          input = rowTransformMap.get(params.getPaths());
-        } else {
-          input = RowUtils.calRowTransform(table, list);
-          rowTransformMap.put(params.getPaths(), input);
-        }
-      } else {
-        input = table;
-      }
+      Table input = preRowTransform(table, rowTransformMap, functionCall);
 
       try {
         Table functable = (Table) function.transform(input, params);
@@ -1343,5 +1331,23 @@ public class RowUtils {
     } else {
       return RowUtils.joinMultipleTablesByOrdinal(tableList);
     }
+  }
+
+  public static Table preRowTransform(
+      Table table, Map<List<String>, Table> rowTransformMap, FunctionCall functionCall)
+      throws PhysicalException {
+    if (!functionCall.isNeedPreRowTransform()) {
+      return table;
+    }
+    Table ret;
+    FunctionParams params = functionCall.getParams();
+    List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+    if (rowTransformMap.containsKey(params.getPaths())) {
+      ret = rowTransformMap.get(params.getPaths());
+    } else {
+      ret = RowUtils.calRowTransform(table, list);
+      rowTransformMap.put(params.getPaths(), ret);
+    }
+    return ret;
   }
 }
