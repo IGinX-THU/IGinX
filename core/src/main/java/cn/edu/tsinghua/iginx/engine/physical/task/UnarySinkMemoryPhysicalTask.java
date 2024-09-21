@@ -18,54 +18,51 @@
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import java.util.Objects;
-import javax.annotation.WillClose;
 import javax.annotation.WillCloseWhenClosed;
-import jdk.nashorn.internal.ir.annotations.Immutable;
 
-@Immutable
-public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
+public class UnarySinkMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
-  private final PipelineExecutor executor;
+  private final UnarySinkExecutor executor;
 
-  public PipelineMemoryPhysicalTask(
-      PhysicalTask parentTask, RequestContext context, PipelineExecutor executor) {
+  public UnarySinkMemoryPhysicalTask(
+      PhysicalTask parentTask, RequestContext context, UnarySinkExecutor executor) {
     super(parentTask, context);
     this.executor = Objects.requireNonNull(executor);
   }
 
   @Override
   public String getInfo() {
-    return "Pipeline: " + executor.getDescription();
+    return "Sink: " + executor.getDescription();
   }
 
   @Override
-  protected BatchStream compute(@WillClose BatchStream previous) throws PhysicalException {
-    try {
+  protected BatchStream compute(BatchStream previous) throws PhysicalException {
+    try (BatchStream previousHolder = previous) {
       executor.initialize(executorContext, previous.getSchema());
-    } catch (Throwable e) {
-      try {
-        previous.close();
-      } catch (Throwable e2) {
-        e.addSuppressed(e2);
+      while (true) {
+        try (Batch batch = previousHolder.getNext()) {
+          if (batch == null) {
+            break;
+          }
+          executor.consume(batch);
+        }
       }
-      throw e;
+      executor.finish();
+      return new UnarySinkBatchStream(executor);
     }
-    return new PipelineBatchStream(previous, executor);
   }
 
-  private static class PipelineBatchStream implements BatchStream {
+  private static class UnarySinkBatchStream implements BatchStream {
 
-    private final BatchStream source;
-    private final PipelineExecutor executor;
+    private final UnarySinkExecutor executor;
 
-    public PipelineBatchStream(@WillCloseWhenClosed BatchStream source, PipelineExecutor executor) {
-      this.source = Objects.requireNonNull(source);
+    public UnarySinkBatchStream(@WillCloseWhenClosed UnarySinkExecutor executor) {
       this.executor = Objects.requireNonNull(executor);
     }
 
@@ -76,19 +73,15 @@ public class PipelineMemoryPhysicalTask extends UnaryMemoryPhysicalTask {
 
     @Override
     public Batch getNext() throws PhysicalException {
-      Batch sourceNext = source.getNext();
-      if (sourceNext == null) {
-        return null;
+      if (executor.canProduce()) {
+        return executor.produce();
       }
-      return executor.compute(sourceNext);
+      return null;
     }
 
     @Override
     public void close() throws PhysicalException {
-      try (BatchStream source = this.source;
-          PipelineExecutor executor = this.executor) {
-        // Do nothing
-      }
+      executor.close();
     }
   }
 }

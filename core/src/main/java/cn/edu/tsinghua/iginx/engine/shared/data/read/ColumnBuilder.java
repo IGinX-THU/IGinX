@@ -24,7 +24,23 @@ public abstract class ColumnBuilder {
 
   protected int index = 0;
 
-  protected abstract ColumnBuilder append(Object value);
+  protected FieldVector wrapped;
+
+  protected ColumnBuilder(FieldVector wrapped) {
+    this.wrapped = Objects.requireNonNull(wrapped);
+  }
+
+  protected abstract void setNotNull(Object value);
+
+  public ColumnBuilder append(Object value) {
+    if (value == null) {
+      wrapped.setNull(index);
+    } else {
+      setNotNull(value);
+    }
+    index++;
+    return this;
+  }
 
   public static ColumnBuilder create(FieldVector wrapped) {
     switch (wrapped.getMinorType()) {
@@ -50,18 +66,13 @@ public abstract class ColumnBuilder {
     protected final BitVector wrapped;
 
     protected BooleanBuilder(BitVector wrapped) {
+      super(wrapped);
       this.wrapped = Objects.requireNonNull(wrapped);
     }
 
     @Override
-    public BooleanBuilder append(Object value) {
-      if (Objects.isNull(value)) {
-        wrapped.setNull(index);
-      } else {
-        wrapped.setSafe(index, (Boolean) value ? 1 : 0);
-      }
-      index++;
-      return this;
+    protected void setNotNull(Object value) {
+      wrapped.set(index, (Boolean) value ? 1 : 0);
     }
   }
 
@@ -70,18 +81,13 @@ public abstract class ColumnBuilder {
     protected final IntVector wrapped;
 
     protected IntegerBuilder(IntVector wrapped) {
+      super(wrapped);
       this.wrapped = Objects.requireNonNull(wrapped);
     }
 
     @Override
-    public IntegerBuilder append(Object value) {
-      if (Objects.isNull(value)) {
-        wrapped.setNull(index);
-      } else {
-        wrapped.setSafe(index, (Integer) value);
-      }
-      index++;
-      return this;
+    protected void setNotNull(Object value) {
+      wrapped.set(index, (Integer) value);
     }
   }
 
@@ -90,18 +96,13 @@ public abstract class ColumnBuilder {
     protected final BigIntVector wrapped;
 
     protected LongBuilder(BigIntVector wrapped) {
+      super(wrapped);
       this.wrapped = Objects.requireNonNull(wrapped);
     }
 
     @Override
-    public LongBuilder append(Object value) {
-      if (Objects.isNull(value)) {
-        wrapped.setNull(index);
-      } else {
-        wrapped.setSafe(index, (Long) value);
-      }
-      index++;
-      return this;
+    protected void setNotNull(Object value) {
+      wrapped.set(index, (Long) value);
     }
   }
 
@@ -110,18 +111,13 @@ public abstract class ColumnBuilder {
     protected final Float4Vector wrapped;
 
     protected FloatBuilder(Float4Vector wrapped) {
+      super(wrapped);
       this.wrapped = Objects.requireNonNull(wrapped);
     }
 
     @Override
-    public FloatBuilder append(Object value) {
-      if (Objects.isNull(value)) {
-        wrapped.setNull(index);
-      } else {
-        wrapped.setSafe(index, (Float) value);
-      }
-      index++;
-      return this;
+    protected void setNotNull(Object value) {
+      wrapped.set(index, (Float) value);
     }
   }
 
@@ -130,18 +126,13 @@ public abstract class ColumnBuilder {
     protected final Float8Vector wrapped;
 
     protected DoubleBuilder(Float8Vector wrapped) {
+      super(wrapped);
       this.wrapped = Objects.requireNonNull(wrapped);
     }
 
     @Override
-    public DoubleBuilder append(Object value) {
-      if (Objects.isNull(value)) {
-        wrapped.setNull(index);
-      } else {
-        wrapped.setSafe(index, (Double) value);
-      }
-      index++;
-      return this;
+    protected void setNotNull(Object value) {
+      wrapped.set(index, (Double) value);
     }
   }
 
@@ -150,18 +141,13 @@ public abstract class ColumnBuilder {
     protected final VarBinaryVector wrapped;
 
     protected BinaryBuilder(VarBinaryVector wrapped) {
+      super(wrapped);
       this.wrapped = Objects.requireNonNull(wrapped);
     }
 
     @Override
-    public BinaryBuilder append(Object value) {
-      if (Objects.isNull(value)) {
-        wrapped.setNull(index);
-      } else {
-        wrapped.setSafe(index, (byte[]) value);
-      }
-      index++;
-      return this;
+    protected void setNotNull(Object value) {
+      wrapped.setSafe(index, (byte[]) value);
     }
   }
 }

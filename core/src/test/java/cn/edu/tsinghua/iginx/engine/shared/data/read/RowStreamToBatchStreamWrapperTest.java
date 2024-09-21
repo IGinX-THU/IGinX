@@ -116,38 +116,47 @@ class RowStreamToBatchStreamWrapperTest {
             Assertions.assertNotNull(batch);
             Assertions.assertEquals(
                 Math.min(batchSize, scale - batchIndex * batchSize), batch.getRowCount());
-            org.apache.arrow.vector.table.Row arrowRow = batch.raw().immutableRow();
-            for (int rowIndex = 0; rowIndex < batch.getRowCount(); rowIndex++) {
-              int globalRowIndex = batchIndex * batchSize + rowIndex;
-              Row iginxRow = rows.get(globalRowIndex);
-              arrowRow.setPosition(rowIndex);
-              if (hasKey) {
-                Assertions.assertEquals(iginxRow.getKey(), arrowRow.getBigInt(0));
+            try (org.apache.arrow.vector.table.Table table =
+                new org.apache.arrow.vector.table.Table(batch.raw())) {
+              org.apache.arrow.vector.table.Row arrowRow = table.immutableRow();
+              for (int rowIndex = 0; rowIndex < batch.getRowCount(); rowIndex++) {
+                int globalRowIndex = batchIndex * batchSize + rowIndex;
+                Row iginxRow = rows.get(globalRowIndex);
+                arrowRow.setPosition(rowIndex);
+                if (hasKey) {
+                  Assertions.assertEquals(iginxRow.getKey(), arrowRow.getBigInt(0));
+                }
+                Object[] values = iginxRow.getValues();
+                int columnOffset = hasKey ? 1 : 0;
+                Assertions.assertEquals(
+                    values[0],
+                    arrowRow.isNull(0 + columnOffset)
+                        ? null
+                        : arrowRow.getBit(0 + columnOffset) != 0);
+                Assertions.assertEquals(
+                    values[1],
+                    arrowRow.isNull(1 + columnOffset) ? null : arrowRow.getInt(1 + columnOffset));
+                Assertions.assertEquals(
+                    values[2],
+                    arrowRow.isNull(2 + columnOffset)
+                        ? null
+                        : arrowRow.getBigInt(2 + columnOffset));
+                Assertions.assertEquals(
+                    values[3],
+                    arrowRow.isNull(3 + columnOffset)
+                        ? null
+                        : arrowRow.getFloat4(3 + columnOffset));
+                Assertions.assertEquals(
+                    values[4],
+                    arrowRow.isNull(4 + columnOffset)
+                        ? null
+                        : arrowRow.getFloat8(4 + columnOffset));
+                Assertions.assertArrayEquals(
+                    (byte[]) values[5],
+                    arrowRow.isNull(5 + columnOffset)
+                        ? null
+                        : arrowRow.getVarBinary(5 + columnOffset));
               }
-              Object[] values = iginxRow.getValues();
-              int columnOffset = hasKey ? 1 : 0;
-              Assertions.assertEquals(
-                  values[0],
-                  arrowRow.isNull(0 + columnOffset)
-                      ? null
-                      : arrowRow.getBit(0 + columnOffset) != 0);
-              Assertions.assertEquals(
-                  values[1],
-                  arrowRow.isNull(1 + columnOffset) ? null : arrowRow.getInt(1 + columnOffset));
-              Assertions.assertEquals(
-                  values[2],
-                  arrowRow.isNull(2 + columnOffset) ? null : arrowRow.getBigInt(2 + columnOffset));
-              Assertions.assertEquals(
-                  values[3],
-                  arrowRow.isNull(3 + columnOffset) ? null : arrowRow.getFloat4(3 + columnOffset));
-              Assertions.assertEquals(
-                  values[4],
-                  arrowRow.isNull(4 + columnOffset) ? null : arrowRow.getFloat8(4 + columnOffset));
-              Assertions.assertArrayEquals(
-                  (byte[]) values[5],
-                  arrowRow.isNull(5 + columnOffset)
-                      ? null
-                      : arrowRow.getVarBinary(5 + columnOffset));
             }
           }
         }

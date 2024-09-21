@@ -15,31 +15,10 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils;
 
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
-import java.util.Objects;
-
-public abstract class PhysicalExecutor implements AutoCloseable {
-
-  private ExecutorContext context = null;
-
-  protected void initialize(ExecutorContext context) {
-    if (this.context != null) {
-      throw new IllegalStateException("Already initialized");
-    }
-    this.context = Objects.requireNonNull(context);
-  }
-
-  protected ExecutorContext getContext() {
-    if (context == null) {
-      throw new IllegalStateException("Not initialized");
-    }
-    return context;
-  }
-
-  public abstract String getDescription();
+public interface NoExceptionAutoCloseable extends AutoCloseable {
 
   @Override
-  public abstract void close() throws ComputeException;;
+  void close();
 }

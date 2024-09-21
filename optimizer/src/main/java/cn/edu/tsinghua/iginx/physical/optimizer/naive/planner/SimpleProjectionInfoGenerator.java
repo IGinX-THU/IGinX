@@ -15,97 +15,63 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
-import cn.edu.tsinghua.iginx.engine.physical.exception.UnexpectedOperatorException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.FieldNode;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.function.expression.PhysicalExpression;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.UnaryExecutorInitializer;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.Constants;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
+import cn.edu.tsinghua.iginx.engine.shared.data.arrow.Schemas;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 import cn.edu.tsinghua.iginx.engine.shared.operator.*;
 import cn.edu.tsinghua.iginx.utils.Pair;
 import cn.edu.tsinghua.iginx.utils.StringUtils;
 import java.util.*;
 import java.util.regex.Pattern;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.vector.ValueVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.pojo.Field;
 
-public class Projector extends PipelineExecutor {
+public class SimpleProjectionInfoGenerator
+    implements UnaryExecutorInitializer<List<ProjectionExecutor.ProjectionInfo>> {
 
-  private final UnaryOperator operator;
+  private final Operator operator;
 
-  private List<Pair<String, Integer>> columnsAndIndices; // 输出的列名和对应输入列的索引
-
-  private BatchSchema outputSchema;
-
-  public Projector(final UnaryOperator operator) {
+  public SimpleProjectionInfoGenerator(Operator operator) {
     this.operator = operator;
   }
 
   @Override
-  public String getDescription() {
-    return "Projector(" + operator.getType() + "): [" + operator.getInfo() + "]";
-  }
-
-  @Override
-  public void close() throws PhysicalException {}
-
-  @Override
-  protected BatchSchema internalInitialize(BatchSchema inputSchema) throws PhysicalException {
-    if (outputSchema != null) {
-      throw new IllegalStateException("Projector has been initialized");
-    }
+  public List<ProjectionExecutor.ProjectionInfo> initialize(
+      ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
     switch (operator.getType()) {
       case Project:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (Project) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (Project) operator));
       case Reorder:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (Reorder) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (Reorder) operator));
       case Rename:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (Rename) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (Rename) operator));
       case AddSchemaPrefix:
-        columnsAndIndices = getColumnsAndIndices(inputSchema, (AddSchemaPrefix) operator);
-        break;
+        return getExpressionsWithFields(
+            inputSchema, getColumnsAndIndices(inputSchema, (AddSchemaPrefix) operator));
       default:
-        throw new UnexpectedOperatorException(
-            "Unexpected operator type in Projector: " + operator.getType());
+        throw new IllegalArgumentException("Unsupported operator type: " + operator.getType());
     }
-
-    // 生成输出结果的BatchSchema
-    BatchSchema.Builder builder = BatchSchema.builder();
-    if (inputSchema.hasKey()) {
-      columnsAndIndices.add(0, new Pair<>(BatchSchema.KEY.getName(), 0));
-      builder.withKey();
-    }
-
-    for (Pair<String, Integer> pair : columnsAndIndices) {
-      builder.addFieldWithName(inputSchema.getField(pair.v), inputSchema.getName(pair.v));
-    }
-    outputSchema = builder.build();
-    return outputSchema;
   }
 
-  @Override
-  protected Batch internalCompute(@WillNotClose Batch batch) throws PhysicalException {
-    if (outputSchema == null) {
-      throw new IllegalStateException("Projector has not been initialized");
+  private List<ProjectionExecutor.ProjectionInfo> getExpressionsWithFields(
+      BatchSchema inputSchema, List<Pair<String, Integer>> columnsAndIndices) {
+    List<ProjectionExecutor.ProjectionInfo> ret = new ArrayList<>();
+    for (Pair<String, Integer> pair : columnsAndIndices) {
+      Field field = Schemas.fieldWithName(inputSchema.getField(pair.v), pair.k);
+      PhysicalExpression expression = new FieldNode(pair.v);
+      ret.add(new ProjectionExecutor.ProjectionInfo(field, expression));
     }
-    try (Batch.Builder builder = new Batch.Builder(getContext().getAllocator(), outputSchema)) {
-      VectorSchemaRoot target = builder.raw();
-      try (VectorSchemaRoot source = batch.raw().toVectorSchemaRoot()) {
-        for (int targetIndex = 0; targetIndex < columnsAndIndices.size(); targetIndex++) {
-          int sourceIndex = columnsAndIndices.get(targetIndex).v;
-          ValueVector sourceVector = source.getFieldVectors().get(sourceIndex);
-          ValueVector targetVector = target.getFieldVectors().get(targetIndex);
-          sourceVector.makeTransferPair(targetVector).transfer();
-        }
-      }
-      return builder.build();
-    }
+    return ret;
   }
 
   /**

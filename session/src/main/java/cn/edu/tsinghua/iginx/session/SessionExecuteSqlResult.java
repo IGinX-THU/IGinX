@@ -205,6 +205,7 @@ public class SessionExecuteSqlResult {
   private String buildQueryResult(boolean needFormatTime, String timePrecision) {
     StringBuilder builder = new StringBuilder();
     builder.append("ResultSets:").append("\n");
+    //    builder.append(values.size()).append(" rows in set").append("\n");
     List<List<String>> cache = cacheArrowResult(needFormatTime, timePrecision);
     builder.append(FormatUtils.formatResult(cache));
     builder.append(FormatUtils.formatCount(cache.size() - 1));

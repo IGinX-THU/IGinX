@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.physical.task;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStream;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchStreams;
@@ -34,6 +35,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
   private static final Logger LOGGER = LoggerFactory.getLogger(AbstractPhysicalTask.class);
 
   private final RequestContext context;
+  protected final ExecutorContext executorContext = new PhysicalTaskExecutorContext(this);
 
   private final TaskType type;
 
@@ -105,9 +107,7 @@ public abstract class AbstractPhysicalTask implements PhysicalTask {
     } else {
       RowStream rowStream = result.getRowStream();
       if (rowStream != null) {
-        BatchStream batchStream =
-            BatchStreams.wrap(
-                getContext().getAllocator(), rowStream, getContext().getBatchRowCount());
+        BatchStream batchStream = BatchStreams.wrap(executorContext, rowStream);
         setResult(new TaskResult(batchStream));
       } else {
         setResult(new TaskResult());

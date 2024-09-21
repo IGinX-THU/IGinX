@@ -17,6 +17,7 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import javax.annotation.WillClose;
 import javax.annotation.WillNotClose;
 import org.apache.arrow.memory.BufferAllocator;
@@ -27,7 +28,32 @@ public class BatchStreams {
 
   public static BatchStream wrap(
       @WillNotClose BufferAllocator allocator, @WillClose RowStream rowStream, int batchSize) {
-    return new RowStreamToBatchStreamWrapper(allocator, rowStream, batchSize);
+    return wrap(
+        new ExecutorContext() {
+          @Override
+          public BufferAllocator getAllocator() {
+            return allocator;
+          }
+
+          @Override
+          public int getMaxBatchRowCount() {
+            return batchSize;
+          }
+
+          @Override
+          public void addWarningMessage(String message) {}
+
+          @Override
+          public void addProducedRowNumber(long rows) {}
+
+          @Override
+          public void addCostTime(long millis) {}
+        },
+        rowStream);
+  }
+
+  public static BatchStream wrap(ExecutorContext context, RowStream rowStream) {
+    return new RowStreamToBatchStreamWrapper(context, rowStream);
   }
 
   private static final EmptyBatchStream EMPTY = new EmptyBatchStream();

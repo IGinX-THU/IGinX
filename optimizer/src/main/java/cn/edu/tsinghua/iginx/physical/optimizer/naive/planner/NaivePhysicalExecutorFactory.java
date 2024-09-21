@@ -15,12 +15,16 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.physical.optimizer.naive;
+package cn.edu.tsinghua.iginx.physical.optimizer.naive.planner;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorType;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline.PipelineExecutor;
-import cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline.Projector;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.PipelineExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline.ProjectionExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.AggregateExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.sink.UnarySinkExecutor;
 import cn.edu.tsinghua.iginx.engine.shared.operator.Operator;
+import cn.edu.tsinghua.iginx.engine.shared.operator.RowTransform;
+import cn.edu.tsinghua.iginx.engine.shared.operator.SetTransform;
 import cn.edu.tsinghua.iginx.engine.shared.operator.UnaryOperator;
 
 public class NaivePhysicalExecutorFactory {
@@ -31,19 +35,35 @@ public class NaivePhysicalExecutorFactory {
       case Rename:
       case Reorder:
       case AddSchemaPrefix:
+      case RowTransform:
         return ExecutorType.Pipeline;
+      case SetTransform:
+        return ExecutorType.UnarySink;
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }
   }
 
-  PipelineExecutor createPipelineExecutor(UnaryOperator operator) {
+  public PipelineExecutor createPipelineExecutor(UnaryOperator operator) {
     switch (operator.getType()) {
       case Project:
       case Rename:
       case Reorder:
       case AddSchemaPrefix:
-        return new Projector(operator);
+        return new ProjectionExecutor(new SimpleProjectionInfoGenerator(operator));
+      case RowTransform:
+        return new ProjectionExecutor(
+            new TransformProjectionInfoGenerator((RowTransform) operator));
+      case Select:
+      default:
+        throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
+    }
+  }
+
+  public UnarySinkExecutor createUnarySinkExecutor(UnaryOperator operator) {
+    switch (operator.getType()) {
+      case SetTransform:
+        return new AggregateExecutor(new AggregateInfoGenerator((SetTransform) operator));
       default:
         throw new UnsupportedOperationException("Unsupported operator type: " + operator.getType());
     }

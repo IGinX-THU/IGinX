@@ -15,31 +15,28 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary.pipeline;
 
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
-import java.util.Objects;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
+import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
 
-public abstract class PhysicalExecutor implements AutoCloseable {
-
-  private ExecutorContext context = null;
-
-  protected void initialize(ExecutorContext context) {
-    if (this.context != null) {
-      throw new IllegalStateException("Already initialized");
-    }
-    this.context = Objects.requireNonNull(context);
+public class FilterExecutor extends PipelineExecutor {
+  @Override
+  protected BatchSchema internalInitialize(BatchSchema inputSchema) throws ComputeException {
+    return null;
   }
-
-  protected ExecutorContext getContext() {
-    if (context == null) {
-      throw new IllegalStateException("Not initialized");
-    }
-    return context;
-  }
-
-  public abstract String getDescription();
 
   @Override
-  public abstract void close() throws ComputeException;;
+  protected Batch internalCompute(Batch batch) throws ComputeException {
+    return null;
+  }
+
+  @Override
+  public String getDescription() {
+    return "";
+  }
+
+  @Override
+  public void close() {}
 }

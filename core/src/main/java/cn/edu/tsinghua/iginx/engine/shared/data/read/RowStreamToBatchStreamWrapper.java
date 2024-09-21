@@ -18,28 +18,21 @@
 package cn.edu.tsinghua.iginx.engine.shared.data.read;
 
 import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import javax.annotation.WillCloseWhenClosed;
-import javax.annotation.WillNotClose;
-import org.apache.arrow.memory.BufferAllocator;
 
 class RowStreamToBatchStreamWrapper implements BatchStream {
 
-  private final BufferAllocator allocator;
+  private final ExecutorContext context;
   private final RowStream rowStream;
-  private final int batchSize;
 
-  public RowStreamToBatchStreamWrapper(
-      @WillNotClose BufferAllocator allocator,
-      @WillCloseWhenClosed RowStream rowStream,
-      int batchSize) {
-    this.allocator = Objects.requireNonNull(allocator);
+  public RowStreamToBatchStreamWrapper(ExecutorContext context, RowStream rowStream) {
+    this.context = Objects.requireNonNull(context);
     this.rowStream = Objects.requireNonNull(rowStream);
-    this.batchSize = batchSize;
-    if (batchSize <= 0) {
-      throw new IllegalArgumentException("batchSize must be positive rather than " + batchSize);
-    }
   }
 
   private BatchSchema schemaCache = null;
@@ -47,47 +40,58 @@ class RowStreamToBatchStreamWrapper implements BatchStream {
   @Override
   public BatchSchema getSchema() throws PhysicalException {
     if (schemaCache == null) {
-      BatchSchema.Builder builder = BatchSchema.builder();
-
-      Header header = rowStream.getHeader();
-      if (header.hasKey()) {
-        builder.withKey();
+      Header header;
+      try (StopWatch watch = new StopWatch(context::addFetchTime)) {
+        header = rowStream.getHeader();
       }
-      for (Field field : header.getFields()) {
-        Map<String, String> tags = field.getTags();
-        if (tags.isEmpty()) {
-          builder.addField(field.getName(), field.getType());
-        } else {
-          builder.addField(field.getName(), field.getType(), tags);
+      try (StopWatch watch = new StopWatch(context::addPipelineComputeTime)) {
+        BatchSchema.Builder builder = BatchSchema.builder();
+        if (header.hasKey()) {
+          builder.withKey();
         }
+        for (Field field : header.getFields()) {
+          Map<String, String> tags = field.getTags();
+          if (tags.isEmpty()) {
+            builder.addField(field.getName(), field.getType());
+          } else {
+            builder.addField(field.getName(), field.getType(), tags);
+          }
+        }
+        schemaCache = builder.build();
       }
-
-      schemaCache = builder.build();
     }
+
     return schemaCache;
   }
 
   @Override
   public Batch getNext() throws PhysicalException {
-    if (!rowStream.hasNext()) {
+    List<Row> rows = new ArrayList<>();
+    try (StopWatch watch = new StopWatch(context::addFetchTime)) {
+      while (rowStream.hasNext() && rows.size() < context.getMaxBatchRowCount()) {
+        rows.add(rowStream.next());
+      }
+    }
+
+    if (rows.isEmpty()) {
       return null;
     }
 
-    try (Batch.Builder builder = new Batch.Builder(allocator, getSchema())) {
-      builder.setInitialCapacity(batchSize);
-      Header header = rowStream.getHeader();
-      int rowCount = 0;
-      while (rowStream.hasNext() && rowCount < batchSize) {
-        Row row = rowStream.next();
-        if (header.hasKey()) {
-          builder.appendRow(row.getKey(), row.getValues());
-        } else {
-          builder.appendRow(row.getValues());
+    context.addProducedRowNumber(rows.size());
+
+    boolean hasKey = getSchema().hasKey();
+    try (StopWatch watch = new StopWatch(context::addPipelineComputeTime)) {
+      try (Batch.Builder builder =
+          new Batch.Builder(context.getAllocator(), getSchema(), rows.size())) {
+        for (Row row : rows) {
+          if (hasKey) {
+            builder.append(row.getKey(), row.getValues());
+          } else {
+            builder.append(row.getValues());
+          }
         }
-        rowCount++;
+        return builder.build(rows.size());
       }
-      builder.setRowCount(rowCount);
-      return builder.build();
     }
   }
 

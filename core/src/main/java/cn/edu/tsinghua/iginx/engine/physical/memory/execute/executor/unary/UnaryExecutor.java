@@ -15,48 +15,35 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-package cn.edu.tsinghua.iginx.engine.physical.memory.execute.pipeline;
+package cn.edu.tsinghua.iginx.engine.physical.memory.execute.executor.unary;
 
-import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.ExecutorContext;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.PhysicalExecutor;
+import cn.edu.tsinghua.iginx.engine.physical.memory.execute.compute.ComputeException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.StopWatch;
-import cn.edu.tsinghua.iginx.engine.shared.data.read.Batch;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.BatchSchema;
-import javax.annotation.WillClose;
-import javax.annotation.WillNotClose;
 
-public abstract class PipelineExecutor extends PhysicalExecutor {
+public abstract class UnaryExecutor extends PhysicalExecutor {
 
   private BatchSchema outputSchema;
 
-  public void internalInitialize(ExecutorContext context, BatchSchema inputSchema)
-      throws PhysicalException {
-    try (StopWatch watch = new StopWatch(getContext())) {
-      super.initialize(context);
+  public void initialize(ExecutorContext context, BatchSchema inputSchema) throws ComputeException {
+    super.initialize(context);
+    if (outputSchema != null) {
+      throw new IllegalStateException(getClass().getSimpleName() + " has been initialized");
+    }
+    try (StopWatch watch = new StopWatch(context::addInitializeTime)) {
       outputSchema = internalInitialize(inputSchema);
     }
   }
 
   public BatchSchema getOutputSchema() {
     if (outputSchema == null) {
-      throw new IllegalStateException("Not initialized");
+      throw new IllegalStateException(getClass().getSimpleName() + " has not been initialized");
     }
     return outputSchema;
   }
 
-  public Batch compute(@WillClose Batch batch) throws PhysicalException {
-    try (StopWatch watch = new StopWatch(getContext())) {
-      Batch producedBatch = internalCompute(batch);
-      getContext().accumulateProducedRows(producedBatch.getRowCount());
-      return producedBatch;
-    } finally {
-      batch.close();
-    }
-  }
-
   protected abstract BatchSchema internalInitialize(BatchSchema inputSchema)
-      throws PhysicalException;
-
-  protected abstract Batch internalCompute(@WillNotClose Batch batch) throws PhysicalException;
+      throws ComputeException;
 }
