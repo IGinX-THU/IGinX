@@ -17,23 +17,11 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
-import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
-
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.ArithmeticExpr;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Count;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.First;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.FirstValue;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Last;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.LastValue;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Ratio;
-import cn.edu.tsinghua.iginx.engine.shared.function.system.Sum;
+import cn.edu.tsinghua.iginx.engine.shared.function.system.*;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDAF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDF;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.python.PyUDSF;
@@ -42,26 +30,18 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import pemja.core.PythonInterpreter;
 import pemja.core.PythonInterpreterConfig;
+
+import java.io.File;
+import java.util.*;
+
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
 
 public class FunctionManager {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(FunctionManager.class);
-
-  private static final int INTERPRETER_NUM = 5;
 
   private final Map<String, Function> functions;
 
@@ -74,12 +54,23 @@ public class FunctionManager {
   private static final String PATH =
       String.join(File.separator, config.getDefaultUDFDir(), "python_scripts");
 
+  private final PythonInterpreterConfig INTERPRETER_CONFIG;
+
   private FunctionManager() {
     this.functions = new HashMap<>();
+    this.INTERPRETER_CONFIG =
+        PythonInterpreterConfig.newBuilder()
+            .setPythonExec(config.getPythonCMD())
+            .addPythonPaths(PATH)
+            .build();
     this.initSystemFunctions();
     if (config.isNeedInitBasicUDFFunctions()) {
       this.initBasicUDFFunctions();
     }
+  }
+
+  public PythonInterpreterConfig getConfig() {
+    return INTERPRETER_CONFIG;
   }
 
   public static FunctionManager getInstance() {
@@ -191,10 +182,6 @@ public class FunctionManager {
           String.format("UDF %s not registered in node ip=%s", identifier, config.getIp()));
     }
 
-    String pythonCMD = config.getPythonCMD();
-    PythonInterpreterConfig config =
-        PythonInterpreterConfig.newBuilder().setPythonExec(pythonCMD).addPythonPaths(PATH).build();
-
     String fileName = taskMeta.getFileName();
     String moduleName;
     String className = taskMeta.getClassName();
@@ -208,31 +195,19 @@ public class FunctionManager {
       className = className.substring(className.lastIndexOf(".") + 1);
     }
 
-    // init the python udf
-    BlockingQueue<PythonInterpreter> queue = new LinkedBlockingQueue<>();
-    for (int i = 0; i < INTERPRETER_NUM; i++) {
-      PythonInterpreter interpreter = new PythonInterpreter(config);
-      interpreter.exec(String.format("import %s", moduleName));
-      interpreter.exec(String.format("t = %s.%s()", moduleName, className));
-      queue.add(interpreter);
-    }
-
     if (taskMeta.getType().equals(UDFType.UDAF)) {
-      PyUDAF udaf = new PyUDAF(queue, identifier, moduleName);
+      PyUDAF udaf = new PyUDAF(identifier, moduleName, className);
       functions.put(identifier, udaf);
       return udaf;
     } else if (taskMeta.getType().equals(UDFType.UDTF)) {
-      PyUDTF udtf = new PyUDTF(queue, identifier, moduleName);
+      PyUDTF udtf = new PyUDTF(identifier, moduleName, className);
       functions.put(identifier, udtf);
       return udtf;
     } else if (taskMeta.getType().equals(UDFType.UDSF)) {
-      PyUDSF udsf = new PyUDSF(queue, identifier, moduleName);
+      PyUDSF udsf = new PyUDSF(identifier, moduleName, className);
       functions.put(identifier, udsf);
       return udsf;
     } else {
-      while (!queue.isEmpty()) {
-        queue.poll().close();
-      }
       throw new IllegalArgumentException(
           String.format("UDF %s registered in type %s", identifier, taskMeta.getType()));
     }
