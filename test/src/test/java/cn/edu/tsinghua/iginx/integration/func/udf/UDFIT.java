@@ -1281,5 +1281,18 @@ public class UDFIT {
             + "+--------------------+\n"
             + "Total line number = 1\n";
     assertEquals(expected, ret.getResultInString(false, ""));
+
+    // test twice to ensure
+    statement = "select " + name + "(s1) from us.d1 where s1 < 10;";
+    ret = tool.execute(statement);
+    expected =
+        "ResultSets:\n"
+            + "+--------------------+\n"
+            + "|tensorTest(us.d1.s1)|\n"
+            + "+--------------------+\n"
+            + "|                 0.0|\n"
+            + "+--------------------+\n"
+            + "Total line number = 1\n";
+    assertEquals(expected, ret.getResultInString(false, ""));
   }
 }

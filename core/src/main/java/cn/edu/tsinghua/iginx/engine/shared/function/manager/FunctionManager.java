@@ -17,6 +17,8 @@
  */
 package cn.edu.tsinghua.iginx.engine.shared.function.manager;
 
+import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
+
 import cn.edu.tsinghua.iginx.conf.Config;
 import cn.edu.tsinghua.iginx.conf.ConfigDescriptor;
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
@@ -30,14 +32,11 @@ import cn.edu.tsinghua.iginx.metadata.DefaultMetaManager;
 import cn.edu.tsinghua.iginx.metadata.IMetaManager;
 import cn.edu.tsinghua.iginx.metadata.entity.TransformTaskMeta;
 import cn.edu.tsinghua.iginx.thrift.UDFType;
+import java.io.File;
+import java.util.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pemja.core.PythonInterpreterConfig;
-
-import java.io.File;
-import java.util.*;
-
-import static cn.edu.tsinghua.iginx.utils.ShellRunner.runCommand;
 
 public class FunctionManager {
 

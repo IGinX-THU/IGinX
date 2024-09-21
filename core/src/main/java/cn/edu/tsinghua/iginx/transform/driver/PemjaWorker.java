@@ -77,7 +77,8 @@ public class PemjaWorker {
               }
             });
 
-    // no need to use a new thread because the whole job is running on a seperated thread(scheduler).
+    // no need to use a new thread because the whole job is running on a seperated
+    // thread(scheduler).
     List<Object> res = (List<Object>) interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data);
 
     try {

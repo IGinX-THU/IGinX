@@ -29,7 +29,6 @@ import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.CheckUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.DataUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.udf.utils.RowUtils;
 import java.util.*;
-import java.util.concurrent.Executors;
 
 public class PyUDSF extends PyUDF implements UDSF {
 
@@ -40,7 +39,6 @@ public class PyUDSF extends PyUDF implements UDSF {
   public PyUDSF(String funcName, String moduleName, String className) {
     super(moduleName, className);
     this.funcName = funcName;
-    this.executorService = Executors.newCachedThreadPool();
   }
 
   @Override

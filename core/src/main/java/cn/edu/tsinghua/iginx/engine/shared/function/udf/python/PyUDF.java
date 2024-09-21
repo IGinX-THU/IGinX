@@ -22,6 +22,7 @@ import static cn.edu.tsinghua.iginx.engine.shared.Constants.UDF_FUNC;
 
 import cn.edu.tsinghua.iginx.engine.shared.function.Function;
 import cn.edu.tsinghua.iginx.engine.shared.function.manager.FunctionManager;
+import cn.edu.tsinghua.iginx.engine.shared.function.udf.pool.InterpreterThreadPoolExecutor;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.*;
@@ -38,7 +39,7 @@ public abstract class PyUDF implements Function {
   protected final String className;
 
   // this should be per UDF
-  protected ExecutorService executorService;
+  protected InterpreterThreadPoolExecutor executorService;
 
   public PyUDF(String moduleName, String className) {
     this.moduleName = moduleName;
@@ -71,16 +72,17 @@ public abstract class PyUDF implements Function {
   protected List<List<Object>> invokePyUDF(
       List<List<Object>> data, List<Object> args, Map<String, Object> kvargs) {
     if (executorService == null) {
-      LOGGER.error("UDF thread pool not initialized.");
-      return null;
+      executorService =
+          new InterpreterThreadPoolExecutor(
+              5, 10, 60, TimeUnit.SECONDS, FunctionManager.getInstance().getConfig());
     }
     Future<List<List<Object>>> futureResult =
         executorService.submit(
             () -> {
-              try (PythonInterpreter interpreter =
-                  new PythonInterpreter(FunctionManager.getInstance().getConfig())) {
-                interpreter.exec(String.format("import %s", moduleName));
-                interpreter.exec(String.format("t = %s.%s()", moduleName, className));
+              try {
+                PythonInterpreter interpreter = executorService.getInterpreterForCurrentThread();
+                interpreter.exec(
+                    String.format("import %s; t = %s.%s()", moduleName, moduleName, className));
                 List<List<Object>> res =
                     (List<List<Object>>)
                         interpreter.invokeMethod(UDF_CLASS, UDF_FUNC, data, args, kvargs);
