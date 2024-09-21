@@ -132,6 +132,9 @@ public class StreamStageRunner implements Runner {
     if (reader != null) {
       reader.close();
     }
+    if (pemjaWorkerList.size() > 0) {
+      pemjaWorkerList.forEach(PemjaWorker::close);
+    }
   }
 
   // schedule config would be set at higher level

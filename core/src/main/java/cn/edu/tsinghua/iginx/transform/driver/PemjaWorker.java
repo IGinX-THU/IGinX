@@ -105,4 +105,8 @@ public class PemjaWorker {
   public Writer getWriter() {
     return writer;
   }
+
+  public void close() {
+    interpreter.close();
+  }
 }
