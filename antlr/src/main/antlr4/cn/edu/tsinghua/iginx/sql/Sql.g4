@@ -125,7 +125,7 @@ expression
    ;
 
 function
-   : functionName LR_BRACKET (ALL | DISTINCT)? path (COMMA path)* (COMMA param)* RR_BRACKET
+   : functionName LR_BRACKET (ALL | DISTINCT)? expression (COMMA expression)* (COMMA param)* RR_BRACKET
    ;
 
 param
