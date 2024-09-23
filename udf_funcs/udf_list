@@ -8,6 +8,7 @@ UDAF,udf_count,UDFCount,udf_count.py
 UDAF,udf_max_with_key,UDFMaxWithKey,udf_max_with_key.py
 
 UDTF,cos,UDFCos,udtf_cos.py
+UDTF,arccos,UDFArcCos,udtf_arccos.py
 UDTF,multiply,UDFMultiply,udtf_multiply.py
 UDTF,columnExpand,UDFColumnExpand,udtf_column_expand.py
 UDTF,pow,UDFPow,udtf_pow.py

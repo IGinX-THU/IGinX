@@ -65,7 +65,7 @@ class StorageEngineType(object):
     unknown = 0
     iotdb12 = 1
     influxdb = 2
-    filestore = 3
+    filesystem = 3
     relational = 4
     mongodb = 5
     redis = 6
@@ -74,7 +74,7 @@ class StorageEngineType(object):
         0: "unknown",
         1: "iotdb12",
         2: "influxdb",
-        3: "filestore",
+        3: "filesystem",
         4: "relational",
         5: "mongodb",
         6: "redis",
@@ -84,7 +84,7 @@ class StorageEngineType(object):
         "unknown": 0,
         "iotdb12": 1,
         "influxdb": 2,
-        "filestore": 3,
+        "filesystem": 3,
         "relational": 4,
         "mongodb": 5,
         "redis": 6,

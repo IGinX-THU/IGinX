@@ -105,16 +105,16 @@
  *
  * </blockquote>
  *
- * <p><b>FileStore模块</b>
+ * <p><b>filesystem模块</b>
  *
- * <p>FileStoreException是FileStore模块下所有自定义异常的基类。
+ * <p>filesystemException是filesystem模块下所有自定义异常的基类。
  *
  * <blockquote>
  *
  * <pre>
  * PhysicalException
- * └─FileStoreException
- *   └─RemoteFileStoreException
+ * └─filesystemException
+ *   └─RemotefilesystemException
  * </pre>
  *
  * </blockquote>

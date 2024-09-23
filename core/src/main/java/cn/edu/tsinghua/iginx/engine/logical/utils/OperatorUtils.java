@@ -280,7 +280,8 @@ public class OperatorUtils {
         apply.setSourceB(rowTransform.getSource());
         List<FunctionCall> functionCallList = new ArrayList<>(rowTransform.getFunctionCallList());
         for (String correlatedVariable : correlatedVariables) {
-          FunctionParams params = new FunctionParams(new BaseExpression(correlatedVariable));
+          FunctionParams params =
+              new FunctionParams(Collections.singletonList(new BaseExpression(correlatedVariable)));
           functionCallList.add(
               new FunctionCall(FunctionManager.getInstance().getFunction(ARITHMETIC_EXPR), params));
         }

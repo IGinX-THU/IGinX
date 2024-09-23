@@ -33,6 +33,7 @@ import cn.edu.tsinghua.iginx.engine.shared.data.read.Field;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Header;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.Row;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
+import cn.edu.tsinghua.iginx.engine.shared.expr.BaseExpression;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Avg;
@@ -2255,7 +2256,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testDownsample() throws PhysicalException {
     Table table = generateTableForUnaryOperator(true);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     Downsample downsample =
         new Downsample(
@@ -2293,7 +2295,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testDownsampleWithoutTimestamp() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     Downsample downsample =
         new Downsample(
@@ -2310,7 +2313,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testMappingTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     MappingTransform mappingTransform =
         new MappingTransform(
@@ -2341,7 +2345,8 @@ public abstract class AbstractOperatorMemoryExecutorTest {
   public void testSetTransform() throws PhysicalException {
     Table table = generateTableForUnaryOperator(false);
 
-    FunctionParams params = new FunctionParams(Collections.singletonList("a.a.b"));
+    FunctionParams params =
+        new FunctionParams(Collections.singletonList(new BaseExpression("a.a.b")));
 
     SetTransform setTransform =
         new SetTransform(

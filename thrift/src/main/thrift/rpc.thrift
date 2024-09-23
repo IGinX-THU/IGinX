@@ -31,7 +31,7 @@ enum StorageEngineType {
     unknown,
     iotdb12,
     influxdb,
-    filestore,
+    filesystem,
     relational,
     mongodb,
     redis

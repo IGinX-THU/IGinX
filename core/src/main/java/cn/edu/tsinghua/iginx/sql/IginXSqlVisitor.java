@@ -25,6 +25,7 @@ import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.caseWhe
 import static cn.edu.tsinghua.iginx.sql.statement.select.SelectStatement.markJoinCount;
 
 import cn.edu.tsinghua.iginx.engine.logical.utils.LogicalFilterUtils;
+import cn.edu.tsinghua.iginx.engine.physical.exception.PhysicalException;
 import cn.edu.tsinghua.iginx.engine.physical.memory.execute.utils.ExprUtils;
 import cn.edu.tsinghua.iginx.engine.shared.KeyRange;
 import cn.edu.tsinghua.iginx.engine.shared.data.Value;
@@ -951,10 +952,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             }
           });
     }
-
-    if (!selectStatement.getFuncTypeSet().isEmpty()) {
-      selectStatement.setHasFunc(true);
-    }
   }
 
   private void parseSelectPathsWithValue2Meta(
@@ -980,7 +977,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   private List<Expression> parseExpression(
       ExpressionContext ctx, UnarySelectStatement selectStatement, boolean isFromSelectClause) {
     if (ctx.function() != null) {
-      return Collections.singletonList(parseFuncExpression(ctx, selectStatement));
+      return Collections.singletonList(
+          parseFuncExpression(ctx, selectStatement, isFromSelectClause));
     }
     if (ctx.path() != null && !ctx.path().isEmpty()) {
       return Collections.singletonList(
@@ -1058,7 +1056,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
   }
 
   private Expression parseFuncExpression(
-      ExpressionContext ctx, UnarySelectStatement selectStatement) {
+      ExpressionContext ctx, UnarySelectStatement selectStatement, boolean isFromSelectClause) {
     FunctionContext funcCtx = ctx.function();
     String funcName = funcCtx.functionName().getText();
 
@@ -1073,36 +1071,45 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       }
     }
 
-    List<String> columns = new ArrayList<>();
-    for (PathContext pathContext : funcCtx.path()) {
-      columns.add(parsePath(pathContext));
+    List<Expression> columns = new ArrayList<>();
+    for (ExpressionContext exprCtx : funcCtx.expression()) {
+      if (exprCtx.subquery() != null) {
+        throw new SQLParserException("Subquery is not supported to be used in function");
+      }
+      columns.addAll(parseExpression(exprCtx, selectStatement, isFromSelectClause));
     }
 
     List<Object> args = new ArrayList<>();
-    Map<String, Object> kvargs = new HashMap<>();
+    ListIterator<Expression> iter = columns.listIterator(columns.size());
+    while (iter.hasPrevious()) {
+      Expression expression = iter.previous();
+      if (!ExpressionUtils.isConstantArithmeticExpr(expression)) {
+        break;
+      }
+      Value value;
+      try {
+        value = ExprUtils.calculateExpr(null, expression);
+      } catch (PhysicalException e) {
+        throw new SQLParserException(
+            String.format(
+                "fail to calculate const arithmetic expression: %s, cause by: %s",
+                expression.getColumnName(), e));
+      }
+      args.add(value.getValue());
+      iter.remove();
+    }
+
+    Map<String, Object> kwargs = new HashMap<>();
     for (ParamContext paramContext : funcCtx.param()) {
       Object val = parseValue(paramContext.value);
       if (paramContext.key != null) {
         String key = paramContext.key.getText();
-        kvargs.put(key, val);
+        kwargs.put(key, val);
       } else {
         args.add(val);
       }
     }
-
-    // 如果查询语句中FROM子句只有一个部分且FROM一个前缀，则SELECT子句中的path只用写出后缀
-    if (selectStatement.isFromSinglePath()) {
-      String fromPath = selectStatement.getFromPart(0).getPrefix();
-
-      List<String> newColumns = new ArrayList<>();
-      for (String column : columns) {
-        newColumns.add(fromPath + SQLConstant.DOT + column);
-      }
-      columns = newColumns;
-    }
-    FuncExpression expression = new FuncExpression(funcName, columns, args, kvargs, isDistinct);
-    selectStatement.setSelectedFuncsAndExpression(funcName, expression);
-    return expression;
+    return new FuncExpression(funcName, columns, args, kwargs, isDistinct);
   }
 
   private Expression parseBaseExpression(
@@ -1303,7 +1310,7 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
             });
 
     selectStatement
-        .getBaseExpressionList()
+        .getBaseExpressionList(true)
         .forEach(
             expr -> {
               if (!selectStatement.getGroupByPaths().contains(expr.getPathName())) {
@@ -1744,7 +1751,6 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
       Value value = new Value(parseValue(ctx.constant()));
       String path = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       filterData.setFilter(new ValueFilter(path, op, value));
-      return filterData;
     } else {
       String pathA = parsePath(ctx.path());
       if (statement.isFromSinglePath() && !statement.isSubQuery()) {
@@ -1757,8 +1763,8 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
       String pathB = expression.hasAlias() ? expression.getAlias() : expression.getColumnName();
       filterData.setFilter(new PathFilter(pathA, op, pathB));
-      return filterData;
     }
+    return filterData;
   }
 
   private FilterData parseTwoScalarSubQueryComparisonFilter(
@@ -1997,9 +2003,9 @@ public class IginXSqlVisitor extends SqlBaseVisitor<Statement> {
 
   private static class FilterData {
     private Filter filter;
-    private List<String> pathList;
+    private final List<String> pathList;
 
-    private List<SubQueryFromPart> subQueryFromPartList;
+    private final List<SubQueryFromPart> subQueryFromPartList;
 
     public FilterData() {
       this.filter = null;
