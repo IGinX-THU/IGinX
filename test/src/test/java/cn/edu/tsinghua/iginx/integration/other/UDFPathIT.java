@@ -64,6 +64,7 @@ public class UDFPathIT {
             + "|    columnExpand|UDFColumnExpand|udtf_column_expand.py|0.0.0.0|    UDTF|\n"
             + "|         udf_min|         UDFMin|           udf_min.py|0.0.0.0|    UDAF|\n"
             + "|         udf_avg|         UDFAvg|           udf_avg.py|0.0.0.0|    UDAF|\n"
+            + "|          arccos|      UDFArcCos|       udtf_arccos.py|0.0.0.0|    UDTF|\n"
             + "|     key_add_one|   UDFKeyAddOne|  udtf_key_add_one.py|0.0.0.0|    UDTF|\n"
             + "|             pow|         UDFPow|          udtf_pow.py|0.0.0.0|    UDTF|\n"
             + "|    reverse_rows| UDFReverseRows| udsf_reverse_rows.py|0.0.0.0|    UDSF|\n"

@@ -23,6 +23,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import cn.edu.tsinghua.iginx.engine.shared.expr.FuncExpression;
+import cn.edu.tsinghua.iginx.engine.shared.function.MappingType;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.Op;
 import cn.edu.tsinghua.iginx.engine.shared.operator.filter.PathFilter;
 import cn.edu.tsinghua.iginx.sql.statement.AddStorageEngineStatement;
@@ -91,30 +92,17 @@ public class ParseTest {
         "SELECT SUM(c), SUM(d), SUM(e), COUNT(f), COUNT(g) FROM a.b WHERE 100 < key and key < 1000 or d == \"abc\" or \"666\" <= c or (e < 10 and not (f < 10)) OVER WINDOW (size 10 IN [200, 300));";
     UnarySelectStatement statement = (UnarySelectStatement) TestUtils.buildStatement(selectStr);
 
-    assertTrue(statement.hasFunc());
     assertTrue(statement.hasValueFilter());
     assertTrue(statement.hasDownsample());
     assertEquals(UnarySelectStatement.QueryType.DownSampleQuery, statement.getQueryType());
 
-    assertEquals(2, statement.getFuncExpressionMap().size());
-    assertTrue(statement.getFuncExpressionMap().containsKey("SUM"));
-    assertTrue(statement.getFuncExpressionMap().containsKey("COUNT"));
-
-    assertEquals(
-        Collections.singletonList("a.b.c"),
-        statement.getFuncExpressionMap().get("SUM").get(0).getColumns());
-    assertEquals(
-        Collections.singletonList("a.b.d"),
-        statement.getFuncExpressionMap().get("SUM").get(1).getColumns());
-    assertEquals(
-        Collections.singletonList("a.b.e"),
-        statement.getFuncExpressionMap().get("SUM").get(2).getColumns());
-    assertEquals(
-        Collections.singletonList("a.b.f"),
-        statement.getFuncExpressionMap().get("COUNT").get(0).getColumns());
-    assertEquals(
-        Collections.singletonList("a.b.g"),
-        statement.getFuncExpressionMap().get("COUNT").get(1).getColumns());
+    List<FuncExpression> funcExprList = statement.getTargetTypeFuncExprList(MappingType.SetMapping);
+    assertEquals(5, funcExprList.size());
+    assertEquals("sum(a.b.c)", funcExprList.get(0).getColumnName());
+    assertEquals("sum(a.b.d)", funcExprList.get(1).getColumnName());
+    assertEquals("sum(a.b.e)", funcExprList.get(2).getColumnName());
+    assertEquals("count(a.b.f)", funcExprList.get(3).getColumnName());
+    assertEquals("count(a.b.g)", funcExprList.get(4).getColumnName());
 
     assertEquals(
         "(((key > 100 && key < 1000) || a.b.d == \"abc\" || a.b.c >= \"666\" || (a.b.e < 10 && !(a.b.f < 10))) && key >= 200 && key < 300)",
@@ -237,8 +225,9 @@ public class ParseTest {
     SubQueryFromPart subQueryFromPart = (SubQueryFromPart) statement.getFromParts().get(0);
     UnarySelectStatement subStatement = (UnarySelectStatement) subQueryFromPart.getSubQuery();
 
-    FuncExpression expression = subStatement.getFuncExpressionMap().get("max").get(0);
-    assertEquals(Collections.singletonList("res.a"), expression.getColumns());
+    FuncExpression expression =
+        subStatement.getTargetTypeFuncExprList(MappingType.SetMapping).get(0);
+    assertEquals("max(res.a)", expression.getColumnName());
     assertEquals("max", expression.getFuncName());
     assertEquals("max_a", expression.getAlias());
   }

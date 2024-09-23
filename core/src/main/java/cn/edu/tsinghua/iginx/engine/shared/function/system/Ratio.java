@@ -59,7 +59,7 @@ public class Ratio implements RowMappingFunction {
 
   @Override
   public Row transform(Row row, FunctionParams params) throws Exception {
-    if (params.getPaths() == null || params.getPaths().size() != 2) {
+    if (params.getPaths().size() != 2) {
       throw new IllegalArgumentException("unexpected params for ratio.");
     }
 
