@@ -30,6 +30,7 @@ import cn.edu.tsinghua.iginx.engine.shared.RequestContext;
 import cn.edu.tsinghua.iginx.engine.shared.data.read.RowStream;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionCall;
 import cn.edu.tsinghua.iginx.engine.shared.function.FunctionParams;
+import cn.edu.tsinghua.iginx.engine.shared.function.FunctionUtils;
 import cn.edu.tsinghua.iginx.engine.shared.function.SetMappingFunction;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Max;
 import cn.edu.tsinghua.iginx.engine.shared.function.system.Min;
@@ -202,7 +203,7 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
       throws PhysicalException {
     if (!stream.getHeader().hasKey()) {
       throw new InvalidOperatorParameterException(
-          "downsample operator is not support for row stream without timestamps.");
+          "downsample operator is not support for row stream without key.");
     }
     return new DownsampleLazyStream(downsample, stream);
   }
@@ -215,12 +216,20 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
       throws PhysicalException {
     List<FunctionCall> functionCallList = setTransform.getFunctionCallList();
     Map<List<String>, RowStream> distinctStreamMap = new HashMap<>();
-    distinctStreamMap.put(null, stream);
+    Map<List<String>, RowStream> rowTransformStreamMap = new HashMap<>();
 
-    // 如果有distinct,构造不同function对应的stream的Map
     for (FunctionCall functionCall : functionCallList) {
       FunctionParams params = functionCall.getParams();
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
+      RowStream input = stream;
+      // 如果参数是表达式,构造不同function对应的stream的Map
+      if (functionCall.isNeedPreRowTransform()) {
+        List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
+        RowTransform rowTransform = new RowTransform(EmptySource.EMPTY_SOURCE, list);
+        input = executeRowTransform(rowTransform, input);
+        rowTransformStreamMap.put(params.getPaths(), input);
+      }
+      // 如果有distinct,构造不同function对应的stream的Map
       if (params.isDistinct()) {
         if (!isCanUseSetQuantifierFunction(function.getIdentifier())) {
           throw new IllegalArgumentException(
@@ -230,12 +239,13 @@ public class StreamOperatorMemoryExecutor implements OperatorMemoryExecutor {
         if (!function.getIdentifier().equals(Max.MAX)
             && !function.getIdentifier().equals(Min.MIN)) {
           Distinct distinct = new Distinct(EmptySource.EMPTY_SOURCE, params.getPaths());
-          distinctStreamMap.put(params.getPaths(), executeDistinct(distinct, stream));
+          distinctStreamMap.put(params.getPaths(), executeDistinct(distinct, input));
         }
       }
     }
 
-    return new SetTransformLazyStream(setTransform, distinctStreamMap);
+    return new SetTransformLazyStream(
+        setTransform, stream, rowTransformStreamMap, distinctStreamMap);
   }
 
   private RowStream executeMappingTransform(MappingTransform mappingTransform, RowStream stream) {

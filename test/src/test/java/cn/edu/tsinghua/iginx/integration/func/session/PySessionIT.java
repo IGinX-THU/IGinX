@@ -329,16 +329,16 @@ public class PySessionIT {
     }
     assertEquals(result.size(), 12);
     // TODO: 这里 6670 和 6671 看起来是重复的，因为之前这里有两个不同的对接层 FileSystem 和 Parquet
-    //       但是现在这两者合二为一成为 FileStore，所以这里的测试用例可能需要精简
+    //       但是现在这两者合二为一成为 filesystem，所以这里的测试用例可能需要精简
     //       详见：https://github.com/IGinX-THU/IGinX/pull/424
-    assertTrue(result.get(1).contains("ip='127.0.0.1', port=6670, type='filestore'"));
-    assertFalse(result.get(1).contains("ip='127.0.0.1', port=6671, type='filestore'"));
-    assertFalse(result.get(4).contains("ip='127.0.0.1', port=6670, type='filestore'"));
-    assertFalse(result.get(4).contains("ip='127.0.0.1', port=6671, type='filestore'"));
-    assertTrue(result.get(7).contains("ip='127.0.0.1', port=6670, type='filestore'"));
-    assertTrue(result.get(7).contains("ip='127.0.0.1', port=6671, type='filestore'"));
-    assertFalse(result.get(10).contains("ip='127.0.0.1', port=6670, type='filestore'"));
-    assertFalse(result.get(10).contains("ip='127.0.0.1', port=6671, type='filestore'"));
+    assertTrue(result.get(1).contains("ip='127.0.0.1', port=6670, type='filesystem'"));
+    assertFalse(result.get(1).contains("ip='127.0.0.1', port=6671, type='filesystem'"));
+    assertFalse(result.get(4).contains("ip='127.0.0.1', port=6670, type='filesystem'"));
+    assertFalse(result.get(4).contains("ip='127.0.0.1', port=6671, type='filesystem'"));
+    assertTrue(result.get(7).contains("ip='127.0.0.1', port=6670, type='filesystem'"));
+    assertTrue(result.get(7).contains("ip='127.0.0.1', port=6671, type='filesystem'"));
+    assertFalse(result.get(10).contains("ip='127.0.0.1', port=6670, type='filesystem'"));
+    assertFalse(result.get(10).contains("ip='127.0.0.1', port=6671, type='filesystem'"));
   }
 
   @Test
