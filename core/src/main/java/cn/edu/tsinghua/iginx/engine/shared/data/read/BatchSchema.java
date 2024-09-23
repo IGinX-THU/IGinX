@@ -156,33 +156,4 @@ public class BatchSchema {
   public static ArrowType toArrowType(DataType dataType) {
     return toMinorType(dataType).getType();
   }
-
-  public static DataType toDataType(ArrowType arrowType) {
-    switch (arrowType.getTypeID()) {
-      case Bool:
-        return DataType.BOOLEAN;
-      case Int:
-        switch (((ArrowType.Int) arrowType).getBitWidth()) {
-          case 32:
-            return DataType.INTEGER;
-          case 64:
-            return DataType.LONG;
-          default:
-            throw new UnsupportedOperationException("Unsupported arrow type: " + arrowType);
-        }
-      case FloatingPoint:
-        switch (((ArrowType.FloatingPoint) arrowType).getPrecision()) {
-          case SINGLE:
-            return DataType.FLOAT;
-          case DOUBLE:
-            return DataType.DOUBLE;
-          default:
-            throw new UnsupportedOperationException("Unsupported arrow type: " + arrowType);
-        }
-      case Binary:
-        return DataType.BINARY;
-      default:
-        throw new UnsupportedOperationException("Unsupported arrow type: " + arrowType);
-    }
-  }
 }

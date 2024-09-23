@@ -77,7 +77,6 @@ import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarBinaryVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.ipc.ArrowStreamWriter;
-import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.slf4j.Logger;
@@ -354,10 +353,12 @@ public class StatementExecutor {
         if (type == StatementType.SELECT) {
           SelectStatement selectStatement = (SelectStatement) ctx.getStatement();
           if (selectStatement.isNeedPhysicalExplain()) {
-            Batch batch = stream.getNext();
-            while (batch != null) { // 确保语句执行完毕
-              batch.close();
-              batch = stream.getNext();
+            while (true) {
+              try (Batch batch = stream.getNext()) {
+                if (batch == null) {
+                  break; // 确保语句执行完毕
+                }
+              }
             }
             stream.close();
             processExplainPhysicalStatement(ctx);
@@ -724,15 +725,17 @@ public class StatementExecutor {
     ctx.setStatement(statement);
     process(ctx);
 
-    Result result = ctx.getResult();
-    long pointsNum = 0;
-    if (ctx.getResult().getValuesList() != null) {
-      Object[] row =
-          ByteUtils.getValuesByDataType(result.getValuesList().get(0), result.getDataTypes());
-      pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
-    }
+    // TODO: refactor this part
+    throw new UnsupportedOperationException("Not implemented yet");
+    //    Result result = ctx.getResult();
+    //    long pointsNum = 0;
+    //    if (ctx.getResult().getValuesList() != null) {
+    //      Object[] row =
+    //          ByteUtils.getValuesByDataType(result.getValuesList().get(0), result.getDataTypes());
+    //      pointsNum = Arrays.stream(row).mapToLong(e -> (Long) e).sum();
+    //    }
 
-    ctx.getResult().setPointsNum(pointsNum);
+    //    ctx.getResult().setPointsNum(pointsNum);
   }
 
   private void processDeleteColumns(RequestContext ctx)
@@ -754,11 +757,13 @@ public class StatementExecutor {
 
   private void setEmptyQueryResp(RequestContext ctx, List<String> paths) {
     Result result = new Result(RpcUtils.SUCCESS);
-    result.setKeys(new Long[0]);
-    result.setValuesList(new ArrayList<>());
-    result.setBitmapList(new ArrayList<>());
-    result.setPaths(paths);
-    ctx.setResult(result);
+    // TODO: refactor this part
+    throw new UnsupportedOperationException("Not implemented yet");
+    //    result.setKeys(new Long[0]);
+    //    result.setValuesList(new ArrayList<>());
+    //    result.setBitmapList(new ArrayList<>());
+    //    result.setPaths(paths);
+    //    ctx.setResult(result);
   }
 
   private void setResult(RequestContext ctx, BatchStream stream)
@@ -807,59 +812,36 @@ public class StatementExecutor {
       return;
     }
 
-    List<String> paths = new ArrayList<>();
-    List<Map<String, String>> tagsList = new ArrayList<>();
-    List<DataType> types = new ArrayList<>();
-    Schema schema = stream.getSchema().raw();
-    schema
-        .getFields()
-        .forEach(
-            field -> {
-              paths.add(field.getName());
-              if (field.getMetadata() == null) {
-                tagsList.add(new HashMap<>());
-              } else {
-                tagsList.add(field.getMetadata());
-              }
-              types.add(BatchSchema.toDataType(field.getType()));
-            });
-
     List<ByteBuffer> dataList = new ArrayList<>();
-    Batch batch = stream.getNext();
-    while (batch != null) {
-      try (VectorSchemaRoot root = batch.raw().toVectorSchemaRoot();
-          ByteArrayOutputStream out = new ByteArrayOutputStream();
-          ArrowStreamWriter writer = new ArrowStreamWriter(root, null, out)) {
-        writer.start();
-        writer.writeBatch();
-        writer.end();
-        ByteBuffer data = ByteBuffer.wrap(out.toByteArray());
-        dataList.add(data);
-      } catch (IOException e) {
-        throw new PhysicalException(e);
+    try (BatchStream batchStream = stream) {
+      while (true) {
+        try (Batch batch = batchStream.getNext()) {
+          if (batch == null) {
+            break;
+          }
+          try (VectorSchemaRoot root = batch.raw().toVectorSchemaRoot();
+              ByteArrayOutputStream out = new ByteArrayOutputStream();
+              ArrowStreamWriter writer = new ArrowStreamWriter(root, null, out)) {
+            writer.start();
+            writer.writeBatch();
+            writer.end();
+            ByteBuffer data = ByteBuffer.wrap(out.toByteArray());
+            dataList.add(data);
+          } catch (IOException e) {
+            throw new PhysicalException(e);
+          }
+        }
       }
-      batch = stream.getNext();
+
+      Status status = RpcUtils.SUCCESS;
+      if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
+        status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
+        status.setMessage(ctx.getWarningMsg());
+      }
+      result = new Result(status);
+      result.setArrowData(dataList);
+      ctx.setResult(result);
     }
-
-    if (dataList.isEmpty()) { // empty result
-      setEmptyQueryResp(ctx, paths);
-      return;
-    }
-
-    Status status = RpcUtils.SUCCESS;
-    if (ctx.getWarningMsg() != null && !ctx.getWarningMsg().isEmpty()) {
-      status = new Status(StatusCode.PARTIAL_SUCCESS.getStatusCode());
-      status.setMessage(ctx.getWarningMsg());
-    }
-    result = new Result(status);
-
-    result.setDataList(dataList);
-    result.setPaths(paths);
-    result.setTagsList(tagsList);
-    result.setDataTypes(types);
-    ctx.setResult(result);
-
-    stream.close();
   }
 
   private void setShowColumnsResult(RequestContext ctx, BatchStream stream)
@@ -875,36 +857,43 @@ public class StatementExecutor {
     List<Map<String, String>> tagsList = new ArrayList<>();
     List<DataType> types = new ArrayList<>();
 
-    Batch batch = stream.getNext();
-    while (batch != null) {
-      try (VectorSchemaRoot root = batch.raw().toVectorSchemaRoot()) {
-        int rowCnt = root.getRowCount();
-        List<FieldVector> vectors = root.getFieldVectors();
-        if (vectors.size() != 2) {
-          LOGGER.warn("show columns result col size = {}", vectors.size());
-        } else {
-          VarBinaryVector pathVector = (VarBinaryVector) vectors.get(0);
-          VarBinaryVector typeVector = (VarBinaryVector) vectors.get(1);
-          for (int i = 0; i < rowCnt; i++) {
-            paths.add(new String(pathVector.get(i)));
-            DataType type = DataTypeUtils.getDataTypeFromString(new String(typeVector.get(i)));
-            if (type == null) {
-              LOGGER.warn("unknown data type [{}]", typeVector.get(i));
+    try (BatchStream batchStream = stream) {
+      while (true) {
+        try (Batch batch = batchStream.getNext()) {
+          if (batch == null) {
+            break;
+          }
+          try (VectorSchemaRoot root = batch.raw().toVectorSchemaRoot()) {
+            int rowCnt = root.getRowCount();
+            List<FieldVector> vectors = root.getFieldVectors();
+            if (vectors.size() != 2) {
+              LOGGER.warn("show columns result col size = {}", vectors.size());
+            } else {
+              try (VarBinaryVector pathVector = (VarBinaryVector) vectors.get(0);
+                  VarBinaryVector typeVector = (VarBinaryVector) vectors.get(1)) {
+                for (int i = 0; i < rowCnt; i++) {
+                  paths.add(new String(pathVector.get(i)));
+                  DataType type =
+                      DataTypeUtils.getDataTypeFromString(new String(typeVector.get(i)));
+                  if (type == null) {
+                    LOGGER.warn("unknown data type [{}]", typeVector.get(i));
+                  }
+                  types.add(type);
+                }
+              }
             }
-            types.add(type);
           }
         }
       }
-      batch = stream.getNext();
     }
 
     Result result = new Result(RpcUtils.SUCCESS);
-    result.setPaths(paths);
-    result.setTagsList(tagsList);
-    result.setDataTypes(types);
-    ctx.setResult(result);
-
-    stream.close();
+    // TODO: refactor this part
+    throw new UnsupportedOperationException("Not implemented yet");
+    //    result.setPaths(paths);
+    //    result.setTagsList(tagsList);
+    //    result.setDataTypes(types);
+    //    ctx.setResult(result);
   }
 
   private void parseOldTagsFromHeader(Header header, InsertStatement insertStatement)
