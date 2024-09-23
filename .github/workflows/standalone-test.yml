@@ -27,7 +27,7 @@ on:
                 description: "The database to run the test on"
                 type: string
                 required: false
-                default: '["IoTDB12", "InfluxDB", "FileStore", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
+                default: '["IoTDB12", "InfluxDB", "FileSystem", "PostgreSQL", "Redis", "MongoDB", "MySQL"]'
 
 jobs:
     Union-DB-Test:
@@ -106,12 +106,12 @@ jobs:
                   shell: client-before
 
             # TODO: extract it to a separate job to test
-            # large image export only tested in FileStore
+            # large image export only tested in FileSystem
             - name: Test Client Export File
               if: always()
               shell: bash
               run: |
-                  if [[ "${{ matrix.DB-name }}" == "FileStore" ]]; then
+                  if [[ "${{ matrix.DB-name }}" == "FileSystem" ]]; then
                       mvn test -q -Dtest=ExportFileIT -DfailIfNoTests=false -P-format
                   else
                       mvn test -q -Dtest=ExportFileIT#checkExportByteStream -DfailIfNoTests=false -P-format

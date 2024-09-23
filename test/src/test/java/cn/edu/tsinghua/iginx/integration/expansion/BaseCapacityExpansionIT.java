@@ -25,7 +25,7 @@ import static org.junit.Assert.*;
 
 import cn.edu.tsinghua.iginx.exception.SessionException;
 import cn.edu.tsinghua.iginx.integration.controller.Controller;
-import cn.edu.tsinghua.iginx.integration.expansion.filestore.FileStoreCapacityExpansionIT;
+import cn.edu.tsinghua.iginx.integration.expansion.filesystem.FileSystemCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.influxdb.InfluxDBCapacityExpansionIT;
 import cn.edu.tsinghua.iginx.integration.expansion.utils.SQLTestTools;
 import cn.edu.tsinghua.iginx.integration.tool.ConfLoader;
@@ -60,7 +60,7 @@ public abstract class BaseCapacityExpansionIT {
 
   protected Map<String, String> updatedParams = new HashMap<>();
 
-  private final boolean IS_EMBEDDED = this instanceof FileStoreCapacityExpansionIT;
+  private final boolean IS_EMBEDDED = this instanceof FileSystemCapacityExpansionIT;
 
   private final String EXP_SCHEMA_PREFIX = null;
 
@@ -872,10 +872,10 @@ public abstract class BaseCapacityExpansionIT {
       iginxPath = ".github/scripts/iginx/iginx_windows.sh";
     }
 
-    if (this instanceof FileStoreCapacityExpansionIT) {
-      scriptPath = ".github/scripts/dataSources/startup/filestore.sh";
+    if (this instanceof FileSystemCapacityExpansionIT) {
+      scriptPath = ".github/scripts/dataSources/startup/filesystem.sh";
     } else {
-      throw new IllegalStateException("Only support filestore");
+      throw new IllegalStateException("Only support filesystem");
     }
 
     int iginxPort = PORT_TO_IGINXPORT.get(port);
