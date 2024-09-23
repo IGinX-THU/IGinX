@@ -374,18 +374,7 @@ public class NaiveOperatorMemoryExecutor implements OperatorMemoryExecutor {
     for (FunctionCall functionCall : functionList) {
       SetMappingFunction function = (SetMappingFunction) functionCall.getFunction();
       FunctionParams params = functionCall.getParams();
-
       Table functable = RowUtils.preRowTransform(table, rowTransformMap, functionCall);
-      ;
-      if (functionCall.isNeedPreRowTransform()) {
-        List<FunctionCall> list = FunctionUtils.getArithFunctionCalls(params.getExpressions());
-        if (rowTransformMap.containsKey(params.getPaths())) {
-          functable = rowTransformMap.get(params.getPaths());
-        } else {
-          functable = RowUtils.calRowTransform(table, list);
-          rowTransformMap.put(params.getPaths(), functable);
-        }
-      }
       if (setTransform.isDistinct()) {
         // min和max无需去重
         if (!function.getIdentifier().equals(Max.MAX)
